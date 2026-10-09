@@ -654,7 +654,7 @@ async function playerStep(ref, tag, opts) {
         }
         const wB3 = ref.worlds[ref.profile.worldId];
         if (!acted || !pk) {
-          if (nowB - (wB3.bondVisitAt || 0) >= (D.BOND_VISIT_CD_MS != null ? D.BOND_VISIT_CD_MS : 3600000)) {
+          if (nowB - (wB3.bondVisitAt || 0) >= (D.BOND_VISIT_CD_MS != null ? D.BOND_VISIT_CD_MS : 300000)) {
             const vr = await asafe(tag + '.visit', () => SQ.Actions.visitBond(ref, bt.npc));
             if (vr && vr.ok) bondStats.visit++;
             else if (vr) bondStats.visitBlock[vr.reason || 'null'] = (bondStats.visitBlock[vr.reason || 'null'] || 0) + 1;

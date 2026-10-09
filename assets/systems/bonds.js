@@ -164,7 +164,7 @@
       var c = SQ.Bonds.byId(pack, npcId);
       if (!c) return { ok: false, reason: 'unknown' };
       now = (typeof now === 'number' && isFinite(now)) ? now : Date.now();
-      var cd = D.BOND_VISIT_CD_MS != null ? D.BOND_VISIT_CD_MS : 3600000;
+      var cd = D.BOND_VISIT_CD_MS != null ? D.BOND_VISIT_CD_MS : 300000;   /* 兜底 = 表值（2026-10-09 起 5min），不许留第二个事实源 */
       var at = ws.bondVisitAt || 0;
       if (at + cd > now) return { ok: false, reason: 'cooldown', waitMs: at + cd - now };
       if (SQ.Bonds.locked(ws, npcId)) return { ok: false, reason: 'lock' };

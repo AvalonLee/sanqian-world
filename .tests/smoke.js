@@ -5584,6 +5584,42 @@
       ' ‖ (d2) 冷却拒后锚=' + atAfterD2 + ' 锁类拒后锚=' + wLk257.bondVisitAt + '/' + wSc257.bondVisitAt + '/' + rUn257.reason +
       ' ‖ (g2) 库存=' + wG257.alchemy.pills.ap_juqi + '(9−3−1) giftDay三态=' + JSON.stringify(nDef257) + '/' + JSON.stringify(nBad257) + '/' + JSON.stringify(nKeep257));
 
+    /* #284 拜访冷却 = 5 分钟（2026-10-09 用户裁定 `BOND_VISIT_CD_MS` 1h → 5min · 引擎卷 v1.12 §3.2a）：
+     * #257(d) 全程读表（`D.BOND_VISIT_CD_MS`），它证的是「引擎按表值算」，**证不了表值本身是多少**——
+     * 把 300000 改回 3600000，#257 照样绿。本条补这一格，钉三件：
+     * (a) 表值 === 300000（5 现实分钟 = 300 游戏日 ≈ 0.83 游戏年）；
+     * (b) 边界双证 —— 299999ms 仍拒（waitMs=1）、300000ms 放行且锚推进到该刻；
+     * (c) **兜底与表同值**：浅拷一份表、摘掉冷却键走 `!= null` 回落分支，窗仍应是 5 分钟——
+     *     留 1h 兜底 = 同一数字两个事实源，表一改就有路径悄悄回到旧节奏；
+     * (d) **只改节奏不改收益**：档位递减表 [3,3,2,1,0] 与同向加成一字未动（未识实发 +3、
+     *     已识同向实发 3+bonus），防「顺手把冷却和收益一起放大」这种越界改动。 */
+    var cd284 = D.BOND_VISIT_CD_MS;
+    var w284a = mk257({ bonds: {} }); w284a.bonds[cs257[0].id] = 5;
+    var r284a1 = SQ.Bonds.visit(w284a, pack, D, cs257[0].id, T257, log257);
+    var r284a2 = SQ.Bonds.visit(w284a, pack, D, cs257[0].id, T257 + cd284 - 1, log257);
+    var r284a3 = SQ.Bonds.visit(w284a, pack, D, cs257[0].id, T257 + cd284, log257);
+    var D284 = Object.assign({}, D); delete D284.BOND_VISIT_CD_MS;
+    var w284c = mk257({ bonds: {} }); w284c.bonds[cs257[1].id] = 5;
+    SQ.Bonds.visit(w284c, pack, D284, cs257[1].id, T257, log257);
+    var r284c2 = SQ.Bonds.visit(w284c, pack, D284, cs257[1].id, T257 + 299999, log257);
+    var r284c3 = SQ.Bonds.visit(w284c, pack, D284, cs257[1].id, T257 + 300000, log257);
+    var w284d1 = mk257({});                                   /* 未识 ⇒ tier 0 ⇒ base 3、无同向加成 */
+    var r284d1 = SQ.Bonds.visit(w284d1, pack, D, sd257.id, T257, log257);
+    var w284d2 = mk257({ bonds: {} }); w284d2.bonds[sd257.id] = 5;   /* 已识同向 ⇒ 3 + bonus */
+    var r284d2 = SQ.Bonds.visit(w284d2, pack, D, sd257.id, T257, log257);
+    var tbl284 = String(D.BOND_VISIT_BY_TIER || []);
+    var a284 = cd284 === 300000 && cd284 === 5 * 60 * 1000;
+    var b284 = r284a1.ok === true && r284a2.ok === false && r284a2.reason === 'cooldown' &&
+      r284a2.waitMs === 1 && r284a3.ok === true && w284a.bondVisitAt === T257 + cd284;
+    var c284 = r284c2.ok === false && r284c2.reason === 'cooldown' && r284c2.waitMs === 1 && r284c3.ok === true;
+    var d284 = tbl284 === '3,3,2,1,0' && (D.BOND_VISIT_ALIGN_BONUS || 1) === 1 &&
+      r284d1.ok === true && r284d1.gain === 3 && r284d1.align === false &&
+      r284d2.ok === true && r284d2.gain === 4 && r284d2.align === true;
+    ok('284', '拜访冷却 = 5 分钟（2026-10-09 裁定 1h→5min · 钉表值本身而非只跑表值）：(a) 表值 === 300000；(b) 边界双证 299999 拒 / 300000 放行且锚推进；(c) 兜底与表同值（摘键走回落分支仍是 5 分钟窗，不留 1h 第二事实源）；(d) 只改节奏不改收益（档位表 [3,3,2,1,0] 与同向 +1 一字未动，未识实发 +3 / 已识同向实发 +4）',
+      a284 && b284 && c284 && d284,
+      '表值=' + cd284 + 'ms（= ' + (cd284 / 60000) + ' 现实分钟 = ' + (cd284 / 1000) + ' 游戏日）· 边界=' + r284a2.reason + '/' + r284a2.waitMs +
+      ' → 放行@' + (w284a.bondVisitAt === T257 + cd284) + ' · 兜底=' + r284c2.reason + '/' + r284c2.waitMs +
+      ' → 放行@' + r284c3.ok + ' · 收益 未识=' + r284d1.gain + ' 同向=' + r284d2.gain + ' 表=' + tbl284);
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：
      * 正典说收集类项（法宝/功法满级/称号/里程碑/成就）复用图鉴账本作幂等键、不在 meta.earnedKeys
      * **二次冗余存储**；legacy.js 实况却逐条存着实付额，而实付额含**历史转世通道系数**

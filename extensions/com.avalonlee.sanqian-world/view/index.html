@@ -3510,7 +3510,7 @@
     if (SQ.Bonds.scarred(w, id)) return '<div class="dd hint">' + esc(t('bond.fail.scar')) + '</div>';
     if (tier >= maxBondTier()) return '<div class="dd hint">' + esc(t('bond.visit.fail.max')) + '</div>';
     var g = visitGainOf(id, tier);
-    var cd = d.BOND_VISIT_CD_MS != null ? d.BOND_VISIT_CD_MS : 3600000;
+    var cd = d.BOND_VISIT_CD_MS != null ? d.BOND_VISIT_CD_MS : 300000;   /* 兜底与表同值：视图倒计时不许在表缺键时悄悄回到 1h */
     var wait = (w.bondVisitAt || 0) + cd - Date.now();
     if (wait > 0) {
       return '<button class="actbtn" type="button" disabled><span class="an">' + esc(t('bond.visit.btn')) +
@@ -3610,7 +3610,13 @@
     if (!isFinite(ms)) ms = 0;                     /* 防脏字段：NaN/undefined 一律按 0 计，杜绝「NaN时NaN分」 */
     var s = Math.max(0, Math.floor(ms / 1000));
     var d = Math.floor(s / 86400), hh = Math.floor((s % 86400) / 3600);
-    return d > 0 ? t('ui.time.d', { d: d, h: hh }) : t('ui.time.hm', { h: hh, m: Math.floor((s % 3600) / 60) });
+    if (d > 0) return t('ui.time.d', { d: d, h: hh });
+    if (hh > 0) return t('ui.time.hm', { h: hh, m: Math.floor((s % 3600) / 60) });
+    /* 不足 1 小时 ⇒ 走「X 分钟」（UI 卷 §六 时间格式正典，离线呈报同口径）。
+     * 2026-10-09 拜访冷却由 1h 改 5 分钟后，这条分支成了拜访按钮的**主路径**——旧实现在此显示
+     * 「0时4分」，属代码与正典不符的一处（一直存在，只是过去 <1h 的窗口少、不显眼）。
+     * 分钟**向上取整且至少 1**：最后 40 秒显示「1分钟」而不是「0分钟」，免得看着像已经结束。 */
+    return t('ui.time.m', { m: Math.max(1, Math.ceil(s / 60)) });
   }
   function openBonds() {
     ui.bondDetail = null;
