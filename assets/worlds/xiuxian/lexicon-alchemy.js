@@ -174,6 +174,13 @@
   K['alchemy.ui.fail.other'] = '眼下炼不成：条件未齐';
   /* 服丹失败第三 reason（drinkPill 的 stock）——旧兜底把裸 'stock' 打上屏，同族补一行 */
   K['alchemy.ui.pillnone'] = '囊中无此丹';
+  /* 货架双标签用「词缀」词族（坊市标签批 2026-10-09 · UI 卷 §3.4）：丹药与丹方共用品阶。
+   * ⚠️ 与功法的 `skill.tier.*`（黄字阶…天字阶）**刻意不同词**——功法叫「字阶」是传承谱系口径，
+   * 丹药 / 丹方只说「阶」；两套并存的代价是必须各用各的键，不许为省键而混用（混了会读成「黄字阶丹」）。 */
+  K['goods.tier.huang'] = '黄阶';
+  K['goods.tier.xuan'] = '玄阶';
+  K['goods.tier.di'] = '地阶';
+  K['goods.tier.tian'] = '天阶';
   K['alchemy.good.mat'] = '材料包 ×3';
   K['alchemy.good.recipe'] = '丹方 · {name}';
   K['alchemy.good.bp'] = '图纸 · {name}';

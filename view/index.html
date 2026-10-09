@@ -365,6 +365,10 @@
   .t0 { color: var(--sq-tier-0); } .t1 { color: var(--sq-tier-1); } .t2 { color: var(--sq-tier-2); }
   .t3 { color: var(--sq-tier-3); } .t4 { color: var(--sq-tier-4); }
   .special-mark { color: var(--primary); font-weight: 650; }
+  /* 卡片「分类」chip（坊市标签批 2026-10-09 · UI 卷 §3.4）：刻意与 `.special-mark` 分家——
+     后者在法器卡上已承担「特殊词条」（破军 / 摄灵），同色同形会让「分类」和「词条」两种语义混起来。 */
+  .catbadge { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 999px; margin-left: 6px;
+    vertical-align: 1px; color: var(--ink-3); border: 1px solid var(--line); font-weight: 400; }
   .align-sym { margin-right: 3px; }
   .align-right { color: var(--sq-karma-right); } .align-evil { color: var(--sq-karma-evil); } .align-neutral { color: var(--sq-karma-neutral); }
 
@@ -2637,7 +2641,10 @@
     });
     return out;
   }
-  function artTierCls(a) { return 't' + ({ huang: 0, xuan: 2, di: 3, tian: 4 })[a.tier]; }
+  /* 品阶 → 色阶（功法 / 丹药 / 丹方同一谱系，**映射只这一处**）；未知档落 t0 而非 'tundefined'。 */
+  var TIER_CLS = { huang: 0, xuan: 2, di: 3, tian: 4 };
+  function artTierCls(a) { return 't' + (TIER_CLS[a && a.tier] != null ? TIER_CLS[a.tier] : 0); }
+  function tierCls(tier) { return TIER_CLS[tier] != null ? 't' + TIER_CLS[tier] : ''; }
   /* 独占剪影（B4：？？？ + 天阶 + 大道方向一句 skill.{id}.dao + 载体奇遇明示 + 法·灰角标） */
   function artSilhouette(id, a) {
     var car = carrierOf('art', id);
@@ -3772,29 +3779,69 @@
   }
 
   /* ── Tab 5 坊市 ── */
+  /* 丹药双标签子函数（**同型面第二处**）：门中供给（势力页 §六）卖的就是 `D.PILLS` 这四颗丹，
+   * 坊市加了标签而那里不加 = 造一处新的不一致，故词缀 / 分类各抽一个纯函数、两处共用。 */
+  function pillAffix(pill) {
+    /* tier = 展示用字段（与同名丹方同档），不参与结算；缺字段就不挂词缀，不猜 */
+    if (!pill || !pill.tier || !tierCls(pill.tier)) return '';
+    return '<span class="tierbadge ' + tierCls(pill.tier) + '">' + esc(t('goods.tier.' + pill.tier)) + '</span>';
+  }
+  function pillCat() { return '<span class="catbadge">' + esc(t('shop.cat.pill')) + '</span>'; }
+  /* 货架卡片双标签（坊市标签批 2026-10-09 · UI 卷 §3.4）：词缀 chip（品阶 / 性质，彩色 tierbadge）
+   * + 分类 chip（灰描边 catbadge）。**一处取数、两处共用**——坊市货架与神秘商人特席此前各拼一套
+   * （特席：法器有品阶、功法没有、丹药一个都没有），那正是「同一种货两张卡三种口径」的成因。
+   * ⚠️ 无词缀的货类（材料包 / 图纸 / 丹炉成品 / 灵石包）**如实留空**，不为了凑齐两枚 chip 编一个档次。
+   * 返回串以空格起头，直接拼在名称后。 */
+  function shopTagHtml(it) {
+    var d = D(), p = pack(), aff = '', cat = '', k = it.kind, gp = it.pack;
+    if (k === 'gear' && it.gear) {
+      aff = '<span class="tierbadge t' + it.gear.tier + '">' + esc(t('gear.tier.' + it.gear.tier)) + '</span>';
+      cat = '<span class="catbadge">' + esc(t('gear.system')) + '</span>';
+    } else if (k === 'arts') {
+      var a = p.artsMap()[it.ref];
+      if (a && tierCls(a.tier)) aff = '<span class="tierbadge ' + tierCls(a.tier) + '">' + esc(t('skill.tier.' + a.tier)) + '</span>';
+      cat = '<span class="catbadge">' + esc(t('skill.system')) + '</span>';
+    } else if (k === 'pill') {
+      var pl2 = null;
+      (d.PILLS || []).forEach(function (x) { if (x.id === it.ref) pl2 = x; });
+      aff = pillAffix(pl2); cat = pillCat();
+    } else if (k === 'treasure') {
+      var td = SQ.Treasures.def(p, it.ref);
+      if (td) aff = '<span class="tierbadge t' + (td.kind === 'xian' ? 4 : 2) + '">' + esc(t('treasure.kind.' + td.kind)) + '</span>';
+      cat = '<span class="catbadge">' + esc(t('treasure.system')) + '</span>';
+    } else if (k === 'pack' && gp) {
+      if (gp.type === 'recipe') {
+        var rc = ((d.ALCHEMY || {}).RECIPES || []).filter(function (r) { return r.id === gp.ref; })[0];
+        if (rc && rc.tier && tierCls(rc.tier)) aff = '<span class="tierbadge ' + tierCls(rc.tier) + '">' + esc(t('goods.tier.' + rc.tier)) + '</span>';
+      }
+      cat = '<span class="catbadge">' + esc(t('alchemy.system')) + '</span>';
+    } else if (k === 'pack') {
+      cat = '<span class="catbadge">' + esc(t('shop.cat.pack')) + '</span>';
+    }
+    return (aff ? ' ' + aff : '') + (cat ? ' ' + cat : '');
+  }
+
   function shopItemRow(it, idx, black, w) {
     var h = '<div class="lrow shopcard' + (it.sold ? ' locked' : '') + '">';
     if (it.kind === 'gear') {
-      h += '<div class="nm">' + esc(it.gear.name) + ' <span class="tierbadge t' + it.gear.tier + '">' + esc(t('gear.tier.' + it.gear.tier)) + '</span>' +
+      h += '<div class="nm">' + esc(it.gear.name) + shopTagHtml(it) +
            (it.gear.special ? ' <span class="special-mark">' + esc(t('gear.special.' + it.gear.special)) + '</span>' : '') + '</div>';
       h += '<div class="meta">' + esc(statLine(it.gear)) + '</div>';
       if (!SQ.Gear.canWear(it.gear, w)) h += '<div class="meta red">' + esc(t('gear.req', { realm: t('realm.' + it.gear.reqs.realm) })) + '</div>';
     } else if (it.kind === 'pill') {
-      h += '<div class="nm">' + esc(t('pill.' + it.ref + '.name')) + '</div>';
+      h += '<div class="nm">' + esc(t('pill.' + it.ref + '.name')) + shopTagHtml(it) + '</div>';
       h += '<div class="meta">' + esc(t('pill.' + it.ref + '.desc')) + '</div>';
     } else if (it.kind === 'arts') {
       var a = pack().artsMap()[it.ref];
       /* 情报角标（势力全录卷 §9.9 · B4）：intelArts 条目在坊市显示「情报」角标 + 豁免提示行 */
       var intelS = !!(w.intelArts && w.intelArts[it.ref]);
       h += '<div class="nm"><span class="align-sym align-' + a.alignment + '">' + esc(t('align.sym.' + a.alignment)) + '</span>' + esc(t('skill.' + it.ref + '.name')) +
-        (intelS ? ' <span class="tierbadge t2">' + esc(t('faction.intel.tag')) + '</span>' : '') + '</div>';
+        (intelS ? ' <span class="tierbadge t2">' + esc(t('faction.intel.tag')) + '</span>' : '') + shopTagHtml(it) + '</div>';
       h += '<div class="meta">' + esc(t('skill.' + it.ref + '.desc')) + '</div>';
       if (intelS) h += '<div class="meta" style="color:var(--sq-tier-2)">' + esc(t('faction.intel.ignore')) + '</div>';
     } else if (it.kind === 'treasure') {
       var td = SQ.Treasures.def(pack(), it.ref);
-      h += '<div class="nm">' + esc(t('treasure.' + it.ref + '.name')) +
-        ' <span class="tierbadge t' + (td.kind === 'xian' ? 4 : 2) + '">' + esc(t('treasure.kind.' + td.kind)) + '</span>' +
-        ' <span class="special-mark">' + esc(t('treasure.system')) + '</span></div>';
+      h += '<div class="nm">' + esc(t('treasure.' + it.ref + '.name')) + shopTagHtml(it) + '</div>';
       h += '<div class="meta">' + esc(t('treasure.grade.' + td.grade)) + ' · ' + esc(t('treasure.' + it.ref + '.desc')) + '</div>';
     } else if (it.pack) {
       /* 炼丹炼器子货（材料包/丹方/图纸/丹炉成品 · §2.5 pack 格二级权重） */
@@ -3803,10 +3850,10 @@
         : gp.type === 'recipe' ? t('alchemy.good.recipe', { name: t('alchemy.recipe.' + gp.ref + '.name') })
         : gp.type === 'bp' ? t('alchemy.good.bp', { name: t('alchemy.bp.' + gp.ref + '.name') })
         : t('alchemy.good.furnace');
-      h += '<div class="nm">' + esc(gnm) + ' <span class="tierbadge t2">' + esc(t('alchemy.system')) + '</span></div>';
+      h += '<div class="nm">' + esc(gnm) + shopTagHtml(it) + '</div>';
       h += '<div class="meta">' + esc(gp.type === 'recipe' ? t('alchemy.recipe.' + gp.ref + '.name') : (gp.type === 'bp' ? t('alchemy.bp.' + gp.ref + '.desc') : (gp.type === 'mat' ? t('alchemy.shopdesc.mat') : t('alchemy.furnace.desc')))) + '</div>';
     } else {
-      h += '<div class="nm">' + esc(t('shop.pack.name')) + '</div>';
+      h += '<div class="nm">' + esc(t('shop.pack.name')) + shopTagHtml(it) + '</div>';
       h += '<div class="meta">' + esc(t('shop.pack.desc')) + ' → ' + SQ.fmt(it.stones) + ' ' + esc(t('resource.currency')) + '</div>';
     }
     if (it.sold) {
@@ -4023,7 +4070,8 @@
         var lockRank = rankC < si.rank, lockRep = repC < si.rep, lockSt = w.stones < costS;
         var btnTxt = onCd ? t('faction.supply.cd') : lockRank ? t('faction.supply.locked', { rank: t('faction.rank.' + si.rank) })
           : t('faction.supply.cost', { rep: si.rep, n: SQ.fmt(costS) });
-        h += '<div class="faccard carditem"><div class="fh"><span class="fn">' + esc(t('faction.supply.sku.' + si.sku)) + '</span></div>' +
+        /* 与坊市货架同一对标签（`pillAffix` / `pillCat`）——这四颗丹就是 `D.PILLS`，两处口径必须一致 */
+        h += '<div class="faccard carditem"><div class="fh"><span class="fn">' + esc(t('faction.supply.sku.' + si.sku)) + '</span>' + pillAffix(pill) + pillCat() + '</div>' +
           '<div class="fd">' + esc(t('pill.' + si.pill + '.desc')) + '</div>' +
           '<div class="acts"><button data-act="supplyBuy" data-v="' + si.sku + '"' +
           ((onCd || lockRank || lockRep || lockSt) ? ' disabled' : '') + '>' + esc(btnTxt) + '</button></div></div>';
@@ -4120,12 +4168,9 @@
         var nm = it.kind === 'gear' ? it.gear.name
           : it.kind === 'arts' ? t('skill.' + it.ref + '.name')
           : t('pill.' + it.ref + '.name');
-        var tierLine = it.kind === 'gear'
-          ? ' <span class="tierbadge t' + it.gear.tier + '">' + esc(t('gear.tier.' + it.gear.tier)) + '</span>'
-          : (it.kind === 'arts' && itP.artsMap()[it.ref])
-            ? ' <span class="tierbadge ' + artTierCls(itP.artsMap()[it.ref]) + '">' + esc(t('skill.tier.' + itP.artsMap()[it.ref].tier)) + '</span>'
-            : '';
-        h += '<div class="lrow shopcard"><div class="nm">' + esc(nm) + tierLine + '</div>' +
+        /* 词缀 + 分类一律走 `shopTagHtml`（本批起与货架同一函数）——旧写法在此另拼一套，
+         * 结果特席上「法器有品阶、功法没有、丹药一个都没有」，同一件货在两个货架上标签不一致。 */
+        h += '<div class="lrow shopcard"><div class="nm">' + esc(nm) + shopTagHtml(it) + '</div>' +
           '<div class="meta">' + esc(SQ.fmt(it.price)) + ' ' + esc(t('resource.currency')) + '</div>' +
           '<div class="acts"><button data-act="buyMerchant" data-v="' + i + '"' + (w.stones < it.price ? ' disabled' : '') + '>' +
           esc(t('shop.buy')) + '</button></div></div>';

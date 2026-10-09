@@ -94,6 +94,10 @@
     'pill.ningshen.name': '凝神丹', 'pill.ningshen.desc': '修为产出 +25%，2 小时',
     'pill.cuiti.name': '淬体丹', 'pill.cuiti.desc': '战力 +20%，4 小时',
     'pill.pozhang.name': '破障丹', 'pill.pozhang.desc': '下次渡劫成功率 +5%',
+    /* 货架卡片「分类」chip（坊市标签批 2026-10-09 · UI 卷 §3.4）：只补**没有现成系统名键**的两类，
+     * 法器 / 功法 / 法宝 / 炼丹炼器 一律复用 `gear.system` / `skill.system` / `treasure.system` / `alchemy.system`，
+     * 不新造重复词（同仓教训：一个概念两处词 = 两处漂移）。 */
+    'shop.cat.pill': '丹药', 'shop.cat.pack': '耗材',
     'shop.pack.name': '灵石包', 'shop.pack.desc': '耗修为（上限 10%），得灵石 60×(1+境界)³',
 
     /* ── G7 奇遇 ── */

@@ -148,6 +148,117 @@ async function buildSave() {
   T(facNarrow === 1, 'M13 窄屏门中供给退单列', 'cols=' + facNarrow);
   T(alNarrow === 1, 'M14 窄屏炼丹炼器退单列', 'cols=' + alNarrow);
 
+  /* M23 同型面第二处：门中供给（势力页）卖的就是 D.PILLS 那四颗丹，必须挂**同一对标签**
+   * （坊市加了而那里不加 = 造一处新的不一致，正是本批在特席上刚修掉的毛病）。
+   * 主存档已入势力、声望满 ⇒ 四档供给全解锁，卡片必为四张，逐张量 .fh 内的 chip。 */
+  await page.click('#m-tabbar button[data-v="faction"]');
+  await page.waitForTimeout(500);
+  const sup = await page.evaluate(() => Array.prototype.map.call(
+    document.querySelectorAll('#tab-faction .faccard.carditem'), (c) => {
+      const fh = c.querySelector('.fh');
+      return {
+        text: fh ? fh.textContent.replace(/\s+/g, ' ').trim() : '',
+        tier: fh ? Array.prototype.map.call(fh.querySelectorAll('.tierbadge'), (x) => x.textContent.trim()) : [],
+        cat: fh ? Array.prototype.map.call(fh.querySelectorAll('.catbadge'), (x) => x.textContent.trim()) : []
+      };
+    }));
+  T(sup.length >= 4 && sup.every((r) => r.cat.length === 1 && r.cat[0] === '丹药' && r.tier.length === 1
+      && ['黄阶', '玄阶', '地阶', '天阶'].indexOf(r.tier[0]) >= 0),
+    'M23 门中供给四颗丹与坊市**同一对标签**（分类=丹药 · 词缀=同名丹方同档的品阶）',
+    sup.map((r) => r.text + '[' + r.tier.join('') + '|' + r.cat.join('') + ']').join(' '));
+
+  /* ── M15~M22 货架卡片双标签（坊市标签批 2026-10-09 · UI 卷 §3.4「词缀 chip + 分类 chip」通则）──
+   * 主存档的货架是**随机掷**的（M2 正是数它），凑不齐六类货 ⇒ 另开一个 context，
+   * 预置「六类各一 + 特席三件」的确定性货架再量标签。**非空观测先行**（M15 先数出十张卡、
+   * 六类齐全），否则后面每条 chip 断言都可能在空集合上假绿（本仓老坑）。
+   * 判据取的是 DOM 结构（名称行内的 tierbadge / catbadge 两类节点）而不是整行文本——
+   * 文本对得上不代表 chip 挂对了地方，样式类才是「分类与特殊词条分家」这条设计的证据。 */
+  const saveTags = JSON.parse(JSON.stringify(save));
+  const wTags = saveTags.worlds.xiuxian;
+  /* 主域里没有 D / pack（buildSave 内部各装一次沙箱），这里同法再装一次取真表——
+   * 槽位 / 功法 id / 法宝 id 一律**从数据表里取**，不写死字面量（写死了就是「测试数据按假设造」）。 */
+  const { load: load3 } = require(path.join(__dirname, 'sandbox.cjs'));
+  const SQ3 = load3([]).sandbox.window.SQ;
+  const pack3 = SQ3.Worlds.xiuxian.pack;
+  const slot0 = pack3.data.GEAR_SLOTS[0];
+  const artsAll = Object.keys(pack3.artsMap());
+  const tid0 = Object.keys(pack3.treasures.byId || {})[0];
+  const mkG = (tier) => ({ id: 'tag_g', slot: slot0, tier: tier, atk: 20, resist: 6, score: 40, name: '青纹飞剑', align: 'neutral', reqs: { realm: 0 } });
+  wTags.realm = 6; wTags.stones = 9999999;
+  wTags.shop = {
+    items: [
+      { kind: 'gear', gear: mkG(3), sold: false, price: 1200 },
+      { kind: 'arts', ref: artsAll[0], sold: false, price: 900 },
+      { kind: 'pill', ref: 'pozhang', sold: false, price: 400 },
+      { kind: 'pill', ref: 'juqi', sold: false, price: 80 },
+      { kind: 'treasure', ref: tid0, sold: false, price: 6000 },
+      { kind: 'pack', pack: { type: 'mat', ref: 'mat_linglu', price: 200 }, sold: false, price: 200 },
+      { kind: 'pack', pack: { type: 'recipe', ref: 'rc_pozhang', price: 900 }, sold: false, price: 900 },
+      { kind: 'pack', pack: { type: 'bp', ref: 'bp_weapon', price: 1500 }, sold: false, price: 1500 },
+      { kind: 'pack', pack: { type: 'furnace', price: 4000 }, sold: false, price: 4000 },
+      { kind: 'pack', sold: false, price: 0, qiPrice: 5000 }
+    ],
+    blackItems: [{ kind: 'gear', gear: mkG(4), sold: false, price: 5000 }],
+    nextRestock: Date.now() + 3600000, refreshCount: 0,
+    merchant: { until: Date.now() + 600000, scout: false, items: [
+      { kind: 'gear', gear: mkG(2), sold: false, price: 700 },
+      { kind: 'arts', ref: artsAll[1] || artsAll[0], sold: false, price: 800 },
+      { kind: 'pill', ref: 'cuiti', sold: false, price: 200 }
+    ] }
+  };
+  const ctx3 = await browser.newContext({ viewport: { width: 1280, height: 950 } });
+  await ctx3.addInitScript((x) => { localStorage.setItem('sanqian-state-v1', JSON.stringify(x)); }, saveTags);
+  const page3 = await ctx3.newPage();
+  page3.on('pageerror', (e) => errors.push(e.message));
+  page3.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  await page3.goto(url);
+  await page3.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+  await page3.waitForTimeout(800);
+  await page3.click('#m-tabbar button[data-v="shop"]');
+  await page3.waitForTimeout(600);
+  const tagDump = await page3.evaluate(() => {
+    /* 主货架要**排掉特席那张 grid**：特席在 DOM 里排在货架之前，两者都是 `#tab-shop .shopgrid`，
+     * 不排掉就会数成 13 张并把特席当成货架前三格（首跑就是这么错的，属选择器缺陷不是产品缺陷）。 */
+    const rows = (sel, skipMerch) => Array.prototype.filter.call(document.querySelectorAll(sel),
+      (c) => !(skipMerch && c.closest && c.closest('.merchbox'))).map((c) => {
+      const nm = c.querySelector('.nm');
+      return {
+        text: nm ? nm.textContent.replace(/\s+/g, ' ').trim() : '',
+        tier: nm ? Array.prototype.map.call(nm.querySelectorAll('.tierbadge'), (x) => x.textContent.trim()) : [],
+        cat: nm ? Array.prototype.map.call(nm.querySelectorAll('.catbadge'), (x) => x.textContent.trim()) : [],
+        mark: nm ? Array.prototype.map.call(nm.querySelectorAll('.special-mark'), (x) => x.textContent.trim()) : []
+      };
+    });
+    return { shelf: rows('#tab-shop .shopgrid .shopcard', true), merch: rows('#tab-shop .merchbox .shopcard', false) };
+  });
+  await ctx3.close();
+  const sh = tagDump.shelf, mc = tagDump.merch;
+  const at = (i) => sh[i] || {};
+  T(sh.length === 10 && mc.length === 3, 'M15 非空观测：货架十格 + 特席三格全部渲染（六类货各就位，后面每条 chip 断言才有对象可量）',
+    '货架=' + sh.length + ' 特席=' + mc.length);
+  T(sh.every((r) => r.cat.length === 1) && mc.every((r) => r.cat.length === 1),
+    'M16 每件货（含特席）都挂恰一枚分类 chip', '缺分类: ' + sh.concat(mc).filter((r) => r.cat.length !== 1).map((r) => r.text).join(' / ') || '无');
+  T(at(0).cat[0] === '法器' && at(1).cat[0] === '功法' && at(2).cat[0] === '丹药' && at(4).cat[0] === '法宝'
+    && at(5).cat[0] === '炼丹炼器' && at(9).cat[0] === '耗材',
+    'M17 分类词与货类逐一对得上（法器/功法/丹药/法宝/炼丹炼器/耗材）',
+    [at(0).cat[0], at(1).cat[0], at(2).cat[0], at(4).cat[0], at(5).cat[0], at(9).cat[0]].join('/'));
+  T(at(0).tier[0] === '灵品' && at(1).tier[0] === '黄字阶' && at(2).tier[0] === '地阶' && at(3).tier[0] === '黄阶'
+    && (at(4).tier[0] === '先天' || at(4).tier[0] === '后天') && at(6).tier[0] === '地阶',
+    'M18 词缀逐类对表：法器品阶 / **功法品阶（此前坊市从没露过）** / 丹药品阶 / 法宝先天后天 / 丹方品阶',
+    [at(0).tier[0], at(1).tier[0], at(2).tier[0], at(3).tier[0], at(4).tier[0], at(6).tier[0]].join('/'));
+  T([5, 7, 8, 9].every((i) => (at(i).tier || []).length === 0),
+    'M19 **无档次的四类如实留空**（材料包 / 图纸 / 丹炉成品 / 灵石包不挂词缀，不编档次凑两枚）',
+    [5, 7, 8, 9].map((i) => (at(i).tier || []).length).join(','));
+  T(sh.every((r) => r.cat.every((c) => r.mark.indexOf(c) < 0)) && at(4).cat[0] === '法宝' && at(4).mark.length === 0,
+    'M20 分类走 catbadge 而非 special-mark（法宝卡那枚「法宝」已迁样式；特殊词条仍独占 special-mark）',
+    '法宝卡 mark=' + JSON.stringify(at(4).mark) + ' cat=' + at(4).cat[0]);
+  T(mc.length === 3 && mc[2].cat[0] === '丹药' && mc[2].tier[0] === '玄阶' && mc[1].cat[0] === '功法' && mc[1].tier[0].length > 0,
+    'M21 神秘商人特席与货架**同一取数**（旧写法在此另拼一套：法器有品阶、功法没有、丹药一个都没有）',
+    '特席: ' + mc.map((r) => r.text + '[' + r.tier.join('') + '|' + r.cat.join('') + ']').join(' '));
+  T(mc.every((r) => r.cat.length === 1) && sh.filter((r) => r.cat[0] === '丹药').length === 2,
+    'M22 同型面收口：两处置席 + 两类丹药，分类计数与货类计数互相对得上（可复算，不是只数总数）',
+    '丹药卡=' + sh.filter((r) => r.cat[0] === '丹药').length + ' 特席=' + mc.length);
+
   T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 200) || 'clean');
 
   console.log(fail === 0 ? 'UI_MARKET_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_MARKET_FAILED ' + fail);

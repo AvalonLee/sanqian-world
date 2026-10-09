@@ -217,11 +217,15 @@
     SHOP_GEAR_REFINE_MULT: 6,       /* 装备售价 = 炼化基数×6（P4 登记） */
     BLACKMARKET_KARMA: -200,        /* karma ≤ -200 出现黑市 */
     BLACKMARKET_PRICE: 1.3,
+    /* `tier` = **展示用**品阶（坊市标签批 2026-10-09 · UI 卷 §3.4 货架双标签），取「与同名丹方同档」：
+     * 聚气 rc_juqi=huang / 凝神 rc_ningshen=xuan / 淬体 rc_cuiti=xuan / 破障 rc_pozhang=di。
+     * ⚠️ 只作认知锚，**不参与任何结算**（效果字段一字未动）；坊市这四颗丹与炼丹产出的 `ap_*` 是两种货，
+     * 同档口径指的是「同名丹方的档次」，不是「同一件东西」。 */
     PILLS: [
-      { id: 'juqi',     price: 80,  effect: { qiPct: 0.30 } },
-      { id: 'ningshen', price: 150, effect: { buff: { field: 'qiRate', mult: 0.25, hours: 2 } } },
-      { id: 'cuiti',    price: 200, effect: { buff: { field: 'combatPower', mult: 0.20, hours: 4 } } },
-      { id: 'pozhang',  price: 400, effect: { tribNext: 0.05 } }
+      { id: 'juqi',     price: 80,  tier: 'huang', effect: { qiPct: 0.30 } },
+      { id: 'ningshen', price: 150, tier: 'xuan',  effect: { buff: { field: 'qiRate', mult: 0.25, hours: 2 } } },
+      { id: 'cuiti',    price: 200, tier: 'xuan',  effect: { buff: { field: 'combatPower', mult: 0.20, hours: 4 } } },
+      { id: 'pozhang',  price: 400, tier: 'di',    effect: { tribNext: 0.05 } }
     ],
     PACK_QI_PCT: 0.10,              /* 灵石包：花当前上限 10% 修为 */
     PACK_STONES: 60,                /* 得 60 × (1+境界索引)³ 灵石 */
