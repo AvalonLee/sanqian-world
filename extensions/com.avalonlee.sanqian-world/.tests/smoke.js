@@ -4993,17 +4993,19 @@
       after282.norm + '/' + after282.push + '/' + after282.rung0);
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
 
-    /* #283 存档水位读数（2026-10-09 存档水位批）：`SQ.SaveStats` 报的数必须与盘上真实体量同源
-     * 立因：治理批把主档与实际游玩时长解耦之后，**这件事没有任何玩家可见面**——效果只能靠跑探针
-     *   读曲线，维护者无从在日常里看见「离红线多远 / 有没有动用有损级」。本批判据守三件事：
+    /* #283 存档度量出口（2026-10-09 存档水位批）：`SQ.SaveStats` 报的数必须与盘上真实体量同源
+     * 立因（**同日按用户口径撤下玩家界面呈现**——「存档水位这些文字描述和用户没有直接关系，只是
+     *   系统设计问题，不需要在设置中表述出来」⇒ 设置页四行与十个 `settings.save.level.*` 键当日删除，
+     *   view/index.html 与 lexicon.js 回到撤除前状态）：本判据保留的理由是**引擎侧需要一个可断言的度量口**，
+     *   否则「落盘字节 = 盘上真值」这类判据要各自 stringify 一遍 = 五处副本五处漂移。本条守四件事：
      *   (a) 读数不撒谎：`mainBytes` 与 localStorage 里那份落盘值的 UTF-8 字节数**逐字节相等**
      *       （同一条度量线 = 编码后字节，与 SQ.SAVE_RED/SQ.SAVE_TRIGGER 一致）
-     *   (b) 解耦可见：同一次存档里日志族从 0 涨到 3000 条（≈ 侧档 +几百 KB 级体量），
-     *       **主档读数几乎不动且 `stages` 仍为空** ⇒ 水位条上就能读出「增长全落在侧档」
+     *   (b) 解耦可测：同一次存档里日志族从 0 涨到 3000 条（≈ 侧档 +几百 KB 级体量），
+     *       **主档读数几乎不动且 `stages` 仍为空** ⇒ 「增长全落在侧档」这件事从此可断言，不必靠人看曲线
      *   (c) 不进存档：主档对象顶层键仍是既有契约集，**没有** saveStats 之类的自我膨胀项
      *   (d) 跳写不归零：内容未变时 `writeLogsIfChanged` 走跳过分支，侧档读数必须沿用上一次的值
-     *       （返回 0 会让水位条谎报「侧档空了」= 本条即反向预防）
-     *   (e) 有损级那一行是真会亮的：用文档化的测试钩子 `SQ.compressForSave(s, now, 1)` 强制跑满
+     *       （返回 0 会让任何读它的人误判「侧档空了」= 本条即反向预防）
+     *   (e) 有损级是真会亮的：用文档化的测试钩子 `SQ.compressForSave(s, now, 1)` 强制跑满
      *       ⇒ `stages` 非空（正常档恒为空，不证就会恒真空过） */
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY); SQ.Side.resetSig();
     var s283 = SQ.defaultState();
