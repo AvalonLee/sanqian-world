@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三千世界 · 视觉稿走查总页（十稿 35 帧）</title>
+<style>
+:root{
+  --bg:#f4f1ea; --surface:rgba(255,255,255,.82); --card:rgba(255,255,255,.94);
+  --t1:#2b2620; --t2:#5c544a; --t3:#8a8175;
+  --gold:#9a7420; --gold-soft:rgba(154,116,32,.10);
+  --red:#a03a30; --green:#3e7a4e; --border:rgba(43,38,32,.14);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#171512; --surface:rgba(38,34,29,.78); --card:rgba(48,43,37,.88);
+    --t1:#ece5d8; --t2:#b8ae9d; --t3:#847b6d;
+    --gold:#d4af5e; --gold-soft:rgba(212,175,94,.12);
+    --red:#c9584c; --green:#6fae80; --border:rgba(236,229,216,.16);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:system-ui,"Songti SC",SimSun,serif;padding-bottom:80px}
+/* 顶栏 */
+header{
+  position:sticky;top:0;z-index:50;background:var(--surface);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:10px 18px;
+}
+header .row1{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+header h1{font-size:16px;letter-spacing:.25em}
+header .meta{font-size:11px;color:var(--t3)}
+header .meta b{color:var(--gold)}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+nav a{
+  font-size:11px;color:var(--t2);text-decoration:none;border:1px solid var(--border);
+  border-radius:99px;padding:3px 11px;background:var(--card);white-space:nowrap;
+}
+nav a:hover{border-color:var(--gold);color:var(--gold)}
+main{max-width:1280px;margin:0 auto;padding:22px 18px}
+/* 档案对账卡 */
+.dossier{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px;margin-bottom:26px}
+.dossier h2{font-size:14px;letter-spacing:.3em;color:var(--gold);margin-bottom:4px}
+.dossier .sub{font-size:11px;color:var(--t3);margin-bottom:12px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px}
+.dcell{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:9px 12px;font-size:11.5px;line-height:1.85;color:var(--t2)}
+.dcell b{color:var(--t1);font-size:12px}
+.dcell .k{color:var(--gold);font-weight:700;margin-right:5px}
+.dcell code{font-size:10.5px;color:var(--t1);background:var(--gold-soft);border-radius:4px;padding:0 4px}
+/* 分稿节 */
+section.g{margin-bottom:34px}
+section.g .ghead{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+section.g h2{font-size:15px;letter-spacing:.15em}
+section.g .gmeta{font-size:11px;color:var(--t3)}
+section.g .gmeta b{color:var(--gold)}
+details.check{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:9px 14px;margin-bottom:10px}
+details.check summary{font-size:12px;color:var(--gold);letter-spacing:.15em;cursor:pointer}
+details.check ol{margin:8px 0 4px 18px;font-size:11.5px;line-height:2;color:var(--t2)}
+details.check ol b{color:var(--t1)}
+details.check code{font-size:10.5px;background:var(--gold-soft);border-radius:4px;padding:0 4px;color:var(--t1)}
+.framebox{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--card)}
+iframe{width:100%;border:0;display:block;background:var(--bg)}
+footer{max-width:1280px;margin:0 auto;padding:0 18px;font-size:11px;color:var(--t3);line-height:2}
+footer b{color:var(--t2)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="row1">
+    <h1>三千世界 · 视觉稿走查总页</h1>
+    <div class="meta">十稿 <b>35 帧</b> · 规格基准：UI 卷 <b>v2.8</b> / 交互说明 <b>v1.6</b>（校对批 2026-10-01 刷新；各稿 caption 内出稿版本号保留） · 本页仅聚合引用，<b>原稿为唯一事实源</b>（iframe 零复制）</div>
+  </div>
+  <nav>
+    <a href="#dossier">档案对账卡</a>
+    <a href="#g1">①创角三屏</a>
+    <a href="#g2">②修行页</a>
+    <a href="#g3">③奇遇页</a>
+    <a href="#g4">④功法法器</a>
+    <a href="#g5">⑤秘境坊市</a>
+    <a href="#g6">⑥道友名录</a>
+    <a href="#g7">⑦洞府名录</a>
+    <a href="#g8">⑧财富总账</a>
+    <a href="#g9">⑨渡劫演出</a>
+    <a href="#g10">⑩module与浮层</a>
+  </nav>
+</header>
+
+<main>
+
+<!-- ═══ 全档案对账卡 ═══ -->
+<div class="dossier" id="dossier">
+  <h2>走查基准 · 主存档对账卡</h2>
+  <div class="sub">十稿共享同一存档「叶长风」。走查时以本卡为唯一基准：任何一帧出现的数字，都必须能在本卡或其推导式中找到出处。</div>
+  <div class="dgrid">
+    <div class="dcell"><span class="k">身份</span><b>叶长风 @ 青云界 · 化神二层</b><br>天赋：雷灵根（渡劫+15%）/ 天资聪慧（产出+20%）/ 凡骨（突破需求+10%）· 性别/种族预留（男/人族，无入口）</div>
+    <div class="dcell"><span class="k">阵营</span>问道初心 = <b>左道</b>（漂移 0）· 当前 karma <b>+214 正道光环·浅档</b><br>= 功法 20 + 法器 30 + 平生所为 164 + 初心 0</div>
+    <div class="dcell"><span class="k">修为</span><b>50.6万 / 103.2万（49%）</b><br>上限 = max(2h 产出 103.2万, 1.15×need 101.2万)；need 88万 = 80万×凡骨1.1；还需 37.4万</div>
+    <div class="dcell"><span class="k">产出</span><b>143.4/秒</b> = 81 ×(1+0.20+0.25+0.30+0.25) × 0.75 × 1.18<br>（境界base × 加算池 × 阵营 × 洞府）</div>
+    <div class="dcell"><span class="k">战力</span><b>2,603</b> = (1,600 + 499) × 1.24（金钟罩 Lv4）<br>雷池禁地需求 2,400 → 压线富余 8%</div>
+    <div class="dcell"><span class="k">渡劫</span>化神→炼虚 p 加总 <b>1.20 → 封顶 95%</b><br>= 0.70 + resist 0.15 + 雷灵根 0.15 + 雷蕴 0.02 + karmaMod 0.10 + 正道档 0.05 + 护法 0.03</div>
+    <div class="dcell"><span class="k">灵石</span><b>42.8万</b>（精确 428,100）<br>= 启动 100 + 收 686,000（击杀51/奇遇9.6/炼化6.8/离线1.2万）− 支 258,000（坊市12/功法9.6/事件2.2/洞府2万）</div>
+    <div class="dcell"><span class="k">功法</span>已学会 <b>8 部</b>（含秘境4首通奖励紫霄诀·未装槽）<br>六槽：<b>金钟罩Lv4(主修)</b> / 吐纳Lv5 / 聚灵Lv5 / 清心Lv4 / 云踪Lv3 / 福缘Lv2</div>
+    <div class="dcell"><span class="k">装备</span>青鹞剑312 / 暖玉髓佩18% / 玄铁重甲187+48 / 定魂珠60+12%[照业镜]<br><b>Σresist 108 → resist 项 0.09</b>；库藏阁：烈炎珠·霜魄甲[疾影]（极品→炼虚5，差1境界）</div>
+    <div class="dcell"><span class="k">洞府</span><b>雷池精庐 ×1.18</b>（雷蕴 渡劫+0.02）· 已持有 4 处（市井/青峰2万/剑崖/雷池）· 星陨、古仙未达资格</div>
+    <div class="dcell"><span class="k">道友</span>护法位 <b>老黄③ 82/100</b>（渡劫+0.03 · 已护法7次成5）· 已结缘 9/16 · 缘尽 1（楚老拐·夺碗旧事）· 候选：苏晚 20/30 · <b>夜芜 100 可提亲</b> · 谢青鸾/沈孤鸿未结缘</div>
+    <div class="dcell"><span class="k">离线演示</span>42 分 → 修为 <b>+26.7万</b> = 143.4×2520×0.74（效率 74% = 基准50% + 清心咒Lv4 24%）+ 灵石 2,800 · 时钟冻结 7分12秒</div>
+    <div class="dcell"><span class="k">变体人设</span><b>厉惊寒</b>（魔道 −286 = −12−30−232−12）：黑市帧 / 名录稿帧四 / 渡劫失败帧（p 67% = 0.64+0.15−0.12，败7次）· <b>顾听雪</b>（新档空态：余额=启动100）· 瓶颈帧（炼虚一层 6,671 &lt; 7,200 差 529）</div>
+  </div>
+</div>
+
+<!-- ═══ ① 创角三屏 ═══ -->
+<section class="g" id="g1">
+  <div class="ghead"><h2>① 创角三屏</h2><div class="gmeta">4 帧 · UI v2.4 §一/§二 · 批次：<b>P2 已有 · 批 1 增问道初心</b></div></div>
+  <details class="check" open><summary>走查核对项（7）</summary><ol>
+    <li>屏 2 倾向三段<b>默认左道居中选中</b>，三段小字与 UI 卷逐字一致（逢源多奇遇，修行缓 / 不偏不倚，随心而行 / 进境迅猛，福缘薄）</li>
+    <li>入定 CONFIRM 摘要 pills 全摊开：天赋×3（正绿负红）+ <b>倾向 pill</b> + 「天命与初心，一并锁定」红字</li>
+    <li><b>无性别/种族任何入口</b>（连置灰占位都不允许）</li>
+    <li>coming 卡文案全文「此界尚在混沌，未可投生」· 名字「？？？」不剧透</li>
+    <li>屏 1 按钮 =「下一步 · 观天赋」（与 UI 卷规格逐字）· 随机名 =「掷杯问名」</li>
+    <li>步骤条汉字数字（一立名/二观天赋/三择界），当前步实心金、已过步描金</li>
+    <li>天赋词条全部为文档在册示例（雷灵根/天资聪慧/凡骨），数值与主文档 §4.1 一致</li>
+  </ol></details>
+  <div class="framebox"><iframe src="创角三屏-视觉稿.html" height="2350" loading="lazy" title="创角三屏视觉稿"></iframe></div>
+</section>
+
+<!-- ═══ ② 修行页 ═══ -->
+<section class="g" id="g2">
+  <div class="ghead"><h2>② 修行页</h2><div class="gmeta">4 帧 · UI v2.4 §3.2/§5.2 · 批次：<b>P1 已有 · 批 1 增闭关面板/弹窗 · chip 批 2/3</b></div></div>
+  <details class="check" open><summary>走查核对项（7）</summary><ol>
+    <li>产出浮层结算式 <code>81 × (1+1.00) × 0.75 × 1.18 = 143.4</code>，四加算行（天赋20/功法25/装备30/buff25）与档案卡推导一致</li>
+    <li>渡劫浮层七加项逐行 = 档案卡 p 式，<b>加总 1.20 → 封顶 95%</b> 显式展示；护法行带「批 3 起」小注</li>
+    <li>进度 49% = 50.6万/103.2万；<b>还需 37.4万</b>（= 88万 − 50.6万，凡骨 +10% 已计入）</li>
+    <li>闭关面板：74% = 50%+24%（清心咒 Lv4）· <b>+26.7万</b> = 143.4×2520×0.74 · 明细含「时钟冻结 7分12秒」行</li>
+    <li>财 chip 副标 <b>收 68.6万 · 支 25.8万</b>（与总账稿恒等式同源）· 法 chip = 金钟罩 Lv4「不动明王」</li>
+    <li>稿四弹窗与面板同源同数（+26.7万 / 74% / 灵石 2,800 / 渡劫 0）</li>
+    <li>打坐呼吸动效带 <code>prefers-reduced-motion</code> 静止降级</li>
+  </ol></details>
+  <div class="framebox"><iframe src="修行页-视觉稿.html" height="2450" loading="lazy" title="修行页视觉稿"></iframe></div>
+</section>
+
+<!-- ═══ ③ 奇遇页 ═══ -->
+<section class="g" id="g3">
+  <div class="ghead"><h2>③ 奇遇页 + 抉择模态</h2><div class="gmeta">2 帧 · UI v2.4 §3.5/§5.1 · 批次：<b>批 1（整页替换日志 Tab）</b></div></div>
+  <details class="check" open><summary>走查核对项（7）</summary><ol>
+    <li>页首计数 <b>10/60</b> 与三节分计数自洽：天 2/8 + 地 3/20 + 人 5/32 = 10</li>
+    <li>叙事流卡：真龙遗蜕（天·机缘）判定链 <b>精✓→力✓</b> 逐级 + 「道心蒙尘 −24」揭示行 + 触发时钟戳</li>
+    <li>前人遗藏卡带 <b>bond 入账行</b>「与 苏晚 的交情更深了（相识 20/30）」——数值与道友稿/档案卡一致</li>
+    <li>图鉴格：未解锁「？」+ 等级色底 · [特] 徽标 · 「缘」角标（灵犬/棋局）· 宝/法角标<b>灰态</b>（遇过≠拿到）· 地级已解锁格为「剑壁」（非旧名剑冢）</li>
+    <li>模态 footer 三纪律逐字：「必须选择 · 无倒计时 · 点遮罩不关闭」</li>
+    <li>模态按钮信息层：收益区间「约 X~Y」+ attr 文言成算（四成之数/三成把握）+ 左道无判定；karma <b>不预告</b></li>
+    <li>系统日志入口在页底（chips 无「奇遇」项）</li>
+  </ol></details>
+  <div class="framebox"><iframe src="奇遇页-视觉稿.html" height="1550" loading="lazy" title="奇遇页视觉稿"></iframe></div>
+</section>
+
+<!-- ═══ ④ 功法法器 ═══ -->
+<section class="g" id="g4">
+  <div class="ghead"><h2>④ 功法 / 法器页</h2><div class="gmeta">4 帧 · UI v2.4 §3.4 · 批次：<b>P4 已有 · 批 2 改造增量（折扣行批 3）</b></div></div>
+  <details class="check" open><summary>走查核对项（8）</summary><ol>
+    <li>主修角标 = 槽 1 <b>金钟罩 Lv4</b>（非魔道功法——人设正道档）· 六槽与档案卡一致</li>
+    <li>待修习架 <b>8/24</b>，含紫霄诀「已学会·未装槽 · 来源：秘境 4 首通奖励」</li>
+    <li>天阶独占三部剪影：「？？？」+ 大道方向一句 + 载体奇遇与分支明示；噬血功红字缺项带差值「相差 314」（= 214−(−100)）</li>
+    <li>升级浮层：实付 <b>17,640 = 6,000×3.0×0.98</b>（躺云档① −2%）· 滋养 8→10（正道 2/级）</li>
+    <li>法器四槽 <b>Σresist 108</b> → 渡劫浮层 resist 项 0.09 跨稿对账；评分可对表（霜魄甲 393 = (268+74)×1.15）</li>
+    <li>百器录 <b>3/12</b>：照业镜（佩戴中）/ 金刚质（已炼化·不除名）/ 疾影（<b>在库·霜魄甲</b> 跨页联动）</li>
+    <li>库藏阁两件均为极品追加 → 要求<b>炼虚(5)</b> · 还差 1 个境界（非旧稿「化神(5) 差3层」）</li>
+    <li>来源行三渠道态 + 购入价对表（暖玉 7,800 = 500×6×2.6 · 定魂珠 1,560 = 100×6×2.6）</li>
+  </ol></details>
+  <div class="framebox"><iframe src="功法法器页-视觉稿.html" height="2550" loading="lazy" title="功法法器页视觉稿"></iframe></div>
+</section>
+
+<!-- ═══ ⑤ 秘境坊市 ═══ -->
+<section class="g" id="g5">
+  <div class="ghead"><h2>⑤ 秘境 / 坊市页</h2><div class="gmeta">4 帧 · UI v2.4 §3.4 · 批次：<b>P4 已有 · 批 2 补联动角标</b></div></div>
+  <details class="check" open><summary>走查核对项（8）</summary><ol>
+    <li>主卡四读数全可对表：击杀 <b>70/时</b> = 60×1.18（云踪Lv3）· 单杀 <b>144</b> = 120×(1+14%+6%) · 掉落 <b>10%</b> = 8%×1.25 · prog 65 = 13杀×5</li>
+    <li>战力行「2,603 / 需求 2,400 · 压线富余 8%」</li>
+    <li>首通↔洞府联动角标四处：焦土→剑崖 · 乱星→星陨 · 修罗→古仙人府 · 雷池主卡→雷池精庐（驻留中）</li>
+    <li>帧二瓶颈：战力 <b>6,671 = (4,800+580)×1.24</b>（霜魄甲已复检入槽）· 差 529 · 建议三条全带数字（购剑+372 / 金钟Lv5 实付 20,580 = 6,000×3.5×0.98 / 攒气渡劫）</li>
+    <li>坊市划线价链：7,488=7,800×0.96 · 374=390×0.96 · 2,246=2,340×0.96（消息灵通② −4%，批 3 前该行为空）</li>
+    <li><b>紫霄诀不出现在货架</b（获取途径 = 首通非坊市——池子纪律活例）· 养丹诀 = 功法全录真实词条（坊市 900 · 金丹要求）</li>
+    <li>黑市帧（厉惊寒 −286）：×1.3 对表（4,056 = 1,200×2.6×1.3 · 676 · 10,140）· 夺魂术「精 26 &lt; 30」红字可购留架（#101）· 魔道装明示 karma −15/件</li>
+    <li>秘境序号 = 第 N 区口径（青云一 … 界外十）</li>
+  </ol></details>
+  <div class="framebox"><iframe src="秘境坊市页-视觉稿.html" height="2650" loading="lazy" title="秘境坊市页视觉稿"></iframe></div>
+</section>
+
+<!-- ═══ ⑥ 道友名录 ═══ -->
+<section class="g" id="g6">
+  <div class="ghead"><h2>⑥ 道友名录浮层</h2><div class="gmeta">4 帧 · UI v2.4 §3.3 · 批次：<b>批 3</b></div></div>
+  <details class="check" open><summary>走查核对项（7）</summary><ol>
+    <li>20 格 = 道友 16 + 候选 4；帧一「已结缘 9/16」<b>逐格清点</b> = 9（黄尾秦柳陈躺周祝陆）+ 缘尽 1 + 未结缘 6</li>
+    <li>老黄 ☂ 护法位 82/100（生死之交③）= 渡劫浮层 +0.03 同源；苏晚 20/30 = 奇遇稿 bond 行同源</li>
+    <li>夜芜 100/100「可提亲 ♡」亮起；未结缘候选仍带「双」角标（收集牵引）</li>
+    <li>缘尽格位于名录第 7 位（楚老拐序位）——批注「夺碗旧事、业力修回正道后缘断不可复结」</li>
+    <li>详情页五段式 + 护法记录「7 次 · 成 5」；小传为 §5.5 词表正典原文</li>
+    <li>提亲 CONFIRM：三形态全列（阴阳高亮可达 / 互助置灰 / 炉鼎置灰 + <b>三重代价红字全文</b>）· footer「不限性别 · 写意留白」</li>
+    <li>帧四魔道对照三要素：护法区置灰「魔道夜行」· 双修行暗红「回头即散」· 夜芜助力划断「鼎炉被采，何暇助你」· 缘尽 ×3</li>
+  </ol></details>
+  <div class="framebox"><iframe src="道友名录浮层-视觉稿.html" height="2650" loading="lazy" title="道友名录浮层视觉稿"></iframe></div>
+</section>
+
+<!-- ═══ ⑦ 洞府名录 ═══ -->
+<section class="g" id="g7">
+  <div class="ghead"><h2>⑦ 洞府名录浮层</h2><div class="gmeta">3 帧 · UI v2.4 §3.3/§5.2 · 批次：<b>批 2</b></div></div>
+  <details class="check" open><summary>走查核对项（6）</summary><ol>
+    <li>驻留中 = <b>雷池精庐 ×1.18</b>（与修行页 chip / 产出浮层独立乘行三处同源）· 雷蕴 +0.02 已计入渡劫浮层</li>
+    <li>持有 4 处（市井/青峰/剑崖/雷池）与档案卡一致；青峰入驻资 2 万 = 总账 out.cave 唯一支出</li>
+    <li>未达资格卡：缺项 chips 三段全红（星陨 = 境界炼虚 / 首通乱星 / 灵石 50万 持 42.8万）· 叙事折叠「入驻后方可阅」（UI v2.4 分段展示口径）</li>
+    <li>灵气叙事六篇 = 四柱卷 §四词表正典<b>逐字</b>（末句暗合各自签名效果）</li>
+    <li>CONFIRM：资格绿 ✓ + 倍率前后对照 ×1.18→×1.25 + ledger.out.cave 脚注（变体演示态已标注）</li>
+    <li>演出帧 = 叙事全文兑现时刻；批注「轻演出只给第一次拥有，迁居只弹 toast」</li>
+  </ol></details>
+  <div class="framebox"><iframe src="洞府名录浮层-视觉稿.html" height="2000" loading="lazy" title="洞府名录浮层视觉稿"></iframe></div>
+</section>
+
+<!-- ═══ ⑧ 财富总账 ═══ -->
+<section class="g" id="g8">
+  <div class="ghead"><h2>⑧ 财富总账浮层</h2><div class="gmeta">2 帧 · UI v2.4 §3.3 / ledger v1.2 契约 · 批次：<b>批 2</b></div></div>
+  <details class="check" open><summary>走查核对项（5）</summary><ol>
+    <li>恒等式：<code>100 + 686,000 − 258,000 = 428,100</code>（与修行页财 chip、顶栏 💰42.8万 三处同源）</li>
+    <li>收支 <b>各四类</b> = ledger 契约 v1.2（in: kill/event/refine/offline · out: shop/arts/event_loss/cave）——<b>不得出现「出售」「炼化损耗」</b>占位类</li>
+    <li>每行小字标注 ledger 字段名 + 口径（如「判定花费退回不计」「lastOffline.stones 同源」）</li>
+    <li>空态帧（顾听雪）：全零行<b>不隐藏</b> + 每类「从哪来」引导小字 + 余额 = 启动资金 100</li>
+    <li>印章「此生不虚」按净值分档（批注：负债/小康/巨富三档词表，批 2 定稿）</li>
+  </ol></details>
+  <div class="framebox"><iframe src="财富总账浮层-视觉稿.html" height="1700" loading="lazy" title="财富总账浮层视觉稿"></iframe></div>
+</section>
+
+<!-- ═══ ⑨ 渡劫演出 ═══ -->
+<section class="g" id="g9">
+  <div class="ghead"><h2>⑨ 渡劫演出</h2><div class="gmeta">4 帧 · UI v2.4 §5.2 · 批次：<b>P5 已有 · 批 3 增护法/独行叙事行</b></div></div>
+  <details class="check" open><summary>走查核对项（6）</summary><ol>
+    <li>帧二与修行页稿三 = <b>同一场渡劫</b>：化神→炼虚 · 95% 封顶 · 修为 88.0万→0（凡骨 need）· 产出 81→240（境界表）</li>
+    <li>护法叙事行「老黄 立于雷幕之外（③ · +0.03 已计入）」；批注含道侣恰为护法时的形态名显示规则</li>
+    <li>帧三（厉惊寒）：成算复盘 <b>67% = 0.64+0.15−0.12</b> · 损失 500万→250万（−50% 基准）· 累计「渡劫 16 · 败 7」与节奏模拟深魔期望 7.2 同频 · 独行文案「雷云之下，唯你一人。」</li>
+    <li>帧四：六槽「待重修」金标 + Lv— 归零透明展示 + 预期管理横幅（重修 350 = 100×3.5）· 顶栏已翻炼虚一层 · karma +226（漂移 +12/日）</li>
+    <li>悬念 1s 不可跳过 / 结果帧 2s 自动关或点击关（交互说明 §4.9）</li>
+    <li>全部动效带 reduced-motion 降级（闪电常亮 · 进度线满格 · 不震屏）</li>
+  </ol></details>
+  <div class="framebox"><iframe src="渡劫演出-视觉稿.html" height="2150" loading="lazy" title="渡劫演出视觉稿"></iframe></div>
+</section>
+
+<!-- ═══ ⑩ module 与浮层 ═══ -->
+<section class="g" id="g10">
+  <div class="ghead"><h2>⑩ module 卡与 karma / 属性浮层</h2><div class="gmeta">4 帧 · UI v2.4 §四/§3.6/§3.7 · 批次：<b>P2 起 · 护法行批 3</b></div></div>
+  <details class="check" open><summary>走查核对项（7）</summary><ol>
+    <li>module 六态齐全：ideal（含洞府 flavour 副行——UI v2.4 例外条款）/ min 2×2 / <b>最矮 86px 两行降级</b>（真 container query，缩窗口验证）/ 魔道徽标 / 无档引导 / claim「--」占位</li>
+    <li>module 数字与档案卡一致：49% · 50.6万/103.2万 · 💰42.8万 · ☯+214</li>
+    <li>karma 浮层四行 <b>20+30+164+0 = 214</b> 逐行带来源小字；色带游标 63.4%（=(214+800)/1600）</li>
+    <li>差值双提示：「升档还差 586 · <b>跌出余量 14</b>」（+200 档界）</li>
+    <li>ALIGN_EFFECTS 摘要六行（含护法行 ☂ 老黄 +0.03；批 3 前灰置「未激活」）</li>
+    <li>魔道变体：−12−30−232−12 = <b>−286</b> · 游标 32.1% · 护法行整行红字 · 初心倾向 −12（魔道漂移 −12/天）</li>
+    <li>属性浮层：精 46 = 30+14+2 / 气 50 = 30+20 / 神 42 = 30+12（滋养 = 正道/左道 2/级 对表）· dc 57 = 60×0.95 算式外露 · 天赋 pills 与创角稿同款 · 倾向行「左道 · 0/±260」与 karma 第四行同源</li>
+  </ol></details>
+  <div class="framebox"><iframe src="module卡与浮层-视觉稿.html" height="2300" loading="lazy" title="module卡与浮层视觉稿"></iframe></div>
+</section>
+
+</main>
+
+<footer>
+  <b>走查纪律</b>：① 每帧先核「档案对账卡」再核分稿清单——数字对不上即为缺陷；② 明暗两态各过一遍（各稿自带切换按钮，走查页 chrome 跟随系统）；③ 发现冲突时裁决顺序 = UI 卷 v2.8 &gt; 交互说明 v1.6（★ 条目除外，★ 以交互说明为唯一事实源）&gt; 视觉稿；④ 批次标注（批 1/2/3）表示该元素的交付波次，稿面默认展示完全体。<br>
+  <b>规格链</b>：docs/三千世界-UI与交互设计.md（v2.8）· docs/设计稿/交互说明.md（v1.6）· 十份视觉稿原文件（本页 iframe 引用，零复制零漂移）。
+</footer>
+
+</body>
+</html>

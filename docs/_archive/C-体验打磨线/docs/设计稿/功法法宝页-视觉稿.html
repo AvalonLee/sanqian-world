@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-xhub-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三千世界 · 功法/法器页视觉稿 v1（审阅用，非生产代码）</title>
+<style>
+/* ══ 主题令牌：UI 设计 §八 双声明 fallback；明暗切换仅审阅用 ══ */
+:root{
+  --xhub-page-bg:#f4f1ea; --xhub-surface:rgba(255,255,255,.78); --xhub-bg-card:rgba(255,255,255,.92);
+  --xhub-text-1:#2b2620; --xhub-text-2:#5c544a; --xhub-text-3:#8a8175;
+  --xhub-accent:#9a7420; --xhub-brand-soft:rgba(154,116,32,.10);
+  --xhub-yellow:#a8811c; --xhub-red:#a03a30; --xhub-green:#3e7a4e;
+  --xhub-border:rgba(43,38,32,.12);
+  /* 品阶色（凡/良/上/灵/仙，压暗饱和度） */
+  --sq-g1:#9a948a; --sq-g2:#4e8a6e; --sq-g3:#4a6a9e; --sq-g4:#7a4e9e; --sq-g5:#a8811c;
+}
+:root[data-xhub-theme="dark"]{
+  --xhub-page-bg:#171512; --xhub-surface:rgba(38,34,29,.72); --xhub-bg-card:rgba(48,43,37,.85);
+  --xhub-text-1:#ece5d8; --xhub-text-2:#b8ae9d; --xhub-text-3:#847b6d;
+  --xhub-accent:#d4af5e; --xhub-brand-soft:rgba(212,175,94,.12);
+  --xhub-yellow:#d9b64f; --xhub-red:#c9584c; --xhub-green:#6fae80;
+  --xhub-border:rgba(236,229,216,.14);
+  --sq-g1:#6e695f; --sq-g2:#6fae8c; --sq-g3:#7a9ed4; --sq-g4:#b08ae0; --sq-g5:#d4af5e;
+}
+:root{
+  --sq-primary:var(--xhub-accent);
+  --sq-karma-right:var(--xhub-yellow); --sq-karma-evil:var(--xhub-red); --sq-karma-neutral:var(--xhub-text-3);
+  --sq-success:var(--xhub-green); --sq-danger:var(--xhub-red);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--xhub-page-bg);color:var(--xhub-text-1);
+  font-family:system-ui,"Songti SC",SimSun,serif;
+  display:flex;flex-wrap:wrap;gap:26px;justify-content:center;padding:28px 16px 60px;
+}
+h1.doc{width:100%;text-align:center;font-size:20px;letter-spacing:.2em;font-weight:600}
+p.doc{width:100%;text-align:center;color:var(--xhub-text-2);font-size:12px;margin-top:6px;line-height:1.8}
+.review-bar{width:100%;display:flex;justify-content:center;margin-top:10px}
+.review-bar button{font:inherit;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;border:1px dashed var(--xhub-border);background:var(--xhub-bg-card);color:var(--xhub-text-2)}
+.frame-col{display:flex;flex-direction:column;gap:12px;align-items:center}
+.phone{
+  width:390px;max-width:100%;border-radius:22px;overflow:hidden;
+  border:1px solid var(--xhub-border);box-shadow:0 12px 40px rgba(0,0,0,.14);
+  background:var(--xhub-page-bg);display:flex;flex-direction:column;min-height:780px;
+}
+.phone .caption{padding:10px 14px;font-size:12px;color:var(--xhub-text-3);border-bottom:1px dashed var(--xhub-border);letter-spacing:.1em}
+.note{
+  width:390px;max-width:100%;border:1px dashed var(--xhub-border);border-radius:12px;
+  padding:12px 14px;font-size:11.5px;line-height:1.9;color:var(--xhub-text-2);background:var(--xhub-brand-soft);
+}
+.note b{color:var(--xhub-text-1)}
+.note ul{padding-left:16px}
+/* 顶栏 */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--xhub-surface);border-bottom:1px solid var(--xhub-border)}
+.topbar .who{font-size:13px}.topbar .who b{font-size:14px}
+.topbar .who span{color:var(--xhub-text-3);font-size:12px}
+.topbar .right{display:flex;gap:8px;align-items:center;font-size:12px}
+.kbadge{padding:2px 8px;border-radius:99px;font-size:11px;border:1px solid var(--sq-karma-right);color:var(--sq-karma-right)}
+/* Tab 栏 */
+.tabbar{margin-top:auto;display:flex;border-top:1px solid var(--xhub-border);background:var(--xhub-surface)}
+.tabbar .t{flex:1;text-align:center;padding:9px 0 11px;font-size:11.5px;color:var(--xhub-text-3)}
+.tabbar .t.on{color:var(--sq-primary);font-weight:700}
+/* 页内容通用 */
+.body{flex:1;overflow-y:auto;padding:12px 14px 16px}
+.sechead{display:flex;justify-content:space-between;align-items:baseline;margin:6px 2px 9px}
+.sechead .t{font-size:13px;letter-spacing:.25em;color:var(--xhub-text-1)}
+.sechead .s{font-size:10.5px;color:var(--xhub-text-3)}
+/* 六槽网格 */
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px}
+.slot{
+  border:1px solid var(--xhub-border);border-radius:11px;background:var(--xhub-bg-card);
+  padding:9px 7px 8px;text-align:center;position:relative;cursor:pointer;
+}
+.slot .alignbar{position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:99px}
+.slot .an{font-size:12.5px;font-weight:700;letter-spacing:.04em}
+.slot .al{font-size:9.5px;color:var(--xhub-text-3);margin-top:2px}
+.slot .ae{font-size:9px;color:var(--sq-success);margin-top:3px}
+.slot .sig{font-size:8.5px;color:var(--sq-primary);margin-top:3px;border-top:1px dotted var(--xhub-border);padding-top:3px}
+.slot .main{position:absolute;top:-7px;left:7px;font-size:8.5px;background:var(--sq-primary);color:#fff;border-radius:4px;padding:1px 5px;letter-spacing:.15em}
+:root[data-xhub-theme="dark"] .slot .main{color:#211c12}
+.slot .lv{position:absolute;top:5px;right:7px;font-size:9.5px;color:var(--sq-primary);font-weight:700}
+.slot.empty{border-style:dashed;color:var(--xhub-text-3);display:flex;align-items:center;justify-content:center;min-height:74px;font-size:11px;letter-spacing:.2em}
+/* 分组切换 */
+.grouper{display:flex;gap:6px;align-items:center;margin:10px 2px 8px;flex-wrap:wrap}
+.gseg{display:flex;border:1px solid var(--xhub-border);border-radius:8px;overflow:hidden}
+.gseg span{font-size:10.5px;padding:4px 11px;color:var(--xhub-text-3);cursor:pointer}
+.gseg span.on{background:var(--sq-primary);color:#fff}
+:root[data-xhub-theme="dark"] .gseg span.on{color:#211c12}
+.gchip{font-size:10px;padding:3px 9px;border-radius:99px;border:1px solid var(--xhub-border);color:var(--xhub-text-3);cursor:pointer}
+.gchip.on{border-color:var(--sq-primary);color:var(--sq-primary);background:var(--xhub-brand-soft)}
+/* 待修习架 */
+.shelf{display:flex;flex-direction:column;gap:7px}
+.art{
+  display:flex;gap:9px;align-items:center;border:1px solid var(--xhub-border);border-radius:11px;
+  background:var(--xhub-bg-card);padding:9px 11px;position:relative;cursor:pointer;
+}
+.art .abar{width:3px;align-self:stretch;border-radius:99px;flex-shrink:0}
+.art .ainfo{flex:1;min-width:0}
+.art .an{font-size:12.5px;font-weight:700}
+.art .an .tierb{font-size:8.5px;font-weight:400;border:1px solid var(--xhub-border);border-radius:3px;padding:0 4px;margin-left:5px;color:var(--xhub-text-3);vertical-align:1px}
+.art .ad{font-size:10px;color:var(--xhub-text-2);margin-top:2px;line-height:1.6}
+.art .asig{font-size:9px;color:var(--sq-primary);margin-top:2px}
+.art .lack{font-size:9.5px;color:var(--sq-danger);margin-top:2px}
+.art.locked{opacity:.62}
+.art.silhouette{opacity:.75;border-style:dashed}
+.art .bao{position:absolute;top:6px;right:8px;font-size:9px;color:var(--xhub-text-3)}
+.art .bao.got{color:var(--sq-primary)}
+.tagok{font-size:9px;color:var(--sq-success);border:1px solid var(--sq-success);border-radius:4px;padding:0 5px;margin-left:5px}
+/* 升级浮层 */
+.overlay{flex:1;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;padding:20px 16px}
+.upmodal{width:100%;background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.25);overflow:hidden}
+.upmodal .uh{padding:13px 16px 9px;border-bottom:1px dashed var(--xhub-border);display:flex;justify-content:space-between;align-items:center}
+.upmodal .uh .n{font-size:15px;font-weight:700}
+.upmodal .uh .n .lv{color:var(--sq-primary);font-size:12px;margin-left:6px}
+.upmodal .uh .x{color:var(--xhub-text-3);font-size:12px;cursor:pointer}
+.upmodal .ub{padding:11px 16px}
+.urow{display:flex;justify-content:space-between;font-size:12px;line-height:2.15;color:var(--xhub-text-2)}
+.urow .v{color:var(--xhub-text-1)}
+.urow .v.up{color:var(--sq-success)} .urow .v.gold{color:var(--sq-primary);font-weight:700}
+.urow.total{border-top:1px solid var(--xhub-border);margin-top:5px;padding-top:4px;font-weight:700}
+.udisc{font-size:10.5px;color:var(--xhub-text-3);padding:0 16px 9px;line-height:1.7}
+.ubtns{display:flex;gap:10px;padding:4px 16px 15px}
+.ubtns button{flex:1;font:inherit;padding:11px 0;border-radius:11px;font-size:13px;letter-spacing:.2em;cursor:pointer}
+.ubtns .yes{background:var(--sq-primary);border:1px solid var(--sq-primary);color:#fff}
+:root[data-xhub-theme="dark"] .ubtns .yes{color:#211c12}
+.ubtns .no{background:var(--xhub-bg-card);border:1px solid var(--xhub-border);color:var(--xhub-text-2)}
+/* 法器页 */
+.gearbanner{
+  display:flex;justify-content:space-between;align-items:center;border:1px solid var(--sq-primary);
+  border-radius:12px;background:var(--xhub-brand-soft);padding:10px 13px;margin-bottom:12px;cursor:pointer;
+}
+.gearbanner .l{font-size:12.5px;letter-spacing:.2em;color:var(--sq-primary);font-weight:700}
+.gearbanner .r{font-size:11px;color:var(--xhub-text-2)}
+.gearbanner .r b{color:var(--sq-primary)}
+.gear{
+  border:1px solid var(--xhub-border);border-radius:12px;background:var(--xhub-bg-card);
+  padding:10px 12px;margin-bottom:9px;position:relative;border-left:4px solid var(--gc,var(--sq-g1));
+}
+.gear .gh{display:flex;justify-content:space-between;align-items:baseline}
+.gear .gn{font-size:13.5px;font-weight:700}
+.gear .gn .tier{font-size:9px;border-radius:3px;padding:1px 5px;margin-left:6px;color:#fff;vertical-align:1.5px}
+:root[data-xhub-theme="dark"] .gear .gn .tier{color:#1c1814}
+.gear .gs{font-size:10px;color:var(--xhub-text-3)}
+.gear .gstats{font-size:11px;color:var(--xhub-text-2);margin-top:5px;line-height:1.8}
+.gear .gstats b{color:var(--xhub-text-1)}
+.gear .gmeta{display:flex;justify-content:space-between;font-size:9.5px;color:var(--xhub-text-3);margin-top:5px;border-top:1px dotted var(--xhub-border);padding-top:5px}
+.gear .req-ok{color:var(--sq-success)}
+.gear .sp{position:absolute;top:8px;right:10px;font-size:9px;color:var(--sq-primary);border:1px solid var(--sq-primary);border-radius:4px;padding:0 5px;background:var(--xhub-brand-soft)}
+.gear .src{cursor:pointer;border-bottom:1px dashed var(--xhub-border)}
+/* 库藏阁 */
+.stash .gear{opacity:.9}
+.stash .lack{color:var(--sq-danger);font-size:10px;margin-top:4px}
+.stashhead{display:flex;justify-content:space-between;font-size:11px;color:var(--xhub-text-3);margin:12px 2px 8px;letter-spacing:.15em}
+/* 最近拾得 */
+.picks{display:flex;flex-direction:column;gap:5px}
+.pick{font-size:10.5px;color:var(--xhub-text-2);background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:8px;padding:6px 10px;line-height:1.7}
+.pick b{color:var(--xhub-text-1)}
+.pick .gold{color:var(--sq-primary)}
+.pick .red{color:var(--sq-danger)}
+/* 百器录 */
+.codexgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ccell{
+  position:relative;aspect-ratio:1/1.1;border-radius:10px;border:1px solid var(--xhub-border);
+  background:var(--xhub-bg-card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  font-size:10px;text-align:center;padding:3px;overflow:hidden;
+}
+.ccell .cn{font-size:11px;font-weight:600;line-height:1.3}
+.ccell .ct{font-size:8px;color:var(--xhub-text-3)}
+.ccell.lock{color:var(--xhub-text-3)}
+.ccell.lock .q{font-size:18px;font-weight:300;opacity:.5}
+.ccell.got{border-color:var(--sq-primary);box-shadow:inset 0 0 0 1px var(--xhub-brand-soft)}
+.ccell .bz{position:absolute;top:2px;right:4px;font-size:8.5px;color:var(--xhub-text-3)}
+.ccell .bz.got{color:var(--sq-primary)}
+.sheet{width:100%;background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:18px;max-height:100%;overflow-y:auto}
+.sheet .sh{padding:12px 16px 9px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--xhub-border)}
+.sheet .sh .t{font-size:15px;letter-spacing:.3em;color:var(--sq-primary)}
+.sheet .sh .x{color:var(--xhub-text-3);font-size:13px;cursor:pointer}
+.sheet .sb{padding:12px 16px 18px}
+</style>
+</head>
+<body>
+
+<h1 class="doc">三千世界 · 功法 / 法器页视觉稿</h1>
+<p class="doc">依据《UI 与交互设计》v2.3 §3.4（功法双维分组 / 主修角标 / 独占剪影 / 百器录 / 来源行 / 库藏阁）· 人设与其余六稿同档：叶长风 · 化神二层 · 正道 +214 · 灵石 42.8万 · 主修金钟罩 Lv4（坊市购，金丹(2) 要求达标）· 已学会 8 部（含秘境 4 首通奖励紫霄诀，未装槽）<br>装备词条与渡劫浮层对账：Σresist = 48 + 60 = 108 → resist 项 108/1200 = 0.09 ✓</p>
+<div class="review-bar">
+  <button onclick="const h=document.documentElement;h.dataset.xhubTheme=h.dataset.xhubTheme==='dark'?'light':'dark'">切换明 / 暗（审阅用，生产无此按钮）</button>
+</div>
+
+<!-- ═══ 帧一 · 功法页 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧一 · 功法页（Tab 3 · 批 2 交付：主修角标 + 双维分组 + 独占剪影）</div>
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +214</span><span>💰 42.8万</span></div>
+  </div>
+  <div class="body">
+    <div class="sechead"><span class="t">修 习 槽</span><span class="s">6/6 · 槽内方生效 · 第 1 位为主修</span></div>
+    <div class="slots">
+      <div class="slot"><span class="main">主修</span><span class="lv">Lv4</span><span class="alignbar" style="background:var(--sq-karma-right)"></span>
+        <div class="an">金钟罩</div><div class="al">正道 · 滋养精</div><div class="ae">战力 +24%</div><div class="sig">签名 · 不动明王</div></div>
+      <div class="slot"><span class="lv">Lv5</span><span class="alignbar" style="background:var(--sq-karma-neutral)"></span>
+        <div class="an">吐纳法</div><div class="al">左道 · 滋养气</div><div class="ae">产出 +25%</div><div class="sig">签名 · 绵长内息</div></div>
+      <div class="slot"><span class="lv">Lv5</span><span class="alignbar" style="background:var(--sq-karma-neutral)"></span>
+        <div class="an">聚灵诀</div><div class="al">左道 · 滋养气</div><div class="ae">上限 +50%</div><div class="sig">签名 · 引灵入体</div></div>
+      <div class="slot"><span class="lv">Lv4</span><span class="alignbar" style="background:var(--sq-karma-right)"></span>
+        <div class="an">清心咒</div><div class="al">正道 · 滋养神</div><div class="ae">离线 +24%</div><div class="sig">签名 · 心如止水</div></div>
+      <div class="slot"><span class="lv">Lv3</span><span class="alignbar" style="background:var(--sq-karma-neutral)"></span>
+        <div class="an">云踪步</div><div class="al">左道 · 滋养精</div><div class="ae">战斗速度 +18%</div><div class="sig">签名 · 御风</div></div>
+      <div class="slot"><span class="lv">Lv2</span><span class="alignbar" style="background:var(--sq-karma-right)"></span>
+        <div class="an">福缘咒</div><div class="al">正道 · 滋养神</div><div class="ae">灵石 +14%</div><div class="sig">签名 · 逢凶化吉</div></div>
+    </div>
+
+    <div class="grouper">
+      <div class="gseg"><span class="on">品阶</span><span>阵营</span></div>
+      <span class="gchip">黄</span><span class="gchip">玄</span><span class="gchip">地</span><span class="gchip on">天</span>
+      <span class="s" style="font-size:10px;color:var(--xhub-text-3);margin-left:auto">待修习架 8/24</span>
+    </div>
+
+    <div class="sechead" style="margin-top:2px"><span class="t">待 修 习 架 · 天字阶</span><span class="s">含独占 3 部（奇遇限定）</span></div>
+    <div class="shelf">
+      <div class="art silhouette">
+        <div class="abar" style="background:var(--sq-primary)"></div>
+        <div class="ainfo">
+          <div class="an">？？？<span class="tierb" style="border-color:var(--sq-primary);color:var(--sq-primary)">天</span></div>
+          <div class="ad" style="color:var(--sq-primary)">大道方向 · 「斩尸断我，不假外尘」</div>
+          <div class="asig">独占 · 仅天级特殊奇遇「三尸夜话」左道分支可得（遇过 ≠ 拿到）</div>
+        </div><span class="bao">法·灰</span>
+      </div>
+      <div class="art silhouette">
+        <div class="abar" style="background:var(--sq-karma-right)"></div>
+        <div class="ainfo">
+          <div class="an">？？？<span class="tierb" style="border-color:var(--sq-primary);color:var(--sq-primary)">天</span></div>
+          <div class="ad" style="color:var(--sq-primary)">大道方向 · 「红尘烟火里，炼一颗金子般的心」</div>
+          <div class="asig">独占 · 仅「红尘炼心」正道分支可得 · 需 karma ≥ +400</div>
+        </div><span class="bao">法·灰</span>
+      </div>
+      <div class="art silhouette">
+        <div class="abar" style="background:var(--sq-karma-evil)"></div>
+        <div class="ainfo">
+          <div class="an">？？？<span class="tierb" style="border-color:var(--sq-primary);color:var(--sq-primary)">天</span></div>
+          <div class="ad" style="color:var(--sq-primary)">大道方向 · 「七情斩尽，大道独行」</div>
+          <div class="asig">独占 · 仅「忘情枯坐」魔道分支可得 · 需 karma ≤ −400</div>
+        </div><span class="bao">法·灰</span>
+      </div>
+    </div>
+
+    <div class="sechead" style="margin-top:14px"><span class="t">架 上 其 余</span><span class="s">切「阵营」组视图按 正/左/魔 分节</span></div>
+    <div class="shelf">
+      <div class="art">
+        <div class="abar" style="background:var(--sq-karma-right)"></div>
+        <div class="ainfo">
+          <div class="an">紫霄诀<span class="tierb">地</span><span class="tagok">已学会 · 未装槽</span></div>
+          <div class="ad">正道 · 滋养气 ｜ 每级 产出 +8% ｜ 签名 · 绵长内息·强 ｜ 来源：秘境 4 首通奖励</div>
+        </div>
+      </div>
+      <div class="art">
+        <div class="abar" style="background:var(--sq-karma-right)"></div>
+        <div class="ainfo">
+          <div class="an">拂尘木咒<span class="tierb">玄</span><span class="tagok">已学会 · 未装槽</span></div>
+          <div class="ad">正道 · 滋养气 ｜ 每级 掉落 +5% ｜ 点按可替换入槽</div>
+        </div>
+      </div>
+      <div class="art locked">
+        <div class="abar" style="background:var(--sq-karma-right)"></div>
+        <div class="ainfo">
+          <div class="an">护体神光<span class="tierb">地</span></div>
+          <div class="ad">正道 · 滋养神 ｜ 每级 渡劫 +0.02</div>
+          <div class="lack">未获得 · 获取途径：首通秘境 6「修罗战场」（需合体）</div>
+        </div>
+      </div>
+      <div class="art locked">
+        <div class="abar" style="background:var(--sq-karma-evil)"></div>
+        <div class="ainfo">
+          <div class="an">噬血功<span class="tierb">玄</span></div>
+          <div class="ad">魔道 · 滋养气 ｜ 每级 产出 +9%</div>
+          <div class="lack">修习要求未达 · 需：karma ≤ −100（当前 +214，相差 314）</div>
+        </div>
+      </div>
+      <div class="art locked">
+        <div class="abar" style="background:var(--sq-karma-evil)"></div>
+        <div class="ainfo">
+          <div class="an">夺魂术<span class="tierb">地</span></div>
+          <div class="ad">魔道 · 滋养精 ｜ 每级 战斗速度 +9%</div>
+          <div class="lack">修习要求未达 · 需：karma ≤ −200 · 精 ≥ 30</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t">修行</div><div class="t">秘境</div><div class="t on">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t">坊市</div><div class="t">奇遇</div>
+  </div>
+</div>
+<div class="note">
+  <b>帧一批注（UI v2.3 §3.4 功法页）</b>
+  <ul>
+    <li><b>主修角标</b> = 修习槽第 1 位（v1.12 形式化，事件 artsProgress「主修」的指向落地）；槽位阵营色条（正金/左灰/魔红）+ 等级角标 + 签名条；</li>
+    <li><b>双维分组</b>：品阶（黄玄地天）× 阵营（正左魔）切换视图；本帧示品阶组「天」节 = 独占 3 部剪影；</li>
+    <li><b>独占剪影</b>：名讳以「？？？」隐去，但「大道方向」签名一句 + 获取途径明示（收集牵引 = 知道去哪拿）；宝/法角标灰态 = 未拿到（与奇遇图鉴同语义）；三道方向句为示例文案，批 2 定稿入词表 `skill.{id}.dao`；</li>
+    <li>架上三态：已学会未装槽（绿标，点按入槽/替换 CONFIRM）· 未达要求（置灰 + 红字缺项含差值）· 未获得（获取途径教学行）；</li>
+    <li>魔道功法红字带「相差 314」——karma 门槛两段式（黑市可买、入魔够深才修得成）的可视化；</li>
+    <li>渡劫清零后<b>等级为 0</b> 的槽位显示「待重修」标记（非 0 即摘标；仅视觉，本帧未演示）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧二 · 功法升级浮层 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧二 · 槽位升级浮层（点主修「金钟罩」· 消耗对表 §4.2）</div>
+  <div class="overlay">
+    <div class="upmodal">
+      <div class="uh"><span class="n">金钟罩 <span class="lv">Lv4 → Lv5（满级）</span></span><span class="x">✕</span></div>
+      <div class="ub">
+        <div class="urow"><span>战力加成</span><span class="v up">+24% → +30%</span></div>
+        <div class="urow"><span>滋养 · 精（2 点/级 · 正道）</span><span class="v up">+8 → +10</span></div>
+        <div class="urow"><span>签名 · 不动明王（只解锁不缩放）</span><span class="v">渡劫失败损失 −5pp</span></div>
+        <div class="urow"><span>表值消耗（Lv4→5 · 6,000 × 境界 3.0）</span><span class="v">18,000</span></div>
+        <div class="urow"><span>躺云师弟「心宽」折扣（档① −2%）</span><span class="v up">−360</span></div>
+        <div class="urow total"><span>实付灵石</span><span class="v gold">17,640（余额 42.8万 ✓）</span></div>
+      </div>
+      <div class="udisc">消耗 = 表值 ×(1+境界索引×0.5) ×(1−ΣartsSpeed)，折扣下限 50%；升级支出计入总账 ledger.out.arts。渡劫成功后等级清零、槽位保留。</div>
+      <div class="ubtns">
+        <button class="no">移出槽位</button>
+        <button class="yes">升 级</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>帧二批注</b>
+  <ul>
+    <li>升级面板 = 效果对比（当前 → 下一级）+ 消耗逐行拆解（表值 × 境界放大 − 折扣 = 实付）——与产出/渡劫浮层同一套「数值透明」语言；</li>
+    <li>折扣行来源可点（跳道友浮层对应格，批 3）；artsSpeed 合计触 50% 下限时该行显示「已至下限」；</li>
+    <li>「移出槽位」为次按钮（无消耗无冷却，规格既定）；余额不足时「升级」置灰 + 实付行红字差额。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧三 · 法器页 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧三 · 法器页（Tab 4 · 批 2 交付：百器录入口 + 来源行 + 库藏阁）</div>
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +214</span><span>💰 42.8万</span></div>
+  </div>
+  <div class="body">
+    <div class="gearbanner">
+      <span class="l">百 器 录</span>
+      <span class="r">已录 <b>3 / 12</b> · 特殊词条 3/10 · 独占 0/2 ›</span>
+    </div>
+
+    <div class="sechead"><span class="t">佩 戴 中</span><span class="s">4/4 · 自动择优 · Σresist 108</span></div>
+
+    <div class="gear" style="--gc:var(--sq-g4)">
+      <div class="gh"><span class="gn">青鹞剑<span class="tier" style="background:var(--sq-g4)">灵品</span></span><span class="gs">评分 312</span></div>
+      <div class="gstats">兵刃 · <b>atk 312</b> ｜ ☯ 正道（+15 业力/件）｜ <span class="req-ok">佩戴要求 化神(4) ✓</span></div>
+      <div class="gmeta"><span class="src">来源 · 秘境 雷池禁地 ›</span><span>击杀掉落 · 已替换旧件</span></div>
+    </div>
+
+    <div class="gear" style="--gc:var(--sq-g4)">
+      <div class="gh"><span class="gn">暖玉髓佩<span class="tier" style="background:var(--sq-g4)">灵品</span></span><span class="gs">评分 1,800</span></div>
+      <div class="gstats">法器 · <b>qiBonus 18%</b> ｜ · 左道 ｜ <span class="req-ok">佩戴要求 化神(4) ✓</span></div>
+      <div class="gmeta"><span class="src">来源 · 坊市 ›</span><span>购入价 7,800</span></div>
+    </div>
+
+    <div class="gear" style="--gc:var(--sq-g3)">
+      <div class="gh"><span class="gn">玄铁重甲<span class="tier" style="background:var(--sq-g3)">上品</span></span><span class="gs">评分 211</span></div>
+      <div class="gstats">甲衣 · <b>atk 187 · resist 48</b> ｜ · 左道 ｜ <span class="req-ok">佩戴要求 金丹(2) ✓</span></div>
+      <div class="gmeta"><span class="src">来源 · 秘境 焦土遗迹 ›</span><span>击杀掉落</span></div>
+    </div>
+
+    <div class="gear" style="--gc:var(--sq-g3)">
+      <span class="sp">✦ 照业镜 · eventLuck +12%</span>
+      <div class="gh"><span class="gn">定魂珠<span class="tier" style="background:var(--sq-g3)">上品</span></span><span class="gs">评分 1,415</span></div>
+      <div class="gstats">佩饰 · <b>resist 60 · qiBonus 12%</b> ｜ ☯ 正道 ｜ <span class="req-ok">佩戴要求 金丹(2) ✓</span></div>
+      <div class="gmeta"><span class="src">来源 · 坊市 ›</span><span>购入价 1,560 · 特殊词条 3% 掷中 · 已录百器录</span></div>
+    </div>
+
+    <div class="stashhead"><span>库 藏 阁</span><span>2 / 12 · 境界提升自动复检</span></div>
+    <div class="stash">
+      <div class="gear" style="--gc:var(--sq-g4)">
+        <div class="gh"><span class="gn">烈炎珠<span class="tier" style="background:var(--sq-g4)">灵品</span><span style="font-size:8.5px;color:var(--sq-primary);border:1px solid var(--sq-primary);border-radius:3px;padding:0 4px;margin-left:6px">极品词条</span></span><span class="gs">评分 2,172</span></div>
+        <div class="gstats">法器 · qiBonus 21% ｜ resist <b>143</b>（区间前 10% → 要求 +1 阶）</div>
+        <div class="lack">佩戴要求：炼虚(5)※ · 还差 1 个境界（※ 极品词条追加 +1 阶，生成时定格）</div>
+      </div>
+      <div class="gear" style="--gc:var(--sq-g4)">
+        <span class="sp">✦ 疾影 · 战斗速度 +10%</span>
+        <div class="gh"><span class="gn">霜魄甲<span class="tier" style="background:var(--sq-g4)">灵品</span></span><span class="gs">评分 393</span></div>
+        <div class="gstats">甲衣 · atk 268 · resist <b>148</b>（区间前 10%）</div>
+        <div class="lack">佩戴要求：炼虚(5)※ · 还差 1 个境界 · 特殊词条炼化日志全程亮标</div>
+      </div>
+    </div>
+
+    <div class="stashhead"><span>最 近 拾 得</span><span>滚动 ≤ 8 条</span></div>
+    <div class="picks">
+      <div class="pick">拾得 <b>青鹞剑</b>（灵品）→ 已替换旧件，炼化 <span class="gold">+300 灵石</span>（上品基数 100 × 境界 3.0）</div>
+      <div class="pick">拾得 <b>烈炎珠</b>（灵品 · 极品词条）→ 境界不足，已收入库藏阁</div>
+      <div class="pick">购入 <b>定魂珠</b>（上品 · <span class="gold">✦ 照业镜</span>）→ 已替换旧件，炼化 <span class="gold">+300</span> · 百器录入录</div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t">修行</div><div class="t">秘境</div><div class="t">功法</div>
+    <div class="t on">法器</div><div class="t">法宝</div><div class="t">坊市</div><div class="t">奇遇</div>
+  </div>
+</div>
+<div class="note">
+  <b>帧三批注（UI v2.3 §3.4 法器页）</b>
+  <ul>
+    <li>页首<b>百器录横幅</b>（批 2 新）：计数三分（特殊词条 3/10 · 独占 0/2），点开 = 帧四；</li>
+    <li>4 槽纵排卡：品阶色左边条 + 品阶文字角标（色弱友好双通道）+ 阵营符号（☯/·/☠）+ 评分 + <b>来源行</b>（秘境/坊市/奇遇三渠道，奇遇来源可点跳图鉴回看 story——装备从数值件变经历件）；</li>
+    <li>特殊词条 = 右上暗金 ✦ 胶囊（照业镜），拾得 toast / 库藏阁 / 炼化日志全程亮标纪律不变；</li>
+    <li>数字对账：Σresist 108 → 渡劫浮层 resist 项 0.09 ✓；霜魄甲评分 393 = (atk 268 + resist 148×0.5) × 特殊系数 1.15 ✓；炼化 +300 = 上品基数 100 × (1+4×0.5) ✓；暖玉髓佩购入 7,800 = 灵品基数 500 × 6 × (1+4×0.4) ✓（「买不如刷」定价纪律）；定魂珠购入 1,560 = 上品 100 × 6 × 2.6 ✓；</li>
+    <li><b>来源行三渠道态</b>：本帧演示 秘境/坊市 两态；event 态显示奇遇名并可点跳图鉴回看 story（如「来源 · 奇遇『剑壁斗痕』›」——装备从数值件变经历件，与道友详情「出身事件」同构）；</li>
+    <li>库藏阁两件均为<b>极品词条追加</b>（resist 前 10% → 要求 +1 阶 = 炼虚(5)，「生成时定格不重算」的 ※ 标注）；霜魄甲带疾影词条 → 百器录已录且标「在库」（帧四联动）；独占法器在阁时加锁形标记（豁免溢出炼化，本帧未持有）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧四 · 百器录浮层 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧四 · 百器录浮层（12 格 = 特殊词条 10 + 独占法器 2 · 炼化不除名）</div>
+  <div class="overlay" style="align-items:flex-end">
+    <div class="sheet">
+      <div class="sh"><span class="t">百器录</span><span class="x">✕ 关闭</span></div>
+      <div class="sb">
+        <div class="sechead" style="margin-top:0"><span class="t" style="font-size:11.5px">特 殊 词 条 · 3/10</span><span class="s">一经获得永久入录</span></div>
+        <div class="codexgrid">
+          <div class="ccell got"><span class="cn">照业镜</span><span class="ct">eventLuck +12%</span><span class="ct">首获 · 三日前</span></div>
+          <div class="ccell got"><span class="cn">金刚质</span><span class="ct">resist +60</span><span class="ct">首获 · 已炼化</span></div>
+          <div class="ccell got"><span class="cn">疾影</span><span class="ct">战斗速度 +10%</span><span class="ct">首获 · 在库（霜魄甲）</span></div>
+          <div class="ccell lock"><span class="q">？</span><span class="cn">无视佩戴要求</span></div>
+          <div class="ccell lock"><span class="q">？</span><span class="cn">剑魄</span></div>
+          <div class="ccell lock"><span class="q">？</span><span class="cn">聚灵纹</span></div>
+          <div class="ccell lock"><span class="q">？</span><span class="cn">商慧</span></div>
+          <div class="ccell lock"><span class="q">？</span><span class="cn">道侣之约</span></div>
+          <div class="ccell lock"><span class="q">？</span><span class="cn">雷纹</span></div>
+          <div class="ccell lock"><span class="q">？</span><span class="cn">噬灵</span></div>
+        </div>
+        <div class="sechead" style="margin-top:14px"><span class="t" style="font-size:11.5px">独 占 法 宝 · 0/2</span><span class="s">仅天级特殊奇遇可得</span></div>
+        <div class="codexgrid" style="grid-template-columns:repeat(2,1fr)">
+          <div class="ccell lock"><span class="bz">宝·灰</span><span class="q">？</span><span class="cn">诛邪剑残</span><span class="ct">奇遇「剑冢余啸」· 未遇</span></div>
+          <div class="ccell lock"><span class="bz">宝·灰</span><span class="q">？</span><span class="cn">照世镜</span><span class="ct">奇遇「古镜照世」· 未遇</span></div>
+        </div>
+        <div class="pick" style="margin-top:12px">百器录为<b>纯荣誉</b>图鉴：入录不提供任何数值加成（防通胀红线）——它记录的不是器，是你与器的缘分。已炼化者标注「已炼化」不除名。</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>帧四批注（数值详设 §3.7 / 冒烟 105b）</b>
+  <ul>
+    <li>12 格两节：特殊词条 10（按词条 id 入录，同词条不重复）+ 独占法器 2（按装备 id）；</li>
+    <li>已录格 = 词条名 + 效果 + 首获时间/状态（「已炼化」灰字——<b>炼化不除名</b>的可视化）；未录 = 「？」剪影；</li>
+    <li>独占格未遇时连载体奇遇名都只显示事件名不显示 story（与奇遇图鉴「？」同语义）；已获得 = 描金 + 「宝」角标点亮；</li>
+    <li>数据源 `gearSeen = {key: 首获ts}`，与 `eventHistory.seen` 同纪律；重复获得不刷新首获 ts（#105b）；</li>
+    <li>零数值加成是红线——收集感靠「缘分记录」文案承担，不靠奖励。</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>

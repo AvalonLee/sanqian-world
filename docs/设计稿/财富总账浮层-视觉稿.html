@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-xhub-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三千世界 · 财富总账浮层视觉稿 v1（审阅用，非生产代码）</title>
+<style>
+/* ══ 主题令牌：UI 设计 §八 双声明 fallback；明暗切换仅审阅用 ══ */
+:root{
+  --xhub-page-bg:#f4f1ea; --xhub-surface:rgba(255,255,255,.78); --xhub-bg-card:rgba(255,255,255,.92);
+  --xhub-text-1:#2b2620; --xhub-text-2:#5c544a; --xhub-text-3:#8a8175;
+  --xhub-accent:#9a7420; --xhub-brand-soft:rgba(154,116,32,.10);
+  --xhub-yellow:#a8811c; --xhub-red:#a03a30; --xhub-green:#3e7a4e;
+  --xhub-border:rgba(43,38,32,.12);
+}
+:root[data-xhub-theme="dark"]{
+  --xhub-page-bg:#171512; --xhub-surface:rgba(38,34,29,.72); --xhub-bg-card:rgba(48,43,37,.85);
+  --xhub-text-1:#ece5d8; --xhub-text-2:#b8ae9d; --xhub-text-3:#847b6d;
+  --xhub-accent:#d4af5e; --xhub-brand-soft:rgba(212,175,94,.12);
+  --xhub-yellow:#d9b64f; --xhub-red:#c9584c; --xhub-green:#6fae80;
+  --xhub-border:rgba(236,229,216,.14);
+}
+:root{ --sq-primary:var(--xhub-accent); --sq-success:var(--xhub-green); --sq-danger:var(--xhub-red); }
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--xhub-page-bg);color:var(--xhub-text-1);
+  font-family:system-ui,"Songti SC",SimSun,serif;
+  display:flex;flex-wrap:wrap;gap:26px;justify-content:center;padding:28px 16px 60px;
+}
+h1.doc{width:100%;text-align:center;font-size:20px;letter-spacing:.2em;font-weight:600}
+p.doc{width:100%;text-align:center;color:var(--xhub-text-2);font-size:12px;margin-top:6px}
+.review-bar{width:100%;display:flex;justify-content:center;margin-top:10px}
+.review-bar button{font:inherit;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;border:1px dashed var(--xhub-border);background:var(--xhub-bg-card);color:var(--xhub-text-2)}
+.frame-col{display:flex;flex-direction:column;gap:12px;align-items:center}
+.phone{
+  width:390px;max-width:100%;border-radius:22px;overflow:hidden;
+  border:1px solid var(--xhub-border);box-shadow:0 12px 40px rgba(0,0,0,.14);
+  background:var(--xhub-page-bg);display:flex;flex-direction:column;min-height:770px;
+}
+.phone .caption{padding:10px 14px;font-size:12px;color:var(--xhub-text-3);border-bottom:1px dashed var(--xhub-border);letter-spacing:.1em}
+.note{
+  width:390px;max-width:100%;border:1px dashed var(--xhub-border);border-radius:12px;
+  padding:12px 14px;font-size:11.5px;line-height:1.9;color:var(--xhub-text-2);background:var(--xhub-brand-soft);
+}
+.note b{color:var(--xhub-text-1)}
+.note ul{padding-left:16px}
+/* 顶栏 */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--xhub-surface);border-bottom:1px solid var(--xhub-border)}
+.topbar .who{font-size:13px}.topbar .who b{font-size:14px}
+.topbar .who span{color:var(--xhub-text-3);font-size:12px}
+.topbar .right{display:flex;gap:8px;align-items:center;font-size:12px}
+.kbadge{padding:2px 8px;border-radius:99px;font-size:11px;border:1px solid var(--xhub-yellow);color:var(--xhub-yellow)}
+/* 浮层 */
+.overlay{flex:1;background:rgba(0,0,0,.38);display:flex;align-items:flex-end}
+.sheet{width:100%;background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:18px 18px 0 0;overflow-y:auto}
+.sheet .sh{padding:12px 16px 9px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--xhub-border)}
+.sheet .sh .t{font-size:15px;letter-spacing:.35em;color:var(--sq-primary)}
+.sheet .sh .x{color:var(--xhub-text-3);font-size:13px;cursor:pointer}
+/* 余额区 */
+.balance{padding:16px 18px 12px;text-align:center}
+.balance .lab{font-size:11px;color:var(--xhub-text-3);letter-spacing:.3em}
+.balance .num{font-size:34px;font-weight:800;color:var(--sq-primary);margin:4px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.balance .eq{font-size:10.5px;color:var(--xhub-text-3);line-height:1.8}
+.balance .eq b{color:var(--xhub-text-2);font-weight:600}
+.balance .eq .in{color:var(--sq-success)} .balance .eq .out{color:var(--sq-danger)}
+/* 分区 */
+.sec{padding:6px 18px 10px}
+.sec-t{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;letter-spacing:.25em;color:var(--xhub-text-3);margin-bottom:8px}
+.sec-t .sum{font-size:13px;font-weight:700;letter-spacing:0}
+.sec-t .sum.in{color:var(--sq-success)} .sec-t .sum.out{color:var(--sq-danger)}
+.lrow{margin-bottom:9px}
+.lrow .lh{display:flex;justify-content:space-between;font-size:12px;color:var(--xhub-text-2);margin-bottom:4px}
+.lrow .lh b{color:var(--xhub-text-1);font-variant-numeric:tabular-nums}
+.lrow .lh .pct{color:var(--xhub-text-3);font-size:10.5px;margin-left:6px}
+.lrow .lb{height:7px;border-radius:99px;background:var(--xhub-bg-card);border:1px solid var(--xhub-border);overflow:hidden}
+.lrow .lb i{display:block;height:100%;border-radius:99px}
+.lrow.in .lb i{background:linear-gradient(90deg,var(--sq-success),#6fae80)}
+.lrow.out .lb i{background:linear-gradient(90deg,var(--sq-danger),#c07066)}
+.lrow .src{font-size:9.5px;color:var(--xhub-text-3);margin-top:2px}
+/* 空态 */
+.lrow.zero .lh{color:var(--xhub-text-3)}
+.lrow.zero .lh b{color:var(--xhub-text-3)}
+.lrow.zero .lb{opacity:.5}
+/* 结语 */
+.epitaph{padding:14px 20px 20px;text-align:center}
+.epitaph .line{font-size:12px;color:var(--xhub-text-2);letter-spacing:.12em;line-height:2}
+.epitaph .seal{display:inline-block;margin-top:10px;font-size:10px;color:var(--sq-danger);border:1.5px solid var(--sq-danger);border-radius:4px;padding:2px 7px;letter-spacing:.3em;opacity:.75;transform:rotate(-4deg)}
+/* Tab 栏 */
+.tabbar{display:flex;border-top:1px solid var(--xhub-border);background:var(--xhub-surface)}
+.tabbar .t{flex:1;text-align:center;padding:9px 0 11px;font-size:11.5px;color:var(--xhub-text-3)}
+.tabbar .t.on{color:var(--sq-primary);font-weight:700}
+</style>
+</head>
+<body>
+
+<h1 class="doc">三千世界 · 财富总账浮层视觉稿</h1>
+<p class="doc">依据《UI 与交互设计》v2.3 §3.3「财浮层」与引擎卷 §4.1 ledger 契约（v1.2 清理口径：收入四类 / 支出四类，无占位空类）· 主稿人设与修行页/奇遇页/名录/洞府四稿同一存档：叶长风 · 化神二层 · 正道 +214 · 余额 42.8万</p>
+<div class="review-bar">
+  <button onclick="const h=document.documentElement;h.dataset.xhubTheme=h.dataset.xhubTheme==='dark'?'light':'dark'">切换明 / 暗（审阅用，生产无此按钮）</button>
+</div>
+
+<!-- ═══ 稿一 · 总账完全体 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿一 · 此生总账浮层（修行页「财」chip 点开 · 批 2 交付）</div>
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +214</span><span>💰 42.8万</span></div>
+  </div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh"><span class="t">此生总账</span><span class="x">✕ 关闭</span></div>
+
+      <div class="balance">
+        <div class="lab">当 前 灵 石</div>
+        <div class="num">428,100</div>
+        <div class="eq">启动资金 <b>100</b> + 平生所入 <b class="in">686,000</b> − 平生所出 <b class="out">258,000</b>（只增不清 · 跨渡劫不归零）</div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t"><span>平 生 所 入</span><span class="sum in">+68.6万</span></div>
+        <div class="lrow in">
+          <div class="lh"><span>击杀所得<b class="pct">74%</b></span><b>510,000</b></div>
+          <div class="lb"><i style="width:100%"></i></div>
+          <div class="src">ledger.in.kill · 秘境刷图主力收入</div>
+        </div>
+        <div class="lrow in">
+          <div class="lh"><span>奇遇收益<b class="pct">14%</b></span><b>96,000</b></div>
+          <div class="lb"><i style="width:19%"></i></div>
+          <div class="src">ledger.in.event · 三分支结算入账（含判定花费退回不计）</div>
+        </div>
+        <div class="lrow in">
+          <div class="lh"><span>炼化返还<b class="pct">10%</b></span><b>68,000</b></div>
+          <div class="lb"><i style="width:13%"></i></div>
+          <div class="src">ledger.in.refine · 品阶固定表 ×(1+境界×0.5)</div>
+        </div>
+        <div class="lrow in">
+          <div class="lh"><span>离线结算<b class="pct">2%</b></span><b>12,000</b></div>
+          <div class="lb"><i style="width:2%"></i></div>
+          <div class="src">ledger.in.offline · lastOffline.stones 同源</div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t"><span>平 生 所 出</span><span class="sum out">−25.8万</span></div>
+        <div class="lrow out">
+          <div class="lh"><span>坊市消费<b class="pct">47%</b></span><b>120,000</b></div>
+          <div class="lb"><i style="width:100%"></i></div>
+          <div class="src">ledger.out.shop · 丹药 / 装备 / 功法商品 / 刷新费</div>
+        </div>
+        <div class="lrow out">
+          <div class="lh"><span>功法升级<b class="pct">37%</b></span><b>96,000</b></div>
+          <div class="lb"><i style="width:80%"></i></div>
+          <div class="src">ledger.out.arts · 阶梯消耗 ×(1+境界×0.5)，受 artsSpeed 折扣</div>
+        </div>
+        <div class="lrow out">
+          <div class="lh"><span>事件损失<b class="pct">9%</b></span><b>22,000</b></div>
+          <div class="lb"><i style="width:18%"></i></div>
+          <div class="src">ledger.out.event_loss · 遭窃 / 赔偿 / 左道分支「买路」花费</div>
+        </div>
+        <div class="lrow out">
+          <div class="lh"><span>洞府入驻<b class="pct">8%</b></span><b>20,000</b></div>
+          <div class="lb"><i style="width:17%"></i></div>
+          <div class="src">ledger.out.cave · 青峰灵穴（剑崖/雷池以首通为资格，未动灵石）</div>
+        </div>
+      </div>
+
+      <div class="epitaph">
+        <div class="line">「散修起家，一灵石一灵石攒出来的。」</div>
+        <div class="seal">此生不虚</div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t on">修行</div><div class="t">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t">坊市</div><div class="t">奇遇</div>
+  </div>
+</div>
+<div class="note">
+  <b>稿一批注（UI v2.3 §3.3 / 引擎卷 §4.1 / 工程规范 §3.2）</b>
+  <ul>
+    <li><b>对账恒等式置顶</b>：启动资金 100 + Σin − Σout = 当前余额，逐笔可验——冒烟 #113「万次随机操作零漂移」的可视化前端；</li>
+    <li>收入四类 / 支出四类 = ledger 契约全量（v2.5 清理后无占位空类）；每行小字标注字段名与口径，数值透明纪律与产出明细浮层同源；</li>
+    <li>条形按各区内最大值归一（非跨区对比）；占比小字给「钱从哪来、往哪去」的结构感——击杀 74% 印证「刷图是主收入」的经济设计；</li>
+    <li>只增不清、跨渡劫不归零（与 karmaEventScore 同纪律）——「装备可以换，花过的钱赖不掉」的财柱表达；</li>
+    <li>结语 + 印章为词表文案（`ui.ledger.epitaph`），印章按净值分档换文案（负债态/小康态/巨富态各一句，实施批 2 时定稿三档文案）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 稿二 · 新档空态 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿二 · 空态（刚入世新档 · 全零不隐藏，给出「从哪来」的预期）</div>
+  <div class="topbar">
+    <div class="who"><b>顾听雪</b> <span>@ 太虚境 · 练气一层</span></div>
+    <div class="right"><span class="kbadge" style="border-color:var(--xhub-text-3);color:var(--xhub-text-3)">· 左道 0</span><span>💰 100</span></div>
+  </div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh"><span class="t">此生总账</span><span class="x">✕ 关闭</span></div>
+
+      <div class="balance">
+        <div class="lab">当 前 灵 石</div>
+        <div class="num" style="font-size:28px">100</div>
+        <div class="eq">启动资金 <b>100</b> + 平生所入 <b class="in">0</b> − 平生所出 <b class="out">0</b></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t"><span>平 生 所 入</span><span class="sum" style="color:var(--xhub-text-3)">+0</span></div>
+        <div class="lrow in zero"><div class="lh"><span>击杀所得</span><b>0</b></div><div class="lb"><i style="width:0%"></i></div><div class="src">入秘境击杀妖兽即有入账</div></div>
+        <div class="lrow in zero"><div class="lh"><span>奇遇收益</span><b>0</b></div><div class="lb"><i style="width:0%"></i></div><div class="src">在线爬钟遇奇遇，三分支皆可有入账</div></div>
+        <div class="lrow in zero"><div class="lh"><span>炼化返还</span><b>0</b></div><div class="lb"><i style="width:0%"></i></div><div class="src">拾得装备自动择优，旧件炼化即入账</div></div>
+        <div class="lrow in zero"><div class="lh"><span>离线结算</span><b>0</b></div><div class="lb"><i style="width:0%"></i></div><div class="src">闭关 ≥60 秒产生的灵石结算</div></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t"><span>平 生 所 出</span><span class="sum" style="color:var(--xhub-text-3)">−0</span></div>
+        <div class="lrow out zero"><div class="lh"><span>坊市消费</span><b>0</b></div><div class="lb"><i style="width:0%"></i></div></div>
+        <div class="lrow out zero"><div class="lh"><span>功法升级</span><b>0</b></div><div class="lb"><i style="width:0%"></i></div></div>
+        <div class="lrow out zero"><div class="lh"><span>事件损失</span><b>0</b></div><div class="lb"><i style="width:0%"></i></div></div>
+        <div class="lrow out zero"><div class="lh"><span>洞府入驻</span><b>0</b></div><div class="lb"><i style="width:0%"></i></div></div>
+      </div>
+
+      <div class="epitaph">
+        <div class="line">「修行路才刚开始——<br>第一块灵石，在秘境里等着你。」</div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t on">修行</div><div class="t">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t">坊市</div><div class="t">奇遇</div>
+  </div>
+</div>
+<div class="note">
+  <b>稿二批注（空态规则）</b>
+  <ul>
+    <li>全零行<b>不隐藏</b>——每类给一行「从哪来」引导小字，总账从第一天就是四柱财系统的教学页；</li>
+    <li>零值行压暗 50%、条形不渲染；有值后恢复常态并补占比小字；</li>
+    <li>新档人设（顾听雪 · 练气 · 左道 0）仅用于空态演示；余额 = 启动资金 100（工程规范 §3.2 缺省值）；</li>
+    <li>空态结语与稿一印章文案同走词表，按净值分档切换。</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>

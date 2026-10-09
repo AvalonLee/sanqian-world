@@ -1,0 +1,550 @@
+/* .tests/audit.cjs — 交付前静态审计（词表 4.3 源码半区 + 平台关卡 4.9 八项）
+ * 用法：node .tests/audit.cjs   （在扩展根目录）
+ * 输出：逐项 PASS/FAIL + AUDIT_ALL_GREEN（发布预检同口径，见工程规范 §4.9/§1.3）。
+ *
+ * A 组 · 词表层（P3）：
+ *   A1 CJK 扫描：view/module 内联脚本 + assets/**（注释剥离后），白名单 = 词表分卷与命名池文件
+ *   A2 key 对账：代码静态引用 key ⊆ 词表；动态 key 族（talent.{id} / realm.{n} / world.{id} / talent.field.{k}）按数据表全覆盖
+ *   A3 DOM id 对账：脚本里 $()/getElementById 引用的 id 必须在同一 HTML 静态存在（取不到即白屏）
+ *   A4 界面词表拉丁词扫描：词表 value 剥占位符后零英文词（白名单 Lv/NPC/pp/AI/JSON + tiandao 提示词族豁免）
+ *   A5 道友 align 必填（世界包契约字段三态守门）
+ *   A6 词表键消费侧反向扫描（孤儿键 · 报告级恒 PASS、孤儿族逐条打印）
+ * C 组 · 世界包词族契约（G11 · 换世界即换系统名与菜单描述）：
+ *   C1 must 族覆盖（每个 live 世界分卷各自拥有）  C2 forbid 族零命中（通用文案只留 common）
+ * B 组 · 平台关卡（4.9 八项 #82~#89；#86 只覆盖静态半区，三态目检需真机）：
+ *   B1 manifest 合法（#82）  B2 权限对账（#83，纯文本扫 xhub.*，含注释）
+ *   B3 零 CDN（#84）         B4 主题铁律（#85，页面底透明/双声明）
+ *   B5 module 格子纪律（#87，无 min-height/12px/container-type/overflow）
+ *   B6 外链行为（#88，零 window.open / target=_blank）
+ *   B7 壁纸透底态规则（#86 静态半区）  B8 桥容错（#89，单一桥模块 + try/catch + 失败出口）
+ */
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const ROOT = path.resolve(__dirname, '..');
+/* 路径一律归一为正斜杠：白名单与文件比对按 POSIX 相对路径写死，
+   直接用 path.relative 在 Windows 上会得到反斜杠，导致白名单静默失配（假阳性）。 */
+const relOf = (f) => path.relative(ROOT, f).split(path.sep).join('/');
+const R = [];
+function ok(id, name, cond, detail) { R.push({ id, name, ok: !!cond, detail: detail || '' }); }
+
+/* ── 工具：注释剥离（保留字符串字面量、识别正则字面量；行号对齐用 \n 占位）── */
+function stripComments(src) {
+  let out = '', i = 0, n = src.length;
+  let st = null; /* null | "'" | '"' | '`' | 'line' | 'block' | 'regex' */
+  let inClass = false;   /* 正则字符类 [] 内 */
+  let lastSig = '';      /* 最近一个非空白有效字符（正则起始判定） */
+  const REGEX_PREV = '(,=:[!&|?{};+-*%~^<>';
+  while (i < n) {
+    const c = src[i], c2 = src.substr(i, 2);
+    if (st === null) {
+      if (c2 === '/*') { st = 'block'; i += 2; continue; }
+      if (c2 === '//') { st = 'line'; i += 2; continue; }
+      if (c === "'" || c === '"' || c === '`') { st = c; out += c; i++; continue; }
+      if (c === '/' && (lastSig === '' || REGEX_PREV.includes(lastSig))) {
+        st = 'regex'; inClass = false; out += c; i++; continue;
+      }
+      if (!/\s/.test(c)) lastSig = c;
+      out += c; i++; continue;
+    }
+    if (st === 'block') { if (c2 === '*/') { st = null; i += 2; } else { out += (c === '\n' ? '\n' : ''); i++; } continue; }
+    if (st === 'line') { if (c === '\n') { st = null; out += '\n'; } i++; continue; }
+    if (st === 'regex') {
+      out += c;
+      if (c === '\\') { out += src[i + 1] || ''; i += 2; continue; }
+      if (c === '[') inClass = true;
+      else if (c === ']') inClass = false;
+      else if (c === '/' && !inClass) { st = null; lastSig = '/'; }
+      else if (c === '\n') { st = null; } /* 未闭合容错：按行结束 */
+      i++; continue;
+    }
+    /* 字符串态 */
+    out += c;
+    if (c === '\\') { out += src[i + 1] || ''; i += 2; continue; }
+    if (c === st) { st = null; lastSig = c; }
+    i++;
+  }
+  return out;
+}
+
+function walk(dir, out) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    /* 开发期依赖 / 构建产物目录直接剪枝：不下钻也不读取（见下方 allFiles 注释的 OOM 实测） */
+    if (e.isDirectory() && (e.name === 'node_modules' || e.name === 'dist' || e.name === 'dist-ssr' || e.name === 'build')) continue;
+    if (e.isDirectory()) walk(p, out);
+    else out.push(p);
+  }
+  return out;
+}
+/* extensions/ = 平台打包镜像（根树的快照副本，随发布同步）——非事实源，不进审计扫描；
+   根树 assets/view/module 才是唯一事实源（镜像漂移由发布流程整体刷新，见工程规范 §7.3）。 */
+const allFiles = walk(ROOT, []).filter((f) => !f.includes(path.sep + '.') &&
+  !relOf(f).startsWith('extensions/') &&
+  /* 开发期依赖与构建产物不是事实源。.tests/README 指示「在扩展根目录安装 playwright-core」，
+   * 装完 node_modules（1300+ 包）就在根树里，整树扫描会把审计撑到 4GB heap OOM（2026-10-07 实测）。 */
+  !/(^|\/)(node_modules|dist|dist-ssr|build)\//.test(relOf(f)));
+const jsFiles = allFiles.filter((f) => f.endsWith('.js'));
+const htmlFiles = allFiles.filter((f) => f.endsWith('.html'));
+
+/* 提取 HTML 内联脚本（带行号偏移信息：返回 [{file, code, baseLine}]） */
+function inlineScripts(file) {
+  const src = fs.readFileSync(file, 'utf8');
+  const blocks = [];
+  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
+  let m;
+  while ((m = re.exec(src))) {
+    const baseLine = src.slice(0, m.index).split('\n').length;
+    blocks.push({ file, code: m[1], baseLine });
+  }
+  return blocks;
+}
+
+/* CJK 白名单：词表分卷 / 命名池 / 生成词表（工程规范 §1.3「词表文件本身」） */
+const CJK_WHITELIST = (rel) =>
+  rel === 'assets/lexicon.js' ||
+  rel.startsWith('assets/lexicon/') ||
+  /(^|\/)lexicon(-[a-z]+)?\.js$/.test(rel) ||
+  rel === 'assets/worlds/registry.js'; /* 世界名生成池 nameParts（文本数据，非界面文案） */
+const CJK_RE = /[㐀-鿿　-〿豈-﫿＀-￯]/;
+
+/* ── A1 CJK 扫描 ── */
+(function () {
+  const hits = [];
+  const scanJs = (file, code, baseLine) => {
+    const rel = relOf(file);
+    if (baseLine === 0 && CJK_WHITELIST(rel)) return;
+    const stripped = stripComments(code);
+    stripped.split('\n').forEach((line, idx) => {
+      if (CJK_RE.test(line)) hits.push(rel + ':' + (baseLine + idx) + ' ' + line.trim().slice(0, 60));
+    });
+  };
+  for (const f of jsFiles) scanJs(f, fs.readFileSync(f, 'utf8'), 0);
+  for (const f of htmlFiles) for (const b of inlineScripts(f)) scanJs(b.file, b.code, b.baseLine);
+  ok('A1', '源码 CJK 扫描（白名单外零命中）', hits.length === 0, hits.slice(0, 6).join(' | '));
+})();
+
+/* ── 沙箱加载全量脚本（key 对账用）── */
+const store = {};
+const sandbox = {
+  window: {}, console, Date, Math, JSON, Set,
+  localStorage: {
+    getItem: (k) => (k in store ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: (k) => { delete store[k]; }
+  }
+};
+sandbox.window.window = sandbox.window;
+sandbox.window.localStorage = sandbox.localStorage;
+vm.createContext(sandbox);
+for (const f of [
+  'assets/util.js',
+  'assets/worlds/registry.js', 'assets/lexicon.js', 'assets/worlds/xiuxian/lexicon.js',
+  'assets/worlds/xiuxian/lexicon-arts.js', 'assets/worlds/xiuxian/lexicon-bonds.js', 'assets/worlds/xiuxian/lexicon-factions.js',
+  'assets/worlds/xiuxian/lexicon-treasures.js',
+  'assets/worlds/xiuxian/lexicon-tiandao.js',
+  'assets/worlds/xiuxian/lexicon-meta.js',
+  'assets/worlds/xiuxian/lexicon-alchemy.js',
+  'assets/worlds/xiuxian/lexicon-prodigy.js',
+  'assets/worlds/xiuxian/lexicon-spirit.js',
+  'assets/worlds/xiuxian/lexicon-sect.js',
+  'assets/lexicon/talents.js', 'assets/lexicon/events.js',
+  'assets/talents/common.js', 'assets/talents/xiuxian.js',
+  'assets/worlds/xiuxian/data.js', 'assets/worlds/xiuxian/arts.js',
+  'assets/worlds/xiuxian/treasures.js',
+  'assets/events/common.js', 'assets/worlds/xiuxian/events.js'
+]) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
+const SQ = sandbox.window.SQ;
+
+/* ── A2 key 对账 ── */
+(function () {
+  const lexAll = Object.assign({}, SQ.LEX.common, SQ.LEX.xiuxian);
+  const missing = [];
+
+  /* 静态字面量 key：t('xxx' / SQ.t('xxx' */
+  const staticKeys = new Set();
+  const dynPrefixes = new Set();   /* 以点开尾的拼接前缀（'realm.' + i）——A6 反向扫描用 */
+  const litKeys = new Set();       /* 代码里出现过的任意点分字面量（含数组/对象表里的键名）——A6 宽口径 */
+  const bodies = [];
+  for (const f of jsFiles) {
+    const rel = relOf(f);
+    /* 词表分卷一律排除：A6 判据是「代码里有没有人提这个键」，而分卷**自身**就逐字写着每个键名
+     * （`K['spirit.reunion.1'] = …`）——不排除则每个分卷给自己全额作保、整族永远照不出孤儿
+     * （本仓十来个 `worlds/<id>/lexicon-*.js` 此前就落在排除口径之外，属 A6 的系统性盲区）。 */
+    if (rel.includes('.tests') || /(^|\/)lexicon([-./])/.test(rel)) continue;
+    bodies.push(stripComments(fs.readFileSync(f, 'utf8')));
+  }
+  for (const f of htmlFiles) for (const b of inlineScripts(f)) bodies.push(stripComments(b.code));
+  for (const body of bodies) {
+    const re = /\bt\(\s*['"]([a-zA-Z0-9._]+)['"]/g;
+    let m;
+    while ((m = re.exec(body))) {
+      /* 以「.」结尾 = 动态拼接前缀（'realm.' + i 等），其 key 族由下方数据表对账覆盖 */
+      if (m[1].endsWith('.')) dynPrefixes.add(m[1]);
+      else staticKeys.add(m[1]);
+    }
+    /* A6 消费侧宽口径：视图层大量键不是内联在 t('…') 里，而是走别名取词口（`tc('k')`）、
+     * 先落进数组 / 对象表再传口（LEG_KEYS、LOG_CATS），或以「族前缀 + 数据项」拼接
+     * （`'creation.bias.' + b`——前缀字面量以点开尾）。只认 `t('` 会把这三类全判成孤儿
+     * （实测虚报 283 条 / 106 族），故反向扫描宽收任意点分字面量，尾点者优先当前缀。 */
+    /* 判据修正（2026-10-08 裁定收口批 · 用户按建议点头）：字符类**补大写**。原两类只认
+     * `[a-z0-9_]`，凡键段含 camelCase（实证 `creation.talent.lockTitle/lockText/lockSummary`、
+     * `creation.world.noPick`）就在大写字母处截断、整键收不进 litKeys ⇒ 被**虚报成孤儿**。
+     * 方向与粗前缀的假阴相反，但 A6 恒报告级：宁可少报，不可把活文案当成待删。 */
+    const re2 = /['"]([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)*\.?)['"]/g;
+    let m2;
+    while ((m2 = re2.exec(body))) {
+      if (m2[1].endsWith('.')) dynPrefixes.add(m2[1]);
+      else litKeys.add(m2[1]);
+    }
+    /* 第三式（2026-10-07 补，实测抓到虚报）：**字面量 + 变量**拼接出的键名——
+     * `nameKey: 'legacy.shop.qirate' + (i + 1)`、`'prodigy.board.' + x` 一类「键在数据层拼好、
+     * 视图只拿变量取词」的构型，尾点规则照不到（字面量本身既不是完整键、也不以点收尾），
+     * 不收就会把 `legacy.shop.qirate1~5` 五键虚报成孤儿。只认**含点**字面量作前缀，
+     * 免得把普通文案拼接当整族覆盖。 */
+    const re3 = /['"]([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+)['"]\s*\+/g;
+    let m3;
+    while ((m3 = re3.exec(body))) dynPrefixes.add(m3[1]);
+  }
+  for (const k of staticKeys) if (lexAll[k] == null) missing.push('static:' + k);
+
+  /* 动态 key 族（按数据表全覆盖） */
+  for (const w of ['common', 'xiuxian']) {
+    for (const kind of ['positive', 'negative']) {
+      for (const el of SQ.TALENTS[w][kind]) {
+        if (lexAll['talent.' + el.id + '.name'] == null) missing.push('talent.' + el.id + '.name');
+        if (lexAll['talent.' + el.id + '.desc'] == null) missing.push('talent.' + el.id + '.desc');
+        for (const k in el.effects) {
+          if (lexAll['talent.field.' + k] == null) missing.push('talent.field.' + k);
+        }
+      }
+    }
+  }
+  for (let r = 0; r < SQ.XDATA.REALMS.length; r++) {
+    if (SQ.LEX.xiuxian['realm.' + r] == null) missing.push('realm.' + r);
+  }
+  for (const id in SQ.Worlds) {
+    if (lexAll['world.' + id + '.name'] == null) missing.push('world.' + id + '.name');
+    for (const tk of SQ.Worlds[id].tagsKeys || []) {
+      if (lexAll[tk] == null) missing.push(tk);
+    }
+  }
+  /* 功法族：skill.{id}.name/desc + special.{pool}.name + 品阶 */
+  for (const id in SQ.XARTS) {
+    if (lexAll['skill.' + id + '.name'] == null) missing.push('skill.' + id + '.name');
+    if (lexAll['skill.' + id + '.desc'] == null) missing.push('skill.' + id + '.desc');
+    const sp = SQ.XARTS[id].special.pool;
+    if (lexAll['special.' + sp + '.name'] == null) missing.push('special.' + sp + '.name');
+  }
+  ['huang', 'xuan', 'di', 'tian'].forEach((tt) => {
+    if (lexAll['skill.tier.' + tt] == null) missing.push('skill.tier.' + tt);
+  });
+  /* 事件族 v2（平铺池）：event.{id}.name/.story + 三分支 .branch.{right|evil|neutral} */
+  for (const w of ['common', 'xiuxian']) {
+    const list = Array.isArray(SQ.EVENTS[w]) ? SQ.EVENTS[w] : [];
+    for (const ev of list) {
+      if (lexAll['event.' + ev.id + '.name'] == null) missing.push('event.' + ev.id + '.name');
+      if (lexAll['event.' + ev.id + '.story'] == null) missing.push('event.' + ev.id + '.story');
+      for (const bk of ['right', 'evil', 'neutral']) {
+        if (lexAll['event.' + ev.id + '.branch.' + bk] == null) missing.push('event.' + ev.id + '.branch.' + bk);
+      }
+    }
+  }
+  /* 事件等级/性质/分支标签族 + 独占法宝族（gear.ex.{id} 与定名 special） */
+  for (const tt of ['ren', 'di', 'tian']) if (lexAll['event.tier.' + tt] == null) missing.push('event.tier.' + tt);
+  for (const nn of ['good', 'bad']) if (lexAll['event.nature.' + nn] == null) missing.push('event.nature.' + nn);
+  for (const bb of ['right', 'evil', 'neutral']) if (lexAll['branch.' + bb] == null) missing.push('branch.' + bb);
+  for (const gid in SQ.XDATA.EXCLUSIVE_GEAR || {}) {
+    if (lexAll['gear.ex.' + gid] == null) missing.push('gear.ex.' + gid);
+    const sp = SQ.XDATA.EXCLUSIVE_GEAR[gid].special;
+    if (sp && lexAll['gear.special.' + sp] == null) missing.push('gear.special.' + sp);
+  }
+  /* 装备族：品阶/特殊词条/槽位；丹药；秘境；属性；阵营；karma 档位；判定档位 */
+  for (let gi = 0; gi < SQ.XDATA.GEAR_TIERS.length; gi++) {
+    if (lexAll['gear.tier.' + gi] == null) missing.push('gear.tier.' + gi);
+  }
+  SQ.XDATA.GEAR_SPECIALS.forEach((s) => {
+    if (lexAll['gear.special.' + s.id] == null) missing.push('gear.special.' + s.id);
+  });
+  SQ.XDATA.GEAR_SLOTS.forEach((sl) => {
+    if (lexAll['gear.slot.' + sl] == null) missing.push('gear.slot.' + sl);
+  });
+  SQ.XDATA.PILLS.forEach((p) => {
+    if (lexAll['pill.' + p.id + '.name'] == null) missing.push('pill.' + p.id + '.name');
+    if (lexAll['pill.' + p.id + '.desc'] == null) missing.push('pill.' + p.id + '.desc');
+  });
+  for (let zi = 0; zi < SQ.XDATA.ZONES.length; zi++) {
+    if (lexAll['combat.zone.' + zi] == null) missing.push('combat.zone.' + zi);
+  }
+  SQ.XDATA.ATTRS.forEach((a) => {
+    if (lexAll['attr.' + a] == null) missing.push('attr.' + a);
+    if (lexAll['attr.desc.' + a] == null) missing.push('attr.desc.' + a);
+    if (lexAll['skill.nurture.' + a] == null) missing.push('skill.nurture.' + a);
+  });
+  ['right', 'evil', 'neutral'].forEach((al) => {
+    ['align.', 'align.sym.', 'karma.tier.', 'karma.rateHint.'].forEach((pre) => {
+      if (lexAll[pre + al] == null) missing.push(pre + al);
+    });
+  });
+  ['easy', 'medium', 'hard', 'extreme'].forEach((dc) => {
+    if (lexAll['dc.' + dc] == null) missing.push('dc.' + dc);
+  });
+  for (let oi = 1; oi <= 5; oi++) if (lexAll['odds.' + oi] == null) missing.push('odds.' + oi);
+  for (let g = 0; g <= 2; g++) if (lexAll['special.grade.' + g] == null) missing.push('special.grade.' + g);
+  /* 天道族（天道设计 §11.1 · 天道系统批 C1）：旨意 15 型名 / 档位 / 卦位 + 判词池 15×3 +
+   * 谶语池 10 + 天象短评 6×3 + 烧空表 5 + few-shot 范本 5（动态拼接族按数据表全覆盖对账） */
+  const TD = SQ.XDATA.TIANDAO;
+  if (TD) {
+    for (const d of TD.DECREES) {
+      if (lexAll['tiandao.type.' + d.id] == null) missing.push('tiandao.type.' + d.id);
+      for (let n = 1; n <= 3; n++) if (lexAll['tiandao.verdict.' + d.id + '.' + n] == null) missing.push('tiandao.verdict.' + d.id + '.' + n);
+    }
+    for (const tr of TD.TIERS) if (lexAll['tiandao.tier.' + tr] == null) missing.push('tiandao.tier.' + tr);
+    for (const hx of TD.HEXAGRAMS) {
+      if (lexAll['tiandao.hex.' + hx] == null) missing.push('tiandao.hex.' + hx);
+      if (lexAll['tiandao.hexdesc.' + hx] == null) missing.push('tiandao.hexdesc.' + hx);
+    }
+    for (const nd of TD.OMEN_NODES) {
+      for (let n = 1; n <= 3; n++) if (lexAll['tiandao.skyomen.' + nd + '.' + n] == null) missing.push('tiandao.skyomen.' + nd + '.' + n);
+    }
+    for (let n = 1; n <= 10; n++) if (lexAll['tiandao.omen.' + n] == null) missing.push('tiandao.omen.' + n);
+    for (let n = 1; n <= 5; n++) {
+      if (lexAll['tiandao.blank.' + n] == null) missing.push('tiandao.blank.' + n);
+      if (lexAll['tiandao.prompt.ex.' + n] == null) missing.push('tiandao.prompt.ex.' + n);
+    }
+  }
+  ok('A2', 'key 对账（静态引用 + 动态族 ⊆ 词表）', missing.length === 0,
+    'missing=' + missing.slice(0, 8).join(',') + (missing.length > 8 ? '…' : '') + ' staticKeys=' + staticKeys.size);
+
+  /* A5 道友 align 必填：世界包契约把 `align` 列为**必填**，但此前零断言守它——
+   * 「实测 58/58 齐全」是数据自洽、不是门禁通过，扩容批漏填会静默把阵营同向判定
+   * （bonds.js 拜访加成 / 天道兜底 / 图鉴取向计数）打成 undefined 比较。
+   * ⚠️ 覆盖范围 = **只查修仙包**（本沙箱只 `require` 了 xiuxian 的 data.js，`SQ.XDATA` 即其导出）；
+   *    古武军势等第二包落地时须把本门改成遍历 `SQ.Worlds` 各 pack 的 companions。 */
+  const a5 = [];
+  (SQ.XDATA.COMPANIONS || []).forEach((c) => {
+    if (c.align !== 'right' && c.align !== 'evil' && c.align !== 'neutral') a5.push(c.id + '(' + c.align + ')');
+  });
+  if (!(SQ.XDATA.COMPANIONS || []).length) a5.push('COMPANIONS 空表 = 本门空转');
+  ok('A5', '道友 align 必填（三态之一，禁 undefined / 脏值；现只覆盖修仙包）', a5.length === 0,
+    a5.slice(0, 8).join(',') + ' 在册=' + (SQ.XDATA.COMPANIONS || []).length);
+
+  /* A6 词表键消费侧反向扫描（孤儿键 · 2026-10-07 死链修复批补）：A2 只查「被引用的键必须存在于词表」，
+   * 反向不查「存在的键是否被引用」，故 `break.tag`「突破」/ `gear.latest`「最近拾得」两类
+   * 「文案写了没人读」的孤儿键照绿出厂。判据 = 键名既没以字面量出现在任何代码/视图里，
+   * 也不被任何代码里出现过的拼接前缀覆盖 → 判为不可达。
+   * ⚠ 报告级恒 PASS 不判失败，两条理由：① 「词表先行、触发点后补」是本仓既有工序，硬门禁会误伤扩容批；
+   * ② **本判据只有假阴没有假阳**——粗前缀会吞掉整族（实测案例：`gear.js:25 return 'gear.' + slot`
+   *    使 `gear.latest` 被判「已覆盖」，而全库检索确认该键仅存在于 `lexicon.js:144` 定义行）。
+   * 故清单读法 = 「列出的必死、未列出的未必活」，逐条抽查 7 键（dc.easy / ui.claim / shop.owned /
+   * role.title / arts.lv / karma.value / tribulation.start）均为「仅定义行命中」= 真死文案。 */
+  const a6 = [];
+  const cov6by = {};
+  for (const k of Object.keys(lexAll)) {
+    if (staticKeys.has(k) || litKeys.has(k)) continue;
+    let cov6 = null;
+    for (const p of dynPrefixes) if (k.indexOf(p) === 0) { cov6 = p; break; }
+    if (!cov6) a6.push(k); else cov6by[k] = cov6;
+  }
+  const fam6 = {};
+  for (const k of a6) { const f6 = k.split('.').slice(0, 2).join('.'); fam6[f6] = (fam6[f6] || 0) + 1; }
+  ok('A6', '词表键消费侧反向扫描（孤儿键 · 报告级恒 PASS，孤儿族逐条打印）', true,
+    '孤儿 ' + a6.length + ' key / ' + Object.keys(fam6).length + ' 族 ‖ ' +
+    Object.keys(fam6).sort().map((f6) => f6 + '×' + fam6[f6]).join(' '));
+  if (process.env.A6_DUMP) a6.sort().forEach((k6) => console.log('  ORPHAN ' + k6 + ' = ' + lexAll[k6]));
+  /* A6 校准口（A6_CHECK=k1,k2）：打印指定键的判据来源，用于自查「粗前缀吞掉整族」的假阴 */
+  if (process.env.A6_CHECK) process.env.A6_CHECK.split(',').forEach((k6) => console.log(
+    '  CHECK ' + k6 + ' → ' + (a6.indexOf(k6) >= 0 ? '孤儿' :
+      (staticKeys.has(k6) || litKeys.has(k6) ? '字面量命中' : '前缀覆盖 ' + cov6by[k6]))));
+
+  /* A3 DOM id 对账：脚本里取元素用的 id 必须在同一 HTML 内静态存在
+   * （取不到 = null.textContent 直接白屏；动态拼接 id 如 'jline-'+i 按前缀白名单放行） */
+  /* 'lawsec-' = 法与器合并页两个段标锚点（`secDiv()` 拼 'lawsec-fa'/'lawsec-qi'，由概览条
+   * `lawJump` 以 `getElementById('lawsec-' + v)` 消费）——节点随 innerHTML 动态渲染，与
+   * `openCave()` 取 `#cave-sec` 同因（页面整合批 2026-10-06 登记）。 */
+  const DYN_PREFIX = ['jline-', 'lawsec-'];
+  const a3 = [];
+  for (const f of htmlFiles) {
+    const src = fs.readFileSync(f, 'utf8');
+    const rel = relOf(f);
+    const ids = new Set([...src.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
+    const code = [];
+    const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
+    let m;
+    while ((m = re.exec(src))) code.push(m[1]);
+    const body = code.join('\n');
+    const refs = [...body.matchAll(/\$\('([^']+)'\)|getElementById\(\s*'([^']+)'\s*\)/g)]
+      .map((x) => x[1] || x[2]);
+    for (const r of new Set(refs)) {
+      if (ids.has(r)) continue;
+      if (DYN_PREFIX.some((p) => r.startsWith(p))) continue;
+      a3.push(rel + ':' + r);
+    }
+  }
+  ok('A3', 'DOM id 对账（脚本引用的 id 全部静态存在）', a3.length === 0, a3.slice(0, 8).join(','));
+
+  /* A4 界面词表拉丁词扫描：词表 value（剥占位符后）不得含英文单词——防内部标识
+   * （槽位 id / 数据字段名 / 缩写）漏进界面文案（如「打造 treasure 槽法器」「bond +3」）。
+   * 白名单 = 正典既定标识 Lv / NPC / pp + 天道贴模型流程的技术名词 AI / JSON；
+   * tiandao.prompt.* 与 tiandao.memo.* 为 LLM 提示词模板与贴回说明，非界面文案，整族豁免。 */
+  const LATIN_OK = ['Lv', 'NPC', 'pp', 'AI', 'JSON'];
+  const LATIN_EXEMPT = ['tiandao.prompt.', 'tiandao.memo.'];
+  const a4 = [];
+  for (const wid of Object.keys(SQ.LEX)) {
+    const lex = SQ.LEX[wid] || {};
+    for (const k in lex) {
+      if (LATIN_EXEMPT.some((p) => k.indexOf(p) === 0)) continue;
+      const v = String(lex[k]).replace(/\{[^}]*\}/g, '');
+      const hit = (v.match(/[A-Za-z]+/g) || []).filter((t) => LATIN_OK.indexOf(t) < 0);
+      if (hit.length) a4.push(wid + ':' + k + ' → ' + hit.join(','));
+    }
+  }
+  ok('A4', '界面词表拉丁词扫描（白名单外零命中）', a4.length === 0, a4.slice(0, 8).join(' | '));
+})();
+
+/* ── C 组 · 世界包词族契约（G11 · 换世界即换系统名与菜单描述）
+ *   C1 must 族：每个 live 世界分卷必须各自拥有（≥1 条该前缀 key）——世界身份不缺项；
+ *   C2 forbid 族：世界分卷不得出现（跨世界通用文案只留 common，防世界间漂移）。 ── */
+(function () {
+  const contract = SQ.LEX_CONTRACT;
+  if (!contract) { ok('C1', '词族契约声明（SQ.LEX_CONTRACT）存在', false, '缺失'); return; }
+  const liveIds = Object.keys(SQ.Worlds).filter((id) => SQ.Worlds[id].status === 'live');
+  const c1 = [];
+  for (const id of liveIds) {
+    const lex = SQ.LEX[id] || {};
+    for (const m of contract.must) {
+      if (!Object.keys(lex).some((k) => k.indexOf(m.fam) === 0)) c1.push(id + ':' + m.fam);
+    }
+  }
+  ok('C1', 'must 族覆盖（每个 live 世界分卷各有 ≥1 条）', c1.length === 0, c1.slice(0, 8).join(','));
+
+  const c2 = [];
+  for (const id of liveIds) {
+    const lex = SQ.LEX[id] || {};
+    for (const m of contract.forbid) {
+      const hit = Object.keys(lex).filter((k) => k.indexOf(m.fam) === 0);
+      if (hit.length) c2.push(id + ':' + hit[0]);
+    }
+  }
+  ok('C2', 'forbid 族零命中（世界分卷不得覆写通用文案）', c2.length === 0, c2.slice(0, 8).join(','));
+})();
+
+/* ── B 组 · 平台关卡 ── */
+(function () {
+  /* B1 manifest */
+  let mani = null, b1 = [];
+  try {
+    const raw = fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8');
+    if (/\/\*|\/\//.test(raw)) b1.push('manifest 含注释');
+    mani = JSON.parse(raw);
+    if (!/^\d+\.\d+\.\d+$/.test(mani.version)) b1.push('version 非三段');
+    for (const k of ['module', 'view']) {
+      if (!fs.existsSync(path.join(ROOT, mani.entry[k]))) b1.push('entry 缺失 ' + k);
+    }
+    if (mani.id.startsWith('com.x-hub.')) b1.push('id 占用平台保留段');
+    if (!fs.existsSync(path.join(ROOT, mani.icon))) b1.push('icon 缺失');
+  } catch (e) { b1.push('manifest 解析失败 ' + e.message); }
+  ok('B1', 'manifest 合法', b1.length === 0, b1.join(';'));
+
+  /* B2 权限对账：纯文本扫（含注释——平台静态扫描同口径） */
+  const ALLOWED_NS = ['storage', 'runtime', 'events', 'theme', 'config'];
+  const b2 = [];
+  const allSrc = jsFiles.map((f) => fs.readFileSync(f, 'utf8'))
+    .concat(htmlFiles.map((f) => fs.readFileSync(f, 'utf8')));
+  for (const src of allSrc) {
+    const re = /xhub\.([a-zA-Z]+)\s*\./g;
+    let m;
+    while ((m = re.exec(src))) {
+      if (!ALLOWED_NS.includes(m[1])) b2.push(m[0]);
+    }
+  }
+  if (mani && Array.isArray(mani.permissions) && mani.permissions.length) b2.push('permissions 应为 []');
+  ok('B2', '权限对账（零越权 xhub.* 字样，含注释）', b2.length === 0, b2.slice(0, 5).join(','));
+
+  /* B3 零 CDN */
+  const b3 = [];
+  for (const f of htmlFiles) {
+    const src = fs.readFileSync(f, 'utf8');
+    if (/https?:\/\//.test(src)) b3.push(relOf(f));
+  }
+  ok('B3', '零 CDN（入口 HTML 无外链）', b3.length === 0, b3.join(','));
+
+  /* B4 主题铁律（module 卡为透明玻璃底，不要求 --xhub-surface） */
+  const viewSrc = fs.readFileSync(path.join(ROOT, 'view/index.html'), 'utf8');
+  const modSrc = fs.readFileSync(path.join(ROOT, 'module/index.html'), 'utf8');
+  const b4 = [];
+  if (!viewSrc.includes('background: var(--xhub-page-bg, transparent)')) b4.push('view 页面底非透明变量');
+  if (!viewSrc.includes('var(--xhub-surface')) b4.push('view 缺 --xhub-surface');
+  if (!/background:\s*transparent/.test(modSrc)) b4.push('module 卡底非透明');
+  for (const [n, s] of [['view', viewSrc], ['module', modSrc]]) {
+    if (!s.includes(':root[data-xhub-theme="dark"]')) b4.push(n + ' 缺深色双声明');
+  }
+  ok('B4', '主题铁律（透明底 + 双声明）', b4.length === 0, b4.join(';'));
+
+  /* B5 module 格子纪律 */
+  const b5 = [];
+  const modCss = modSrc.slice(0, modSrc.indexOf('</style>'));
+  const noComment = modCss.replace(/\/\*[\s\S]*?\*\//g, '');
+  if (/min-height/.test(noComment)) b5.push('module CSS 出现 min-height');
+  if (!/padding:\s*12px/.test(noComment)) b5.push('body 非 12px 内边距');
+  if (!/container-type:\s*size/.test(noComment)) b5.push('缺 container-type:size');
+  if (!/overflow:\s*hidden/.test(noComment)) b5.push('缺 overflow:hidden');
+  ok('B5', 'module 格子纪律', b5.length === 0, b5.join(';'));
+
+  /* B6 外链行为 */
+  const b6 = [];
+  for (const src of allSrc) {
+    if (/window\.open\s*\(/.test(src)) b6.push('window.open');
+    if (/target\s*=\s*["']_blank/.test(src)) b6.push('target=_blank');
+  }
+  ok('B6', '外链行为审计（零 window.open/_blank）', b6.length === 0, b6.join(','));
+
+  /* B7 壁纸透底态（#86 静态半区：去白描边 + 留落影 + 文字黑柔光晕；三态目检仍需真机） */
+  const b7 = [];
+  for (const [n, s] of [['view', viewSrc], ['module', modSrc]]) {
+    const m = s.match(/:root\[data-xhub-wallpaper-clear="1"\][\s\S]{0,400}?\}/);
+    if (!m) { b7.push(n + ' 缺透底态规则'); continue; }
+    const blk = m[0];
+    if (!/border(-color)?:\s*transparent/.test(blk)) b7.push(n + ' 透底态未去描边');
+    if (!/box-shadow:/.test(blk)) b7.push(n + ' 透底态缺落影');
+    if (!/text-shadow:/.test(blk)) b7.push(n + ' 透底态缺文字光晕');
+  }
+  ok('B7', '壁纸透底态规则（去描边 + 落影 + 文字光晕）', b7.length === 0, b7.join(';'));
+
+  /* B8 桥容错（#89）：assets 里 xhub.* 只允许出现在单一桥模块且读写各自包 try/catch；
+   * HTML 内联里的桥调用（module 卡 runtime.open）必须自带 try/catch；
+   * 失败经 SQ.storageError 暴露给视图出人话提示（不白屏、不静默丢档） */
+  const b8 = [];
+  const bridgeFiles = jsFiles.filter((f) => /xhub\./.test(fs.readFileSync(f, 'utf8')));
+  for (const f of bridgeFiles) {
+    if (relOf(f) !== 'assets/core.js') b8.push('桥外调用 ' + relOf(f));
+  }
+  const coreSrc = bridgeFiles.length ? fs.readFileSync(bridgeFiles[0], 'utf8') : '';
+  if (!/try\s*\{[\s\S]{0,400}?xhub\.storage\.get/.test(coreSrc)) b8.push('storage.get 未包 try');
+  if (!/try\s*\{[\s\S]{0,400}?xhub\.storage\.set/.test(coreSrc)) b8.push('storage.set 未包 try');
+  if (!/SQ\.storageError\s*=/.test(coreSrc)) b8.push('缺 SQ.storageError 出口');
+  if (!/SQ\.storageError\(\)/.test(viewSrc)) b8.push('view 未消费 storageError（失败无人话提示）');
+  for (const f of htmlFiles) {
+    const src = fs.readFileSync(f, 'utf8');
+    const re = /xhub\.[a-zA-Z]+\s*\.\s*[a-zA-Z]+\s*\(/g;
+    let m;
+    while ((m = re.exec(src))) {
+      /* 调用点前 240 字符内必须出现 try（同一函数体内的包裹） */
+      if (!/try\s*\{/.test(src.slice(Math.max(0, m.index - 240), m.index))) {
+        b8.push(relOf(f) + ' 桥调用未包 try: ' + m[0]);
+      }
+    }
+  }
+  ok('B8', '桥容错（单一桥模块 + 读写 try/catch + 失败出口被视图消费）', b8.length === 0, b8.join(';'));
+})();
+
+/* ── 输出 ── */
+let fails = 0;
+for (const r of R) {
+  if (!r.ok) fails++;
+  console.log((r.ok ? 'PASS' : 'FAIL') + ' [' + r.id + '] ' + r.name + (r.detail ? ' (' + r.detail + ')' : ''));
+}
+console.log(fails === 0 ? 'AUDIT_ALL_GREEN ' + R.length + '/' + R.length : 'AUDIT_FAILED ' + fails);
+process.exit(fails === 0 ? 0 : 1);

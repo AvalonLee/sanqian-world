@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-xhub-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三千世界 · module 卡与 karma/属性浮层视觉稿 v1（审阅用，非生产代码）</title>
+<style>
+/* ══ 主题令牌：UI 设计 §八 双声明 fallback；明暗切换仅审阅用 ══ */
+:root{
+  --xhub-page-bg:#f4f1ea; --xhub-surface:rgba(255,255,255,.78); --xhub-bg-card:rgba(255,255,255,.92);
+  --xhub-text-1:#2b2620; --xhub-text-2:#5c544a; --xhub-text-3:#8a8175;
+  --xhub-accent:#9a7420; --xhub-brand-soft:rgba(154,116,32,.10);
+  --xhub-yellow:#a8811c; --xhub-red:#a03a30; --xhub-green:#3e7a4e;
+  --xhub-border:rgba(43,38,32,.12);
+  --host-wall:#e8e2d4;
+}
+:root[data-xhub-theme="dark"]{
+  --xhub-page-bg:#171512; --xhub-surface:rgba(38,34,29,.72); --xhub-bg-card:rgba(48,43,37,.85);
+  --xhub-text-1:#ece5d8; --xhub-text-2:#b8ae9d; --xhub-text-3:#847b6d;
+  --xhub-accent:#d4af5e; --xhub-brand-soft:rgba(212,175,94,.12);
+  --xhub-yellow:#d9b64f; --xhub-red:#c9584c; --xhub-green:#6fae80;
+  --xhub-border:rgba(236,229,216,.14);
+  --host-wall:#201d18;
+}
+:root{
+  --sq-primary:var(--xhub-accent);
+  --sq-karma-right:var(--xhub-yellow); --sq-karma-evil:var(--xhub-red); --sq-karma-neutral:var(--xhub-text-3);
+  --sq-success:var(--xhub-green); --sq-danger:var(--xhub-red);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--xhub-page-bg);color:var(--xhub-text-1);
+  font-family:system-ui,"Songti SC",SimSun,serif;
+  display:flex;flex-wrap:wrap;gap:26px;justify-content:center;padding:28px 16px 60px;
+}
+h1.doc{width:100%;text-align:center;font-size:20px;letter-spacing:.2em;font-weight:600}
+p.doc{width:100%;text-align:center;color:var(--xhub-text-2);font-size:12px;margin-top:6px;line-height:1.8}
+.review-bar{width:100%;display:flex;justify-content:center;margin-top:10px}
+.review-bar button{font:inherit;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;border:1px dashed var(--xhub-border);background:var(--xhub-bg-card);color:var(--xhub-text-2)}
+.frame-col{display:flex;flex-direction:column;gap:12px;align-items:center}
+.note{
+  width:430px;max-width:100%;border:1px dashed var(--xhub-border);border-radius:12px;
+  padding:12px 14px;font-size:11.5px;line-height:1.9;color:var(--xhub-text-2);background:var(--xhub-brand-soft);
+}
+.note b{color:var(--xhub-text-1)}
+.note ul{padding-left:16px}
+/* ══ 帧一 · 宿主工作台模拟 ══ */
+.workbench{
+  width:430px;max-width:100%;border-radius:18px;padding:18px 16px;
+  background:linear-gradient(160deg,var(--host-wall),color-mix(in srgb,var(--host-wall) 80%, #8a7a5a 20%));
+  border:1px solid var(--xhub-border);display:flex;flex-wrap:wrap;gap:14px;justify-content:center;
+}
+.wb-title{width:100%;text-align:center;font-size:11px;color:var(--xhub-text-3);letter-spacing:.25em;margin-bottom:2px}
+.cell{container-type:size;border-radius:14px;position:relative;
+  background:var(--xhub-surface);border:1px solid var(--xhub-border);
+  box-shadow:0 6px 22px rgba(0,0,0,.10);backdrop-filter:blur(6px);cursor:pointer}
+.cell .tagline{position:absolute;bottom:-19px;left:0;right:0;text-align:center;font-size:9px;color:var(--xhub-text-3);letter-spacing:.08em}
+.cell.ideal{width:380px;height:250px}
+.cell.min{width:180px;height:180px}
+.cell.tiny{width:180px;height:86px}
+.cell.nosave{width:180px;height:180px}
+.cell.evil{width:180px;height:180px}
+/* ── module 卡本体：全部尺寸用 cqh/cqw，透明底 ── */
+.mcard{position:absolute;inset:0;padding:12px;box-sizing:border-box;display:flex;flex-direction:column;
+  font-size:clamp(8px,5.2cqh,15px);line-height:1.5;background:transparent;color:var(--xhub-text-1);overflow:hidden}
+.mcard .mt{font-size:clamp(9px,5.6cqh,15px);font-weight:700;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcard .mt .w{color:var(--sq-primary)}
+.mcard .mp{font-size:clamp(8px,4.6cqh,12.5px);color:var(--xhub-text-2);margin-top:.5em;white-space:nowrap}
+.mcard .mq{margin-top:auto}
+.mcard .mql{display:flex;justify-content:space-between;font-size:clamp(7.5px,4.2cqh,11px);color:var(--xhub-text-3);margin-bottom:.4em}
+.mcard .mql b{color:var(--xhub-text-1);font-variant-numeric:tabular-nums}
+.mbar{height:clamp(4px,2.6cqh,9px);border-radius:99px;background:var(--xhub-bg-card);border:1px solid var(--xhub-border);overflow:hidden}
+.mbar i{display:block;height:100%;width:49%;background:linear-gradient(90deg,var(--sq-primary),#c9a24d);border-radius:99px}
+.mcard .mw{display:flex;justify-content:space-between;align-items:center;margin-top:.7em;font-size:clamp(8px,4.6cqh,12.5px)}
+.mcard .kb{padding:.15em .7em;border-radius:99px;font-size:clamp(7px,4cqh,11px);border:1px solid var(--sq-karma-right);color:var(--sq-karma-right)}
+.mcard .kb.evil{border-color:var(--sq-karma-evil);color:var(--sq-karma-evil)}
+.mcard .center{margin:auto;text-align:center}
+.mcard .center .big{font-size:clamp(10px,6.4cqh,17px);letter-spacing:.18em;font-weight:700}
+.mcard .center .sm{font-size:clamp(8px,4.6cqh,12px);color:var(--xhub-text-3);margin-top:.7em;letter-spacing:.1em}
+.mcard .loading{color:var(--xhub-text-3)}
+/* 最矮格降级：隐藏人物行与钱包行，只留 世界名 + 进度条 */
+@container (max-height:110px){
+  .mcard .mp,.mcard .mw{display:none}
+  .mcard .mq{margin-top:.6em}
+}
+@container (max-height:150px){
+  .mcard .mp{display:none}
+}
+/* ══ 浮层帧通用（手机框） ══ */
+.phone{
+  width:390px;max-width:100%;border-radius:22px;overflow:hidden;
+  border:1px solid var(--xhub-border);box-shadow:0 12px 40px rgba(0,0,0,.14);
+  background:var(--xhub-page-bg);display:flex;flex-direction:column;min-height:720px;
+}
+.phone .caption{padding:10px 14px;font-size:12px;color:var(--xhub-text-3);border-bottom:1px dashed var(--xhub-border);letter-spacing:.1em}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--xhub-surface);border-bottom:1px solid var(--xhub-border)}
+.topbar .who{font-size:13px}.topbar .who b{font-size:14px}
+.topbar .who span{color:var(--xhub-text-3);font-size:12px}
+.topbar .right{display:flex;gap:8px;align-items:center;font-size:12px}
+.kbadge{padding:2px 8px;border-radius:99px;font-size:11px;border:1px solid var(--sq-karma-right);color:var(--sq-karma-right)}
+.kbadge.evil{border-color:var(--sq-karma-evil);color:var(--sq-karma-evil)}
+.kbadge.hot{box-shadow:0 0 0 3px var(--xhub-brand-soft)}
+.overlay{flex:1;background:rgba(0,0,0,.40);display:flex;align-items:flex-end}
+.sheet{width:100%;background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:18px 18px 0 0;max-height:100%;overflow-y:auto}
+.sheet .sh{padding:12px 16px 9px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--xhub-border)}
+.sheet .sh .t{font-size:15px;letter-spacing:.3em;color:var(--sq-primary)}
+.sheet .sh .x{color:var(--xhub-text-3);font-size:13px;cursor:pointer}
+/* karma 浮层 */
+.khead{text-align:center;padding:16px 18px 10px}
+.khead .kv{font-size:38px;font-weight:800;color:var(--sq-karma-right);font-variant-numeric:tabular-nums}
+.khead .kv.evil{color:var(--sq-karma-evil)}
+.khead .kn{font-size:13px;letter-spacing:.35em;margin-top:2px;color:var(--xhub-text-1)}
+.khead .kd{font-size:10.5px;color:var(--xhub-text-3);margin-top:5px}
+.kband{margin:10px 20px 4px}
+.ktrack{height:8px;border-radius:99px;position:relative;
+  background:linear-gradient(90deg,var(--sq-karma-evil) 0%,var(--sq-karma-neutral) 50%,var(--sq-karma-right) 100%);opacity:.85}
+.kmark{position:absolute;top:-4px;width:3px;height:16px;border-radius:2px;background:var(--xhub-text-1);left:63.4%}
+.kticks{display:flex;justify-content:space-between;font-size:8.5px;color:var(--xhub-text-3);margin-top:4px}
+.kcomp{padding:10px 18px 4px}
+.krow{display:flex;justify-content:space-between;font-size:12px;line-height:2.1;color:var(--xhub-text-2);border-bottom:1px dotted var(--xhub-border)}
+.krow:last-child{border-bottom:none}
+.krow b{font-variant-numeric:tabular-nums}
+.krow .pos{color:var(--sq-karma-right)} .krow .neg{color:var(--sq-karma-evil)} .krow .zero{color:var(--xhub-text-3)}
+.krow .src{font-size:9.5px;color:var(--xhub-text-3);display:block;line-height:1.5}
+.ktotal{display:flex;justify-content:space-between;font-weight:700;font-size:13px;border-top:1px solid var(--xhub-border);margin-top:4px;padding-top:7px}
+.ktotal .v{color:var(--sq-karma-right)}
+.keff{margin:12px 18px 4px;border:1px solid var(--xhub-border);border-radius:12px;overflow:hidden;background:var(--xhub-bg-card)}
+.keff .eh{padding:7px 12px;font-size:10.5px;letter-spacing:.2em;color:var(--xhub-text-3);border-bottom:1px dashed var(--xhub-border)}
+.keff .er{display:flex;justify-content:space-between;font-size:11px;line-height:2;color:var(--xhub-text-2);padding:0 12px}
+.keff .er b{color:var(--xhub-text-1)}
+.keff .er .dn{color:var(--sq-danger)} .keff .er .up{color:var(--sq-success)} .keff .er .gd{color:var(--sq-primary)}
+.keff .er.dead b{color:var(--sq-danger)}
+.kfoot{padding:12px 20px 18px;text-align:center;font-size:11px;color:var(--xhub-text-3);letter-spacing:.12em;line-height:1.9}
+.kfoot .seal{display:inline-block;margin-top:6px;font-size:9.5px;color:var(--sq-karma-right);border:1px solid var(--sq-karma-right);border-radius:4px;padding:1px 8px;letter-spacing:.25em;opacity:.8}
+/* 属性浮层 */
+.attrs{padding:12px 18px 2px}
+.attr{border:1px solid var(--xhub-border);border-radius:12px;background:var(--xhub-bg-card);padding:10px 13px;margin-bottom:9px}
+.attr .ah{display:flex;justify-content:space-between;align-items:baseline}
+.attr .an{font-size:15px;font-weight:700}
+.attr .an .zi{color:var(--sq-primary);margin-right:7px;font-size:17px}
+.attr .av{font-size:19px;font-weight:800;color:var(--sq-primary);font-variant-numeric:tabular-nums}
+.attr .comp{font-size:10px;color:var(--xhub-text-3);margin-top:4px;line-height:1.8}
+.attr .comp b{color:var(--xhub-text-2)}
+.attr .chk{display:flex;justify-content:space-between;font-size:10.5px;color:var(--xhub-text-2);margin-top:6px;border-top:1px dotted var(--xhub-border);padding-top:6px}
+.attr .chk b{color:var(--xhub-text-1)}
+.tsec{padding:6px 18px 0}
+.tsec .tt{font-size:10.5px;letter-spacing:.25em;color:var(--xhub-text-3);margin-bottom:7px}
+.tpills{display:flex;gap:7px;flex-wrap:wrap}
+.tpill{font-size:10.5px;border:1px solid var(--xhub-border);border-radius:99px;padding:4px 11px;background:var(--xhub-bg-card);color:var(--xhub-text-2);line-height:1.5}
+.tpill b{color:var(--xhub-text-1)}
+.tpill.p{border-color:var(--sq-success)} .tpill.n{border-color:var(--sq-danger)}
+.biasline{margin:12px 18px 0;padding:9px 13px;border:1px dashed var(--xhub-border);border-radius:11px;font-size:11px;color:var(--xhub-text-2);display:flex;justify-content:space-between;background:var(--xhub-bg-card)}
+.biasline b{color:var(--xhub-text-1)}
+/* Tab 栏 */
+.tabbar{display:flex;border-top:1px solid var(--xhub-border);background:var(--xhub-surface)}
+.tabbar .t{flex:1;text-align:center;padding:9px 0 11px;font-size:11.5px;color:var(--xhub-text-3)}
+.tabbar .t.on{color:var(--sq-primary);font-weight:700}
+</style>
+</head>
+<body>
+
+<h1 class="doc">三千世界 · module 摘要卡 与 karma / 属性浮层视觉稿</h1>
+<p class="doc">依据《UI 与交互设计》v2.3 §四（module）/ §3.6（karma 浮层）/ §3.7（属性浮层）· 主存档人设：叶长风 · 化神二层 · karma +214（构成 20+30+164+0 可对账）· 精气神 46/50/42（基础 30 + 滋养 + 事件）· 变体：厉惊寒 −286 · 无档态<br>module 卡用真实 container query 实现 cqh 缩放与最矮格降级——拖动审阅窗口或直接对照三种格子高度</p>
+<div class="review-bar">
+  <button onclick="const h=document.documentElement;h.dataset.xhubTheme=h.dataset.xhubTheme==='dark'?'light':'dark'">切换明 / 暗（审阅用，生产无此按钮）</button>
+</div>
+
+<!-- ═══ 帧一 · module 摘要卡五态 ═══ -->
+<div class="frame-col">
+<div class="workbench">
+  <div class="wb-title">—— 宿主工作台网格模拟（玻璃底为宿主所有，卡内透明）——</div>
+
+  <div class="cell ideal">
+    <div class="mcard">
+      <div class="mt">三千世界 · <span class="w">青云界</span></div>
+      <div class="mp">叶长风 · 化神二层 · 驻雷池精庐</div>
+      <div class="mq">
+        <div class="mql"><span>修为</span><b>50.6万 / 103.2万</b></div>
+        <div class="mbar"><i></i></div>
+        <div class="mw"><span>💰 42.8万</span><span class="kb">☯ 正道光环 +214</span></div>
+      </div>
+    </div>
+    <div class="tagline">ideal 4×3（380×250）· 完全体</div>
+  </div>
+
+  <div class="cell min">
+    <div class="mcard">
+      <div class="mt">三千世界 · <span class="w">青云界</span></div>
+      <div class="mp">叶长风 · 化神二层</div>
+      <div class="mq">
+        <div class="mql"><span>修为</span><b>49%</b></div>
+        <div class="mbar"><i></i></div>
+        <div class="mw"><span>💰 42.8万</span><span class="kb">☯ +214</span></div>
+      </div>
+    </div>
+    <div class="tagline">min 2×2（180×180）</div>
+  </div>
+
+  <div class="cell tiny">
+    <div class="mcard">
+      <div class="mt">三千世界 · <span class="w">青云界</span></div>
+      <div class="mq">
+        <div class="mql"><span>修为</span><b>49%</b></div>
+        <div class="mbar"><i></i></div>
+      </div>
+    </div>
+    <div class="tagline">最矮格 ~86px · 两行降级</div>
+  </div>
+
+  <div class="cell evil">
+    <div class="mcard">
+      <div class="mt">三千世界 · <span class="w">青云界</span></div>
+      <div class="mp">厉惊寒 · 化神二层</div>
+      <div class="mq">
+        <div class="mql"><span>修为</span><b>61%</b></div>
+        <div class="mbar"><i></i></div>
+        <div class="mw"><span>💰 96.2万</span><span class="kb evil">☠ −286</span></div>
+      </div>
+    </div>
+    <div class="tagline">魔道档 · 徽标换暗红</div>
+  </div>
+
+  <div class="cell nosave">
+    <div class="mcard">
+      <div class="center">
+        <div class="big">三千世界</div>
+        <div class="sm">点击开启新生</div>
+      </div>
+    </div>
+    <div class="tagline">无档引导态</div>
+  </div>
+
+  <div class="cell nosave">
+    <div class="mcard">
+      <div class="mt">三千世界 · <span class="w loading">--</span></div>
+      <div class="mp loading">读取中…</div>
+      <div class="mq">
+        <div class="mql"><span>修为</span><b class="loading">--</b></div>
+        <div class="mbar"><i style="width:0%"></i></div>
+        <div class="mw"><span class="loading">💰 --</span><span class="kb loading">--</span></div>
+      </div>
+    </div>
+    <div class="tagline">claim 异步占位态</div>
+  </div>
+</div>
+<div class="note">
+  <b>帧一批注（UI v2.3 §四 · x-hub 平台铁律）</b>
+  <ul>
+    <li><b>六态一屏</b>：ideal 完全体（+驻留洞府副行）/ min 2×2 / 最矮 ~86px 两行降级（container query 自动隐藏人物行与钱包行）/ 魔道徽标变体 / 无档引导 / claim 异步「--」占位；</li>
+    <li>卡内 <b>background: transparent</b>——玻璃底是宿主的，我们只画内容；不声明 moduleOptions，标题「三千世界 · 青云界」自绘不重复；</li>
+    <li>全部字号间距走 <b>cqh/cqw + clamp</b>（本稿即真实实现，可缩放窗口验证），不写死 min-height，overflow hidden 兜底；body 12px 内边距与内置模块卡一致；</li>
+    <li>点击任意处 = <b>runtime.open('view')</b>（免权限）；禁止 window.open（宿主静默失效）；</li>
+    <li><b>四柱信息不进卡</b>（最小降级链优先）——洞府副行只在 ideal 高度出现，min 以下自动消失；</li>
+    <li>桥失败态：占位「--」+ 人话错误一行，不白屏（#89）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧二 · karma 浮层（正道） ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧二 · karma 详情浮层（顶栏徽标点开 · 正道 +214 完全体）</div>
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge hot">☯ 正道光环 +214</span><span>💰 42.8万</span></div>
+  </div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh"><span class="t">善恶簿</span><span class="x">✕ 关闭</span></div>
+
+      <div class="khead">
+        <div class="kv">+214</div>
+        <div class="kn">正 道 光 环</div>
+        <div class="kd">距 karmaMod 升档（+800）还差 586 · 距跌出本档（+200）余量 14</div>
+      </div>
+
+      <div class="kband">
+        <div class="ktrack"><span class="kmark"></span></div>
+        <div class="kticks"><span>−800</span><span>−200</span><span>0</span><span>+200</span><span>+800</span></div>
+      </div>
+
+      <div class="kcomp">
+        <div class="krow"><span>修习功法<span class="src">金钟罩 Lv4 +8 · 清心咒 Lv4 +8 · 福缘咒 Lv2 +4（正道 Lv×2）</span></span><b class="pos">+20</b></div>
+        <div class="krow"><span>佩戴法器<span class="src">青鹞剑 +15 · 定魂珠 +15（正道两件；左道两件 0）</span></span><b class="pos">+30</b></div>
+        <div class="krow"><span>平生所为<span class="src">60 条奇遇三分支累计 · 只增不清</span></span><b class="pos">+164</b></div>
+        <div class="krow"><span>初心倾向<span class="src">问道初心 · 左道（不偏不倚，无漂移）</span></span><b class="zero">0</b></div>
+        <div class="ktotal"><span>覆盖式重算 · 当前</span><span class="v">+214</span></div>
+      </div>
+
+      <div class="keff">
+        <div class="eh">当前档位 · 状态效果（ALIGN_EFFECTS 摘要）</div>
+        <div class="er"><span>修炼速度</span><b class="dn">×0.75（慢而稳）</b></div>
+        <div class="er"><span>战力 / 判定</span><b>×1.00 · dc ×0.95 · 渡劫 +0.05</b></div>
+        <div class="er"><span>奇遇时钟 / 机缘权重</span><b class="up">×1.3 · 70/30</b></div>
+        <div class="er"><span>掉落 / 阵营分布</span><b class="up">×1.25 · 正装 38%</b></div>
+        <div class="er"><span>护法位</span><b class="gd">☂ 老黄③ · 渡劫 +0.03 生效中</b></div>
+      </div>
+
+      <div class="kfoot">「装备可以换，做过的事赖不掉。」<br><span class="seal">善恶簿</span></div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>帧二批注（UI v2.3 §3.6）</b>
+  <ul>
+    <li>四行构成逐行可展开对账：20+30+164+0 = 214 ✓——覆盖式重算（非累加），反复穿脱 100 次不变（#46）；</li>
+    <li>档位色带五刻度（−800/−200/0/+200/+800），游标即当前值；差值行同时给「升档还差」与「跌出余量」——余量 14 提示玩家离换装/恶分支的档位跌落有多近（紧张感来源）；</li>
+    <li>ALIGN_EFFECTS 摘要六行 = 档位切换改变了什么的全量提示（含护法状态行，批 3 前显示「未激活」）；修炼 ×0.75 用降色、增益用升色——不美化不抹黑，档位是选择不是优劣；</li>
+    <li>初心倾向行是 v2.0 新增第四分量：左道人设漂移恒 0（biasSign=0），选正/魔者此行显示「+144/±260」进度。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧三 · karma 浮层（魔道变体） ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧三 · karma 浮层魔道变体（厉惊寒 −286 · 对照帧二同组件）</div>
+  <div class="topbar">
+    <div class="who"><b>厉惊寒</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge evil hot">☠ 魔道气息 −286</span><span>💰 96.2万</span></div>
+  </div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh"><span class="t">善恶簿</span><span class="x">✕ 关闭</span></div>
+      <div class="khead">
+        <div class="kv evil">−286</div>
+        <div class="kn">魔 道 气 息</div>
+        <div class="kd">距深档（−800，karmaMod −0.25）还差 514 · 黑市已开启</div>
+      </div>
+      <div class="kband">
+        <div class="ktrack"><span class="kmark" style="left:32.1%"></span></div>
+        <div class="kticks"><span>−800</span><span>−200</span><span>0</span><span>+200</span><span>+800</span></div>
+      </div>
+      <div class="kcomp">
+        <div class="krow"><span>修习功法<span class="src">噬血功 Lv4 −8 · 炼尸诀 Lv2 −4（魔道 Lv×−2）</span></span><b class="neg">−12</b></div>
+        <div class="krow"><span>佩戴法器<span class="src">黑水妖刀 −15 · 血誓甲 −15</span></span><b class="neg">−30</b></div>
+        <div class="krow"><span>平生所为<span class="src">含炉鼎采补结缘 −20（若已结）</span></span><b class="neg">−232</b></div>
+        <div class="krow"><span>初心倾向<span class="src">问道初心 · 魔道（−12/天 漂移中）</span></span><b class="neg">−12</b></div>
+        <div class="ktotal"><span>覆盖式重算 · 当前</span><span class="v" style="color:var(--sq-karma-evil)">−286</span></div>
+      </div>
+      <div class="keff">
+        <div class="eh">当前档位 · 状态效果（ALIGN_EFFECTS 摘要）</div>
+        <div class="er"><span>修炼速度</span><b class="up">×1.50（快而险）</b></div>
+        <div class="er"><span>战力</span><b class="up">×1.25</b></div>
+        <div class="er"><span>奇遇时钟 / 机缘权重</span><b class="dn">×0.5 · 35/65</b></div>
+        <div class="er"><span>掉落 / 品阶 / 阵营</span><b>×0.5 · 40% 概率上浮 · 魔装 45%</b></div>
+        <div class="er"><span>渡劫 karmaMod</span><b class="dn">−0.12</b></div>
+        <div class="er dead"><span>护法位</span><b>无人护法——魔道夜行</b></div>
+      </div>
+      <div class="kfoot">「回头路一直都在，只是每走一步，都有人记得。」</div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>帧三批注</b>
+  <ul>
+    <li>同一组件魔道态：数值红系、护法行整行红字「无人护法——魔道夜行」（guardianBonus 归零的可视化）；</li>
+    <li>「距深档 −800 还差 514」= karmaMod −0.12 → −0.25 的滑坡预告——深档更险的代价提前可见（与节奏模拟观察项①同源）；</li>
+    <li>初心倾向行演示魔道漂移：−12/天（biasSign −1 × 12），封顶 −260；</li>
+    <li>平生所为 −232 的 src 注明含炉鼎采补一次性 −20（若已结缘）——重大分支的账随时可查；</li>
+    <li>黑市开启状态写进差值行（karma ≤ −200 的系统联动提示位）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧四 · 角色属性浮层 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧四 · 角色属性浮层（顶栏角色名点开 · 精/气/神 + 天赋 + 倾向）</div>
+  <div class="topbar">
+    <div class="who"><b class="hot" style="box-shadow:0 0 0 3px var(--xhub-brand-soft);border-radius:6px">叶长风</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +214</span><span>💰 42.8万</span></div>
+  </div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh"><span class="t">角色</span><span class="x">✕ 关闭</span></div>
+
+      <div class="attrs">
+        <div class="attr">
+          <div class="ah"><span class="an"><span class="zi">精</span>体魄 · 判定之基</span><span class="av">46</span></div>
+          <div class="comp">基础 30（化神）+ 功法滋养 14（金钟罩 8 · 云踪步 6）+ 装备亲和 0 + 事件 <b>+2</b> + buff 0</div>
+          <div class="chk"><span>中等判定成算（dc 60×0.95=57）</span><b>四成之数 · 40%</b></div>
+        </div>
+        <div class="attr">
+          <div class="ah"><span class="an"><span class="zi">气</span>灵机 · 瓶颈之钥</span><span class="av">50</span></div>
+          <div class="comp">基础 30 + 功法滋养 20（吐纳法 10 · 聚灵诀 10）+ 装备亲和 0 + 事件 0 + buff 0</div>
+          <div class="chk"><span>瓶颈精判定 / 中等成算</span><b>四五之数 · 44%</b></div>
+        </div>
+        <div class="attr">
+          <div class="ah"><span class="an"><span class="zi">神</span>心性 · 渡劫之盾</span><span class="av">42</span></div>
+          <div class="comp">基础 30 + 功法滋养 12（清心咒 8 · 福缘咒 4）+ 装备亲和 0 + 事件 0 + buff 0</div>
+          <div class="chk"><span>中等判定成算（dc 57）· 另修正渡劫失败损失</span><b>不足四成 · 37%</b></div>
+        </div>
+      </div>
+
+      <div class="tsec">
+        <div class="tt">天 赋（创角锁定 · 此生不改）</div>
+        <div class="tpills">
+          <span class="tpill p"><b>雷灵根</b> · 渡劫 +15%</span>
+          <span class="tpill p"><b>天资聪慧</b> · 产出 +20%</span>
+          <span class="tpill n"><b>凡骨</b> · 突破需求 +10%</span>
+        </div>
+      </div>
+
+      <div class="biasline"><span>问道初心 · <b>左道</b></span><span>漂移 0 / ±260（左道无漂移）</span></div>
+
+      <div class="kfoot" style="padding-top:14px">属性 = 判定轴，不是产出乘区——三值只喂判定 / 瓶颈 / 渡劫损失 / eventLuck（各带封顶），与 karma 同批覆盖式重算。<br><span class="seal" style="color:var(--xhub-text-3);border-color:var(--xhub-border)">炼己</span></div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>帧四批注（UI v2.3 §3.7 / 属性设计 §六）</b>
+  <ul>
+    <li>三值卡 = 当前值 + <b>构成明细行</b>（基础/滋养/装备/事件/buff 逐项，基础 30 =（境界索引+1）×6 对表）+ 一行「这属性管什么」的实战换算（中等判定成算 / 瓶颈判定 / 损失修正）；</li>
+    <li>成算用文言档位 + 精确值并列（「四成之数 · 40%」），正道 dc×0.95 已计入并标注算式——与事件分支按钮的成算预告同源；</li>
+    <li>dc 标准线随境界漂移：本帧 dc 60 = 化神基础 30×2，晋升炼虚后同一事件自动变「简单」（旧内容自动降难，无需改词条）；</li>
+    <li>天赋缩略卡 = 创角屏 2 同款 pill（正绿负红），锁定态不可点；倾向行与 karma 浮层第四分量同源（左道 = 0 演示）；</li>
+    <li>底部纪律行向玩家直白交代「属性是判定轴不是产出轴」——防「为什么不加产出」的困惑，设计红线（属性设计卷首）的用户侧表达。</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>

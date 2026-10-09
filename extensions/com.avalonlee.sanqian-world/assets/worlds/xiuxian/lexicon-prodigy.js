@@ -1,0 +1,139 @@
+/* xiuxian/lexicon-prodigy.js — 同代天骄词表分卷（CJK 白名单文件 · 天骄卷 v1.0 §十三）
+ * key 族：prodigy.*（人名池三段 21 / 资质与关系 / 传闻 9 / 编年史 7 / 日志 / UI）
+ * + 天骄专属事件全文 event.prodigy_ev_*.*（既有事件族 id 取值，前缀 prodigy_ev_ 防混注记）。
+ * 天赋展示复用 talent.* 既有 key 零新增。
+ */
+(function () {
+  var SQ = window.SQ || (window.SQ = {});
+  var K = {};
+
+  /* ── 人名池三段（9×7×5 = 315 组合，§2.2 自建池）── */
+  K['prodigy.name.s.1'] = '苏'; K['prodigy.name.s.2'] = '顾'; K['prodigy.name.s.3'] = '叶';
+  K['prodigy.name.s.4'] = '萧'; K['prodigy.name.s.5'] = '洛'; K['prodigy.name.s.6'] = '裴';
+  K['prodigy.name.s.7'] = '谢'; K['prodigy.name.s.8'] = '楚'; K['prodigy.name.s.9'] = '秦';
+  K['prodigy.name.m.1'] = '青'; K['prodigy.name.m.2'] = '云'; K['prodigy.name.m.3'] = '寒';
+  K['prodigy.name.m.4'] = '惊'; K['prodigy.name.m.5'] = '梧'; K['prodigy.name.m.6'] = '照';
+  K['prodigy.name.m.7'] = '凌';
+  K['prodigy.name.l.1'] = '尘'; K['prodigy.name.l.2'] = '崖'; K['prodigy.name.l.3'] = '霄';
+  K['prodigy.name.l.4'] = '月'; K['prodigy.name.l.5'] = '珩';
+
+  /* ── 资质档与关系态 ── */
+  K['prodigy.apt.0'] = '常人';
+  K['prodigy.apt.1'] = '俊杰';
+  K['prodigy.apt.2'] = '天才';
+  K['prodigy.rel.friend'] = '好友';
+  K['prodigy.rel.feud'] = '宿敌';
+  K['prodigy.rel.loner'] = '散修';
+
+  /* ── 传闻文案（§4.3 防刷屏白名单：换位双向 / 天才突破 / 机缘竞争 ×3 / 结仇 / 斩杀 / 跨世开场）── */
+  K['prodigy.rumor.rank.up'] = '同代榜易位——你反超至第 {n} 位，坊市已有人开始记你的名字。';
+  K['prodigy.rumor.rank.down'] = '同代榜易位——你被压到了第 {n} 位。茶棚里有人说，那几位的风头正劲。';
+  K['prodigy.rumor.break'] = '{name}破入{realm}！同代之中又有人绝尘而去。';
+  K['prodigy.rumor.rivalry.1'] = '谷口的仙缘被人抢先一步，只留半句话：「机缘，是给先到的人的。」';
+  K['prodigy.rumor.rivalry.2'] = '{faction}的{name}连夜掘走了那株百年灵植，连土都没给你剩——捎话的人说，他挖完还哼着小曲。';
+  K['prodigy.rumor.rivalry.3'] = '坊市传言：古修洞府的秘钥三日前被人开了，后来者只看到墙上一行剑刻的字，狂得像是故意留给人看的。';
+  K['prodigy.rumor.feud'] = '{name}拂袖而去，放话下次见面剑下不留情——江湖都知道了。';
+  K['prodigy.rumor.kill'] = '{name}殒落。同代榜划去一行，无人递补。';
+  K['prodigy.rumor.eternal.1'] = '又是你。';
+
+  /* ── 编年史短语（§4.2 数据源扩展五类 + 飞升叩门）── */
+  K['prodigy.chronicle.rank.up'] = '是日同代榜反超，升至第 {n} 位。';
+  K['prodigy.chronicle.rank.down'] = '是日被同代超越，退至第 {n} 位。';
+  K['prodigy.chronicle.spar.win'] = '是日论道胜{name}。';
+  K['prodigy.chronicle.spar.lose'] = '是日论道负于{name}。';
+  K['prodigy.chronicle.spar.draw'] = '是日与{name}论道战平。';
+  K['prodigy.chronicle.feud'] = '是日与{name}结仇。';
+  K['prodigy.chronicle.feudend'] = '是日与{name}一笑泯恩仇。';
+  K['prodigy.chronicle.kill'] = '是日阵前斩杀宿敌{name}。';
+
+  /* ── 日志 ── */
+  K['prodigy.log.break'] = '{name}破入{realm}——同代天骄，名不虚传';
+  K['prodigy.log.spar.win'] = '论道胜{name}，赢下赌注 {n} {cur}';
+  K['prodigy.log.spar.lose'] = '论道负于{name}，赌注 {n} {cur} 归了对方';
+  K['prodigy.log.spar.draw'] = '与{name}论道战平——棋逢对手，赌注各归';
+  K['prodigy.log.feud'] = '{name}拂袖而去：「下次见面，剑下不留情。」';
+  K['prodigy.log.feudend'] = '{name}与你相视一笑，多年的块垒一扫而空。';
+  K['prodigy.log.kill'] = '{name}殒于你手——同代之争，就此了账';
+  K['prodigy.log.evfire'] = '{name}拦在了你的面前';
+
+  /* ── 携才投效（§6.2 三分支；「收」支的入门句走 sect.disc.join，本族只出另两支与折节补句）── */
+  K['prodigy.join.refuse'] = '{name}携礼登门求附，{sect}只回一句「不问出身，只看本事」——他拱拱手，转身下了山。';
+  K['prodigy.join.win'] = '{name}在阶前被连压三价，对答不失分寸，究竟还是留下了——折节事小，失才事大。';
+  K['prodigy.join.lose'] = '{name}嫌价太贱，把礼盒搁在阶前，转身就走。';
+
+  /* ── 天骄专属事件全文（№120~124）── */
+  K['event.prodigy_ev_drink.name'] = '把酒论道';
+  K['event.prodigy_ev_drink.story'] = '同代之人在山下备了酒，邀你共饮几杯——顺便，互报师承。';
+  K['event.prodigy_ev_drink.branch.right'] = '推杯置腹，把师承恩怨聊个通透';
+  K['event.prodigy_ev_drink.branch.evil'] = '酒里暗暗下药，试探对方道行深浅';
+  K['event.prodigy_ev_drink.branch.neutral'] = '浅酌辄止，留三分话在肚子里';
+  K['event.prodigy_ev_gift.name'] = '切磋赠礼';
+  K['event.prodigy_ev_gift.story'] = '一番论道之后，对方从储物袋里摸出一件东西塞给你：「用得上的。」';
+  K['event.prodigy_ev_gift.branch.right'] = '坦然收下，回赠一份自家小礼';
+  K['event.prodigy_ev_gift.branch.evil'] = '收下却不安，暗中盘问此物来历';
+  K['event.prodigy_ev_gift.branch.neutral'] = '称谢收下，把这份人情记在心里';
+  K['event.prodigy_ev_escort.name'] = '秘境同行';
+  K['event.prodigy_ev_escort.story'] = '对方与你同路入秘境，约定同行一程——两条影子，一路无话也不尴尬。';
+  K['event.prodigy_ev_escort.branch.right'] = '并肩而行，互为照应，各凭本事';
+  K['event.prodigy_ev_escort.branch.evil'] = '半途诈称妖兽来袭，借刀试探';
+  K['event.prodigy_ev_escort.branch.neutral'] = '各走各路，到岔口拱手作别';
+  K['event.prodigy_ev_feud.name'] = '狭路相逢';
+  K['event.prodigy_ev_feud.story'] = '窄路相逢，宿敌按住了剑柄：「好巧。」风停了，酒旗也不动了。';
+  K['event.prodigy_ev_feud.branch.right'] = '持刀问心——一剑了断这段恩怨（胜 = 心结除，不斩杀）';
+  K['event.prodigy_ev_feud.branch.evil'] = '痛下杀手——今日只有一人能走出此地（胜 = 斩杀出榜）';
+  K['event.prodigy_ev_feud.branch.neutral'] = '转身避开——这笔债，改日再算';
+  K['event.prodigy_ev_forgive.name'] = '一笑泯恩仇';
+  K['event.prodigy_ev_forgive.story'] = '对方拦住你的去路，却没有拔剑。半晌，叹了口气：「当年那件事……」';
+  K['event.prodigy_ev_forgive.branch.right'] = '当面致歉——一言解数年之怨';
+  K['event.prodigy_ev_forgive.branch.evil'] = '冷笑不语，拂袖而去';
+  K['event.prodigy_ev_forgive.branch.neutral'] = '提来一坛酒——恩怨都在杯子里';
+
+  /* ── UI ── */
+  K['prodigy.system'] = '同代天骄';
+  K['prodigy.board.title'] = '江湖榜 · 同代卷';
+  K['prodigy.board.me'] = '你';
+  K['prodigy.board.rank'] = '第 {n} 位';
+  K['prodigy.board.empty'] = '榜上无名——入世之后，同代自会现身';
+  K['prodigy.board.hint'] = '境界优先、同境界按战力；每代名录至多 30 人，榜面只录前 10 位的详细行迹，每 10 游戏年更新一次';
+  K['prodigy.board.myrank'] = '你当前位列第 {n} 位';
+  K['prodigy.board.refresh'] = '榜面每 {y} 游戏年一刷';
+  K['prodigy.board.faction'] = '{name} · {faction}';
+  K['prodigy.detail.apt'] = '资质';
+  K['prodigy.detail.faction'] = '归属';
+  K['prodigy.detail.talent'] = '天赋（纯展示，不作用任何数值）';
+  K['prodigy.detail.rel'] = '关系';
+  K['prodigy.detail.bond'] = '好感 {n}';
+  K['prodigy.detail.wl'] = '切磋战绩 {w} 胜 {l} 负 {d} 平';
+  K['prodigy.detail.feud'] = '宿敌';
+  K['prodigy.detail.feudstate'] = '心结在身——渡劫成算 −0.02（单份不叠加）';
+  K['prodigy.detail.eternal'] = '跨世宿敌';
+  K['prodigy.detail.boost'] = '机缘在身（资质临时 +0.1）';
+  K['prodigy.detail.serving'] = '效力于你';
+  K['prodigy.spar.btn'] = '论道切磋';
+  K['prodigy.spar.confirm'] = '与{name}论道切磋：赌注 {n} {cur}（胜返双倍、负失押注、平局不记账）。双方战力 ±10% 浮动掷判，败北有 30% 概率结仇。切磋？';
+  K['prodigy.spar.cd'] = '对方闭关未出（{t} 后可再约）';
+  K['prodigy.spar.poor'] = '赌注不足，约不起这一场';
+  K['prodigy.spar.stake'] = '赌注 {n}';
+  K['prodigy.spar.vs'] = '你 {a} 对 {b}（对方）';
+  /* 切磋平衡批（§5.3 v2）：三档赌注 + 强弱差让 + 胜方材料彩头 */
+  K['prodigy.spar.title'] = '论道切磋';
+  K['prodigy.spar.confirm2'] = '与{name}论道切磋（{handicap}）：赌注 {n} {cur}，胜返 {ret}、负失押注、平局不记账。双方战力 ±10% 浮动掷判。败北结仇率 {fp}%，胜方材料彩头 {mp}%。切磋？';
+  K['prodigy.spar.kind.light'] = '轻注';
+  K['prodigy.spar.kind.std'] = '标准';
+  K['prodigy.spar.kind.heavy'] = '重注';
+  K['prodigy.spar.kind.hint'] = '轻注 {a} · 标准 {b} · 重注 {c}（重注败北结仇率升至 40%）';
+  K['prodigy.spar.handicap.crush'] = '碾压局';
+  K['prodigy.spar.handicap.crush.hint'] = '实力悬殊，胜之不武——胜返 ×1.5，好感只 +1';
+  K['prodigy.spar.handicap.brave'] = '问强';
+  K['prodigy.spar.handicap.brave.hint'] = '对方战力在你之上——胜则天下侧目：胜返 ×3，好感 +3，材料彩头上浮';
+  K['prodigy.spar.handicap.even'] = '势均力敌';
+  K['prodigy.spar.handicap.even.hint'] = '棋逢对手——胜返 ×2';
+  K['prodigy.spar.ret'] = '胜返 {n}';
+  K['prodigy.spar.feudp'] = '败北结仇率 {p}%';
+  K['prodigy.spar.matp'] = '胜方材料彩头 {p}%';
+  K['prodigy.spar.locked'] = '金丹之后，方闻同代之名';
+  K['prodigy.log.spar.mat'] = '论道之后互赠所得：得材料「{mat}」';
+  K['prodigy.tab'] = '天骄';
+
+  SQ.lexRegister('xiuxian', K);
+})();

@@ -1,0 +1,8 @@
+# 行尾与二进制策略：本仓全部源码/文档按**字节精确**管理，禁止 Git 做 EOL 转换。
+# 理由（两条硬约束都依赖逐字节一致）：
+#  ① 交付镜像不变量 = `diff -rq assets|view|module|.tests` 与 `diff -q manifest.json icon.svg DESIGN.md`
+#     必须零差异；一旦 checkout 把 LF 改 CRLF，镜像与源侧、与 fixture 档的字节比对全会假红。
+#  ② 测试资产里有「同种子双跑逐字节相同」「md5 对表」类判据（sim-playthrough / sim-event-economy /
+#     `fixture-save.json`），行尾被改写即破坏判据。
+# 本机 core.autocrlf 为 true 时，本文件优先于该配置（`-text` = 不做任何转换）。
+* -text

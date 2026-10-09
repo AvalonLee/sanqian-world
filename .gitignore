@@ -1,0 +1,45 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── 2026-10-09 版本控制纳管所加（以下均非源码，不进版本库）────────────────
+# 运行时存档：玩家实时档由平台落在扩展目录，离线留底走 sanqian-ops/sq-snapshot.sh
+# （镜像目录 extensions/** 里的同名件同样排除）
+.storage.json
+
+# 快照解包目录与一次性补丁/调查脚本（过程件，用完即弃；有复用价值的收进 .tests/）
+restore-*/
+sq-wip-*
+sq-fix-*
+sq-show-*
+sq-clean-*
+*.tmp
+
+# 浏览器走查与平台分享产生的本地产物
+.uiverify/
+.trae-html-share-packages/
+
+# 真实本地密钥（.env.local.example 是模板，属文档，照常纳入）
+.env.local
+.env.*.local

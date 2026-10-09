@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-xhub-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三千世界 · 创角三屏视觉稿 v1（审阅用，非生产代码）</title>
+<style>
+/* ══ 主题令牌：UI 设计 §八 双声明 fallback；明暗切换仅审阅用 ══ */
+:root{
+  --xhub-page-bg:#f4f1ea; --xhub-surface:rgba(255,255,255,.78); --xhub-bg-card:rgba(255,255,255,.92);
+  --xhub-text-1:#2b2620; --xhub-text-2:#5c544a; --xhub-text-3:#8a8175;
+  --xhub-accent:#9a7420; --xhub-brand-soft:rgba(154,116,32,.10);
+  --xhub-yellow:#a8811c; --xhub-red:#a03a30; --xhub-green:#3e7a4e;
+  --xhub-border:rgba(43,38,32,.12);
+}
+:root[data-xhub-theme="dark"]{
+  --xhub-page-bg:#171512; --xhub-surface:rgba(38,34,29,.72); --xhub-bg-card:rgba(48,43,37,.85);
+  --xhub-text-1:#ece5d8; --xhub-text-2:#b8ae9d; --xhub-text-3:#847b6d;
+  --xhub-accent:#d4af5e; --xhub-brand-soft:rgba(212,175,94,.12);
+  --xhub-yellow:#d9b64f; --xhub-red:#c9584c; --xhub-green:#6fae80;
+  --xhub-border:rgba(236,229,216,.14);
+}
+:root{
+  --sq-primary:var(--xhub-accent);
+  --sq-karma-right:var(--xhub-yellow); --sq-karma-evil:var(--xhub-red); --sq-karma-neutral:var(--xhub-text-3);
+  --sq-success:var(--xhub-green); --sq-danger:var(--xhub-red);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--xhub-page-bg);color:var(--xhub-text-1);
+  font-family:system-ui,"Songti SC",SimSun,serif;
+  display:flex;flex-wrap:wrap;gap:26px;justify-content:center;padding:28px 16px 60px;
+}
+h1.doc{width:100%;text-align:center;font-size:20px;letter-spacing:.2em;font-weight:600}
+p.doc{width:100%;text-align:center;color:var(--xhub-text-2);font-size:12px;margin-top:6px}
+.review-bar{width:100%;display:flex;justify-content:center;margin-top:10px}
+.review-bar button{font:inherit;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;border:1px dashed var(--xhub-border);background:var(--xhub-bg-card);color:var(--xhub-text-2)}
+.frame-col{display:flex;flex-direction:column;gap:12px;align-items:center}
+.phone{
+  width:390px;max-width:100%;border-radius:22px;overflow:hidden;
+  border:1px solid var(--xhub-border);box-shadow:0 12px 40px rgba(0,0,0,.14);
+  background:var(--xhub-page-bg);display:flex;flex-direction:column;min-height:730px;
+}
+.phone .caption{padding:10px 14px;font-size:12px;color:var(--xhub-text-3);border-bottom:1px dashed var(--xhub-border);letter-spacing:.1em}
+.note{
+  width:390px;max-width:100%;border:1px dashed var(--xhub-border);border-radius:12px;
+  padding:12px 14px;font-size:11.5px;line-height:1.9;color:var(--xhub-text-2);background:var(--xhub-brand-soft);
+}
+.note b{color:var(--xhub-text-1)}
+.note ul{padding-left:16px}
+/* 步骤条 */
+.stepper{display:flex;justify-content:center;gap:0;padding:16px 20px 4px;align-items:center}
+.step{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--xhub-text-3)}
+.step .n{width:20px;height:20px;border-radius:50%;border:1px solid var(--xhub-border);display:flex;align-items:center;justify-content:center;font-size:10px}
+.step.on{color:var(--sq-primary);font-weight:700}
+.step.on .n{border-color:var(--sq-primary);background:var(--sq-primary);color:#fff}
+:root[data-xhub-theme="dark"] .step.on .n{color:#211c12}
+.step.done .n{border-color:var(--sq-primary);color:var(--sq-primary)}
+.stepline{width:34px;height:1px;background:var(--xhub-border);margin:0 9px}
+/* 屏体通用 */
+.screen{flex:1;display:flex;flex-direction:column;padding:10px 22px 20px}
+.stitle{text-align:center;font-size:21px;letter-spacing:.4em;color:var(--xhub-text-1);margin:22px 0 6px;font-weight:600}
+.ssub{text-align:center;font-size:11.5px;color:var(--xhub-text-3);letter-spacing:.15em;margin-bottom:26px}
+/* 屏1 起名 */
+.namefield{margin:18px 4px 8px}
+.namefield input{
+  width:100%;font:inherit;font-size:19px;letter-spacing:.3em;text-align:center;color:var(--xhub-text-1);
+  background:var(--xhub-bg-card);border:1px solid var(--xhub-border);border-bottom:2px solid var(--sq-primary);
+  border-radius:10px;padding:15px 10px;outline:none;
+}
+.hint{text-align:center;font-size:10.5px;color:var(--xhub-text-3);margin-top:8px;letter-spacing:.08em}
+.hint.err{color:var(--sq-danger)}
+.dice{
+  margin:20px auto 0;display:flex;align-items:center;gap:9px;background:var(--xhub-bg-card);
+  border:1px dashed var(--sq-primary);color:var(--sq-primary);border-radius:99px;padding:10px 22px;
+  font:inherit;font-size:13px;letter-spacing:.2em;cursor:pointer;
+}
+/* 屏2 天赋卡 */
+.combo{text-align:center;font-size:12px;color:var(--sq-primary);letter-spacing:.25em;margin:2px 0 12px}
+.tcards{display:flex;gap:9px;margin-bottom:18px}
+.tcard{
+  flex:1;border-radius:13px;padding:12px 9px 10px;text-align:center;position:relative;
+  background:var(--xhub-bg-card);border:1px solid var(--xhub-border);
+}
+.tcard .kk{font-size:9.5px;letter-spacing:.2em;padding:2px 7px;border-radius:99px;display:inline-block;margin-bottom:8px}
+.tcard.pos .kk{color:var(--sq-success);border:1px solid var(--sq-success)}
+.tcard.neg .kk{color:var(--sq-danger);border:1px solid var(--sq-danger)}
+.tcard .tn{font-size:14.5px;font-weight:700;letter-spacing:.08em;margin-bottom:7px}
+.tcard .te{font-size:10.5px;line-height:1.7;color:var(--xhub-text-2)}
+.tcard.rare{border:1.5px solid var(--sq-primary);box-shadow:0 0 0 2px var(--xhub-brand-soft)}
+.tcard .rarecorner{position:absolute;top:-7px;right:8px;font-size:9px;background:var(--sq-primary);color:#fff;border-radius:4px;padding:1px 6px;letter-spacing:.1em}
+:root[data-xhub-theme="dark"] .tcard .rarecorner{color:#211c12}
+/* 问道初心 */
+.biasbox{border:1px solid var(--xhub-border);border-radius:14px;background:var(--xhub-surface);padding:13px 14px 11px;margin-bottom:16px}
+.biasbox .bt{font-size:12.5px;letter-spacing:.25em;color:var(--xhub-text-1);text-align:center}
+.biasbox .bq{font-size:10.5px;color:var(--xhub-text-3);text-align:center;margin:4px 0 11px;letter-spacing:.1em}
+.segs{display:flex;gap:8px}
+.seg{
+  flex:1;border-radius:11px;border:1px solid var(--xhub-border);background:var(--xhub-bg-card);
+  padding:9px 5px 8px;text-align:center;cursor:pointer;
+}
+.seg .sn{font-size:13px;font-weight:700;letter-spacing:.15em}
+.seg .sd{font-size:9px;color:var(--xhub-text-3);margin-top:4px;line-height:1.5}
+.seg.right .sn{color:var(--sq-karma-right)} .seg.evil .sn{color:var(--sq-karma-evil)} .seg.neutral .sn{color:var(--sq-karma-neutral)}
+.seg.sel{border:1.5px solid var(--sq-primary);box-shadow:0 0 0 2px var(--xhub-brand-soft)}
+.seg.sel::after{content:"●";display:block;font-size:7px;color:var(--sq-primary);margin-top:4px}
+/* 按钮排 */
+.btnrow{display:flex;gap:10px;margin-top:auto;padding-top:14px}
+.btnrow button{flex:1;font:inherit;padding:13px 0;border-radius:12px;font-size:14px;letter-spacing:.25em;cursor:pointer}
+.btn-p{background:var(--sq-primary);border:1px solid var(--sq-primary);color:#fff}
+:root[data-xhub-theme="dark"] .btn-p{color:#211c12}
+.btn-s{background:var(--xhub-bg-card);border:1px solid var(--xhub-border);color:var(--xhub-text-2)}
+/* CONFIRM 模态 */
+.dim{flex:1;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;padding:20px 18px}
+.cmodal{width:100%;background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.28);overflow:hidden}
+.cmodal .ch{padding:15px 16px 10px;text-align:center;font-size:15px;letter-spacing:.3em;color:var(--sq-primary)}
+.cmodal .cb{padding:0 18px 12px;font-size:12.5px;line-height:2;color:var(--xhub-text-2);text-align:center}
+.cmodal .cb b{color:var(--xhub-text-1)}
+.cmodal .sumrow{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:10px 0 4px}
+.cmodal .pill{font-size:10.5px;border:1px solid var(--xhub-border);border-radius:99px;padding:3px 10px;color:var(--xhub-text-2);background:var(--xhub-bg-card)}
+.cmodal .pill.p{border-color:var(--sq-success);color:var(--sq-success)}
+.cmodal .pill.n{border-color:var(--sq-danger);color:var(--sq-danger)}
+.cmodal .warn{font-size:11px;color:var(--sq-danger);text-align:center;padding:0 18px 10px}
+/* 屏3 世界卡 */
+.wcard{
+  border:1px solid var(--xhub-border);border-radius:15px;background:var(--xhub-bg-card);
+  padding:15px 16px;margin-bottom:12px;position:relative;cursor:pointer;
+}
+.wcard.sel{border:1.5px solid var(--sq-primary);box-shadow:0 0 0 2px var(--xhub-brand-soft)}
+.wcard .wtop{display:flex;justify-content:space-between;align-items:baseline}
+.wcard .wn{font-size:18px;font-weight:700;letter-spacing:.12em}
+.wcard .st{font-size:9.5px;padding:2px 8px;border-radius:99px;letter-spacing:.15em}
+.wcard .st.live{background:var(--sq-primary);color:#fff}
+:root[data-xhub-theme="dark"] .wcard .st.live{color:#211c12}
+.wcard .st.coming{border:1px solid var(--xhub-border);color:var(--xhub-text-3)}
+.wcard .wt{font-size:11px;color:var(--xhub-text-2);margin-top:7px;letter-spacing:.08em}
+.wcard .tags{display:flex;gap:6px;margin-top:9px}
+.wcard .tags span{font-size:10px;color:var(--sq-primary);border:1px solid var(--sq-primary);border-radius:5px;padding:1px 7px;opacity:.85}
+.wcard.dead{opacity:.55;cursor:not-allowed}
+.wcard.dead .wn{color:var(--xhub-text-3);letter-spacing:.3em}
+.wcard.dead .wt{color:var(--xhub-text-3)}
+.backline{font-size:11px;color:var(--xhub-text-3);text-align:center;margin-top:4px;cursor:pointer;letter-spacing:.1em}
+</style>
+</head>
+<body>
+
+<h1 class="doc">三千世界 · 创角三屏视觉稿</h1>
+<p class="doc">依据《UI 与交互设计》v2.3 §一/§二 · 演示人设与其余五稿同档：叶长风 → 青云界（玄幻修仙）· 屏 2 倾向演示默认左道（该存档后续以行为走入正道档——「倾向只是底色」的活例）· 天赋词条为文档在册示例（雷灵根/天资聪慧/凡骨）</p>
+<div class="review-bar">
+  <button onclick="const h=document.documentElement;h.dataset.xhubTheme=h.dataset.xhubTheme==='dark'?'light':'dark'">切换明 / 暗（审阅用，生产无此按钮）</button>
+</div>
+
+<!-- ═══ 帧一 · 屏 1 起名 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧一 · 屏 1「道名初定」（无存档首进 · LOADING 后直达）</div>
+  <div class="stepper">
+    <div class="step on"><span class="n">一</span>立名</div><div class="stepline"></div>
+    <div class="step"><span class="n">二</span>观天赋</div><div class="stepline"></div>
+    <div class="step"><span class="n">三</span>择界</div>
+  </div>
+  <div class="screen">
+    <div class="stitle">道名初定</div>
+    <div class="ssub">名者，道之门户也</div>
+    <div class="namefield">
+      <input value="叶长风" maxlength="8">
+    </div>
+    <div class="hint">2~8 字 · 首尾空格自动剔除</div>
+    <button class="dice">🎋 掷杯问名</button>
+    <div class="hint" style="margin-top:10px">姓氏池 × 名池随机（叶/林/苏/顾/楚 × 长风/清羽/无涯/听雪…）</div>
+    <div class="btnrow">
+      <button class="btn-p" style="flex:1">下一步 · 观天赋</button>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>帧一批注（UI v2.3 §二 屏 1）</b>
+  <ul>
+    <li>校验三态：空/1 字/9 字 → 确认置灰 + 红字提示（「道名过短，难以载道」风格文案走词表）；2~8 字通过；</li>
+    <li>「掷杯问名」可无限次，每次整名重掷；输入框底线用 primary 强调（书写仪式感）；</li>
+    <li>步骤条「一 二 三」用汉字数字，当前步实心金；屏间可回退（‹ 返回），入世前不写存档；</li>
+    <li>LOADING = boot 模式（await 读档 + normalize 后首绘），无存档才进本屏。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧二 · 屏 2 天赋 + 问道初心 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧二 · 屏 2「天命所赋 + 问道初心」（2 正 1 负 · 倾向默认左道）</div>
+  <div class="stepper">
+    <div class="step done"><span class="n">一</span>立名</div><div class="stepline"></div>
+    <div class="step on"><span class="n">二</span>观天赋</div><div class="stepline"></div>
+    <div class="step"><span class="n">三</span>择界</div>
+  </div>
+  <div class="screen">
+    <div class="combo">—— 天 命 所 赋 · 2 正 1 负 ——</div>
+    <div class="tcards">
+      <div class="tcard pos rare">
+        <span class="rarecorner">稀有</span>
+        <span class="kk">正面</span>
+        <div class="tn">雷灵根</div>
+        <div class="te">渡劫成功率<br>+15%</div>
+      </div>
+      <div class="tcard pos">
+        <span class="kk">正面</span>
+        <div class="tn">天资聪慧</div>
+        <div class="te">修为产出<br>+20%</div>
+      </div>
+      <div class="tcard neg">
+        <span class="kk">负面</span>
+        <div class="tn">凡骨</div>
+        <div class="te">突破需求<br>+10%</div>
+      </div>
+    </div>
+
+    <div class="biasbox">
+      <div class="bt">问 道 初 心</div>
+      <div class="bq">「此生道心，偏向何处？」（可不选 · 默认左道）</div>
+      <div class="segs">
+        <div class="seg right"><div class="sn">☯ 正道</div><div class="sd">逢源多奇遇<br>修行缓</div></div>
+        <div class="seg neutral sel"><div class="sn">· 左道</div><div class="sd">不偏不倚<br>随心而行</div></div>
+        <div class="seg evil"><div class="sn">☠ 魔道</div><div class="sd">进境迅猛<br>福缘薄</div></div>
+      </div>
+    </div>
+
+    <div class="backline">‹ 返回改名</div>
+    <div class="btnrow">
+      <button class="btn-s">重抽天命</button>
+      <button class="btn-p">确认锁定</button>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>帧二批注（UI v2.3 §二 屏 2）</b>
+  <ul>
+    <li>组合角标三型：2正1负（主流 35%）/ 1正1负（40%，正面卡追加「极致单一 · 效果增强 ×1.5」角标）/ 1正2负（25%，高风险高回报）；</li>
+    <li>稀有词条描金边 + 「稀有」角标；卡面 = 名 + 效果两行，正/负用 success/danger 语义色 + 文字角标（色弱友好）；</li>
+    <li><b>问道初心</b>：三段选择写 `profile.alignBias`，默认左道居中；<b>重抽天命不清倾向</b>；倾向只驱动 karma 漂移（12/天，封顶 ±260），不锁定玩法——本演示档选左道、后以行为入正道档，即「底色可被大笔覆盖」的活例；</li>
+    <li><b>性别/种族无入口</b>（v2.3 预留纪律：不做置灰占位，默认男/人族，normalize 补默认）；</li>
+    <li>重抽无限次免费，放拇指热区（屏幕下半）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧三 · 屏 2 锁定 CONFIRM ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧三 · 「确认锁定」CONFIRM 模态（模态栈优先级 4）</div>
+  <div class="dim">
+    <div class="cmodal">
+      <div class="ch">入 定</div>
+      <div class="cb">天赋确认后，<b>此生不可更改</b>。<br>是否入定？</div>
+      <div class="sumrow">
+        <span class="pill p">雷灵根 · 渡劫 +15%</span>
+        <span class="pill p">天资聪慧 · 产出 +20%</span>
+        <span class="pill n">凡骨 · 突破需求 +10%</span>
+        <span class="pill">问道初心 · 左道</span>
+      </div>
+      <div class="warn">⚠ 天命与初心，一并锁定</div>
+      <div class="btnrow" style="padding:6px 18px 16px">
+        <button class="btn-s">再想想</button>
+        <button class="btn-p">入 定</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>帧三批注</b>
+  <ul>
+    <li>CONFIRM 摘要行把「锁什么」全部摊开：天赋 pills（正绿负红）+ 倾向 pill——防「没注意倾向也被锁了」的误触怨气；</li>
+    <li>「再想想」回屏 2 状态无损（倾向选择保留）；「入定」后天赋与 alignBias 写入 profile，重抽按钮永久消失（锁定态）；</li>
+    <li>锁定只锁<b>创角决策</b>，不锁玩法：倾向可被行为覆盖（karma 漂移只是底色）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧四 · 屏 3 择界 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧四 · 屏 3「三千世界 · 择界重生」</div>
+  <div class="stepper">
+    <div class="step done"><span class="n">一</span>立名</div><div class="stepline"></div>
+    <div class="step done"><span class="n">二</span>观天赋</div><div class="stepline"></div>
+    <div class="step on"><span class="n">三</span>择界</div>
+  </div>
+  <div class="screen">
+    <div class="stitle" style="font-size:18px;margin-top:14px">择 界 重 生</div>
+    <div class="ssub">三千世界，何处证道</div>
+
+    <div class="wcard sel">
+      <div class="wtop"><span class="wn">青云界</span><span class="st live">首发 · 可投生</span></div>
+      <div class="wt">玄幻修仙 · 挂机渡劫，证道真仙</div>
+      <div class="tags"><span>修为</span><span>秘境</span><span>渡劫</span></div>
+    </div>
+
+    <div class="wcard dead">
+      <div class="wtop"><span class="wn">？？？</span><span class="st coming">待开启</span></div>
+      <div class="wt">此界尚在混沌，未可投生</div>
+    </div>
+
+    <div class="wcard dead">
+      <div class="wtop"><span class="wn">？？？</span><span class="st coming">待开启</span></div>
+      <div class="wt">此界尚在混沌，未可投生</div>
+    </div>
+
+    <div class="backline">‹ 返回观天赋</div>
+    <div class="btnrow">
+      <button class="btn-p" style="flex:1">入 世 · 开 始 修 行</button>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>帧四批注（UI v2.3 §二 屏 3）</b>
+  <ul>
+    <li>只展示 `visibleWorlds()`：live（青云界，随机世界名已定格）+ coming（？？？灰显，<b>名字不剧透</b>）；hidden（克苏鲁）永不出现；</li>
+    <li>世界名与 profile.worldName 同源——屏 3 首次渲染时生成一次，<b>同会话重进不重掷</b>（防刷世界名）；</li>
+    <li>关键词标签 3 枚（词表 world.{id}.tags），一眼看出世界差异；首发只有一张 live 卡仍按列表布局（为多世界留结构）；</li>
+    <li>「入世」一次性写入：profile（name/talents/alignBias/gender/race）+ worlds.xiuxian 初始化（含初始洞府·市井别院）+ meta.unlockedWorlds + worldName → 直接进 MAIN 修行页，无过场加载；</li>
+    <li>入世后再见这些字段的位置：倾向 → karma 浮层「初心倾向」行；洞府 → 地 chip；总账 → 财 chip（启动资金 100 即第一笔 ledger 基数）。</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>

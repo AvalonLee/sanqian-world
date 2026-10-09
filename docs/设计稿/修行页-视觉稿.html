@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-xhub-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三千世界 · 修行页视觉稿 v1（审阅用，非生产代码）</title>
+<style>
+/* ══ 主题令牌：UI 设计 §八「双声明 fallback」；明暗切换按钮仅审阅用 ══ */
+:root{
+  --xhub-page-bg:#f4f1ea; --xhub-surface:rgba(255,255,255,.78); --xhub-bg-card:rgba(255,255,255,.92);
+  --xhub-text-1:#2b2620; --xhub-text-2:#5c544a; --xhub-text-3:#8a8175;
+  --xhub-accent:#9a7420; --xhub-brand-soft:rgba(154,116,32,.10);
+  --xhub-yellow:#a8811c; --xhub-red:#a03a30; --xhub-green:#3e7a4e;
+  --xhub-border:rgba(43,38,32,.12);
+}
+:root[data-xhub-theme="dark"]{
+  --xhub-page-bg:#171512; --xhub-surface:rgba(38,34,29,.72); --xhub-bg-card:rgba(48,43,37,.85);
+  --xhub-text-1:#ece5d8; --xhub-text-2:#b8ae9d; --xhub-text-3:#847b6d;
+  --xhub-accent:#d4af5e; --xhub-brand-soft:rgba(212,175,94,.12);
+  --xhub-yellow:#d9b64f; --xhub-red:#c9584c; --xhub-green:#6fae80;
+  --xhub-border:rgba(236,229,216,.14);
+}
+:root{
+  --sq-primary:var(--xhub-accent);
+  --sq-karma-right:var(--xhub-yellow); --sq-karma-evil:var(--xhub-red); --sq-karma-neutral:var(--xhub-text-3);
+  --sq-success:var(--xhub-green); --sq-danger:var(--xhub-red);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--xhub-page-bg);color:var(--xhub-text-1);
+  font-family:system-ui,"Songti SC",SimSun,serif;
+  display:flex;flex-wrap:wrap;gap:26px;justify-content:center;padding:28px 16px 60px;
+}
+h1.doc{width:100%;text-align:center;font-size:20px;letter-spacing:.2em;font-weight:600}
+p.doc{width:100%;text-align:center;color:var(--xhub-text-2);font-size:12px;margin-top:6px}
+.review-bar{width:100%;display:flex;justify-content:center;margin-top:10px}
+.review-bar button{font:inherit;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;border:1px dashed var(--xhub-border);background:var(--xhub-bg-card);color:var(--xhub-text-2)}
+.frame-col{display:flex;flex-direction:column;gap:12px;align-items:center}
+.phone{
+  width:390px;max-width:100%;border-radius:22px;overflow:hidden;
+  border:1px solid var(--xhub-border);box-shadow:0 12px 40px rgba(0,0,0,.14);
+  background:var(--xhub-page-bg);display:flex;flex-direction:column;min-height:770px;
+}
+.phone .caption{padding:10px 14px;font-size:12px;color:var(--xhub-text-3);border-bottom:1px dashed var(--xhub-border);letter-spacing:.1em}
+.note{
+  width:390px;max-width:100%;border:1px dashed var(--xhub-border);border-radius:12px;
+  padding:12px 14px;font-size:11.5px;line-height:1.9;color:var(--xhub-text-2);background:var(--xhub-brand-soft);
+}
+.note b{color:var(--xhub-text-1)}
+.note ul{padding-left:16px}
+/* 顶栏 */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--xhub-surface);border-bottom:1px solid var(--xhub-border)}
+.topbar .who{font-size:13px}.topbar .who b{font-size:14px}
+.topbar .who span{color:var(--xhub-text-3);font-size:12px}
+.topbar .right{display:flex;gap:8px;align-items:center;font-size:12px}
+.kbadge{padding:2px 8px;border-radius:99px;font-size:11px;border:1px solid var(--sq-karma-right);color:var(--sq-karma-right)}
+/* 打坐视觉区 */
+.meditate{position:relative;height:190px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.halo{position:absolute;width:170px;height:170px;border-radius:50%;
+  background:radial-gradient(circle,var(--xhub-brand-soft) 0%,transparent 68%);
+  animation:breathe 5s ease-in-out infinite}
+.ring{position:absolute;width:150px;height:150px;border-radius:50%;border:1px solid var(--sq-primary);opacity:.25;animation:breathe 5s ease-in-out infinite .6s}
+@keyframes breathe{0%,100%{transform:scale(.86);opacity:.5}50%{transform:scale(1.06);opacity:.95}}
+@media (prefers-reduced-motion: reduce){.halo,.ring{animation:none}}
+.meditate svg{position:relative;z-index:1}
+/* 主数值区 */
+.vitals{padding:0 18px}
+.qirow{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}
+.qirow .big{font-size:22px;font-weight:700;letter-spacing:.02em}
+.qirow .cap{color:var(--xhub-text-3);font-size:12px}
+.bar{height:10px;border-radius:99px;background:var(--xhub-bg-card);border:1px solid var(--xhub-border);margin:8px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;width:49%;border-radius:99px;background:linear-gradient(90deg,var(--sq-primary),#c9a24d)}
+.rate{font-size:12.5px;color:var(--xhub-text-2)}
+.rate a{color:var(--sq-primary);text-decoration:none;border-bottom:1px dashed var(--sq-primary);cursor:pointer}
+.nextline{margin-top:10px;font-size:12.5px;color:var(--xhub-text-2);display:flex;justify-content:space-between}
+.nextline .p{color:var(--xhub-text-1)}
+.nextline a{color:var(--sq-primary);text-decoration:none;border-bottom:1px dashed var(--sq-primary);cursor:pointer}
+/* 四柱 chip */
+.pillars{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 18px 4px}
+.chip{
+  display:flex;align-items:center;gap:8px;background:var(--xhub-surface);border:1px solid var(--xhub-border);
+  border-radius:11px;padding:8px 10px;font-size:11.5px;cursor:pointer;position:relative;
+}
+.chip .zi{font-size:15px;font-weight:700;color:var(--sq-primary);font-family:inherit}
+.chip .txt{line-height:1.45;color:var(--xhub-text-2)}
+.chip .txt b{color:var(--xhub-text-1);font-size:12px;display:block}
+.chip .rd{position:absolute;top:6px;right:7px;width:6px;height:6px;border-radius:50%;background:var(--sq-danger)}
+.chip.idle{opacity:.55}
+/* 闭关所得面板 */
+.offcard{margin:12px 18px 0;border:1px solid var(--xhub-border);border-radius:13px;background:var(--xhub-surface);overflow:hidden}
+.offcard .h{padding:9px 12px 7px;font-size:12px;letter-spacing:.25em;color:var(--sq-primary);border-bottom:1px dashed var(--xhub-border);display:flex;justify-content:space-between}
+.offcard .h span.r{color:var(--xhub-text-3);letter-spacing:0;font-size:11px}
+.offcard .b{padding:10px 12px;font-size:12.5px;line-height:2;color:var(--xhub-text-2)}
+.offcard .b b{color:var(--xhub-text-1)}
+.offcard .b .up{color:var(--sq-success)}
+.offcard .d{padding:0 12px 10px;font-size:11px;color:var(--xhub-text-3);line-height:1.9;border-top:1px dashed var(--xhub-border);margin-top:2px;padding-top:8px}
+/* CTA */
+.ctas{display:flex;gap:10px;padding:16px 18px 14px}
+.ctas button{flex:1;font:inherit;padding:13px 0;border-radius:12px;font-size:14px;letter-spacing:.3em;cursor:pointer}
+.btn-p{background:var(--sq-primary);border:1px solid var(--sq-primary);color:#fff}
+:root[data-xhub-theme="dark"] .btn-p{color:#211c12}
+.btn-s{background:var(--xhub-bg-card);border:1px solid var(--xhub-border);color:var(--xhub-text-2)}
+/* Tab 栏 */
+.tabbar{margin-top:auto;display:flex;border-top:1px solid var(--xhub-border);background:var(--xhub-surface)}
+.tabbar .t{flex:1;text-align:center;padding:9px 0 11px;font-size:11.5px;color:var(--xhub-text-3);position:relative}
+.tabbar .t.on{color:var(--sq-primary);font-weight:700}
+/* 浮层（暗化底 + 卡） */
+.overlay{flex:1;background:rgba(0,0,0,.38);display:flex;flex-direction:column;justify-content:center;gap:16px;padding:20px 16px}
+.sheet{background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:14px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.2)}
+.sheet .sh{padding:10px 14px;font-size:13px;letter-spacing:.2em;border-bottom:1px dashed var(--xhub-border);color:var(--sq-primary);display:flex;justify-content:space-between;align-items:center}
+.sheet .sh .x{color:var(--xhub-text-3);font-size:12px;letter-spacing:0}
+.sheet .rows{padding:8px 14px 12px}
+.row{display:flex;justify-content:space-between;font-size:12px;line-height:2.15;color:var(--xhub-text-2);border-bottom:1px dotted var(--xhub-border)}
+.row:last-child{border-bottom:none}
+.row .v{color:var(--xhub-text-1);font-variant-numeric:tabular-nums}
+.row .v.pos{color:var(--sq-success)} .row .v.neg{color:var(--sq-danger)} .row .v.gold{color:var(--sq-primary)}
+.row.total{border-top:1px solid var(--xhub-border);margin-top:4px;padding-top:2px;font-weight:700}
+.row.total .v{color:var(--sq-primary);font-size:13.5px}
+.row .src{color:var(--xhub-text-3);font-size:10.5px}
+.clampnote{padding:0 14px 10px;font-size:10.5px;color:var(--xhub-text-3);line-height:1.7}
+/* 闭关所得弹窗（OFFLINE_REPORT） */
+.report{background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:16px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.25)}
+.report .rh{padding:14px;text-align:center;border-bottom:1px dashed var(--xhub-border)}
+.report .rh .t{font-size:16px;letter-spacing:.4em;color:var(--sq-primary)}
+.report .rh .s{font-size:11px;color:var(--xhub-text-3);margin-top:4px;letter-spacing:.08em}
+.report .rb{padding:12px 16px}
+.report .big{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;line-height:2.3;color:var(--xhub-text-2)}
+.report .big b{font-size:16px;color:var(--xhub-text-1)}
+.report .big .up{color:var(--sq-success)}
+.report .rf{padding:0 16px 16px}
+.report .rf button{width:100%;font:inherit;padding:12px 0;border-radius:12px;font-size:14px;letter-spacing:.3em;cursor:pointer;background:var(--sq-primary);border:1px solid var(--sq-primary);color:#fff}
+:root[data-xhub-theme="dark"] .report .rf button{color:#211c12}
+</style>
+</head>
+<body>
+
+<h1 class="doc">三千世界 · 修行页视觉稿</h1>
+<p class="doc">依据《UI 与交互设计》v2.0 §3.2 / §3.3 / §5.2 · 演示态：化神二层 · 正道档（+214）· 驻留雷池精庐 · 护法位老黄（生死之交③）· 天赋与创角稿同档（雷灵根 / 天资聪慧 / 凡骨）· 数字按境界表与乘区公式自洽推演</p>
+<div class="review-bar">
+  <button onclick="const h=document.documentElement;h.dataset.xhubTheme=h.dataset.xhubTheme==='dark'?'light':'dark'">切换明 / 暗（审阅用，生产无此按钮）</button>
+</div>
+
+<!-- ═══ 稿一 · 修行页主屏 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿一 · 修行页（Tab 1 · 默认落地页）</div>
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +214</span><span>💰 42.8万</span></div>
+  </div>
+
+  <div class="meditate">
+    <div class="halo"></div><div class="ring"></div>
+    <svg width="96" height="96" viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="color:var(--sq-primary)">
+      <circle cx="48" cy="26" r="9"/>
+      <path d="M48 35 C48 35 30 46 26 62 C24 70 30 74 38 72 L48 68 L58 72 C66 74 72 70 70 62 C66 46 48 35 48 35 Z"/>
+      <path d="M30 80 H66" opacity=".5"/>
+    </svg>
+  </div>
+
+  <div class="vitals">
+    <div class="qirow">
+      <span><span class="big">50.6万</span> <span class="cap">/ 上限 103.2万</span></span>
+      <span class="cap">49%</span>
+    </div>
+    <div class="bar"><i></i></div>
+    <div class="rate">打坐产出 <b>143.4/秒</b>（<a>含加成明细 ▾</a>）</div>
+    <div class="nextline">
+      <span>下一境界：<b class="p">炼虚</b>（还需 37.4万 修为）</span>
+      <span>渡劫预估 <b class="p">95%</b>（<a>明细 ▾</a>）</span>
+    </div>
+  </div>
+
+  <div class="pillars">
+    <div class="chip"><span class="zi">财</span><span class="txt"><b>42.8万</b>收 68.6万 · 支 25.8万</span></div>
+    <div class="chip"><span class="zi">侣</span><span class="txt"><b>护法 · 老黄 ③</b>生死之交 · 渡劫 +0.03</span></div>
+    <div class="chip"><span class="zi">法</span><span class="txt"><b>主修 · 金钟罩 Lv4</b>战力 +24% · 签名「不动明王」</span></div>
+    <div class="chip"><span class="zi">地</span><span class="txt"><b>雷池精庐 ×1.18</b>雷蕴 · 渡劫 +0.02<span class="rd" style="display:none"></span></span></div>
+  </div>
+
+  <div class="offcard">
+    <div class="h">闭关所得 <span class="r">上次 · 今日 09:41 出关</span></div>
+    <div class="b">
+      离开 <b>42 分</b> · 修为 <b class="up">+26.7万</b> · 灵石 <b class="up">+2,800</b> · 渡劫 <b>0 次</b>
+    </div>
+    <div class="d">明细 ▾：离线效率 50% + 加成 24%（清心咒 Lv4）→ 74% · 未触 12h 上限 · 离线不触发奇遇（时钟冻结于 7 分 12 秒）</div>
+  </div>
+
+  <div class="ctas">
+    <button class="btn-p">收 功</button>
+    <button class="btn-s">闭关（离线）</button>
+  </div>
+
+  <div class="tabbar">
+    <div class="t on">修行</div><div class="t">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t">坊市</div><div class="t">奇遇</div>
+  </div>
+</div>
+<div class="note">
+  <b>稿一批注（UI v2.0 §3.2）</b>
+  <ul>
+    <li>打坐呼吸动效 = 双圈 halo 5s 缩放，<b>prefers-reduced-motion 自动静止</b>（§七）；</li>
+    <li>进度条 49% = 50.6万/103.2万；上限 = max(2h 产出 103.2万, 1.15×need 101.2万) 取 2h 项主导（need 88万 = 表值 80万 × 凡骨 +10%）；「已满·已臻化境」仅真仙后出现；</li>
+    <li>四柱 chip 行：批 2 落财/法/地，批 3 前「侣」位显示<b>「虚位以待」置灰态</b>（本稿为批 3 完全体）；chip 红点 = 新洞府达资格 / 道友升档，进浮层即消；</li>
+    <li>闭关所得面板常驻；`lastOffline=null` 时整卡不渲染；明细行含「离线零奇遇 + 时钟冻结读数」——在线爬钟的悬念钩子；</li>
+    <li>收功 = 手动 claim，数字滚动动画；CTA 用 primary 实底、文字色按主题显式给（§8.2）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 稿二 · 产出明细浮层 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿二 · 产出明细浮层（点「含加成明细 ▾」）</div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh">产出构成 · 每秒 <span class="x">✕ 关闭</span></div>
+      <div class="rows">
+        <div class="row"><span>境界基础（化神）</span><span class="v">81.0</span></div>
+        <div class="row"><span>天赋 · 天资聪慧 <span class="src">加算</span></span><span class="v pos">+20%</span></div>
+        <div class="row"><span>功法 · 吐纳法满级（槽内六部唯一 qiRate 来源） <span class="src">加算</span></span><span class="v pos">+25%</span></div>
+        <div class="row"><span>装备 · qiBonus 两件（暖玉 18 + 定魂 12） <span class="src">加算</span></span><span class="v pos">+30%</span></div>
+        <div class="row"><span>buff · 凝神丹（余 1 时 24 分）<span class="src">加算</span></span><span class="v pos">+25%</span></div>
+        <div class="row"><span>阵营 · 正道光环 <span class="src">独立乘</span></span><span class="v neg">×0.75</span></div>
+        <div class="row"><span>洞府 · 雷池精庐 <span class="src">独立乘</span></span><span class="v gold">×1.18</span></div>
+        <div class="row total"><span>合计</span><span class="v">143.4 / 秒</span></div>
+      </div>
+      <div class="clampnote">同乘区内加算、乘区之间乘算（数值详设 §八）：81 × (1+1.00) × 0.75 × 1.18 = 143.4。正道修炼放缓由判定 −5% 与护法/奇遇频率补偿（§8.1）。</div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>稿二批注</b>
+  <ul>
+    <li>逐行「来源 + 归属乘区 + 数值」，加算绿 / 独立乘金 / 折损红——<b>数值透明是放置游戏的信任基础</b>（§3.2）；</li>
+    <li>buff 行带剩余时长；洞府行批 2 起出现，批 1 隐藏该行；</li>
+    <li>底部结算式一行给出，玩家可对表验算。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 稿三 · 渡劫预估浮层 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿三 · 渡劫预估浮层（点「明细 ▾」）</div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh">渡劫预估 · 化神 → 炼虚 <span class="x">✕ 关闭</span></div>
+      <div class="rows">
+        <div class="row"><span>境界基准 base</span><span class="v">0.70</span></div>
+        <div class="row"><span>resistBonus <span class="src">resist 0.09 + 战力 0.06</span></span><span class="v pos">+0.15</span></div>
+        <div class="row"><span>天赋 · 雷灵根 <span class="src">talentBonus</span></span><span class="v pos">+0.15</span></div>
+        <div class="row"><span>洞府签名 · 雷蕴 <span class="src">批 2 起</span></span><span class="v gold">+0.02</span></div>
+        <div class="row"><span>karmaMod · 正道浅档（+214）</span><span class="v pos">+0.10</span></div>
+        <div class="row"><span>正道档位 tribBonusFlat</span><span class="v pos">+0.05</span></div>
+        <div class="row"><span>护法位 · 老黄③ <span class="src">批 3 起</span></span><span class="v gold">+0.03</span></div>
+        <div class="row total"><span>加总 1.20 → 封顶</span><span class="v">95%</span></div>
+      </div>
+      <div class="clampnote">p = clamp(加总, 0.05, 0.95)——先加总后封顶（工程规范 #55）。「十拿九稳 · 成功率 95%」文言档位与精确值并列（§六）。主修金钟罩的签名「不动明王」（渡劫失败损失 −5pp）走 tribFailLossMod 通道、属失败损失侧，不进本浮层。</div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>稿三批注</b>
+  <ul>
+    <li>加项逐行、来源小字标注；<b>封顶态显式展示</b>（加总 1.20 → 95%），防止玩家误以为堆料无效或数值出错；</li>
+    <li>魔道档位时：karmaMod 行为负值红色、护法行替换为灰字「无人护法」、正道档位行消失——三态同源一张浮层；</li>
+    <li>破障丹/tribNext 类一次性修正生效时追加临时行（用后即清）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 稿四 · 闭关所得回线弹窗 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿四 · 回线首次弹窗（OFFLINE_REPORT · 模态栈优先级 2）</div>
+  <div class="overlay" style="justify-content:center">
+    <div class="report">
+      <div class="rh">
+        <div class="t">闭 关 所 得</div>
+        <div class="s">道友好久不见 · 这一趟静修颇有进益</div>
+      </div>
+      <div class="rb">
+        <div class="big"><span>离开时长</span><b>42 分</b></div>
+        <div class="big"><span>修为</span><b class="up">+26.7万</b></div>
+        <div class="big"><span>灵石</span><b class="up">+2,800</b></div>
+        <div class="big"><span>渡劫</span><b>0 次</b></div>
+        <div class="big"><span>离线效率</span><b>74%<span style="font-size:11px;color:var(--xhub-text-3)">（基准 50% + 清心咒 Lv4 24%）</span></b></div>
+      </div>
+      <div class="rf"><button>入 洞 查 看</button></div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>稿四批注（UI v2.0 §一 / §3.2）</b>
+  <ul>
+    <li>触发条件：≥60s 离线结算 + 本 view session 首次进修行页 + 未弹过该条（session 级标记，不入存档，防刷新重弹）；</li>
+    <li>&lt;60s 短切后台 → 不产生结算、无弹窗（在线口径全额推进）；</li>
+    <li>模态栈让位：若有挂起奇遇（EVENT_CHOICE）→ 本弹窗顺延至下一次进入修行页；</li>
+    <li>内容与常驻面板同源同词表 key，点「入洞查看」关闭并落回修行页。</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>

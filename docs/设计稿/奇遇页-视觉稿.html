@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-xhub-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三千世界 · 奇遇页视觉稿 v1（审阅用，非生产代码）</title>
+<style>
+/* ══ 主题令牌：按 UI 设计 §八「双声明 fallback」规范 ══
+   生产环境宿主维护 data-xhub-theme；本稿的切换按钮仅供审阅 */
+:root{
+  --xhub-page-bg:#f4f1ea; --xhub-surface:rgba(255,255,255,.78); --xhub-bg-card:rgba(255,255,255,.92);
+  --xhub-text-1:#2b2620; --xhub-text-2:#5c544a; --xhub-text-3:#8a8175;
+  --xhub-accent:#9a7420; --xhub-brand-soft:rgba(154,116,32,.10);
+  --xhub-yellow:#a8811c; --xhub-red:#a03a30; --xhub-green:#3e7a4e;
+  --xhub-border:rgba(43,38,32,.12);
+}
+:root[data-xhub-theme="dark"]{
+  --xhub-page-bg:#171512; --xhub-surface:rgba(38,34,29,.72); --xhub-bg-card:rgba(48,43,37,.85);
+  --xhub-text-1:#ece5d8; --xhub-text-2:#b8ae9d; --xhub-text-3:#847b6d;
+  --xhub-accent:#d4af5e; --xhub-brand-soft:rgba(212,175,94,.12);
+  --xhub-yellow:#d9b64f; --xhub-red:#c9584c; --xhub-green:#6fae80;
+  --xhub-border:rgba(236,229,216,.14);
+}
+/* 游戏语义层 token（§8.2）：仅作小面积强调 */
+:root{
+  --sq-primary:var(--xhub-accent);
+  --sq-tier-tian:var(--xhub-accent);            /* 天 = 暗金 */
+  --sq-tier-di:#8a5a2b;                          /* 地 = 赭石 */
+  --sq-tier-ren:var(--xhub-text-3);              /* 人 = 黛青 */
+  --sq-karma-right:var(--xhub-yellow);
+  --sq-karma-evil:var(--xhub-red);
+  --sq-karma-neutral:var(--xhub-text-3);
+  --sq-success:var(--xhub-green); --sq-danger:var(--xhub-red);
+}
+:root[data-xhub-theme="dark"]{ --sq-tier-di:#b07a3e; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--xhub-page-bg); color:var(--xhub-text-1);
+  font-family:system-ui,"Songti SC",SimSun,serif;
+  display:flex;flex-wrap:wrap;gap:28px;justify-content:center;padding:28px 16px 60px;
+}
+h1.doc{width:100%;text-align:center;font-size:20px;letter-spacing:.2em;font-weight:600}
+p.doc{width:100%;text-align:center;color:var(--xhub-text-2);font-size:12px;margin-top:6px}
+.review-bar{width:100%;display:flex;justify-content:center;gap:10px;margin-top:10px}
+.review-bar button{
+  font:inherit;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;
+  border:1px dashed var(--xhub-border);background:var(--xhub-bg-card);color:var(--xhub-text-2);
+}
+/* 手机框 */
+.phone{
+  width:390px;max-width:100%;border-radius:22px;overflow:hidden;
+  border:1px solid var(--xhub-border);
+  box-shadow:0 12px 40px rgba(0,0,0,.14);
+  background:var(--xhub-page-bg);
+  display:flex;flex-direction:column;min-height:760px;
+}
+.phone .caption{padding:10px 14px;font-size:12px;color:var(--xhub-text-3);border-bottom:1px dashed var(--xhub-border);letter-spacing:.1em}
+/* 顶栏 */
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 14px;background:var(--xhub-surface);border-bottom:1px solid var(--xhub-border);
+}
+.topbar .who{font-size:13px}.topbar .who b{font-size:14px}
+.topbar .who span{color:var(--xhub-text-3);font-size:12px}
+.topbar .right{display:flex;gap:8px;align-items:center;font-size:12px}
+.kbadge{padding:2px 8px;border-radius:99px;font-size:11px;border:1px solid var(--sq-karma-right);color:var(--sq-karma-right)}
+/* 页首计数 */
+.pagehead{padding:12px 14px 4px;display:flex;justify-content:space-between;align-items:baseline}
+.pagehead h2{font-size:17px;letter-spacing:.25em}
+.pagehead .count{font-size:12px;color:var(--xhub-text-2)}
+.pagehead .count b{color:var(--sq-primary)}
+/* 叙事流卡片 */
+.stream{padding:8px 14px;display:flex;flex-direction:column;gap:10px}
+.card{
+  background:var(--xhub-surface);border-radius:12px;padding:12px 12px 10px;
+  border-left:4px solid var(--tier,var(--sq-tier-ren));
+  border-top:1px solid var(--xhub-border);border-right:1px solid var(--xhub-border);border-bottom:1px solid var(--xhub-border);
+}
+.card.tian{--tier:var(--sq-tier-tian)} .card.di{--tier:var(--sq-tier-di)} .card.ren{--tier:var(--sq-tier-ren)}
+.card .chead{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px}
+.tier-badge{font-size:10px;padding:1px 6px;border-radius:4px;color:#fff;background:var(--tier)}
+:root[data-xhub-theme="dark"] .tier-badge{color:#1c1814}
+.nature{font-size:12px}
+.nature.good{color:var(--sq-primary)} .nature.bad{color:var(--sq-karma-evil)}
+.card .ename{font-size:14px;font-weight:600;letter-spacing:.05em}
+.tag{font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid var(--xhub-border);color:var(--xhub-text-3)}
+.tag.special{border-color:var(--sq-primary);color:var(--sq-primary)}
+.tag.yuan{border-color:var(--sq-karma-right);color:var(--sq-karma-right)}
+.card .story{font-size:12.5px;line-height:1.85;color:var(--xhub-text-2);margin:8px 0}
+.card .result{font-size:12px;line-height:1.9;border-top:1px dashed var(--xhub-border);padding-top:6px;color:var(--xhub-text-2)}
+.card .result .choice{color:var(--xhub-text-1)}
+.ok{color:var(--sq-success)} .no{color:var(--sq-danger)}
+.karma-up{color:var(--sq-karma-right)} .karma-dn{color:var(--sq-karma-evil)}
+.bond{color:var(--sq-primary)}
+.card .time{font-size:10.5px;color:var(--xhub-text-3);margin-top:4px}
+.card.fold{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;cursor:pointer}
+.card.fold .l{display:flex;align-items:center;gap:6px;font-size:12.5px}
+.card.fold .arrow{color:var(--xhub-text-3);font-size:12px}
+/* 图鉴 */
+.codex{padding:6px 14px 4px}
+.codex h3{font-size:14px;letter-spacing:.2em;margin:8px 0;color:var(--xhub-text-1)}
+.codex .sec{margin-bottom:12px}
+.codex .sec-t{font-size:11px;color:var(--xhub-text-3);margin-bottom:6px;letter-spacing:.15em}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.cell{
+  position:relative;aspect-ratio:1/1.08;border-radius:9px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;font-size:10.5px;text-align:center;
+  border:1px solid var(--xhub-border);background:var(--xhub-bg-card);overflow:hidden;padding:2px;
+}
+.cell .cn{font-size:11px;line-height:1.25;font-weight:600}
+.cell.tian{box-shadow:inset 0 -3px 0 var(--sq-tier-tian)}
+.cell.di{box-shadow:inset 0 -3px 0 var(--sq-tier-di)}
+.cell.ren{box-shadow:inset 0 -3px 0 var(--sq-tier-ren)}
+.cell.lock{color:var(--xhub-text-3)}
+.cell.lock .q{font-size:20px;opacity:.55;font-weight:300}
+.cell.lock .sil{position:absolute;inset:0;background:radial-gradient(circle at 50% 38%,transparent 34%,rgba(128,128,128,.10) 35%);pointer-events:none}
+.corner{position:absolute;top:2px;right:3px;font-size:9px;line-height:1}
+.corner.sp{color:var(--sq-primary)} .corner.yy{color:var(--sq-karma-right)}
+.corner.bz{color:var(--xhub-text-3)} .corner.bz.got{color:var(--sq-primary)}
+.nat{font-size:9px}
+/* 系统日志入口 + Tab 栏 */
+.logentry{margin:4px 14px 12px;text-align:center}
+.logentry button{
+  font:inherit;font-size:12px;letter-spacing:.2em;color:var(--xhub-text-2);
+  background:var(--xhub-bg-card);border:1px solid var(--xhub-border);border-radius:99px;padding:7px 26px;cursor:pointer;
+}
+.tabbar{
+  margin-top:auto;display:flex;border-top:1px solid var(--xhub-border);background:var(--xhub-surface);
+}
+.tabbar .t{flex:1;text-align:center;padding:9px 0 11px;font-size:11.5px;color:var(--xhub-text-3);position:relative}
+.tabbar .t.on{color:var(--sq-primary);font-weight:700}
+.tabbar .t .dot{position:absolute;top:5px;right:22%;width:6px;height:6px;border-radius:50%;background:var(--sq-danger)}
+/* 抉择模态稿 */
+.modalwrap{width:390px;max-width:100%;display:flex;flex-direction:column;gap:14px}
+.modal{
+  border-radius:16px;background:var(--xhub-surface);border:1px solid var(--xhub-border);
+  box-shadow:0 18px 50px rgba(0,0,0,.22);overflow:hidden;
+}
+.modal .mhead{padding:12px 14px 8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--xhub-border)}
+.modal .mhead .ename{font-size:15px;font-weight:700;letter-spacing:.06em}
+.modal .mstory{padding:12px 14px;font-size:12.5px;line-height:1.9;color:var(--xhub-text-2)}
+.branches{padding:4px 14px 14px;display:flex;flex-direction:column;gap:9px}
+.branch{
+  border-radius:11px;border:1px solid var(--xhub-border);background:var(--xhub-bg-card);
+  padding:10px 12px;cursor:pointer;text-align:left;font:inherit;color:inherit;
+  border-left:4px solid var(--bc,var(--xhub-text-3));
+}
+.branch.right{--bc:var(--sq-karma-right)} .branch.evil{--bc:var(--sq-karma-evil)} .branch.neutral{--bc:var(--sq-karma-neutral)}
+.branch .bn{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.branch .bn .sym{font-size:12px}
+.branch.right .sym{color:var(--sq-karma-right)} .branch.evil .sym{color:var(--sq-karma-evil)} .branch.neutral .sym{color:var(--sq-karma-neutral)}
+.branch .bg{font-size:11.5px;color:var(--xhub-text-2);margin-top:4px;line-height:1.7}
+.branch .chk{font-size:11px;color:var(--xhub-text-3);margin-top:2px}
+.branch.disabled{opacity:.5;cursor:not-allowed}
+.branch .lack{color:var(--sq-danger);font-size:10.5px}
+.mfoot{padding:0 14px 12px;font-size:10.5px;color:var(--xhub-text-3);text-align:center;letter-spacing:.05em}
+/* 批注 */
+.note{
+  width:390px;max-width:100%;border:1px dashed var(--xhub-border);border-radius:12px;
+  padding:12px 14px;font-size:11.5px;line-height:1.9;color:var(--xhub-text-2);background:var(--xhub-brand-soft);
+}
+.note b{color:var(--xhub-text-1)}
+.note ul{padding-left:16px}
+</style>
+</head>
+<body>
+
+<h1 class="doc">三千世界 · 奇遇页视觉稿</h1>
+<p class="doc">依据《UI 与交互设计》v2.0 §3.5 / §5.1 · 内容取自 v2.0 事件池真实词条 · 仅审阅用静态稿，非生产代码</p>
+<div class="review-bar">
+  <button onclick="const h=document.documentElement;h.dataset.xhubTheme=h.dataset.xhubTheme==='dark'?'light':'dark'">切换明 / 暗（审阅用，生产无此按钮）</button>
+</div>
+
+<!-- ═══════════ 稿一：奇遇页（Tab 6） ═══════════ -->
+<div class="phone">
+  <div class="caption">稿一 · 奇遇页（原日志 Tab 升级 · 底部仍 6 Tab）</div>
+
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 金丹三层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +214</span><span>💰 12,340</span></div>
+  </div>
+
+  <div class="pagehead">
+    <h2>奇遇</h2>
+    <div class="count">已遇 <b>10/60</b> · 天级 <b>2/8</b></div>
+  </div>
+
+  <div class="stream">
+    <!-- 展开卡 1：天级 -->
+    <div class="card tian">
+      <div class="chead">
+        <span class="tier-badge">天</span><span class="nature good">机缘 ☀</span>
+        <span class="ename">「真龙遗蜕」</span>
+      </div>
+      <p class="story">海眼翻涌三日，潮水退去后，一具绵延数里的真龙遗蜕横陈在礁滩之上——龙鳞如殿瓦，龙须犹带电光，骨架间灵压如潮汐般一涨一落，压得低阶修士根本无法近前。消息传出，四方修士云集，却都停在百丈之外：传说真龙遗蜕有灵，贪者近之则龙威噬体。你是人群里少数能顶着灵压走到十丈之内的修士。龙首半埋于沙，空洞的眼窝正对着你，像一场无声的考校。多年以后你回想今日，会庆幸自己此刻的选择。</p>
+      <div class="result">
+        <div class="choice">你的选择：魔道分支「攀骨而上，凿鳞取髓」</div>
+        <div>判定链：精·困难 <span class="ok">✓</span> → 战力 <span class="ok">✓</span>（全过）</div>
+        <div>得灵石 <b>1,980</b> · 拾得 灵品法器（雷纹） · <span class="karma-dn">道心蒙尘 −24</span></div>
+      </div>
+      <div class="time">今日 14:32 · 在线时钟 11 分 04 秒触发</div>
+    </div>
+
+    <!-- 展开卡 2：地级·特殊 + bond -->
+    <div class="card di">
+      <div class="chead">
+        <span class="tier-badge">地</span><span class="nature good">机缘 ☀</span>
+        <span class="ename">「前人遗藏」</span>
+        <span class="tag special">特殊</span>
+      </div>
+      <p class="story">你清剿完秘境最后一窝妖物，崖壁轰然塌陷，露出一间尘封洞府。石桌上摆着三样东西：一摞功法抄录、一只沉甸甸的储物袋、一封未寄出的家书。信纸已脆，字迹犹温——这位前辈困死于闭死关，至死没能把家书寄给山下的女儿。洞府禁制随主人身死而散，取什么、怎么取，无人知晓，只余你与这一室寂寞。</p>
+      <div class="result">
+        <div class="choice">你的选择：正道分支「抄录功法，财物寻访遗族奉还」</div>
+        <div>无判定 · 主修功法 +1 级 · 修为增益 20%（12 时辰） · <span class="karma-up">道心 +12</span></div>
+        <div class="bond">♡ 与 苏晚 的交情更深了（相识 20/30）</div>
+      </div>
+      <div class="time">昨日 21:07</div>
+    </div>
+
+    <!-- 折叠卡 -->
+    <div class="card ren fold">
+      <div class="l"><span class="tier-badge">人</span><span class="nature bad">危机 ☾</span><span class="ename">「坊市刺客」</span></div>
+      <span class="arrow">展开 ▾</span>
+    </div>
+    <div class="card tian fold">
+      <div class="l"><span class="tier-badge">天</span><span class="nature good">机缘 ☀</span><span class="ename">「仙人棋局」</span><span class="tag special">特殊</span><span class="tag yuan">缘</span></div>
+      <span class="arrow">展开 ▾</span>
+    </div>
+  </div>
+
+  <!-- 图鉴 -->
+  <div class="codex">
+    <h3>奇遇图鉴</h3>
+    <div class="sec">
+      <div class="sec-t">天级 · 2 / 8</div>
+      <div class="grid">
+        <div class="cell tian"><span class="nat good">☀</span><span class="cn">真龙遗蜕</span></div>
+        <div class="cell tian"><span class="corner yy">缘</span><span class="corner sp" style="right:14px">特</span><span class="nat good">☀</span><span class="cn">仙人棋局</span></div>
+        <div class="cell tian lock"><span class="sil"></span><span class="corner bz">法</span><span class="q">？</span></div>
+        <div class="cell tian lock"><span class="sil"></span><span class="corner bz">宝</span><span class="q">？</span></div>
+        <div class="cell tian lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell tian lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell tian lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell tian lock"><span class="sil"></span><span class="q">？</span></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-t">地级 · 3 / 20</div>
+      <div class="grid">
+        <div class="cell di"><span class="corner sp">特</span><span class="nat good">☀</span><span class="cn">前人遗藏</span></div>
+        <div class="cell di"><span class="nat good">☀</span><span class="cn">论丹大会</span></div>
+        <div class="cell di"><span class="nat bad">☾</span><span class="cn">守陵人</span></div>
+        <div class="cell di lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell di lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell di lock"><span class="sil"></span><span class="corner bz">特</span><span class="q">？</span></div>
+        <div class="cell di lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell di lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell di lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell di lock"><span class="sil"></span><span class="q">？</span></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-t">人级 · 5 / 32</div>
+      <div class="grid">
+        <div class="cell ren"><span class="nat good">☀</span><span class="cn">山道茶棚</span></div>
+        <div class="cell ren"><span class="nat bad">☾</span><span class="cn">坊市刺客</span></div>
+        <div class="cell ren"><span class="corner yy">缘</span><span class="corner sp" style="right:14px">特</span><span class="nat good">☀</span><span class="cn">迷途灵犬</span></div>
+        <div class="cell ren"><span class="nat good">☀</span><span class="cn">功德木鱼</span></div>
+        <div class="cell ren"><span class="nat good">☀</span><span class="cn">躺平师弟</span></div>
+        <div class="cell ren lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell ren lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell ren lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell ren lock"><span class="sil"></span><span class="q">？</span></div>
+        <div class="cell ren lock"><span class="sil"></span><span class="cn" style="font-size:14px">…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logentry"><button>[ 系 统 日 志 ]</button></div>
+
+  <div class="tabbar">
+    <div class="t">修行</div><div class="t">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t">坊市<span class="dot" style="display:none"></span></div><div class="t on">奇遇<span class="dot"></span></div>
+  </div>
+</div>
+
+<div class="note">
+  <b>稿一批注（对应 UI v2.0 §3.5）</b>
+  <ul>
+    <li>等级三色 = §8.2 token：天·暗金 / 地·赭石 / 人·黛青，色弱友好另配文字徽标「天/地/人」+ 性质图标 ☀☾；</li>
+    <li>叙事流保留 50 条，默认展开最近 3 条（本稿示意 2 展开 + 2 折叠）；卡片左侧等级色边；</li>
+    <li>结果行三段式：所选分支 → 判定（链式逐级 ✓/✗）→ 收益 + karma 揭示（「道心 +12 / 道心蒙尘 −24」，选择前不预览）；</li>
+    <li>bond 入账行（♡）批 3 才激活，批 1 预留行位；</li>
+    <li>图鉴格：未解锁 = 「？」+ 等级色底剪影；[特] 特殊徽标、「缘」once 角标、宝/法 = 独占奖励载体（灰态 = 遇过未拿到，拿到后点亮金色）；</li>
+    <li>页首计数「已遇 10/60 · 天级 2/8」与三节分计数（2/8 · 3/20 · 5/32）自洽；奇遇 Tab 红点 = 有触发未查看，进页即消；</li>
+    <li>「系统日志」为页底入口弹层（倒序 ≤50 条，chips：全部/渡劫/拾得/突破/系统——无「奇遇」chip）。</li>
+  </ul>
+</div>
+
+<!-- ═══════════ 稿二：EVENT_CHOICE 三分支抉择模态 ═══════════ -->
+<div class="phone">
+  <div class="caption">稿二 · 三分支抉择模态（EVENT_CHOICE · 模态栈优先级 1）</div>
+  <div style="flex:1;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:18px 12px">
+    <div class="modal" style="width:100%">
+      <div class="mhead">
+        <span class="tier-badge" style="background:var(--sq-tier-di);color:#fff">地</span>
+        <span class="nature bad">危机 ☾</span>
+        <span class="ename">守陵人</span>
+        <span class="tag special">特殊</span>
+      </div>
+      <div class="mstory">荒山古陵起雾，你在雾里迷了路，忽见一点灯火——守陵老翁的小屋。老翁热情留饭，粗茶淡饭竟意外可口，只是汤有点苦，喝下去从喉咙凉到胃里。闲谈间你无意瞥见：油灯照着老翁，他的影子却不在地上，而在墙上——朝着与灯光相反的方向。老翁顺着你的目光看过去，不慌不忙地笑了：「客官看见了？那……这顿饭，就得换个吃法了。」雾，更浓了。</div>
+      <div class="branches">
+        <button class="branch right">
+          <div class="bn"><span class="sym">☯</span>陪老丈吃完这顿「阴间饭」</div>
+          <div class="bg">约 200~320 灵石 · 闭关效率增益（1 日）</div>
+          <div class="chk">神 · 困难 —— 四成之数</div>
+        </button>
+        <button class="branch evil">
+          <div class="bn"><span class="sym">☠</span>掀桌夺宝，掘其陪葬</div>
+          <div class="bg">约 450~680 灵石 · 或得上品法器</div>
+          <div class="chk">精 · 困难 —— 三成把握（败则诅咒缠身）</div>
+        </button>
+        <button class="branch neutral">
+          <div class="bn"><span class="sym">·</span>藉口夜行，夺门而出</div>
+          <div class="bg">身法增益（8 时辰）</div>
+          <div class="chk">无判定</div>
+        </button>
+      </div>
+      <div class="mfoot">必须选择 · 无倒计时 · 点遮罩不关闭 —— 善恶后果，选后才知</div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>稿二批注（对应 UI v2.0 §5.1）</b>
+  <ul>
+    <li>按钮信息层 = 分支名 + 收益区间预告（浮动值显示「约 X~Y」）+ 判定预告：attr 类给文言成算话术（四成之数/三成把握），stones/qi 类显示花费，companion 类显示所需档位；</li>
+    <li>karma 数值<b>不预告</b>——结果页才揭示（「道心 +N / 道心蒙尘 −N」）；</li>
+    <li>置灰示例（本稿未画）：karma/align/art/gear/companion 不满足 → 按钮 50% 透明 + 缺项红字（魔道档位下 companion 分支显示「无人可援」）；</li>
+    <li>带绝交锁的魔道分支加「绝缘」暗纹角标（如迷途灵犬·卖狗、乞丐老仙·夺碗）；</li>
+    <li>选定后：判定演出 1 秒掷判（判定链逐级），随后进结果页（karma 变化 + 区间内实际取值 + bond 入账行 + 独占获得时全屏演出）；</li>
+    <li>模态跨离线保留（pendingChoice），回线恢复弹窗，且优先于闭关所得弹窗。</li>
+  </ul>
+</div>
+
+</body>
+</html>

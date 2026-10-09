@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-xhub-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三千世界 · 秘境/坊市页视觉稿 v1（审阅用，非生产代码）</title>
+<style>
+/* ══ 主题令牌：UI 设计 §八 双声明 fallback；明暗切换仅审阅用 ══ */
+:root{
+  --xhub-page-bg:#f4f1ea; --xhub-surface:rgba(255,255,255,.78); --xhub-bg-card:rgba(255,255,255,.92);
+  --xhub-text-1:#2b2620; --xhub-text-2:#5c544a; --xhub-text-3:#8a8175;
+  --xhub-accent:#9a7420; --xhub-brand-soft:rgba(154,116,32,.10);
+  --xhub-yellow:#a8811c; --xhub-red:#a03a30; --xhub-green:#3e7a4e;
+  --xhub-border:rgba(43,38,32,.12);
+  --sq-g1:#9a948a; --sq-g2:#4e8a6e; --sq-g3:#4a6a9e; --sq-g4:#7a4e9e; --sq-g5:#a8811c;
+}
+:root[data-xhub-theme="dark"]{
+  --xhub-page-bg:#171512; --xhub-surface:rgba(38,34,29,.72); --xhub-bg-card:rgba(48,43,37,.85);
+  --xhub-text-1:#ece5d8; --xhub-text-2:#b8ae9d; --xhub-text-3:#847b6d;
+  --xhub-accent:#d4af5e; --xhub-brand-soft:rgba(212,175,94,.12);
+  --xhub-yellow:#d9b64f; --xhub-red:#c9584c; --xhub-green:#6fae80;
+  --xhub-border:rgba(236,229,216,.14);
+  --sq-g1:#6e695f; --sq-g2:#6fae8c; --sq-g3:#7a9ed4; --sq-g4:#b08ae0; --sq-g5:#d4af5e;
+}
+:root{
+  --sq-primary:var(--xhub-accent);
+  --sq-karma-right:var(--xhub-yellow); --sq-karma-evil:var(--xhub-red); --sq-karma-neutral:var(--xhub-text-3);
+  --sq-success:var(--xhub-green); --sq-danger:var(--xhub-red);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--xhub-page-bg);color:var(--xhub-text-1);
+  font-family:system-ui,"Songti SC",SimSun,serif;
+  display:flex;flex-wrap:wrap;gap:26px;justify-content:center;padding:28px 16px 60px;
+}
+h1.doc{width:100%;text-align:center;font-size:20px;letter-spacing:.2em;font-weight:600}
+p.doc{width:100%;text-align:center;color:var(--xhub-text-2);font-size:12px;margin-top:6px;line-height:1.8}
+.review-bar{width:100%;display:flex;justify-content:center;margin-top:10px}
+.review-bar button{font:inherit;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;border:1px dashed var(--xhub-border);background:var(--xhub-bg-card);color:var(--xhub-text-2)}
+.frame-col{display:flex;flex-direction:column;gap:12px;align-items:center}
+.phone{
+  width:390px;max-width:100%;border-radius:22px;overflow:hidden;
+  border:1px solid var(--xhub-border);box-shadow:0 12px 40px rgba(0,0,0,.14);
+  background:var(--xhub-page-bg);display:flex;flex-direction:column;min-height:780px;
+}
+.phone .caption{padding:10px 14px;font-size:12px;color:var(--xhub-text-3);border-bottom:1px dashed var(--xhub-border);letter-spacing:.1em}
+.note{
+  width:390px;max-width:100%;border:1px dashed var(--xhub-border);border-radius:12px;
+  padding:12px 14px;font-size:11.5px;line-height:1.9;color:var(--xhub-text-2);background:var(--xhub-brand-soft);
+}
+.note b{color:var(--xhub-text-1)}
+.note ul{padding-left:16px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--xhub-surface);border-bottom:1px solid var(--xhub-border)}
+.topbar .who{font-size:13px}.topbar .who b{font-size:14px}
+.topbar .who span{color:var(--xhub-text-3);font-size:12px}
+.topbar .right{display:flex;gap:8px;align-items:center;font-size:12px}
+.kbadge{padding:2px 8px;border-radius:99px;font-size:11px;border:1px solid var(--sq-karma-right);color:var(--sq-karma-right)}
+.kbadge.evil{border-color:var(--sq-karma-evil);color:var(--sq-karma-evil)}
+.tabbar{margin-top:auto;display:flex;border-top:1px solid var(--xhub-border);background:var(--xhub-surface)}
+.tabbar .t{flex:1;text-align:center;padding:9px 0 11px;font-size:11.5px;color:var(--xhub-text-3);position:relative}
+.tabbar .t.on{color:var(--sq-primary);font-weight:700}
+.tabbar .t .dot{position:absolute;top:5px;right:22%;width:6px;height:6px;border-radius:50%;background:var(--sq-danger)}
+.body{flex:1;overflow-y:auto;padding:12px 14px 16px}
+/* 秘境 · 进行中主卡 */
+.curzone{border:1.5px solid var(--sq-primary);border-radius:14px;background:var(--xhub-bg-card);padding:12px 14px;margin-bottom:12px;box-shadow:0 0 0 2px var(--xhub-brand-soft)}
+.curzone .zh{display:flex;justify-content:space-between;align-items:baseline}
+.curzone .zn{font-size:16px;font-weight:700;letter-spacing:.06em}
+.curzone .zt{font-size:10px;color:var(--sq-primary);border:1px solid var(--sq-primary);border-radius:4px;padding:1px 6px;margin-left:7px}
+.curzone .zr{font-size:10.5px;color:var(--xhub-text-3)}
+.prow{display:flex;justify-content:space-between;font-size:10.5px;color:var(--xhub-text-2);margin:9px 0 4px}
+.pbar{height:9px;border-radius:99px;background:var(--xhub-surface);border:1px solid var(--xhub-border);overflow:hidden}
+.pbar i{display:block;height:100%;width:65%;background:linear-gradient(90deg,var(--sq-primary),#c9a24d);border-radius:99px}
+.zstats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
+.zstat{background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:9px;padding:6px 8px;font-size:9.5px;color:var(--xhub-text-3);line-height:1.5}
+.zstat b{display:block;font-size:12px;color:var(--xhub-text-1);margin-top:1px}
+.zstat b.gold{color:var(--sq-primary)}
+.powline{margin-top:9px;font-size:10.5px;color:var(--xhub-text-2)}
+.powline .ok{color:var(--sq-success)}
+/* 秘境列表 */
+.zlist{display:flex;flex-direction:column;gap:6px}
+.zrow{display:flex;align-items:center;gap:9px;border:1px solid var(--xhub-border);border-radius:10px;background:var(--xhub-bg-card);padding:8px 11px;cursor:pointer}
+.zrow .zi{font-size:9px;color:var(--xhub-text-3);width:14px;text-align:center;flex-shrink:0}
+.zrow .zinfo{flex:1;min-width:0}
+.zrow .zn{font-size:12.5px;font-weight:600}
+.zrow .zm{font-size:9.5px;color:var(--xhub-text-3);margin-top:2px}
+.zrow .badge{font-size:9px;border-radius:4px;padding:1px 6px;flex-shrink:0;letter-spacing:.05em}
+.zrow .badge.cleared{color:var(--sq-success);border:1px solid var(--sq-success)}
+.zrow .badge.lock{color:var(--xhub-text-3);border:1px solid var(--xhub-border)}
+.zrow .cavelink{font-size:8.5px;color:var(--sq-primary);border:1px dashed var(--sq-primary);border-radius:4px;padding:0 4px;margin-left:5px;opacity:.85}
+.zrow.sil{opacity:.55}
+.zrow.sil .zn{color:var(--xhub-text-3);letter-spacing:.2em}
+/* 瓶颈 */
+.zrow.jam{border-color:var(--sq-danger)}
+.jamtext{font-size:10px;color:var(--sq-danger);margin-top:2px}
+.overlay{flex:1;background:rgba(0,0,0,.42);display:flex;align-items:flex-end}
+.advice{width:100%;background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:18px 18px 0 0}
+.advice .ah{padding:12px 16px 8px;border-bottom:1px dashed var(--xhub-border);display:flex;justify-content:space-between;align-items:center}
+.advice .ah .t{font-size:14px;letter-spacing:.2em;color:var(--sq-danger)}
+.advice .ah .x{color:var(--xhub-text-3);font-size:12px;cursor:pointer}
+.advice .arow{display:flex;gap:10px;align-items:flex-start;padding:11px 16px;border-bottom:1px dotted var(--xhub-border)}
+.advice .an{width:20px;height:20px;border-radius:50%;border:1px solid var(--sq-primary);color:var(--sq-primary);font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.advice .at{font-size:12px;line-height:1.8;color:var(--xhub-text-2)}
+.advice .at b{color:var(--xhub-text-1)}
+.advice .afoot{padding:12px 16px 16px;display:flex;gap:10px}
+.advice .afoot button{flex:1;font:inherit;padding:11px 0;border-radius:11px;font-size:13px;letter-spacing:.2em;cursor:pointer}
+.advice .go{background:var(--sq-primary);border:1px solid var(--sq-primary);color:#fff}
+:root[data-xhub-theme="dark"] .advice .go{color:#211c12}
+.advice .stay{background:var(--xhub-bg-card);border:1px solid var(--xhub-border);color:var(--xhub-text-2)}
+/* 坊市 */
+.shophead{display:flex;justify-content:space-between;align-items:center;margin:2px 2px 10px}
+.shoptabs{display:flex;border:1px solid var(--xhub-border);border-radius:9px;overflow:hidden}
+.shoptabs span{font-size:11.5px;padding:5px 14px;color:var(--xhub-text-3);cursor:pointer;letter-spacing:.1em}
+.shoptabs span.on{background:var(--sq-primary);color:#fff}
+.shoptabs span.on.evil{background:var(--sq-karma-evil)}
+:root[data-xhub-theme="dark"] .shoptabs span.on{color:#211c12}
+.shopmeta{font-size:10px;color:var(--xhub-text-3);text-align:right;line-height:1.7}
+.shopmeta b{color:var(--xhub-text-2)}
+.shopmeta .disc{color:var(--sq-success)}
+.shelf{display:flex;flex-direction:column;gap:9px}
+.item{border:1px solid var(--xhub-border);border-radius:12px;background:var(--xhub-bg-card);padding:10px 12px;display:flex;gap:11px;align-items:center;border-left:4px solid var(--ic,var(--sq-g1))}
+.item .glyph{width:42px;height:42px;border-radius:9px;background:var(--xhub-surface);border:1px solid var(--xhub-border);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.item .iinfo{flex:1;min-width:0}
+.item .in{font-size:12.5px;font-weight:700}
+.item .in .tier{font-size:8.5px;border-radius:3px;padding:1px 5px;margin-left:5px;color:#fff;vertical-align:1px}
+:root[data-xhub-theme="dark"] .item .in .tier{color:#1c1814}
+.item .id{font-size:10px;color:var(--xhub-text-2);margin-top:3px;line-height:1.6}
+.item .ip{font-size:12px;color:var(--sq-primary);font-weight:700;text-align:right;flex-shrink:0;line-height:1.5}
+.item .ip .was{display:block;font-size:9px;color:var(--xhub-text-3);text-decoration:line-through;font-weight:400}
+.item .buy{display:block;font-size:9.5px;color:var(--xhub-text-3);font-weight:400}
+.item.sold{opacity:.5}
+.item.sold .soldtag{font-size:11px;color:var(--xhub-text-3);letter-spacing:.3em;text-align:right;flex-shrink:0}
+.item .lacknote{font-size:9px;color:var(--sq-danger);margin-top:2px}
+.refreshrow{display:flex;gap:9px;margin-top:12px}
+.refreshrow button{flex:1;font:inherit;padding:11px 0;border-radius:11px;font-size:12.5px;letter-spacing:.15em;cursor:pointer;background:var(--xhub-bg-card);border:1px solid var(--sq-primary);color:var(--sq-primary)}
+.refreshrow .ladder{flex:1.4;font-size:9px;color:var(--xhub-text-3);border:1px dashed var(--xhub-border);border-radius:11px;display:flex;align-items:center;justify-content:center;letter-spacing:.05em;background:none;cursor:default}
+.blacknote{margin:10px 2px 0;font-size:10px;color:var(--sq-danger);border:1px dashed var(--sq-danger);border-radius:9px;padding:7px 10px;line-height:1.8;opacity:.9}
+</style>
+</head>
+<body>
+
+<h1 class="doc">三千世界 · 秘境 / 坊市页视觉稿</h1>
+<p class="doc">依据《UI 与交互设计》v2.3 §3.4 · 人设与其余七稿同档：叶长风 · 化神二层 · 正道 +214 · 战力 2,603 =(1,600+499)×1.24 · 首通至秘境 4 · 进行中 = 雷池禁地<br>帧二为瓶颈演示态（假设炼虚解锁后未涨战力即切乱星秘窟）· 帧四为魔道档变体（厉惊寒 −286，与道友名录稿四同人设）· 装备名为命名池示例</p>
+<div class="review-bar">
+  <button onclick="const h=document.documentElement;h.dataset.xhubTheme=h.dataset.xhubTheme==='dark'?'light':'dark'">切换明 / 暗（审阅用，生产无此按钮）</button>
+</div>
+
+<!-- ═══ 帧一 · 秘境页 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧一 · 秘境页（Tab 2 · 进行中主卡 + 十区列表三态）</div>
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +214</span><span>💰 42.8万</span></div>
+  </div>
+  <div class="body">
+    <div class="curzone">
+      <div class="zh">
+        <span><span class="zn">雷池禁地</span><span class="zt">进行中 · 已首通</span></span>
+        <span class="zr">化神阶 · 第 5 区 · <span style="color:var(--sq-primary)">已解锁雷池精庐（驻留中）</span></span>
+      </div>
+      <div class="prow"><span>攻关进度 13/20 杀</span><span>65 / 100</span></div>
+      <div class="pbar"><i></i></div>
+      <div class="zstats">
+        <div class="zstat">击杀速度<b>70 / 时</b></div>
+        <div class="zstat">单杀灵石<b class="gold">144</b></div>
+        <div class="zstat">掉落率<b>10%</b></div>
+      </div>
+      <div class="powline">需求战力 2,400 · 你的战力 <b>2,603</b> <span class="ok">✓ 压线通过（富余 8%）</span></div>
+    </div>
+
+    <div class="zlist">
+      <div class="zrow"><span class="zi">六</span><div class="zinfo"><div class="zn">乱星秘窟<span class="cavelink">首通解锁 · 星陨福地</span></div><div class="zm">炼虚(5) 解锁 · 需求 7,200 · 300 灵石/杀</div></div><span class="badge lock">境界未达</span></div>
+      <div class="zrow sil"><span class="zi">七</span><div class="zinfo"><div class="zn">？？？<span class="cavelink">首通解锁 · 古仙人府</span></div><div class="zm">合体(6) 解锁 · 需求 21,000</div></div><span class="badge lock">剪影</span></div>
+      <div class="zrow sil"><span class="zi">八</span><div class="zinfo"><div class="zn">？？？</div><div class="zm">大乘(7) 解锁 · 需求 63,000</div></div><span class="badge lock">剪影</span></div>
+      <div class="zrow sil"><span class="zi">九</span><div class="zinfo"><div class="zn">？？？</div><div class="zm">渡劫(8) 解锁 · 需求 187,500</div></div><span class="badge lock">剪影</span></div>
+      <div class="zrow sil"><span class="zi">十</span><div class="zinfo"><div class="zn">？？？</div><div class="zm">真仙(9) 解锁 · 需求 562,500</div></div><span class="badge lock">剪影</span></div>
+    </div>
+
+    <div style="margin:14px 2px 6px;font-size:10.5px;color:var(--xhub-text-3);letter-spacing:.2em">—— 已 首 通 · 可 回 访 ——</div>
+    <div class="zlist">
+      <div class="zrow"><span class="zi">四</span><div class="zinfo"><div class="zn">焦土遗迹<span class="cavelink">已解锁 · 剑崖禅房</span></div><div class="zm">需求 810 · 50 灵石/杀 · 首通奖励已领</div></div><span class="badge cleared">✓ 首通</span></div>
+      <div class="zrow"><span class="zi">三</span><div class="zinfo"><div class="zn">万兽谷</div><div class="zm">需求 270 · 20 灵石/杀 · 首通奖励已领</div></div><span class="badge cleared">✓ 首通</span></div>
+      <div class="zrow"><span class="zi">二</span><div class="zinfo"><div class="zn">黑风寨</div><div class="zm">需求 90 · 8 灵石/杀 · 首通奖励已领</div></div><span class="badge cleared">✓ 首通</span></div>
+      <div class="zrow"><span class="zi">一</span><div class="zinfo"><div class="zn">青云试炼地</div><div class="zm">需求 30 · 3 灵石/杀 · 首通奖励已领</div></div><span class="badge cleared">✓ 首通</span></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t">修行</div><div class="t on">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t">坊市<span class="dot"></span></div><div class="t">奇遇</div>
+  </div>
+</div>
+<div class="note">
+  <b>帧一批注（UI v2.3 §3.4 秘境页 / 数值详设 §2）</b>
+  <ul>
+    <li>进行中主卡四读数全部可对表：击杀 70/时 = 60×(1+云踪步 Lv3 18%)；单杀 144 = 120×(1+福缘咒 14%+周阿满商路 6%)；掉落 10% = 8%×正道 1.25；prog +5/杀 → 13 杀 = 65；</li>
+    <li>战力行「压线通过（富余 8%）」= 上品套压线、灵品套稳过的卡线设计可视化（§6.2）；跌破需求即转瓶颈态（帧二）；</li>
+    <li><b>首通角标与洞府联动</b>：已首通行挂金虚线小标「已解锁 · 剑崖禅房」——秘境↔洞府互相引流（3 处福地以首通为资格）；未解锁区若挂洞府资格显示「首通解锁 · 古仙人府」；</li>
+    <li>列表排序：未解锁按阶梯在上（下一目标置顶牵引）、已首通折叠在下（回访刷取入口）；剪影区名字以「？？？」隐去但需求战力明示（目标可算）；</li>
+    <li>战斗只随在线 tick 推进——离线不模拟秘境（P4 登记决策），主卡无需离线预估行。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧二 · 瓶颈态 + 建议浮层 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧二 · 瓶颈态 + 建议浮层（演示态：炼虚一层刚晋升即切乱星秘窟，库藏阁复检已自动换装，战力仍差一截）</div>
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 炼虚一层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +238</span><span>💰 31.2万</span></div>
+  </div>
+  <div class="overlay">
+    <div class="advice">
+      <div class="ah"><span class="t">修为不足 · 举步维艰</span><span class="x">✕</span></div>
+      <div style="padding:9px 16px;font-size:11.5px;color:var(--xhub-text-2);border-bottom:1px dashed var(--xhub-border);background:var(--xhub-brand-soft)">乱星秘窟：你的战力 <b>6,671</b> ＜ 需求 7,200（差 <b style="color:var(--sq-danger)">529</b>）· 击杀间隔 ×3 · prog 封顶 90（无法通关）</div>
+      <div class="arow"><span class="an">一</span><div class="at"><b>坊市购剑</b>：灵品兵刃 atk ≈300 → 战力 +372，一剑破线（约 1 万灵石，本区刷一日即回本）</div></div>
+      <div class="arow"><span class="an">二</span><div class="at"><b>升功法</b>：金钟罩 Lv4→Lv5 战力 +6%（实付 20,580 = 表值 6,000 × 境界 3.5 − 心宽 2%）</div></div>
+      <div class="arow"><span class="an">三</span><div class="at"><b>刷图攒气</b>：回雷池禁地边刷边攒——渡劫晋升合体后基础战力 14,000，碾压本区需求，瓶颈只是暂时的（晋升时库藏阁霜魄甲已自动复检入槽，计入当前战力 6,671）</div></div>
+      <div class="afoot">
+        <button class="stay">回安全区刷取</button>
+        <button class="go">仍要挑战（间隔 ×3）</button>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t">修行</div><div class="t on">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t">坊市</div><div class="t">奇遇</div>
+  </div>
+</div>
+<div class="note">
+  <b>帧二批注</b>
+  <ul>
+    <li>瓶颈规则可视化：战力 &lt; 需求 → 列表条目红框 + 红字「修为不足，举步维艰」，点开 = 本建议浮层；<b>仍要挑战</b> = 击杀间隔 ×3 且 prog 封顶 90（无法通关，规则原文入浮层脚注）；</li>
+    <li>建议三条按「性价比」排序且全部带数字与耗时预估——建议浮层是转化点（§九.4 观察项：瓶颈提示浮层转化率），文案必须给出可执行的下一步而非空泛鼓励；</li>
+    <li>精属性 ≥ 中等 dc 时间隔惩罚 ×3 → ×2（G12 既定），该修正生效时浮层「仍要挑战」按钮文案变为「间隔 ×2（精判定已通过）」；</li>
+    <li>演示态人设：炼虚一层刚晋升、库藏阁两件极品自动复检在即——与法器稿三同一批装备数据。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧三 · 坊市页（正道档） ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧三 · 坊市页（Tab 5 · 正道档：无黑市页签 · 补货中）</div>
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +214</span><span>💰 42.8万</span></div>
+  </div>
+  <div class="body">
+    <div class="shophead">
+      <div class="shoptabs"><span class="on">坊市</span></div>
+      <div class="shopmeta">补货倒计时 <b>2 时 14 分</b><br><span class="disc">柳三变 · 消息灵通② −4% 已生效</span></div>
+    </div>
+
+    <div class="shelf">
+      <div class="item" style="--ic:var(--sq-g4)">
+        <div class="glyph">💍</div>
+        <div class="iinfo"><div class="in">玛瑙灵戒<span class="tier" style="background:var(--sq-g4)">灵品</span></div><div class="id">佩饰 · qiBonus 16% · 左道 ｜ 佩戴要求 化神(4) ✓</div></div>
+        <div class="ip">7,488<span class="was">7,800</span><span class="buy">点击购买</span></div>
+      </div>
+      <div class="item" style="--ic:var(--sq-g2)">
+        <div class="glyph">🍶</div>
+        <div class="iinfo"><div class="in">凝神丹</div><div class="id">丹药 · qiRate +25% · 2 小时（当前生效中 · 重复购买顺延）</div></div>
+        <div class="ip">374<span class="was">390</span><span class="buy">点击购买</span></div>
+      </div>
+      <div class="item" style="--ic:var(--sq-g3)">
+        <div class="glyph">📜</div>
+        <div class="iinfo"><div class="in">养丹诀<span class="tier" style="background:var(--sq-g3)">玄字阶</span></div><div class="id">正道 · 滋养气 ｜ 每级 artsSpeed +6% ｜ 签名 · 炼余回生·标准 ｜ 要求 金丹(2) ✓</div></div>
+        <div class="ip">2,246<span class="was">2,340</span><span class="buy">购后入待修习架</span></div>
+      </div>
+      <div class="item" style="--ic:var(--sq-g5)">
+        <div class="glyph">🪙</div>
+        <div class="iinfo"><div class="in">灵石包</div><div class="id">以修为换灵石 · 得 <b>7,500</b> 灵石 ｜ 售价 = 当前修为上限 10% = 10.32万 修为</div></div>
+        <div class="ip">修为计价<span class="buy">资源互通阀门</span></div>
+      </div>
+      <div class="item sold">
+        <div class="glyph" style="opacity:.4">🈳</div>
+        <div class="iinfo"><div class="in" style="color:var(--xhub-text-3)">（已被买空）</div><div class="id">下轮补货 2 时 14 分后 · 或手动刷新</div></div>
+        <span class="soldtag">已售罄</span>
+      </div>
+    </div>
+
+    <div class="refreshrow">
+      <button>手动刷新 · 50 灵石</button>
+      <div class="ladder">阶梯 20 → <b style="color:var(--sq-primary)">50</b> → 100 → 200 → 400 · 补货后重置</div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t">修行</div><div class="t">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t on">坊市</div><div class="t">奇遇</div>
+  </div>
+</div>
+<div class="note">
+  <b>帧三批注（UI v2.3 §3.4 坊市页 / 数值详设 §5）</b>
+  <ul>
+    <li>价格全链可对表：玛瑙灵戒 7,488 = 灵品炼化基数 500×6×(1+4×0.4)×0.96；凝神丹 374 = 150×2.6×0.96；养丹诀 2,246 = 900×2.6×0.96——划线原价 + 绿色「消息灵通 −4% 已生效」把道友折扣可视化（批 3 前该行为空）；</li>
+    <li>功法格只出「未持有且已解锁获取条件」（养丹诀 · 金丹要求达标未持有 ✓）；<b>紫霄诀不出现</b>——获取途径是秘境 4 首通而非坊市，池子纪律的活例；</li>
+    <li>灵石包 = 资源互通阀门：售价联动当前修为上限（10%），收益 60×(1+境界)³ = 7,500；</li>
+    <li>购买走 CONFIRM（显示最终价）；买空格 = 「已售罄」态不补位（只能等补货或刷新）；</li>
+    <li><b>卡片化批 2026-10-05</b>：货架改**卡片网格**、一次刷新 <b>10 件</b>随机货（`D.SHOP_SLOTS = 10`，坊市/黑市共用同一常量）——本稿为 P4 五格快照，现行视图 = `.shopgrid` 宽屏 4 列 / 窄屏单列、每件一卡（品名 + 品阶/特殊/情报角标 + 效果行 + 贴底「购入」按钮），见 UI 卷 v2.17 / 交互说明 §4.5；</li>
+    <li>正道档无黑市页签——单一「坊市」tab 即全宽（对照帧四）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 帧四 · 黑市页签（魔道档变体） ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">帧四 · 黑市页签（变体人设：厉惊寒 · 化神二层 · karma −286）</div>
+  <div class="topbar">
+    <div class="who"><b>厉惊寒</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge evil">☠ 魔道气息 −286</span><span>💰 96.2万</span></div>
+  </div>
+  <div class="body">
+    <div class="shophead">
+      <div class="shoptabs"><span>坊市</span><span class="on evil">黑市</span></div>
+      <div class="shopmeta">补货倒计时 <b>2 时 14 分</b><br>价格 ×1.3 · karma ≤ −200 期间可见</div>
+    </div>
+
+    <div class="blacknote">「散修难出头，魔道价钱黑。」——黑市只收灵石，不问来路。karma 回升越过 −200 后本页签消失，<b>已购内容保留</b>。</div>
+
+    <div class="shelf" style="margin-top:10px">
+      <div class="item" style="--ic:var(--sq-karma-evil)">
+        <div class="glyph">📕</div>
+        <div class="iinfo"><div class="in">炼尸诀<span class="tier" style="background:var(--sq-karma-evil)">玄字阶 · 魔道</span></div><div class="id">滋养精 ｜ 每级 战力 +9% ｜ 签名 · 尸傀护主 ｜ 要求 元婴(3) + karma ≤ −150 ✓</div></div>
+        <div class="ip" style="color:var(--sq-danger)">4,056<span class="was">3,120</span><span class="buy">点击购买</span></div>
+      </div>
+      <div class="item" style="--ic:var(--sq-karma-evil)">
+        <div class="glyph">📕</div>
+        <div class="iinfo"><div class="in">夺魂术<span class="tier" style="background:var(--sq-karma-evil)">地字阶 · 魔道</span></div><div class="id">滋养精 ｜ 每级 战斗速度 +9% ｜ 签名 · 摄魂 ｜ 要求 化神(4) + karma ≤ −200 ✓ + <b style="color:var(--sq-danger)">精 ≥ 30（当前 26 ✗）</b></div><div class="lacknote">可购——购后留待修习架标红缺项，达标自动学会</div></div>
+        <div class="ip" style="color:var(--sq-danger)">4,056<span class="was">3,120</span><span class="buy">点击购买</span></div>
+      </div>
+      <div class="item" style="--ic:var(--sq-g4)">
+        <div class="glyph">🗡</div>
+        <div class="iinfo"><div class="in">黑水妖刀<span class="tier" style="background:var(--sq-g4)">灵品 · 魔道</span></div><div class="id">兵刃 · atk <b>356</b>（魔道词条 ×1.10 后）｜ karma −15/件 ｜ 佩戴 化神 ✓</div></div>
+        <div class="ip" style="color:var(--sq-danger)">10,140<span class="buy">点击购买</span></div>
+      </div>
+      <div class="item" style="--ic:var(--sq-g4)">
+        <div class="glyph">🩸</div>
+        <div class="iinfo"><div class="in">血誓甲<span class="tier" style="background:var(--sq-g4)">灵品 · 魔道</span></div><div class="id">甲衣 · atk 251 · resist 97（×1.10 后）｜ karma −15/件 ｜ 佩戴 化神 ✓</div></div>
+        <div class="ip" style="color:var(--sq-danger)">10,140<span class="buy">点击购买</span></div>
+      </div>
+      <div class="item" style="--ic:var(--sq-g2)">
+        <div class="glyph">🍶</div>
+        <div class="iinfo"><div class="in">淬体丹</div><div class="id">丹药 · 战力 +20% · 4 小时</div></div>
+        <div class="ip" style="color:var(--sq-danger)">676<span class="was">520</span><span class="buy">点击购买</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t">修行</div><div class="t">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t on">坊市</div><div class="t">奇遇<span class="dot"></span></div>
+  </div>
+</div>
+<div class="note">
+  <b>帧四批注（黑市 = 魔道的「快」要花钱）</b>
+  <ul>
+    <li>价格对表：炼尸诀 4,056 = 1,200×2.6×1.3；淬体丹 676 = 200×2.6×1.3——划线原价展示 ×1.3 加成，构成灵石水槽的定价可视化；</li>
+    <li><b>两段式门槛活例</b>：夺魂术 karma 达标但精 26 &lt; 30——可购、购后留架标红（#101「黑市购买后仍拦截」）；缺项直接写在商品卡上，不做购后惊喜；</li>
+    <li>魔道装备卡明示「karma −15/件」——买之前就知道每件都在把档位往深挖（与 dropAlignW 魔装 45% 同构：魔道的质高处处标着价）；</li>
+    <li>黑市页签暗红色系（--sq-karma-evil），与正道档单 tab 布局（帧三）形成整页气质差；karma 回升页签消失动画 = 淡出，已购内容保留。</li>
+    <li><b>卡片化批 2026-10-05</b>：黑市与坊市同改**卡片网格**、一次刷新 <b>10 件</b>随机货（`D.SHOP_SLOTS = 10` 共用）——本稿为 P4 五格快照，现行视图 = `.shopgrid` 宽屏 4 列 / 窄屏单列、每件一卡贴底「购入」按钮，见 UI 卷 v2.17 / 交互说明 §4.5。</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>

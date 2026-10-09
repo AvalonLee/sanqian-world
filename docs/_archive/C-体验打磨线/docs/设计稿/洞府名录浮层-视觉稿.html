@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-xhub-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三千世界 · 洞府名录浮层视觉稿 v1（审阅用，非生产代码）</title>
+<style>
+/* ══ 主题令牌：UI 设计 §八 双声明 fallback；明暗切换仅审阅用 ══ */
+:root{
+  --xhub-page-bg:#f4f1ea; --xhub-surface:rgba(255,255,255,.78); --xhub-bg-card:rgba(255,255,255,.92);
+  --xhub-text-1:#2b2620; --xhub-text-2:#5c544a; --xhub-text-3:#8a8175;
+  --xhub-accent:#9a7420; --xhub-brand-soft:rgba(154,116,32,.10);
+  --xhub-yellow:#a8811c; --xhub-red:#a03a30; --xhub-green:#3e7a4e;
+  --xhub-border:rgba(43,38,32,.12);
+}
+:root[data-xhub-theme="dark"]{
+  --xhub-page-bg:#171512; --xhub-surface:rgba(38,34,29,.72); --xhub-bg-card:rgba(48,43,37,.85);
+  --xhub-text-1:#ece5d8; --xhub-text-2:#b8ae9d; --xhub-text-3:#847b6d;
+  --xhub-accent:#d4af5e; --xhub-brand-soft:rgba(212,175,94,.12);
+  --xhub-yellow:#d9b64f; --xhub-red:#c9584c; --xhub-green:#6fae80;
+  --xhub-border:rgba(236,229,216,.14);
+}
+:root{ --sq-primary:var(--xhub-accent); --sq-success:var(--xhub-green); --sq-danger:var(--xhub-red); }
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--xhub-page-bg);color:var(--xhub-text-1);
+  font-family:system-ui,"Songti SC",SimSun,serif;
+  display:flex;flex-wrap:wrap;gap:26px;justify-content:center;padding:28px 16px 60px;
+}
+h1.doc{width:100%;text-align:center;font-size:20px;letter-spacing:.2em;font-weight:600}
+p.doc{width:100%;text-align:center;color:var(--xhub-text-2);font-size:12px;margin-top:6px}
+.review-bar{width:100%;display:flex;justify-content:center;margin-top:10px}
+.review-bar button{font:inherit;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;border:1px dashed var(--xhub-border);background:var(--xhub-bg-card);color:var(--xhub-text-2)}
+.frame-col{display:flex;flex-direction:column;gap:12px;align-items:center}
+.phone{
+  width:390px;max-width:100%;border-radius:22px;overflow:hidden;
+  border:1px solid var(--xhub-border);box-shadow:0 12px 40px rgba(0,0,0,.14);
+  background:var(--xhub-page-bg);display:flex;flex-direction:column;min-height:770px;
+}
+.phone .caption{padding:10px 14px;font-size:12px;color:var(--xhub-text-3);border-bottom:1px dashed var(--xhub-border);letter-spacing:.1em}
+.note{
+  width:390px;max-width:100%;border:1px dashed var(--xhub-border);border-radius:12px;
+  padding:12px 14px;font-size:11.5px;line-height:1.9;color:var(--xhub-text-2);background:var(--xhub-brand-soft);
+}
+.note b{color:var(--xhub-text-1)}
+.note ul{padding-left:16px}
+/* 顶栏 */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--xhub-surface);border-bottom:1px solid var(--xhub-border)}
+.topbar .who{font-size:13px}.topbar .who b{font-size:14px}
+.topbar .who span{color:var(--xhub-text-3);font-size:12px}
+.topbar .right{display:flex;gap:8px;align-items:center;font-size:12px}
+.kbadge{padding:2px 8px;border-radius:99px;font-size:11px;border:1px solid var(--xhub-yellow);color:var(--xhub-yellow)}
+/* 浮层容器 */
+.overlay{flex:1;background:rgba(0,0,0,.38);display:flex;align-items:flex-end}
+.sheet{width:100%;background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:18px 18px 0 0;max-height:100%;overflow-y:auto}
+.sheet .sh{padding:12px 16px 9px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--xhub-border);position:sticky;top:0;background:var(--xhub-surface);z-index:2}
+.sheet .sh .t{font-size:15px;letter-spacing:.3em;color:var(--sq-primary)}
+.sheet .sh .x{color:var(--xhub-text-3);font-size:13px;cursor:pointer}
+.subhead{padding:8px 16px 2px;font-size:11px;color:var(--xhub-text-3);display:flex;justify-content:space-between}
+.subhead b{color:var(--xhub-text-2)}
+/* 洞府卡 */
+.caves{padding:10px 14px 16px;display:flex;flex-direction:column;gap:10px}
+.cave{
+  border:1px solid var(--xhub-border);border-radius:13px;background:var(--xhub-bg-card);
+  padding:11px 13px;position:relative;
+}
+.cave .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.cave .nm{font-size:14.5px;font-weight:700;letter-spacing:.04em}
+.cave .mult{font-size:12px;color:var(--sq-primary);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cave .sig{font-size:11.5px;color:var(--xhub-text-2);margin-top:4px}
+.cave .sig b{color:var(--sq-success)}
+.cave .desc{font-size:11px;line-height:1.9;color:var(--xhub-text-3);margin-top:7px;border-top:1px dotted var(--xhub-border);padding-top:7px}
+.cave .foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;gap:8px}
+.state{font-size:10.5px;padding:2px 8px;border-radius:99px;letter-spacing:.1em}
+.state.living{border:1px solid var(--sq-primary);color:var(--sq-primary);background:var(--xhub-brand-soft)}
+.state.owned{border:1px solid var(--xhub-border);color:var(--xhub-text-3)}
+.cave button.act{
+  font:inherit;font-size:12px;padding:6px 16px;border-radius:9px;cursor:pointer;letter-spacing:.15em;
+  background:var(--xhub-bg-card);border:1px solid var(--sq-primary);color:var(--sq-primary);
+}
+.cave button.act:disabled{border-color:var(--xhub-border);color:var(--xhub-text-3);cursor:not-allowed}
+.cave.current{border:1.5px solid var(--sq-primary);box-shadow:0 0 0 2px var(--xhub-brand-soft)}
+.cave.current .mult{font-size:13px}
+.cave.lock{opacity:.66}
+.cave.lock .desc{display:none}
+.reqs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.req{font-size:10.5px;padding:2px 8px;border-radius:6px;border:1px solid var(--xhub-border);color:var(--xhub-text-3)}
+.req.miss{border-color:var(--sq-danger);color:var(--sq-danger)}
+.req.ok{border-color:var(--sq-success);color:var(--sq-success)}
+.lockword{font-size:11px;color:var(--xhub-text-3);letter-spacing:.3em;margin-top:8px}
+/* CONFIRM / 演出 通用 */
+.centerwrap{flex:1;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;padding:18px 16px}
+.modal{width:100%;background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:16px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.25)}
+.modal .mh{padding:13px 16px 9px;text-align:center;font-size:15px;letter-spacing:.3em;color:var(--sq-primary);border-bottom:1px dashed var(--xhub-border)}
+.modal .mb{padding:12px 16px}
+.mrow{display:flex;justify-content:space-between;font-size:12px;line-height:2.2;color:var(--xhub-text-2)}
+.mrow .v{color:var(--xhub-text-1)}
+.mrow .v.ok{color:var(--sq-success)} .mrow .v.pay{color:var(--sq-primary);font-weight:700}
+.mtotal{border-top:1px solid var(--xhub-border);margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-size:13px;font-weight:700}
+.mtotal .v{color:var(--sq-primary)}
+.mbtns{display:flex;gap:10px;padding:6px 16px 14px}
+.mbtns button{flex:1;font:inherit;padding:12px 0;border-radius:12px;font-size:13.5px;letter-spacing:.2em;cursor:pointer}
+.mbtns .yes{background:var(--sq-primary);border:1px solid var(--sq-primary);color:#fff}
+:root[data-xhub-theme="dark"] .mbtns .yes{color:#211c12}
+.mbtns .no{background:var(--xhub-bg-card);border:1px solid var(--xhub-border);color:var(--xhub-text-2)}
+.mfoot{padding:0 16px 13px;font-size:10px;color:var(--xhub-text-3);text-align:center;line-height:1.9}
+/* 入驻演出 */
+.ritual{width:100%;text-align:center;padding:34px 22px 26px;background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:16px;box-shadow:0 18px 60px rgba(0,0,0,.3);position:relative;overflow:hidden}
+.ritual .glow{position:absolute;inset:-40% -20% auto;height:220px;background:radial-gradient(ellipse at 50% 40%,var(--xhub-brand-soft),transparent 70%);animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.5}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){.ritual .glow{animation:none;opacity:.8}}
+.ritual .rl{font-size:10.5px;letter-spacing:.5em;color:var(--xhub-text-3);position:relative}
+.ritual .rn{font-size:24px;font-weight:700;letter-spacing:.3em;color:var(--sq-primary);margin:10px 0 4px;position:relative}
+.ritual .rm{font-size:13px;color:var(--xhub-text-1);position:relative}
+.ritual .rs{font-size:11.5px;color:var(--sq-success);margin-top:5px;position:relative}
+.ritual .rd{font-size:12px;line-height:2.1;color:var(--xhub-text-2);margin:16px 6px 0;text-align:left;position:relative;border-top:1px dashed var(--xhub-border);padding-top:14px}
+.ritual button{margin-top:20px;font:inherit;width:100%;padding:12px 0;border-radius:12px;font-size:14px;letter-spacing:.35em;cursor:pointer;background:var(--sq-primary);border:1px solid var(--sq-primary);color:#fff;position:relative}
+:root[data-xhub-theme="dark"] .ritual button{color:#211c12}
+/* Tab 栏 */
+.tabbar{display:flex;border-top:1px solid var(--xhub-border);background:var(--xhub-surface)}
+.tabbar .t{flex:1;text-align:center;padding:9px 0 11px;font-size:11.5px;color:var(--xhub-text-3)}
+.tabbar .t.on{color:var(--sq-primary);font-weight:700}
+</style>
+</head>
+<body>
+
+<h1 class="doc">三千世界 · 洞府名录浮层视觉稿</h1>
+<p class="doc">依据《UI 与交互设计》v2.0 §3.3「地浮层」与《财侣法地四柱框架》§四 · 主稿人设与修行页/奇遇页/名录三稿同一存档：叶长风 · 化神二层 · 正道 +214 · 灵石 42.8万 · 首通至秘境 4 · 驻留雷池精庐 ×1.18 · 灵气叙事为词表正典原文（cave.{id}.desc）</p>
+<div class="review-bar">
+  <button onclick="const h=document.documentElement;h.dataset.xhubTheme=h.dataset.xhubTheme==='dark'?'light':'dark'">切换明 / 暗（审阅用，生产无此按钮）</button>
+</div>
+
+<!-- ═══ 稿一 · 洞府名录浮层本体 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿一 · 洞府名录浮层（修行页「地」chip 点开 · 六处福地四态纵列）</div>
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +214</span><span>💰 42.8万</span></div>
+  </div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh"><span class="t">洞天福地</span><span class="x">✕ 关闭</span></div>
+      <div class="subhead"><span>驻留中 · <b>雷池精庐 ×1.18</b></span><span>择一而居 · 迁居 24h 冷却</span></div>
+
+      <div class="caves">
+        <!-- 驻留中 -->
+        <div class="cave current">
+          <div class="top"><span class="nm">雷池精庐</span><span class="mult">×1.18</span></div>
+          <div class="sig">签名 · 雷蕴：<b>渡劫 p +0.02</b>（生效中，已计入渡劫预估）</div>
+          <div class="desc">雷池余脉正好从精庐地底穿过，青砖缝里透着隐隐雷音。住在这里如同枕着劫云入睡，天雷之气日夜入体，炼体，也炼胆。</div>
+          <div class="foot"><span class="state living">驻留中 · 签名生效</span><span style="font-size:10px;color:var(--xhub-text-3)">化神 + 首通雷池禁地 ✓</span></div>
+        </div>
+
+        <!-- 已持有可迁居 -->
+        <div class="cave">
+          <div class="top"><span class="nm">剑崖禅房</span><span class="mult">×1.12</span></div>
+          <div class="sig">签名 · 剑气淬体：<b>combatPower +6%</b></div>
+          <div class="desc">上古剑修面壁处的崖顶禅房，石壁剑痕百年风雨不磨。入夜剑鸣如潮，梦里有人与你喂剑——赢了是修行，输了也是。</div>
+          <div class="foot"><span class="state owned">已持有</span><button class="act">迁 居</button></div>
+        </div>
+
+        <div class="cave">
+          <div class="top"><span class="nm">青峰灵穴</span><span class="mult">×1.08</span></div>
+          <div class="sig">签名 · 灵泉眼：<b>offlineEff +8%</b></div>
+          <div class="desc">半山腰的灵穴，碗口大的泉眼沁出丝丝灵气，夜半听得到泉声入梦。在这里修行像温水泡茶——慢，但泡得开。</div>
+          <div class="foot"><span class="state owned">已持有</span><button class="act">迁 居</button></div>
+        </div>
+
+        <div class="cave">
+          <div class="top"><span class="nm">市井别院</span><span class="mult">×1.00</span></div>
+          <div class="sig" style="color:var(--xhub-text-3)">无签名 · 起点别院</div>
+          <div class="desc">坊市后巷的独立小院，灵气薄得可怜，胜在推门就是人间烟火、竖耳就是满城消息。散修十个里有九个，是在这样的院子里攒出第一缕道基的。</div>
+          <div class="foot"><span class="state owned">已持有</span><button class="act">迁 居</button></div>
+        </div>
+
+        <!-- 未达资格 · 剪影 -->
+        <div class="cave lock">
+          <div class="top"><span class="nm" style="color:var(--xhub-text-2)">星陨福地</span><span class="mult" style="color:var(--xhub-text-3)">×1.25</span></div>
+          <div class="sig" style="color:var(--xhub-text-3)">签名 · 星髓滋养：offlineEff +15%</div>
+          <div class="lockword">—— 灵气叙事，入驻后方可阅 ——</div>
+          <div class="reqs">
+            <span class="req miss">境界 · 需炼虚(5)</span>
+            <span class="req miss">首通 · 乱星秘窟</span>
+            <span class="req miss">灵石 · 50万（持 42.8万）</span>
+          </div>
+        </div>
+
+        <div class="cave lock">
+          <div class="top"><span class="nm" style="color:var(--xhub-text-2)">古仙人府</span><span class="mult" style="color:var(--xhub-text-3)">×1.35</span></div>
+          <div class="sig" style="color:var(--xhub-text-3)">签名 · 道韵余音：artsSpeed +15%</div>
+          <div class="lockword">—— 灵气叙事，入驻后方可阅 ——</div>
+          <div class="reqs">
+            <span class="req miss">境界 · 需合体(6)</span>
+            <span class="req miss">首通 · 修罗战场</span>
+            <span class="req miss">灵石 · 500万</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t on">修行</div><div class="t">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t">坊市</div><div class="t">奇遇</div>
+  </div>
+</div>
+<div class="note">
+  <b>稿一批注（UI v2.0 §3.3 地浮层）</b>
+  <ul>
+    <li>卡片四态：<b>驻留中</b>（描金边 + 「驻留中 · 签名生效」态标 + 签名标「生效中」）、<b>已持有</b>（迁居按钮）、<b>未达资格</b>（剪影压暗 + 缺项 chips 三段式逐段标红：境界/首通/灵石，达标段转绿 ✓）、未持有但资格齐 = 「入驻」按钮 + 付费（稿二）；</li>
+    <li><b>灵气叙事是入驻奖励</b>：未达资格卡叙事折叠为「入驻后方可阅」——把 30~60 字正典文案变成盼头；已持有卡全文展示；</li>
+    <li>排序规则：<b>驻留中置顶</b> → 已持有按 mult 降序（迁居就近可比）→ 未达资格按 mult 升序压轴（阶梯尽头 = 古仙人府终极目标）；</li>
+    <li>迁居冷却为全局一次：任一迁居成功后所有「迁居」按钮变倒计时「X 时辰后（23:12:05）」——世界观换算 + 括注精确值（§六）；</li>
+    <li>「地」chip 红点 = 新洞府资格达成，进浮层即消；秘境页首通角标 ↔ 本浮层缺项 chips 同源（cleared 字段）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 稿二 · 入驻付费 CONFIRM ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿二 · 入驻 CONFIRM（变体演示态：炼虚二层 · 首通乱星秘窟 · 持灵石 62万）</div>
+  <div class="centerwrap">
+    <div class="modal">
+      <div class="mh">入驻 · 星陨福地</div>
+      <div class="mb">
+        <div class="mrow"><span>境界 · 炼虚(5)</span><span class="v ok">炼虚二层 ✓</span></div>
+        <div class="mrow"><span>首通 · 乱星秘窟</span><span class="v ok">已首通 ✓</span></div>
+        <div class="mrow"><span>洞府倍率（独立乘区）</span><span class="v">×1.18 → <b style="color:var(--sq-primary)">×1.25</b></span></div>
+        <div class="mrow"><span>签名 · 星髓滋养</span><span class="v">offlineEff +15%</span></div>
+        <div class="mtotal"><span>入驻资 · 一次性</span><span class="v">灵石 500,000（持 620,000）</span></div>
+      </div>
+      <div class="mbtns">
+        <button class="yes">入 驻</button>
+        <button class="no">再想想</button>
+      </div>
+      <div class="mfoot">入驻后原洞府保留（随时可迁回）· 迁居触发 24h 冷却<br>资财计入此生总账「支出 · 洞府」（ledger.out.cave）</div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>稿二批注</b>
+  <ul>
+    <li>CONFIRM 逐段列资格达成态（绿 ✓）+ <b>倍率变化前后对照</b>（×1.18 → ×1.25，让玩家看见这次「财换地」买到了什么）；</li>
+    <li>灵石不足时：总价行红字「灵石 500,000（持 42.8万，<b style="color:var(--sq-danger)">不足</b>）」+「入驻」置灰——与稿一缺项 chips 同一数据源；</li>
+    <li>已持有洞府间「迁居」= 无付费 CONFIRM（只提示 24h 冷却与签名切换后果），付费只发生在首次「入驻」；</li>
+    <li>扣灵石走 mutate + ledger 同步记账（工程规范 #107/#113 冒烟对表）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 稿三 · 入驻轻演出 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿三 · 入驻轻演出（确认后全屏 · 点叙事可跳过）</div>
+  <div class="centerwrap">
+    <div class="ritual">
+      <div class="glow"></div>
+      <div class="rl">择 地 而 居</div>
+      <div class="rn">星陨福地</div>
+      <div class="rm">洞府倍率 ×1.25（原雷池精庐 ×1.18 保留）</div>
+      <div class="rs">签名生效 · 星髓滋养：offlineEff +15%</div>
+      <div class="rd">昔年流星坠出的谷地，星髓余韵百年不散，夜里谷中星光比天上还亮。在这里连打坐都省了——睡一觉，也算修了一夜。</div>
+      <button>安 顿 修 行</button>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>稿三批注（UI v2.0 §5.2 洞府入驻演出）</b>
+  <ul>
+    <li>三段式：洞府名（大字）→ 倍率/签名（机制行）→ <b>灵气叙事正典全文</b>（`cave.{id}.desc`，首次入驻必读的仪式感，也是叙事折叠的兑现时刻）；</li>
+    <li>halo 呼吸光晕 4s，prefers-reduced-motion 自动静止；点叙事区域或按钮均可关闭，无强制等待；</li>
+    <li>迁居（已持有间切换）不出本演出，只弹一行 toast：「已迁居 剑崖禅房 · 剑气淬体生效」——轻演出只给「第一次拥有」；</li>
+    <li>演出关闭后修行页「地」chip 与产出明细浮层的洞府行即时刷新（×1.25）。</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>

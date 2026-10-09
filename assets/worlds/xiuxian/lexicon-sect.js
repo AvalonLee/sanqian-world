@@ -1,0 +1,170 @@
+/* xiuxian/lexicon-sect.js — 自立门户（宗门系统）词表分卷（CJK 白名单文件 · 自立门户卷 v1.1 §十二）
+ * key 族：sect.*（宗名词库 12×8 / 山门三预设 / 宗规三倾向 / 设施四座 / 弟子名池 24×48 /
+ * 战争与传位 / UI 与日志 / 编年史三条）。
+ * ⚠️ 勿混注记：faction.* 族（势力全录）与 sect.* 族两族并存不冲突——宗门战争文案落 sect.war.*。
+ * 自定义宗名只进存档不进词表（玩家文本永不写回数据文件，§2.2 反向约束）。
+ */
+(function () {
+  var SQ = window.SQ || (window.SQ = {});
+  var K = {};
+
+  /* ── 宗名词库（前缀 12 × 后缀 8 = 96 组合）── */
+  var PRE = ['青', '白', '紫', '玄', '赤', '苍', '墨', '金', '灵', '剑', '星', '雷'];
+  var SUF = ['剑宗', '丹门', '谷', '阁', '山庄', '峰盟', '观', '宫'];
+  PRE.forEach(function (w, i) { K['sect.name.pre.' + (i + 1)] = w; });
+  SUF.forEach(function (w, i) { K['sect.name.suf.' + (i + 1)] = w; });
+
+  /* ── 第 17 动态位势力条目描述（factions normalize 在册校验键）── */
+  K['sect.faction.desc'] = '你亲手立下的山门——宗规即门风，弟子即基业。';
+
+  /* ── 山门三预设（纯叙事零数值，§2.1 裁定）── */
+  K['sect.gate.wuyue.name'] = '乌岳峰';
+  K['sect.gate.wuyue.desc'] = '剑气与铁骨：山如墨刃，弟子晨课是负重登山——武备之宗的气象。';
+  K['sect.gate.baihong.name'] = '白虹谷';
+  K['sect.gate.baihong.desc'] = '丹火与书声：谷中终年虹光不散，藏经与丹房并排起——文修之宗的气象。';
+  K['sect.gate.panlong.name'] = '蟠龙岭';
+  K['sect.gate.panlong.desc'] = '商道与灵脉：岭下三条灵脉交汇处，坊市依岭而生——财修之宗的气象。';
+
+  /* ── 宗规三倾向（收徒权重 / 传法子集 / 世界怎么看你）── */
+  K['sect.align.right.name'] = '正道';
+  K['sect.align.right.desc'] = '名门正派，收徒看根骨更看心性';
+  K['sect.align.right.rule'] = '收徒 良才20/可造55/璞玉25；传法限正道与左道功法；与魔道五家开局即敌对';
+  K['sect.align.neutral.name'] = '左道';
+  K['sect.align.neutral.desc'] = '不问正邪，只问本事';
+  K['sect.align.neutral.rule'] = '收徒 良才15/可造55/璞玉30；传法不限；各方关系随机';
+  K['sect.align.evil.name'] = '魔道';
+  K['sect.align.evil.desc'] = '弱肉强食，能者居之';
+  K['sect.align.evil.rule'] = '收徒 良才10/可造50/璞玉40；传法限魔道与左道功法；与正道四家开局即敌对';
+
+  /* ── 设施四座 ── */
+  K['sect.fac.zangjing.name'] = '藏经阁';
+  K['sect.fac.zangjing.desc'] = '弟子功法槽 1+⌊藏经阁级÷2⌋（至多 3），每槽弟子战力 +8%（传法）；槽数受宗规传法子集收窄';
+  K['sect.fac.danfang.name'] = '丹房';
+  K['sect.fac.danfang.desc'] = '炼丹成功率 +5%（宗门平坦加项，不随等级缩放）';
+  K['sect.fac.danfang.pending'] = '丹火未开';
+  K['sect.fac.yanwu.name'] = '演武场';
+  K['sect.fac.yanwu.desc'] = '弟子战力系数 +5%/级（满级 1.25）';
+  K['sect.fac.keshe.name'] = '客舍';
+  K['sect.fac.keshe.desc'] = '弟子上限 +1/级（基础 1 → 满级 6，含供奉名额）';
+  K['sect.fac.build'] = '{name}升至 {lv} 级';
+  K['sect.fac.lv'] = '{lv}/5 级';
+  K['sect.fac.cost'] = '营建 {n} 灵石';
+
+  /* ── 弟子名池（姓 24 × 名 48，索引入档）── */
+  var SUR = ['陈', '林', '黄', '吴', '周', '徐', '孙', '马', '朱', '胡', '郭', '何',
+    '高', '罗', '郑', '梁', '谢', '宋', '唐', '许', '邓', '冯', '韩', '曹'];
+  var GIV = ['青山', '长风', '无涯', '听雪', '惊鸿', '照影', '凌霜', '抱朴', '守拙', '忘机', '怀瑾', '握瑜',
+    '冲虚', '致远', '宁静', '淡泊', '明志', '乘风', '御剑', '采薇', '伐檀', '漱石', '枕流', '问渠',
+    '观澜', '踏歌', '知非', '复礼', '归仁', '慕贤', '希圣', '步虚', '朝真', '炼形', '养素', '抱一',
+    '知白', '守黑', '和光', '同尘', '栖迟', '偃仰', '濯缨', '怀袖', '倚剑', '临渊', '望舒', '既明'];
+  SUR.forEach(function (w, i) { K['sect.disc.sur.' + (i + 1)] = w; });
+  GIV.forEach(function (w, i) { K['sect.disc.giv.' + (i + 1)] = w; });
+  K['sect.disc.join'] = '天骄{name}登门求入门，自此列于{sect}门下。';
+
+  /* ── 弟子系统 ── */
+  K['sect.disc.apt.fine'] = '良才';
+  K['sect.disc.apt.mid'] = '可造';
+  K['sect.disc.apt.raw'] = '璞玉';
+  K['sect.disc.inv.0'] = '记名（不投资）';
+  K['sect.disc.inv.1'] = '常规培养';
+  K['sect.disc.inv.2'] = '厚培';
+  K['sect.disc.recruit'] = '广纳门徒';
+  K['sect.disc.candidate'] = '求入门者：{name}——收或不收，一句话的事';
+  K['sect.disc.accept'] = '{name}拜入山门';
+  K['sect.disc.reject'] = '你摇了摇头，来人一步三回头地下了山';
+  K['sect.disc.cap.full'] = '门下已满（客舍扩建可增名额）';
+  K['sect.disc.offering'] = '供奉';
+  K['sect.disc.offer.btn'] = '请为供奉';
+  K['sect.disc.offer.ok'] = '{name}应允挂名供奉——客卿之礼，月奉 ×2';
+  K['sect.disc.offer.refuse'] = '{name}摆手一笑：「散漫惯了，不给你添乱。」';
+  K['sect.disc.offer.need'] = '需好感 ≥70（档 3 应允率五成，档 4 必允）';
+  K['sect.disc.dispatch'] = '调遣{name}（{field} {v}，2 时辰）';
+  K['sect.disc.empty'] = '门下尚无弟子';
+  K['sect.disc.row'] = '{name} · {apt} · {realm}';
+  K['sect.disc.power'] = '战力 {n}';
+  K['sect.disc.prog'] = '升境 {p}/{need}';
+  K['sect.tribute.log'] = '弟子月奉入库 {n} {cur}';
+  /* N1 第二环（材料供奉环接线）：入账一行 + 丹房设施效果行的材料侧说明 */
+  K['sect.tribute.mats'] = '门中进缴灵材 {n} 件';
+  K['sect.fac.danfang.mat'] = '每 {m} 年月出灵材 1 件／级';
+
+  /* ── 开宗流程 ── */
+  K['sect.system'] = '宗门';
+  K['sect.found.btn'] = '开宗立派';
+  K['sect.found.rumor'] = '江湖快讯：{name}立派开山，山门大开，广纳门徒——第 17 家势力入局。';
+  K['sect.found.log'] = '开宗立派「{name}」，山门定于{gate}';
+  K['sect.found.leave'] = '功成身退，辞去{name}职衔——不是背弃，是自立';
+  K['sect.found.confirm'] = '开宗立派：脱离旧门（零叛离惩罚）、山门定格不可迁、宗规决定收徒与战争面。立派？';
+  K['sect.ui.gate.realm'] = '境界 ≥ 化神';
+  K['sect.ui.gate.identity'] = '身份：长老位在任 或 叛离经历';
+  K['sect.ui.gate.peak'] = '声望峰值 ≥ 2000（现 {n}）';
+  K['sect.ui.gate.unlock'] = '开宗资格（遗泽商店）';
+  K['sect.ui.gate.ok'] = '已达成';
+  K['sect.ui.gate.pick'] = '山门三选（纯叙事，定格不可迁）';
+  /* 开宗失败九因（`foundSect` / `canFound` 的 reason 全枚举；view 侧原按
+   * `sect.ui.fail.<reason>` 拼键、整族无键 ⇒ 裸英文 'realm'/'peak'/'name' 直接上屏）*/
+  K['sect.ui.fail.realm'] = '境界未及化神，担不起一面旗。';
+  K['sect.ui.fail.identity'] = '旧宗门里既无长老位在任，也尚无被逐的经历——名不正则言不顺。';
+  K['sect.ui.fail.peak'] = '声望峰值未及二千，江湖无人认你这山门。';
+  K['sect.ui.fail.unlock'] = '「自立门户」尚未用遗泽打通——去轮回页的遗泽商店。';
+  K['sect.ui.fail.has'] = '你已是一派之主，此世不再另立。';
+  K['sect.ui.fail.done'] = '山门已传位与人——传出去的旗，收不回再插一次。';
+  K['sect.ui.fail.gate'] = '山门选址不在名录之内。';
+  K['sect.ui.fail.align'] = '宗规只列正、左、魔三倾向。';
+  K['sect.ui.fail.name'] = '宗名不合：至多六字，且须过忌讳——换个名号再说。';
+  /* 营建设施失败四因（`buildFac` = none/unknown/max/poor；max 与 poor 复用既有键，
+   * view:6809 原把余下两因的**内部字段名直接 toast 上屏**）*/
+  K['sect.ui.build.none'] = '山门已传位或未立，无从营建。';
+  K['sect.ui.build.unknown'] = '此设施不在名录之内。';
+  K['sect.ui.build.other'] = '营建未成——稍后再试。';
+  K['sect.ui.align.pick'] = '宗规三选（决定收徒权重、传法子集与世界关系）';
+  K['sect.ui.name.ph'] = '自定义宗名 ≤6 字（留空则词库掷名）';
+  K['sect.ui.name.roll'] = '掷名';
+  K['sect.ui.rep'] = '宗门声望 {n}';
+  K['sect.ui.power'] = '宗门战力 {n}';
+  K['sect.ui.war.record'] = '战功 {w} 胜 {l} 败';
+  K['sect.ui.disciples'] = '门徒（{n}/{cap}）';
+  K['sect.ui.facs'] = '宗门设施';
+  K['sect.ui.succ.btn'] = '传位';
+  K['sect.ui.succ.pick'] = '择继位弟子（供奉不可继位）';
+  K['sect.ui.succ.confirm'] = '传位三后果：宗门转 NPC 位继续活着 / 你获称号「开山祖师」跨世保留 / 当世不可再开宗。传位？';
+  K['sect.ui.succ.done'] = '已传位 · 一代宗师下山';
+  K['sect.ui.nofound'] = '未开宗——四门槛达成后此处亮起「开宗立派」';
+  K['sect.ui.tab'] = '宗门';
+  K['sect.ui.leave.lock'] = '宗门不可弃——传位方可下山';
+  K['sect.ui.dispatch'] = '调遣';
+  K['sect.ui.accept'] = '收入门墙';
+  K['sect.ui.reject'] = '婉拒';
+  K['sect.ui.recruit.cd'] = '门庭暂歇（{t} 后再纳徒）';
+  K['sect.fac.max'] = '已满级';
+  K['sect.war.cd'] = '战书不轻发（{t} 后可再下）';
+  K['sect.war.busy'] = '战端已开，不可两线作战';
+
+  /* ── 战争与传位 ── */
+  K['sect.war.declare'] = '{a}向{b}下战书——二十分钟内见分晓';
+  K['sect.war.btn'] = '下战书';
+  K['sect.war.guard'] = '亲率弟子守山';
+  K['sect.war.win'] = '{name}大捷——弟子出力，山门增辉（声望上行）';
+  K['sect.war.lose'] = '{name}败了一阵——弟子零损失，回去再练';
+  K['sect.war.merit'] = '弟子出力折算战功 +{n}';
+  K['sect.succ.log'] = '传位{name}于{heir}——一代宗师，下山去了';
+  K['sect.succ.rumor'] = '江湖快讯：{name}宗主传位弟子{heir}，飘然下山。山门依旧，人换了。';
+
+  /* ── 编年史三条（奏疏兼容 §7.2）──
+   * 基准键 = 左道/中性措辞（§2.3 空窗期条款：编年史措辞按 align 分组取模板，零机制效果）；
+   * .right = 正道褒评组、.evil = 魔道差评组。消费点 tiandao.js SECT_CHRON 分组表。 */
+  K['sect.chronicle.found'] = '是日开宗立派，山门定名「{name}」。';
+  K['sect.chronicle.win'] = '是日宗门大捷，「{name}」声威大振。';
+  K['sect.chronicle.succ'] = '是日传位{heir}，「{name}」自此有了自己的命数。';
+  K['sect.chronicle.found.right'] = '是日开宗立派，山门定名「{name}」。正道立基，老夫记一笔。';
+  K['sect.chronicle.found.evil'] = '是日开宗立派，山门定名「{name}」。魔火上峰，老夫旁注一笔。';
+  K['sect.chronicle.win.right'] = '是日宗门大捷，「{name}」声威大振。赢得干净。';
+  K['sect.chronicle.win.evil'] = '是日宗门大捷，「{name}」声威大振。这一仗的账另起一页。';
+  K['sect.chronicle.succ.right'] = '是日传位{heir}，「{name}」自此有了自己的命数。师门有后。';
+  K['sect.chronicle.succ.evil'] = '是日传位{heir}，「{name}」自此有了自己的命数。路后人接着走。';
+
+  /* ── buff 来源 ── */
+  K['buff.src.sect'] = '宗门调遣';
+
+  SQ.lexRegister('xiuxian', K);
+})();

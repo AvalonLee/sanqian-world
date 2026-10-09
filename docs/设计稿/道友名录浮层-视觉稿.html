@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-xhub-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三千世界 · 道友名录浮层视觉稿 v1（审阅用，非生产代码）</title>
+<style>
+/* ══ 主题令牌：UI 设计 §八 双声明 fallback；明暗切换仅审阅用 ══ */
+:root{
+  --xhub-page-bg:#f4f1ea; --xhub-surface:rgba(255,255,255,.78); --xhub-bg-card:rgba(255,255,255,.92);
+  --xhub-text-1:#2b2620; --xhub-text-2:#5c544a; --xhub-text-3:#8a8175;
+  --xhub-accent:#9a7420; --xhub-brand-soft:rgba(154,116,32,.10);
+  --xhub-yellow:#a8811c; --xhub-red:#a03a30; --xhub-green:#3e7a4e;
+  --xhub-border:rgba(43,38,32,.12);
+}
+:root[data-xhub-theme="dark"]{
+  --xhub-page-bg:#171512; --xhub-surface:rgba(38,34,29,.72); --xhub-bg-card:rgba(48,43,37,.85);
+  --xhub-text-1:#ece5d8; --xhub-text-2:#b8ae9d; --xhub-text-3:#847b6d;
+  --xhub-accent:#d4af5e; --xhub-brand-soft:rgba(212,175,94,.12);
+  --xhub-yellow:#d9b64f; --xhub-red:#c9584c; --xhub-green:#6fae80;
+  --xhub-border:rgba(236,229,216,.14);
+}
+:root{
+  --sq-primary:var(--xhub-accent);
+  --sq-karma-right:var(--xhub-yellow); --sq-karma-evil:var(--xhub-red); --sq-karma-neutral:var(--xhub-text-3);
+  --sq-success:var(--xhub-green); --sq-danger:var(--xhub-red);
+  --sq-spouse:#a05a78; /* 道侣候选「双」角标 · 藕荷（小面积语义色，双声明见下） */
+}
+:root[data-xhub-theme="dark"]{ --sq-spouse:#cf87a6; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--xhub-page-bg);color:var(--xhub-text-1);
+  font-family:system-ui,"Songti SC",SimSun,serif;
+  display:flex;flex-wrap:wrap;gap:26px;justify-content:center;padding:28px 16px 60px;
+}
+h1.doc{width:100%;text-align:center;font-size:20px;letter-spacing:.2em;font-weight:600}
+p.doc{width:100%;text-align:center;color:var(--xhub-text-2);font-size:12px;margin-top:6px}
+.review-bar{width:100%;display:flex;justify-content:center;margin-top:10px}
+.review-bar button{font:inherit;font-size:12px;padding:6px 14px;border-radius:8px;cursor:pointer;border:1px dashed var(--xhub-border);background:var(--xhub-bg-card);color:var(--xhub-text-2)}
+.frame-col{display:flex;flex-direction:column;gap:12px;align-items:center}
+.phone{
+  width:390px;max-width:100%;border-radius:22px;overflow:hidden;
+  border:1px solid var(--xhub-border);box-shadow:0 12px 40px rgba(0,0,0,.14);
+  background:var(--xhub-page-bg);display:flex;flex-direction:column;min-height:770px;
+}
+.phone .caption{padding:10px 14px;font-size:12px;color:var(--xhub-text-3);border-bottom:1px dashed var(--xhub-border);letter-spacing:.1em}
+.note{
+  width:390px;max-width:100%;border:1px dashed var(--xhub-border);border-radius:12px;
+  padding:12px 14px;font-size:11.5px;line-height:1.9;color:var(--xhub-text-2);background:var(--xhub-brand-soft);
+}
+.note b{color:var(--xhub-text-1)}
+.note ul{padding-left:16px}
+/* 顶栏 */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--xhub-surface);border-bottom:1px solid var(--xhub-border)}
+.topbar .who{font-size:13px}.topbar .who b{font-size:14px}
+.topbar .who span{color:var(--xhub-text-3);font-size:12px}
+.topbar .right{display:flex;gap:8px;align-items:center;font-size:12px}
+.kbadge{padding:2px 8px;border-radius:99px;font-size:11px;border:1px solid var(--sq-karma-right);color:var(--sq-karma-right)}
+.kbadge.evil{border-color:var(--sq-karma-evil);color:var(--sq-karma-evil)}
+/* 浮层容器（暗化底） */
+.overlay{flex:1;background:rgba(0,0,0,.38);display:flex;align-items:flex-end}
+.sheet{width:100%;background:var(--xhub-surface);border:1px solid var(--xhub-border);border-radius:18px 18px 0 0;max-height:100%;overflow-y:auto}
+.sheet .sh{padding:12px 16px 8px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--xhub-border);position:sticky;top:0;background:var(--xhub-surface)}
+.sheet .sh .t{font-size:15px;letter-spacing:.3em;color:var(--sq-primary)}
+.sheet .sh .x{color:var(--xhub-text-3);font-size:13px;cursor:pointer}
+/* 护法位摘要行 */
+.guardian{margin:10px 16px 2px;padding:8px 12px;border:1px solid var(--xhub-border);border-radius:11px;background:var(--xhub-bg-card);font-size:12px;display:flex;justify-content:space-between;align-items:center;color:var(--xhub-text-2)}
+.guardian b{color:var(--xhub-text-1)}
+.guardian .g{color:var(--sq-primary)}
+.guardian.dead{opacity:.6}
+.guardian.dead .msg{color:var(--sq-danger);font-size:11.5px}
+/* 双修状态行 */
+.spouse-row{margin:8px 16px 0;padding:8px 12px;border-radius:11px;font-size:12px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--sq-spouse);color:var(--sq-spouse);background:var(--xhub-bg-card)}
+.spouse-row.luding{border-color:var(--sq-danger);color:var(--sq-danger)}
+.spouse-row.none{border-style:dashed;border-color:var(--xhub-border);color:var(--xhub-text-3)}
+/* 名录节 */
+.sec{padding:10px 16px 4px}
+.sec-t{font-size:11.5px;color:var(--xhub-text-3);letter-spacing:.2em;margin-bottom:8px;display:flex;justify-content:space-between}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.pal{
+  position:relative;border-radius:12px;border:1px solid var(--xhub-border);background:var(--xhub-bg-card);
+  padding:9px 4px 7px;text-align:center;cursor:pointer;overflow:hidden;
+}
+.pal .ava{
+  width:40px;height:40px;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;color:#fff;background:var(--av,#8a8175);
+}
+:root[data-xhub-theme="dark"] .pal .ava{color:#1c1814}
+.pal .nm{font-size:11px;font-weight:600;line-height:1.3}
+.pal .tier{font-size:9.5px;color:var(--xhub-text-3);margin-top:1px}
+.pal .pb{height:4px;border-radius:99px;background:var(--xhub-border);margin:5px 6px 0;overflow:hidden}
+.pal .pb i{display:block;height:100%;background:var(--sq-primary);border-radius:99px}
+.pal .fv{font-size:9px;color:var(--xhub-text-3);margin-top:3px;font-variant-numeric:tabular-nums}
+.corner{position:absolute;top:3px;right:5px;font-size:10px;line-height:1}
+.corner.um{color:var(--sq-primary)}          /* ☂ 护法位 */
+.corner.sh{color:var(--sq-spouse)}          /* 双 候选 */
+/* 未结缘 / 缘尽 态 */
+.pal.lock .ava{background:transparent;border:1px dashed var(--xhub-border);color:var(--xhub-text-3);font-weight:300;font-size:19px}
+.pal.lock .nm{color:var(--xhub-text-3)}
+.pal.dead{opacity:.62}
+.pal.dead .ava{background:transparent;border:1px solid var(--xhub-border);color:var(--xhub-text-3);font-size:13px}
+.pal.dead .nm{color:var(--xhub-text-3)}
+.pal.dead .deadtag{font-size:9.5px;color:var(--sq-danger);margin-top:3px;letter-spacing:.2em}
+/* 详情页 */
+.detail{padding:16px}
+.detail .head{display:flex;gap:14px;align-items:center}
+.detail .head .ava{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;background:#c8a24a}
+:root[data-xhub-theme="dark"] .detail .head .ava{color:#211c12}
+.detail .head .id b{font-size:17px;letter-spacing:.05em}
+.detail .head .id .sub{font-size:11.5px;color:var(--xhub-text-3);margin-top:3px;line-height:1.7}
+.detail .head .id .sub .g{color:var(--sq-primary)}
+.fbar{margin:14px 0 4px}
+.fbar .lab{display:flex;justify-content:space-between;font-size:11.5px;color:var(--xhub-text-2);margin-bottom:5px}
+.fbar .lab b{color:var(--sq-primary)}
+.fbar .tr{height:8px;border-radius:99px;background:var(--xhub-border);overflow:hidden;position:relative}
+.fbar .tr i{display:block;height:100%;width:82%;background:linear-gradient(90deg,var(--sq-primary),#c9a24d)}
+.fbar .marks{display:flex;justify-content:space-between;font-size:9px;color:var(--xhub-text-3);margin-top:4px}
+.dsec{margin-top:14px;border-top:1px dashed var(--xhub-border);padding-top:10px}
+.dsec .dt{font-size:11px;letter-spacing:.25em;color:var(--xhub-text-3);margin-bottom:6px}
+.dsec .dd{font-size:12.5px;line-height:1.95;color:var(--xhub-text-2)}
+.dsec .dd b{color:var(--xhub-text-1)}
+.perk{display:flex;justify-content:space-between;align-items:center;background:var(--xhub-bg-card);border:1px solid var(--xhub-border);border-radius:10px;padding:8px 11px;font-size:12px}
+.perk .pv{color:var(--sq-success);font-weight:600}
+.perk.off .pv{color:var(--xhub-text-3);text-decoration:line-through}
+.perk .why{display:block;font-size:10.5px;color:var(--sq-danger);text-decoration:none;margin-top:2px}
+.srcline{font-size:11.5px;color:var(--xhub-text-2);display:flex;justify-content:space-between;align-items:center;background:var(--xhub-bg-card);border:1px solid var(--xhub-border);border-radius:10px;padding:8px 11px;cursor:pointer}
+.srcline .go{color:var(--sq-primary);font-size:11px}
+.tagline{display:inline-block;font-size:10px;border:1px solid var(--sq-karma-right);color:var(--sq-karma-right);border-radius:4px;padding:0 5px;margin-left:5px}
+/* 提亲 CONFIRM */
+.propose{padding:14px 16px 18px}
+.propose .pt{text-align:center;font-size:16px;letter-spacing:.35em;color:var(--sq-primary);margin-bottom:4px}
+.propose .ps{text-align:center;font-size:11.5px;color:var(--xhub-text-3);margin-bottom:14px}
+.form-card{border:1px solid var(--xhub-border);border-radius:12px;background:var(--xhub-bg-card);padding:11px 13px;margin-bottom:10px}
+.form-card .fn{font-size:13.5px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.form-card .fn .st{font-size:10px;font-weight:400;padding:1px 7px;border-radius:99px}
+.form-card.cur{border:1.5px solid var(--sq-primary);box-shadow:0 0 0 2px var(--xhub-brand-soft)}
+.form-card.cur .fn .st{border:1px solid var(--sq-primary);color:var(--sq-primary)}
+.form-card.off{opacity:.55}
+.form-card.off .fn .st{border:1px solid var(--xhub-border);color:var(--xhub-text-3)}
+.form-card .cond{font-size:10.5px;color:var(--xhub-text-3);margin-top:3px}
+.form-card .eff{font-size:12px;color:var(--xhub-text-2);margin-top:6px;line-height:1.8}
+.form-card .eff b{color:var(--sq-success)}
+.form-card .cost{font-size:11px;color:var(--sq-danger);margin-top:6px;line-height:1.8}
+.pbtns{display:flex;gap:10px;margin-top:14px}
+.pbtns button{flex:1;font:inherit;padding:12px 0;border-radius:12px;font-size:13.5px;letter-spacing:.25em;cursor:pointer}
+.pbtns .yes{background:var(--sq-primary);border:1px solid var(--sq-primary);color:#fff}
+:root[data-xhub-theme="dark"] .pbtns .yes{color:#211c12}
+.pbtns .no{background:var(--xhub-bg-card);border:1px solid var(--xhub-border);color:var(--xhub-text-2)}
+.pfoot{margin-top:10px;font-size:10px;color:var(--xhub-text-3);text-align:center;line-height:1.8}
+/* Tab 栏 */
+.tabbar{display:flex;border-top:1px solid var(--xhub-border);background:var(--xhub-surface)}
+.tabbar .t{flex:1;text-align:center;padding:9px 0 11px;font-size:11.5px;color:var(--xhub-text-3);position:relative}
+.tabbar .t.on{color:var(--sq-primary);font-weight:700}
+.tabbar .t .dot{position:absolute;top:5px;right:22%;width:6px;height:6px;border-radius:50%;background:var(--sq-danger)}
+</style>
+</head>
+<body>
+
+<h1 class="doc">三千世界 · 道友名录浮层视觉稿</h1>
+<p class="doc">依据《UI 与交互设计》v2.0 §3.3「侣浮层」与《财侣法地四柱框架》§五 · 人设与修行页/奇遇页两稿同一存档：叶长风 · 化神二层 · 正道光环 +214 · 护法位老黄③ · 苏晚相识 20 · 稿四为魔道档变体对照</p>
+<div class="review-bar">
+  <button onclick="const h=document.documentElement;h.dataset.xhubTheme=h.dataset.xhubTheme==='dark'?'light':'dark'">切换明 / 暗（审阅用，生产无此按钮）</button>
+</div>
+
+<!-- ═══ 稿一 · 名录浮层本体 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿一 · 道友名录浮层（修行页「侣」chip 点开 · 底部 Tab 保持可见）</div>
+  <div class="topbar">
+    <div class="who"><b>叶长风</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge">☯ 正道光环 +214</span><span>💰 42.8万</span></div>
+  </div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh"><span class="t">道友名录</span><span class="x">✕ 关闭</span></div>
+
+      <div class="guardian">
+        <span>☂ 护法位 · <b>老黄</b>（生死之交 ③）</span>
+        <span class="g">渡劫 +0.03 生效中</span>
+      </div>
+      <div class="spouse-row none"><span>♡ 道侣 · 尚未结缘</span><span>候选好感满档可结缘双修</span></div>
+
+      <div class="sec">
+        <div class="sec-t"><span>道友 · 16</span><span>已结缘 9 / 16</span></div>
+        <div class="grid">
+          <div class="pal"><span class="corner um">☂</span><div class="ava" style="--av:#c8a24a">黃</div><div class="nm">老黄</div><div class="tier">生死之交③</div><div class="pb"><i style="width:82%"></i></div><div class="fv">82/100</div></div>
+          <div class="pal"><div class="ava" style="--av:#b0653a">尾</div><div class="nm">赤尾</div><div class="tier">知交②</div><div class="pb"><i style="width:38%"></i></div><div class="fv">38/70</div></div>
+          <div class="pal"><div class="ava" style="--av:#5c7a52">秦</div><div class="nm">秦老丈</div><div class="tier">知交②</div><div class="pb"><i style="width:45%"></i></div><div class="fv">45/70</div></div>
+          <div class="pal"><div class="ava" style="--av:#4e6a86">柳</div><div class="nm">柳三变</div><div class="tier">知交②</div><div class="pb"><i style="width:38%"></i></div><div class="fv">38/70</div></div>
+          <div class="pal"><div class="ava" style="--av:#7a5c46">陈</div><div class="nm">陈郎中</div><div class="tier">相识①</div><div class="pb"><i style="width:12%"></i></div><div class="fv">12/30</div></div>
+          <div class="pal"><div class="ava" style="--av:#6a7a4e">躺</div><div class="nm">躺云师弟</div><div class="tier">相识①</div><div class="pb"><i style="width:8%"></i></div><div class="fv">8/30</div></div>
+          <div class="pal dead"><div class="ava">缘</div><div class="nm">？？？</div><div class="deadtag">缘 尽</div></div>
+          <div class="pal"><div class="ava" style="--av:#8a6a3e">满</div><div class="nm">周阿满</div><div class="tier">生死之交③</div><div class="pb"><i style="width:71%"></i></div><div class="fv">71/100</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal"><div class="ava" style="--av:#86607a">祝</div><div class="nm">祝阿婆</div><div class="tier">相识①</div><div class="pb"><i style="width:5%"></i></div><div class="fv">5/30</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal"><div class="ava" style="--av:#5c544a">陆</div><div class="nm">陆小满</div><div class="tier">相识①</div><div class="pb"><i style="width:9%"></i></div><div class="fv">9/30</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t"><span>道侣候选 · 4</span><span>「双」= 满档可结缘双修</span></div>
+        <div class="grid">
+          <div class="pal"><span class="corner sh">双</span><div class="ava" style="--av:#a05a78">晚</div><div class="nm">苏晚</div><div class="tier">相识①</div><div class="pb"><i style="width:20%"></i></div><div class="fv">20/30</div></div>
+          <div class="pal lock"><span class="corner sh">双</span><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal"><span class="corner sh">双</span><div class="ava" style="--av:#5c4a6e">芜</div><div class="nm">夜芜</div><div class="tier">道护④ · 满档</div><div class="pb"><i style="width:100%"></i></div><div class="fv" style="color:var(--sq-spouse)">100/100 · 可提亲 ♡</div></div>
+          <div class="pal lock"><span class="corner sh">双</span><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+        </div>
+      </div>
+      <div style="height:14px"></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t on">修行<span class="dot" style="display:none"></span></div><div class="t">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t">坊市</div><div class="t">奇遇</div>
+  </div>
+</div>
+<div class="note">
+  <b>稿一批注（UI v2.0 §3.3 侣浮层）</b>
+  <ul>
+    <li>20 格分两节：道友 16 / 道侣候选 4；格内四态全展示——已结缘（头像字 + 档名 + 好感进度条）、未结缘（剪影「？」，名讳隐藏）、护法位（☂ 金角标，好感最高者自动担任）、绝交锁（「缘尽」灰格，身份永不揭示——本稿存档里是当年夺过碗、后来业力又修回正道的那位：缘断不可复结）；</li>
+    <li>候选格无论结缘与否都带藕荷「双」角标——「有一位可结道侣的人藏在？」是收集牵引；</li>
+    <li>顶部两行常驻：护法位摘要（档 3 起显示渡劫加项）+ 双修状态行（未结缘 = 虚线灰态提示）；</li>
+    <li>档名走词表 `bond.{id}.title.{1..4}`：相识 / 知交 / 生死之交 / 道护；</li>
+    <li>「侣」chip 红点 = 有人升档或候选可提亲，进浮层即消。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 稿二 · 格位详情 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿二 · 格位详情（点老黄格 · 浮层内二级页）</div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh"><span class="t" style="font-size:13px">‹ 返回名录</span><span class="x">✕ 关闭</span></div>
+      <div class="detail">
+        <div class="head">
+          <div class="ava">黃</div>
+          <div class="id">
+            <b>老黄 <span style="font-size:11px;color:var(--sq-primary)">☂ 护法位</span></b>
+            <div class="sub">灵兽 · 犬 ｜ 生死之交 ③<br>个体助力生效中 · 下一档「道护」还需 18 点好感</div>
+          </div>
+        </div>
+
+        <div class="fbar">
+          <div class="lab"><span>好感度</span><b>82 / 100</b></div>
+          <div class="tr"><i></i></div>
+          <div class="marks"><span>相识 1</span><span>知交 30</span><span>生死 70</span><span>道护 100</span></div>
+        </div>
+
+        <div class="dsec">
+          <div class="dt">个 体 助 力</div>
+          <div class="perk"><span>忠护 · 幻境/心魔类减益时长</span><span class="pv">−15%（档③/满档 −20%）</span></div>
+        </div>
+
+        <div class="dsec">
+          <div class="dt">人 物 小 传</div>
+          <div class="dd">雨天岩缝里捡回的黄犬，铁夹起开时它只是安静看你。如今你洞府门口夜夜卧着一团黄色，有人路过便抬头，是你回来便尾巴扫地。</div>
+        </div>
+
+        <div class="dsec">
+          <div class="dt">出 身 事 件</div>
+          <div class="srcline"><span>迷途灵犬（人级 · 机缘 · 特殊）<span class="tagline">缘</span></span><span class="go">回看图鉴 ›</span></div>
+          <div class="dd" style="font-size:10.5px;color:var(--xhub-text-3);margin-top:6px">一生一会 · 正道分支首遇结缘 +30；它托住你后背的那一刻，缘分就定下了。</div>
+        </div>
+
+        <div class="dsec">
+          <div class="dt">护 法 记 录</div>
+          <div class="dd" style="font-size:11.5px">已为你护法 <b>7</b> 次 · 成功 <b>5</b> 次 —— 「雷云之下，它永远立得笔直。」</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>稿二批注</b>
+  <ul>
+    <li>详情五段式：头部（头像字/档名/护法标）→ 好感进度（四档刻度尺）→ 个体助力（当前值 + 满档预览）→ 人物小传（词表正典 `bond.{id}.flavor`）→ 出身事件（点击跳奇遇图鉴对应格并回看 story）；</li>
+    <li>灵兽不拟人语——小传用行为写情（§5.5 创作纪律）；</li>
+    <li>护法记录为轻量统计（tribulation 字段衍生），给「渡劫 +0.03」一个可感知的叙事落点；</li>
+    <li>候选格详情页把「出身事件」段替换为「结缘条件」段 + 满档时显示「提亲 ♡」主按钮（稿三）。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 稿三 · 提亲 CONFIRM 三形态 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿三 · 提亲 CONFIRM（夜芜 · 好感满档 · 当前正道 +214）</div>
+  <div class="overlay" style="align-items:center;padding:16px">
+    <div class="sheet" style="border-radius:16px">
+      <div class="propose">
+        <div class="pt">提 亲</div>
+        <div class="ps">与 夜芜 结为道侣 · 形态由<b style="color:var(--sq-primary)">结缘瞬间</b>的业力档位决定</div>
+
+        <div class="form-card cur">
+          <div class="fn">阴阳双修 <span class="st">当前可达 · 正道</span></div>
+          <div class="cond">需 karma ≥ +200（当前 +214 ✓）· 跌破即解除，7 日后可重新提亲</div>
+          <div class="eff"><b>qiRate +6%</b> · <b>offlineEff +10%</b> · 心魔类减益 −25%</div>
+        </div>
+
+        <div class="form-card off">
+          <div class="fn">互助双修 <span class="st">未达 · 左道</span></div>
+          <div class="cond">需 −200 &lt; karma &lt; +200 · 无维持条件，最稳</div>
+          <div class="eff">qiRate +10%</div>
+        </div>
+
+        <div class="form-card off">
+          <div class="fn" style="color:var(--sq-danger)">炉鼎采补 <span class="st">未达 · 魔道</span></div>
+          <div class="cond">需 karma ≤ −200</div>
+          <div class="eff">qiRate +18%</div>
+          <div class="cost">代价三重：道心 −20 即刻入账 · 其个体助力归零 · 回头（karma &gt; −200）即散，缘锁此生不再护法</div>
+        </div>
+
+        <div class="pbtns">
+          <button class="yes">结 · 阴阳双修</button>
+          <button class="no">且 慢</button>
+        </div>
+        <div class="pfoot">结契后将全屏停留一句结缘词 · 同时只能与一位道侣双修<br>双修不限性别 · 文案写意留白（炉鼎的黑暗感只在代价，不在描写）</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note">
+  <b>稿三批注（UI v2.0 §5.2 提亲演出 / 四柱框架 §5.3）</b>
+  <ul>
+    <li>三形态卡全列示：当前 karma 可达者高亮描金，其余置灰但<b>代价与效果全部可见</b>——让玩家知道另一条路上有什么（阵营选择的叙事橱窗）；</li>
+    <li>炉鼎采补的三重代价红字明示，确认前无信息差；</li>
+    <li>确认 → 结契轻演出：结缘词 `spouse.yewu.yinyang`（「魔道的帖，我传完了。往后——只传你家的家书。」）全屏停留 2 秒；</li>
+    <li>魔道档玩家打开同一模态时：阴阳/互助置灰、炉鼎高亮——同一组件三态复用。</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══ 稿四 · 魔道档对照态 ═══ -->
+<div class="frame-col">
+<div class="phone">
+  <div class="caption">稿四 · 魔道档变体对照（另一存档演示态：karma −286 · 已结炉鼎采补）</div>
+  <div class="topbar">
+    <div class="who"><b>厉惊寒</b> <span>@ 青云界 · 化神二层</span></div>
+    <div class="right"><span class="kbadge evil">☠ 魔道气息 −286</span><span>💰 96.2万</span></div>
+  </div>
+  <div class="overlay">
+    <div class="sheet">
+      <div class="sh"><span class="t">道友名录</span><span class="x">✕ 关闭</span></div>
+
+      <div class="guardian dead">
+        <span>☂ 护法位 · <b>无人</b></span>
+        <span class="msg">魔道夜行，无人替你守夜（护法加项失效）</span>
+      </div>
+      <div class="spouse-row luding"><span>♡ 炉鼎采补 · 夜芜 —— qiRate +18% 生效中</span><span>回头即散</span></div>
+
+      <div class="sec">
+        <div class="sec-t"><span>道友 · 16</span><span>已结缘 4 / 16 · 缘尽 3</span></div>
+        <div class="grid">
+          <div class="pal dead"><div class="ava">缘</div><div class="nm">？？？</div><div class="deadtag">缘 尽</div></div>
+          <div class="pal"><div class="ava" style="--av:#b0653a">尾</div><div class="nm">赤尾</div><div class="tier">知交②</div><div class="pb"><i style="width:42%"></i></div><div class="fv">42/70</div></div>
+          <div class="pal dead"><div class="ava">缘</div><div class="nm">？？？</div><div class="deadtag">缘 尽</div></div>
+          <div class="pal"><div class="ava" style="--av:#4e6a86">柳</div><div class="nm">柳三变</div><div class="tier">知交②</div><div class="pb"><i style="width:33%"></i></div><div class="fv">33/70</div></div>
+          <div class="pal"><div class="ava" style="--av:#7a5c46">陈</div><div class="nm">陈郎中</div><div class="tier">相识①</div><div class="pb"><i style="width:10%"></i></div><div class="fv">10/30</div></div>
+          <div class="pal dead"><div class="ava">缘</div><div class="nm">？？？</div><div class="deadtag">缘 尽</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal"><div class="ava" style="--av:#8a6a3e">满</div><div class="nm">周阿满</div><div class="tier">相识①</div><div class="pb"><i style="width:4%"></i></div><div class="fv">4/30</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t"><span>道侣候选 · 4</span><span>双修中 1</span></div>
+        <div class="grid">
+          <div class="pal lock"><span class="corner sh">双</span><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal lock"><span class="corner sh">双</span><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+          <div class="pal"><span class="corner sh">双</span><div class="ava" style="--av:#5c4a6e">芜</div><div class="nm">夜芜</div><div class="tier" style="color:var(--sq-danger)">道护④ · 炉鼎</div><div class="pb"><i style="width:100%;background:var(--sq-danger)"></i></div><div class="fv">100/100</div></div>
+          <div class="pal lock"><span class="corner sh">双</span><div class="ava">？</div><div class="nm">？？？</div><div class="tier">未结缘</div></div>
+        </div>
+      </div>
+
+      <div class="sec" style="padding-bottom:16px">
+        <div class="dt" style="font-size:11px;letter-spacing:.25em;color:var(--xhub-text-3);margin-bottom:6px">夜 芜 · 个 体 助 力</div>
+        <div class="perk off"><span>引夜 · eventLuck<span class="why">鼎炉被采，何暇助你（双修期间归零）</span></span><span class="pv">+8% → 0</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="t on">修行</div><div class="t">秘境</div><div class="t">功法</div>
+    <div class="t">法器</div><div class="t">法宝</div><div class="t">坊市</div><div class="t">奇遇<span class="dot"></span></div>
+  </div>
+</div>
+<div class="note">
+  <b>稿四批注（魔道档三处状态差异，全部对应机制）</b>
+  <ul>
+    <li>① 护法位区整体置灰：「魔道夜行，无人替你守夜」——guardianBonus 归零，个体助力照常（市井之交不问正邪）；</li>
+    <li>② 双修状态行换暗红：「炉鼎采补 · 生效中 · 回头即散」；该候选详情内个体助力显示划断态 + 「鼎炉被采，何暇助你」；</li>
+    <li>③ 缘尽格明显更多（卖狗/夺碗/里应外合的长尾后果）——身份永不揭示，只留「缘尽」二字；好感数值不变，锁的是护法资格；</li>
+    <li>顶栏徽标换魔道配色（暗红），与 module 卡同一令牌映射；此稿人设（厉惊寒 −286）仅用于对照演示，非主稿存档。</li>
+  </ul>
+</div>
+</div>
+
+</body>
+</html>

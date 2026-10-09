@@ -1,0 +1,406 @@
+/* .tests/verify-ui-bonds.cjs — 道友页「往来」段 UI 走查（好感三渠道批的视图侧补篇 · 任务清单 D1）
+ * 依赖：playwright-core（仓库根 node_modules）+ 系统 Edge headless。用法：
+ *   NODE_PATH=<仓库根 node_modules 的 Windows 路径> node .tests/verify-ui-bonds.cjs
+ *
+ * 为什么缺这一篇：好感三渠道批（2026-10-06）把同道详情由五段改六段、未识格由「只轻震」改可点开隐匿详情，
+ * 是本批最大的体验增量，但当时只落了引擎侧冒烟 #257 与视图侧探针 probe-bondact（DOM 桩），
+ * **真浏览器里的「点得到、数字对、身份不漏」三件事从未被执行验证过**。
+ *
+ * ⚠️ 状态读取口径：view/index.html:1359 的 `var state = {}` 是 IIFE 闭包内变量，页内 `state` 取不到
+ *   （page.evaluate 直取必 ReferenceError）。故：
+ *   ① 读状态 = `JSON.parse(localStorage.getItem('sanqian-state-v1'))`（动作一律经 SQ.mutate 落盘，
+ *      这条读法同时证明「真的落盘了」；日志另走独立键 sanqian-logs-v1，见 core.js 日志存档批）；
+ *   ② 页内注入 = `await SQ.mutate({}, function (s) { ... })`（回调参数即 state，同 verify-ui-karma.cjs:79）。
+ *
+ * 为什么拆三个 context：拜访是**全局单冷却 3,600,000ms**（ws.bondVisitAt 一个锚、不分人），
+ *   同一 context 里点过一次，另一人的按钮必然置灰 —— 结识链与「已识者往来段」不能共用一次拜访。
+ *   A = 未识结识链 + 冷却置灰；B = 已识者六段 + 异向/同向拜访 + 赠丹 + 零灵石流动 + 日志；
+ *   C = 日限占满（**用假 day 值无效**：giftLeft 与引擎都按 Alchemy.gameDayOf 现算，day 不符即视为
+ *   今日未赠过，故必须在页内算出真游戏日再塞 giftDay={day,n:3}）。
+ *
+ * 数字基准（引擎与沙箱实测，非推测）：名录 58 格（44 友 + 14 道侣候选）；BOND_TIERS=[1,30,70,100]、
+ *   BOND_MAX=100；BOND_VISIT_BY_TIER=[3,3,2,1,0]、CD=3600000、ALIGN_BONUS=1（**只给已识者**）；
+ *   BOND_GIFT_BY_TIER={huang:4,xuan:6,di:9,tian:14}、DAILY=3。
+ *   fixture：xie aff 55 = 档 2、align right，世界 karma 0 = neutral ⇒ 异向 gain 2；karmaEventScore 推到
+ *   250 ⇒ 世界档 right ⇒ 同向 gain 3；黄丹 +4（库存 3→2）、天丹 +14（距满档余量 45，不被 min 截）。
+ */
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const { chromium } = require('playwright-core');
+
+const ROOT = path.resolve(__dirname, '..');
+const URL = 'file:///' + path.join(ROOT, 'view/index.html').replace(/\\/g, '/');
+const KEY = 'sanqian-state-v1';
+const LOG_KEY = 'sanqian-logs-v1';
+
+/* 存档种子：清空 artsSlots/gear/drift ⇒ karma 精确等于 karmaEventScore（同 karma 篇口径），
+ * 异向 / 同向两态可由本文件单方切换，不吃 recalcDerived 的副作用。
+ * ⚠️ 时钟口径：Alchemy.gameDayOf = floor((Date.now() − profile.createdAt) / 1000)，即
+ *   **1 游戏日 = 1 现实秒**（丹毒日限同源）。赠丹日限类断言若靠真实时间推进，
+ *   渲染等待的几百毫秒里日锚随时翻篇 ⇒ 用 at + freeze 把 Date.now 钉在一个固定点，
+ *   日锚才是确定值（全仓零处 `new Date()`，时间源只有 Date.now，钉它即钉住全部）。 */
+function seed(over) {
+  over = over || {};
+  const T = over.at || Date.now();
+  const bornAt = T - (over.ageMs || 0);
+  const s0 = JSON.parse(fs.readFileSync(path.join(ROOT, '.tests/fixture-save.json'), 'utf8'));
+  s0.profile.createdAt = bornAt;
+  const w = s0.worlds.xiuxian;
+  w.lastSave = T; w.lastOffline = null; w.pendingChoice = null;
+  w.realm = 1;                       /* 道友页门槛 TAB_UNLOCK.bonds.r = 1 */
+  w.artsSlots = [];
+  w.gear = { weapon: null, treasure: null, armor: null, accessory: null };
+  w.alignDrift = 0;
+  w.karmaEventScore = (over.karmaEventScore != null) ? over.karmaEventScore : 0;
+  w.karma = w.karmaEventScore;
+  w.bonds = { suwan: 100, xie: 55, yewu: 30 };   /* huang / liu 刻意缺席 = 未识（tier 0）*/
+  w.bondVisitAt = 0;
+  w.alchemy = {
+    furnace: true,
+    pills: { ap_juqi: 3, ap_pozhang: 1, ap_haina: 1 },
+    giftDay: over.giftDay || { day: -999999, n: 0 },   /* 远旧日 ⇒ 今日余满 3 次（normalize 原样保留 day/n）*/
+    pillDay: { day: -999999, n: 0 }
+  };
+  return { save: s0, at: T, bornAt: bornAt, freeze: !!over.freeze };
+}
+
+async function mkPage(browser, S) {
+  const ctx = await browser.newContext({ viewport: { width: 900, height: 900 } });
+  /* 注：initScript 会被序列化到浏览器上下文执行，Node 端闭包变量（KEY 等）在页内不存在，
+   * 一律经参数传入——直接写 localStorage.setItem(KEY, ...) 会 ReferenceError 静默不写档、卡在创角页 */
+  await ctx.addInitScript((p) => {
+    localStorage.setItem(p.k, p.s);
+    if (p.freeze) { Date.now = function () { return p.at; }; }
+  }, { k: KEY, s: JSON.stringify(S.save), freeze: S.freeze, at: S.at });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  await page.goto(URL);
+  await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+  await page.waitForTimeout(700);
+  return { ctx, page, errors };
+}
+
+(async () => {
+  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  let pass = 0, fail = 0;
+  const T = (ok, name, detail) => {
+    if (ok) pass++; else fail++;
+    console.log((ok ? 'PASS' : 'FAIL') + ' ' + name + (detail ? ' (' + detail + ')' : ''));
+  };
+
+  /* ── 页内助手（一律不碰闭包 state）── */
+  const wire = (page) => {
+    /* 读落盘态（顺带证明动作真的经单一写通道落了盘）*/
+    const readW = () => page.evaluate((k) => {
+      const s = JSON.parse(localStorage.getItem(k) || 'null');
+      if (!s) return null;
+      const w = s.worlds[s.profile.worldId];
+      return {
+        bonds: w.bonds || {}, visitAt: w.bondVisitAt || 0, stones: w.stones,
+        pills: (w.alchemy && w.alchemy.pills) || {}, giftDay: (w.alchemy && w.alchemy.giftDay) || null,
+        ledger: w.ledger ? JSON.stringify(w.ledger) : 'none', karma: w.karma
+      };
+    }, KEY);
+    const readLogs = () => page.evaluate((k) => {
+      const raw = JSON.parse(localStorage.getItem(k) || 'null');
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1') || 'null');
+      if (!raw || !raw.logs || !w) return [];
+      return raw.logs[w.profile.worldId] || [];
+    }, LOG_KEY);
+    const inj = (fn) => page.evaluate(async (src) => {
+      await SQ.mutate({}, new Function('s', src));   /* 回调参数即 state（单一写通道）*/
+    }, fn);
+    /* 轮询等落盘（save 经串行写队列异步完成，固定 sleep 既慢又脆）*/
+    const until = async (pred, ms) => {
+      const t0 = Date.now();
+      for (;;) {
+        const v = await pred();
+        if (v) return v;
+        if (Date.now() - t0 > (ms || 5000)) return null;
+        await page.waitForTimeout(100);
+      }
+    };
+    const openDetail = async (id) => {
+      await page.evaluate(() => document.getElementById('modal-bonds').classList.add('hide'));
+      await page.evaluate((x) => {
+        const el = document.querySelector('.pal[data-act="bondOpen"][data-v="' + x + '"]');
+        if (el) el.click();
+      }, id);
+      await page.waitForTimeout(380);
+    };
+    const detailTxt = () => page.evaluate(() => {
+      const b = document.getElementById('mbd-body');
+      return (b && !document.getElementById('modal-bonds').classList.contains('hide'))
+        ? (b.textContent || '').replace(/\s+/g, ' ') : '';
+    });
+    return { readW, readLogs, inj, until, openDetail, detailTxt };
+  };
+
+  /* ══════════════ 场景 A：未识结识链 + 全局单冷却 ══════════════ */
+  {
+    const S = seed();
+    const mp = await mkPage(browser, S);
+    const page = mp.page, h = wire(page);
+    const nameHuang = await page.evaluate(() => SQ.t('bond.huang.name', null, 'xiuxian'));
+
+    await page.click('#m-tabbar button[data-v="bonds"]');
+    await page.waitForTimeout(450);
+
+    /* A1 名录 58 格（44 友 + 14 道侣候选）；未识格 = lock 剪影 + 挂 bondOpen + 格内零真名 */
+    const list = await page.evaluate(() => {
+      const cells = Array.from(document.querySelectorAll('#tab-bonds .pal'));
+      const el = document.querySelector('#tab-bonds .pal[data-v="huang"]');
+      return {
+        n: cells.length,
+        lockN: cells.filter((c) => /(^| )lock/.test(c.className)).length,
+        spN: cells.filter((c) => /(^| )sp/.test(c.className)).length,
+        deadN: cells.filter((c) => /(^| )dead/.test(c.className)).length,
+        cls: el ? el.className : '', act: el ? el.dataset.act : '', txt: el ? (el.textContent || '') : ''
+      };
+    });
+    T(list.n === 58 && list.spN === 14 && list.deadN === 0 && list.lockN === 55 &&
+      list.act === 'bondOpen' && /lock/.test(list.cls) && list.txt.indexOf(nameHuang) < 0,
+      'A1 名录 58 格（44 友 + 14 候选）、未识格为可点开的剪影格且格内零真名',
+      'pal=' + list.n + ' lock=' + list.lockN + ' sp=' + list.spN + ' dead=' + list.deadN +
+      ' act=' + list.act + ' txt=' + list.txt.replace(/\s+/g, '').slice(0, 10));
+
+    /* A2 未识详情 = 隐匿详情：只有「往来」一段、无好感尺、零赠丹 chip、正文零真名 */
+    await h.openDetail('huang');
+    const unk = await page.evaluate(() => {
+      const b = document.getElementById('mbd-body');
+      return {
+        secs: Array.from(b.querySelectorAll('.dsec .dt')).map((x) => (x.textContent || '').trim()),
+        fbar: !!b.querySelector('.fbar'), head: !!b.querySelector('.bd-head'),
+        gifts: b.querySelectorAll('[data-act="bondGift"]').length,
+        txt: (b.textContent || '').replace(/\s+/g, ' ')
+      };
+    });
+    T(unk.secs.length === 1 && /^往\s*来$/.test(unk.secs[0]) && !unk.fbar && unk.gifts === 0 &&
+      unk.txt.indexOf(nameHuang) < 0,
+      'A2 未识详情＝隐匿详情：单「往来」段 / 无好感尺 / 零赠丹段 / 身份零渲染',
+      'secs=' + JSON.stringify(unk.secs) + ' fbar=' + unk.fbar + ' giftChips=' + unk.gifts);
+
+    /* A3 未识拜访按钮：标 +3、挂「可借此结识」、不挂同向角标（未识者阵营未揭，给了就是身份泄漏）*/
+    const vBtn = await page.evaluate(() => {
+      const b = document.querySelector('#mbd-body [data-act="bondVisit"][data-v="huang"]');
+      if (!b) return null;
+      const g = (s) => { const e = b.querySelector(s); return e ? (e.textContent || '').trim() : null; };
+      return { gv: g('.gv'), mt: g('.mt'), ab: g('.ab'), an: g('.an') };
+    });
+    const wa0 = await h.readW();
+    T(!!vBtn && vBtn.gv === '+3' && !!vBtn.mt && vBtn.ab === null && (wa0.bonds.huang || 0) === 0,
+      'A3 未识拜访标注 +3 且挂结识标、无「同道相投」角标（tier0 递减表首格）',
+      'btn=' + JSON.stringify(vBtn) + ' aff=' + (wa0.bonds.huang || 0));
+
+    /* A4 结识链三处同源：落盘 0→3（引擎 tier0 实发）+ 结识 toast 点名 + 名录格由「？」转实名 */
+    await page.click('#mbd-body [data-act="bondVisit"][data-v="huang"]');
+    const aff3 = await h.until(() => h.readW().then((w) => (w.bonds.huang === 3 ? w : null)));
+    const toast1 = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts .toast')).map((x) => x.textContent).join(' | '));
+    const cellAfter = await page.$$eval('#tab-bonds .pal[data-v="huang"]', (e) => (e[0] ? { cls: e[0].className, txt: e[0].textContent || '' } : null));
+    T(!!aff3 && toast1.indexOf(nameHuang) >= 0 && !!cellAfter && cellAfter.txt.indexOf(nameHuang) >= 0 &&
+      !/lock/.test(cellAfter.cls),
+      'A4 拜访未识者实发 +3 落盘、结识 toast 点名、名录格由剪影转实名（标注 === 实发）',
+      'aff=' + (aff3 ? aff3.bonds.huang : 'timeout') + ' toastHit=' + (toast1.indexOf(nameHuang) >= 0) +
+      ' cell=' + (cellAfter ? cellAfter.txt.replace(/\s+/g, '').slice(0, 12) : 'none') + ' name=' + nameHuang);
+
+    /* A5 全局单冷却（一个锚不分人）：另一人（liu）按钮置灰且摘掉 data-act、给出剩余时间；
+     *    强行点击零副作用 —— 第二人好感仍 0、冷却锚不被顶掉、首次结识不回退 */
+    await h.openDetail('liu');
+    const nameLiu = await page.evaluate(() => SQ.t('bond.liu.name', null, 'xiuxian'));
+    const cd = await page.evaluate(() => {
+      const b = document.querySelector('#mbd-body .actbtn');
+      return {
+        btnN: document.querySelectorAll('#mbd-body .actbtn').length,
+        liveN: document.querySelectorAll('#mbd-body [data-act="bondVisit"]').length,
+        disabled: b ? b.disabled === true : null,
+        hasAct: b ? (b.getAttribute('data-act') || '') : '',
+        cdTxt: b ? ((b.querySelector('.cd') || {}).textContent || '').trim() : '',
+        gv: b ? ((b.querySelector('.gv') || {}).textContent || '') : ''
+      };
+    });
+    const visitAtBefore = (await h.readW()).visitAt;
+    await page.evaluate(() => { const b = document.querySelector('#mbd-body .actbtn'); if (b) b.click(); });
+    await page.waitForTimeout(500);
+    const wa1 = await h.readW();
+    T(cd.btnN === 1 && cd.liveN === 0 && cd.disabled === true && cd.hasAct === '' && cd.gv === '' &&
+      /[\d]/.test(cd.cdTxt) && (wa1.bonds.liu || 0) === 0 && wa1.visitAt === visitAtBefore && wa1.bonds.huang === 3,
+      'A5 拜访是全局单冷却：第二人按钮置灰无 data-act、显示剩余时间，强点零副作用',
+      'btn=' + cd.btnN + ' live=' + cd.liveN + ' dis=' + cd.disabled + ' cd=' + cd.cdTxt +
+        ' liuAff=' + (wa1.bonds.liu || 0) + ' visitAtSame=' + (wa1.visitAt === visitAtBefore) + ' nameLeak=' + (cd.cdTxt.indexOf(nameLiu) >= 0));
+
+    T(mp.errors.length === 0, 'A6 场景A 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
+    await mp.ctx.close();
+  }
+
+  /* ══════════════ 场景 B：已识者六段 + 异向/同向 + 赠丹 + 底线 + 日志 ══════════════ */
+  {
+    const S = seed();
+    const mp = await mkPage(browser, S);
+    const page = mp.page, h = wire(page);
+    await page.click('#m-tabbar button[data-v="bonds"]');
+    await page.waitForTimeout(450);
+    const nameXie = await page.evaluate(() => SQ.t('bond.xie.name', null, 'xiuxian'));
+
+    /* B1 详情六段：头部 → 好感尺 → 往来 → 个体助力 →（小传 → 结缘条件）——
+     *    「往来」是首个 .dsec 且紧跟它要改的那根尺，助力在其后（助力是果、往来是因）*/
+    await h.openDetail('xie');
+    const sec = await page.evaluate(() => {
+      const b = document.getElementById('mbd-body');
+      const dsecs = Array.from(b.querySelectorAll('.dsec'));
+      const act = dsecs.findIndex((s) => /^往\s*来$/.test(((s.querySelector('.dt') || {}).textContent || '').trim()));
+      const next = act >= 0 && dsecs[act + 1]
+        ? ((dsecs[act + 1].querySelector('.dt') || {}).textContent || '').trim() : '';
+      const head = b.querySelector('.bd-head'), fbar = b.querySelector('.fbar');
+      const before = (x, y) => !!(x && y && (x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING));
+      return {
+        n: dsecs.length, act, next,
+        headFirst: before(head, fbar), fbarBeforeAct: before(fbar, act >= 0 ? dsecs[act] : null),
+        names: Array.from(b.querySelectorAll('.dsec .dt')).map((x) => (x.textContent || '').trim().replace(/\s+/g, ''))
+      };
+    });
+    T(sec.n === 4 && sec.act === 0 && /助\s*力/.test(sec.next) && sec.headFirst && sec.fbarBeforeAct,
+      'B1 已识者详情六段齐（头部/尺/往来/助力/小传/结缘条件）且往来紧随好感尺',
+      'dsec=' + sec.n + ' actIdx=' + sec.act + ' next=' + sec.next + ' secs=' + sec.names.join('/'));
+
+    /* B2 tier2 异向：世界 neutral vs 本人 right ⇒ 递减表档 2 = +2、无角标；实发 55→57 */
+    const v0 = await page.evaluate(() => {
+      const b = document.querySelector('#mbd-body [data-act="bondVisit"][data-v="xie"]');
+      return b ? { gv: ((b.querySelector('.gv') || {}).textContent || '').trim(),
+        ab: !!b.querySelector('.ab'), mt: !!b.querySelector('.mt') } : null;
+    });
+    const wb0 = await h.readW();
+    await page.click('#mbd-body [data-act="bondVisit"][data-v="xie"]');
+    const wb1 = await h.until(() => h.readW().then((w) => (w.bonds.xie === 57 ? w : null)));
+    T(!!v0 && v0.gv === '+2' && v0.ab === false && v0.mt === false && wb0.bonds.xie === 55 &&
+      !!wb1 && wb1.bonds.xie === 57,
+      'B2 tier2 异向拜访标 +2 且无角标，实发 55→57（标注 === 实发）',
+      'btn=' + JSON.stringify(v0) + ' aff=' + wb0.bonds.xie + '→' + (wb1 ? wb1.bonds.xie : 'timeout'));
+
+    /* B3 同向对照：把世界档位推到 right（karmaEventScore 250 → recalcDerived → karma 250）⇒ 同一人
+     *    标注变 +3（base 2 + ALIGN_BONUS 1）且「同道相投」角标出现；实发必须同步吃到 +1。
+     *    ⚠️ 判据取**点击前后的增量**而非绝对值：改 karma 那一次 recalcDerived 会经势力联动顺带动好感
+     *    （实测 +2，日志里多出的那条 cat bond 即它），绝对值断言会把这条联动误判成「标注不符」。*/
+    await h.inj('var w=s.worlds[s.profile.worldId]; w.karmaEventScore=250; w.bondVisitAt=0;');
+    await page.evaluate(() => { const st = document.getElementById('rank-stage'); if (st) st.classList.add('hide'); });
+    await page.waitForTimeout(400);
+    await h.openDetail('xie');
+    const v1 = await page.evaluate(() => {
+      const b = document.querySelector('#mbd-body [data-act="bondVisit"][data-v="xie"]');
+      return b ? { gv: ((b.querySelector('.gv') || {}).textContent || '').trim(),
+        abTxt: ((b.querySelector('.ab') || {}).textContent || '').trim() || null } : null;
+    });
+    const step3 = parseInt(String(v1 ? v1.gv : '').replace(/[^\d]/g, ''), 10) || 3;
+    const wb1f = await h.readW();
+    await page.click('#mbd-body [data-act="bondVisit"][data-v="xie"]');
+    const wb2 = await h.until(() => h.readW().then((w) => (w.bonds.xie === wb1f.bonds.xie + step3 ? w : null)));
+    const wb2f = wb2 || await h.readW();
+    T(!!v1 && v1.gv === '+3' && /同道相投/.test(v1.abTxt || '') && wb2f.bonds.xie - wb1f.bonds.xie === 3 && wb2f.karma === 250,
+      'B3 同向对照：世界档转 right 后标注 +3 且角标出现，实发增量与标注同数',
+      'btn=' + JSON.stringify(v1) + ' aff ' + wb1f.bonds.xie + '→' + wb2f.bonds.xie + ' karma=' + wb2f.karma);
+
+    /* B4 赠丹只列可赠：双特例（once: ap_pozhang 破障丹）由引擎与视图两层同口径挡在门外；
+     *    名义增量按丹方 tier 对表（huang +4 / tian +14），且此刻 aff 已 62（含势力联动 +2）、
+     *    距满档余量 38，天丹 +14 不被「对余量取 min」截掉 */
+    const chips = await page.evaluate(() => Array.from(document.querySelectorAll('#mbd-body [data-act="bondGift"]')).map((x) => ({
+      c: x.dataset.c, gv: ((x.querySelector('.gv') || {}).textContent || '').trim(),
+      st: ((x.querySelector('.st') || {}).textContent || '').trim(), dis: x.disabled
+    })));
+    const onceIn = chips.some((x) => x.c === 'ap_pozhang' || x.c === 'ap_zhenjie');
+    T(chips.length === 2 && !onceIn &&
+      chips.some((x) => x.c === 'ap_juqi' && x.gv === '+4' && x.st === '×3') &&
+      chips.some((x) => x.c === 'ap_haina' && x.gv === '+14' && x.st === '×1') &&
+      chips.every((x) => x.dis === false),
+      'B4 赠丹 chips 只列可赠：双特例不入列、+4/+14 对表 BOND_GIFT_BY_TIER',
+      JSON.stringify(chips));
+
+    /* B5 入账三对 + 底线：扣丹 3→2、好感 +4 === chip 标注、日限计数 0→1（「入账成功才扣」的序在真机上成立），
+     *    同时灵石与总账纹丝不动 —— 「以丹会友」送的是自有丹药，不是买好感（侣不可交易底线的视图侧实证）*/
+    const g0 = await h.readW();
+    const juqi = chips.find((x) => x.c === 'ap_juqi');
+    const stepG = parseInt(String(juqi ? juqi.gv : '').replace(/[^\d]/g, ''), 10) || 4;
+    await page.click('#mbd-body [data-act="bondGift"][data-c="ap_juqi"]');
+    const g1 = await h.until(() => h.readW().then((w) => (w.bonds.xie === g0.bonds.xie + stepG ? w : null)));
+    const g1f = g1 || await h.readW();
+    T(g0.pills.ap_juqi === 3 && g1f.pills.ap_juqi === 2 && g0.giftDay.n === 0 && g1f.giftDay.n === 1 &&
+      g1f.bonds.xie - g0.bonds.xie === stepG && isFinite(g1f.giftDay.day) &&
+      g1f.stones === g0.stones && g1f.ledger === g0.ledger,
+      'B5 赠丹入账：库存 3→2 / 好感增量 === chip 标注 +4 / 日限 0→1，且灵石与总账零流动',
+      'pills ' + g0.pills.ap_juqi + '→' + g1f.pills.ap_juqi + ' aff ' + g0.bonds.xie + '→' + g1f.bonds.xie +
+        ' giftDay ' + JSON.stringify(g0.giftDay) + '→' + JSON.stringify(g1f.giftDay) +
+        ' stones ' + g0.stones + '→' + g1f.stones + ' ledgerSame=' + (g1f.ledger === g0.ledger));
+
+    /* B6 日志：两次拜访与一次赠丹各落一条 cat 'bond'（引擎内记、视图不双写），且日志页「道友」筛选真能看到 */
+    await page.evaluate(() => document.getElementById('modal-bonds').classList.add('hide'));
+    await page.click('#m-tabbar button[data-v="journal"]');
+    await page.waitForTimeout(400);
+    await page.click('#tab-journal .chips button[data-act="logFilter"][data-v="bond"]');
+    await page.waitForTimeout(400);
+    const logs = await h.readLogs();
+    const bondLogs = logs.filter((x) => x.cat === 'bond');
+    const jTxt = await page.evaluate(() => (document.getElementById('tab-journal') || {}).innerText || '');
+    const chipOn = await page.evaluate(() => {
+      const b = document.querySelector('#tab-journal .chips button[data-v="bond"]');
+      return b ? { on: /(^| )on/.test(b.className), label: (b.textContent || '').trim() } : null;
+    });
+    T(bondLogs.length >= 3 && bondLogs.every((x) => typeof x.text === 'string' && x.text.length > 0) &&
+      !!chipOn && chipOn.on && jTxt.indexOf(nameXie) >= 0 && /登门拜访|以.+相赠/.test(jTxt),
+      'B6 往来日志落 cat bond 且日志页「道友」筛选真可见（引擎内记、视图不双写）',
+      'bondLogs=' + bondLogs.length + ' chip=' + JSON.stringify(chipOn) +
+        ' hit=' + (jTxt.indexOf(nameXie) >= 0) + ' last=' + (bondLogs[bondLogs.length - 1] || {}).text);
+
+    T(mp.errors.length === 0, 'B7 场景B 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
+    await mp.ctx.close();
+  }
+
+  /* ══════════════ 场景 C：日限占满（冻结时钟 ⇒ 日锚为确定值；真实时间下 1 秒翻一天，必竞态）══════════════ */
+  {
+    const S = seed({ at: Date.now(), ageMs: 5000, giftDay: { day: 5, n: 3 }, freeze: true });
+    const mp = await mkPage(browser, S);
+    const page = mp.page, h = wire(page);
+    await page.click('#m-tabbar button[data-v="bonds"]');
+    await page.waitForTimeout(450);
+
+    /* 日锚不靠猜：用引擎同一个 gameDayOf 现算，确认冻结后的 Date.now 仍落在 seed 的 day = 5 上
+     * （塞假 day 值无效——giftLeft 与引擎都按 gameDayOf 判，day 不符即视作「今日未赠过」自动清零重计）*/
+    await h.openDetail('xie');
+    const daily = await page.evaluate(() => {
+      const b = document.getElementById('mbd-body');
+      const chips = Array.from(b.querySelectorAll('[data-act="bondGift"]'));
+      const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+      const w = s.worlds[s.profile.worldId];
+      return {
+        n: chips.length, disN: chips.filter((x) => x.disabled).length,
+        dayNow: SQ.Alchemy.gameDayOf(w, s.profile, Date.now()),
+        seedDay: w.alchemy.giftDay.day, seedN: w.alchemy.giftDay.n,
+        txt: (b.textContent || '').replace(/\s+/g, ' ')
+      };
+    });
+    /* C1 日限占满：chips 仍呈列但全置灰，并给出次数文案（与「无丹可赠」是两回事）*/
+    T(daily.dayNow === 5 && daily.seedDay === 5 && daily.seedN === 3 &&
+      daily.n === 2 && daily.disN === 2 && /今日已赠过\s*3\s*次/.test(daily.txt) && /以丹相赠（今日 3\/3）/.test(daily.txt),
+      'C1 日限占满：chips 全置灰但仍呈列 + 给出「今日已赠过 3 次」文案',
+      'day=' + daily.dayNow + '/seed ' + daily.seedDay + '·n' + daily.seedN + ' chips=' + daily.disN + '/' + daily.n);
+
+    /* C2 被日限拒绝时绝不白扣：库存、好感、日限计数三者零变动 */
+    const c0 = await h.readW();
+    await page.evaluate(() => { const b = document.querySelector('#mbd-body [data-act="bondGift"][data-c="ap_juqi"]'); if (b) b.click(); });
+    await page.waitForTimeout(600);
+    const c1 = await h.readW();
+    T(c0.pills.ap_juqi === c1.pills.ap_juqi && c0.bonds.xie === c1.bonds.xie &&
+      c0.giftDay.n === c1.giftDay.n && c0.visitAt === c1.visitAt,
+      'C2 日限拒绝零白扣（丹 / 好感 / 日限 / 冷却锚四者纹丝不动）',
+      'pills ' + c0.pills.ap_juqi + '→' + c1.pills.ap_juqi + ' aff ' + c0.bonds.xie + '→' + c1.bonds.xie +
+        ' giftDay ' + c0.giftDay.n + '→' + c1.giftDay.n);
+
+    T(mp.errors.length === 0, 'C3 场景C 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
+    await mp.ctx.close();
+  }
+
+  console.log(fail === 0 ? 'UI_BONDS_ALL_GREEN ' + pass + '/' + (pass + fail)
+    : 'UI_BONDS_FAILED ' + fail + '/' + (pass + fail));
+  await browser.close();
+  process.exit(fail === 0 ? 0 : 1);
+})().catch((e) => { console.error('SCRIPT_ERROR', e); process.exit(2); });
