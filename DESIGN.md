@@ -80,7 +80,7 @@ bash /e/Download/sanqian-ops/sq-check.sh    # 开场体检（只读）→ ALREAD
 node .tests/sim-pacing.cjs         # 全程节奏比值带（锚 9.12 天）
 node .tests/sim-event-economy.cjs  # 在线奇遇事件经济（密度 / 主轴）
 node .tests/sim-playthrough.cjs    # 全程模拟（5 路线 + fuzz）→ PLAYTHROUGH_ALL_GREEN；收口双证据 = `SQ_SEED=<种子>` 双跑逐字节相同 + 随机复跑
-node .tests/probe-join.cjs         # ┐ 常驻探针十路（无浏览器 · 引擎侧 · 收口必跑，221 断言 + 1 水位件）：
+node .tests/probe-join.cjs         # ┐ 常驻探针十路（无浏览器 · 引擎侧 · 收口必跑，222 断言 + 1 水位件；⚠️ 本行原记 221，2026-10-09 按逐件相加校正 = 六路 168 + savecodec 17 + savegrowth 27 + realsave 10，与 `run-dod` 打印的每行读数直接对得上）：
 node .tests/probe-sectwire.cjs     # │  join 29 / sectwire 19 / heirchoice 31 / lawmerge 21 / achvreach 60 / normround 8
 node .tests/probe-heirchoice.cjs   # │  savecodec 17 = 落盘无损压缩往返 · savegrowth 26 = 主档与游玩时长**解耦**
 node .tests/probe-lawmerge.cjs     # │  realsave 10 = **玩家真档**读→存→读零丢失（只读不写 · 无档即 SKIP 退 0）

@@ -49,7 +49,7 @@ node .tests/versions-check.cjs
 >
 > ⚠️ **`SKIP` 不等于「判据在跑」**（2026-10-09 版本控制纳管批立，实测代价）：探针里凡是「本机环境不满足就跳过并退 0」的判据，**DoD 全绿时它可能根本没执行**。本批照出两例——① `probe-savecodec` 的 F 相（真实玩家档可解 F1/F2）自宿主移除平台安装目录起静默 SKIP，而 FACTS 仍记着「17 断言」这个**曾经为真**的读数；② `probe-realsave`（第十路）整件 `REALSAVE_SKIP`、只打了 10 个 PASS 的历史账。修法 = **判据自己找得到对象**：真档路径一律走 `.tests/storage-read.cjs` 的候选试探（`SQ_STORAGE` > 平台安装目录 > 仓库镜像根 > 工作树根），`probe-realsave` 同批改硬编码为逐一试探、`REPO` 也改 `path.resolve(__dirname, '..')` 不再钉死绝对路径。**新写 SKIP 分支时把「跳过时的断言计数」一起登记进 `docs/FACTS.md`**，否则计数账本会长期停在环境还在的时候。
 
-> ⚠️ **2026-10-08 校正本段滞后**：上面这串此前只列四件（smoke / audit / pacing / event-economy），而 `sim-playthrough` 与六路常驻断言探针（join / sectwire / heirchoice / lawmerge / achvreach / normround）+ `probe-savecap` 水位件早已是收口必跑项、却从未进过这份清单——照旧清单跑会把「已跑绿」误读成「跑全了」。逐件断言数登记在 `docs/FACTS.md`「常驻探针」行（现 **七路 · 168 断言 + 1 水位件**）。收口双证据：`SQ_SEED=<种子>` 双跑逐字节相同 + 随机种子复跑（`sim-event-economy` / `sim-playthrough` 两件适用）。
+> ⚠️ **2026-10-08 校正本段滞后**：上面这串此前只列四件（smoke / audit / pacing / event-economy），而 `sim-playthrough` 与六路常驻断言探针（join / sectwire / heirchoice / lawmerge / achvreach / normround）+ `probe-savecap` 水位件早已是收口必跑项、却从未进过这份清单——照旧清单跑会把「已跑绿」误读成「跑全了」。逐件断言数登记在 `docs/FACTS.md`「常驻探针」行（现 **七路 · 168 断言 + 1 水位件**）。〔🔧 **2026-10-09 版本控制纳管批随读**：本句括号为校正当次的读数，现行 = **十路 · 222 断言 + 1 水位件**；且原句本身自相矛盾——168 恰是**六路**（join 29 + sectwire 19 + heirchoice 31 + lawmerge 21 + achvreach 60 + normround 8）之和，`probe-savecodec` 17 在同段上一行单列却漏加，「七路 185」才对。教训与 FACTS 同一行记的一致：**行首改路数、行尾不改总数**是账本漂移的典型形态，逐件相加才是可对账的写法。〕收口双证据：`SQ_SEED=<种子>` 双跑逐字节相同 + 随机种子复跑（`sim-event-economy` / `sim-playthrough` 两件适用）。
 
 **界面走查（需 playwright-core + Edge，改界面时跑）**：
 
