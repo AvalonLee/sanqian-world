@@ -771,8 +771,17 @@
       for (var i = 0; i < n; i++) if (SQ.Events.natureDraw(D, D.ALIGN_EFFECTS.neutral, luck) === 'good') c++;
       return c / n;
     }
+    /* 固定种子抽样（同上批）：20,000 抽 ×3 比 ±1.5pp / ±1pp，真实随机下即统计噪声 */
+    var seed60 = 602026, origRand60 = Math.random;
+    Math.random = function () {
+      seed60 |= 0; seed60 = (seed60 + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed60 ^ (seed60 >>> 15), 1 | seed60);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
     var nr0 = natureRate(0, 20000), nrP = natureRate(0.5, 20000), nrN = natureRate(-1, 20000);
-    ok(60, 'nature 抽取 55% · luck+0.5→87.5% · luck−1→6.5%（下限 10）',
+    Math.random = origRand60;
+    ok(60, 'nature 抽取 55% · luck+0.5→87.5% · luck−1→6.5%（下限 10）· 2026-10-09 起**固定种子抽样**（20,000 抽 ×3，判据数值未动）',
       Math.abs(nr0 - 0.55) < 0.015 && Math.abs(nrP - 0.875) < 0.015 && Math.abs(nrN - 10 / 155) < 0.01,
       [nr0, nrP, nrN].map(function (x) { return (x * 100).toFixed(2) + '%'; }).join('/'));
 
@@ -1349,14 +1358,23 @@
       }
       return { cnt: cnt, up: up };
     }
+    /* 固定种子抽样（2026-10-09 治理批·复核收尾）：原用真实 Math.random 抽 3×20,000 次比 ±2pp，单跑红率约 1~3%（其注释自陈曾因「偶发超界」把样本从 1 万加到 2 万 = 同类噪声前科），判据数值一字未动 */
+    var seed105 = 1052026, origRand105 = Math.random;
+    Math.random = function () {
+      seed105 |= 0; seed105 = (seed105 + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed105 ^ (seed105 >>> 15), 1 | seed105);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
     var sR = dropSample('right'), sN = dropSample('neutral'), sE = dropSample('evil');
+    Math.random = origRand105;
     function alignClose(s, tierKey) {
       var w = D.ALIGN_EFFECTS[tierKey].dropAlignW;
       return Math.abs(s.cnt.neutral / 20000 - w.neutral / 100) < 0.02 &&
         Math.abs(s.cnt.right / 20000 - w.right / 100) < 0.02 &&
         Math.abs(s.cnt.evil / 20000 - w.evil / 100) < 0.02;
     }
-    ok('105c', 'dropAlignW 三档 ±2pp · tierUp 40%±1.5pp（正/左 0）',
+    ok('105c', 'dropAlignW 三档 ±2pp · tierUp 40%±1.5pp（正/左 0）· 2026-10-09 起**固定种子抽样**（3×20,000 抽，判据数值未动）',
       alignClose(sR, 'right') && alignClose(sN, 'neutral') && alignClose(sE, 'evil') &&
       sR.up === 0 && sN.up === 0 && Math.abs(sE.up / 20000 - 0.40) < 0.015,
       'up=' + [sR.up, sN.up, sE.up].join('/'));
@@ -1826,11 +1844,20 @@
     var m125 = M(mkProf(), w125);
     var prime125 = 0, bump125 = true;
     var T4 = D.GEAR_TIERS[4], T4req = T4.req;
+    /* 固定种子抽样（2026-10-09 治理批·复核收尾）：4,000 抽比 ±3pp，真实随机下属统计噪声 */
+    var seed125 = 1252026, origRand125 = Math.random;
+    Math.random = function () {
+      seed125 |= 0; seed125 = (seed125 + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed125 ^ (seed125 >>> 15), 1 | seed125);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
     for (var i125 = 0; i125 < 4000; i125++) {
       var it125 = SQ.Gear.roll(w125, pack, D, 8, m125, { tier: 4 });
       if (it125.prime) { prime125++; if (it125.reqs.realm !== T4req + 1) bump125 = false; }
       else if (it125.reqs.realm !== T4req) bump125 = false;
     }
+    Math.random = origRand125;   /* 种子化窗口结束 */
     var rate125 = prime125 / 4000;
     var rangeR125 = T4.resist[1] - T4.resist[0];
     var pR125 = (rangeR125 * D.PRIME_TOP_PCT + 0.5) / rangeR125;
@@ -1840,7 +1867,7 @@
     }
     var exp125 = 1 - (1 - pR125) * (1 - cntA125 / (T4.attr[1] - T4.attr[0] + 1));
     var keep125 = JSON.parse(JSON.stringify(mkGear('weapon', { tier: 4, prime: true, reqs: { realm: T4req + 1 } })));
-    ok('125', '极品旗标：率对表推导值 ±3pp + 追加一阶无例外 + 随件持久',
+    ok('125', '极品旗标：率对表推导值 ±3pp + 追加一阶无例外 + 随件持久 · 2026-10-09 起**固定种子抽样**（4,000 抽，判据数值未动）',
       bump125 && Math.abs(rate125 - exp125) <= 0.03 && keep125.prime === true,
       'rate=' + (rate125 * 100).toFixed(1) + '% exp=' + (exp125 * 100).toFixed(1) + '% prime=' + prime125 + '/4000');
 
