@@ -34,7 +34,7 @@ node .tests/run-dod.cjs --sim    # 追加 sim-playthrough 全程模拟（收口�
 node .tests/run-dod.cjs --full   # = --ui --sim
 ```
 
-判据 = **末行 `DOD_ALL_GREEN <件数>`**；任一子件红 ⇒ `DOD_FAILED` 且退码 1。单件也可各自跑：`node .tests/run-smoke.cjs`（`SMOKE_ALL_GREEN n/n`）、`node .tests/audit.cjs`（`AUDIT_ALL_GREEN 17/17`，其中 🆕 **B9** 守「源侧 ↔ 交付镜像七项逐字节零差异」这条不变量）、`node .tests/versions-check.cjs`（`VERSIONS_IN_SYNC rows=…`）。关数与断言数**一律以 `docs/FACTS.md` 为准**，本文件不复制读数。`.tests/` 是点目录，**不进交付包**。
+判据 = **末行 `DOD_ALL_GREEN <件数>`**；任一子件红 ⇒ `DOD_FAILED` 且退码 1。单件也可各自跑：`node .tests/run-smoke.cjs`（`SMOKE_ALL_GREEN n/n`）、`node .tests/audit.cjs`（`AUDIT_ALL_GREEN 18/18`，其中 🆕 **B9** 守「源侧 ↔ 交付镜像七项逐字节零差异」这条不变量、🆕 **A7** 守「法宝运行态 `st` 写点必须先登记」）、`node .tests/versions-check.cjs`（`VERSIONS_IN_SYNC rows=…`）。关数与断言数**一律以 `docs/FACTS.md` 为准**，本文件不复制读数。`.tests/` 是点目录，**不进交付包**。
 
 ## 四、镜像不变量（改完必须同步）
 

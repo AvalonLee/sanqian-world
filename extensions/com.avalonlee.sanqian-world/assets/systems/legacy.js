@@ -68,7 +68,7 @@
     out.achv = arr(m.achv, []).filter(function (x) { return typeof x === 'string'; }).slice(0, 120);
     out.titles = arr(m.titles, []).filter(function (x) { return typeof x === 'string'; }).slice(-80);
     out.biographies = [];
-    arr(m.biographies, []).slice(-9).forEach(function (b) {
+    arr(m.biographies, []).slice(-(SQ.BioCaps ? SQ.BioCaps.keep() : 9)).forEach(function (b) {   /* 读档容错上界 = D.LEGACY.BIO_KEEP（旧档可留 9 世；落盘上界另有 BIO_STORE_CAP） */
       if (!b || typeof b !== 'object' || typeof b.text !== 'string') return;
       out.biographies.push({
         life: Math.max(0, Math.floor(num(b.life, 0))),

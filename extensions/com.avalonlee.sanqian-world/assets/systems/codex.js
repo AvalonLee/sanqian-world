@@ -340,7 +340,8 @@
     bio.life = life != null ? life : bio.life;
     bio.name = name || bio.name;
     meta.biographies.push(bio);
-    while (meta.biographies.length > 6) meta.biographies.shift();   /* 超限挤最旧（正典① = 6 世，与 core.js 读档裁剪同口径） */
+    var capBio2 = SQ.BioCaps ? SQ.BioCaps.store() : 6;   /* 正典① 落盘上界单一取数处（与 core.js 级⓪、legacy.js normalize 同表） */
+    while (meta.biographies.length > capBio2) meta.biographies.shift();   /* 超限挤最旧 */
   }
 
   /* ── ⏳→✅ 烧表请天道作传（图鉴卷 §5.3 · 天道批已实施）：作传奏疏（≤1500 字，不占问天 CD）

@@ -405,6 +405,46 @@ const SQ = sandbox.window.SQ;
   ok('A4', '界面词表拉丁词扫描（白名单外零命中）', a4.length === 0, a4.slice(0, 8).join(' | '));
 })();
 
+/* ── A7 法宝运行态 st 键集登记对表（2026-10-09 展示流与落档口径批立）
+ * 立因：`owned[].st` 是**无 schema 的透传面**——`treasures.js` 的 normalize 整块带过，
+ *   任何新字段一旦写进去即永久随玩家档走。存档治理批把它列为遗留项（⑨），
+ *   本批按「**登记制而非运行时收敛**」收口：白名单砍键会砍掉未来合法字段并破「读档往返无损」
+ *   那一族判据，代价大于收益；改为「写点必须先登记」，由闸门拦。
+ * 口径：只扫 `assets/**` 的 `.st.<key>` 字面引用（`.tests/` 里取证用的假键不算写点；
+ *   `view/` `module/` 内联脚本的**读点**不在本表范围——写运行态是引擎侧纪律，
+ *   ⚠️ 这是本关的已知盲区，与 A5「只覆盖修仙包」同类，如实登记不装作全覆盖）。
+ *   登记表 = `assets/systems/treasures.js` 末段 `ST_KEYS: [...]` 字面量（不从沙箱取，
+ *   免得装载顺序一变就恒真/恒假；**读不到表直接红** = 表没了就是纪律没了）。
+ * 判据：写点集 ⇔ 登记表 **双向相等**——有写点未登记 = 新字段没走口径评审；
+ *   有登记无写点 = 死登记（与 A6 孤儿键同型，本仓已有先例）。
+ *   二级结构（`st.spirit` 内部形状）不在本表，归器灵卷 §schema 与既有断言守。 */
+(function () {
+  var REG_F = 'assets/systems/treasures.js';
+  var regSrc = fs.existsSync(REG_F) ? fs.readFileSync(REG_F, 'utf8') : '';
+  var m = regSrc.match(/ST_KEYS:\s*\[([^\]]*)\]/);
+  if (!m) {
+    ok('A7', '法宝运行态 st 键集登记对表', false,
+      '登记表读不到：' + REG_F + ' 内没有 `ST_KEYS: [...]` 字面量（登记表本身消失 = 纪律失守，不是放行理由）');
+    return;
+  }
+  var reg = (m[1].match(/'[^']*'/g) || []).map(function (x) { return x.slice(1, -1); });
+  var wrote = {}, where = {};
+  jsFiles.filter(function (f) { return relOf(f).indexOf('assets/') === 0; }).forEach(function (f) {
+    var src = fs.readFileSync(f, 'utf8');
+    (src.match(/\.st\.[a-zA-Z_$][\w$]*/g) || []).forEach(function (x) {
+      var k = x.slice(4);
+      wrote[k] = (wrote[k] || 0) + 1;
+      if (!where[k]) where[k] = relOf(f);
+    });
+  });
+  var unreg = Object.keys(wrote).filter(function (k) { return reg.indexOf(k) < 0; });
+  var dead = reg.filter(function (k) { return !wrote[k]; });
+  ok('A7', '法宝运行态 st 键集登记对表（写点 ⇔ ST_KEYS 双向相等 · st 为无 schema 透传面，采登记制而非运行时收敛 · 只扫 assets/** 为已知边界）',
+    reg.length > 0 && unreg.length === 0 && dead.length === 0,
+    '在册 ' + reg.length + ' 键 = ' + reg.join(',') +
+    ' ‖ 表外写点=' + (unreg.length ? unreg.map(function (k) { return k + '@' + where[k]; }).join(', ') : '无') +
+    ' ‖ 死登记（表里有而源码无写点）=' + (dead.length ? dead.join(', ') : '无'));
+})();
 /* ── C 组 · 世界包词族契约（G11 · 换世界即换系统名与菜单描述）
  *   C1 must 族：每个 live 世界分卷必须各自拥有（≥1 条该前缀 key）——世界身份不缺项；
  *   C2 forbid 族：世界分卷不得出现（跨世界通用文案只留 common，防世界间漂移）。 ── */

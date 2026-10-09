@@ -176,7 +176,7 @@
           if (Array.isArray(L) && L.length) W.log = L.slice(-LOG_HARD_CAP);
           var F = sf[wid];
           if (Array.isArray(F) && F.length && W.eventHistory && typeof W.eventHistory === 'object') {
-            W.eventHistory.feed = trimFeedBudget(F.slice(0, FEED_STORE_CAP));   /* 传副本，trimFeedBudget 就地 pop */
+            W.eventHistory.feed = trimFeedBudget(F);   /* 纯函数：条数兜底 + 字节预算都在里面，返回新数组 */
           }
         }
       }
@@ -293,8 +293,8 @@
     if (stage === 0 || stage === 1 || stage === 2 || stage === 4) {
       if (!m) return s;
       if (stage === 0) {
-        if (!(Array.isArray(m.biographies) && m.biographies.length > 6)) return s;
-        c = cpMeta(s); c.meta.biographies = m.biographies.slice(-6); return c;
+        if (!(Array.isArray(m.biographies) && m.biographies.length > bioStoreCap())) return s;
+        c = cpMeta(s); c.meta.biographies = m.biographies.slice(-bioStoreCap()); return c;
       }
       if (stage === 1) {
         if (!(Array.isArray(m.karmaLog) && m.karmaLog.length > 10)) return s;
@@ -990,12 +990,20 @@
     return n;
   }
 
-  /* 字节预算裁剪（就地）：从最旧删起，跳过每分类最新 LOG_CAT_CAP 条的受保护项 */
+  /* 字节预算裁剪（**纯函数**：返回新数组，绝不改传入 ⇒ 落盘降级不碰内存态）：
+   * 从最旧删起，跳过每分类最新 LOG_CAT_CAP 条的受保护项。
+   * 展示流与落档口径批 2026-10-09：本函数原为「就地裁」（`list.length = 0` 后回填），
+   *   于是 `writeLogsIfChanged` 一次落盘就会把**玩家内存里的日志**按落盘预算削短 ——
+   *   与同批已修的「阶梯就地级摧毁内存态」同因同型（那一族的正典口径 = 「落盘层裁剪、
+   *   内存态一字不动」），而隔壁 `trimFeedBudget` 走的是副本 ⇒ 同一侧档里两族口径不一致。
+   *   现统一到「两族一律返回副本」，调用侧**不需要再自己记得 slice**（记不得就是下一个同型缺陷）。
+   * 内存侧上限另有其人：`logPush` 的条数硬顶 LOG_HARD_CAP(4000) 与读档 `slice(-LOG_HARD_CAP)`。 */
   function trimLogBudget(list) {
-    if (!Array.isArray(list) || !list.length) return list;
+    if (!Array.isArray(list)) return [];
+    if (!list.length) return [];
     var total = 0, i;
     for (i = 0; i < list.length; i++) total += logEntryBytes(list[i]) + 1;
-    if (total <= LOG_BYTE_BUDGET) return list;
+    if (total <= LOG_BYTE_BUDGET) return list.slice();   /* 未超预算也返回副本：调用侧拿到的永远是新数组 */
     var seen = {}, prot = {};
     for (i = list.length - 1; i >= 0; i--) {
       var c = list[i] && list[i].cat;
@@ -1007,9 +1015,7 @@
       if (total - removed > LOG_BYTE_BUDGET && !prot[i]) removed += logEntryBytes(list[i]) + 1;
       else out.push(list[i]);
     }
-    list.length = 0;
-    for (i = 0; i < out.length; i++) list.push(out[i]);
-    return list;
+    return out;
   }
 
   /* 日志签名（世界 + 条数 + 首末 ts）：内容未变则免写日志键 */
@@ -1054,16 +1060,20 @@
   function feedEntryBytes(e) {
     try { return strBytes(JSON.stringify(e)) + 1; } catch (x) { return 1; }
   }
-  /* 字节预算裁剪（**就地**改传入数组；调用侧只传副本 ⇒ 内存态零污染）：feed 新在前，超预算从尾部（最旧）挤起 */
+  /* 字节预算裁剪（**纯函数**，与上行 trimLogBudget 同口径）：feed 新在前，超预算从尾部（最旧）挤起。
+   * 展示流与落档口径批 2026-10-09：条数兜底 FEED_STORE_CAP 一并收进函数内 ——
+   *   原先两处调用各自写 `list.slice(0, FEED_STORE_CAP)` 再交给「就地 pop」的函数，
+   *   少写一次 slice 就污染内存态；现函数自己复制，调用侧无从漏。 */
   function trimFeedBudget(list) {
-    if (!Array.isArray(list) || !list.length) return list;
-    var total = 0, i;
-    for (i = 0; i < list.length; i++) total += feedEntryBytes(list[i]);
-    while (total > FEED_BYTE_BUDGET && list.length > 1) {
-      total -= feedEntryBytes(list[list.length - 1]);
-      list.pop();
+    if (!Array.isArray(list)) return [];
+    var out = list.slice(0, FEED_STORE_CAP), i;
+    var total = 0;
+    for (i = 0; i < out.length; i++) total += feedEntryBytes(out[i]);
+    while (total > FEED_BYTE_BUDGET && out.length > 1) {
+      total -= feedEntryBytes(out[out.length - 1]);
+      out.pop();
     }
-    return list;
+    return out;
   }
 
   /* 侧档签名（日志 + 奇遇流两族都计入：任一族变化即需重写侧档） */
@@ -1088,12 +1098,11 @@
       var w = worlds[wk];
       if (!w) continue;
       if (Array.isArray(w.log) && w.log.length) {
-        trimLogBudget(w.log);
-        payload.logs[wk] = w.log;
+        payload.logs[wk] = trimLogBudget(w.log);        /* 纯函数：落盘裁副本，玩家内存里的日志一条不少 */
       }
       var feed = w.eventHistory && w.eventHistory.feed;
       if (Array.isArray(feed) && feed.length) {
-        payload.feed[wk] = trimFeedBudget(feed.slice(0, FEED_STORE_CAP));   /* slice 出副本再就地裁 */
+        payload.feed[wk] = trimFeedBudget(feed);        /* 同上（条数兜底 FEED_STORE_CAP 已在函数内） */
       }
     }
     var sig = logSig(payload.logs) + '#' + feedSig(payload.feed);
@@ -1105,9 +1114,21 @@
   }
 
   SQ.Log = { push: logPush, CAT_CAP: LOG_CAT_CAP, HARD_CAP: LOG_HARD_CAP,
+    /* ⚠️ trimBudget 自 2026-10-09 起为**纯函数**（返回新数组、不改传入）；测试与视图都按此口径调它 */
     KEY: LOG_KEY, BYTE_BUDGET: LOG_BYTE_BUDGET, trimBudget: trimLogBudget };
 
   /* 侧档（展示流档）单一事实源：日志 + 奇遇叙事流两族；测试与视图读它，不各自硬编码 */
+  /* ── 传记条数的单一事实源（2026-10-09 展示流与落档口径批 · 治理批 ⑨「三处口径」收口）──
+   * 数值正典在 `D.LEGACY.BIO_KEEP`（读档容错上界，兼容旧档 9 世）与 `D.LEGACY.BIO_STORE_CAP`
+   *   （写口与阶梯的落盘上界 = 正典① 的 6 世）。此前 `codex.js:343` 与本级⓪ 各写死一个字面 6、
+   *   `legacy.js:71` 写死一个字面 9，而 `BIO_KEEP` 常量**全库零消费点** = 声明了没人读的假正典。
+   *   现三处一律经本对函数取值，缺表兜底 = 现值（只为装载顺序不敏感，不是第二口径）。
+   * ⚠️ 已知边界：取的是 `SQ.XDATA`（当前装载的世界包）。meta 是引擎层而数值表在修仙包内，
+   *   第二世界落地时须改按 pack 取数——与审计 A5「只覆盖修仙包」同型，如实登记不装作已解。 */
+  function bioKeep() { var L = (SQ.XDATA && SQ.XDATA.LEGACY) || {}; return L.BIO_KEEP || 9; }
+  function bioStoreCap() { var L = (SQ.XDATA && SQ.XDATA.LEGACY) || {}; return L.BIO_STORE_CAP || 6; }
+  SQ.BioCaps = { keep: bioKeep, store: bioStoreCap };
+
   /* 侧档状态复位（签名 + 「读不动」标志）：清档（resetSave）或外部删除/修好脏键后调用。
    * 跳过写的判据是「内容与上次落盘相同」，而**外部把侧档键删掉**这件事本模块无从感知
    * ⇒ 不复位就会出现「内容照旧 ⇒ 不写 ⇒ 侧档永久缺失」。生产路径的唯一入口是 resetSave。 */
@@ -1120,8 +1141,10 @@
     trimFeed: trimFeedBudget, feedBytes: feedEntryBytes,
     resetSig: resetSideSig, unreadable: sideUnreadableFlag
   };
-  /* 落盘前置无损级 + 展示流剥离口（测试取证用；生产只经 savePayload 调用） */
-  SQ.SavePre = { stripSideFlows: stripSideFlows };
+  /* 落盘前置无损级 + 展示流剥离口（测试取证用；生产只经 savePayload 调用）
+   * compressStep 自 2026-10-09 起一并导出：判据要能**单独驱动某一级**（跑满阶梯会把级⓪ 的结果
+   * 盖成级④ 的 1 世，证不了「级⓪ 的 6 是从哪张表取的」）。 */
+  SQ.SavePre = { stripSideFlows: stripSideFlows, compressStep: compressStep };
   SQ.COOL_MAX_HOURS = COOL_MAX_HOURS;
 
   SQ.KEY = KEY;

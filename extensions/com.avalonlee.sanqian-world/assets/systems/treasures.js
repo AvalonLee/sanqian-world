@@ -8,7 +8,8 @@
  *
  * 存档字段 worlds.<id>.treasures：
  *   { owned: [{id, lv?, stage?, st:{}}], slots: [id|null ×3], fate: {trib,check,drop,event}, bondCount }
- *   - 后天法宝 lv 1~5（祭炼）；先天法宝 stage 1~3（认主）；st = 脚本运行态（按件）。
+ *   - 后天法宝 lv 1~5（祭炼）；先天法宝 stage 1~3（认主）；st = 脚本运行态（按件）——
+ *     顶层键是**登记表管控**的透传面，见文末 `SQ.Treasures.ST_KEYS` 的口径注。
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
@@ -490,6 +491,15 @@
     tickIdle: tickIdle,
     killProfile: killProfile, onKill: onKill,
     choiceAutoPass: choiceAutoPass, choiceCdLeft: choiceCdLeft,
-    convertQi: convertQi, makePill: makePill, pillActive: pillActive
+    convertQi: convertQi, makePill: makePill, pillActive: pillActive,
+    /* st 顶层键登记表（2026-10-09 展示流与落档口径批 · 存档治理批 ⑨ 遗留项收口）：
+     * `owned[].st` 是**无 schema 的脚本运行态透传面** —— normalize 整块带过（treasures.js:57），
+     * 任何新字段写进去即永久随档。取舍裁定 = **登记制而非运行时收敛**：
+     *   收敛（白名单砍键）会砍掉未来合法字段并破「读档往返无损」那一族判据，代价大于收益；
+     *   改为「写点必须先登记」，由两道自动闸守：`audit.cjs` **A7**（静态扫 `\.st\.` 写点与本表
+     *   双向对表，多一个少一个都红）+ 冒烟 **#281**（真跑一遍取观测键集，表外键即红，并配
+     *   「塞假键必红」的反向对照）。新增条目时同批改本表与出处注释，否则闸门拦住。
+     * 二级结构不在此表内：`st.spirit` 的形状归器灵卷 §schema 与其它既有断言守（本批不重复建表）。 */
+    ST_KEYS: ['hours', 'karmaH', 'kills', 'cdUntil', 'tower', 'usedRealm', 'spirit']
   };
 })();

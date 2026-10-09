@@ -787,6 +787,15 @@
       LEGACY_QIRATE_CAP: 0.10,
       LOG_KEEP: 20,
       BIO_KEEP: 9, BIO_MAX: 500,
+      /* 传记落盘上界（正典① = 6 世）：与上行 BIO_KEEP（读档容错上界，兼容旧档 9 世）**配对使用**。
+       * 三口径（codex.js 写口 / core.js 阶梯级⓪ / legacy.js normalize）自 2026-10-09 起一律经
+       * `SQ.BioCaps` 取本表，不再各写字面量 —— 原状是「BIO_KEEP 声明了零消费、6 与 9 散在三处」
+       * = 声明式假正典（展示流与落档口径批收口，配冒烟 #282 双向对表）。 */
+      BIO_STORE_CAP: 6,
+      /* 传记落盘上界（正典① = 6 世）：与上面 BIO_KEEP（读档容错上界，兼容旧档 9 世）**配对使用**，
+       * 三口径（codex.js 写口 / core.js 阶梯级⓪ / legacy.js normalize）一律经 `SQ.BioCaps` 取本表，
+       * 不再各写字面量——原状是「BIO_KEEP 声明了零消费、6 与 9 散在三处」= 声明式假正典。 */
+      BIO_STORE_CAP: 6,
       BIO_MEMO_LEN: 1500,                    /* 烧表请天道作传奏疏上限（作传专用，问天 500~800 不变） */
       /* 独占转世天赋池（§3.3 · epic 档 8 条）：全部走既有 17 字段 + 六挂点词汇，
        * 禁 tribBonus/on_trib_next/mingwang 渡劫键（零新增渡劫加项红线）；买断入池、逐世换选 ≤2 */

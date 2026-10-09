@@ -74,8 +74,8 @@
 **回归（改完必跑，只需 node，四条都无浏览器依赖）**：
 
 ```bash
-node .tests/run-smoke.cjs          # 引擎断言      → SMOKE_ALL_GREEN 279/279（⚠️ 本行原记 265/265、276/276、277/277 均为历批滞后读数，2026-10-08 / 10-09 随批校正）
-node .tests/audit.cjs              # 交付前静态审计 → AUDIT_ALL_GREEN 17/17（A6 为报告级；🆕 B9 = 源侧 ↔ 交付镜像七项逐字节零差异）
+node .tests/run-smoke.cjs          # 引擎断言      → SMOKE_ALL_GREEN 282/282（⚠️ 本行原记 265/265、276/276、277/277、279/279 均为历批滞后读数，2026-10-08 / 10-09 随批校正）
+node .tests/audit.cjs              # 交付前静态审计 → AUDIT_ALL_GREEN 18/18（A6 为报告级；🆕 B9 = 源侧 ↔ 交付镜像七项逐字节零差异；🆕 A7 = 法宝运行态 st 键集登记对表）
 bash /e/Download/sanqian-ops/sq-check.sh    # 开场体检（只读）→ ALREADY_IN_SYNC；收口后另跑 sq-snapshot.sh <批次名> → BACKUP_OK
 node .tests/sim-pacing.cjs         # 全程节奏比值带（锚 9.12 天）
 node .tests/sim-event-economy.cjs  # 在线奇遇事件经济（密度 / 主轴）

@@ -4823,6 +4823,176 @@
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
 
+    /* #280 展示流两族裁剪口径统一 = 落盘裁副本、内存一字不动（2026-10-09 展示流与落档口径批）
+     * 立因：#277 那批把「压缩阶梯就地级摧毁内存态」修成纯函数，但**侧档写入路径留了同型漏网**——
+     *   `writeLogsIfChanged` 直调 `trimLogBudget(w.log)`，而该函数当时是「就地裁」（`list.length = 0`
+     *   再回填）⇒ 一次落盘就把玩家内存里的日志按**落盘预算**削短，且隔壁 feed 走的是副本，
+     *   同一个侧档里两族口径相反。本批把两族统一成纯函数，判据按「同一件事在两族各证一遍」写。
+     * 判据：(a) save 前后**内存** log 条数与逐条内容全等（旧实现必红 = 本条同时是反向对照）
+     *       (b) 落盘侧档 log 条数**确实小于**内存条数（防「两边都不裁」的假绿）
+     *       (c) 落盘侧档 log 字节 ≤ LOG_BYTE_BUDGET（预算仍是主约束）
+     *       (d) feed 同型三件：内存 80 条不动 / 侧档 ≤ FEED_STORE_CAP 且 < 内存 / 侧档字节 ≤ FEED_BYTE_BUDGET
+     *       (e) 单元级纯度：直接调 SQ.Log.trimBudget(src) 与 SQ.Side.trimFeed(src) ⇒ 返回**新数组**、
+     *           src 条数与序列化逐字不变（这条把「调用侧要记得 slice」的隐患从判据里根除）
+     *       (f) 不裁内存 ≠ 不丢：重载后内存 = 落盘集合，首条 ts 与落盘首条精确对上 */
+    localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
+    var s280 = SQ.defaultState();
+    s280.profile = mkProf(); s280.profile.name = '侧档纯度';
+    s280.worlds.xiuxian = pack.initialState();
+    var w280 = s280.worlds.xiuxian;
+    /* 400 条同源日志（>LOG_CAT_CAP 200 ⇒ 有一半是可裁的未保护项）；文本取 ASCII 使「字符数 ≈ UTF-8 字节数」，
+       判据 (c) 才能拿 JSON.stringify 长度直接对预算 */
+    for (var l280 = 0; l280 < 400; l280++) SQ.Log.push(w280, 'sys', 'L'.repeat(900) + '#' + l280, 1700000000000 + l280);
+    var memLogN280 = w280.log.length;
+    var memLogSig280 = JSON.stringify(w280.log);
+    /* feed 80 条（>FEED_STORE_CAP 60 ⇒ 条数兜底先收一刀，再走字节预算） */
+    w280.eventHistory = w280.eventHistory || { seen: {}, feed: [] };
+    for (var f280 = 0; f280 < 80; f280++) {
+      w280.eventHistory.feed.push({ id: 'purity_check', ts: 1700000000000 + f280, branch: 'branch_safe',
+        tier: 'ren', nature: 'neutral', pass: true, hadCheck: false, karma: 0,
+        eff: { stones: 100 + f280, qi: 'P'.repeat(400) }, via: 'smoke' });
+    }
+    var memFeedN280 = w280.eventHistory.feed.length;
+    var memFeedSig280 = JSON.stringify(w280.eventHistory.feed);
+    await SQ.save(s280);
+    var memLogAfter280 = w280.log.length === memLogN280 && JSON.stringify(w280.log) === memLogSig280;
+    var memFeedAfter280 = w280.eventHistory.feed.length === memFeedN280 && JSON.stringify(w280.eventHistory.feed) === memFeedSig280;
+    var side280 = JSON.parse(localStorage.getItem(SQ.Log.KEY) || '{}');
+    var dLog280 = (side280.logs || {}).xiuxian || [];
+    var dFeed280 = (side280.feed || {}).xiuxian || [];
+    var dLogBytes280 = JSON.stringify(dLog280).length;
+    var dFeedBytes280 = JSON.stringify(dFeed280).length;
+    /* (e) 单元级纯度对表：先序列化传入数组本身，调完再比 */
+    var src280L = w280.log, before280L = src280L.length, snap280L = JSON.stringify(src280L);
+    var ret280L = SQ.Log.trimBudget(src280L);
+    var pure280L = ret280L !== src280L && src280L.length === before280L && JSON.stringify(src280L) === snap280L && ret280L.length < before280L;
+    var src280F = w280.eventHistory.feed, before280F = src280F.length, snap280F = JSON.stringify(src280F);
+    var ret280F = SQ.Side.trimFeed(src280F);
+    var pure280F = ret280F !== src280F && src280F.length === before280F && JSON.stringify(src280F) === snap280F && ret280F.length < before280F;
+    /* (f) 重载：内存集合应等于落盘集合（读档本来就取侧档副本，不受本批改动的副作用） */
+    var r280 = await SQ.load();
+    var rl280 = (r280.worlds.xiuxian || {}).log || [];
+    var reloadOk280 = rl280.length === dLog280.length && rl280[0] && dLog280[0] && rl280[0].ts === dLog280[0].ts &&
+      rl280[rl280.length - 1].ts === dLog280[dLog280.length - 1].ts;
+    ok('280', '展示流两族裁剪统一为纯函数（2026-10-09 展示流与落档口径批）：一次落盘不再削短玩家内存。(a) 内存 log ' + memLogN280 + ' 条 save 后逐字不变 (b) 侧档 log 反被裁到 ' + dLog280.length + ' 条（证明确实在裁）(c) 侧档 log 字节 ' + dLogBytes280 + ' ≤ 预算 ' + SQ.Log.BYTE_BUDGET + ' (d) feed 内存 ' + memFeedN280 + ' 条不动而侧档 ' + dFeed280.length + ' 条 ≤ FEED_STORE_CAP ' + SQ.Side.FEED_STORE_CAP + ' (e) trimBudget/trimFeed 返回新数组、传入逐字不变 (f) 重载后内存 == 落盘集合',
+      memLogAfter280 && memFeedAfter280 && dLog280.length < memLogN280 && dLogBytes280 <= SQ.Log.BYTE_BUDGET &&
+      dFeed280.length < memFeedN280 && dFeed280.length <= SQ.Side.FEED_STORE_CAP && dFeedBytes280 <= SQ.Side.FEED_BYTE_BUDGET &&
+      pure280L && pure280F && reloadOk280,
+      '内存log=' + memLogN280 + '→' + w280.log.length + ' 侧档log=' + dLog280.length + '/' + dLogBytes280 + 'B' +
+      ' 内存feed=' + memFeedN280 + '→' + w280.eventHistory.feed.length + ' 侧档feed=' + dFeed280.length + '/' + dFeedBytes280 + 'B' +
+      ' 纯函数log/feed=' + pure280L + '/' + pure280F + ' 重载等=' + reloadOk280);
+    localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
+
+    /* #281 `owned[].st` 无 schema 透传面的护栏形态交底（2026-10-09 展示流与落档口径批 · 治理批 ⑨ 遗留项）
+     * 裁定 = **登记制而非运行时收敛**：白名单砍键会砍掉未来合法字段并破「读档往返无损」那一族判据，
+     *   代价大于收益；改为「写点必须先登记进 `SQ.Treasures.ST_KEYS`」，由两道闸守：
+     *   `audit.cjs` **A7**（静态扫 `assets/**` 的 `.st.<key>` 写点与本表**双向对表**）+ 本条（运行时语义与收集器本身）。
+     * 判据：(a) 登记表在位且逐条带出处（长度 ≥ 7，缺表 ⇒ 纪律失守）
+     *       (b) `normalize` 对 `st` 是**整块透传**：脏档里的表外键原样留档（= 本面确实无 schema，
+     *           这条不是在赞成本风险，而是把「为什么必须靠登记制」写成可执行的证据）
+     *       (c) 非 plain object 的 `st` 被复位为 `{}`（唯一存在的收敛动作，防脏档穿透成怪形）
+     *       (d) 收集器反向对照：往一枚 owned.st 塞表外假键 ⇒ 如实报「表外键」（证明本条不是恒真）
+     *       (e) 真入口写出来的键 ⊆ 登记表：跑 `treasureTick`/`tribOnFail` 两径后收集观测键集，
+     *           观测非空时逐条必须在册（观测为空只作读数打印，不冒充覆盖——静态半区由 A7 全覆盖） */
+    var reg281 = (SQ.Treasures && SQ.Treasures.ST_KEYS) || null;
+    var regOk281 = Array.isArray(reg281) && reg281.length >= 7 &&
+      ['hours', 'karmaH', 'kills', 'cdUntil', 'tower', 'usedRealm', 'spirit'].every(function (k) { return reg281.indexOf(k) >= 0; });
+    var nz281 = SQ.Treasures.normalize({
+      owned: [{ id: 'x01', st: { legacy_orphan: 7, hours: 5 } }, { id: 'x02', st: 123 }, { id: 'x03' }],
+      slots: ['x01', null, null], fate: {}, bondCount: 0
+    }, pack);
+    var o281 = (nz281 && nz281.owned) || [];
+    var passThrough281 = !!(o281[0] && o281[0].st && o281[0].st.legacy_orphan === 7 && o281[0].st.hours === 5);
+    var resetBad281 = !!(o281[1] && o281[1].st && typeof o281[1].st === 'object' && Object.keys(o281[1].st).length === 0) &&
+      !!(o281[2] && o281[2].st && typeof o281[2].st === 'object');
+    /* (d) 反向对照 + (e) 真入口观测：造一件在册键 + 一件表外键，收集器必须只放行前者 */
+    var w281 = pack.initialState();
+    var sink281 = function () {};
+    var obsCollect = function (ws) {
+      var out = {};
+      ((((ws || {}).treasures || {}).owned) || []).forEach(function (e) {
+        if (e && e.st && typeof e.st === 'object') Object.keys(e.st).forEach(function (k) { out[k] = (out[k] || 0) + 1; });
+      });
+      return Object.keys(out).sort();
+    };
+    SQ.Treasures.gain(w281, pack, D, 'x01', sink281);
+    SQ.Treasures.gain(w281, pack, D, 'x03', sink281);
+    SQ.Treasures.gain(w281, pack, D, 'x09', sink281);
+    var eq281 = ['x01', 'x03', 'x09'].map(function (id) {
+      var r = SQ.Treasures.equip(w281, pack, D, id, sink281);
+      return r && r.ok;
+    });
+    var obsClean281 = obsCollect(w281);
+    var host281 = ((w281.treasures || {}).owned || [])[0];
+    if (host281) { host281.st = host281.st || {}; host281.st.smoke_probe_offlist = 1; }
+    var obsDirty281 = obsCollect(w281);
+    var rev281 = obsDirty281.indexOf('smoke_probe_offlist') >= 0 &&
+      obsDirty281.filter(function (k) { return reg281.indexOf(k) < 0; }).length === 1;
+    if (host281) delete host281.st.smoke_probe_offlist;
+    var obsReal281 = obsCollect(w281);
+    var realSubset281 = obsReal281.every(function (k) { return reg281.indexOf(k) >= 0; });
+    /* 真入口至少跑出过一枚在册键：x03（special=tower，reqs 境界3+神40）与 x09（budou，reqs 境界3+气40）
+     * 装备成功后 `tribOnFail` 写 st.tower / st.usedRealm、`tickIdle` 写 st.hours/karmaH ⇒ 观测非空才谈得上覆盖。*/
+    var w281b = pack.initialState(); w281b.realm = 6;
+    w281b.attrs = { jing: 60, qi: 60, shen: 60 };
+    ['x03', 'x09'].forEach(function (id) { SQ.Treasures.gain(w281b, pack, D, id, sink281); SQ.Treasures.equip(w281b, pack, D, id, sink281); });
+    var eqOk281 = ['x03', 'x09'].every(function (id) { return SQ.Treasures.isEquipped(w281b, id); });
+    try { SQ.Treasures.tribOnFail(w281b, pack, D, {}, 0.4, sink281); } catch (e281) {}
+    try { SQ.Treasures.tickIdle(w281b, pack, D, 7200, 1700000000000, sink281); } catch (e281b) {}
+    var obsTick281 = obsCollect(w281b);
+    var tickSubset281 = obsTick281.every(function (k) { return reg281.indexOf(k) >= 0; });
+    ok('281', '法宝运行态 st = 无 schema 透传面，护栏形态 = 登记制（ST_KEYS ' + (reg281 || []).length + ' 键在册）：normalize 整块带过(脏档表外键原样留档)、非对象 st 复位为 {}、收集器反向对照如实报表外假键、真入口(装备两件脚本型法宝跑通)观测到 ' + obsTick281.length + ' 键且全在册（**观测非空是判据之一**，防空过）',
+      regOk281 && passThrough281 && resetBad281 && rev281 && realSubset281 && tickSubset281 && eqOk281 && obsTick281.length >= 1,
+      '表=' + reg281.join(',') + ' 装备成功=' + eq281.join('/') + ' 观测(造脏)=' + obsDirty281.join(',') +
+      ' 观测(真入口)=' + (obsTick281.join(',') || '空') + ' 反向=' + rev281 + ' 在册子集=' + (realSubset281 && tickSubset281));
+    localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
+
+    /* #282 传记条数三口径 = 单一取数处（2026-10-09 展示流与落档口径批 · 治理批 ⑨「BIO_KEEP 零消费点」收口）
+     * 判据不写「数字对得上」（三处各写死 6/9 也能对上），写的是**把表里的值挪一下，三处消费点必须一起动**：
+     *   (a) 声明在位：`D.LEGACY.BIO_KEEP`（读档容错上界）与 `D.LEGACY.BIO_STORE_CAP`（落盘上界 = 正典① 6 世）
+     *       都在，且 keep > store（容错上界若 ≤ 落盘上界，旧档一进就丢 = 破无损）
+     *   (b) `SQ.BioCaps.keep()/store()` 逐字等于表值
+     *   (c) 把表临时改成 keep=4 / store=2 ⇒ ① `SQ.Legacy.metaNormalize` 只留 4 世
+     *       ② `SQ.Codex.pushBio` 连推 7 世后剩 2 世 ③ 阶梯**级⓪ 单独驱动**（`SQ.SavePre.compressStep(s,0,now)`）
+     *       裁到 2 世 —— 三处**同时**跟着表动；任何一处仍是硬编码字面量，这条立刻红
+     *   (d) 复位回 9/6 后三处口径回到原值（防测试自己把全局改坏）
+     *   (e) 级⓪ 与级④ 分工未被混：级④ 仍是「→1 世」（极端触发线的最后一级，与本表无关） */
+    var LEG282 = (SQ.XDATA && SQ.XDATA.LEGACY) || {};
+    var keep0 = LEG282.BIO_KEEP, store0 = LEG282.BIO_STORE_CAP;
+    var declOk282 = typeof keep0 === 'number' && typeof store0 === 'number' && keep0 > store0 && store0 === 6 && keep0 === 9;
+    var capsOk282 = !!SQ.BioCaps && SQ.BioCaps.keep() === keep0 && SQ.BioCaps.store() === store0;
+    var mkBios = function (n) { var a = []; for (var i = 0; i < n; i++) a.push({ life: i + 1, name: '世' + (i + 1), text: '传记正文' + (i + 1), stats: {}, source: 'local', ts: 1700000000000 + i }); return a; };
+    var consumers = function () {
+      var nz = SQ.Legacy.metaNormalize({ biographies: mkBios(9) });
+      var m2 = { biographies: [] };
+      for (var p = 0; p < 7; p++) SQ.Codex.pushBio(m2, { life: p + 1, name: 'n' + p, text: 't' + p, stats: {}, source: 'local', ts: 1700000000000 + p }, p + 1, '名' + p, 'local', 1700000000000 + p);
+      var st2 = { profile: { name: 'x' }, worlds: {}, meta: { biographies: mkBios(9) } };
+      var rung0 = SQ.SavePre.compressStep(st2, 0, 1700009999999);
+      var rung4 = SQ.SavePre.compressStep(st2, 4, 1700009999999);
+      return {
+        norm: (nz.biographies || []).length,
+        push: m2.biographies.length,
+        rung0: (rung0.meta.biographies || []).length,
+        rung4: (rung4.meta.biographies || []).length,
+        memUntouched: (st2.meta.biographies || []).length
+      };
+    };
+    var before282 = consumers();
+    LEG282.BIO_KEEP = 4; LEG282.BIO_STORE_CAP = 2;
+    var moved282 = consumers();
+    LEG282.BIO_KEEP = keep0; LEG282.BIO_STORE_CAP = store0;
+    var after282 = consumers();
+    var movedFollowed282 = moved282.norm === 4 && moved282.push === 2 && moved282.rung0 === 2;
+    var restored282 = after282.norm === before282.norm && after282.push === before282.push && after282.rung0 === before282.rung0;
+    var defaultShape282 = before282.norm === 9 && before282.push === 6 && before282.rung0 === 6 && before282.rung4 === 1 && before282.memUntouched === 9;
+    ok('282', '传记条数三口径经单一取数处（D.LEGACY.BIO_KEEP/BIO_STORE_CAP → SQ.BioCaps）：改表 keep=4/store=2 后 normalize ' + moved282.norm + ' / 写口 ' + moved282.push + ' / 阶梯级⓪ ' + moved282.rung0 + ' **同时**跟着走（任一处仍硬编码即红）；缺省 9/6 与级④→1 世分工不变；级⓪ 只裁落盘副本、内存 ' + before282.memUntouched + ' 世不动',
+      declOk282 && capsOk282 && movedFollowed282 && restored282 && defaultShape282,
+      '缺省=keep' + keep0 + '/store' + store0 + ' 观测(norm/push/rung0/rung4/内存)=' +
+      before282.norm + '/' + before282.push + '/' + before282.rung0 + '/' + before282.rung4 + '/' + before282.memUntouched +
+      ' → 改表后=' + moved282.norm + '/' + moved282.push + '/' + moved282.rung0 + ' → 复位后=' +
+      after282.norm + '/' + after282.push + '/' + after282.rung0);
+    localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
+
     /* ═══ 天象扩容 · 本局去重批（天道卷 v1.4 §7.3 / 道友池卷 v1.2 §六 / 引擎卷 v1.10 §3.6）═══ */
 
     /* #252 天象池对表 + 本局去重位掩码：
