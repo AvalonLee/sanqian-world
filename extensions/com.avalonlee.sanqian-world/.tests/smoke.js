@@ -4993,6 +4993,53 @@
       after282.norm + '/' + after282.push + '/' + after282.rung0);
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
 
+    /* #283 存档水位读数（2026-10-09 存档水位批）：`SQ.SaveStats` 报的数必须与盘上真实体量同源
+     * 立因：治理批把主档与实际游玩时长解耦之后，**这件事没有任何玩家可见面**——效果只能靠跑探针
+     *   读曲线，维护者无从在日常里看见「离红线多远 / 有没有动用有损级」。本批判据守三件事：
+     *   (a) 读数不撒谎：`mainBytes` 与 localStorage 里那份落盘值的 UTF-8 字节数**逐字节相等**
+     *       （同一条度量线 = 编码后字节，与 SQ.SAVE_RED/SQ.SAVE_TRIGGER 一致）
+     *   (b) 解耦可见：同一次存档里日志族从 0 涨到 3000 条（≈ 侧档 +几百 KB 级体量），
+     *       **主档读数几乎不动且 `stages` 仍为空** ⇒ 水位条上就能读出「增长全落在侧档」
+     *   (c) 不进存档：主档对象顶层键仍是既有契约集，**没有** saveStats 之类的自我膨胀项
+     *   (d) 跳写不归零：内容未变时 `writeLogsIfChanged` 走跳过分支，侧档读数必须沿用上一次的值
+     *       （返回 0 会让水位条谎报「侧档空了」= 本条即反向预防）
+     *   (e) 有损级那一行是真会亮的：用文档化的测试钩子 `SQ.compressForSave(s, now, 1)` 强制跑满
+     *       ⇒ `stages` 非空（正常档恒为空，不证就会恒真空过） */
+    localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY); SQ.Side.resetSig();
+    var s283 = SQ.defaultState();
+    s283.profile = mkProf(); s283.profile.name = '水位读数';
+    s283.worlds.xiuxian = pack.initialState();
+    var w283 = s283.worlds.xiuxian; w283.realm = 3;
+    await SQ.save(s283);
+    var st283a = SQ.SaveStats.get();
+    var diskRaw283 = localStorage.getItem(SQ.KEY);
+    var truthMain283 = SQ.storedBytes(diskRaw283);
+    var honest283 = st283a.at > 0 && st283a.mainBytes === truthMain283 && st283a.stageCount === 0 && st283a.codec === 'preview';
+    var diskObj283 = JSON.parse(diskRaw283);
+    var topKeys283 = Object.keys(diskObj283).sort().join(',');
+    var contractKeys283 = Object.keys(SQ.defaultState()).sort().join(',');
+    /* 水位**只活在内存**：主档顶层键必须仍是既有契约集，不得多出 saveStats / stats 这类自造项 */
+    var notInSave283 = topKeys283.indexOf('saveStats') < 0 && topKeys283.indexOf('stats') < 0 && topKeys283 === contractKeys283;
+    var sideBefore283 = st283a.sideBytes;
+    for (var g283 = 0; g283 < 3000; g283++) SQ.Log.push(w283, 'sys', 'L'.repeat(300) + '#' + g283, 1700000000000 + g283);
+    await SQ.save(s283);
+    var st283b = SQ.SaveStats.get();
+    var decoupled283 = st283b.sideBytes > sideBefore283 + 10000 && st283b.stageCount === 0 &&
+      Math.abs(st283b.mainBytes - st283a.mainBytes) < 4096 &&
+      st283b.mainBytes === SQ.storedBytes(localStorage.getItem(SQ.KEY));
+    var sideTruth283 = st283b.sideBytes === SQ.storedBytes(localStorage.getItem(SQ.Log.KEY));
+    await SQ.save(s283);                          /* 内容未变 ⇒ 侧档走跳写分支，读数必须沿用 */
+    var st283c = SQ.SaveStats.get();
+    var skipKeeps283 = st283c.sideBytes === st283b.sideBytes && st283c.sideBytes > 0;
+    var nowFixed283 = Date.now();
+    var forced283 = await SQ.compressForSave(s283, nowFixed283, 1);
+    var ladderVisible283 = forced283.stages.length > 0 && forced283.stages[0] === 0;
+    ok('283', '存档水位读数与盘上同源且不进存档：主档 ' + st283a.mainBytes + 'B === 落盘值字节数（度量线同 §3.5 编码后口径）· 日志 3000 条入侧档后主档仅动 ' + (st283b.mainBytes - st283a.mainBytes) + 'B 且有损级 ' + st283b.stageCount + ' 级 · 侧档 ' + sideBefore283 + '→' + st283b.sideBytes + 'B 亦与盘上相等 · 跳写沿用读数不归零 · 强制跑满时级序 ' + forced283.stages.join('/') + '（证明那一行真会亮）',
+      honest283 && notInSave283 && decoupled283 && sideTruth283 && skipKeeps283 && ladderVisible283,
+      '顶层键=' + topKeys283 + ' 主档真值=' + truthMain283 + 'B 报=' + st283a.mainBytes + 'B · 涨日志后主档=' + st283b.mainBytes + 'B 侧档=' + st283b.sideBytes + 'B（真值=' + SQ.storedBytes(localStorage.getItem(SQ.Log.KEY)) + 'B）· 跳写后=' + st283c.sideBytes + 'B · codec=' + st283b.codec + ' · 强制级=' + forced283.stages.join('/'));
+    localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY); SQ.Side.resetSig();
+    localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
+
     /* ═══ 天象扩容 · 本局去重批（天道卷 v1.4 §7.3 / 道友池卷 v1.2 §六 / 引擎卷 v1.10 §3.6）═══ */
 
     /* #252 天象池对表 + 本局去重位掩码：

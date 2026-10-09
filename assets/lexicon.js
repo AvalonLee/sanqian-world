@@ -100,6 +100,18 @@
     /* 设置页（重置存档） */
     'settings.save.title': '存档',
     'settings.save.now': '当前：{name} · {world} · {realm}',
+    /* 存档水位（2026-10-09 存档水位批 · 治理批留下的玩家可见面）：数值一律由视图传入，
+       词表只放中文外壳 ⇒ 单位与数字不进词表，A4「界面拉丁词」关卡不受影响 */
+    'settings.save.level.title': '存档水位',
+    'settings.save.level.main': '主档 {size}，触发线 {trigger}，上限 {red}，余量 {pct}',
+    'settings.save.level.side': '侧档 {size}（日志预算 {log}，叙事流预算 {feed}）· 在册 {logs} 条 / {feeds} 条',
+    'settings.save.level.stages.none': '本轮未动用有损级：主档体积与实际游玩时长解耦',
+    'settings.save.level.stages.n': '本轮动用有损级 {n} 级（{list}），按容量优先序降级',
+    'settings.save.level.codec.bridge': '落盘分支：压缩串（生产）',
+    'settings.save.level.codec.preview': '落盘分支：明文（浏览器直开预览）',
+    'settings.save.level.codec.degraded': '落盘分支：原样对象（宿主缺标准压缩接口）',
+    'settings.save.level.empty': '本次会话尚未落盘，读数将在第一次存档后出现',
+    'settings.save.level.note': '水位只在本机内存里统计，不写进存档；重开页面后由第一次读档恢复。',
     'settings.reset': '重置存档', 'settings.reset.btn': '重置',
     'settings.reset.desc': '清空当前道途，回到入世创角',
     'settings.reset.note': '重置会清空道号、天赋、境界、洞府、法器、法宝与全部日志，且不可撤销。',

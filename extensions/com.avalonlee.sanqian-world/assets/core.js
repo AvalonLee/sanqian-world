@@ -155,6 +155,9 @@
       } else {
         raw = localStorage.getItem(KEY);
       }
+      /* 水位：读档时也记一次盘上真实体量（重启后第一次进设置页就有读数，不必等一次落盘） */
+      saveStats.readMainBytes = storedBytes(raw == null ? '' : raw);
+      saveStats.mainBytes = saveStats.readMainBytes;   /* 刚读到的就是盘上当前体量；下一次写会覆盖成落盘度量 */
       /* 解码三态全收（对象 / 明文 JSON / d1: 压缩串）⇒ 旧档与测试存档件零迁移 */      if (typeof raw === 'string' && raw.indexOf(CODEC_PREFIX) === 0 && !codecReady()) {
         /* 档是压缩写的、当前宿主读不动：显式报错走 ioError 出口（视图有提示），不静默当空档 */
         throw new Error('codec-unavailable');
@@ -781,6 +784,20 @@
   /* 落盘字节数：编码后字符串的 UTF-8 字节（红线/触发线的新口径 = **编码后**） */
   function storedBytes(enc) { return strBytes(typeof enc === 'string' ? enc : JSON.stringify(enc)); }
 
+  /* ── 存档水位读数（2026-10-09 存档水位批 · 治理批 ⑨ 留下的唯一玩家可见面）────────
+   * 目的：把「主档多大 · 离红线多远 · 这次有没有动用有损级 · 侧档承载了多少」变成设置页
+   *   直接看得见的四个数。治理批把主档与实际游玩时长解耦之后，**效果本身没有任何可见面**，
+   *   只能靠跑探针读曲线；而日常可见面同时也是「内容池该不该扩」的证据入口（与同批 `probe-eventrepeat` 同一动机）。
+   * 纪律：**只在内存、不进存档**。这些数就是「上一次落盘的度量」，写进档里等于自造一个增长项，
+   *   与「主档只放机制态」的口径直接冲突 ⇒ normalize 不认它、savePayload 也不经它，
+   *   重启后由**首次读档**用 `readMainBytes/readSideBytes` 重新填（读的是盘上真实体量）。
+   * 口径：mainBytes = 编码**后**字节（与 SQ.SAVE_RED/SQ.SAVE_TRIGGER 同一条度量线，见 §3.5）；
+   *   stages = 本轮实际触发的阶梯级数组，**空数组 = 解耦生效、有损保险未动用**；
+   *   codec = 落盘分支标签（bridge = d1 压缩 / preview = 明文 / degraded = 原样对象）。 */
+  var saveStats = { mainBytes: 0, sideBytes: 0, stages: [], codec: '', at: 0, readMainBytes: 0, readSideBytes: 0 };
+  var lastSideBytes = 0;   /* 侧档最近一次落盘字节：跳过写（内容未变）时沿用它，水位不能因跳写而归零 */
+  function codecLabel() { return !hasBridge() ? 'preview' : (codecReady() ? 'bridge' : 'degraded'); }
+
   /* 测试读端：读主档落盘原样对象（解码 + parse，不 normalize、不回填展示流两族 log / feed）。
    * 存在的理由：界面走查此前一律 `JSON.parse(localStorage.getItem(KEY))`，编码后那一行拿到的是 `d1:` 串；
    * 与其让每个测试脚本各自解码（五处副本 = 五处漂移），这里给一个与写端同源的出口。 */
@@ -842,7 +859,15 @@
       } else {
         localStorage.setItem(KEY, c.str);
       }
-      await writeLogsIfChanged(s);                        /* 日志独立落盘（内容未变则跳过） */
+      var side = await writeLogsIfChanged(s);                /* 日志独立落盘（内容未变则跳过）；返回侧档字节 */
+      /* 水位读数：落盘成功后一并记（失败走 catch ⇒ 不污染上一次读数，视图据此知道「最近一次成功写」是哪回） */
+      saveStats.mainBytes = c.stored;
+      saveStats.sideBytes = side || 0;
+      saveStats.stages = c.stages.slice();
+      saveStats.codec = codecLabel();
+      saveStats.at = Date.now();
+      saveStats.readMainBytes = c.stored;                    /* 刚写完 = 盘上当前体量，读档口径与落盘口径对齐 */
+      saveStats.readSideBytes = saveStats.sideBytes;
       ioError = null;
     } catch (e) {
       ioError = { op: 'write', msg: (e && e.message) || String(e) };
@@ -1040,7 +1065,10 @@
     try {
       raw = hasBridge() ? await window.xhub.storage.get(LOG_KEY) : localStorage.getItem(LOG_KEY);
     } catch (e) { raw = undefined; }
-    if (raw == null || raw === '') { sideUnreadable = false; return null; }
+    if (raw == null || raw === '') { sideUnreadable = false; saveStats.readSideBytes = 0; lastSideBytes = 0; return null; }
+    saveStats.readSideBytes = storedBytes(raw);   /* 水位读数：侧档盘上真实体量（编码后字节，与主档同一条度量线） */
+    saveStats.sideBytes = saveStats.readSideBytes;
+    lastSideBytes = saveStats.sideBytes;
     try {
       var obj = await decodeStoredObject(raw);
       if (obj && obj.logs && typeof obj.logs === 'object') { sideUnreadable = false; return obj; }
@@ -1106,11 +1134,15 @@
       }
     }
     var sig = logSig(payload.logs) + '#' + feedSig(payload.feed);
-    if (sig === lastLogSig) return;
-    if (sideUnreadable) return;      /* 读不动就不覆盖：宁可留着旧侧档，也不拿空内容去顶掉它 */
-    if (hasBridge()) await window.xhub.storage.set(LOG_KEY, await encodeForBridge(payload));
-    else localStorage.setItem(LOG_KEY, JSON.stringify(payload));
+    /* 返回值 = 侧档当前落盘字节（水位读数用）：跳写时沿用上一次的值，绝不返回 0 冒充「侧档空了」 */
+    if (sig === lastLogSig) return lastSideBytes;
+    if (sideUnreadable) return lastSideBytes;      /* 读不动就不覆盖：宁可留着旧侧档，也不拿空内容去顶掉它 */
+    var val = hasBridge() ? await encodeForBridge(payload) : JSON.stringify(payload);
+    lastSideBytes = storedBytes(val);
+    if (hasBridge()) await window.xhub.storage.set(LOG_KEY, val);
+    else localStorage.setItem(LOG_KEY, val);
     lastLogSig = sig;
+    return lastSideBytes;
   }
 
   SQ.Log = { push: logPush, CAT_CAP: LOG_CAT_CAP, HARD_CAP: LOG_HARD_CAP,
@@ -1132,7 +1164,7 @@
   /* 侧档状态复位（签名 + 「读不动」标志）：清档（resetSave）或外部删除/修好脏键后调用。
    * 跳过写的判据是「内容与上次落盘相同」，而**外部把侧档键删掉**这件事本模块无从感知
    * ⇒ 不复位就会出现「内容照旧 ⇒ 不写 ⇒ 侧档永久缺失」。生产路径的唯一入口是 resetSave。 */
-  function resetSideSig() { lastLogSig = null; sideUnreadable = false; }   /* 外部修好或删掉脏侧档后，须能恢复写 */
+  function resetSideSig() { lastLogSig = null; sideUnreadable = false; lastSideBytes = 0; }   /* 外部修好或删掉脏侧档后，须能恢复写 */
 
   SQ.Side = {
     KEY: LOG_KEY,
@@ -1153,6 +1185,22 @@
    * ⚠️ **存档瘦身批 2026-10-08 口径变更**：两值的度量对象由「编码前 JSON 字符串」改为
    *   「**落盘字节**（编码后）」。数值不变（56KB / 64KB），含义变严一档的是分母变小、
    *   同一条红线可容纳更多游戏内容；判据要读原账（编码前）时另取 c.str 的字节数。 */
+  /* 存档水位读数出口（视图与走查只读它；口径见 saveStats 定义处 —— **只在内存、不进存档**） */
+  SQ.SaveStats = {
+    get: function () {
+      return {
+        mainBytes: saveStats.mainBytes, sideBytes: saveStats.sideBytes,
+        stages: saveStats.stages.slice(), stageCount: saveStats.stages.length,
+        codec: saveStats.codec, at: saveStats.at,
+        readMainBytes: saveStats.readMainBytes, readSideBytes: saveStats.readSideBytes,
+        trigger: SAVE_TRIGGER, red: SAVE_RED,
+        logBudget: LOG_BYTE_BUDGET, feedBudget: FEED_BYTE_BUDGET,
+        mainKey: KEY, sideKey: LOG_KEY,
+        sideUnreadable: sideUnreadable
+      };
+    }
+  };
+
   SQ.SAVE_TRIGGER = SAVE_TRIGGER;
   SQ.SAVE_RED = SAVE_RED;
   SQ.CODEC_PREFIX = CODEC_PREFIX;

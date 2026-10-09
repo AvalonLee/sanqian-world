@@ -4412,6 +4412,35 @@
     return SQ.Actions.setTabOrder(state, ord);
   }
 
+  /* ── 存档水位（2026-10-09 存档水位批）──
+   * 数据源只有 `SQ.SaveStats.get()`：引擎在每次落盘/读档时记下的度量，**不在存档里**（口径见
+   *   core.js saveStats 注）。视图侧负责格式化单位与百分比，词表只给中文外壳 ⇒ 数字与单位不进词表，
+   *   「界面拉丁词」关卡不受影响。st.at = 0 表示本会话还没写过档，此时读数来自第一次读档。 */
+  var LVL_CODEC = {
+    bridge: 'settings.save.level.codec.bridge',
+    preview: 'settings.save.level.codec.preview',
+    degraded: 'settings.save.level.codec.degraded'
+  };
+  function lvKB(n) { return (Math.max(0, Number(n) || 0) / 1024).toFixed(2) + ' KB'; }
+  function saveLevelHtml() {
+    var st = (SQ.SaveStats && SQ.SaveStats.get()) || null;
+    if (!st) return '';
+    var red = st.red || 0;
+    var pct = red > 0 ? (Math.max(0, (1 - st.mainBytes / red)) * 100).toFixed(1) + '%' : '—';
+    var w = (state.worlds && state.profile && state.worlds[state.profile.worldId]) || {};
+    var logs = (w.log || []).length, feeds = ((w.eventHistory || {}).feed || []).length;
+    var stageLine = !st.at ? t('settings.save.level.empty')
+      : (st.stageCount === 0 ? t('settings.save.level.stages.none')
+        : t('settings.save.level.stages.n', { n: st.stageCount, list: st.stages.join('·') }));
+    return '<div class="setrow"><span class="sl">' +
+      esc(t('settings.save.level.main', { size: lvKB(st.mainBytes), trigger: lvKB(st.trigger), red: lvKB(red), pct: pct })) +
+      '<span class="sd">' + esc(stageLine) + '</span></span></div>' +
+      '<div class="setrow"><span class="sl">' +
+      esc(t('settings.save.level.side', { size: lvKB(st.sideBytes), log: lvKB(st.logBudget), feed: lvKB(st.feedBudget), logs: logs, feeds: feeds })) +
+      '<span class="sd">' + esc(t(LVL_CODEC[st.codec] || LVL_CODEC.preview)) + '</span></span></div>' +
+      '<p class="hint">' + esc(t('settings.save.level.note')) + '</p>';
+  }
+
   function renderSettings() {
     var h = '';
     /* 菜单顺序（游戏页可上下调整；系统页固定底部） */
@@ -4430,6 +4459,7 @@
     h += '</div>';
     h += '<div class="dsec"><div class="dt">' + esc(t('settings.save.title')) + '</div>' +
       '<div class="dd">' + esc(t('settings.save.now', identityParts())) + '</div>' +
+      '<div class="dt">' + esc(t('settings.save.level.title')) + '</div>' + saveLevelHtml() +
       '<p class="hint">' + esc(t('settings.reset.note')) + '</p>' +
       '<div class="setrow"><span class="sl">' + esc(t('settings.clearbuffs')) +
       '<span class="sd">' + esc(t('settings.clearbuffs.desc')) + '</span></span>' +
