@@ -1,11 +1,23 @@
-/* .tests/verify-ui-arts.cjs — 法与器合并页 + 自悟节 + 卡片化走查（playwright-core + Edge headless）
+/* .tests/verify-ui-arts.cjs — 法与器页（顶部标签互斥）+ 自悟节 + 卡片化 + 窄屏走查（playwright-core + Edge headless）
  * 自悟批：功法段「自行领悟」节——保底进度条（.selflearn .pbar）+ 可领悟候选计数；
  * 卡片化批：器段（.geargrid）与法宝页（.trgrid）由行列表改为卡片网格——宽屏多列、窄屏单列；
- * **页面整合批 2026-10-06（UI 卷 §3.4a）**：原「功法」「法器」两 Tab 并为「法与器」一页——
- *   本脚本同批改写：① 导航断言改数**游戏页 12 项**（原 13）② 新增概览条 `.laware` 三格 /
- *   段标 `.secdiv` 两段 / `lawJump` 锚跳三组断言 ③ 原 `#tab-gear` 选择器全部改 `#tab-arts`
- *   （容器已删，两页同处一页）④ 新增**窄屏导航零截断**断言（`.tabbar` 改横向滚动后，
- *   每个按钮 `scrollWidth <= clientWidth`——这是合并页敢取三字标签「法与器」的前提）。
+ * 页面整合批 2026-10-06（UI 卷 §3.4a）：原「功法」「法器」两 Tab 并为「法与器」一页——
+ *   ① 导航断言改数**游戏页 12 项**（原 13）② 新增概览条 `.laware` 三格 / 段标 / `lawJump` 断言
+ *   ③ 原 `#tab-gear` 选择器全部改 `#tab-arts` ④ 新增**窄屏导航零截断**断言。
+ * **法与器标签化批 2026-10-09（UI 卷 §3.4a v2.24）**：合并页「单页纵向五段」改「**顶部 chip 二枚 + 只渲染选中段**」
+ *   ——本批断言面按真实新结构重写，**不是把旧断言改绿**：
+ *   ① 段标/段序从「两段都在」翻成「**该在的在、不该在的一个都不在**」+「**一次恰一枚段标**」
+ *      （与 `.tests/probe-lawmerge.cjs` 的缺席判据同口径；无浏览器侧由探针覆盖，本篇覆盖 CSS 与真点击）；
+ *   ② 🆕 N 组 = 标签本体（二枚文案取真词表值 / 默认功法 / 点按互斥 / 滚动归零 / 跨 tab 保持）；
+ *   ③ 🆕 **吸顶碰撞（本批真机首跑抓到的产品缺陷，不是假想防御）**：`artsBody()` 返回**平铺**块，
+ *      融合坛「父母选择」那排 `.chips` 与顶部标签行同为 `#tab-arts` 的直接子代 ⇒ 首版写 `#tab-arts > .chips`
+ *      时它被一起吸到页顶。改法 = 顶部行挂专名类，吸顶规则写 `#tab-arts > .lawchips`；
+ *      本篇 N3 验顶栏计算值 = sticky（z-index 6），N4 验**页内其余 `.chips` 计算值仍为 static**，
+ *      并先断言「页内确有第二排 `.chips`」（本仓教训：`⊆ 空集` 恒真 ⇒ 缺席类判据必须先证反例会出现）。
+ *      注：探针（纯字符串层）**照不出这条**——桩当时把融合坛简化成一个 `<div class="fusealtar">`，
+ *      第二排 chip 在桩串里压根不存在；桩形已随批改成真实平铺（`.tests/probe-lawmerge.cjs` A4d），
+ *      但 CSS 计算值仍只有真机能量 ⇒ **登记为「桩简化的代价」**。
+ *   ④ `lawJump` 语义改：目标段未选中 = 切标签并回顶，已选中 = 不切标签、滚到段标。
  * 依赖：playwright-core（需先安装）；用法：NODE_PATH=<playwright-core 所在 node_modules> node .tests/verify-ui-arts.cjs
  */
 'use strict';
@@ -43,6 +55,33 @@ async function buildSave() {
     if (ok) pass++; else fail++;
     console.log((ok ? 'PASS' : 'FAIL') + ' ' + name + (detail ? ' (' + detail + ')' : ''));
   };
+  /* 取页顶标签行状态：枚数 / 文案 / 选中值 / 吸顶计算值 + 页内**其余** `.chips` 的 position
+   * （顶栏用专名类 `.lawchips` 与段内融合坛那排裸 `.chips` 区分——见 N4 的碰撞证据） */
+  const chipState = () => {
+    const row = document.querySelector('#tab-arts > .lawchips');
+    const on = document.querySelector('#tab-arts > .lawchips button.on');
+    const inner = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .chips'))
+      .filter((x) => !x.classList.contains('lawchips'));
+    return {
+      n: document.querySelectorAll('#tab-arts > .lawchips button').length,
+      labels: Array.prototype.map.call(document.querySelectorAll('#tab-arts > .lawchips button'), (b) => b.textContent.trim()),
+      on: on ? on.dataset.v : '',
+      pos: row ? getComputedStyle(row).position : '',
+      z: row ? getComputedStyle(row).zIndex : '',
+      allChips: document.querySelectorAll('#tab-arts .chips').length,
+      innerPos: inner.map((x) => getComputedStyle(x).position),
+      secIds: Array.prototype.map.call(document.querySelectorAll('#tab-arts .secdiv'), (x) => x.id),
+      marks: {
+        fa: !!document.querySelector('#tab-arts [data-mainart="1"]'),
+        selflearn: !!document.querySelector('#tab-arts .selflearn'),
+        grid: !!document.querySelector('#tab-arts .artgrid'),
+        grouper: !!document.querySelector('#tab-arts .grouper'),
+        qi: !!document.querySelector('#tab-arts .geargrid'),
+        codex: !!document.querySelector('#tab-arts [data-act="openGearCodex"]')
+      },
+      scroll: document.querySelector('.tabbody') ? document.querySelector('.tabbody').scrollTop : -1
+    };
+  };
 
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 } });
   await ctx.addInitScript((s) => { localStorage.setItem('sanqian-state-v1', JSON.stringify(s)); }, save);
@@ -77,6 +116,21 @@ async function buildSave() {
   await page.click('#m-tabbar button:has-text("法与器")');
   await page.waitForTimeout(400);
 
+  /* ── N1~N5 顶部标签本体（标签化批）── */
+  const c0 = await page.evaluate(chipState);
+  T(c0.n === 2 && c0.labels.join('|') === '功法|法器', 'N1 页顶标签恰二枚，文案取真词表值（skill.system / gear.system）',
+    'n=' + c0.n + ' ' + c0.labels.join('/'));
+  T(c0.on === 'fa', 'N2 默认落在功法标签（红点语义 = 有新功法，进页先看段）', 'on=' + c0.on);
+  T(c0.pos === 'sticky' && c0.z === '6', 'N3 标签行吸顶（position:sticky + z-index:6，与日志页同一条规则）',
+    'pos=' + c0.pos + ' z=' + c0.z);
+  T(c0.allChips >= 2 && c0.innerPos.length >= 1 && c0.innerPos.every((p) => p === 'static'),
+    'N4 融合坛父母选择器那排 .chips **没被一起吸顶**（吸顶规则挂专名类 .lawchips；此条在首版 `> .chips` 写法下实测为 sticky ⇒ 真缺陷证据）',
+    '页内 chips=' + c0.allChips + ' 其余排 position=' + c0.innerPos.join(','));
+  T(c0.secIds.join(',') === 'lawsec-fa' && c0.marks.fa && c0.marks.selflearn && c0.marks.grid && c0.marks.grouper &&
+    !c0.marks.qi && !c0.marks.codex,
+    'N5 功法标签下**恰一枚段标 + 功法段四标志在位 + 法器段整体缺席**（互斥，不是「两段都在顺序不同」）',
+    'sec=' + c0.secIds.join(',') + ' geargrid=' + c0.marks.qi + ' codex=' + c0.marks.codex);
+
   /* ── A1 概览条 .laware：三格（主修 / 佩器 / 战力），每格值非空 ── */
   const ov = await page.evaluate(() => {
     const cells = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .laware button'));
@@ -91,10 +145,10 @@ async function buildSave() {
   T(ov.keys.join('|') === '主修|佩器|战力', 'A1b 概览条三格标签正确', ov.keys.join('|'));
   T(ov.vals.every((v) => v.length > 0), 'A1c 概览条三格值均非空', JSON.stringify(ov.vals));
   T(ov.vals[0].indexOf('Lv') >= 0, 'A1d 主修格显示功法名 + 等级', ov.vals[0]);
-  T(ov.jumps.every((j) => j.indexOf('lawJump:') === 0), 'A1e 三格均绑 lawJump 锚跳', ov.jumps.join(','));
+  T(ov.jumps.every((j) => j.indexOf('lawJump:') === 0), 'A1e 三格均绑 lawJump（标签化后语义 = 切到对应段）', ov.jumps.join(','));
 
-  /* ── A2 段标 .secdiv：法 / 器 两段，各带锚点 id ── */
-  const seg = await page.evaluate(() => {
+  /* ── A2 段标：随标签切换，恰一枚在位、字与副标各归各段 ── */
+  const segFa = await page.evaluate(() => {
     const ds = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .secdiv'));
     return {
       n: ds.length,
@@ -103,20 +157,20 @@ async function buildSave() {
       subs: ds.map((x) => ((x.querySelector('.sub') || {}).textContent || '').trim())
     };
   });
-  T(seg.n === 2 && seg.zi.join('') === '法器', 'A2 段标两段「法」「器」在位', seg.zi.join('/'));
-  T(seg.ids.join(',') === 'lawsec-fa,lawsec-qi', 'A2b 段标锚点 id 正确（lawJump 目标）', seg.ids.join(','));
-  T(seg.subs.every((s) => s.length > 0), 'A2c 段标副标非空', seg.subs.join(' / '));
+  T(segFa.n === 1 && segFa.zi.join('') === '法' && segFa.ids.join(',') === 'lawsec-fa',
+    'A2 功法标签下段标恰一枚「法」+ 锚点 lawsec-fa', segFa.zi.join('/') + ' ' + segFa.ids.join(','));
+  T(segFa.subs.length === 1 && segFa.subs[0].length > 0, 'A2b 段标副标非空', segFa.subs.join(' / '));
 
-  /* ── A3 段序：概览条 → 法段标 → 功法内容 → 器段标 → 法器内容（单页纵向五段）── */
+  /* ── A3 段序：标签 → 概览条 → 段标 → 段体（功法标签态）── */
   const order = await page.evaluate(() => {
     const p = document.getElementById('tab-arts');
-    const sel = ['.laware', '#lawsec-fa', '.selflearn', '#lawsec-qi', '.geargrid'];
-    const tops = sel.map((s) => { const e = p.querySelector(s); return e ? e.getBoundingClientRect().top : -1; });
-    return { tops, allFound: tops.every((x) => x >= 0) };
+    const sel = ['#tab-arts > .lawchips', '.laware', '#lawsec-fa', '.selflearn'];
+    const tops = sel.map((s) => { const e = p.querySelector(s) || document.querySelector(s); return e ? Math.round(e.getBoundingClientRect().top) : -99999; });
+    return { tops, allFound: tops.every((x) => x > -99999) };
   });
-  T(order.allFound, 'A3 五段元素全部在位', JSON.stringify(order.tops.map(Math.round)));
+  T(order.allFound, 'A3 四段元素全部在位（标签 / 概览条 / 段标 / 段体）', JSON.stringify(order.tops));
   T(order.allFound && order.tops.every((v, i) => i === 0 || v >= order.tops[i - 1]),
-    'A3b 五段纵向顺序正确（概览条 → 法 → 功法内容 → 器 → 法器内容）', JSON.stringify(order.tops.map(Math.round)));
+    'A3b 四段纵向顺序正确（标签 → 概览条 → 法·段标 → 功法内容）', JSON.stringify(order.tops));
 
   /* ── A4 功法段：自悟节（原「功法页」断言，归属改称、断言不变）── */
   const arts = await page.evaluate(() => {
@@ -135,7 +189,22 @@ async function buildSave() {
   T(arts.selfHead, 'A4b 自悟节标题（自行领悟）在位');
   T(arts.cands, 'A4c 自悟节含候选/说明文案');
 
-  /* ── A5 器段：卡片网格（原「法器页」断言，容器 #tab-gear → #tab-arts）── */
+  /* ── N6 点法器标签：只渲染法器段 + 滚动归零（先滚深再切，验「切段等价换页」）── */
+  await page.evaluate(() => { const b = document.querySelector('.tabbody'); b.scrollTop = 600; });
+  await page.waitForTimeout(120);
+  const deep = await page.evaluate(() => document.querySelector('.tabbody').scrollTop);
+  await page.evaluate(() => document.querySelector('#tab-arts > .lawchips button[data-v="qi"]').click());
+  await page.waitForTimeout(300);
+  const c1 = await page.evaluate(chipState);
+  T(c1.on === 'qi' && c1.secIds.join(',') === 'lawsec-qi' && c1.marks.qi && c1.marks.codex &&
+    !c1.marks.fa && !c1.marks.selflearn && !c1.marks.grid && !c1.marks.grouper,
+    'N6a 点法器标签 → 法器段在位、**功法段整体缺席**、恰一枚段标',
+    'on=' + c1.on + ' sec=' + c1.secIds.join(','));
+  T(deep > 0 && c1.scroll === 0, 'N6b 切标签后滚动归零（不留在新段的中间当开头）', 'before=' + Math.round(deep) + ' after=' + Math.round(c1.scroll));
+  T(c1.innerPos.length === 0, 'N6c 法器标签下融合坛那排 chip 随之消失（缺席面：功法段元素一个不留）',
+    '内层 chips=' + c1.innerPos.length);
+
+  /* ── A5 器段：卡片网格（原「法器页」断言，容器 #tab-gear → #tab-arts，需先切到法器标签）── */
   const gear = await page.evaluate(() => {
     const g = document.querySelector('#tab-arts .geargrid');
     return {
@@ -149,20 +218,34 @@ async function buildSave() {
   T(gear.hasGrid && gear.cols >= 2, 'A5b 器段为卡片网格（宽屏 ≥2 列）', 'cols=' + gear.cols);
   T(gear.cards >= 4, 'A5c 器段每槽一卡（4 槽全在）', 'n=' + gear.cards);
 
-  /* ── A6 lawJump 锚跳：点概览条「佩器」格 → 器段滚入可视区 ──
-   * 口径修正（2026-10-07 · 界面层首次实跑抓获的**测试缺陷**，非产品缺陷）：
-   *   原 A6b 在 `click()` 后固定 `waitForTimeout(700)` 就取 scrollTop / 锚点位置，而平滑滚动耗时随距离变化、
-   *   且 `.tabbody` 可滚程随渲染态增长（法段功法列表在首个 tick 后才铺满）——两次实跑分别读到
-   *   scrollTop 2124 / 1893（均 < 当次 maxScroll），锚点距容器顶 651~899px，于是硬断言「±40px 对齐」假红。
-   *   改为**轮询至 scrollTop 连续两次不变**（落定）后再测：实测 relTop ≈ −16，落点其实符合实现对
-   *   （`view/index.html` lawJump 用 `scrollTop + (锚点top − 容器top) − 8` 求目标，产品无缺陷）。
-   *   判据同时放宽为「锚点落在可视带内」——容器可滚程不够长时浏览器会钳位，此时对齐容器顶本就不可能。 */
+  /* ── N7 切回功法标签（对称面）+ N8 跨 tab 保持（`ui.lawChip` 不被 renderTab 重置）── */
+  await page.evaluate(() => document.querySelector('#tab-arts > .lawchips button[data-v="fa"]').click());
+  await page.waitForTimeout(300);
+  const c2 = await page.evaluate(chipState);
+  T(c2.on === 'fa' && c2.secIds.join(',') === 'lawsec-fa' && !c2.marks.qi,
+    'N7 切回功法标签 → 段体对称互换（法器段又整体缺席）', 'on=' + c2.on + ' sec=' + c2.secIds.join(','));
+  await page.evaluate(() => document.querySelector('#tab-arts > .lawchips button[data-v="qi"]').click());
+  await page.waitForTimeout(200);
+  await page.click('#m-tabbar button:has-text("修行")');
+  await page.waitForTimeout(300);
+  await page.click('#m-tabbar button:has-text("法与器")');
+  await page.waitForTimeout(400);
+  const c3 = await page.evaluate(chipState);
+  T(c3.on === 'qi' && c3.marks.qi, 'N8 离开再回来标签仍是法器段（`ui.lawChip` 在内存、由 renderTab 复用，不被每秒重渲染抢回）',
+    'on=' + c3.on);
+
+  /* ── A6 lawJump 概览条格（标签化后语义）：目标段未选中 → 切标签并回顶；已选中 → 不切标签 ──
+   * 口径变更（标签化批）：原「点格 → 器段滚入可视区」在本批结构下**必然失效**——法器段在功法标签下根本不在 DOM 里，
+   * 于是「点佩器格」的正确行为改成了切标签。断言随之改挂「切段」而非「滚动距离」，
+   * 并保留一条「同段再点不切标签」防退化成来回抖动重渲染。
+   * 旧口径修正记录（2026-10-07 · 界面层首次实跑抓获的测试缺陷，非产品缺陷）：平滑滚动落点随可滚程变化，
+   * 判据须轮询至 scrollTop 落定再测，不能写死 ±40px 对齐。 */
+  await page.evaluate(() => { const b = document.querySelector('.tabbody'); b.scrollTop = 400; });
   const jump = await page.evaluate(async () => {
     const box = document.querySelector('.tabbody');
-    const anchor = document.getElementById('lawsec-qi');
     const before = box.scrollTop;
-    const cell = document.querySelectorAll('#tab-arts .laware button')[1];
-    cell.click();
+    const onBefore = document.querySelector('#tab-arts > .lawchips button.on').dataset.v;
+    document.querySelectorAll('#tab-arts .laware button')[0].click();   /* 主修格 = data-v fa（当前 qi 标签 ⇒ 应切标签） */
     let last = -1, cur = box.scrollTop, stable = 0;
     for (let i = 0; i < 80 && stable < 2; i++) {
       await new Promise((r) => setTimeout(r, 50));
@@ -170,25 +253,49 @@ async function buildSave() {
       if (cur === last) stable++; else stable = 0;
       last = cur;
     }
-    const br = box.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
+    const anchor = document.getElementById('lawsec-fa');
+    const br = box.getBoundingClientRect();
     return {
-      before, after: cur,
-      anchorVisible: ar.top < br.bottom && ar.bottom > br.top,
-      relTop: Math.round(ar.top - br.top),
+      before, after: cur, onBefore,
+      onAfter: document.querySelector('#tab-arts > .lawchips button.on').dataset.v,
+      secIds: Array.prototype.map.call(document.querySelectorAll('#tab-arts .secdiv'), (x) => x.id).join(','),
+      relTop: anchor ? Math.round(anchor.getBoundingClientRect().top - br.top) : -99999,
       clientHeight: Math.round(box.clientHeight),
-      maxScroll: Math.round(box.scrollHeight - box.clientHeight),
-      atMax: Math.round(cur) >= Math.round(box.scrollHeight - box.clientHeight)
+      maxScroll: Math.round(box.scrollHeight - box.clientHeight)
     };
   });
-  T(jump.after > jump.before, 'A6 概览条「佩器」格锚跳到器段（scrollTop 前进）',
-    'before=' + Math.round(jump.before) + ' after=' + Math.round(jump.after));
-  /* 稳判据 = 落定后锚点落在可视带内（−40 ~ 容器可视高）：容器可滚程够得着时对齐容器顶
-   * （实测 relTop = −16，段标上沿压在容器上沿 16px、即 lawJump 的 `− 8` 修正 + 段标自身内边距），
-   * 够不着时钳位在末端但仍须在带内。注意不能用「元素与容器矩形相交」判——段标压沿时
-   * rect.bottom 可能仍小于容器 rect.top，那正是**对齐成功**的形态，不是缺陷。 */
-  T(jump.relTop >= -40 && jump.relTop < jump.clientHeight,
-    'A6b 滚动落定后器段锚点落在可视带（够得着则对齐容器顶 ±40，够不着则钳位仍可见）',
-    'relTop=' + jump.relTop + ' 可视高=' + jump.clientHeight + ' maxScroll=' + jump.maxScroll + ' atMax=' + jump.atMax);
+  T(jump.onBefore === 'qi' && jump.onAfter === 'fa' && jump.secIds === 'lawsec-fa' && jump.after === 0,
+    'A6 概览条「主修」格在法器标签下 = 切回功法标签并回顶', 'chip ' + jump.onBefore + '→' + jump.onAfter + ' scroll=' + Math.round(jump.after));
+  /* 同段再点：标签不动（不重渲染），滚动仍归位到段标——`lawJump` 的旧职责在标签化后**只剩这一半**，
+   * 所以这条按「从深处滚回锚点可视带」实跑判据（口径承 2026-10-07 那次修正：轮询落定 + 可视带，不写死 ±40 对齐）。 */
+  const same = await page.evaluate(async () => {
+    const box = document.querySelector('.tabbody');
+    box.scrollTop = 500;
+    const deep = box.scrollTop;
+    document.querySelectorAll('#tab-arts .laware button')[0].click();   /* 主修格 = data-v fa，当前已在 fa */
+    let last = -1, cur = box.scrollTop, stable = 0;
+    for (let i = 0; i < 80 && stable < 2; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      cur = box.scrollTop;
+      if (cur === last) stable++; else stable = 0;
+      last = cur;
+    }
+    const anchor = document.getElementById('lawsec-fa');
+    const br = box.getBoundingClientRect();
+    return {
+      deep, after: Math.round(cur),
+      on: document.querySelector('#tab-arts > .lawchips button.on').dataset.v,
+      sec: Array.prototype.map.call(document.querySelectorAll('#tab-arts .secdiv'), (x) => x.id).join(','),
+      relTop: anchor ? Math.round(anchor.getBoundingClientRect().top - br.top) : -99999,
+      clientHeight: Math.round(box.clientHeight),
+      maxScroll: Math.round(box.scrollHeight - box.clientHeight)
+    };
+  });
+  T(same.on === 'fa' && same.sec === 'lawsec-fa', 'A6b 同段再点概览条 = 不切标签、不重渲染（防退化成来回抖页）',
+    'chip=' + same.on + ' sec=' + same.sec);
+  T(same.deep > 0 && same.after < same.deep && same.relTop >= -40 && same.relTop < same.clientHeight,
+    'A6c 同段点格仍滚到段标（从 scrollHeight 深处回到锚点可视带；够不着则钳位仍可见）',
+    'deep=' + same.deep + '→' + same.after + ' relTop=' + same.relTop + ' 可视高=' + same.clientHeight + ' maxScroll=' + same.maxScroll);
 
   /* ── A7 法宝页：卡片网格（独立成页，断言不变）── */
   await page.click('#m-tabbar button:has-text("法宝")');
@@ -209,6 +316,12 @@ async function buildSave() {
   await page.waitForTimeout(300);
   await page.click('#m-tabbar button:has-text("法与器")');
   await page.waitForTimeout(300);
+  /* 标签化后两段互斥：量器段网格前必须先切到法器标签（否则 `.geargrid` 根本不在 DOM 里） */
+  await page.evaluate(() => {
+    const q = document.querySelector('#tab-arts > .lawchips button[data-v="qi"]');
+    if (q) q.click();
+  });
+  await page.waitForTimeout(300);
   const narrow = await page.evaluate(() => {
     const g = document.querySelector('#tab-arts .geargrid');
     const btns = Array.prototype.slice.call(document.querySelectorAll('#m-tabbar button'));
@@ -216,6 +329,7 @@ async function buildSave() {
     return {
       gearCols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').length : 0,
       lawCols: getComputedStyle(document.querySelector('#tab-arts .laware')).gridTemplateColumns.split(' ').length,
+      chipPos: getComputedStyle(document.querySelector('#tab-arts > .lawchips')).position,
       /* 截断判据：内容宽 > 可视宽即被 ellipsis 截（旧 flex:1 布局下 12 项每项 ≈25px，两字标签 ≈24px + padding 必截） */
       clipped: btns.filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent.trim()),
       scrollable: bar.scrollWidth > bar.clientWidth,
@@ -224,9 +338,10 @@ async function buildSave() {
   });
   T(narrow.gearCols === 1, 'A8 窄屏器段网格退单列', 'cols=' + narrow.gearCols);
   T(narrow.lawCols === 1, 'A8b 窄屏概览条退单列（≤400px 媒体查询）', 'cols=' + narrow.lawCols);
-  T(narrow.clipped.length === 0, 'A8c 窄屏导航**零标签截断**（横向滚动修复生效；旧 flex:1 布局下此处必挂）',
+  T(narrow.chipPos === 'sticky', 'A8c 窄屏标签行仍吸顶（与宽屏同一条规则，非按断点复制）', 'pos=' + narrow.chipPos);
+  T(narrow.clipped.length === 0, 'A8d 窄屏导航**零标签截断**（横向滚动修复生效；旧 flex:1 布局下此处必挂）',
     narrow.clipped.length ? '被截: ' + narrow.clipped.join(',') : 'clean');
-  T(narrow.barOverflowX === 'auto' && narrow.scrollable, 'A8d 窄屏导航条为横向滚动容器且确有可滚内容',
+  T(narrow.barOverflowX === 'auto' && narrow.scrollable, 'A8e 窄屏导航条为横向滚动容器且确有可滚内容',
     'overflow-x=' + narrow.barOverflowX + ' scrollable=' + narrow.scrollable);
 
   /* ── A9 窄屏法宝页退单列（切回激活再量：隐藏面板无法解析网格列）── */
@@ -253,6 +368,7 @@ async function buildSave() {
   const page2 = await ctx2.newPage();
   page2.on('pageerror', (e) => errors.push(e.message));
   await page2.goto(url);
+  page2.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page2.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
   await page2.waitForTimeout(700);
   const afterLegacy = await page2.evaluate(() => {
@@ -273,6 +389,31 @@ async function buildSave() {
     'A10b 未知 id（gear / nosuchtab）被剔除', afterLegacy.ids.join(','));
   T(afterLegacy.head4 === 'idle,arts,combat,treasure',
     'A10c 旧档相对序保留（gear 剔除后其余项顺延，不重排）', 'nav=' + afterLegacy.head4 + ' 落盘=' + afterLegacy.persisted);
+  /* 🆕 标签化批的兼容性追问：`ui.lawChip` 只在内存 ⇒ 切过标签再落盘，存档里也**不该多出这个键**。
+   * 非空观测先行（本仓教训：`⊆ 空集` 式判据恒真）——先在旧档页面上**真把标签切到法器段**并验切换生效，
+   * 再验「写口确实跑过」（`settings.tabOrder` 已落盘 = 有真档）+ 全档搜不到 `lawChip`。 */
+  await page2.click('#m-tabbar button:has-text("法与器")');
+  await page2.waitForTimeout(400);
+  const chipOn2 = await page2.evaluate(async () => {
+    document.querySelector('#tab-arts > .lawchips button[data-v="qi"]').click();
+    await new Promise((r) => setTimeout(r, 250));
+    return {
+      on: document.querySelector('#tab-arts > .lawchips button.on').dataset.v,
+      gear: !!document.querySelector('#tab-arts .geargrid')
+    };
+  });
+  T(chipOn2.on === 'qi' && chipOn2.gear, 'A10d 旧档（无 `lawChip` 键）加载后标签照样可切到法器段',
+    'on=' + chipOn2.on + ' geargrid=' + chipOn2.gear);
+  const lawChipLeak = await page2.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1') || '{}');
+    return {
+      wrote: !!(s.profile && s.worlds && s.worlds.xiuxian),
+      leaked: JSON.stringify(s).indexOf('lawChip') >= 0
+    };
+  });
+  T(lawChipLeak.wrote && !lawChipLeak.leaked,
+    'A10e 切过标签后落盘的存档里搜不到 `lawChip`（纯 UI 态不入 schema；先证「确有真档」再证「不含该键」）',
+    'wrote=' + lawChipLeak.wrote + ' leaked=' + lawChipLeak.leaked);
   await ctx2.close();
 
   T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 150) || 'clean');

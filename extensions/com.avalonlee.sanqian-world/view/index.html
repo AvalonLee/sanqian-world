@@ -219,8 +219,11 @@
 
   /* ── 日志页（原「奇遇页 → 系统日志弹层」升级为左侧导航的独立页）── */
   /* 顶部分类切换栏吸顶：.tabbody 内部滚动时钉在顶部，长列表下也能随手切分类；
-     负外边距抵消 .panel 的 16px 内边距、铺满卡宽；近实遮罩 + 背景模糊挡住滚过的日志行 */
-  #tab-journal > .chips {
+     负外边距抵消 .panel 的 16px 内边距、铺满卡宽；近实遮罩 + 背景模糊挡住滚过的日志行
+     ⚠️ 法与器页**不能写 `#tab-arts > .chips`**（真机走查 N4 抓到，不是假想防御）：`artsBody()`
+     返回的是一串**平铺**块，融合坛「父母选择」那排 `.chips` 同为 `#tab-arts` 的直接子代，
+     写成 `> .chips` 会把它一起吸到页顶（页中页压在标签下）。故顶部标签行带专名 `.lawchips` 与之区分。 */
+  #tab-journal > .chips, #tab-arts > .lawchips {
     position: sticky; top: 0; z-index: 6;
     background: var(--sq-sticky-veil);
     -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -1392,6 +1395,7 @@
     caveStory: {},                          /* 洞府叙事展开态（B3；未达资格者本就不给展开） */
     tribSnap: null,                         /* 渡劫前 {p, loss} 快照（F7 复盘行） */
     artsGroup: 'tier', artsGroupVal: null,  /* 功法页双维分组（B4）：品阶|阵营 × 选中值（null=全节） */
+    lawChip: 'fa',                          /* 法与器页顶部标签（标签化批 2026-10-09）：'fa' 功法段 | 'qi' 法器段，两段互斥；纯 UI 态不入存档 */
     slotPickFor: null,                      /* 满槽替换选择模式（B4）：待入槽的功法 id */
     bondDetail: null,                       /* 名录浮层二级页（B3）：当前查看的 npcId */
     unwalked: {},                           /* 未择之路展开态（B8）：feed ts 键控；卸下照世镜即复位 */
@@ -2670,21 +2674,50 @@
     if (lacks.length) h += '<div class="meta red">' + esc(t('arts.state.lackline', { req: lacks.join(' · ') })) + '</div>';
     return h + '</div>';
   }
-  /* ══════════ Tab · 法与器（页面整合批 2026-10-06 · UI 卷 §3.4a）══════════
+  /* ══════════ Tab · 法与器（页面整合批 2026-10-06 · UI 卷 §3.4a；标签化批 2026-10-09 改顶部标签）══════════
    * 原「功法」「法器」两页并为一页（tab id 沿用 `arts`，导航 13 → **12** 项）。
-   * 单页纵向五段：① 概览条 `.laware` ② 法·段标 ③ 功法段 ④ 器·段标 ⑤ 法器段。
-   * ③⑤ 两段 = 原两页渲染器**逐段照搬**（元素与交互零删改），只把「写 innerHTML」
-   * 改成「返回 HTML 串」以便拼接：`artsBody()`（原 renderArts 主体）/ `gearBody()`（原 renderGear）。
+   * 标签化批：并页后实测**单页太长**（功法段 = 6 槽 + 待修习架 + 图鉴横幅 + 融合坛，法器段 = 百器录
+   * 横幅 + 4 槽 + 库藏阁，一屏放不下、看一半要滚到底再滚回来），故把「单页纵向五段」改成
+   * **顶部 chip 二枚 + 只渲染选中段**：① chip 行（吸顶）② 概览条（跨轴摘要，两段之间恒在）
+   * ③ 段标 ④ 段体。段体本身仍**逐段照搬**（元素与交互零删改）：`artsBody()`（原 renderArts 主体）
+   * / `gearBody()`（原 renderGear），都是返回 HTML 串的纯渲染器（实测两者只做读侧计算，无落状态副作用）。
    * 红点键 `newArtsDot` 与签名 `lastArtsSig` 零改动——只换承载页，法器侧本无红点。 */
   function renderArts() {
+    var c = lawChipOf();
     $('tab-arts').innerHTML =
+      lawChipBar() +
       lawareBar() +
-      secDiv('arts.seg.fa', 'arts.seg.fa.sub', 'fa') + artsBody() +
-      secDiv('arts.seg.qi', 'arts.seg.qi.sub', 'qi') + gearBody();
+      (c === 'qi'
+        ? secDiv('arts.seg.qi', 'arts.seg.qi.sub', 'qi') + gearBody()
+        : secDiv('arts.seg.fa', 'arts.seg.fa.sub', 'fa') + artsBody());
   }
 
-  /* ① 概览条：主修 / 佩器 / 战力 三格，点格锚跳到对应段（`lawJump`）——
-   * **合并页存在的理由**：进页一眼看到「法」「器」两条轴的当前态，不必在两页间来回切。 */
+  /* 顶部标签表（标签化批）：**词表零新键**——两枚 chip 复用既有系统名键 `skill.system`（功法）/
+   * `gear.system`（法器）。这二键在 UI 卷 §3.4a 早已注明还兼着日志页分类标签，同词复用不破那处语义。
+   * 容器类名 = `chips lawchips`：`chips` 取全局 chip 样式，`lawchips` 是**吸顶规则的专名挂点**
+   * （段内融合坛那排 `.chips` 与本行同为 `#tab-arts` 直接子代，只靠 `>` 区不开——真机走查 N4 抓到）。 */
+  var LAW_CHIPS = [{ id: 'fa', sys: 'skill.system' }, { id: 'qi', sys: 'gear.system' }];
+  function lawChipOf() { return ui.lawChip === 'qi' ? 'qi' : 'fa'; }
+  function lawChipBar() {
+    var cur = lawChipOf();
+    return '<div class="chips lawchips">' + LAW_CHIPS.map(function (c) {
+      return '<button type="button" class="' + (cur === c.id ? 'on' : '') + '" data-act="lawChip" data-v="' +
+        c.id + '">' + esc(t(c.sys)) + '</button>';
+    }).join('') + '</div>';
+  }
+  /* 切标签 = 换渲染主体 + 滚动归零（等价于换页：留在原 scrollY 会把新段的**中间**当成开头）。
+   * `ui.lawChip` 只在内存（与 `ui.logFilter` / `ui.artsGroup` 同纪律）——选看哪一段不是角色状态，
+   * 写进存档等于给主档加一个与游玩时长相关的增长项（同「度量只活在内存」那条裁定）。
+   * tick 侧 renderTab() 复用当前 chip ⇒ 每秒重渲染不会把用户选的标签抢回去。 */
+  function lawChipTo(v) {
+    ui.lawChip = v === 'qi' ? 'qi' : 'fa';
+    renderArts();
+    var b = document.querySelector('.tabbody');
+    if (b) b.scrollTop = 0;
+  }
+
+  /* ① 概览条：主修 / 佩器 / 战力 三格，点格切到对应段（`lawJump` 在标签化批的语义见委托处）——
+   * **合并页存在的理由**：进页一眼看到「法」「器」两条轴的当前态，切段时摘要不跟着滚走。 */
   function lawareBar() {
     var w = ws(), m = mods(), d = D(), p = pack();
     var mainId = SQ.Arts.mainArt(w);
@@ -6250,11 +6283,16 @@
     var act = el.dataset.act, v = el.dataset.v;
     var keepScroll = document.querySelector('.tabbody') ? document.querySelector('.tabbody').scrollTop : 0;
     if (act === 'tab') { switchTab(v); return; }
-    /* 法与器合并页（页面整合批 2026-10-06 · UI 卷 §3.4a）：概览条三格锚跳到「法」/「器」段标。
-     * 滚动容器是 `.tabbody`（页内滚动）而非 window；用 getBoundingClientRect 差值 + 当前
-     * scrollTop 求目标位，避开 offsetParent 归属不确定（`.panel` 有无 position 都能算对）；
-     * prefers-reduced-motion 直出不做平滑动画（与渡劫演出同口径）。 */
+    /* 法与器合并页（页面整合批 2026-10-06 · UI 卷 §3.4a；标签化批 2026-10-09 改顶部标签）：
+     * `lawChip` = 页顶两枚标签（功法 / 法器），互斥显示，切一枚就只渲染那一段。
+     * `lawJump` = 概览条三格，语义随标签化改：**目标段没选中 → 切过去并回顶**（原来「锚跳到看不见的段」
+     * 在无滚动可依托的标签态下等于没反应）；**目标段已选中 → 仍滚到该段段标**（长段内回段首，
+     * 滚动容器是 `.tabbody` 而非 window，`prefers-reduced-motion` 直出——与渡劫演出同口径）。
+     * 两条都必须 `return`：委托尾部会把 `.tabbody.scrollTop` 复原成动作前的值（keepScroll），
+     * 不 return 就切完标签又被拽回原处——与 `logFilter` 同口径。 */
+    if (act === 'lawChip') { lawChipTo(v); return; }
     if (act === 'lawJump') {
+      if (lawChipOf() !== (v === 'qi' ? 'qi' : 'fa')) { lawChipTo(v); return; }
       var lawT = document.getElementById('lawsec-' + v);
       var lawB = document.querySelector('.tabbody');
       if (lawT && lawB) {
