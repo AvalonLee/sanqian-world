@@ -34,7 +34,7 @@ node .tests/run-dod.cjs --sim    # 追加 sim-playthrough 全程模拟（收口�
 node .tests/run-dod.cjs --full   # = --ui --sim
 ```
 
-判据 = **末行 `DOD_ALL_GREEN <件数>`**；任一子件红 ⇒ `DOD_FAILED` 且退码 1。单件也可各自跑：`node .tests/run-smoke.cjs`（`SMOKE_ALL_GREEN n/n`）、`node .tests/audit.cjs`（`AUDIT_ALL_GREEN 16/16`）、`node .tests/versions-check.cjs`（`VERSIONS_IN_SYNC rows=…`）。关数与断言数**一律以 `docs/FACTS.md` 为准**，本文件不复制读数。`.tests/` 是点目录，**不进交付包**。
+判据 = **末行 `DOD_ALL_GREEN <件数>`**；任一子件红 ⇒ `DOD_FAILED` 且退码 1。单件也可各自跑：`node .tests/run-smoke.cjs`（`SMOKE_ALL_GREEN n/n`）、`node .tests/audit.cjs`（`AUDIT_ALL_GREEN 17/17`，其中 🆕 **B9** 守「源侧 ↔ 交付镜像七项逐字节零差异」这条不变量）、`node .tests/versions-check.cjs`（`VERSIONS_IN_SYNC rows=…`）。关数与断言数**一律以 `docs/FACTS.md` 为准**，本文件不复制读数。`.tests/` 是点目录，**不进交付包**。
 
 ## 四、镜像不变量（改完必须同步）
 
@@ -50,6 +50,8 @@ diff -q manifest.json "$M/manifest.json"; diff -q icon.svg "$M/icon.svg"; diff -
 ```
 
 七项全部无输出才算同步完成。`$M/.storage.json` 是宿主实时存档，**不参与同步**。回传打包按 `.vibex/skills/vibex-app-source-roundtrip/SKILL.md`（ZIP 内路径相对你在 VibeX Source 树里选中的目录）。
+
+> 🆕 **2026-10-09 起这条不变量已进门闸**：`node .tests/audit.cjs` 的 **B9** 就是把它自动化（四目录递归逐字节 + 三单件，`.storage.json` 两侧排除，单侧多/缺文件同算漂移），手工 `diff -rq` 退为「知道差异在哪」的排障工具。立因 = 本批实测两次源侧改完忘了同步镜像，**只写在文档里的不变量等于没有不变量**。
 
 ## 五、存档格式（两键 + 一层编码）
 

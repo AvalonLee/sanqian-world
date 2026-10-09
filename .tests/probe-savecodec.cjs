@@ -177,9 +177,13 @@ function fatState(SQ) {
     'E2 且不静默把档当空：回落态与新档一致、玩家名不出现（可提示而非假装无事）');
   nc2.bridge[SQ.KEY] = null;
 
-  /* ── F 相：真实玩家档（平台 .storage.json）── */
-  const livePath = path.join(ROOT, '..', 'xhub', 'extensions', 'com.avalonlee.sanqian-world', '.storage.json');
-  if (fs.existsSync(livePath)) {
+  /* ── F 相：真实玩家档（宿主 .storage.json）──
+   * 路径改用 `.tests/storage-read.cjs` 的**候选试探**（2026-10-09 版本控制纳管批：宿主移除平台安装目录、
+   *   实时实例改在仓库镜像根跑 ⇒ 本件此前单条硬编码路径**静默 SKIP 了两个判据**，F 相在 DoD 里没真跑过）。
+   *   ⚠️ 只借它「找路径」，**解码一律仍走 SQ.decodeStoredObject（生产读端）** —— 见 storage-read.cjs 头注的边界。 */
+  let livePath = null;
+  try { livePath = require(path.join(ROOT, '.tests/storage-read.cjs')).storagePath(); } catch (e) { livePath = null; }
+  if (livePath && fs.existsSync(livePath)) {
     const wrapped = JSON.parse(fs.readFileSync(livePath, 'utf8'));
     const main = wrapped[SQ.KEY], logs = wrapped[SQ.Log.KEY];
     const decMain = await SQ.decodeStoredObject(main);

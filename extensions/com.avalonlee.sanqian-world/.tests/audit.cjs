@@ -17,6 +17,7 @@
  *   B5 module 格子纪律（#87，无 min-height/12px/container-type/overflow）
  *   B6 外链行为（#88，零 window.open / target=_blank）
  *   B7 壁纸透底态规则（#86 静态半区）  B8 桥容错（#89，单一桥模块 + try/catch + 失败出口）
+ *   B9 交付镜像一致性（源侧 ↔ extensions/com.avalonlee.sanqian-world 七项逐字节零差异；2026-10-09 版本控制纳管批立）
  */
 'use strict';
 const fs = require('fs');
@@ -538,6 +539,72 @@ const SQ = sandbox.window.SQ;
     }
   }
   ok('B8', '桥容错（单一桥模块 + 读写 try/catch + 失败出口被视图消费）', b8.length === 0, b8.join(';'));
+})();
+
+/* ── B9 交付镜像一致性（2026-10-09 版本控制纳管批立）─────────────────────────
+ * 立因：镜像 `extensions/com.avalonlee.sanqian-world/` 与源侧的「七项 diff -rq 零差异」是本仓最强的一条不变量
+ *   （2026-10 上半年两次单侧回退都靠它反向救回），但它**历来只靠人手敲命令 + 收口时口头承诺**——
+ *   本轮存档治理批就出现过一次「改了 .tests/README 忘了同步镜像」，靠 git status 才照出来。
+ *   不变量不进门闸 = 迟早漂，故收进审计。
+ * 口径：四目录递归比内容（逐字节），三单件比内容；`.storage.json` 是宿主实时存档，
+ *   **两侧都不参与比对**（与工程规范 §8.6 快照排除口径一致）；单侧多出来的文件同样算漂移。
+ * 判据细节：只列前 8 条差异，其余计数汇总，避免镜像整棵树缺失时刷屏。 */
+(function () {
+  var EXT = 'com.avalonlee.sanqian-world';
+  var DIRS = ['assets', 'view', 'module', '.tests'];
+  var FILES = ['manifest.json', 'icon.svg', 'DESIGN.md'];
+  var SKIP = { '.storage.json': 1 };
+  /* 两侧都可辨才比：默认「源侧 = 当前根 / 镜像 = extensions/<EXT>」；
+     若从镜像根起跑（../.. 是源码树根），反过来指 —— 同一条判据，两种起跑位置都成立。 */
+  function isRoot(d) { return fs.existsSync(d + '/assets') && fs.existsSync(d + '/manifest.json'); }
+  var SRC = '.', MIR = 'extensions/' + EXT;
+  if (!fs.existsSync(MIR) && isRoot('../..')) { SRC = '../..'; MIR = '.'; }
+  function walk(dir, base, acc) {
+    var ents;
+    try { ents = fs.readdirSync(dir); } catch (e) { return acc; }
+    ents.forEach(function (f) {
+      if (SKIP[f]) return;
+      var p = dir + '/' + f, st;
+      try { st = fs.statSync(p); } catch (e) { return; }
+      if (st.isDirectory()) walk(p, base, acc);
+      else acc[p.slice(base.length + 1)] = st.size;
+    });
+    return acc;
+  }
+  var diffs = [];
+  function cmpTree(rel) {
+    var A = SRC + '/' + rel, B = MIR + '/' + rel;
+    var a = walk(A, A, {}), b = walk(B, B, {});
+    var keys = {}, kk;
+    for (kk in a) keys[kk] = 1;
+    for (kk in b) keys[kk] = 1;
+    Object.keys(keys).sort().forEach(function (k) {
+      if (!(k in a)) { diffs.push('仅镜像有 ' + rel + '/' + k); return; }
+      if (!(k in b)) { diffs.push('仅源侧有 ' + rel + '/' + k); return; }
+      var ba = fs.readFileSync(A + '/' + k), bb = fs.readFileSync(B + '/' + k);
+      if (ba.length !== bb.length) diffs.push('字节数不同 ' + k + '（' + ba.length + ' vs ' + bb.length + '）');
+      else if (!ba.equals(bb)) diffs.push('内容不同 ' + rel + '/' + k);
+    });
+  }
+  function cmpFile(rel) {
+    var fa = SRC + '/' + rel, fb = MIR + '/' + rel;
+    var ea = fs.existsSync(fa), eb = fs.existsSync(fb);
+    if (!ea || !eb) { diffs.push(rel + ' ' + (ea ? '镜像缺件' : '源侧缺件')); return; }
+    if (!fs.readFileSync(fa).equals(fs.readFileSync(fb))) diffs.push('内容不同 ' + rel);
+  }
+  try {
+    if (!isRoot(SRC) || !isRoot(MIR)) {
+      ok('B9', '交付镜像一致性（七项逐字节零差异）', false,
+        '两侧不可辨：源侧 ' + SRC + ' / 镜像 ' + MIR + ' 有一侧缺 assets+manifest.json（audit 须从源码树根或镜像根起跑）');
+      return;
+    }
+    DIRS.forEach(cmpTree);
+    FILES.forEach(cmpFile);
+    ok('B9', '交付镜像一致性（assets/view/module/.tests 四目录 + manifest/icon/DESIGN 三单件 = 七项逐字节零差异；.storage.json 实时存档按 §8.6 口径排除）',
+      diffs.length === 0, diffs.slice(0, 8).join(' | ') + (diffs.length > 8 ? ' …共 ' + diffs.length + ' 处' : ''));
+  } catch (e) {
+    ok('B9', '交付镜像一致性（七项逐字节零差异）', false, '比对异常：' + (e && e.message));
+  }
 })();
 
 /* ── 输出 ── */

@@ -7,7 +7,7 @@
  *
  * 边界：**只读不写**——桥 mock 在内存里，平台目录与 .storage.json 一概不碰（部署与否由人决定）。
  *   真档不存在或未入世 ⇒ REALSAVE_SKIP 退 0（本机可跑、他人环境不假红）。
- *   真机档 = E:/下载/xhub/extensions/com.avalonlee.sanqian-world/.storage.json（x-hub 平台侧）
+ *   真机档 = 见下方 CAND 逐一试探（**2026-10-09 起实时实例在仓库镜像根**，平台安装目录已被宿主移除）
  *   流程：注入桥 mock（值取自真档）→ SQ.load → 深拷贝基线 → SQ.save → 重读侧档/主档 → SQ.load
  *   判据：① 主档落盘不再含 log / eventHistory.feed，二者完整落侧档；② 二次 load 后
  *   **机制态逐字段全等**（除 lastSave / log 时间戳类固有浮动）；③ feed 条数与内容一条不少；
@@ -17,8 +17,18 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const REPO = 'E:/下载/sanqian-world-b836d9da-source';
-const LIVE = process.env.SQ_STORAGE || 'E:/下载/xhub/extensions/com.avalonlee.sanqian-world/.storage.json';
+const REPO = path.resolve(__dirname, '..');
+/* 真机档路径候选（2026-10-09 版本控制纳管批改「单一硬编码」为「逐一试探」）：
+ *   ① SQ_STORAGE 显式指定；② x-hub 平台安装目录（**本机现状 = 已被宿主移除**，留着给恢复后的环境）；
+ *   ③ 仓库镜像根 `extensions/com.avalonlee.sanqian-world/`（**当前实时实例所在**，宿主 2026-10-09 起改从这里跑）；
+ *   ④ 工作树根（历史遗留位）。全部不存在 ⇒ REALSAVE_SKIP 退 0，本机可跑、他人环境不假红。 */
+const CAND = [
+  process.env.SQ_STORAGE,
+  'E:/下载/xhub/extensions/com.avalonlee.sanqian-world/.storage.json',
+  path.join(REPO, 'extensions/com.avalonlee.sanqian-world/.storage.json'),
+  path.join(REPO, '.storage.json')
+].filter(Boolean);
+const LIVE = CAND.find(p => { try { return fs.statSync(p).isFile(); } catch (e) { return false; } });
 const { load } = require(path.join(REPO, '.tests/sandbox.cjs'));
 
 const KEY = 'sanqian-state-v1', LOG_KEY = 'sanqian-logs-v1';
@@ -28,7 +38,7 @@ let pass = 0, fail = 0;
 const T = (c, name, info) => { c ? (pass++, console.log('PASS ' + name + (info ? ' (' + info + ')' : ''))) : (fail++, console.log('FAIL ' + name + (info ? ' (' + info + ')' : ''))); };
 
 (async function main() {
-  if (!fs.existsSync(LIVE)) { console.log('REALSAVE_SKIP 真机档不存在：' + LIVE); process.exit(0); }
+  if (!LIVE) { console.log('REALSAVE_SKIP 真机档四处候选全不存在：' + CAND.join(' | ')); process.exit(0); }
   const store = JSON.parse(fs.readFileSync(LIVE, 'utf8'));
   const rawMain = store[KEY], rawSide = store[LOG_KEY];
   console.log('真档读数：主档 ' + kb(byteLen(rawMain || '')) + ' · 侧档 ' + kb(byteLen(rawSide || '')) +
@@ -64,8 +74,9 @@ const T = (c, name, info) => { c ? (pass++, console.log('PASS ' + name + (info ?
   const mech2 = JSON.parse(JSON.stringify(s2));
   delete mech2.worlds.xiuxian.log;
   if (mech2.worlds.xiuxian.eventHistory) delete mech2.worlds.xiuxian.eventHistory.feed;
-  /* L1 恒常前置的预期结果：落盘时**到期** eventCooldowns 键不再写盘 ⇒ 二次读档后那批键从内存消失。
-   * 判据 = 「差异集合只允许是到期冷却键，且逐个 value < now」，而不是把差异掩盖进剔除范围里。 */
+  /* 下面这段「差异集合只允许是到期冷却键」的口径是**治理批首版**留下的（当时以为落盘要恒常剪到期键）。
+   * 首版判据把 dropped 当预期产物，实际**掩盖的是我写错的 L1**（冷却存的是触发时刻，见 core.js COOL_MAX_HOURS 注），
+   * 撤回后保留 dropped 计数只为**读数可见**，判据本身见 §3 = 空集。 */
   const cd1 = mech1.worlds.xiuxian.eventCooldowns || {}, cd2 = mech2.worlds.xiuxian.eventCooldowns || {};
   const nowReal = Date.now();
   const dropped = Object.keys(cd1).filter(k => cd2[k] == null);

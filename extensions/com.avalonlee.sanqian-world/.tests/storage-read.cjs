@@ -4,8 +4,8 @@
  * 故这里用 node:zlib 做**同一格式**（`d1:` + base64(deflate)）的解码头。
  * ⚠️ 边界：本件只服务「读一份磁盘档喂给调查脚本」，**不作任何容量/无损判据** ——
  *    那些判据一律走 core.js 的编解码（见 .tests/probe-savecodec.cjs），避免第二套实现冒充正典。
- * 路径：SQ_STORAGE 环境变量 > <ROOT>/.storage.json > <HOME>/xhub/extensions/<ext>/.storage.json
- *    （2026-10-08 设备迁移批：实时档由平台落在扩展目录，不在工作树内）
+ * 路径（逐一试探，第一个存在的胜出）：SQ_STORAGE 环境变量 > <ROOT>/.storage.json > <ROOT>/../xhub/extensions/<ext>/.storage.json > <ROOT>/extensions/<ext>/.storage.json
+ *    （2026-10-08 设备迁移批：实时档由平台落在扩展目录，不在工作树内。⚠️ 2026-10-09 版本控制纳管批随读：宿主已移除平台安装目录，实时实例改在**仓库镜像根** `extensions/<ext>/` 跑 ⇒ 末一路才是本机现值）
  */
 'use strict';
 const fs = require('fs');
@@ -20,7 +20,10 @@ function candidates() {
   return [
     process.env.SQ_STORAGE,
     path.join(ROOT, '.storage.json'),
-    path.join(ROOT, '..', 'xhub', 'extensions', EXT, '.storage.json')
+    path.join(ROOT, '..', 'xhub', 'extensions', EXT, '.storage.json'),
+    /* 2026-10-09 版本控制纳管批补：宿主把实时实例改到**仓库镜像根**跑（平台安装目录已被移除），
+       这一路现在是本机**实际命中**的那条；前三路保留给环境恢复后与显式指定。 */
+    path.join(ROOT, 'extensions', EXT, '.storage.json')
   ].filter(Boolean);
 }
 
