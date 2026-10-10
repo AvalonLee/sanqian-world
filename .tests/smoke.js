@@ -5373,13 +5373,13 @@
     var lb256 = ref256.meta.lastBonds || [];
     var c256 = lb256.length === 2 && lb256[0] === cs256[0].id && lb256[1] === cs256[1].id &&
       lb256.indexOf(cs256[2].id) < 0 && lb256.indexOf(cs256[3].id) < 0;
-    /* (d) 创角落地式（照 view mk-ok 同式，含 unlocks.bond 门） */
+    /* (d) 创角落地式（**与 view mk-ok 同走引擎唯一写口 grantHeir**——N23① 收口批起视图不再自赋 heirBond，
+       本断言也不再内联复刻旧式；heirBond 由 grantHeir 成功分支落，含 unlocks.bond 门） */
     await SQ.mutate(ref256, function (s256) {
       s256.worlds.xiuxian = pack.initialState();
       var nws = s256.worlds.xiuxian, picked = (s256.meta.lastBonds || [])[0];
       if (picked && s256.meta.unlocks.bond) {
-        nws.bonds[picked] = SQ.XDATA.LEGACY.BOND_HEIR_BASE;
-        nws.heirBond = picked;
+        SQ.Bonds.grantHeir(nws, pack, SQ.XDATA, picked, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
       }
     });
     var w256 = ref256.worlds.xiuxian;
@@ -5915,6 +5915,93 @@
     ok('289', 'N20 接线批：掷名公式单源——(a) 40 掷值域 12×8；(b) nameOfIdx([0,0]) 逐字 = 表算 pre.1+suf.1；(c) 越界下标取模回落；(d) 8 组随机掷点 helper === 表算；(e) sectFound 体内不再有第二份式子、改调这两口',
       a289 && b289 && c289 && d289 && e289,
       '值域=' + a289 + ' 首名=' + nm289 + ' 取模=' + c289 + ' 同式=' + d289 + ' 单源=' + e289);
+
+    /* #290 战力门槛单源（N24① 收口批 · 2026-10-10）：№61 袭杀门槛此前有两个事实源——世界表常量
+     * `D.MERCHANT_POWER_ABS`（全库零消费 = 死桩）与事件表 `choices.evil.check.abs` 字面量，改表不带动消费者，
+     * 而既有普查关（A7 只管 st 写点、A8 只管「写点 ⇔ normalize 声明集」）都够不着「常量 ⇔ 字面量」这一类。
+     * 本批删常量、字面量为唯一取数口，并把同型形状交给审计 **A9**（顶层常量零消费者即红）。
+     * (a) 世界表顶层已无该常量；(b) 表值仍钉 375000；(c) **该字面量就是 DSL 生效门槛**——同份世界态下
+     *     `abs = 实测战力` 判过、`abs = 实测战力 + 1` 判败（差分法，不靠抄常量）；
+     * (d) 带 abs 时**不随秘境缩放**（换 zone 后 need 恒等 abs，与无 abs 的 ratio 判定相对）。 */
+    var a290 = Object.keys(D).indexOf('MERCHANT_POWER_ABS') < 0;
+    var e290 = SQ.Events.findById(pack, 'mysterious_merchant');
+    var b290 = !!e290 && e290.choices.evil.check.abs === 375000;
+    var w290 = pack.normalize(mkWs({ realm: 6 }));
+    var st290 = { ws: w290, pack: pack, D: D, mods: M(mkProf(), w290) };
+    var p290 = SQ.Mods.powerOf(w290, pack, D, st290.mods);
+    var c290 = SQ.Events.runCheckDsl({ type: 'power', abs: p290 }, st290).pass === true &&
+      SQ.Events.runCheckDsl({ type: 'power', abs: p290 + 1 }, st290).pass === false;
+    w290.zone = 0;
+    var r290z0 = SQ.Events.runCheckDsl({ type: 'power', abs: 375000 }, st290).need;
+    w290.zone = 5;
+    var r290z5 = SQ.Events.runCheckDsl({ type: 'power', abs: 375000 }, st290).need;
+    var d290 = r290z0 === 375000 && r290z5 === 375000;
+    ok('290', '神秘商人战力门槛单源（N24①）：(a) 世界表顶层 `MERCHANT_POWER_ABS` 已消失（死桩不许复活）；(b) №61 `check.abs` 表值钉 375000；(c) 该字面量**就是**生效门槛——同份世界态 `abs=实测战力` 过 / `abs=实测+1` 败（差分法）；(d) 带 abs 时不随秘境缩放（zone 0 与 5 的 need 恒等 abs）',
+      a290 && b290 && c290 && d290,
+      '常量残留=' + !a290 + ' 表值=' + (e290 && e290.choices.evil.check.abs) + ' ‖ 战力=' + Math.round(p290) +
+      ' 等值过=' + (SQ.Events.runCheckDsl({ type: 'power', abs: p290 }, st290).pass === true) +
+      ' +1 败=' + (SQ.Events.runCheckDsl({ type: 'power', abs: p290 + 1 }, st290).pass === false) +
+      ' ‖ need z0=' + r290z0 + ' z5=' + r290z5);
+
+    /* #291 承继播种的 heirBond 归引擎同分支（N23① 收口批）：原视图在调 grantHeir **之后**无条件
+     * `nws.heirBond = lg.bond` —— 播种被绝交锁 / 心结锁拒绝时，`achv_kuashi`「缘定三生」的判定源会凭空成立
+     * （单世界包 + 创角态 bonds 空集 ⇒ 当下不可达，属「下一个调用点又踩」那一族）。
+     * 修法不是给视图加判断，而是把赋值**收进 grantHeir 的成功分支**（与 redeem 同语义 ⇒ 形状消失而非被守）。
+     * (a) 成功：ok / bonds = BOND_HEIR_BASE / heirBond 同置；(b) 锁：ok:false 'lock'、bonds 仍 −99、heirBond 不写；
+     * (c) 心结：ok:false 'scar'、bonds 原值、heirBond 不写；(d) 与 #287(b)(c) 的旧判据不冲突（播种值口径未变）。 */
+    var heir291 = (pack.companions || [{}])[0].id;
+    var w291a = pack.normalize(mkWs({ realm: 3 }));
+    var g291a = SQ.Bonds.grantHeir(w291a, pack, D, heir291, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
+    var a291 = g291a.ok === true && w291a.bonds[heir291] === SQ.XDATA.LEGACY.BOND_HEIR_BASE &&
+      w291a.heirBond === heir291;
+    var w291l = pack.normalize(mkWs({ realm: 3 }));
+    w291l.bonds[heir291] = -99;
+    var g291l = SQ.Bonds.grantHeir(w291l, pack, D, heir291, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
+    var b291 = g291l.ok === false && g291l.blocked === 'lock' && w291l.bonds[heir291] === -99 &&
+      w291l.heirBond == null;
+    var w291s = pack.normalize(mkWs({ realm: 3 }));
+    w291s.scars = {}; w291s.scars[heir291] = 1; w291s.bonds[heir291] = 12;
+    var g291s = SQ.Bonds.grantHeir(w291s, pack, D, heir291, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
+    var c291 = g291s.ok === false && g291s.blocked === 'scar' && w291s.bonds[heir291] === 12 &&
+      w291s.heirBond == null;
+    var d291 = g291a.after === SQ.XDATA.LEGACY.BOND_HEIR_BASE && g291a.before === 0;
+    ok('291', '承继播种与 heirBond 同分支（N23①）：(a) 成功 ⇒ ok / bonds = BOND_HEIR_BASE / heirBond 同置；(b) 绝交锁 ⇒ ok:false `lock`、bonds 仍 −99、**heirBond 不写**；(c) 心结锁 ⇒ ok:false `scar`、bonds 原值、**heirBond 不写**；(d) 播种语义仍是「设为绝对值」（before 0 ⇒ after 40），与 #287(b)(c) 同口径',
+      a291 && b291 && c291 && d291,
+      '成功=' + a291 + '(' + w291a.bonds[heir291] + '/' + w291a.heirBond + ') ‖ 锁=' + b291 + '(' + g291l.blocked +
+      '/bonds' + w291l.bonds[heir291] + '/heir ' + w291l.heirBond + ') ‖ 心结=' + c291 + '(' + g291s.blocked +
+      '/bonds' + w291s.bonds[heir291] + '/heir ' + w291s.heirBond + ') ‖ before/after=' + g291a.before + '→' + g291a.after);
+
+    /* #292 好感写口「值未变不落键」（N23② 收口批）：gain/lose 原在 clamp 后无条件 `bonds[id] = after`，
+     * 于是 `after === before` 时会给一个**本来不存在的键** materialize 出 0 值——现表值全为整数且 normalize
+     * 剪 0 ⇒ 今天不可见；而 `Math.round` 通道一旦放进小数加成（0.4 → 0）就会造一批 =0 键，
+     * 把「normalize 剪 0」的容量口径从背面捅穿。判据用 **0.4** 那一发差分证鉴别力（改前回红）。
+     * (a) 小数加成四舍五入后不变 ⇒ **键不出现**（hasOwnProperty false）且返回 after === before；
+     * (b) 真增量仍落键（正例，防「恒不写」把判据变成空转）；(c) lose 同口径（−0.4 不落键 / −5 落键）；
+     * (d) 已在 BOND_MAX 时再给 +5 ⇒ 键集与值全等，且 blocked 仍为 null（不是被拒，是无变化）。 */
+    var w292 = pack.normalize(mkWs({ realm: 3 }));
+    w292.bonds = {};
+    var cs292 = (pack.companions || []).map(function (c) { return c.id; });
+    var g292a = SQ.Bonds.gain(w292, pack, D, cs292[0], 0.4, Date.now());
+    var a292 = g292a.after === 0 && g292a.before === 0 && g292a.blocked === null &&
+      Object.prototype.hasOwnProperty.call(w292.bonds, cs292[0]) === false && w292.bonds[cs292[0]] === undefined;
+    var g292b = SQ.Bonds.gain(w292, pack, D, cs292[1], 5, Date.now());
+    var b292 = g292b.after === 5 && w292.bonds[cs292[1]] === 5;
+    var l292c = SQ.Bonds.lose(w292, pack, D, cs292[2], -0.4, Date.now());
+    var l292d = SQ.Bonds.lose(w292, pack, D, cs292[3], -5, Date.now());
+    var c292 = l292c.after === 0 && !Object.prototype.hasOwnProperty.call(w292.bonds, cs292[2]) &&
+      l292d.after === -5 && w292.bonds[cs292[3]] === -5;
+    w292.bonds[cs292[4]] = 100;
+    var keys292e = JSON.stringify(Object.keys(w292.bonds).sort());
+    var g292e = SQ.Bonds.gain(w292, pack, D, cs292[4], 5, Date.now());
+    var d292 = g292e.before === 100 && g292e.after === 100 && g292e.blocked === null &&
+      g292e.tierUp === false && JSON.stringify(Object.keys(w292.bonds).sort()) === keys292e;
+    ok('292', '好感写口值未变不落键（N23②）：(a) `+0.4` 经 round 后 after === before ⇒ **键不出现**（改前会 materialize 一个 0 值键，把 normalize 剪 0 的容量口径从背面捅穿）；(b) `+5` 真增量照旧落键（正例，防判据空转）；(c) lose 同口径（−0.4 不落 / −5 落）；(d) 已在 BOND_MAX 再 +5 ⇒ before/after 皆 100、blocked null、tierUp false、键集不变',
+      a292 && b292 && c292 && d292,
+      '(a) 键在=' + Object.prototype.hasOwnProperty.call(w292.bonds, cs292[0]) + ' 返回=' + g292a.before + '→' + g292a.after +
+      ' ‖ (b) ' + g292b.after + ' ‖ (c) −0.4 键在=' + Object.prototype.hasOwnProperty.call(w292.bonds, cs292[2]) +
+      ' −5=' + l292d.after + ' ‖ (d) 顶格=' + g292e.before + '→' + g292e.after + ' blocked=' + g292e.blocked +
+      ' 键数=' + Object.keys(w292.bonds).length);
+
 
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：
      * 正典说收集类项（法宝/功法满级/称号/里程碑/成就）复用图鉴账本作幂等键、不在 meta.earnedKeys

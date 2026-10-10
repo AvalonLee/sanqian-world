@@ -484,6 +484,9 @@ const SQ = sandbox.window.SQ;
  *      ⚠️ 只认 **带前导点** 的 `.bonds`：`mods.js:148` 有个同名**局部**聚合对象（乘区汇总用的 `bonds`），
  *      裸 `bonds[pk.channel] += v` 不是好感写口——原判据靠「只匹配 `=` 不匹配 `+=`」侥幸避开，
  *      补上复合赋值后就会假红，故按「写的是世界态那个 bonds」来定形（复核给的修法）。
+ *   ④ `ws.heirBond` 直写只许出现在 `assets/systems/bonds.js`（grantHeir 成功分支与 redeem 两个写口所在地）
+ *      与 `assets/worlds/<id>/index.js`（声明与读档）——N23① 收口批随件扩段，防「视图调用后又自赋同值」
+ *      这种把成就判定源写在天书外的形状再回来一次。
  *   反空集护栏：声明集键数必须 > 50，否则本关判红——沙箱没装好时不许静默放行。
  * 已知边界（如实登记，不装作全覆盖）：② 是「写点 ⊆ 声明集」的**单向**包含（声明了却没人写 = 死登记，
  *   本关不判——那是 A6 孤儿键那一族的形状）；③ 是白名单式禁写，无「死豁免」反向；
@@ -638,12 +641,81 @@ const SQ = sandbox.window.SQ;
   });
   if (bondBad.length) bad.push('绕过 Bonds.gain/lose/grantHeir 的好感直写：' +
     Array.from(new Set(bondBad)).join(','));
-  ok('A8', '「静默失效」普查（账本分类 ⇔ 调用点 · ws/nws 写点 ⇔ normalize 声明集 · bonds 直写白名单；' +
+  /* ④（N23① 收口批随件扩段）`ws.heirBond` 直写普查：判定源「缘定三生」由 Bonds.grantHeir 成功分支 /
+   *    Bonds.redeem 独占。视图原先在调用后**无条件**赋同值——播种被锁拒时成就凭空成立，且没有任何一处会红；
+   *    本段让"下一个调用点又这么写"当场红（豁免面与 ③ 同两处：bonds.js 与 worlds/<id>/index.js 的声明流程）。 */
+  var heirBad = [];
+  scanFiles.forEach(function (f) {
+    var rel = relOf(f);
+    if (BOND_OK.indexOf(rel) >= 0 || /^assets\/worlds\/[^/]+\/index\.js$/.test(rel)) return;
+    var m = /\.heirBond\s*=(?!=)/.exec(srcOf(f));
+    if (m) heirBad.push(rel);
+  });
+  if (heirBad.length) bad.push('绕过 Bonds.grantHeir/redeem 的 heirBond 直写：' +
+    Array.from(new Set(heirBad)).join(','));
+  ok('A8', '「静默失效」普查（账本分类 ⇔ 调用点 · ws/nws 写点 ⇔ normalize 声明集 · bonds 直写白名单 · heirBond 直写白名单；' +
     '① 逐调用点解析实参 + 调用点数自证，② ③ 见头部已知边界）',
     bad.length === 0,
     '白名单 in' + INC.length + '/out' + OUTC.length + ' ‖ 声明键 ' + dkeys.length +
     ' ‖ note 调用点 ' + notePaired + '/' + noteSeen + ' ‖ 扫到写点字段 ' +
     Object.keys(wroteFields).length + ' ‖ ' + (bad.slice(0, 6).join(' | ') || '零命中'));
+})();
+
+/* ── A9 世界表顶层常量 ⇔ 消费面对表（2026-10-10 N24① / N23 收口批立）
+ * 立因：神秘商人 №61 的战力门槛长期有**两个事实源**——世界表常量 `D.MERCHANT_POWER_ABS`（全库零消费 = 死桩，
+ *   改它不带动任何消费者）与事件表 `choices.evil.check.abs` 字面量。A7 只管法宝 `st` 写点、A8 只管
+ *   「写点 ⇔ normalize 声明集」，**「声明了却没人读的常量」不在任何一关射程内** ⇒ 这一类可以一直静默成立。
+ *   本批删掉那个常量（字面量即唯一取数口），并立本关让同型死桩不能再回来；N22 ⑤ 的四条死桩与
+ *   N22 ④ 的 `KARMA_TIERS` 一并转为在册。
+ * 口径：常量集 = 沙箱里 live 世界包 `pack.data` 的**顶层键**（不抄文档、不用正则扫表——装载剖面一变就假）；
+ *   消费面 = `assets/**` + `view` + `module` 源码（注释剥离后），认 `.KEY` 与 `['KEY']` / `["KEY"]` 两种取数写法
+ *   （`A(D).KEY` / `SP(D).KEY` 这类别名后置点号同样命中）；**不含 `.tests/`**（测试读一眼就算"消费"的话，
+ *   死桩永远清不干净——与 A8 同一边界口径）。
+ * 判据（**双向相等**，任一命中即红）：零消费者键集 === 在册死桩清单。
+ *   多一条未登记 ⇒ 红（本关要防的形状）；在册者已被消费或已删 ⇒ 也红（**在册清单自己不许腐烂**，
+ *   否则关卡会慢慢变成"永远绿但对不上任何账"）。
+ * 反空集护栏：顶层常量数 > 100 且扫描文件数 > 40，否则判红——沙箱或扫描面没装好时不许静默放行。
+ * 已知边界（如实登记，不装作全覆盖）：① 只覆盖世界数据表**顶层**，嵌套 config（`D.LEGACY.*` /
+ *   `D.RUMORS.TTL`）与数组型表体（`D.REALMS` 的行内字段）不在射程；② 不判"两侧都有消费者的同值对"——
+ *   №61 的 375000 与 `REALMS[元婴].power` 正是这种（后者是正典溯源，不是死桩），那属数值一致性判据；
+ *   ③ 键名恰好只出现在字符串里的话会算"有消费者"（假阴方向 = 放过死桩，与 A6 同族，逐条处置仍靠人）。 */
+(function () {
+  /* 在册死桩 = 本批取证时"零消费者"的实测集合（N22 ⑤ 四条 + KARMA_TIERS 一条 − 本批已删的 MERCHANT_POWER_ABS）*/
+  var DEAD_LISTED = ['EVENT_KARMA_BAND', 'FACTION_DESC_POOL', 'KARMA_TIERS', 'SHARD_REWARDS'];
+  var boot9 = null;
+  try { boot9 = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; }
+  catch (e) { ok('A9', '世界表顶层常量 ⇔ 消费面对表（死桩双向在册）', false, '沙箱装载失败：' + e.message); return; }
+  var seen9 = {}, files9 = [];
+  [].concat(jsFiles, htmlFiles).forEach(function (f) {
+    var r = relOf(f);
+    if (!(r.indexOf('assets/') === 0 || r.indexOf('view/') === 0 || r.indexOf('module/') === 0)) return;
+    if (seen9[r]) return; seen9[r] = 1; files9.push(f);
+  });
+  var src9 = files9.map(function (f) { return stripComments(fs.readFileSync(f, 'utf8')); }).join('\n');
+  var bad9 = [], dead9 = [], total9 = 0;
+  Object.keys(boot9.Worlds).filter(function (id) { return boot9.Worlds[id].status === 'live'; })
+    .forEach(function (id) {
+      var d = (boot9.Worlds[id].pack || {}).data;
+      if (!d) { bad9.push('世界包 ' + id + ' 取不到 pack.data（常量集为空 ⇒ 本关无从判起）'); return; }
+      Object.keys(d).forEach(function (k) {
+        total9++;
+        var re9 = new RegExp('\\.' + k + '\\b|\\[[\'"]' + k + '[\'"]\\]');
+        if (!re9.test(src9)) dead9.push(k);
+      });
+    });
+  dead9.sort();
+  if (total9 <= 100) bad9.push('顶层常量只读到 ' + total9 + ' 条（≤100 ⇒ 数据表没装好，本关读数不作数）');
+  if (files9.length <= 40) bad9.push('扫描面只读到 ' + files9.length + ' 个文件（≤40 ⇒ 扫描面塌陷）');
+  dead9.forEach(function (k) {
+    if (DEAD_LISTED.indexOf(k) < 0) bad9.push('新增死桩（零消费者且未登记）：D.' + k);
+  });
+  DEAD_LISTED.forEach(function (k) {
+    if (dead9.indexOf(k) < 0) bad9.push('在册死桩 D.' + k + ' 已不在零消费集（被消费了或已删 ⇒ 在册清单该随批更新）');
+  });
+  ok('A9', '世界表顶层常量 ⇔ 消费面对表（零消费者 = 死桩 · 与在册清单**双向相等**；嵌套 config 与「两侧都有消费者的同值对」不在射程，见头部边界）',
+    bad9.length === 0,
+    '常量 ' + total9 + ' 条 ‖ 扫描文件 ' + files9.length + ' ‖ 零消费者 ' + dead9.length +
+    '（' + dead9.join(',') + '） ‖ 在册 ' + DEAD_LISTED.length + ' ‖ ' + (bad9.slice(0, 6).join(' | ') || '零命中'));
 })();
 
 /* ── C 组 · 世界包词族契约（G11 · 换世界即换系统名与菜单描述）

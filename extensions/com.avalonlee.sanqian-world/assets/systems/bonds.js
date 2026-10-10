@@ -283,7 +283,7 @@
       }
       var min = D.BOND_MIN != null ? D.BOND_MIN : -20;
       var after = Math.max(min, Math.min(D.BOND_MAX || 100, before + Math.round(n)));
-      bonds[npcId] = after;
+      if (after !== before) bonds[npcId] = after;   /* 值未变不写键：clamp 到顶时不 materialize 新键（normalize 剪 0 的口径由此不被绕过） */
       var tierAfter = tierOf(after, D);
       return { before: before, after: after, tierBefore: tierBefore, tierAfter: tierAfter,
         tierUp: tierAfter > tierBefore, blocked: null };
@@ -302,14 +302,16 @@
       }
       var min = D.BOND_MIN != null ? D.BOND_MIN : -20;
       var after = Math.max(min, Math.min(D.BOND_MAX || 100, before + Math.round(n)));
-      bonds[npcId] = after;
+      if (after !== before) bonds[npcId] = after;   /* 与 gain 同口径：clamp 到底时不 materialize 新键 */
       var tierAfter = tierOf(after, D);
       return { before: before, after: after, tierBefore: tierBefore, tierAfter: tierAfter,
         tierUp: tierAfter > tierBefore, blocked: null };
     },
     /* 承继之缘播种（跨世之缘 · 创角事务内一次性「设为」绝对值，不是增量 ⇒ gain 表达不了）。
      * 🆕 耦合缺陷收口批 2026-10-10：视图侧原直写 `nws.bonds[id] = BOND_HEIR_BASE` 收进本函数，
-     * 锁判定与 clamp 与其余写口同处一份（创角时 bonds 为空集 ⇒ 行为与改前逐字相同，#287 对照钉住）。 */
+     * 锁判定与 clamp 与其余写口同处一份（创角时 bonds 为空集 ⇒ 行为与改前逐字相同，#287 对照钉住）。
+     * 🆕 N23① 收口批 2026-10-10：`ws.heirBond` 也归本函数在**成功分支**里置（原由视图无条件赋值 ⇒
+     * 播种被锁/心结拒时「缘定三生」判定源会凭空成立；与 redeem 同语义，视图不再自造规则）。 */
     grantHeir: function (ws, pack, D, npcId, base) {
       var bonds = ws.bonds || (ws.bonds = {});
       var before = bonds[npcId] || 0;
@@ -319,6 +321,7 @@
       var min = D.BOND_MIN != null ? D.BOND_MIN : -20;
       var after = Math.max(min, Math.min(D.BOND_MAX || 100, Math.round(base)));
       bonds[npcId] = after;
+      ws.heirBond = npcId;                    /* N23①：判定源与播种同分支（被拒路径已在上面 return，不会走到这行） */
       return { ok: true, before: before, after: after, blocked: null };
     },
 
