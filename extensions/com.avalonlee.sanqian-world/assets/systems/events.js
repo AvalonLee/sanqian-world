@@ -919,9 +919,21 @@
         }
         SQ.Events.applyEffects(ws, pack, D, mods, e, actx);
       });
-      /* 势力批 v2.4 §8：cdFailHours = 袭杀失败 → 该奇遇 1 小时内不再出现（覆盖 fire 时的常规冷却） */
+      /* 势力批 v2.4 §8：cdFailHours = 判定失败后该奇遇再封印 N 小时。
+       * 🆕 神秘商人节律批 2026-10-10 语义修正（消除二次加值）：容器 ws.eventCooldowns 存的是**触发时刻**
+       *   —— 读端 buildPool:498 判 `now < 存值 + cooldownHours*3600e3`，同型判定行 rumors.js:223（守卫取值在 :222） ——
+       *   而原实现直接把**到期时刻**写进来（now + cdFailHours）⇒ 判据把 cdFailHours 与 cooldownHours
+       *   **各加一次** ⇒ 正典写「1 小时封印」而实测 2.0 小时（本批执行取证量出来的）。
+       *   神秘商人的常规冷却由 1h 抬到 12h 后，若不同批改这里，封印会悄悄变成 13h ——
+       *   缺陷随参数放大，正是上一批 A8 那条「写了没人接」的近亲：写进去的值被读端多加了一次。
+       *   现按 max 语义写成**等效触发时刻**：
+       *     目标解禁 = max(常规解禁 = now + cdH, 失败封印 = now + cdFailHours)
+       *     ⇒ 存值   = now + (max(cdH, cdFailHours) − cdH) * 3600e3
+       *   ⇒ 失败封印既不缩短常规冷却、也不额外膨胀；cdFailHours ≤ cdH 时该写点退化成无害空操作
+       *   （失败不延长，因为常规冷却本来就更长）。判据 = 冒烟 #145（改成按读端同一判据反解解禁时刻）+ #288。 */
       if (!chain.pass && br.cdFailHours) {
-        ws.eventCooldowns[ev.id] = now + br.cdFailHours * 3600 * 1000;
+        var cdHx = ev.cooldownHours != null ? ev.cooldownHours : (ev.cd != null ? ev.cd : 0);
+        ws.eventCooldowns[ev.id] = now + (Math.max(cdHx, br.cdFailHours) - cdHx) * 3600 * 1000;
       }
       if (!chain.pass && chain.failed && chain.failed.failE) {
         /* failE 全额追加（不减半）；区间先掷定为实值 + 同一份实值预缩放 → 结算与展示同源 */

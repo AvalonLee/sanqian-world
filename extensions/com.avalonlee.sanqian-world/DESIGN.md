@@ -74,13 +74,13 @@
 **回归（改完必跑，只需 node，四条都无浏览器依赖）**：
 
 ```bash
-node .tests/run-smoke.cjs          # 引擎断言      → SMOKE_ALL_GREEN 287/287（⚠️ 本行原记 265/265、276/276、277/277、279/279、283/283 均为历批滞后读数，2026-10-08 / 10-09 / 10-10 随批校正）
+node .tests/run-smoke.cjs          # 引擎断言      → SMOKE_ALL_GREEN 288/288（⚠️ 本行原记 265/265、276/276、277/277、279/279、283/283、287/287 均为历批滞后读数，2026-10-08 / 10-09 / 10-10 随批校正）
 node .tests/audit.cjs              # 交付前静态审计 → AUDIT_ALL_GREEN 19/19（A6 为报告级；🆕 B9 = 源侧 ↔ 交付镜像七项逐字节零差异；🆕 A7 = 法宝运行态 st 键集登记对表；🆕 A8 = 「静默失效」普查：账本分类 ⇔ 调用点 · `ws.*` 写点 ⇔ `normalize` 声明集 · `.bonds` 直写白名单；① 逐调用点解析实参 + 调用点数自证 + 反空集护栏，② 是单向包含、③ 是禁写白名单。现值 白名单 in5/out6 ‖ 声明键 91 ‖ note 调用点 34/34 ‖ 写点字段 81）
 bash /e/下载/sanqian-ops/sq-check.sh    # 开场体检（只读）→ ALREADY_IN_SYNC；收口后另跑 sq-snapshot.sh <批次名> → BACKUP_OK
 node .tests/sim-pacing.cjs         # 全程节奏比值带（锚 9.12 天）
 node .tests/sim-event-economy.cjs  # 在线奇遇事件经济（密度 / 主轴）
 node .tests/sim-playthrough.cjs    # 全程模拟（5 路线 + fuzz）→ PLAYTHROUGH_ALL_GREEN；收口双证据 = `SQ_SEED=<种子>` 双跑逐字节相同 + 随机复跑
-node .tests/probe-join.cjs         # ┐ 常驻探针十一路（无浏览器 · 引擎侧 · 收口必跑，243 断言 + 1 水位件 = 逐件相加 182+17+27+10+7，与 `run-dod` 每行打印读数直接对表；⚠️ 本行原记 221 / 222 / 229 均为历批滞后读数（229 → 243 = 法与器标签化批 `probe-lawmerge` 21 → 35））：
+node .tests/probe-join.cjs         # ┐ 常驻探针十一路（无浏览器 · 引擎侧 · 收口必跑，244 断言 + 1 水位件 = 逐件相加 182+17+27+10+8，与 `run-dod` 每行打印读数直接对表；⚠️ 本行原记 221 / 222 / 229 / 243 均为历批滞后读数（229 → 243 = 法与器标签化批 `probe-lawmerge` 21 → 35；243 → 244 = 神秘商人节律批 `probe-eventrepeat` 7 → 8 加 §8 新红线））：
 node .tests/probe-sectwire.cjs     # │  join 29 / sectwire 19 / heirchoice 31 / lawmerge 35 / achvreach 60 / normround 8
 node .tests/probe-heirchoice.cjs   # │  savecodec 17 = 落盘无损压缩往返 · savegrowth 27 = 主档与游玩时长**解耦**
 node .tests/probe-lawmerge.cjs     # │  realsave 10 = **玩家真档**读→存→读零丢失（只读不写 · 无档即 SKIP 退 0）
@@ -89,7 +89,7 @@ node .tests/probe-normround.cjs    # │
 node .tests/probe-savecodec.cjs    # │
 node .tests/probe-savegrowth.cjs   # │
 node .tests/probe-realsave.cjs     # │
-node .tests/probe-eventrepeat.cjs  # │ 第十一路：生产抽取全链的玩家可见重复率 + 冷却合规（7 断言 + 6 观察项）
+node .tests/probe-eventrepeat.cjs  # │ 第十一路：生产抽取全链的玩家可见重复率 + 冷却合规（8 断言 + 6 观察项；神秘商人节律批加 §8「单条最频 ≤8%」）
 node .tests/probe-savecap.cjs      # ┘ 存档最坏态水位（阶梯可停 / 对 56KB·64KB 余量）
 ```
 

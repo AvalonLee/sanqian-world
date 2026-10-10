@@ -2678,7 +2678,12 @@
     SQ.Shop.openMerchant(w145b, pack, D, M(mkProf(), w145b), Date.now(), noopLog());
     var scoutOk145 = w145b.merchantScout === false && w145b.shop.merchant.scout === true &&
       w145b.shop.merchant.items[0].gear.tier === D.GEAR_TIERS.length - 1;
-    /* 袭杀败 → 重伤（qiPctRaw 不吃封顶：修为 -75%）+ 1 小时封印（cdFailHours） */
+    /* 袭杀败 → 重伤（qiPctRaw 不吃封顶：修为 -75%）+ 失败封印。
+     * ⚠️ 判据形态随「神秘商人节律批 2026-10-10」改写：原句比的是 `eventCooldowns[id] > now + 55min`
+     *    = 钉**容器里存的字节**。而原实现把「到期时刻」写进一个按「触发时刻」读回的容器
+     *    （`events.js` 原 `:924` 写、`:498` 读时再加一次 cooldownHours；本批改写后现写点 `:936`）⇒ 存值 1h、行为 2h，原判据两样都绿。
+     *    现按读端同一判据反解**解禁时刻**再比（行为口径），期望值 = §8 正典的 24h（表值同批由 1 抬到 24：
+     *    常规冷却已 12h，1h 的失败封印不起作用）。*/
     var w145c = mkWs({ realm: 1, zone: 1, qi: 100000 });
     w145c.factions = facs144; w145c.factionNpcs = w144.factionNpcs;
     pack.recalcDerived(w145c, mkProf());
@@ -2686,12 +2691,18 @@
     var r145 = SQ.Events.resolveBranch(w145c, pack, D, M(mkProf(), w145c), 'mysterious_merchant', 'evil', Date.now(),
       { log: noopLog(), profile: mkProf() });
     rs145();
+    var cd145 = SQ.Events.findById(pack, 'mysterious_merchant').cooldownHours;
+    /* 解禁时刻 = 容器存值 + cooldownHours × 3600e3（与 buildPool:498 逐字同式） */
+    var unlock145 = w145c.eventCooldowns.mysterious_merchant + cd145 * 3600 * 1000;
+    var unlockOk145 = Math.abs(unlock145 - (Date.now() + 24 * 3600 * 1000)) < 60 * 1000;
     var injureOk145 = r145 && r145.pass === false && Math.abs(w145c.qi - 25000) < 1 &&
       w145c.buffs.some(function (b) { return b.field === 'combatPower' && b.mult === -0.75; }) &&
-      w145c.eventCooldowns.mysterious_merchant > Date.now() + 55 * 60 * 1000;
-    ok('145', '神秘商人：特席开启/scout 顶格消耗/袭杀败重伤 -75% + 1h 封印',
+      unlockOk145;
+    ok('145', '神秘商人：特席开启/scout 顶格消耗/袭杀败重伤 -75% + 失败封印 **24h（按读端判据反解解禁时刻）**',
       merchOk145 && scoutOk145 && injureOk145,
-      'merch=' + merchOk145 + ' scout=' + scoutOk145 + ' qi=' + Math.round(w145c.qi) + ' injure=' + injureOk145);
+      'merch=' + merchOk145 + ' scout=' + scoutOk145 + ' qi=' + Math.round(w145c.qi) +
+      ' injure=' + injureOk145 + ' ‖ 存值=' + ((w145c.eventCooldowns.mysterious_merchant - Date.now()) / 3600000).toFixed(1) +
+      'h 冷却=' + cd145 + 'h ⇒ 解禁=' + ((unlock145 - Date.now()) / 3600000).toFixed(1) + 'h（期望 24h）');
 
     /* ═══ 福地扩充与势力深化与江湖传闻批（v2.18 · §4.16 #152/#155~#161）═══ */
 
@@ -4333,13 +4344,19 @@
       w.shop = { items: [], blackItems: [], nextRestock: 1700000000000, refreshStep: 9, discount: 0.35,
         merchant: { until: 1800000000000, items: [], scout: 9 } };
       /* 格数随机批 2026-10-09：两架按 **MAX = 16** 建模（最坏态取上界，不是均值——红线判据要的是上界）；
-       * 特席真实上限是 3 格（装备 + 功法 + 丹药），原模型按 10 格造 = 白留的余量，本批如实收到 3 格，
-       * 两头都改才叫建模，不是只挑对自己有利的一侧。 */
+       * 特席原按 10 格造 = 白留的余量，第八批如实收到 **3 格**——两头都改才叫建模，不是只挑有利的一侧。
+       * ⚠️ 但「真实上限 3 格」这个数本身是错的（**神秘商人节律批 2026-10-10 更正**）：数值详设 §5.4 与
+       *   第八批都照抄「三格」，而 shop.js:161-172 在 scout 顶格时还会 **50% 挂第四格先天法宝特位**
+       *   ⇒ 上界是四格，且四格形状各异（装备内嵌 gear 最肥；功法 / 丹药 / 法宝只有 ref + price）。
+       *   现按真实上界造：**2 × gear**（第一格 + 第二格无功法候选时的回落）+ **1 × pill** + **1 × treasure**。
+       *   方向如实报：格数 +1 是加项、两格改薄是减项，**净效应取本条实测落盘字节，不猜**。 */
       for (var sh = 0; sh < (D.SHOP_SLOTS_MAX || D.SHOP_SLOTS || 10); sh++) {
         w.shop.items.push(mkShopGear206());
         w.shop.blackItems.push(mkShopGear206());
       }
-      for (var shM = 0; shM < 3; shM++) w.shop.merchant.items.push(mkShopGear206());
+      w.shop.merchant.items.push(mkShopGear206(), mkShopGear206());
+      w.shop.merchant.items.push({ kind: 'pill', ref: 'pozhang', sold: false, price: 99999 });
+      w.shop.merchant.items.push({ kind: 'treasure', ref: 'x14', sold: false, price: 99999 });
       D.ALCHEMY.MATS.forEach(function (mm) { w.materials[mm.id] = 999; });
       w.alchemy = { furnace: true, recipes: D.ALCHEMY.RECIPES.map(function (rr) { return rr.id; }), blueprints: D.ALCHEMY.BLUEPRINTS.map(function (bb) { return bb.id; }),
         prof: { dan: 999, qi: 999 }, pills: {}, pillDay: { day: 99, n: 3 }, pillOnce: { pozhang: 9, zhenjie: 9 },
@@ -4708,14 +4725,14 @@
     var w277 = fat277.worlds.xiuxian;
     /* 冷却键语义（本批复核修正 · 复核报告列为 blocker）：`ws.eventCooldowns` 存的是**触发时刻**
      * （写口 events.js:573/604 · rumors.js:236 · prodigy.js:388），读端判据 `now < cd + cooldownHours×3600e3`
-     * （events.js:498 / rumors.js:223），另有一种写法存到期时刻（events.js:924 = now + cdFailHours）。
+     * （events.js:498 / rumors.js:223），另有一种**旧**写法存到期时刻（events.js 原 :924 = now + cdFailHours；神秘商人节律批 2026-10-10 已改为存等效触发时刻，现写点 :936 —— 本 fixture 仍造这一形状，核的是「两式都安全」而不是「现树还有两式」。另注：`rumors.js` 的取值守卫在 :222、判定行在 :223）。
      * ⇒ 首版把「值 < now」当到期并**恒常剪**，等于每次存档清空活冷却 ⇒ 已撤回；现要求：
      *    (b1) 落盘**不剪任何冷却键**（阶梯未触发的常规档）；(b2) 强跑阶梯时只剪「值 < now − COOL_MAX_HOURS」的**可证死键**；
      *    (b3) 内存态三键恒在（活档不剪）。 */
     var cdNow277 = Date.now();                               /* 取当时的引擎时钟，语义 = 相对「现在」 */
     w277.eventCooldowns = {
       justFired277: cdNow277 - 1000,                          /* 1 秒前触发 = 冷却正紧 */
-      liveGate277: cdNow277 + 3600000,                        /* events.js:924 式（到期时刻在未来） */
+      liveGate277: cdNow277 + 3600000,                        /* 旧 events.js :924 式（到期时刻在未来；现树写点已改 :936） */
       deadLong277: cdNow277 - 200 * 3600000                   /* 200 小时前触发 > 168h 池内最长冷却 = 可证死键 */
     };
     var biosLivePre277 = (fat277.meta.biographies || []).length;
@@ -5814,6 +5831,68 @@
       ' ‖ deltas=' + JSON.stringify(r287.bondDeltas || {}) + ' 值对=' + valOk287 + ' 抽样键进/不出=' + setsOk287 + ' 动的人数=' + Object.keys(r287.bondDeltas || {}).length + ' ‖ 播种=' + w287h.bonds[heirId] +
       ' ‖ 锁=' + ghL.blocked + '/' + w287l.bonds[heirId] + ' 心结=' + ghS.blocked + '/' + w287s.bonds[heirId]);
 
+    /* #288 神秘商人节律（神秘商人节律批 2026-10-10 · 同日第十批 · 用户拍板推荐方案）：
+     * 本批的产品决定是「**只动冷却，不动权重**」，所以判据要同时钉住「改了什么」和「故意没改什么」——
+     * 只钉前者会放任下批有人顺手把权重也"优化"掉（而实测证明降权是无效动作，见奇遇池卷 §十三.10）。
+     * (a) 表值三钉：`cooldownHours === 12`（新档）+ `weight === 12`（**保留全池最高档 = 刻意的决定**）
+     *     + `cdFailHours === 24`；
+     * (b) 冷却边界双证：走**生产读口** `buildPool`（events.js:498 那条判据），差 1 分钟满 12h ⇒ 商人仍在池外、
+     *     恰好满 12h ⇒ 放行（钉的是行为，不是容器里存的字节）；
+     * (c) 封印 max 语义双证：`cdFailHours(24) > cooldownHours(12)` ⇒ 失败后解禁 = 失败时刻 + **24h**；
+     *     临时把表改成 `cdFailHours = 6`（< 常规冷却）⇒ 解禁仍是 **12h**，即失败**不缩短**常规冷却
+     *     （原实现把到期时刻写进按触发时刻读回的容器，两种情形分别会变成 36h / 18h —— 本批修掉的正是这个）；
+     * (d) 病灶不复发的静态护栏：全池**非零**冷却下界 ≥ 12h（= 若有人再塞一条 1h 高权重条目，这里立刻红）。*/
+    var e288 = SQ.Events.findById(pack, 'mysterious_merchant');
+    var cd288 = e288 && e288.cooldownHours, fail288 = e288 && e288.choices.evil.cdFailHours;
+    var a288 = !!e288 && cd288 === 12 && e288.weight === 12 && fail288 === 24 && e288.tier === 'di' &&
+      e288.nature === 'good' && e288.cond.realmMin === 1;
+    /* (b) 冷却边界：走真读口 buildPool，不起时钟 */
+    var w288 = mkWs({ realm: 5 });
+    var now288 = Date.now();
+    function poolHas288(cdVal) {
+      w288.eventCooldowns = { mysterious_merchant: cdVal };
+      w288.eventHistory = w288.eventHistory || { seen: {}, feed: [] };
+      w288.eventHistory.lastId = 'zz-not-merchant';
+      var p288 = SQ.Events.buildPool(pack, w288, D, 'di', 'good', now288) || [];
+      return p288.some(function (x) { return x.id === 'mysterious_merchant'; });
+    }
+    var in288Early = poolHas288(now288 - 12 * 3600 * 1000 + 60000);     /* 差 1 分钟未满 12h ⇒ 必须仍在冷却外 */
+    var in288Late = poolHas288(now288 - 12 * 3600 * 1000);               /* 恰好满 12h ⇒ 放行 */
+    var b288 = in288Early === false && in288Late === true;
+    /* (c) 封印 max：失败后 = 24h；cdFailHours 小于常规冷却时不得缩短 */
+    var w288c = mkWs({ realm: 1, zone: 1, qi: 100000 });
+    pack.recalcDerived(w288c, mkProf());
+    var rs288 = stubRandom([0.9999]);                                    /* 战力判定必败 */
+    var now288c = Date.now();
+    SQ.Events.resolveBranch(w288c, pack, D, M(mkProf(), w288c), 'mysterious_merchant', 'evil', now288c,
+      { log: noopLog(), profile: mkProf() });
+    rs288();
+    var unlock288 = w288c.eventCooldowns.mysterious_merchant + cd288 * 3600 * 1000;   /* 读端同一判据反解 */
+    var seal24 = Math.abs(unlock288 - (now288c + 24 * 3600 * 1000)) < 60 * 1000;
+    var w288d = mkWs({ realm: 1, zone: 1, qi: 100000 });
+    pack.recalcDerived(w288d, mkProf());
+    e288.choices.evil.cdFailHours = 6;                                    /* 临时：失败封印短于常规冷却 */
+    var rs288d = stubRandom([0.9999]);
+    var now288d = Date.now();
+    SQ.Events.resolveBranch(w288d, pack, D, M(mkProf(), w288d), 'mysterious_merchant', 'evil', now288d,
+      { log: noopLog(), profile: mkProf() });
+    rs288d();
+    e288.choices.evil.cdFailHours = 24;                                   /* 必须复原，防污染其他断言 */
+    var unlock288d = w288d.eventCooldowns.mysterious_merchant + cd288 * 3600 * 1000;
+    var noShorten = Math.abs(unlock288d - (now288d + 12 * 3600 * 1000)) < 60 * 1000;
+    var c288 = seal24 && noShorten && e288.choices.evil.cdFailHours === 24;
+    /* (d) 全池非零冷却下界 */
+    var cds288 = (SQ.Events.allIds(pack) || []).map(function (id288) {
+      var ev288 = SQ.Events.findById(pack, id288);
+      return ev288 ? (ev288.cooldownHours != null ? ev288.cooldownHours : ev288.cd) : null;
+    }).filter(function (v288) { return v288 != null && v288 > 0; });
+    var minCd288 = Math.min.apply(null, cds288);
+    var d288 = minCd288 >= 12;
+    ok('288', '神秘商人节律（第十批）：(a) 表值三钉——cooldownHours 12 / **weight 仍为 12（刻意不动）** / cdFailHours 24；(b) 冷却边界走真读口 buildPool（差 1 分钟仍挡、满 12h 放行）；(c) 封印 max 语义（失败后 24h；cdFailHours 小于常规冷却时**不缩短**到 12h 以下）；(d) 全池非零冷却下界 ≥12h（再塞一条 1h 高权重条目即红）',
+      a288 && b288 && c288 && d288,
+      '表=' + cd288 + 'h/w' + (e288 && e288.weight) + '/fail' + fail288 + ' ‖ 边界 早=' + in288Early + ' 满=' + in288Late +
+      ' ‖ 解禁 24h=' + seal24 + '(' + ((unlock288 - now288c) / 3600000).toFixed(1) + 'h) 不缩短=' + noShorten +
+      '(' + ((unlock288d - now288d) / 3600000).toFixed(1) + 'h) ‖ 全池非零最小冷却=' + minCd288 + 'h 条数=' + cds288.length);
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：
      * 正典说收集类项（法宝/功法满级/称号/里程碑/成就）复用图鉴账本作幂等键、不在 meta.earnedKeys
      * **二次冗余存储**；legacy.js 实况却逐条存着实付额，而实付额含**历史转世通道系数**
