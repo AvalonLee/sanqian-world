@@ -292,6 +292,20 @@
     /* bond 负向入账（系统深化批 A5 · 势力全录卷 §9.1 叛投敌对旧门怨恨唯一写口）：
      * 锁类判定 / clamp / 返回结构与 gain 同口径——绝交锁（−99）与心结锁（scars）豁免不入账，
      * n ≥ 0 拒绝（blocked:'nonneg'）；道侣豁免由调用方判定（join / defect 的 spouse 跳过同款）。 */
+    /* 承继之缘播种（跨世之缘 · 创角事务内一次性「设为」绝对值，不是增量 ⇒ gain 表达不了）。
+     * 🆕 耦合缺陷收口批 2026-10-10：视图侧原直写 `nws.bonds[id] = BOND_HEIR_BASE` 收进本函数，
+     * 锁判定与 clamp 与其余写口同处一份（创角时 bonds 为空集 ⇒ 行为与改前逐字相同，#287 对照钉住）。 */
+    grantHeir: function (ws, pack, D, npcId, base) {
+      var bonds = ws.bonds || (ws.bonds = {});
+      var before = bonds[npcId] || 0;
+      if (before === LOCK || SQ.Bonds.scarred(ws, npcId)) {
+        return { ok: false, before: before, after: before, blocked: before === LOCK ? 'lock' : 'scar' };
+      }
+      var min = D.BOND_MIN != null ? D.BOND_MIN : -20;
+      var after = Math.max(min, Math.min(D.BOND_MAX || 100, Math.round(base)));
+      bonds[npcId] = after;
+      return { ok: true, before: before, after: after, blocked: null };
+    },
     lose: function (ws, pack, D, npcId, n, now) {
       var bonds = ws.bonds || (ws.bonds = {});
       var before = bonds[npcId] || 0;

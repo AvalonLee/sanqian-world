@@ -317,6 +317,7 @@
     'ledger.cat.refine': '炼化返还', 'ledger.cat.offline': '闭关引灵',
     'ledger.cat.cave': '洞府入驻', 'ledger.cat.arts': '功法升级',
     'ledger.cat.shop': '坊市购入', 'ledger.cat.event_loss': '奇遇损耗',
+    'ledger.cat.treasure': '法宝用度',
     'ledger.cat.donate': '供奉香火',
     'ledger.cat.tribute': '弟子供奉',   /* 自立门户卷 §9.3：Ledger 唯一新增一路 in.tribute（总账九路→十路） */
     'ledger.share': '占 {p}%',

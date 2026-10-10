@@ -492,23 +492,25 @@
       if ((ws.factionCdUntil || 0) > now) return { ok: false, reason: 'cooldown' };
       var cfg = D.FACTIONS || {};
       ws.factionId = fid;
-      ws.factionJoinedAt = now;
+      /* 原此处写 `ws.factionJoinedAt = now` —— 幽灵字段（initialState / normalize 均未声明 ⇒ 读档即丢，
+       * 且全仓零读者），耦合缺陷收口批 2026-10-10 删除；真要「入门时长」按声明流程加字段。
+       * 普查由审计关 A8 守（`ws.*` 写点 ⇔ normalize 声明集）。 */
       var deltas = {};
-      var bonds = ws.bonds || (ws.bonds = {});
       (pack.companions || []).forEach(function (c) {
         var nf = (ws.factionNpcs || {})[c.id];
         if (!nf) return;                                   /* 散人不受影响 */
         if (ws.spouse && ws.spouse.npcId === c.id) return; /* 道侣好感不因势力调整 */
-        if (bonds[c.id] === -99 || (ws.scars || {})[c.id]) return;
         var rel = nf === fid ? 'same' : SQ.Factions.relationOf(ws, fid, nf);
         var delta = rel === 'friendly' ? (cfg.JOIN_FRIENDLY || 10)
           : rel === 'enemy' ? (cfg.JOIN_ENEMY || -20)
           : rel === 'same' ? (cfg.JOIN_SAME || 5) : 0;
         if (!delta) return;
-        var min = D.BOND_MIN != null ? D.BOND_MIN : -20;
-        var before = bonds[c.id] || 0;
-        var after = Math.max(min, Math.min(D.BOND_MAX || 100, before + delta));
-        if (after !== before) { bonds[c.id] = after; deltas[c.id] = after - before; }
+        /* 好感调整走唯一写口（引擎卷 §3.2 收口项）：绝交锁 / 心结锁与 [BOND_MIN, BOND_MAX] clamp
+         * 原本在此**重复实现**一遍（`=== -99` / scars 前置 + 手工 clamp）。gain 只收正向、lose 只收负向，
+         * 故按 delta 符号分流；被拒或压线不动时 after === before ⇒ 不记 delta，与改前逐字同结果。 */
+        var r = delta > 0 ? SQ.Bonds.gain(ws, pack, D, c.id, delta, now)
+                          : SQ.Bonds.lose(ws, pack, D, c.id, delta, now);
+        if (r.after !== r.before) deltas[c.id] = r.after - r.before;
       });
       if (log) log('sys', SQ.t('faction.log.join', { name: SQ.Factions.byId(ws, fid).name }, pack.worldId));
       return { ok: true, faction: SQ.Factions.byId(ws, fid), bondDeltas: deltas };

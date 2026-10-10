@@ -74,9 +74,9 @@
 **回归（改完必跑，只需 node，四条都无浏览器依赖）**：
 
 ```bash
-node .tests/run-smoke.cjs          # 引擎断言      → SMOKE_ALL_GREEN 283/283（⚠️ 本行原记 265/265、276/276、277/277、279/279 均为历批滞后读数，2026-10-08 / 10-09 随批校正）
-node .tests/audit.cjs              # 交付前静态审计 → AUDIT_ALL_GREEN 18/18（A6 为报告级；🆕 B9 = 源侧 ↔ 交付镜像七项逐字节零差异；🆕 A7 = 法宝运行态 st 键集登记对表）
-bash /e/Download/sanqian-ops/sq-check.sh    # 开场体检（只读）→ ALREADY_IN_SYNC；收口后另跑 sq-snapshot.sh <批次名> → BACKUP_OK
+node .tests/run-smoke.cjs          # 引擎断言      → SMOKE_ALL_GREEN 287/287（⚠️ 本行原记 265/265、276/276、277/277、279/279、283/283 均为历批滞后读数，2026-10-08 / 10-09 / 10-10 随批校正）
+node .tests/audit.cjs              # 交付前静态审计 → AUDIT_ALL_GREEN 19/19（A6 为报告级；🆕 B9 = 源侧 ↔ 交付镜像七项逐字节零差异；🆕 A7 = 法宝运行态 st 键集登记对表；🆕 A8 = 「静默失效」普查：账本分类 ⇔ 调用点 · `ws.*` 写点 ⇔ `normalize` 声明集 · 好感元素直写白名单，双向对表 + 反空集护栏）
+bash /e/下载/sanqian-ops/sq-check.sh    # 开场体检（只读）→ ALREADY_IN_SYNC；收口后另跑 sq-snapshot.sh <批次名> → BACKUP_OK
 node .tests/sim-pacing.cjs         # 全程节奏比值带（锚 9.12 天）
 node .tests/sim-event-economy.cjs  # 在线奇遇事件经济（密度 / 主轴）
 node .tests/sim-playthrough.cjs    # 全程模拟（5 路线 + fuzz）→ PLAYTHROUGH_ALL_GREEN；收口双证据 = `SQ_SEED=<种子>` 双跑逐字节相同 + 随机复跑

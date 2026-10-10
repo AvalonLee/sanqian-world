@@ -4,7 +4,7 @@
  *  - 累计值**只增不清、跨渡劫不清零**（与 karmaEventScore 同纪律）；
  *  - 分类必须映射真实机制（v1.2 清理掉 in.sell / out.refine_loss 两个占位空类）：
  *      in : kill 击杀 / event 奇遇 / refine 炼化返还 / offline 闭关
- *      out: cave 洞府入驻（含附属设施营建）/ arts 功法升级 / shop 坊市购入（含门中供给灵石价）/ event_loss 奇遇倒赔 / donate 供奉（势力捐献与 gather 委托上缴，势力深化批 v1.23）
+ *      out: cave 洞府入驻（含附属设施营建）/ arts 功法升级 / shop 坊市购入（含门中供给灵石价）/ treasure 法宝用度（祭炼·九转丹）/ event_loss 奇遇倒赔 / donate 供奉（势力捐献与 gather 委托上缴，势力深化批 v1.23）
  *  - 恒等式（UI 总账浮层置顶 · 冒烟 #113）：
  *      100（新手启动资金）+ Σin − Σout === ws.stones
  * 唯一写入通道：SQ.Ledger.note()——各系统禁止直接改 ws.ledger，防止漏记造成恒等式漂移。
@@ -13,7 +13,12 @@
   var SQ = window.SQ || (window.SQ = {});
 
   var IN_CATS = ['kill', 'event', 'refine', 'offline', 'tribute'];
-  var OUT_CATS = ['cave', 'arts', 'shop', 'event_loss', 'donate'];
+  /* treasure = 法宝用度（祭炼升级 + X11 九转丹兑换两处支出）。
+   * 🆕 耦合缺陷收口批 2026-10-10：treasures.js 自本分类登记前就在调 note(ws, out, treasure)，
+   * 而 note() 对未登记分类**静默 return 0** ⇒ 灵石真扣、总账不记、#113 恒等式必漂。
+   * 教训入册：**「静默拒绝」的白名单必须与调用点双向对表**，否则漏登记是零症状的——
+   * 已由审计关 A8 普查（分类 ⇔ 调用点），不再靠人眼。 */
+  var OUT_CATS = ['cave', 'arts', 'shop', 'event_loss', 'donate', 'treasure'];
 
   function blank() {
     var o = { in: {}, out: {} };

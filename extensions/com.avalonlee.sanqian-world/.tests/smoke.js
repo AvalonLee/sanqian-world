@@ -5676,6 +5676,144 @@
       ' ‖ 边界 0→' + n285c0 + ' / .999→' + n285c +
       ' ‖ 旧表=' + SQ.Shop.slotCount(D285old) + ' 退化=' + SQ.Shop.slotCount(D285same) +
       ' 反向=' + SQ.Shop.slotCount(D285inv) + ' ‖ 表=' + lo285 + '~' + hi285);
+
+
+    /* #286 法宝灵石支出入账（耦合缺陷收口批 2026-10-10 · 与审计关 A8 同批）：
+     * 缺陷本体是**零症状**的——`treasures.js` 两处 `note(ws,'out','treasure')` 而该分类从未登记，
+     * `note()` 按设计对非法分类**静默返 0** ⇒ 灵石真扣、总账不记、#113 恒等式必漂；
+     * 而既有 #135（祭炼）与全部冒烟一路绿，因为**没人把「扣灵石」和「入账」放在一起看过**。
+     * (a) 祭炼一次：`out.treasure` 增额 === 灵石实扣额，且恒等式 `100+Σin−Σout === stones` 续绿；
+     * (b) X11 九转丹一次：同一分类再累加，恒等式仍续绿（两处共用分类是口径，不是巧合）；
+     * (c) **登记是承重的**：拿未登记分类去 `note()` ⇒ 返 0 且恒等式当场漂（反向对照，
+     *     防「把分类从白名单删掉也能全绿」——那正是本缺陷的成因形态）；
+     * (d) 路数可复算：IN+OUT 共 11 路、`treasure` 在册，且每一路都有 `ledger.cat.*` 词表
+     *     （总账浮层逐行取词，缺键就会把分类名打成 key 回落）。 */
+    var w286 = mkWs({ realm: 8 });
+    /* 注资必须**走账**（in.kill 记一笔 + stones 同步加），手工改 stones 会当场把 #113 恒等式弄破——
+     * 那不是我判的东西（首跑就栽在这里：恒等式=false 其实是 fixture 错，不是产品错）。 */
+    SQ.Ledger.note(w286, 'in', 'kill', 8000000);
+    w286.stones += 8000000;
+    var g286h = SQ.Treasures.gain(w286, pack, D, 'h01', noopLog());
+    var cost286 = SQ.Treasures.refineCost(w286, pack, D, 'h01');
+    var st286a = w286.stones;
+    var rf286 = SQ.Treasures.refine(w286, pack, D, 'h01', noopLog());
+    var paid286a = st286a - w286.stones;
+    var a286 = g286h && rf286 && rf286.ok !== false && paid286a > 0 &&
+      (w286.ledger.out.treasure || 0) === paid286a && SQ.Ledger.sums(w286).expect === w286.stones;
+    var g286x = SQ.Treasures.gain(w286, pack, D, 'x11', noopLog());
+    var eq286 = SQ.Treasures.equip(w286, pack, D, 'x11', noopLog());
+    var st286b = w286.stones;
+    var mp286 = SQ.Treasures.makePill(w286, pack, D, Date.now());
+    var paid286b = st286b - w286.stones;
+    var b286 = g286x && eq286 && eq286.ok !== false && mp286.ok === true && paid286b > 0 &&
+      (w286.ledger.out.treasure || 0) === paid286a + paid286b &&
+      SQ.Ledger.sums(w286).expect === w286.stones;
+    var st286c = w286.stones;
+    w286.stones -= 123;                                   /* 真扣钱、假分类 ⇒ 账上无痕 */
+    var ret286 = SQ.Ledger.note(w286, 'out', 'nosuch_cat', 123);
+    var drift286 = SQ.Ledger.sums(w286).expect !== w286.stones;
+    w286.stones = st286c;
+    var c286 = ret286 === 0 && drift286 === true;
+    var cats286 = SQ.Ledger.IN_CATS.concat(SQ.Ledger.OUT_CATS);
+    var missCat286 = cats286.filter(function (c) {
+      var key = 'ledger.cat.' + c;
+      return SQ.t(key, null, 'xiuxian') === key;
+    });
+    var d286 = cats286.length === 11 && SQ.Ledger.OUT_CATS.indexOf('treasure') >= 0 && missCat286.length === 0;
+    ok('286', '法宝用度入账闭环（A8 同批）：(a) 祭炼实扣额 === out.treasure 入账额且 #113 恒等式续绿；(b) X11 九转丹同分类累加后续绿；(c) 未登记分类 note() 返 0 且恒等式当场漂（反向对照，证「登记」承重）；(d) 灵石账 11 路可复算、每路有词表（浮层不许 key 回落）',
+      a286 && b286 && c286 && d286,
+      '祭炼 ' + paid286a + 'B 账=' + (w286.ledger.out.treasure - paid286b) + ' ‖ 九转丹 ' + paid286b + 'B 账=' + w286.ledger.out.treasure +
+      ' ‖ 恒等式=' + (SQ.Ledger.sums(w286).expect === w286.stones) + ' ‖ 假分类返=' + ret286 + ' 漂=' + drift286 +
+      ' ‖ 路数=' + cats286.length + ' 缺词表=' + (missCat286.join(',') || '无') + ' ‖ eq/own=' + !!eq286 + '/' + !!(g286x && g286h));
+
+    /* #287 好感唯一写口收口（势力入门 #3 + 创角承继播种 #8 → 引擎卷 §3.2 登记缺口结案）：
+     * 本条**不测新数值**，测「结构改了、结果一个都没变」——
+     * (a) 同一份世界态分头跑「改前手工算法」（此处内联复刻）与「改后走 gain/lose」，
+     *     **逐人 bonds 快照 + 返回 deltas 深度全等**；八型全覆盖：同门 +5 / 友好 +10 / 敌对 −20 /
+     *     散人不动 / 道侣不动 / 绝交锁不动 / 心结锁不动 / 满档压线不动；
+     * (b) grantHeir 播种值 === `LEGACY.BOND_HEIR_BASE`（与视图旧直写逐字同值）；
+     * (c) grantHeir 对绝交锁 / 心结锁**拒写**（原视图直写会硬盖过锁——创角态 bonds 为空集故实际不可达，
+     *     但唯一写口的语义必须完整，否则下一个调用点又会踩）。 */
+    /* 势力是 normalize 时一次性生成的（initialState 留 null）⇒ 必须走 pack.normalize 才有 factions 表 */
+    var w287 = pack.normalize(pack.initialState());
+    w287.realm = 5;
+    var facs287 = w287.factions;
+    var fA287 = facs287[0], fB287 = facs287[1];
+    var cids287 = (pack.companions || []).map(function (c) { return c.id; });
+    function pickNpc287(pred) { return cids287.filter(pred)[0] || null; }
+    var npcSame = pickNpc287(function (id) { return w287.factionNpcs[id] === fA287.id; });
+    var npcEnemy = pickNpc287(function (id) { var nf = w287.factionNpcs[id]; return !!nf && fA287.rel[nf] === 'enemy'; });
+    var npcFriend = pickNpc287(function (id) { var nf = w287.factionNpcs[id]; return !!nf && fA287.rel[nf] === 'friendly'; });
+    var npcLone = pickNpc287(function (id) { return !w287.factionNpcs[id]; });
+    var npcSpare = pickNpc287(function (id) { return id !== npcSame && id !== npcEnemy && id !== npcFriend && id !== npcLone; });
+    w287.factionId = null; w287.factionCdUntil = 0;
+    if (npcEnemy) w287.bonds[npcEnemy] = 5;
+    if (npcFriend) w287.bonds[npcFriend] = 96;                 /* 压线：+10 只能到 100 */
+    if (npcLone) w287.bonds[npcLone] = 7;                      /* 散人：无论好感都不动 */
+    if (npcSpare) { w287.bonds[npcSpare] = 50; w287.spouse = { npcId: npcSpare, tier: 1 }; }
+    var lockTarget = pickNpc287(function (id) { return id !== npcSame && id !== npcEnemy && id !== npcFriend && id !== npcLone && id !== npcSpare; });
+    if (lockTarget) w287.bonds[lockTarget] = -99;
+    var scarTarget = pickNpc287(function (id) { return id !== npcSame && id !== npcEnemy && id !== npcFriend && id !== npcLone && id !== npcSpare && id !== lockTarget; });
+    if (scarTarget) { w287.bonds[scarTarget] = 30; w287.scars = {}; w287.scars[scarTarget] = 1; }
+    var clone287 = JSON.parse(JSON.stringify(w287));
+    /* 改前算法（逐字复刻 2026-10-09 之前的实现） */
+    (function oldAlgo(ws) {
+      var cfg = D.FACTIONS || {}, deltas = {};
+      var bonds = ws.bonds || (ws.bonds = {});
+      (pack.companions || []).forEach(function (c) {
+        var nf = (ws.factionNpcs || {})[c.id];
+        if (!nf) return;
+        if (ws.spouse && ws.spouse.npcId === c.id) return;
+        if (bonds[c.id] === -99 || (ws.scars || {})[c.id]) return;
+        var rel = nf === fA287.id ? 'same' : SQ.Factions.relationOf(ws, fA287.id, nf);
+        var delta = rel === 'friendly' ? (cfg.JOIN_FRIENDLY || 10)
+          : rel === 'enemy' ? (cfg.JOIN_ENEMY || -20)
+          : rel === 'same' ? (cfg.JOIN_SAME || 5) : 0;
+        if (!delta) return;
+        var min = D.BOND_MIN != null ? D.BOND_MIN : -20;
+        var before = bonds[c.id] || 0;
+        var after = Math.max(min, Math.min(D.BOND_MAX || 100, before + delta));
+        if (after !== before) { bonds[c.id] = after; deltas[c.id] = after - before; }
+      });
+      clone287.__deltas = deltas;
+    })(clone287);
+    var r287 = SQ.Factions.join(w287, pack, D, fA287.id, Date.now(), noopLog());
+    var sameBonds287 = JSON.stringify(w287.bonds) === JSON.stringify(clone287.bonds);
+    var sameDeltas287 = JSON.stringify(r287.bondDeltas || {}) === JSON.stringify(clone287.__deltas || {});
+    var covered287 = !!npcSame && !!npcEnemy && !!npcFriend && !!npcLone && !!npcSpare && !!lockTarget && !!scarTarget;
+  var exp287 = {};
+  if (npcSame) exp287[npcSame] = 5;                       /* 同门 JOIN_SAME +5（原为空 ⇒ 0+5） */
+  if (npcEnemy) exp287[npcEnemy] = 5 - 20;                /* 敌对 JOIN_ENEMY −20（fixture 起点 5 → −15） */
+  if (npcFriend) exp287[npcFriend] = 100;                 /* 友好 +10 但 96 起 ⇒ 压 BOND_MAX 上限 */
+  if (npcLone) exp287[npcLone] = 7;                       /* 散人不动 */
+  if (npcSpare) exp287[npcSpare] = 50;                    /* 在任道侣不动 */
+  if (lockTarget) exp287[lockTarget] = -99;               /* 绝交锁不动 */
+  if (scarTarget) exp287[scarTarget] = 30;                /* 心结锁不动 */
+  var valOk287 = Object.keys(exp287).every(function (id) { return w287.bonds[id] === exp287[id]; });
+  /* 键集判据 = 该动的都在、不该动的一个都不在（入门调整的是**全体有归属的道友**，
+   * 我挑的七人只是抽样 ⇒ 不能要求键集恰等于抽样集，那判据过窄且一换随机种子就红） */
+  var inD287 = function (id) { return id ? Object.prototype.hasOwnProperty.call(r287.bondDeltas || {}, id) : true; };
+  var setsOk287 = inD287(npcSame) && inD287(npcEnemy) && inD287(npcFriend) &&
+    !inD287(npcLone) && !inD287(npcSpare) && !inD287(lockTarget) && !inD287(scarTarget);
+    var a287 = r287.ok === true && sameBonds287 && sameDeltas287 && covered287 && valOk287 && setsOk287;
+    var w287h = mkWs({ realm: 3 });
+    var heirId = cids287[0];
+    var gh287 = SQ.Bonds.grantHeir(w287h, pack, D, heirId, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
+    var b287 = gh287.ok === true && w287h.bonds[heirId] === SQ.XDATA.LEGACY.BOND_HEIR_BASE;
+    var w287l = mkWs({ realm: 3 });
+    w287l.bonds[heirId] = -99;
+    var w287s = mkWs({ realm: 3 });
+    w287s.scars = {}; w287s.scars[heirId] = 1; w287s.bonds[heirId] = 12;
+    var ghL = SQ.Bonds.grantHeir(w287l, pack, D, heirId, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
+    var ghS = SQ.Bonds.grantHeir(w287s, pack, D, heirId, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
+    var c287 = ghL.ok === false && ghL.blocked === 'lock' && w287l.bonds[heirId] === -99 &&
+      ghS.ok === false && ghS.blocked === 'scar' && w287s.bonds[heirId] === 12;
+    ok('287', '好感唯一写口收口（势力入门 + 承继播种）：(a) 同一份世界态下「改前手工算法」与「改后走 gain/lose」逐人 bonds 与 deltas **深度全等**，八型全覆盖（同门/友好/敌对/散人/道侣/绝交锁/心结锁/压线）；(b) grantHeir 播种值 === BOND_HEIR_BASE（与视图旧直写逐字同值）；(c) grantHeir 对锁/心结**拒写**（唯一写口语义完整，不留「下一个调用点又踩」的口子）',
+      a287 && b287 && c287,
+      '同 bonds=' + sameBonds287 + ' 同 deltas=' + sameDeltas287 + ' 覆盖=' + covered287 +
+      ' ‖ deltas=' + JSON.stringify(r287.bondDeltas || {}) + ' 值对=' + valOk287 + ' 抽样键进/不出=' + setsOk287 + ' 动的人数=' + Object.keys(r287.bondDeltas || {}).length + ' ‖ 播种=' + w287h.bonds[heirId] +
+      ' ‖ 锁=' + ghL.blocked + '/' + w287l.bonds[heirId] + ' 心结=' + ghS.blocked + '/' + w287s.bonds[heirId]);
+
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：
      * 正典说收集类项（法宝/功法满级/称号/里程碑/成就）复用图鉴账本作幂等键、不在 meta.earnedKeys
      * **二次冗余存储**；legacy.js 实况却逐条存着实付额，而实付额含**历史转世通道系数**

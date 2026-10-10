@@ -1681,7 +1681,8 @@
           });
         }
         if (lg.bond && s.meta.unlocks.bond) {
-          nws.bonds[lg.bond] = SQ.XDATA.LEGACY.BOND_HEIR_BASE;
+          /* 好感播种走引擎唯一写口（视图不再直写 bonds[]；耦合缺陷收口批 2026-10-10 · 引擎卷 §3.2） */
+          SQ.Bonds.grantHeir(nws, SQ.Worlds[w].pack, SQ.XDATA, lg.bond, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
           nws.heirBond = lg.bond;
         }
       }

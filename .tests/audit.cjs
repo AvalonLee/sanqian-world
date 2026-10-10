@@ -445,6 +445,102 @@ const SQ = sandbox.window.SQ;
     ' ‖ 表外写点=' + (unreg.length ? unreg.map(function (k) { return k + '@' + where[k]; }).join(', ') : '无') +
     ' ‖ 死登记（表里有而源码无写点）=' + (dead.length ? dead.join(', ') : '无'));
 })();
+
+/* ── A8 「静默失效」普查：账本分类 ⇔ 调用点、`ws.*` 写点 ⇔ normalize 声明集
+ *      （2026-10-10 耦合缺陷收口批立）
+ * 立因：同批抓获的两件真缺陷**都是零症状的**——
+ *   ① `treasures.js` 两处 `note(ws,'out','treasure')` 而 `OUT_CATS` 从未登记该分类，
+ *      而 `note()` 的设计就是「非法分类静默拒绝返 0」（防占位空类复活）⇒ 灵石真扣了、总账不记、
+ *      **#113 恒等式必漂**，而冒烟全绿（既有断言没走祭炼那条路，直到本批才被发现）；
+ *   ② `factions.js` 写 `ws.factionJoinedAt`，`initialState` / `normalize` 都没这个键
+ *      ⇒ 下次读档即被剪掉，全仓也无人读它（死写）。
+ *   两件同型：**写了、没有承接方、且没有任何一处会红**。这类只能普查，盯 diff 盯不住。
+ * 口径：白名单从 `assets/systems/ledger.js` 源码字面量读（不从沙箱取——装载顺序一变就恒真/恒假，同 A7 理由）；
+ *   声明集取 live 世界包 `pack.normalize({})` 的键集（**读档后真实存在的键才是真相**）。
+ * 判据（双向对表，任一命中即红）：
+ *   ① `SQ.Ledger.note(ws, dir, cat, …)` 调用点的分类 ⊄ 白名单 = 漏登记；
+ *      白名单在册却**零调用点** = 占位空类复活（v1.2 曾清掉 sell / refine_loss 两个，本关让它不能再回来）；
+ *   ② `ws.<字段> =` 写点 ⊄ 声明集 = 幽灵字段（读档即丢）。
+ *   反空集护栏：声明集键数必须 > 50，否则本关判红——沙箱没装好时不许静默放行。
+ * 已知边界（如实登记，不装作全覆盖）：只扫 `assets/**`；视图里 `nws.bonds[id] = …` 这类**属性写**
+ *   本关照不到（它改的是已声明容器的内容，不是顶层键），那部分由冒烟 #287「好感唯一写口」判据覆盖；
+ *   无 schema 透传面（`owned[].st`）归 A7。 */
+(function () {
+  var LED = 'assets/systems/ledger.js';
+  var lsrc = fs.existsSync(LED) ? fs.readFileSync(LED, 'utf8') : '';
+  function catList(name) {
+    var m = lsrc.match(new RegExp('var\\s+' + name + '\\s*=\\s*\\[([^\\]]*)\\]'));
+    if (!m) return null;
+    return (m[1].match(/'[^']*'/g) || []).map(function (x) { return x.slice(1, -1); });
+  }
+  var INC = catList('IN_CATS'), OUTC = catList('OUT_CATS');
+  if (!INC || !OUTC) {
+    ok('A8', '「静默失效」普查（账本分类 ⇔ 调用点 · ws 写点 ⇔ normalize 声明集）', false,
+      '读不到 ' + LED + ' 里的 IN_CATS/OUT_CATS 字面量 = 白名单本身消失，属纪律失守而非放行理由');
+    return;
+  }
+  var bad = [];
+  var used = { in: {}, out: {} };
+  var assetFiles = jsFiles.filter(function (f) { return relOf(f).indexOf('assets/') === 0; });
+  assetFiles.forEach(function (f) {
+    /* 剥注释再扫：本关判的是「代码里真的写了」，注释里的说明性提及不算写点
+     * （首跑就被自己那段「原此处写 ws.factionJoinedAt」的注释绊了一次 ⇒ 假红）。 */
+    var src = stripComments(fs.readFileSync(f, 'utf8'));
+    var re = /SQ\.Ledger\.note\(\s*[^,]+,\s*'(in|out)'\s*,\s*'([a-zA-Z_]+)'/g, m;
+    while ((m = re.exec(src))) {
+      var dir = m[1], cat = m[2];
+      used[dir][cat] = true;
+      if ((dir === 'in' ? INC : OUTC).indexOf(cat) < 0) bad.push(relOf(f) + ' note(' + dir + ', ' + cat + ') 分类未登记');
+    }
+  });
+  INC.forEach(function (c) { if (!used.in[c]) bad.push('in 分类 ' + c + ' 零调用点（占位空类复活）'); });
+  OUTC.forEach(function (c) { if (!used.out[c]) bad.push('out 分类 ' + c + ' 零调用点（占位空类复活）'); });
+  /* 声明集要真跑 normalize 才拿得到 ⇒ 借沙箱装载器（audit 本体是静态扫描，只装词表与数据表，
+   * SQ.Worlds[id].pack 在其装载剖面里是 null）。装载失败即判红，不静默放行。 */
+  var declared = {}; var boot = null;
+  try { boot = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; }
+  catch (e) { bad.push('沙箱装载失败（声明集取不到 = 本关无从判起）：' + e.message); }
+  if (boot) {
+    Object.keys(boot.Worlds).filter(function (id) { return boot.Worlds[id].status === 'live'; }).forEach(function (id) {
+      try {
+        Object.keys(boot.Worlds[id].pack.normalize({}) || {}).forEach(function (k) { declared[k] = true; });
+      } catch (e) { bad.push('世界包 ' + id + ' normalize({}) 抛异常：' + e.message); }
+    });
+  }
+  var dkeys = Object.keys(declared);
+  if (dkeys.length <= 50) bad.push('声明集键数仅 ' + dkeys.length + '（反空集护栏：沙箱未装载好时不许静默放行）');
+  var wroteFields = {};
+  assetFiles.forEach(function (f) {
+    var src = stripComments(fs.readFileSync(f, 'utf8'));
+    var re = /\bws\.([a-zA-Z_$][\w$]*)\s*=(?!=)/g, m;
+    while ((m = re.exec(src))) {
+      wroteFields[m[1]] = true;
+      if (!declared[m[1]]) bad.push(relOf(f) + ' 写 ws.' + m[1] + ' 未在 initialState/normalize 声明（读档即丢）');
+    }
+  });
+  /* ③ 好感元素写点普查（同批第三件：势力入门与创角承继原本绕过 Bonds.gain 直写 bonds[]，
+   *    绕过就等于绕过绝交锁 / 心结锁 / clamp——两处调用方各自补了一遍前置检查 = 重复实现）。
+   *    豁免两处：bonds.js 自身（唯一写口所在地）与 worlds/<id>/index.js 的 normalize（读档播种与
+   *    旧哨兵迁移，是声明流程的一部分）。视图里的 nws.bonds[id] = ... 曾被这两类普查**双双漏掉**
+   *    （A8 的 ② 只看 ws.顶层键、#287 只测行为），所以本项按**属性写形态**扫，含 view/module。 */
+  var BOND_OK = ['assets/systems/bonds.js'];
+  var bondBad = [];
+  [].concat(jsFiles, htmlFiles).forEach(function (f) {
+    var rel = relOf(f);
+    if (rel.indexOf('assets/') !== 0 && rel.indexOf('view/') !== 0 && rel.indexOf('module/') !== 0) return;
+    if (BOND_OK.indexOf(rel) >= 0 || /^assets\/worlds\/[^/]+\/index\.js$/.test(rel)) return;
+    var src2 = stripComments(fs.readFileSync(f, 'utf8'));
+    var re = /bonds\s*\[[^\]]+\]\s*=(?!=)/g;
+    while (re.exec(src2)) bondBad.push(rel);
+  });
+  if (bondBad.length) bad.push('绕过 Bonds.gain/lose/grantHeir 的好感元素直写：' +
+    Array.from(new Set(bondBad)).join(','));
+  ok('A8', '「静默失效」普查（账本分类 ⇔ 调用点 · ws 写点 ⇔ normalize 声明集 · 双向对表 + 反空集护栏）',
+    bad.length === 0,
+    '白名单 in' + INC.length + '/out' + OUTC.length + ' ‖ 声明键 ' + dkeys.length + ' ‖ 扫到写点字段 '
+      + Object.keys(wroteFields).length + ' ‖ ' + (bad.slice(0, 6).join(' | ') || '零命中'));
+})();
+
 /* ── C 组 · 世界包词族契约（G11 · 换世界即换系统名与菜单描述）
  *   C1 must 族：每个 live 世界分卷必须各自拥有（≥1 条该前缀 key）——世界身份不缺项；
  *   C2 forbid 族：世界分卷不得出现（跨世界通用文案只留 common，防世界间漂移）。 ── */
