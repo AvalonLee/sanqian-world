@@ -19,7 +19,6 @@
     'ui.cancel': '返回',
     'ui.close': '关闭',
     'ui.ok': '入定',
-    'ui.claim': '收功',
     'ui.number.wan': '万',
     'ui.number.yi': '亿',
     'ui.error.storage': '存档读取失败：{msg}',
@@ -128,17 +127,17 @@
     'settings.taborder.up': '上移', 'settings.taborder.down': '下移',
     'settings.about.title': '关于',
     'settings.about.body': '三千世界 · 多世界放置修仙。离线照常结算，回来收功即可。',
-    'sys.tag': '系统', 'break.tag': '突破',
+    'sys.tag': '系统', 
     'ui.time.hm': '{h}时{m}分', 'ui.time.m': '{m}分钟', 'ui.time.d': '{d}天{h}时',
     'ui.time.game.yd': '{y} 游戏年 {d} 游戏日', 'ui.time.game.d': '{d} 游戏日',
     'ui.kills': '累计击杀 {n}', 'ui.total': '累计产出 {n}',
     /* 角色浮层 */
-    'role.title': '角色', 'role.attrs.title': '三维',
+    'role.attrs.title': '三维',
     'attr.part.base': '境界基础', 'attr.part.arts': '功法滋养', 'attr.part.gear': '装备滋养',
     'attr.part.event': '平生悟道', 'attr.part.buff': '临时增益',
     'attr.dc': '中等判定线 {n}',
     /* karma 浮层（档位名走世界词表 karma.tier.*） */
-    'karma.value': '{sys} {n}', 'karma.next': '距「{tier}」还需 {n}', 'karma.maxed': '已至档位极处',
+    'karma.next': '距「{tier}」还需 {n}', 'karma.maxed': '已至档位极处',
     /* 装备 */
     'gear.score': '评分 {n}', 'gear.req': '需境界：{realm}', 'gear.empty': '尚无此件',
     'gear.stash': '库藏阁（{n}/{cap}）', 'gear.latest': '最近拾得',
@@ -155,10 +154,10 @@
     /* 功法 */
     'arts.slots': '修习槽 {n}/{cap}', 'arts.shelf': '待修习架 {n}/{cap}',
     'arts.empty': '虚位以待', 'arts.equip': '装入', 'arts.unequip': '移出',
-    'arts.upgrade': '升级', 'arts.cost': '{n}', 'arts.max': '满级',
-    'arts.lack': '需：{req}', 'arts.learned': '{name} 修炼有成，已入门',
+    'arts.max': '满级',
+    'arts.learned': '{name} 修炼有成，已入门',
     'arts.autoslot': '{name} 已自动入修习槽',
-    'arts.lv': 'Lv{n}', 'arts.special': '签名', 'arts.reset': '待重修',
+    'arts.special': '签名', 'arts.reset': '待重修',
     'arts.main': '主修', 'arts.main.empty': '主修虚位',
     /* 功法处置（道具处置打磨包）：已入门 → 散功、架上未入门 → 弃置 */
     'arts.salvage': '散功', 'arts.discard': '弃置',
@@ -185,12 +184,10 @@
     /* 功法页改版（走查 v2.5 §4）：已学会/待修习架独立节 + 图鉴化 */
     'arts.sec.known': '已 学 会',
     'arts.known.empty': '尚未学会任何功法——去坊市求一部，或等一场奇遇。',
-    'arts.shelf.empty': '架上空空',
     'arts.codex.title': '功 法 图 鉴',
     'arts.codex.known': '已学会 · Lv{lv}',
     'arts.codex.shelf': '待复检 · 要求未达',
     /* 已学会卡增益行（走查 v2.7 §3） */
-    'arts.gain.zero': '入门未修持 · 尚无增益',
     'arts.gain.perslot': '+{p}%/级',
     /* 功法升级（v2.3 日志「功法」分类）模板：升级成功即记，含消耗修为口径 */
     'arts.upgraded': '{name} 修习精进，升至 Lv{lv}（耗{res} {n}）',
@@ -260,7 +257,7 @@
     /* 商店 */
     'shop.refresh': '刷新（{n}）', 'shop.restock': '{t}后补货', 'shop.sold': '已售罄',
     'shop.buy': '购入', 'shop.price': '{n}', 'shop.qiprice': '修为 {p}',
-    'shop.confirm': '确认购入「{name}」？价格 {price}', 'shop.owned': '已持有',
+    'shop.confirm': '确认购入「{name}」？价格 {price}', 
     'shop.blackHint': '价高三成，慎入',
     'zone.unknown': '？？？',
     'gear.stat.atk': '攻击', 'gear.stat.resist': '渡劫抗性',
@@ -287,7 +284,6 @@
     'event.codex.title': '奇遇图鉴', 'event.codex.unknown': '？？？', 'event.codex.unseen': '未遇',
     'event.codex.sec': '{tier} {n}/{total}',
     'event.badge.special': '特', 'event.badge.once': '缘', 'event.badge.exGear': '宝', 'event.badge.exArt': '法',
-    'log.title': '系统日志',
     /* 抉择模态与结果页（F3：karma 不预告 · 缺项置灰 · 判定演出） */
     'event.modal.judging': '天机推演…',
     'event.modal.foot': '必须选择 · 无倒计时 · 点遮罩不关闭',
@@ -423,9 +419,9 @@
     'arts.tierchar.huang': '黄', 'arts.tierchar.xuan': '玄', 'arts.tierchar.di': '地', 'arts.tierchar.tian': '天',
     'arts.sec.tier': '待修习架 · {g}字阶', 'arts.sec.align': '待修习架 · {g}',
     'arts.sec.excl': '含独占 {n} 部（奇遇限定）',
-    'arts.state.known': '已学会 · 未装槽', 'arts.state.unowned': '未获得 · 获取途径：{via}',
+    'arts.state.unowned': '未获得 · 获取途径：{via}',
     'arts.state.lackline': '修习要求未达 · 需：{req}',
-    'arts.lack.realm': '境界 {realm}', 'arts.lack.realmgap': '境界 {realm}（还差 {n} 层）',
+    'arts.lack.realmgap': '境界 {realm}（还差 {n} 层）',
     'arts.lack.attr': '{attr} ≥ {min}（当前 {cur}，相差 {gap}）',
     'arts.lack.karmaMin': '道心 ≥ +{min}（当前 {cur}，相差 {gap}）',
     'arts.lack.karmaMax': '道心 ≤ {max}（当前 {cur}，相差 {gap}）',
@@ -433,7 +429,7 @@
     'arts.obtain.initial': '初始自带', 'arts.obtain.shop': '坊市有售', 'arts.obtain.black': '黑市有售',
     'arts.obtain.zone': '首通秘境「{zone}」奖励',
     'arts.obtain.event': '奇遇可得', 'arts.obtain.event_evil': '魔道奇遇可得', 'arts.obtain.event_rare': '稀有奇遇可得',
-    'arts.src.line': '来源：{via}', 'arts.req.line': '需：{req}',
+    'arts.req.line': '需：{req}',
     'arts.exclusive.via': '独占 · 仅天级特殊奇遇「{ev}」{branch}分支可得（遇过 ≠ 拿到）',
     'arts.dao.line': '大道方向 · 「{txt}」',
     'arts.slotpick.title': '修习槽已满——为「{name}」选择替换的一部', 'arts.slotpick.replace': '替换',

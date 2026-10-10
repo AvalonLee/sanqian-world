@@ -333,14 +333,21 @@ const SQ = sandbox.window.SQ;
     a5.slice(0, 8).join(',') + ' 在册=' + (SQ.XDATA.COMPANIONS || []).length);
 
   /* A6 词表键消费侧反向扫描（孤儿键 · 2026-10-07 死链修复批补）：A2 只查「被引用的键必须存在于词表」，
-   * 反向不查「存在的键是否被引用」，故 `break.tag`「突破」/ `gear.latest`「最近拾得」两类
+   * 反向不查「存在的键是否被引用」，故 `break.tag`（旧「突破」死分类）/ `gear.latest`「最近拾得」两类
    * 「文案写了没人读」的孤儿键照绿出厂。判据 = 键名既没以字面量出现在任何代码/视图里，
    * 也不被任何代码里出现过的拼接前缀覆盖 → 判为不可达。
    * ⚠ 报告级恒 PASS 不判失败，两条理由：① 「词表先行、触发点后补」是本仓既有工序，硬门禁会误伤扩容批；
    * ② **本判据只有假阴没有假阳**——粗前缀会吞掉整族（实测案例：`gear.js:25 return 'gear.' + slot`
    *    使 `gear.latest` 被判「已覆盖」，而全库检索确认该键仅存在于 `lexicon.js:144` 定义行）。
-   * 故清单读法 = 「列出的必死、未列出的未必活」，逐条抽查 7 键（dc.easy / ui.claim / shop.owned /
-   * role.title / arts.lv / karma.value / tribulation.start）均为「仅定义行命中」= 真死文案。 */
+   * 故清单读法 = 「列出的必死、未列出的未必活」，历史上逐条抽查过 7 键（dc.easy / ui.claim / shop.owned /
+   * role.title / arts.lv / karma.value / tribulation.start）均为「仅定义行命中」= 真死文案。
+   * 🔧 **N20 处置批 2026-10-10 随批刷新**：这 7 键 + 同族共 36 条已按用户授权删除、24 条已接线，
+   *   孤儿读数由 **62 key / 43 族 → 3 key / 3 族**（余 = `arts.bond.discount`〔押后：mods 只给 ΣartsSpeed，
+   *   「心宽 −p%」的归属需引擎先暴露 bond 通道小计，接上去就是说谎〕+ `codex.ui.newentry`〔文案先行：
+   *   触发机制未实施〕+ `tribulation.system`〔词族契约点名的换皮键，删 = 废契约行〕）。
+   *   ⚠️ 本关仍是**报告级恒 PASS**：孤儿数不是断言，删除动作的回归保护为零 ⇒ 逐条判定落在
+   *   `docs/N20-孤儿文案逐条处置表.md`，其中 6 条被测试钉住的键（dc.* 由 A2、ui.claim 由冒烟、
+   *   break.tag 由走查 C4g 反向钉「缺席」）已随批同改测试，单删词表会红的形状本轮已实测过一次。 */
   const a6 = [];
   const cov6by = {};
   for (const k of Object.keys(lexAll)) {

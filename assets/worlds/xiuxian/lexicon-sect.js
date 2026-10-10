@@ -99,7 +99,6 @@
   K['sect.ui.gate.identity'] = '身份：长老位在任 或 叛离经历';
   K['sect.ui.gate.peak'] = '声望峰值 ≥ 2000（现 {n}）';
   K['sect.ui.gate.unlock'] = '开宗资格（遗泽商店）';
-  K['sect.ui.gate.ok'] = '已达成';
   K['sect.ui.gate.pick'] = '山门三选（纯叙事，定格不可迁）';
   /* 开宗失败九因（`foundSect` / `canFound` 的 reason 全枚举；view 侧原按
    * `sect.ui.fail.<reason>` 拼键、整族无键 ⇒ 裸英文 'realm'/'peak'/'name' 直接上屏）*/
@@ -130,7 +129,6 @@
   K['sect.ui.succ.confirm'] = '传位三后果：宗门转 NPC 位继续活着 / 你获称号「开山祖师」跨世保留 / 当世不可再开宗。传位？';
   K['sect.ui.succ.done'] = '已传位 · 一代宗师下山';
   K['sect.ui.nofound'] = '未开宗——四门槛达成后此处亮起「开宗立派」';
-  K['sect.ui.tab'] = '宗门';
   K['sect.ui.leave.lock'] = '宗门不可弃——传位方可下山';
   K['sect.ui.dispatch'] = '调遣';
   K['sect.ui.accept'] = '收入门墙';

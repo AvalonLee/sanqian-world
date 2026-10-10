@@ -1551,6 +1551,8 @@
     if (el.tier === 'rare') html += '<span class="corner">' + esc(tc('creation.talent.rare')) + '</span>';
     if (isEpic) html += '<span class="corner epic">' + esc(tc('creation.talent.epic')) + '</span>';
     if (el.amplified) html += '<span class="corner amp">' + esc(tc('creation.talent.amplify')) + '</span>';
+    /* N20 接线：羁绊命中此前只加 `.syn` 描边、无文字（玩家看不出这枚天赋是被羁绊点亮的） */
+    if (synHit) html += '<span class="corner">' + esc(tc('creation.talent.synergy')) + '</span>';
     if (isMechTalent(el)) html += '<span class="corner mech' + (el.amplified ? ' mechshift' : '') + '">' + esc(tc('creation.talent.mech')) + '</span>';
     html += '<div class="tname">' + esc(SQ.t('talent.' + el.id + '.name', null, w)) + '</div>' +
             '<div class="teff">' + esc(SQ.effectsToText(el.effects, w)) + '</div>' +
@@ -1667,6 +1669,8 @@
         race: 'human'
       };
       s.worlds[w] = SQ.Worlds[w].pack.initialState();
+      /* N20 接线：首世开场行（转世世由 legacy.js 的 `legacy.log.rebirth` 起头，首世此前一片空白） */
+      SQ.Log.push(s.worlds[w], 'sys', SQ.t('log.boot', null, w));
       if (s.meta.unlockedWorlds.indexOf(w) < 0) s.meta.unlockedWorlds.push(w);
       /* 轮回赠礼落地（轮回卷 §3.2/§3.3/§3.5）：跳档不跳渡劫 / 转世天赋独立槽 / 跨世之缘 bond 40 */
       var nws = s.worlds[w];
@@ -2278,6 +2282,9 @@
             '<div class="kv"><span>' + esc(t('tribulation.resist')) + '</span><span>+' + ti.parts.resist.toFixed(3) + '</span></div>' +
             '<div class="kv"><span>' + esc(t('tribulation.power')) + '</span><span>+' + ti.parts.power.toFixed(3) + '</span></div>' +
             '<div class="kv"><span>' + esc(t('tribulation.talent')) + '</span><span>' + (ti.parts.talent >= 0 ? '+' : '') + ti.parts.talent.toFixed(3) + '</span></div>' +
+            /* N20 接线：一次性修正（丹方 / 奇遇 / 突破前置写入 `ws.tribulation.next`）此前只并进 talent 同池、             * 出处不列（与心魔 / 雷蕴签名同款展示纪律：并入同池仍单列出处） */
+            ((w.tribulation && w.tribulation.next) ? '<div class="kv"><span>' + esc(t('tribulation.next')) + '</span><span>' +
+              (w.tribulation.next >= 0 ? '+' : '') + w.tribulation.next.toFixed(3) + '</span></div>' : '') +
             /* 心魔行（系统深化批 B2 · 数值详设 §8.3.2）：层数与对 p 的影响（−0.0n）——
              * 已并入 parts.talent 同池，此处单列出处（与雷蕴签名行同款展示纪律） */
             (ti.parts.xinmoStacks > 0 ? '<div class="kv"><span>' + esc(t('tribulation.xinmo.row', { n: ti.parts.xinmoStacks })) +
@@ -2459,7 +2466,8 @@
     var power = SQ.Mods.powerOf(w, p, d, m);
     var maxUn = SQ.Combat.maxUnlocked(w, d);
     /* 战力已上移修行页重点展示；此处只留历练战绩（战力绝对值见修行页） */
-    var h = '<p class="hint" style="margin:0 0 8px">' + esc(t('ui.kills', { n: SQ.fmt(w.kills) })) + '</p>';
+    var h = '<p class="hint" style="margin:0 0 8px">' + esc(t('ui.kills', { n: SQ.fmt(w.kills) })) + ' · ' +
+      esc(t('ui.total', { n: SQ.fmt(w.total || 0) })) + '</p>';
     /* 首通 ↔ 洞府联动（B6）：3 处福地以秘境首通为资格 → 两柱互相引流 */
     var caveByZone = {};
     SQ.Cave.list(pack()).forEach(function (c) {
@@ -2771,7 +2779,8 @@
       h += '<div class="resetbanner">' + esc(t('arts.slotpick.title', { name: t('skill.' + ui.slotPickFor + '.name') })) +
         ' <button class="linkbtn" data-act="slotPickCancel">' + esc(t('ui.cancel')) + '</button></div>';
     }
-    h += '<div class="kv"><span>' + esc(t('arts.slots', { n: w.artsSlots.length, cap: d.ARTS_SLOTS })) + '</span></div>';
+    h += '<div class="kv"><span>' + esc(t('arts.slots', { n: w.artsSlots.length, cap: d.ARTS_SLOTS })) + ' · ' +
+      esc(t('arts.shelf', { n: (w.shelf || []).length, cap: d.SHELF_CAP })) + '</span></div>';
     h += '<p class="hint" style="margin:0 0 8px">' + esc(t('arts.practice.hint')) + '</p>';
     h += '<div class="cards" style="grid-template-columns:repeat(3,1fr)">';
     for (var i = 0; i < d.ARTS_SLOTS; i++) {
@@ -2900,6 +2909,9 @@
     }
     if (!slotted && SQ.Arts.canSalvage(w, p, d, id)) {
       h += '<button data-act="salvageArt" data-v="' + id + '">' + esc(t('arts.salvage')) + '</button>';
+    } else if (!slotted) {
+      /* N20 接线：此前散功钮静默消失（初始自带 / 不可散功的功法玩家看不到任何解释） */
+      h += '<span class="hint">' + esc(t('arts.salvage.lock')) + '</span>';
     }
     h += '</div></div>';
     return h;
@@ -4479,7 +4491,10 @@
           var dt0 = new Date(l.ts);
           gt = ('0' + dt0.getHours()).slice(-2) + ':' + ('0' + dt0.getMinutes()).slice(-2);
         }
-        h += '<div class="logline' + (l.cat === 'event' ? ' ev' : '') + '"><span class="ts">' + esc(gt) + '</span>' + esc(l.text) + '</div>';
+        /* N20 接线：「全部」筛选下行内不显分类（11 个分类标签键都在用，只是没进日志行）⇒ 仅在该筛选下加 `[分类]` 前缀，         * 其余筛选由选中态自身表达，不重复 */
+        var catC = ((ui.logFilter || 'all') === 'all') ? LOG_CATS.filter(function (cc) { return cc.id === l.cat; })[0] : null;
+        h += '<div class="logline' + (l.cat === 'event' ? ' ev' : '') + '"><span class="ts">' + esc(gt) + '</span>' +
+          esc(catC ? t('log.catted', { cat: catC.key ? t(catC.key) : t(catC.sys), text: l.text }) : l.text) + '</div>';
       });
       h += '</div>';
     }
@@ -4722,8 +4737,10 @@
         ((m.hooks.shehun) || 0) + ((m.sum && m.sum.checkBonus) || 0) + ((m.bonds && m.bonds.checkPp) || 0));
       var pp = 0.5 + (v - dc) / (2 * dc) + ppAdd;
       pp = Math.max(d.ATTR_P_CLAMP[0], Math.min(d.ATTR_P_CLAMP[1], pp));
-      return { kind: 'odds', label: t('event.check.type.attr', { attr: t('attr.' + chk.attr) }),
-        text: t('event.check.type.attr', { attr: t('attr.' + chk.attr) }) + ' · ' + t('event.check.odds', { odds: t(SQ.Attrs.oddsKey(pp)) }), ok: true };
+      /* N20 接线：难度名此前不上屏（ATTR_DIFF 四档只在引擎侧乘算，玩家看到的是「属性 + 成算」，看不出这一门难在哪）       * ⇒ 动态取词 `t('dc.' + chk.dc)`，A6 的拼接前缀覆盖口径与 `odds.*` 同族 */
+      var lblDc = t('event.check.type.attr', { attr: t('attr.' + chk.attr) }) + ' · ' + t('dc.' + chk.dc);
+      return { kind: 'odds', label: lblDc,
+        text: lblDc + ' · ' + t('event.check.odds', { odds: t(SQ.Attrs.oddsKey(pp)) }), ok: true };
     }
     if (type === 'karma') {
       var k = sys.karmaOf(w);
@@ -5200,7 +5217,9 @@
     if (td.defy > 0 || stage) h += '<span class="tddefy">' + esc(t('tiandao.defy.val', { n: td.defy })) + '</span>';
     if (stage) h += '<span class="tdstage' + (stage === 'nijie' ? ' nijie' : '') + '">' + esc(t('tiandao.stage.' + stage)) + '</span>';
     if (td.title) h += '<span class="tdtitle">' + esc(t('tiandao.title')) + '</span>';
-    if (td.shield) h += '<span class="tdtitle">' + esc(t('tiandao.shield')) + '</span>';
+    /* N20 接线：盾此前只有名、语义（用后即失 / 只保修为）全靠玩家自己猜；正典在天道卷 line253/325 */
+    if (td.shield) h += '<span class="tdtitle">' + esc(t('tiandao.shield')) + '</span>' +
+      '<span class="hint">' + esc(t('tiandao.shield.desc')) + '</span>';
     if (w.realm >= ((d.LEGACY || {}).BINGJIE_MIN_REALM || 4) && SQ.Legacy) {
       h += '<button class="tdbtn plain" data-act="dissolve">' + esc(t('legacy.ui.bingjie.btn')) + '</button>';
     }
@@ -5313,7 +5332,7 @@
   function showDecree(dec) {
     ui.tdDec = dec;
     var w = ws();
-    $('mdc-type').textContent = t('tiandao.type.' + dec.type);
+    $('mdc-type').textContent = t('tiandao.decree.type', { type: t('tiandao.type.' + dec.type) });
     $('mdc-meta').innerHTML =
       '<span>' + esc(t('tiandao.decree.hex', { hex: t('tiandao.hex.' + dec.hexagram) })) + '</span>' +
       '<span>' + esc(t('tiandao.decree.tier', { tier: t('tiandao.tier.' + dec.tier) })) + '</span>';
@@ -5656,8 +5675,11 @@
     var h = '<div class="facecard"><div class="ch"><span class="cn">' + esc(t('codex.face.' + face)) + '</span>' +
       '<span class="cc">' + esc(cnt) + '</span></div>';
     if (face !== 'title') h += '<div class="bar slim"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
-    h += '<div class="cfoot"><span class="cms">' + esc(t('codex.ui.ms', { done: msDone })) + '</span>' +
+    h += '<div class="cfoot"><span class="cms">' + esc(msDone >= 3 ? t('codex.ui.ms.all') : t('codex.ui.ms', { done: msDone })) + '</span>' +
       '<span class="msdots">' + [0, 1, 2].map(function (i) { return '<i' + (i < msDone ? ' class="on"' : '') + '></i>'; }).join('') + '</span></div>';
+    /* N20 接线：下一档阈值（正典 = UI 卷 v2.26 §3.7「取 [50,80,100] 中第一个未达者」；称号面无分母、三档齐、den 缺失都不出） */
+    var nextMsD = (face === 'title' || !den || pct >= 100) ? 0 : ([50, 80, 100].filter(function (pc) { return pct < pc; })[0] || 0);
+    if (nextMsD) h += '<div class="csub">' + esc(t('codex.ui.ms.next', { pct: nextMsD })) + '</div>';
     if (face === 'zone') {
       h += '<div class="csub">' + esc(t('codex.ui.zone.layer', {
         a: SQ.Codex.faceCount(meta, 'zone', 'z'), b: SQ.Codex.faceCount(meta, 'zone', 'b'), c: SQ.Codex.faceCount(meta, 'zone', 'a')
@@ -5954,6 +5976,8 @@
         (fTier != null ? ' <span class="tierbadge t' + fTier + '">' + esc(t('gear.tier.' + fTier)) + '</span>' : '') + '</div>' +
         '<div class="meta">' + esc(t('alchemy.bp.' + bp.id + '.desc')) + (bp.furnace && al.furnace ? ' · ' + esc(t('legacy.ui.owned')) : '') + '</div>';
       if (sel && !bp.furnace) {
+        /* N20 接线：「恒低于同期掉落上限」是打造线的正典约束（炼丹炼器卷 §6.4），此前只有角标、没有这句解释 */
+        h += '<div class="meta hint">' + esc(t('alchemy.ui.forge.tier', { tier: t('gear.tier.' + fTier) })) + '</div>';
         var dirs = (A.FORGE_DIRS || {})[bp.slot] || [];
         h += '<div class="chips" style="margin-top:4px">';
         dirs.forEach(function (dd) {
@@ -6070,6 +6094,9 @@
         var braveD = !crushD && ratioD <= (hcD.brave != null ? hcD.brave : 0.8);
         var hcKey = crushD ? 'crush' : (braveD ? 'brave' : 'even');
         h += '<div class="detailbox">' +
+          '<div class="kv"><span>' + esc(t('prodigy.detail.faction')) + '</span><span>' + esc(SQ.Prodigy.factionNameOf(w, pr, p)) + '</span></div>' +
+          /* N20 接线：关系档此前只在榜行露出（relTxt），详情面整行缺席；正典 = 天骄卷 line128 详情页列「关系档与好感」 */
+          (relTxt ? '<div class="kv"><span>' + esc(t('prodigy.detail.rel')) + '</span><span>' + relTxt + '</span></div>' : '') +
           '<div class="kv"><span>' + esc(t('prodigy.detail.apt')) + '</span><span>' + esc(t('prodigy.apt.' + pr.apt)) + '</span></div>' +
           '<div class="kv"><span>' + esc(t('prodigy.detail.talent')) + '</span><span>' +
           (pr.tl || []).map(function (tid) { return esc(t('talent.' + tid + '.name')); }).join(' · ') + '</span></div>' +
@@ -6130,7 +6157,9 @@
           h += '<button class="' + (ui.sectPick.align === a ? 'on' : '') + '" data-act="sectAlign" data-v="' + a + '">' + esc(t('sect.align.' + a + '.name')) + '</button>';
         });
         h += '</div><p class="hint">' + esc(t('sect.align.' + ui.sectPick.align + '.rule')) + '</p>';
-        h += '<div class="sectnamebox"><input id="sect-name-input" class="tdta" style="min-height:38px" maxlength="6" placeholder="' + esc(t('sect.ui.name.ph')) + '"></div>';
+        h += '<div class="sectnamebox"><input id="sect-name-input" class="tdta" style="min-height:38px" maxlength="6" placeholder="' + esc(t('sect.ui.name.ph')) + '" value="' + esc(ui.sectRollName || '') + '"></div>';
+        /* N20 接线：正典「掷名可重掷 · 免费无限次」（自立门户卷 §2.2）此前在 UI 完全没有入口，         * sectFound 的 nameIdx 形参一直闲置 ⇒ 补钮并走引擎同一式子（SQ.Sect.rollIdx / nameOfIdx，不抄第二份表名） */
+        h += '<button class="linkbtn" data-act="sectRollName" style="margin-top:6px">' + esc(t('sect.ui.name.roll')) + '</button>';
         h += '<button class="primary" data-act="sectFound" style="width:100%;margin-top:8px">' + esc(t('sect.found.btn')) + '</button>';
       }
       if (w.sect === null && SQ.Sect.canFound(w, p, d, state.meta).reason === 'done') {
@@ -6156,6 +6185,8 @@
         { n: SQ.fmt(SQ.Sect.discipleMerit(w, p, d)) })) + '</span>' : '') + '</div>';
     /* 弟子 */
     h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('sect.ui.disciples', { n: sec.disciples.length, cap: SQ.Sect.discCap(w, d) })) + '</p>';
+    /* N20 接线：继位择人的规则（供奉不可继位）此前只靠按钮 disabled 隐含，无一句释文 */
+    if (sec.disciples.length) h += '<p class="hint">' + esc(t('sect.ui.succ.pick')) + '</p>';
     if (!sec.disciples.length) h += '<p class="hint">' + esc(t('sect.disc.empty')) + '</p>';
     sec.disciples.forEach(function (dsc) {
       var nm = SQ.Sect.discName(w, dsc, p);
@@ -6164,7 +6195,11 @@
         (dsc.offering ? ' <span class="tierbadge t4">' + esc(t('sect.disc.offering')) + '</span>' : '') +
         (dsc.tianjiao ? ' <span class="tierbadge t2">' + esc(t('prodigy.system')) + '</span>' : '') + '</div>' +
         '<div class="meta">' + (dsc.offering ? '' : esc(t('sect.disc.row', { name: '', apt: t('sect.disc.apt.' + dsc.tier), realm: t('realm.' + dsc.realm) }) + ' · ')) +
-        esc(t('sect.disc.power', { n: SQ.fmt(pw) })) + '</div>' +
+        esc(t('sect.disc.power', { n: SQ.fmt(pw) })) +
+        /* N20 接线：升境进度引擎每月结算（sect.js PROG_NEED 余数结转），视图此前完全不显 */
+        (!dsc.offering && (d.SECT.PROG_NEED || [])[dsc.realm] != null ? ' · ' +
+          esc(t('sect.disc.prog', { p: SQ.fmt(Math.floor(dsc.prog || 0)), need: SQ.fmt((d.SECT.PROG_NEED || [])[dsc.realm]) })) : '') +
+        '</div>' +
         '<div class="acts">';
       if (!dsc.offering) {
         [0, 1, 2].forEach(function (iv) {
@@ -6244,6 +6279,7 @@
     var h = '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + esc(t('fuse.system')) + '</p>';
     var chk = SQ.Fusion.canFuse(w, p, d, ui.fuseSel[0] || '', ui.fuseSel[1] || '', Date.now());
     var needH = (d.FUSE || {}).MEDITATE_NEED_H || 12;
+    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('fuse.ui.wudao')) + '</p>';
     h += '<div class="kv"><span>' + esc(t('fuse.ui.wudao.med', { h: Math.floor(fu.meditate || 0), need: needH })) + ' · ' +
       '<button class="linkbtn" data-act="matWudao" style="padding:0;vertical-align:baseline">' +
       esc(t('fuse.ui.wudao.stone', { n: (w.materials || {})['mat_wudao'] || 0 })) + '</button></span>' +
@@ -6272,6 +6308,7 @@
     }
     /* 自创部一览（融合扩容批：混沌签名徽标 + 淬炼按钮） */
     if ((fu.customs || []).length) {
+      h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + esc(t('fuse.ui.customs')) + '</p>';
       h += '<div class="meta hint" style="margin-top:8px">' + esc(t('fuse.chaos.hint')) + '</div>';
     }
     var fuR0 = (fu.lastReforgeAt || 0) + ((d.FUSE || {}).REFORGE_CD_MS || 86400000);
@@ -6884,6 +6921,7 @@
     }
     if (act === 'sectGate') { ui.sectPick = ui.sectPick || {}; ui.sectPick.gate = v; renderTab(); return; }
     if (act === 'sectAlign') { ui.sectPick = ui.sectPick || {}; ui.sectPick.align = v; renderTab(); return; }
+    if (act === 'sectRollName') { ui.sectRollName = SQ.Sect.nameOfIdx(SQ.Sect.rollIdx(), wid()); renderTab(); return; }
     if (act === 'sectFound') {
       var nameIn2 = document.getElementById('sect-name-input');
       askConfirm(t('sect.found.btn'), t('sect.found.confirm'), async function () {

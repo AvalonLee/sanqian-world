@@ -230,10 +230,8 @@
       name = cand;
     }
     var nIdx = (Array.isArray(nameIdx) && nameIdx.length === 2) ? nameIdx : null;
-    if (!name && !nIdx) nIdx = [Math.floor(Math.random() * 12), Math.floor(Math.random() * 8)];
-    if (!name) {
-      name = SQ.t('sect.name.pre.' + (nIdx[0] % 12 + 1), null, wid) + SQ.t('sect.name.suf.' + (nIdx[1] % 8 + 1), null, wid);
-    }
+    if (!name && !nIdx) nIdx = SQ.Sect.rollIdx();
+    if (!name) name = SQ.Sect.nameOfIdx(nIdx, wid);
     /* ① 旧门脱离（专用结算：不触发叛离惩罚——karma/bond 零扣，声望清零、委托作废、职位清理、
      * LEAVE_CD 不占用；功成身退自立门户，非背弃） */
     var oldName = null;
@@ -616,6 +614,11 @@
   }
 
   SQ.Sect = {
+    /* N20 接线批 2026-10-10：命名公式的单一事实源。正典「掷名可重掷 · 免费无限次」（自立门户卷 §2.2）需要一个 UI 入口，而式子原先只写在 sectFound 内部 ⇒ 视图若自己抄一遍 pre/suf 表名与取模就是第二个事实源，故把「掷下标」与「按下标取名」各抽一口，sectFound 与本批新增的掷名钮同读这两个函数。表规模 12×8 沿用原字面量。 */
+    rollIdx: function () { return [Math.floor(Math.random() * 12), Math.floor(Math.random() * 8)]; },
+    nameOfIdx: function (ix, wid) {
+      return SQ.t('sect.name.pre.' + (ix[0] % 12 + 1), null, wid) + SQ.t('sect.name.suf.' + (ix[1] % 8 + 1), null, wid);
+    },
     normalize: normalize,
     discCap: discCap,
     byDiscId: byDiscId,

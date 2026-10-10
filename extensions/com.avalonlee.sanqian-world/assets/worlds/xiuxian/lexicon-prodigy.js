@@ -92,28 +92,22 @@
   K['prodigy.system'] = '同代天骄';
   K['prodigy.board.title'] = '江湖榜 · 同代卷';
   K['prodigy.board.me'] = '你';
-  K['prodigy.board.rank'] = '第 {n} 位';
   K['prodigy.board.empty'] = '榜上无名——入世之后，同代自会现身';
   K['prodigy.board.hint'] = '境界优先、同境界按战力；每代名录至多 30 人，榜面只录前 10 位的详细行迹，每 10 游戏年更新一次';
   K['prodigy.board.myrank'] = '你当前位列第 {n} 位';
   K['prodigy.board.refresh'] = '榜面每 {y} 游戏年一刷';
-  K['prodigy.board.faction'] = '{name} · {faction}';
   K['prodigy.detail.apt'] = '资质';
   K['prodigy.detail.faction'] = '归属';
   K['prodigy.detail.talent'] = '天赋（纯展示，不作用任何数值）';
   K['prodigy.detail.rel'] = '关系';
   K['prodigy.detail.bond'] = '好感 {n}';
   K['prodigy.detail.wl'] = '切磋战绩 {w} 胜 {l} 负 {d} 平';
-  K['prodigy.detail.feud'] = '宿敌';
   K['prodigy.detail.feudstate'] = '心结在身——渡劫成算 −0.02（单份不叠加）';
   K['prodigy.detail.eternal'] = '跨世宿敌';
   K['prodigy.detail.boost'] = '机缘在身（资质临时 +0.1）';
   K['prodigy.detail.serving'] = '效力于你';
-  K['prodigy.spar.btn'] = '论道切磋';
-  K['prodigy.spar.confirm'] = '与{name}论道切磋：赌注 {n} {cur}（胜返双倍、负失押注、平局不记账）。双方战力 ±10% 浮动掷判，败北有 30% 概率结仇。切磋？';
   K['prodigy.spar.cd'] = '对方闭关未出（{t} 后可再约）';
   K['prodigy.spar.poor'] = '赌注不足，约不起这一场';
-  K['prodigy.spar.stake'] = '赌注 {n}';
   K['prodigy.spar.vs'] = '你 {a} 对 {b}（对方）';
   /* 切磋平衡批（§5.3 v2）：三档赌注 + 强弱差让 + 胜方材料彩头 */
   K['prodigy.spar.title'] = '论道切磋';
@@ -128,12 +122,10 @@
   K['prodigy.spar.handicap.brave.hint'] = '对方战力在你之上——胜则天下侧目：胜返 ×3，好感 +3，材料彩头上浮';
   K['prodigy.spar.handicap.even'] = '势均力敌';
   K['prodigy.spar.handicap.even.hint'] = '棋逢对手——胜返 ×2';
-  K['prodigy.spar.ret'] = '胜返 {n}';
   K['prodigy.spar.feudp'] = '败北结仇率 {p}%';
   K['prodigy.spar.matp'] = '胜方材料彩头 {p}%';
   K['prodigy.spar.locked'] = '金丹之后，方闻同代之名';
   K['prodigy.log.spar.mat'] = '论道之后互赠所得：得材料「{mat}」';
-  K['prodigy.tab'] = '天骄';
 
   SQ.lexRegister('xiuxian', K);
 })();

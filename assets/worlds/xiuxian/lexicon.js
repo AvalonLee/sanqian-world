@@ -109,7 +109,6 @@
     /* ── 渡劫 ── */
     'tribulation.system': '渡劫',
     'tribulation.tag': '渡劫',
-    'tribulation.start': '天劫将至！',
     'tribulation.success': '渡劫成功，晋升{realm}',
     'tribulation.fail': '天雷落下，渡劫失败，修为 -{p}%',
     /* 渡劫奖惩阶梯（数值详设 §8.3 · 系统深化批 A3）：三档失败日志 + 破境高光四件套 */
@@ -120,7 +119,6 @@
     'tribulation.winstones': '天道馈赏：灵石 +{n}',
     'tribulation.wulou': '无漏道基——一击即中，天道无从挑剔（业力 +{n}）',
     'tribulation.fate': '天道垂青：{name}',
-    'tribulation.xinmo': '心魔 {n} 层（成功率 {v}）',
     'tribulation.xinmo.row': '心魔（连败 {n} 层未消）',
     'tribulation.reset': '境界重置，功法重修',
     'tribulation.estimate': '渡劫成功率预估 {p}%',

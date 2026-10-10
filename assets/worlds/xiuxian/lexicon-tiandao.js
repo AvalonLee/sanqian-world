@@ -8,9 +8,7 @@
   var K = {};
 
   /* ── 系统名与入口 ── */
-  K['tiandao.system'] = '问天';
   K['tiandao.entry'] = '问天';
-  K['tiandao.entry.sub'] = '焚表奏天，听候旨意';
   K['tiandao.listsep'] = '、';
   K['idle.tiandao'] = '天道';
   K['buff.src.tiandao'] = '天罚';
@@ -334,7 +332,6 @@
   K['tiandao.btn.receive'] = '接旨';
   K['tiandao.cd'] = '天机沉默中，{t} 后可再问';
   K['tiandao.stones.lack'] = '灵石不足，香火不够';
-  K['tiandao.decree.title'] = '圣旨';
   K['tiandao.decree.type'] = '旨意 · {type}';
   K['tiandao.decree.tier'] = '档位 · {tier}';
   K['tiandao.decree.hex'] = '卦位 · {hex}';

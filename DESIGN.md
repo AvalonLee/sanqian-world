@@ -74,7 +74,7 @@
 **回归（改完必跑，只需 node，四条都无浏览器依赖）**：
 
 ```bash
-node .tests/run-smoke.cjs          # 引擎断言      → SMOKE_ALL_GREEN 288/288（⚠️ 本行原记 265/265、276/276、277/277、279/279、283/283、287/287 均为历批滞后读数，2026-10-08 / 10-09 / 10-10 随批校正）
+node .tests/run-smoke.cjs          # 引擎断言      → SMOKE_ALL_GREEN 289/289（⚠️ 本行原记 265/265、276/276、277/277、279/279、283/283、287/287、288/288 均为历批滞后读数，2026-10-08 / 10-09 / 10-10 随批校正）
 node .tests/audit.cjs              # 交付前静态审计 → AUDIT_ALL_GREEN 19/19（A6 为报告级；🆕 B9 = 源侧 ↔ 交付镜像七项逐字节零差异；🆕 A7 = 法宝运行态 st 键集登记对表；🆕 A8 = 「静默失效」普查：账本分类 ⇔ 调用点 · `ws.*` 写点 ⇔ `normalize` 声明集 · `.bonds` 直写白名单；① 逐调用点解析实参 + 调用点数自证 + 反空集护栏，② 是单向包含、③ 是禁写白名单。现值 白名单 in5/out6 ‖ 声明键 91 ‖ note 调用点 34/34 ‖ 写点字段 81）
 bash /e/下载/sanqian-ops/sq-check.sh    # 开场体检（只读）→ ALREADY_IN_SYNC；收口后另跑 sq-snapshot.sh <批次名> → BACKUP_OK
 node .tests/sim-pacing.cjs         # 全程节奏比值带（锚 9.12 天）
@@ -93,7 +93,7 @@ node .tests/probe-eventrepeat.cjs  # │ 第十一路：生产抽取全链的玩
 node .tests/probe-savecap.cjs      # ┘ 存档最坏态水位（阶梯可停 / 对 56KB·64KB 余量）
 ```
 
-界面层另有**廿五篇** `.tests/verify-ui-*.cjs`（**498 断言**；⚠️ 自 2026-10-09 存档治理批起，页内走查件要读日志 / 奇遇叙事流须取**侧档** `sanqian-logs-v1` 的 `logs` / `feed` 段——主档已不含它们，细则见 `.tests/README.md`；⚠️ 本句原记「十七篇 · 298 断言」= 2026-10-07 首次全量实跑时的读数，2026-10-08 冷启与覆盖补批随批校正至现行，逐篇增补链见 `docs/FACTS.md`「界面走查断言」行），需 `npm install --no-save --registry=https://registry.npmmirror.com playwright-core`（官方 registry 本机 `ECONNRESET`）+ 系统已装 Edge，无需下载内核。用法与踩坑见 `.tests/README.md`。其中依赖固定存档件 `.tests/fixture-save.json` 的篇数 = **十二篇**（⚠️ 本句原记「九篇 / 合计 150 断言」为首跑读数；2026-10-08 以 `grep -l fixture-save .tests/verify-ui-*.cjs` 复核为 12 篇，原句按追加不改写留档：batch / cavedot / achvdot / faction / trib / toastdedup / karma / offline / fuse，该件原名 `_tmp_save.json`，2026-10-07 真灵承继补完批已改名；**顶着 `_tmp_` 前缀的正式测试资产会被「清理临时脚本」误删，别改回去**。别改回去**。
+界面层另有**廿五篇** `.tests/verify-ui-*.cjs`（**527 断言**〔本句原记 498 = 存档治理批当期读数未随批续刷，链：498 → 511 → 520 → 527，逐篇明细见 FACTS「界面走查断言」行〕；⚠️ 自 2026-10-09 存档治理批起，页内走查件要读日志 / 奇遇叙事流须取**侧档** `sanqian-logs-v1` 的 `logs` / `feed` 段——主档已不含它们，细则见 `.tests/README.md`；⚠️ 本句原记「十七篇 · 298 断言」= 2026-10-07 首次全量实跑时的读数，2026-10-08 冷启与覆盖补批随批校正至现行，逐篇增补链见 `docs/FACTS.md`「界面走查断言」行），需 `npm install --no-save --registry=https://registry.npmmirror.com playwright-core`（官方 registry 本机 `ECONNRESET`）+ 系统已装 Edge，无需下载内核。用法与踩坑见 `.tests/README.md`。其中依赖固定存档件 `.tests/fixture-save.json` 的篇数 = **十二篇**（⚠️ 本句原记「九篇 / 合计 150 断言」为首跑读数；2026-10-08 以 `grep -l fixture-save .tests/verify-ui-*.cjs` 复核为 12 篇，原句按追加不改写留档：batch / cavedot / achvdot / faction / trib / toastdedup / karma / offline / fuse，该件原名 `_tmp_save.json`，2026-10-07 真灵承继补完批已改名；**顶着 `_tmp_` 前缀的正式测试资产会被「清理临时脚本」误删，别改回去**。别改回去**。
 
 > ⚠️ **`node_modules` 永远不进交付包**：`--no-save` 保证 `package.json` 与锁文件零改动；`node_modules` 已在 `.gitignore` 内（现约 487 MB）。另注意 `audit.cjs` 是**整树遍历**的，2026-10-07 前对 `node_modules` 没有排除，一装依赖就 4 GB heap OOM 崩掉——现已在 `walk()` 内对 `node_modules` / `dist` / `dist-ssr` / `build` 剪枝。**推论：交付前静态审计的扫描范围 = 事实源范围，开发期依赖与构建产物不该进闸门。** **本段读数是判据不是历史**：现行读数一律以 `docs/FACTS.md`（冒烟 / 走查 / 常驻探针三行）与 `.tests/README.md`（跑绿清单）为准，本索引件只是快照 —— 收口时**三处同批改**，只改一处就是账本漂移。
 

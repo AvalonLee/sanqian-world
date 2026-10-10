@@ -10,8 +10,6 @@
   /* ── 事件日志与演出模板（世界词按占位传入）── */
   SQ.lexRegister(null, {
     'event.choice.text': '「{name}」——机缘当前，请择一事而行。',
-    'log.event': '[{tag}] {name}：{result}',
-    'log.event.karma': '[{tag}][{karma}] {name}：{result}',
     'log.event.resolve': '[{tag}][{grade}] {name}：{story}\n择「{branch}」{check}，{result}，{karma}',
     'log.event.checkmark': '（判定{res}）',
     'event.shield.block': '护佑显灵，挡下了「{name}」',

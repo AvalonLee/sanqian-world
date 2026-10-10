@@ -21,7 +21,6 @@
   /* ── 混沌淬炼（融合扩容批 v1.3 §4.4）：自创部混沌签名唯一授予通道 ── */
   K['fuse.reforge.btn'] = '混沌淬炼';
   K['fuse.reforge.cost'] = '悟道石 ×1 + {n} 灵石';
-  K['fuse.reforge.p'] = '淬出签名 {p}%';
   K['fuse.reforge.confirm'] = '混沌淬炼将消耗悟道石 ×1 与 {n} 灵石（随尝试消耗，成否不退），{p}% 概率淬出混沌签名（选池随滋养属性、档位随代数，只升不降；未淬出零损失）。淬炼后冷却 1 日。淬炼？';
   K['fuse.reforge.hit'] = '混沌显化：「{name}」淬出签名「{sig}」';
   K['fuse.reforge.miss'] = '混沌未醒，「{name}」一如往昔（淬材已耗）';
@@ -44,7 +43,6 @@
   K['fuse.ui.name.ph'] = '自定义名 ≤8 字（留空则词库生成）';
   K['fuse.ui.gen'] = '{n} 代';
   K['fuse.ui.cd'] = '融合坛冷却中（{t}）';
-  K['fuse.ui.full'] = '自创并存已满 4 门，须先散功一门';
   K['fuse.ui.customs'] = '自创功法';
   K['fuse.ui.fail.locked'] = '天阶独占不可熔铸';
   K['fuse.ui.fail.lv'] = '双亲须皆满级 Lv9';

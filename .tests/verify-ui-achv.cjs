@@ -78,6 +78,35 @@ function hintTotal() {
   T(codex.grids === 1 && codex.n === 10, 'A2 页顶图鉴九面 + 转世天赋 = 10 卡', 'grid=' + codex.grids + ' n=' + codex.n);
   T(codex.bars === 9, 'A3 九面有进度条（称号面无分母不设条）', 'bars=' + codex.bars);
   T(codex.dots === 10, 'A4 每张图鉴卡带里程碑点', 'dots=' + codex.dots);
+  /* N20 接线批（第十一批）：图鉴卡里程碑两行。正典 = UI 卷 v2.26 §3.7 ——
+   * ① 三档齐时 .cms 改显 codex.ui.ms.all；② 未达档时 .csub 追加 codex.ui.ms.next「下一档 {pct}%」，
+   * pct = [50,80,100] 中第一个未达者；称号面（无分母）与三档齐都不出该行。
+   * 判据全走 DOM 互证（点数 ⟷ 文案 ⟷ 进度条宽），不写死中文、也不写死本档实际态。 */
+  const msRows = await page.evaluate(() => {
+    const allTxt = window.SQ.t('codex.ui.ms.all', null, 'xiuxian');
+    return [...document.querySelectorAll('#tab-achv .facecard')].map((c) => {
+      const cms = c.querySelector('.cms');
+      const dots = c.querySelectorAll('.msdots i.on').length;
+      const bar = c.querySelector('.bar i');
+      const w = bar ? parseFloat(bar.style.width) : -1;
+      const sub = [...c.querySelectorAll('.csub')].map((x) => x.textContent).join(' | ');
+      const m = sub.match(/(\d+)\s*%/);
+      return { name: (c.querySelector('.cn') || {}).textContent || '', dots: dots, w: w,
+        cms: cms ? cms.textContent.trim() : '', next: m ? Number(m[1]) : -1, hasNext: !!m, allTxt: allTxt };
+    });
+  });
+  const withNext = msRows.filter((r) => r.hasNext);
+  T(withNext.length >= 1 && msRows.length === 10,
+    'A4b 里程碑「下一档」行有观测面（非空集，10 卡全在）', 'cards=' + msRows.length + ' 有下一档=' + withNext.length);
+  T(withNext.every((r) => [50, 80, 100].indexOf(r.next) >= 0 && r.next > r.w),
+    'A4c 下一档取值必为阈值表成员且高于当前进度（防把「差值」或当前百分比当成阈值）',
+    withNext.slice(0, 3).map((r) => r.next + '%/bar' + r.w.toFixed(0) + '%').join(' '));
+  T(msRows.every((r) => (r.dots === 3 ? r.cms === r.allTxt : (/[3]\s*$/.test(r.cms) && r.cms.indexOf(r.dots + '/') >= 0))),
+    'A4d 三档齐 ⇒ 显 all 文案；未满 ⇒ 计数文案里的数字与点亮数一致（DOM 互证，防两行不同源）',
+    msRows.map((r) => r.dots + '/' + (r.dots === 3 ? 'ALL' : r.cms.replace(/\s+/g, ''))).slice(0, 4).join(' '));
+  T(withNext.every((r) => r.dots < 3) && msRows.filter((r) => r.dots === 3).every((r) => !r.hasNext),
+    'A4e「下一档」只出现在未达三档的卡上（三档齐不给下一档）', 'dots3=' + msRows.filter((r) => r.dots === 3).length);
+
 
   /* 成就六组 */
   const wide = await page.evaluate(() => {

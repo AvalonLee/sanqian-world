@@ -136,7 +136,7 @@
     /* #15 词表回落：世界词表 → common → key 本身 */
     ok('E5', 't() 三级回落',
       SQ.t('realm.2', null, 'xiuxian') === '金丹' &&
-      SQ.t('ui.claim') === '收功' &&
+      SQ.t('ui.confirm') === '确认' && /* N20 处置批：原用 `ui.claim`「收功」，该键随批删除（钮 v2.2 已移除），换同为 common 卷的 `ui.confirm` 继续测三级回落 */
       SQ.t('no.such.key') === 'no.such.key');
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
@@ -285,7 +285,7 @@
     SQ.LEX.xiuxian['talent.field.qiRate'] = saved29;
     ok(24, 'common 回落与世界覆盖',
       fell29 === '主资源产出' && SQ.t('talent.field.qiRate', null, 'xiuxian') === '修为产出' &&
-      SQ.t('ui.claim', null, 'xiuxian') === '收功');
+      SQ.t('ui.confirm', null, 'xiuxian') === '确认');
 
     /* #30（4.3#25）插值占位替换正确（单占位/多占位/重复占位） */
     var s30a = SQ.t('creation.talent.combo', { p: 2, n: 1 }, 'xiuxian');
@@ -300,7 +300,7 @@
     var sw31 = SQ.t('realm.0', null, '__stub') === 'STAGE0' &&
       SQ.t('resource.primary', null, '__stub') === 'MANA' &&
       SQ.t('realm.0', null, 'xiuxian') === '练气' &&          /* 原世界不受污染 */
-      SQ.t('ui.claim', null, '__stub') === '收功';             /* stub 缺 key 回落 common */
+      SQ.t('ui.confirm', null, '__stub') === '确认';             /* stub 缺 key 回落 common */
     delete SQ.Worlds.__stub;
     delete SQ.LEX.__stub;
     ok(26, '切世界词表整体切换（测试桩）', sw31);
@@ -5893,6 +5893,29 @@
       '表=' + cd288 + 'h/w' + (e288 && e288.weight) + '/fail' + fail288 + ' ‖ 边界 早=' + in288Early + ' 满=' + in288Late +
       ' ‖ 解禁 24h=' + seal24 + '(' + ((unlock288 - now288c) / 3600000).toFixed(1) + 'h) 不缩短=' + noShorten +
       '(' + ((unlock288d - now288d) / 3600000).toFixed(1) + 'h) ‖ 全池非零最小冷却=' + minCd288 + 'h 条数=' + cds288.length);
+    /* #289 N20 孤儿文案处置批（第十一批）：掷名命名公式**单源**。
+     * 正典「掷名可重掷 · 免费无限次」（自立门户卷 §2.2）此前在 UI 没有入口，sectFound 的 nameIdx 形参一直闲置；
+     * 本批补钮时把原先内联在 sectFound 里的 `pre.{i%12+1} + suf.{j%8+1}` 抽成 SQ.Sect.rollIdx / nameOfIdx，
+     * 视图钮与 sectFound 同读这两口 ⇒ 判据要证的是「式子语义不变 + 只剩一份式子」，不是「按钮画出来了」（那属走查面）。
+     * (a) rollIdx 值域 40 掷全落 [0..11]×[0..7]；(b) nameOfIdx([0,0]) 逐字等于表算 pre.1+suf.1；
+     * (c) 下标越界取模回落（12/8 ⇒ 同 [0,0]）；(d) 随机掷点 helper === 表算（两路同式）；
+     * (e) sectFound 函数体内不再出现第二份取模式子（单源的静态证明）。 */
+    var ix289all = []; for (var n289 = 0; n289 < 40; n289++) ix289all.push(SQ.Sect.rollIdx());
+    var a289 = ix289all.every(function (ix) { return Array.isArray(ix) && ix.length === 2 && ix[0] >= 0 && ix[0] < 12 && ix[1] >= 0 && ix[1] < 8; });
+    var nm289 = SQ.Sect.nameOfIdx([0, 0], 'xiuxian');
+    var b289 = !!nm289 && nm289 === SQ.t('sect.name.pre.1', null, 'xiuxian') + SQ.t('sect.name.suf.1', null, 'xiuxian');
+    /* 取模回落的正确期望：整周期 [12,8] 回到 [0,0]，而 [13,9] 只该等于 [1,1]（上一版把两者都写成 === [0,0] 是我把判据写错了，#289 如实红了一次） */
+    var c289 = SQ.Sect.nameOfIdx([12, 8], 'xiuxian') === nm289 && SQ.Sect.nameOfIdx([13, 9], 'xiuxian') === SQ.Sect.nameOfIdx([1, 1], 'xiuxian');
+    var d289 = ix289all.slice(0, 8).every(function (ix) {
+      return SQ.Sect.nameOfIdx(ix, 'xiuxian') === SQ.t('sect.name.pre.' + (ix[0] % 12 + 1), null, 'xiuxian') + SQ.t('sect.name.suf.' + (ix[1] % 8 + 1), null, 'xiuxian');
+    });
+    var src289 = String(SQ.Sect.foundSect);
+    var e289 = src289.indexOf('% 12') < 0 && src289.indexOf("'sect.name.pre.'") < 0 &&
+      src289.indexOf('SQ.Sect.rollIdx') >= 0 && src289.indexOf('SQ.Sect.nameOfIdx') >= 0;
+    ok('289', 'N20 接线批：掷名公式单源——(a) 40 掷值域 12×8；(b) nameOfIdx([0,0]) 逐字 = 表算 pre.1+suf.1；(c) 越界下标取模回落；(d) 8 组随机掷点 helper === 表算；(e) sectFound 体内不再有第二份式子、改调这两口',
+      a289 && b289 && c289 && d289 && e289,
+      '值域=' + a289 + ' 首名=' + nm289 + ' 取模=' + c289 + ' 同式=' + d289 + ' 单源=' + e289);
+
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：
      * 正典说收集类项（法宝/功法满级/称号/里程碑/成就）复用图鉴账本作幂等键、不在 meta.earnedKeys
      * **二次冗余存储**；legacy.js 实况却逐条存着实付额，而实付额含**历史转世通道系数**

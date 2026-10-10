@@ -138,7 +138,6 @@
   K['codex.ui.ms.next'] = '下一档 {pct}%';
   K['codex.ui.ms.all'] = '三面俱全';
   K['codex.ui.silhouette'] = '？？？';
-  K['codex.ui.gold'] = '满级';
   K['codex.ui.achv.done'] = '{n}/60';
   K['codex.ui.achv.reward'] = '遗泽 +{k}';
   /* 成就图鉴批：独立成就页（自轮回页迁出）——未解锁遮为问号，特殊成就提示条件 */
@@ -148,7 +147,6 @@
   K['achv.ui.q'] = '？';
   K['codex.ui.achv.hint'] = '提示：{t}';
   K['codex.ui.titles'] = '称号墙';
-  K['codex.ui.gray'] = '待器灵入世';
   K['codex.ui.face.talentLegacy'] = '转世天赋';
   K['codex.ui.zone.layer'] = '首通 {a}/10 · 域主 {b}/10 · 词缀 {c}/8';
   K['codex.ui.newentry'] = '新条目入世，收集率暂跌属预期';
