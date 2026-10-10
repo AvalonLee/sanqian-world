@@ -447,8 +447,13 @@ const SQ = sandbox.window.SQ;
 })();
 
 /* ── A8 「静默失效」普查：账本分类 ⇔ 调用点、`ws.*` 写点 ⇔ normalize 声明集
- *      （2026-10-10 耦合缺陷收口批立）
- * 立因：同批抓获的两件真缺陷**都是零症状的**——
+ *      （2026-10-10 耦合缺陷收口批立 · 同日**独立复核返修**：复核抓到原判据自身的两处盲区——
+ *        ① 用「整行正则」找 `note(ws,'in','kill',…)`，于是 `note(ws, d>0?'in':'out', d>0?'event':'event_loss',…)`
+ *           这类**三元式调用点整点不入射程**（`assets/systems/events.js` 就有一处，是全仓唯一「方向自翻」的写口）；
+ *        ② 字段写点只认 `ws.x =`，漏 `ws.x +=` / `ws['x'] =` / 视图侧 `nws.x =`，且扫描面只有 `assets/`。
+ *       本关立来防的正是「写了没人接却零症状」，判据自己留同一种盲区不可接受 ⇒ 改为**逐调用点解析实参** +
+ *       写点形态扩面，并加「调用点数 ⇔ 解析数」自证（对不上就红，不许静默少扫）。
+ * 立因（原判据逐字保留）：同批抓获的两件真缺陷**都是零症状的**——
  *   ① `treasures.js` 两处 `note(ws,'out','treasure')` 而 `OUT_CATS` 从未登记该分类，
  *      而 `note()` 的设计就是「非法分类静默拒绝返 0」（防占位空类复活）⇒ 灵石真扣了、总账不记、
  *      **#113 恒等式必漂**，而冒烟全绿（既有断言没走祭炼那条路，直到本批才被发现）；
@@ -457,13 +462,25 @@ const SQ = sandbox.window.SQ;
  *   两件同型：**写了、没有承接方、且没有任何一处会红**。这类只能普查，盯 diff 盯不住。
  * 口径：白名单从 `assets/systems/ledger.js` 源码字面量读（不从沙箱取——装载顺序一变就恒真/恒假，同 A7 理由）；
  *   声明集取 live 世界包 `pack.normalize({})` 的键集（**读档后真实存在的键才是真相**）。
- * 判据（双向对表，任一命中即红）：
- *   ① `SQ.Ledger.note(ws, dir, cat, …)` 调用点的分类 ⊄ 白名单 = 漏登记；
- *      白名单在册却**零调用点** = 占位空类复活（v1.2 曾清掉 sell / refine_loss 两个，本关让它不能再回来）；
- *   ② `ws.<字段> =` 写点 ⊄ 声明集 = 幽灵字段（读档即丢）。
+ * 判据（任一命中即红）：
+ *   ① 每个 `SQ.Ledger.note()` 调用点：方向字面量必 ∈ {in,out}、分类字面量必在**对应**白名单里；
+ *      方向与分类**数量相等时按位置配对**（三元式 `d>0?'in':'out'` ⇔ `d>0?'event':'event_loss'` 同条件同序），
+ *      不等时退化为「分类 ∈ in∪out」的并集判（宁松不错杀，但仍在射程内）；
+ *      反向 = 白名单在册却**零调用点** ⇒ 占位空类复活（v1.2 曾清掉 sell / refine_loss 两个，本关让它不能再回来）；
+ *      自证 = 扫到的 `note(` 出现次数必须与「解析成功且拿到字面量」的次数相等，且**实参非字面量的调用点直接红**
+ *      （分类由变量传入 = 本关无从对表 = 不许算通过）；
+ *   ② `ws.<字段> =` / `ws.<字段> +=` / `ws['<字段>'] =` / `nws.<字段> =` / `nws['<字段>'] =` 写点
+ *      ⊄ 声明集 = 幽灵字段（读档即丢）。扫描面 = `assets/**` + `view` + `module`，
+ *      **不含 `.tests/`**（测试 fixture 造的本就是假字段，扫它只会教人把关卡关掉——如实登记为边界）；
+ *   ③ `ws.bonds[...] =` / `ws.bonds.<k> =` 元素与属性直写只许出现在 `assets/systems/bonds.js`（唯一写口所在地）
+ *      与 `assets/worlds/<id>/index.js`（读档播种与旧哨兵迁移属声明流程）。
+ *      ⚠️ 只认 **带前导点** 的 `.bonds`：`mods.js:148` 有个同名**局部**聚合对象（乘区汇总用的 `bonds`），
+ *      裸 `bonds[pk.channel] += v` 不是好感写口——原判据靠「只匹配 `=` 不匹配 `+=`」侥幸避开，
+ *      补上复合赋值后就会假红，故按「写的是世界态那个 bonds」来定形（复核给的修法）。
  *   反空集护栏：声明集键数必须 > 50，否则本关判红——沙箱没装好时不许静默放行。
- * 已知边界（如实登记，不装作全覆盖）：只扫 `assets/**`；视图里 `nws.bonds[id] = …` 这类**属性写**
- *   本关照不到（它改的是已声明容器的内容，不是顶层键），那部分由冒烟 #287「好感唯一写口」判据覆盖；
+ * 已知边界（如实登记，不装作全覆盖）：② 是「写点 ⊆ 声明集」的**单向**包含（声明了却没人写 = 死登记，
+ *   本关不判——那是 A6 孤儿键那一族的形状）；③ 是白名单式禁写，无「死豁免」反向；
+ *   别名（`var w = ws; w.x = …`）、`Object.assign(ws, …)`、解构赋值仍在射程外；
  *   无 schema 透传面（`owned[].st`）归 A7。 */
 (function () {
   var LED = 'assets/systems/ledger.js';
@@ -481,22 +498,75 @@ const SQ = sandbox.window.SQ;
   }
   var bad = [];
   var used = { in: {}, out: {} };
-  var assetFiles = jsFiles.filter(function (f) { return relOf(f).indexOf('assets/') === 0; });
-  assetFiles.forEach(function (f) {
-    /* 剥注释再扫：本关判的是「代码里真的写了」，注释里的说明性提及不算写点
-     * （首跑就被自己那段「原此处写 ws.factionJoinedAt」的注释绊了一次 ⇒ 假红）。 */
-    var src = stripComments(fs.readFileSync(f, 'utf8'));
-    var re = /SQ\.Ledger\.note\(\s*[^,]+,\s*'(in|out)'\s*,\s*'([a-zA-Z_]+)'/g, m;
-    while ((m = re.exec(src))) {
-      var dir = m[1], cat = m[2];
-      used[dir][cat] = true;
-      if ((dir === 'in' ? INC : OUTC).indexOf(cat) < 0) bad.push(relOf(f) + ' note(' + dir + ', ' + cat + ') 分类未登记');
+  /* 扫描面：assets/** + view + module（.tests 有意排除，见头部边界）*/
+  var seen = {}, scanFiles = [];
+  [].concat(jsFiles, htmlFiles).forEach(function (f) {
+    var r = relOf(f);
+    if (!(r.indexOf('assets/') === 0 || r.indexOf('view/') === 0 || r.indexOf('module/') === 0)) return;
+    if (seen[r]) return; seen[r] = 1; scanFiles.push(f);
+  });
+  function srcOf(f) { return stripComments(fs.readFileSync(f, 'utf8')); }
+  /* 顶层实参切分：从 note( 之后扫到配平的 )，引号内不切、括号深度自管 */
+  function readArgs(s, i) {
+    var out = [], cur = '', depth = 1, q = null;
+    for (; i < s.length; i++) {
+      var ch = s[i];
+      if (q) { cur += ch; if (ch === q && s[i - 1] !== '\\') q = null; continue; }
+      if (ch === '"' || ch === "'" || ch === '`') { q = ch; cur += ch; continue; }
+      if (ch === '(' || ch === '[' || ch === '{') { depth++; cur += ch; continue; }
+      if (ch === ')' || ch === ']' || ch === '}') {
+        depth--;
+        if (depth === 0) { out.push(cur); return out; }
+        cur += ch; continue;
+      }
+      if (ch === ',' && depth === 1) { out.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    return null;                                        /* 配平失败 = 解析不了，调用方据此判红 */
+  }
+  function lits(expr) {
+    var m, re = /'([^'\\]*)'|"([^"\\]*)"/g, a = [];
+    while ((m = re.exec(expr))) a.push(m[1] !== undefined ? m[1] : m[2]);
+    return a;
+  }
+  var noteSeen = 0, notePaired = 0;
+  scanFiles.forEach(function (f) {
+    if (relOf(f) === LED) return;                        /* 白名单定义体自身不是调用点 */
+    var src = srcOf(f), from = 0, idx;
+    while ((idx = src.indexOf('SQ.Ledger.note(', from)) >= 0) {
+      from = idx + 'SQ.Ledger.note('.length; noteSeen++;
+      var args = readArgs(src, from);
+      if (!args || args.length < 3) { bad.push(relOf(f) + ' note() 实参解析失败（配平没走完）⇒ 扫描面残缺'); continue; }
+      var dirs = lits(args[1]), cs = lits(args[2]);
+      if (!dirs.length || !cs.length) {
+        bad.push(relOf(f) + ' note() 的方向或分类不是字符串字面量（' + args[1].trim().slice(0, 40) +
+          ' / ' + args[2].trim().slice(0, 40) + '）⇒ 本关无从对表，不许算通过');
+        continue;
+      }
+      notePaired++;
+      var pairs = [];
+      if (dirs.length === cs.length) { for (var k = 0; k < dirs.length; k++) pairs.push([dirs[k], cs[k]]); }
+      else cs.forEach(function (c) { pairs.push([null, c]); });     /* 退化：并集判 */
+      pairs.forEach(function (p) {
+        var d = p[0], c = p[1];
+        if (d === null) {
+          if (INC.indexOf(c) < 0 && OUTC.indexOf(c) < 0) bad.push(relOf(f) + ' note(?, ' + c + ') 分类未登记');
+          if (INC.indexOf(c) >= 0) used.in[c] = true;
+          if (OUTC.indexOf(c) >= 0) used.out[c] = true;
+          return;
+        }
+        if (d !== 'in' && d !== 'out') { bad.push(relOf(f) + ' note() 方向字面量不是 in/out：' + d); return; }
+        if ((d === 'in' ? INC : OUTC).indexOf(c) < 0) bad.push(relOf(f) + ' note(' + d + ', ' + c + ') 分类未登记');
+        else used[d][c] = true;
+      });
     }
   });
+  if (noteSeen !== notePaired) bad.push('note() 调用点 ' + noteSeen + ' 处、成功对表 ' + notePaired +
+    ' 处 ⇒ 有调用点没进射程，本关读数不作数');
   INC.forEach(function (c) { if (!used.in[c]) bad.push('in 分类 ' + c + ' 零调用点（占位空类复活）'); });
   OUTC.forEach(function (c) { if (!used.out[c]) bad.push('out 分类 ' + c + ' 零调用点（占位空类复活）'); });
-  /* 声明集要真跑 normalize 才拿得到 ⇒ 借沙箱装载器（audit 本体是静态扫描，只装词表与数据表，
-   * SQ.Worlds[id].pack 在其装载剖面里是 null）。装载失败即判红，不静默放行。 */
+  /* ② 声明集：要真跑 normalize 才拿得到 ⇒ 借沙箱装载器（audit 本体是静态扫描，只装词表与数据表，
+   *    SQ.Worlds[id].pack 在其装载剖面里是 null）。装载失败即判红，不静默放行。 */
   var declared = {}; var boot = null;
   try { boot = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; }
   catch (e) { bad.push('沙箱装载失败（声明集取不到 = 本关无从判起）：' + e.message); }
@@ -509,36 +579,64 @@ const SQ = sandbox.window.SQ;
   }
   var dkeys = Object.keys(declared);
   if (dkeys.length <= 50) bad.push('声明集键数仅 ' + dkeys.length + '（反空集护栏：沙箱未装载好时不许静默放行）');
+  var FIELD_RES = [
+    /\bws\.([a-zA-Z_$]\w*)\s*=(?!=)/g,
+    /\bws\.([a-zA-Z_$]\w*)\s*(?:\+|-|\*|\/|%|\|\|)=/g,
+    /\bws\[\s*'([a-zA-Z_$]\w*)'\s*\]\s*=(?!=)/g,
+    /\bnws\.([a-zA-Z_$]\w*)\s*=(?!=)/g,
+    /\bnws\[\s*'?([a-zA-Z_$]\w*)'?\s*\]\s*=(?!=)/g
+  ];
   var wroteFields = {};
-  assetFiles.forEach(function (f) {
-    var src = stripComments(fs.readFileSync(f, 'utf8'));
-    var re = /\bws\.([a-zA-Z_$][\w$]*)\s*=(?!=)/g, m;
-    while ((m = re.exec(src))) {
-      wroteFields[m[1]] = true;
-      if (!declared[m[1]]) bad.push(relOf(f) + ' 写 ws.' + m[1] + ' 未在 initialState/normalize 声明（读档即丢）');
-    }
+  scanFiles.forEach(function (f) {
+    var src = srcOf(f);
+    FIELD_RES.forEach(function (re) {
+      var m; re.lastIndex = 0;
+      while ((m = re.exec(src))) {
+        if (!m[1] || !dkeys.length) continue;
+        wroteFields[m[1]] = true;
+        if (!declared[m[1]]) bad.push(relOf(f) + ' 写 ws.' + m[1] + ' 未在 initialState/normalize 声明（读档即丢）');
+      }
+    });
   });
-  /* ③ 好感元素写点普查（同批第三件：势力入门与创角承继原本绕过 Bonds.gain 直写 bonds[]，
+  /* ③ 好感元素/属性直写普查（同批第三件：势力入门与创角承继原本绕过 Bonds.gain 直写 bonds[]，
    *    绕过就等于绕过绝交锁 / 心结锁 / clamp——两处调用方各自补了一遍前置检查 = 重复实现）。
    *    豁免两处：bonds.js 自身（唯一写口所在地）与 worlds/<id>/index.js 的 normalize（读档播种与
-   *    旧哨兵迁移，是声明流程的一部分）。视图里的 nws.bonds[id] = ... 曾被这两类普查**双双漏掉**
-   *    （A8 的 ② 只看 ws.顶层键、#287 只测行为），所以本项按**属性写形态**扫，含 view/module。 */
+   *    旧哨兵迁移，是声明流程的一部分）。复核返修 = 原正则 `\[[^\]]+\]` 遇嵌套下标（`bonds[a[i].id]`）
+   *    会整条漏掉 ⇒ 改成括号深度扫描，并补 `bonds.<k> =` 属性写形态。 */
   var BOND_OK = ['assets/systems/bonds.js'];
   var bondBad = [];
-  [].concat(jsFiles, htmlFiles).forEach(function (f) {
+  scanFiles.forEach(function (f) {
     var rel = relOf(f);
-    if (rel.indexOf('assets/') !== 0 && rel.indexOf('view/') !== 0 && rel.indexOf('module/') !== 0) return;
     if (BOND_OK.indexOf(rel) >= 0 || /^assets\/worlds\/[^/]+\/index\.js$/.test(rel)) return;
-    var src2 = stripComments(fs.readFileSync(f, 'utf8'));
-    var re = /bonds\s*\[[^\]]+\]\s*=(?!=)/g;
-    while (re.exec(src2)) bondBad.push(rel);
+    var src = srcOf(f);
+    var re = /\.bonds\s*(?:\[|\.)/g, m;
+    while ((m = re.exec(src))) {
+      var i = m.index + m[0].length, after;
+      if (src[m.index + m[0].length - 1] === '.') {        /* 属性写 bonds.foo = …（读不算：`===` 有 (?!=) 挡）*/
+        if (/^\s*[a-zA-Z_$]\w*\s*=(?!=)/.test(src.slice(i, i + 40)) ||
+          /^\s*[a-zA-Z_$]\w*\s*(\+|-|\*|\/|%|\|\|)=/.test(src.slice(i, i + 40))) bondBad.push(rel);
+        continue;
+      }
+      var depth = 1, q = null;
+      for (; i < src.length; i++) {
+        var c = src[i];
+        if (q) { if (c === q && src[i - 1] !== '\\') q = null; continue; }
+        if (c === "'" || c === '"' || c === '`') { q = c; continue; }
+        if (c === '[') depth++;
+        else if (c === ']') { depth--; if (!depth) break; }
+      }
+      after = src.slice(i + 1, i + 10);
+      if (/^\s*=(?!=)/.test(after) || /^\s*(\+|-|\*|\/|%|\|\|)=/.test(after)) bondBad.push(rel);
+    }
   });
-  if (bondBad.length) bad.push('绕过 Bonds.gain/lose/grantHeir 的好感元素直写：' +
+  if (bondBad.length) bad.push('绕过 Bonds.gain/lose/grantHeir 的好感直写：' +
     Array.from(new Set(bondBad)).join(','));
-  ok('A8', '「静默失效」普查（账本分类 ⇔ 调用点 · ws 写点 ⇔ normalize 声明集 · 双向对表 + 反空集护栏）',
+  ok('A8', '「静默失效」普查（账本分类 ⇔ 调用点 · ws/nws 写点 ⇔ normalize 声明集 · bonds 直写白名单；' +
+    '① 逐调用点解析实参 + 调用点数自证，② ③ 见头部已知边界）',
     bad.length === 0,
-    '白名单 in' + INC.length + '/out' + OUTC.length + ' ‖ 声明键 ' + dkeys.length + ' ‖ 扫到写点字段 '
-      + Object.keys(wroteFields).length + ' ‖ ' + (bad.slice(0, 6).join(' | ') || '零命中'));
+    '白名单 in' + INC.length + '/out' + OUTC.length + ' ‖ 声明键 ' + dkeys.length +
+    ' ‖ note 调用点 ' + notePaired + '/' + noteSeen + ' ‖ 扫到写点字段 ' +
+    Object.keys(wroteFields).length + ' ‖ ' + (bad.slice(0, 6).join(' | ') || '零命中'));
 })();
 
 /* ── C 组 · 世界包词族契约（G11 · 换世界即换系统名与菜单描述）

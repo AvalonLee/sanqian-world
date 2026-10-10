@@ -75,7 +75,7 @@
 
 ```bash
 node .tests/run-smoke.cjs          # 引擎断言      → SMOKE_ALL_GREEN 287/287（⚠️ 本行原记 265/265、276/276、277/277、279/279、283/283 均为历批滞后读数，2026-10-08 / 10-09 / 10-10 随批校正）
-node .tests/audit.cjs              # 交付前静态审计 → AUDIT_ALL_GREEN 19/19（A6 为报告级；🆕 B9 = 源侧 ↔ 交付镜像七项逐字节零差异；🆕 A7 = 法宝运行态 st 键集登记对表；🆕 A8 = 「静默失效」普查：账本分类 ⇔ 调用点 · `ws.*` 写点 ⇔ `normalize` 声明集 · 好感元素直写白名单，双向对表 + 反空集护栏）
+node .tests/audit.cjs              # 交付前静态审计 → AUDIT_ALL_GREEN 19/19（A6 为报告级；🆕 B9 = 源侧 ↔ 交付镜像七项逐字节零差异；🆕 A7 = 法宝运行态 st 键集登记对表；🆕 A8 = 「静默失效」普查：账本分类 ⇔ 调用点 · `ws.*` 写点 ⇔ `normalize` 声明集 · `.bonds` 直写白名单；① 逐调用点解析实参 + 调用点数自证 + 反空集护栏，② 是单向包含、③ 是禁写白名单。现值 白名单 in5/out6 ‖ 声明键 91 ‖ note 调用点 34/34 ‖ 写点字段 81）
 bash /e/下载/sanqian-ops/sq-check.sh    # 开场体检（只读）→ ALREADY_IN_SYNC；收口后另跑 sq-snapshot.sh <批次名> → BACKUP_OK
 node .tests/sim-pacing.cjs         # 全程节奏比值带（锚 9.12 天）
 node .tests/sim-event-economy.cjs  # 在线奇遇事件经济（密度 / 主轴）
