@@ -85,12 +85,14 @@ async function buildSave() {
     };
   });
   T(shopWide.hasGrid && shopWide.cols >= 2, 'M1 坊市为卡片网格（宽屏 ≥2 列）', 'cols=' + shopWide.cols);
-  T(shopWide.cards === 10, 'M2 坊市一次刷新 10 件随机物品', 'n=' + shopWide.cards);
+  /* 格数随机批 2026-10-09：一次刷 10~16 件（用户令「不要固定为 10 个」）⇒ 判据从「恰 10」改「区间内」，
+   * 区间硬界由冒烟 #285 逐值钉死（七刻度扫一遍必为 10..16），这里只量真机渲染出的卡数不落界外。 */
+  T(shopWide.cards >= 10 && shopWide.cards <= 16, 'M2 坊市一次刷新 10~16 件随机物品（区间内，不是恒 10）', 'n=' + shopWide.cards);
   T(shopWide.blackBtn, 'M3 黑市入口可见（karma ≤ −200）');
   await page.click('#tab-shop [data-act="shopTab"][data-v="1"]');
   await page.waitForTimeout(300);
   const blackCards = await page.$$eval('#tab-shop .shopcard', (els) => els.length);
-  T(blackCards === 10, 'M4 黑市同样一次 10 件', 'n=' + blackCards);
+  T(blackCards >= 10 && blackCards <= 16, 'M4 黑市同链路同区间（两架各自独立掷）', 'n=' + blackCards);
 
   /* ── ② 势力页：门中供给改卡片 ── */
   await page.click('#m-tabbar button[data-v="faction"]');
@@ -168,7 +170,7 @@ async function buildSave() {
     sup.map((r) => r.text + '[' + r.tier.join('') + '|' + r.cat.join('') + ']').join(' '));
 
   /* ── M15~M22 货架卡片双标签（坊市标签批 2026-10-09 · UI 卷 §3.4「词缀 chip + 分类 chip」通则）──
-   * 主存档的货架是**随机掷**的（M2 正是数它），凑不齐六类货 ⇒ 另开一个 context，
+   * 主存档的货架是**随机掷且格数也随机（10~16）**的（M2 正是数它落界内），凑不齐六类货 ⇒ 另开一个 context，
    * 预置「六类各一 + 特席三件」的确定性货架再量标签。**非空观测先行**（M15 先数出十张卡、
    * 六类齐全），否则后面每条 chip 断言都可能在空集合上假绿（本仓老坑）。
    * 判据取的是 DOM 结构（名称行内的 tierbadge / catbadge 两类节点）而不是整行文本——

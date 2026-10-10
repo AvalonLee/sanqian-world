@@ -696,7 +696,9 @@ async function playerStep(ref, tag, opts) {
     /* 只买「收集向」货格：法宝/功法/丹方图纸材料包（pack 子货）；装备不追（会挤库存且零收集价值）。
      * ⚠️ 每格买完都要重取 ws —— SQ.mutate 走 replaceRef，旧引用的 sold 标记全是过期账。 */
     const shelfBuy = async (black) => {
-      for (let gi = 0; gi < (D.SHOP_SLOTS || 10); gi++) {
+      /* 格数随机（10~16）⇒ 循环上界改读**当轮实际长度**，不再按常量猜 */
+      const shelfLen = (((black ? (ref.worlds[ref.profile.worldId].shop || {}).blackItems : (ref.worlds[ref.profile.worldId].shop || {}).items)) || []).length;
+      for (let gi = 0; gi < shelfLen; gi++) {
         const wX = ref.worlds[ref.profile.worldId];
         const gd = ((black ? (wX.shop || {}).blackItems : (wX.shop || {}).items) || [])[gi];
         if (!gd || gd.sold) continue;

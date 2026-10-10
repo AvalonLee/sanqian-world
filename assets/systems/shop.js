@@ -15,6 +15,15 @@
 
   var pickPairs = SQ.util.pickPairs;   /* C2：统一至 assets/util.js */
 
+  /* 货架格数取数处（坊市格数随机批 2026-10-09 · 数值详设 §5.1）：闭区间 [MIN, MAX] 等概率。
+   * 表缺键时按「MIN=MAX=10」回落 ⇒ 老数据形状下行为与改前逐字相同，不会因缺键炸出 0 格货架。 */
+  function slotCount(D) {
+    var lo = D.SHOP_SLOTS_MIN != null ? D.SHOP_SLOTS_MIN : (D.SHOP_SLOTS != null ? D.SHOP_SLOTS : 10);
+    var hi = D.SHOP_SLOTS_MAX != null ? D.SHOP_SLOTS_MAX : lo;
+    if (hi < lo) hi = lo;
+    return lo + Math.floor(Math.random() * (hi - lo + 1));
+  }
+
   function genShelf(ws, pack, D, mods, black) {
     var items = [];
     var discount = ws.shop.discount || 0;
@@ -36,7 +45,8 @@
         price: priceOf(D.GEAR_TIERS[g.tier].refine * D.SHOP_GEAR_REFINE_MULT, ws, D, mods, discount, blk)
       });
     }
-    for (var i = 0; i < D.SHOP_SLOTS; i++) {
+    var nSlots = slotCount(D);      /* 每架独立掷一次格数（10~16）*/
+    for (var i = 0; i < nSlots; i++) {
       var kind;
       if (black) {
         kind = pickPairs([[50, 'gear'], [35, 'arts'], [15, 'treasure']]); /* 黑市只售魔道装备/功法/法宝 */
@@ -107,6 +117,7 @@
   }
 
   SQ.Shop = {
+    slotCount: slotCount,   /* 格数取数处（判据 #285 与 #206 最坏态模型同读这一处）*/
     /* 黑市可见性（karma ≤ -200；回升消失、已购保留——购买记录即 ws 内既有状态） */
     blackOpen: function (ws, pack, D) {
       if (!pack.worldSystems || !pack.worldSystems.karmaOf) return false;

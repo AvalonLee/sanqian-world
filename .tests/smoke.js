@@ -484,18 +484,21 @@
     w40.shop.nextRestock = now40 - 1;
     SQ.Shop.restockIfDue(w40, pack, D, m40, now40);
     ok(40, '4h 补货时间戳 + 刷新费 20/50/100/200/400/400 + 周期重置',
-      !due1 && due2 && w40.shop.items.length === D.SHOP_SLOTS && fees.join() === '20,50,100,200,400,400' && SQ.Shop.refreshFee(w40, pack, D, m40) === 20,
+      !due1 && due2 && w40.shop.items.length >= D.SHOP_SLOTS_MIN && w40.shop.items.length <= D.SHOP_SLOTS_MAX && fees.join() === '20,50,100,200,400,400' && SQ.Shop.refreshFee(w40, pack, D, m40) === 20,
       fees.join('/'));
 
     /* #41 商品池权重采样 + 功法商品只出未持有 */
     var kindCnt = { gear: 0, pill: 0, arts: 0, pack: 0, treasure: 0 };
+    var tot41b = 0;
     for (var i41 = 0; i41 < 2000; i41++) {
       var w41 = mkWs({ realm: 3 });
       w41.shop.nextRestock = 1;
       SQ.Shop.restockIfDue(w41, pack, D, M(mkProf(), w41), Date.now());
+      tot41b += w41.shop.items.length;
       w41.shop.items.forEach(function (it) { kindCnt[it.kind]++; });
     }
-    var tot41 = 2000 * D.SHOP_SLOTS;
+    /* 格数随机后总样本量不能再按「2000 × 固定格数」算（那是把随机量当常量），改成**逐轮实加** */
+    var tot41 = tot41b;
     var W41 = D.SHOP_POOL_W, wsum41 = W41.gear + W41.pill + W41.arts + W41.pack + (W41.treasure || 0);
     var distOk41 = Math.abs(kindCnt.gear / tot41 - W41.gear / wsum41) < 0.03 &&
       Math.abs(kindCnt.pill / tot41 - W41.pill / wsum41) < 0.03 &&
@@ -4324,16 +4327,19 @@
       /* ws.stash 满档 = D.STASH_CAP 件、全最高品阶 */
       w.stash = [];
       for (var gi = 0; gi < (D.STASH_CAP || 12); gi++) w.stash.push(rollGear206());
-      /* ws.shop 满档 = 坊市货架 items + 黑市 blackItems 各 SHOP_SLOTS 格、全填最肥的 kind:'gear'
+      /* ws.shop 满档 = 坊市货架 items + 黑市 blackItems 各 **SHOP_SLOTS_MAX** 格（格数随机批起按上界建模）、全填最肥的 kind:'gear'
        * （内嵌完整 gear 对象，比 pill/arts/pack 三种条目都肥）+ 商队 merchant.items 同规格 */
       var mkShopGear206 = function () { return { kind: 'gear', gear: rollGear206(), sold: false, price: 99999 }; };
       w.shop = { items: [], blackItems: [], nextRestock: 1700000000000, refreshStep: 9, discount: 0.35,
         merchant: { until: 1800000000000, items: [], scout: 9 } };
-      for (var sh = 0; sh < (D.SHOP_SLOTS || 10); sh++) {
+      /* 格数随机批 2026-10-09：两架按 **MAX = 16** 建模（最坏态取上界，不是均值——红线判据要的是上界）；
+       * 特席真实上限是 3 格（装备 + 功法 + 丹药），原模型按 10 格造 = 白留的余量，本批如实收到 3 格，
+       * 两头都改才叫建模，不是只挑对自己有利的一侧。 */
+      for (var sh = 0; sh < (D.SHOP_SLOTS_MAX || D.SHOP_SLOTS || 10); sh++) {
         w.shop.items.push(mkShopGear206());
         w.shop.blackItems.push(mkShopGear206());
-        w.shop.merchant.items.push(mkShopGear206());
       }
+      for (var shM = 0; shM < 3; shM++) w.shop.merchant.items.push(mkShopGear206());
       D.ALCHEMY.MATS.forEach(function (mm) { w.materials[mm.id] = 999; });
       w.alchemy = { furnace: true, recipes: D.ALCHEMY.RECIPES.map(function (rr) { return rr.id; }), blueprints: D.ALCHEMY.BLUEPRINTS.map(function (bb) { return bb.id; }),
         prof: { dan: 999, qi: 999 }, pills: {}, pillDay: { day: 99, n: 3 }, pillOnce: { pozhang: 9, zhenjie: 9 },
@@ -5620,6 +5626,56 @@
       '表值=' + cd284 + 'ms（= ' + (cd284 / 60000) + ' 现实分钟 = ' + (cd284 / 1000) + ' 游戏日）· 边界=' + r284a2.reason + '/' + r284a2.waitMs +
       ' → 放行@' + (w284a.bondVisitAt === T257 + cd284) + ' · 兜底=' + r284c2.reason + '/' + r284c2.waitMs +
       ' → 放行@' + r284c3.ok + ' · 收益 未识=' + r284d1.gain + ' 同向=' + r284d2.gain + ' 表=' + tbl284);
+
+    /* #285 坊市货架格数随机 10~16（坊市格数随机批 2026-10-09 · 数值详设 §5.1 · 用户令「不要固定为 10 个」）：
+     * **不用真随机做统计判据**（那是本仓立过则的坑：抽数百次比容差 ⇒ 收口偶发红）。做法 = 把 Math.random
+     * 钉成常量再走**生产链路**（restockIfDue → genShelf），于是「掷出的格数」可预期、可逐值对表：
+     * (a) 七个刻度扫一遍 ⇒ 坊市架长必为 10,11,…,16（**七种值全出现** = 非恒等、非只在边界跳舞）；
+     * (b) 黑市同链路同表（karma ≤ −200 开局）⇒ 同一刻度下黑市架长与坊市一致；
+     * (c) 上界不外溢、下界不塌陷：v=0 必 10、v→1 必 16（越界即公式错）；
+     * (d) **旧数据形状回落**：只给 `SHOP_SLOTS: 10` 的表 ⇒ 恒 10（改前行为逐字相同，缺新键不炸）；
+     * (e) 退化表：MIN=MAX ⇒ 恒等该值；MAX<MIN ⇒ 取 MIN 而不返回更小/0（防「缺键把货架掷空」）。 */
+    var c285 = SQ.Shop.slotCount(D);
+    var lo285 = D.SHOP_SLOTS_MIN, hi285 = D.SHOP_SLOTS_MAX;
+    var sweep285 = [], bad285 = [];
+    for (var k285 = 0; k285 < 7; k285++) {
+      var v285 = (k285 + 0.5) / 7;      /* 取每档中点：避开 k/7×7 = 0.9999999 这类浮点边界（那是测试自己的坑，不是被测公式的） */
+      var restore285 = stubRandom(function () { return v285; });   /* stubRandom 收**函数**才生效：收数字会走 vals.length=undefined 分支恒返回 0.5 */
+      var want285 = lo285 + k285;
+      var w285 = mkWs({ realm: 3 });
+      w285.karma = -300; w285.karmaEventScore = -300;      /* 开黑市：两架同表 */
+      w285.shop.nextRestock = 1;
+      SQ.Shop.restockIfDue(w285, pack, D, M(mkProf(), w285), Date.now());
+      var nF = (w285.shop.items || []).length, nB = (w285.shop.blackItems || []).length;
+      sweep285.push(nF);
+      if (nF !== want285 || nB !== want285) bad285.push('v=' + v285.toFixed(4) + ' 坊=' + nF + ' 黑=' + nB + ' 应=' + want285);
+      restore285();
+    }
+    var r285a = lo285 === 10 && hi285 === 16 && bad285.length === 0 &&
+      sweep285.join(',') === '10,11,12,13,14,15,16';
+    var rr285c = stubRandom(function () { return 0.999999; });
+    var w285c = mkWs({ realm: 3 }); w285c.shop.nextRestock = 1;
+    SQ.Shop.restockIfDue(w285c, pack, D, M(mkProf(), w285c), Date.now());
+    var n285c = w285c.shop.items.length;
+    rr285c();
+    var rr285c0 = stubRandom(function () { return 0; });
+    var w285c0 = mkWs({ realm: 3 }); w285c0.shop.nextRestock = 1;
+    SQ.Shop.restockIfDue(w285c0, pack, D, M(mkProf(), w285c0), Date.now());
+    var n285c0 = w285c0.shop.items.length;
+    rr285c0();
+    var D285old = Object.assign({}, D);
+    delete D285old.SHOP_SLOTS_MIN; delete D285old.SHOP_SLOTS_MAX; D285old.SHOP_SLOTS = 10;
+    var D285same = Object.assign({}, D); D285same.SHOP_SLOTS_MIN = 12; D285same.SHOP_SLOTS_MAX = 12;
+    var D285inv = Object.assign({}, D); D285inv.SHOP_SLOTS_MIN = 14; D285inv.SHOP_SLOTS_MAX = 8;
+    var r285rest = n285c === 16 && n285c0 === 10 &&
+      SQ.Shop.slotCount(D285old) === 10 && SQ.Shop.slotCount(D285same) === 12 &&
+      SQ.Shop.slotCount(D285inv) === 14;
+    ok('285', '坊市货架格数随机 10~16（数值详设 §5.1 · 常量钉随机走生产链路，不做统计容差判据）：(a) 七刻度扫一遍 ⇒ 架长必为 10..16 且七种值全出现；(b) 黑市同链路同表；(c) v=0 必 10 / v→1 必 16（边界不外溢）；(d) 旧表形状（只有 SHOP_SLOTS=10）恒回落 10 = 改前行为逐字相同；(e) MIN=MAX 恒等、MAX<MIN 取 MIN（缺键不许把货架掷空）',
+      r285a && r285rest && typeof c285 === 'number' && c285 >= lo285 && c285 <= hi285,
+      '扫表=' + sweep285.join(',') + ' 越界=' + (bad285.length ? bad285.join(' ') : '无') +
+      ' ‖ 边界 0→' + n285c0 + ' / .999→' + n285c +
+      ' ‖ 旧表=' + SQ.Shop.slotCount(D285old) + ' 退化=' + SQ.Shop.slotCount(D285same) +
+      ' 反向=' + SQ.Shop.slotCount(D285inv) + ' ‖ 表=' + lo285 + '~' + hi285);
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：
      * 正典说收集类项（法宝/功法满级/称号/里程碑/成就）复用图鉴账本作幂等键、不在 meta.earnedKeys
      * **二次冗余存储**；legacy.js 实况却逐条存着实付额，而实付额含**历史转世通道系数**
