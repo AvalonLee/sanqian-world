@@ -1685,9 +1685,9 @@
           });
         }
         if (lg.bond && s.meta.unlocks.bond) {
-          /* 好感播种走引擎唯一写口（视图不再直写 bonds[]；耦合缺陷收口批 2026-10-10 · 引擎卷 §3.2） */
+          /* 好感播种与 heirBond 判定源都由引擎唯一写口 grantHeir 落在成功分支里
+             （耦合缺陷收口批 2026-10-10 引擎卷 §3.2 收 bonds 直写 + N23① 收口批收 heirBond 无条件赋值） */
           SQ.Bonds.grantHeir(nws, SQ.Worlds[w].pack, SQ.XDATA, lg.bond, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
-          nws.heirBond = lg.bond;
         }
       }
       /* 同代天骄创角生成（天骄卷 §二：默认 2 / 解锁 4 + 跨世宿敌带记忆转世） */
