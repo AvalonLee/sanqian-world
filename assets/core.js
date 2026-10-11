@@ -146,6 +146,11 @@
    * 记一条 {op:'read'|'write', msg}，由视图层取词表出人话提示（ui.error.storage / ui.error.save），
    * 成功后清空。读档失败仍回落新档（#4 语义），写档失败不抛（游戏可继续，只是提示未落盘）。 */
   var ioError = null;
+  /* 审计 #1（第十四批）：一次写失败后，盘上就是旧态；claim/mutate 起手若无条件 `await load()`，
+   * 玩家那笔操作会在 1 秒后的 tick 被旧值打回（= 进度静默回滚）。pendingSave 记住没落盘的那一态，
+   * 任一写成功即清空。审计 #3：侧档读不动时跳写要能被 save 观察到（见 sideWriteSkipped）。 */
+  var pendingSave = null;
+  var sideWriteSkipped = false;
 
   async function load() {
     try {
@@ -856,12 +861,15 @@
     try {
       /* 主档剥离日志后再压缩（阶梯不裁日志，日志自带预算） */
       var c = await savePayload(s);
+      /* 写序 = 先侧档、后主档（审计 #2）：主档一落盘就**不再含 log/feed**，若此刻崩在两次写之间，
+       * 侧档还没写过（旧档首次迁移时尤其如此）⇒ 整世日志永久丢。反序的最坏结果只是主档仍带着旧日志
+       * 的多写一份冗余，零损失。 */
+      var side = await writeLogsIfChanged(s);                /* 日志独立落盘（内容未变则跳过）；返回侧档字节 */
       if (hasBridge()) {
         await window.xhub.storage.set(KEY, c.bridgeValue);
       } else {
         localStorage.setItem(KEY, c.str);
       }
-      var side = await writeLogsIfChanged(s);                /* 日志独立落盘（内容未变则跳过）；返回侧档字节 */
       /* 水位读数：落盘成功后一并记（失败走 catch ⇒ 不污染上一次读数，视图据此知道「最近一次成功写」是哪回） */
       saveStats.mainBytes = c.stored;
       saveStats.sideBytes = side || 0;
@@ -871,8 +879,16 @@
       saveStats.readMainBytes = c.stored;                    /* 刚写完 = 盘上当前体量，读档口径与落盘口径对齐 */
       saveStats.readSideBytes = saveStats.sideBytes;
       ioError = null;
+      pendingSave = null;                                    /* 主档 + 侧档都落定 ⇒ 内存与盘对齐 */
+      /* 审计 #3：跳写要在 ioError 复位**之后**落，否则这一行等于没写；文案口径沿用 'codec-unavailable'
+       * 那种英文内部码（读档侧 :189 同形），由视图 ui.error.save 包住，不新增裸英文出口。 */
+      if (sideWriteSkipped) {
+        ioError = { op: 'write', msg: 'side-unreadable' };
+        sideWriteSkipped = false;
+      }
     } catch (e) {
       ioError = { op: 'write', msg: (e && e.message) || String(e) };
+      pendingSave = s;                                       /* 审计 #1：这一态没落到盘上，下一次写通道从它续起 */
     }
   }
 
@@ -901,9 +917,13 @@
     Object.assign(stateRef, s);
   }
 
+  /* 写通道起手取态（审计 #1）：有未落盘的态就续它，否则按老路从盘上读。
+   * 只在这一处判（两处写通道共用一个取数口），免得「续 pending」这条规则被抄成两份。 */
+  async function loadForWrite() { return pendingSave || await load(); }
+
   /* 时间差结算：读档 → 当前世界 claim（含 G2~G8 编排）→ 落盘 → 回填引用 */
   async function claimInner(stateRef) {
-    var s = await load();
+    var s = await loadForWrite();
     var id = s.profile.worldId;
     var ws = s.worlds[id];
     if (ws) {
@@ -934,7 +954,7 @@
   /* 玩家操作通道：fn 抛异常 → 不落盘（验收 4.1 #6 事务性）；
    * 落盘前统一重算派生值（karma/attrs 缓存纪律，工程规范 §3.6） */
   async function mutateInner(stateRef, fn) {
-    var s = await load();
+    var s = await loadForWrite();
     fn(s);
     /* meta 层同步先行（图鉴成就/里程碑即时入账 + 镜像回写），随后派生值重算吃到最新 qiRate 来源 */
     if (SQ.Legacy && SQ.Legacy.sync) SQ.Legacy.sync(s, Date.now());
@@ -1138,7 +1158,12 @@
     var sig = logSig(payload.logs) + '#' + feedSig(payload.feed);
     /* 返回值 = 侧档当前落盘字节（水位读数用）：跳写时沿用上一次的值，绝不返回 0 冒充「侧档空了」 */
     if (sig === lastLogSig) return lastSideBytes;
-    if (sideUnreadable) return lastSideBytes;      /* 读不动就不覆盖：宁可留着旧侧档，也不拿空内容去顶掉它 */
+    if (sideUnreadable) {
+      /* 审计 #3：读不动就不覆盖侧档（这判断本身对），但此刻主档已经剥掉了 log/feed ⇒ 这一批展示流
+       * 每次落盘都被剥掉又永不写侧档，重载全丢且原本零症状。跳过 = 有损失，必须留痕给 save 落成提示。 */
+      sideWriteSkipped = true;
+      return lastSideBytes;
+    }
     var val = hasBridge() ? await encodeForBridge(payload) : JSON.stringify(payload);
     lastSideBytes = storedBytes(val);
     if (hasBridge()) await window.xhub.storage.set(LOG_KEY, val);

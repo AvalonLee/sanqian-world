@@ -6047,6 +6047,55 @@
 ' ‖ (e) edgeOf=' + e293a.up + '/' + e293a.down + ' 改表中线后 down=' + e293b.down + ' 复原=' + SQ.XKarma.edgeOf(D).down +
 ' ‖ (f) 合成表注入=' + f293);
 
+    /* #294 写通道三处失守收口（第十四批审计 #1 / #2 / #3，全部真跑不改数值口径）：
+     * (a) **写失败的那一态不许被下一次 tick 回滚**：mutate 期间 `setItem` 抛错 ⇒ 内存已是新值而盘上仍是旧值；
+     *     修前 claim 起手 `await load()` 从盘重读 ⇒ 玩家那笔操作凭空消失（实测会掉回 12345 一档）；
+     *     修后 claim 以 pendingSave 续起 ⇒ 内存守恒、且这一次成功写把盘上补平（盘 === 内存）。
+     * (b) **写序 = 先侧档后主档**：主档一落盘就不再含 log/feed，两次写之间崩溃 ⇒ 整世日志永久丢（旧档首次迁移尤甚）。
+     * (c) **侧档读不动而跳写要留痕**：坏侧档 ⇒ sideUnreadable ⇒ 该写时跳过（不覆盖那份读不动的档，这条本就对），
+     *     但主档已剥掉展示流 ⇒ 这批流每次落盘都被剥掉又永不写侧档、原本零症状；现必须走 ioError 出口。 */
+    var ref294 = SQ.defaultState();
+    await SQ.mutate(ref294, function (s) {
+      s.profile = mkProf(); s.worlds.xiuxian = pack.initialState(); s.worlds.xiuxian.stones = 12345;
+    });
+    var SK294 = 'sanqian-logs-v1';
+    var origSet294 = localStorage.setItem;
+    var order294 = [];
+    localStorage.setItem = function (k, v) { order294.push(k); return origSet294.call(localStorage, k, v); };
+    SQ.Log.push(ref294.worlds.xiuxian, 'sys', '写序取证', 1700000094000);
+    await SQ.save(ref294);
+    localStorage.setItem = origSet294;
+    var iSide294 = order294.indexOf(SK294), iMain294 = order294.indexOf(SQ.KEY);
+    var b294 = iSide294 >= 0 && iMain294 >= 0 && iSide294 < iMain294;
+
+    localStorage.setItem = function () { throw new Error('QUOTA_294'); };
+    await SQ.mutate(ref294, function (s) { s.worlds.xiuxian.stones = 911111; });
+    var memFail294 = ref294.worlds.xiuxian.stones;
+    var errFail294 = SQ.storageError();
+    localStorage.setItem = origSet294;
+    await SQ.claim(ref294);
+    var memClaim294 = ref294.worlds.xiuxian.stones;
+    var diskClaim294 = JSON.parse(localStorage.getItem(SQ.KEY)).worlds.xiuxian.stones;
+    var a294 = errFail294 && errFail294.op === 'write' && memFail294 === 911111 &&
+      memClaim294 >= 911111 && diskClaim294 === memClaim294;
+
+    origSet294.call(localStorage, SK294, '坏档！');
+    await SQ.claim(ref294);                                   /* 读侧档失败 ⇒ sideUnreadable 置真 */
+    SQ.Log.push(ref294.worlds.xiuxian, 'sys', '跳写取证', 1700000094001);
+    await SQ.mutate(ref294, function (s) { s.worlds.xiuxian.stones = 911111; });
+    var errSide294 = SQ.storageError();
+    var sideBytes294 = localStorage.getItem(SK294);
+    localStorage.removeItem(SK294);
+    await SQ.claim(ref294);                                   /* 侧档不存在 ⇒ 标志归假，不给后面的断言留污染 */
+    var c294 = !!errSide294 && errSide294.op === 'write' && errSide294.msg === 'side-unreadable' &&
+      sideBytes294 === '坏档！' && SQ.storageError() === null;
+    ok('294', '写通道收口（审计 #1/#2/#3）：(a) 写失败后 claim **不回滚**（内存 ' + 911111 + ' 守住、盘上补平 === 内存；修前此处会读回 12345 一档）；(b) 一次带新日志的落盘里**侧档先于主档**写（顺序反了就是「主档已剥日志、侧档尚未写」的丢档窗口）；(c) 侧档坏而跳写 ⇒ `ioError = write/side-unreadable` 有痕、且**没有**拿新内容去覆盖那份读不动的档（`坏档！` 原样在盘上），跳写标记用完即清',
+      a294 && b294 && c294,
+      '(a) 失败后内存=' + memFail294 + ' claim 后=' + memClaim294 + ' 盘上=' + diskClaim294 +
+      ' ‖ (b) 侧档第 ' + iSide294 + ' 次写 / 主档第 ' + iMain294 + ' 次（共 ' + order294.length + ' 写）' +
+      ' ‖ (c) err=' + JSON.stringify(errSide294) + ' 侧档原样=' + (sideBytes294 === '坏档！') +
+      ' 复位后=' + JSON.stringify(SQ.storageError()));
+
 
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：
      * 正典说收集类项（法宝/功法满级/称号/里程碑/成就）复用图鉴账本作幂等键、不在 meta.earnedKeys
