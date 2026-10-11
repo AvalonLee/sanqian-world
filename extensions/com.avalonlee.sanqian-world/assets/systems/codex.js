@@ -150,7 +150,8 @@
         return false;
       }
       case 'achv_xinjie': return Object.keys(ws.scars || {}).length > 0;
-      /* 跨世之缘：ws.heirBond 由 Bonds.redeem 唯一写入（缘尽收敛批前**全代码零写入** = 死成就）*/
+      /* 跨世之缘：ws.heirBond 有值——生产写口两条 = `Bonds.grantHeir`（承继播种，成功分支）与 `Bonds.redeem`
+       * （缘尽赎回）。旧注「由 redeem 唯一写入」自 v1.13 起不实，N24 批随件勘正 */
       case 'achv_kuashi': return !!ws.heirBond;
       case 'achv_shuangxiu':
         return !!(ws.spouse && (ws.bonds || {})[ws.spouse.npcId] >= (D.BOND_MAX || 100) &&

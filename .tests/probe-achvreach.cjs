@@ -9,7 +9,7 @@
  *   · 本探针证的是 **判据可满足 + 入账链通**，**不证**「玩家正常游玩必然走到」——
  *     后者归 `sim-playthrough` 的 `ACHV_COVERAGE` / `ACHV_UNREACHED` 两行——那两处入账数是**路线剧本覆盖面**的读数、随路线集与种子浮动，故不在本文件里钉死数字。
  *   · 护法 / 福地两条走 `Bonds.guardianOf` / `Cave.current` 真口，构造不出来即如实 FAIL 并打印缺什么。
- * 用法：node .tests/probe-achvreach.cjs     末行 ACHVREACH_ALL_GREEN n/60 或 ACHVREACH_FAILED k
+ * 用法：node .tests/probe-achvreach.cjs     末行 ACHVREACH_ALL_GREEN n/61（60 条成就可达 + 1 条 fixture 桩形对表） 或 ACHVREACH_FAILED k
  */
 'use strict';
 const { load } = require('./sandbox.cjs');
@@ -19,6 +19,8 @@ const D = SQ.XDATA, pack = SQ.Worlds.xiuxian.pack;
 const ids = D.CODEX.ACHV.map((a) => a.id);
 const MAXLV = D.ARTS_MAX_LV || 9;
 const compIds = (D.COMPANIONS || []).map((c) => c.id);
+/* 道侣候选（category==='spouse'）——index.js:393 的 normalize 只收这类，桩形必须照它给 */
+const SPOUSE0 = ((D.COMPANIONS || []).filter((c) => c.category === 'spouse')[0] || {}).id;
 /* 法宝正典在 `pack.treasures.LIST`（D 里没有 TREASURES 键，别猜）；功法满级面走 artsLevels ≥ ARTS_MAX_LV */
 const treIds = (pack.treasures.LIST || []).map((t) => (t && t.id) || t).filter(Boolean);
 const artIds = Object.keys(pack.artsMap ? pack.artsMap() : {});
@@ -47,10 +49,12 @@ const BUILD = {
   achv_chuyuan: (c) => { c.w.bonds[compIds[0]] = 1; },
   achv_guangjie: (c) => { compIds.slice(0, 20).forEach((id) => { c.w.bonds[id] = 5; }); },
   achv_renhou: (c) => { compIds.slice(0, 40).forEach((id) => { c.w.bonds[id] = 5; }); },
-  achv_daolv: (c) => { c.w.spouseLog = [{ npcId: compIds[0] }]; },
+  achv_daolv: (c) => { c.w.spouse = { npcId: SPOUSE0, form: 'yinyang', since: Date.now() }; },
   achv_shuangxiu: (c) => {
-    c.w.bonds[compIds[0]] = D.BOND_MAX || 100;
-    c.w.spouse = { npcId: compIds[0], since: 1 };
+    /* 道侣位只收 category==='spouse' 的道友（index.js:393 的 normalize 门），且需满好感 + 30 日；
+       since 给 1 而不是 Date.now()：本探针的 Codex.scan 用的是固定 now = 1.7e12，给当前时刻会落在未来 */
+    c.w.bonds[SPOUSE0] = D.BOND_MAX || 100;
+    c.w.spouse = { npcId: SPOUSE0, form: 'yinyang', since: 1 };
   },
   achv_xinjie: (c) => { c.w.scars = { [compIds[1]]: 1 }; },
   achv_juefeng: (c) => { c.w.juefengIds = [compIds[2]]; c.w.bonds[compIds[2]] = 10; },
@@ -64,8 +68,19 @@ const BUILD = {
   achv_zhishi: (c) => { c.w.factionId = D.FACTIONS_FIXED[0].id; c.w.factionRep[D.FACTIONS_FIXED[0].id] = TH[3] + 10; },
   achv_zhangjiao: (c) => { c.w.factionId = D.FACTIONS_FIXED[0].id; c.w.factionRep[D.FACTIONS_FIXED[0].id] = TH[4] + 10; },
   achv_panzong: (c) => { c.w.everDefected = true; },
-  achv_zhangong: (c) => { c.w.factionId = D.FACTIONS_FIXED[0].id; c.w.factionWar = { joined: 'in', merit: 5 }; },
-  achv_xuanzhan: (c) => { c.w.factionId = D.FACTIONS_FIXED[0].id; c.w.factionWar = { aId: D.FACTIONS_FIXED[0].id, bId: D.FACTIONS_FIXED[1].id }; },
+  achv_zhangong: (c) => {
+    const f = c.w.factions;
+    c.w.factionId = f[0].id;
+    /* normalize 只收 aId/bId 在册且不相等、until 未过期的战事（index.js:359）⇒ 桩必须给全 */
+    c.w.factionWar = { aId: f[0].id, bId: f[1].id, bornAt: Date.now(), until: Date.now() + 86400000,
+      joined: 'in', joinedFid: f[0].id, merit: 5, result: null };
+  },
+  achv_xuanzhan: (c) => {
+    const f = c.w.factions;
+    c.w.factionId = f[0].id;
+    c.w.factionWar = { aId: f[0].id, bId: f[1].id, bornAt: Date.now(), until: Date.now() + 86400000,
+      joined: null, joinedFid: null, merit: 0, result: null };
+  },
   achv_kaizong: (c) => { c.w.sect = { name: '测试宗', disciples: [], fac: {}, succession: null }; },
   achv_danfang: (c) => { SQ.Alchemy.ensure(c.w, D); c.w.alchemy.fires = 1; },
   achv_jiuzhuan: (c) => { SQ.Alchemy.ensure(c.w, D); c.w.alchemy.jiuzhuan = 1; },
@@ -75,9 +90,9 @@ const BUILD = {
   achv_quantong: (c) => { c.w.cleared = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; },
   achv_yuzhu: (c) => { c.w.bossKills = [0]; },
   achv_shizhu: (c) => { c.w.bossKills = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; },
-  achv_chubao: (c) => { c.w.treasures.owned = [{ id: treIds[0], lv: 1, st: {} }]; },
-  achv_cangbao: (c) => { c.w.treasures.owned = treIds.slice(0, 20).map((id) => ({ id: id, lv: 1, st: {} })); },
-  achv_baoquan: (c) => { c.w.treasures.owned = treIds.slice(0, 46).map((id) => ({ id: id, lv: 1, st: {} })); },
+  achv_chubao: (c) => { c.w.treasures.owned = [{ id: treIds[0], st: {} }]; },   /* 桩形照 SQ.Treasures.normalize 的产物（它把 lv 折进 stage），别造生产不认的字段 */
+  achv_cangbao: (c) => { c.w.treasures.owned = treIds.slice(0, 20).map((id) => ({ id: id, st: {} })); },
+  achv_baoquan: (c) => { c.w.treasures.owned = treIds.slice(0, 46).map((id) => ({ id: id, st: {} })); },
   achv_yifa: (c) => { c.w.artsKnown = [artIds[0]]; c.w.artsLevels = { [artIds[0]]: MAXLV }; },
   achv_wanfa: (c) => {
     c.w.artsKnown = artIds.slice(0, 10);
@@ -102,12 +117,38 @@ const REALM_IDS = ['achv_jichu', 'achv_jindan', 'achv_yuanying', 'achv_huashen',
 REALM_IDS.forEach((id, i) => { if (!BUILD[id]) BUILD[id] = (c) => { c.w.realm = i + 1; }; });
 
 const R = [];
+const shapeBad = [];   /* N26④：fixture 造的字段必须能过 pack.normalize（造的形状 = 读档后仍在的形状）*/
 ids.forEach((id) => {
   const c = mk();
   const b = BUILD[id];
   let note = '';
   if (!b) { R.push({ id, ok: false, note: '本探针无构造器（= 待补，不等于不可达）' }); return; }
+  const baseW = JSON.parse(JSON.stringify(c.w));
   try { b(c); } catch (e) { R.push({ id, ok: false, note: '构造抛错 ' + e.message }); return; }
+  /* 本构造器动了哪些顶层字段 ⇒ 要求「造进去的每一个路径」在 normalize 之后仍逐字同值（允许 normalize
+   * 补默认键，不允许它把桩值改掉或剪掉）。立因：复核抓到旧版给 `heirBond` 塞对象，而 normalize 只认
+   * 字符串 ⇒ 读档即成 null，探针却在「对象态」上判成就可达 = 桩形与生产形状不符（假绿）。 */
+  function shapeMiss(a, b, p) {
+    if (a === null || typeof a !== 'object') return JSON.stringify(a) === JSON.stringify(b) ? [] : [p];
+    if (b === null || typeof b !== 'object') return [p];
+    if (Array.isArray(a) !== Array.isArray(b)) return [p];
+    const out = [];
+    if (Array.isArray(a)) {
+      if (a.length !== b.length) out.push(p + '.length(' + a.length + '→' + b.length + ')');
+      a.forEach((v, i) => { out.push.apply(out, shapeMiss(v, b[i], p + '[' + i + ']')); });
+      return out;
+    }
+    Object.keys(a).forEach((k) => { out.push.apply(out, shapeMiss(a[k], b[k], p + '.' + k)); });
+    return out;
+  }
+  try {
+    const norm = pack.normalize(JSON.parse(JSON.stringify(c.w)));
+    Object.keys(c.w).forEach((k) => {
+      if (JSON.stringify(baseW[k]) === JSON.stringify(c.w[k])) return;
+      const miss = shapeMiss(c.w[k], norm[k], k);
+      if (miss.length) shapeBad.push(id + '.' + miss.slice(0, 2).join(','));
+    });
+  } catch (e) { shapeBad.push(id + ' normalize 抛错 ' + e.message); }
   try { SQ.Codex.scan(c.ref(), 1700000000000); } catch (e) { R.push({ id, ok: false, note: 'scan 抛错 ' + e.message }); return; }
   const got = (c.meta.achv || []).indexOf(id) >= 0;
   if (id === 'achv_hufa' || id === 'achv_fudi') {
@@ -121,7 +162,10 @@ ids.forEach((id) => {
   R.push({ id, ok: got, note: got ? '' : ('未入账 ' + note) });
 });
 
+R.push({ id: 'fixture_shape', ok: shapeBad.length === 0,
+  note: shapeBad.length ? ('桩形与生产读档形状不符：' + shapeBad.slice(0, 10).join(' | ')) : '' });
+
 const bad = R.filter((x) => !x.ok);
 R.forEach((x) => console.log((x.ok ? 'PASS ' : 'FAIL ') + x.id + (x.note ? ' (' + x.note + ')' : '')));
-console.log(bad.length === 0 ? 'ACHVREACH_ALL_GREEN ' + R.length + '/' + ids.length : 'ACHVREACH_FAILED ' + bad.length + '/' + ids.length);
+console.log(bad.length === 0 ? 'ACHVREACH_ALL_GREEN ' + R.length + '/' + (ids.length + 1) : 'ACHVREACH_FAILED ' + bad.length + '/' + (ids.length + 1));
 process.exit(bad.length === 0 ? 0 : 1);

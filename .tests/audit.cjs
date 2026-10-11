@@ -677,11 +677,25 @@ const SQ = sandbox.window.SQ;
  * 反空集护栏：顶层常量数 > 100 且扫描文件数 > 40，否则判红——沙箱或扫描面没装好时不许静默放行。
  * 已知边界（如实登记，不装作全覆盖）：① 只覆盖世界数据表**顶层**，嵌套 config（`D.LEGACY.*` /
  *   `D.RUMORS.TTL`）与数组型表体（`D.REALMS` 的行内字段）不在射程；② 不判"两侧都有消费者的同值对"——
- *   №61 的 375000 与 `REALMS[元婴].power` 正是这种（后者是正典溯源，不是死桩），那属数值一致性判据；
- *   ③ 键名恰好只出现在字符串里的话会算"有消费者"（假阴方向 = 放过死桩，与 A6 同族，逐条处置仍靠人）。 */
+ *   №61 的 375000 与 `REALMS[9] 真仙.power` 正是这种（后者是正典溯源，不是死桩；复核勘正旧注误标
+ *   「渡劫期 / 元婴表」，实测 `[3] 元婴 = 540`、`[8] 渡劫 = 125000`、`[9] 真仙 = 375000），那属数值一致性判据；
+ *   ③ **消费判据 = 剥注释后、声明文件（`assets/worlds/<id>/data.js`）之外，键名作为独立词元
+ *      （`\bK\b`）出现过一次**。一支覆盖 `.K` 属性 / `['K']` 方括号 / `{K} = D` 解构 / `'K'` 字符串拼键
+ *      全部写法。**声明文件必须排除**，否则每个键都在自己那行 `KEY:` 里出现 = 自证消费、本关恒绿
+ *      （A6 曾把词表分卷当代码扫，犯过同一形状的错）。
+ *      代价全在假阴方向，如实登记：与键名同名的裸局部变量、键名只出现在字符串里、表驱动映射写成
+ *      `K: v` 的真取用，都算「有消费者」。为什么不拆多支：上一批把消费面拆成四支正则，其中解构那一支
+ *      **在关卡里实测不生效**（隔离样本命中、拼好的 src 不命中），于是把真消费误报成死桩 = 假阳，
+ *      而假阳比假阴危险——它教人把关卡关掉（2026-10-11 N26① 复核抓到，改成本判据）。
+ *   ④ 仍不判的形（真盲区，别当成覆盖了）= `Object.keys(D)` 全表遍历、把整张 `D` 传给别名后动态取键
+ *      ——那些形下所有键都「没人读」也「人人都在读」，本关只认键名。
+ *   ⚠️ 判据句只承诺上面这些，不写「凡被消费 ⇒ 必不红」的无条件句（第十批「tag 永远等于 HEAD」
+ *      那种被下一次合法改动弄假的复发形状）。 */
 (function () {
-  /* 在册死桩 = 本批取证时"零消费者"的实测集合（N22 ⑤ 四条 + KARMA_TIERS 一条 − 本批已删的 MERCHANT_POWER_ABS）*/
-  var DEAD_LISTED = ['EVENT_KARMA_BAND', 'FACTION_DESC_POOL', 'KARMA_TIERS', 'SHARD_REWARDS'];
+  /* 在册死桩 = 本批取证时"零消费者"的实测集合。2026-10-11 第十三批：`KARMA_TIERS` 已接线
+   * （`karma.js tierOf` 改读表 ⇒ 它不再是死桩，按本关的"在册清单也要对表"规则从册上摘除）；
+   * `MERCHANT_POWER_ABS` 于上一批删除。剩 3 条属 N22 ⑤ 登记的预留量，处置需产品点头，故只登记不消费。*/
+  var DEAD_LISTED = ['EVENT_KARMA_BAND', 'FACTION_DESC_POOL', 'SHARD_REWARDS'];
   var boot9 = null;
   try { boot9 = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; }
   catch (e) { ok('A9', '世界表顶层常量 ⇔ 消费面对表（死桩双向在册）', false, '沙箱装载失败：' + e.message); return; }
@@ -691,7 +705,11 @@ const SQ = sandbox.window.SQ;
     if (!(r.indexOf('assets/') === 0 || r.indexOf('view/') === 0 || r.indexOf('module/') === 0)) return;
     if (seen9[r]) return; seen9[r] = 1; files9.push(f);
   });
-  var src9 = files9.map(function (f) { return stripComments(fs.readFileSync(f, 'utf8')); }).join('\n');
+  /* 消费面 = 扫描面里除**声明文件本身**以外的全部源码（剥注释）。声明文件（`assets/worlds/<id>/data.js`）
+   * 必须排除，否则每个键都在自己那行 `KEY:` 的声明里出现 = 自证消费、本关恒绿（A6 栽过的同类坑）。 */
+  var DEF_RE = /^assets\/worlds\/[^/]+\/data\.js$/;
+  var use9 = files9.filter(function (f) { return !DEF_RE.test(relOf(f)); })
+    .map(function (f) { return stripComments(fs.readFileSync(f, 'utf8')); }).join('\n');
   var bad9 = [], dead9 = [], total9 = 0;
   Object.keys(boot9.Worlds).filter(function (id) { return boot9.Worlds[id].status === 'live'; })
     .forEach(function (id) {
@@ -699,8 +717,13 @@ const SQ = sandbox.window.SQ;
       if (!d) { bad9.push('世界包 ' + id + ' 取不到 pack.data（常量集为空 ⇒ 本关无从判起）'); return; }
       Object.keys(d).forEach(function (k) {
         total9++;
-        var re9 = new RegExp('\\.' + k + '\\b|\\[[\'"]' + k + '[\'"]\\]');
-        if (!re9.test(src9)) dead9.push(k);
+        /* 消费判据 = **键名作为独立词元在声明文件之外出现过一次**即算有人读。
+         * 一支覆盖全部写法：`.K` 属性 ‖ `['K']`/`["K"]` 方括号 ‖ `{K} = D` 解构 ‖ `'K'` 字符串拼键 ‖ 裸同名变量。
+         * 为什么不拆多支（N26① 的教训）：上一批拆了四支，其中「解构」那一支**在关卡里实测不生效**
+         *   （隔离样本命中、拼好的 src 不命中），于是把真消费误报成死桩 = 假阳；
+         *   假阳比假阴危险，因为它教人把关卡关掉。判据分支越多越容易漏一支，能一支判完就别拆。
+         * 代价（假阴方向，如实登记）：与键名同名的裸局部变量、以及键名只出现在字符串里的，都算消费。 */
+        if (!new RegExp('\\b' + k + '\\b').test(use9)) dead9.push(k);
       });
     });
   dead9.sort();

@@ -52,8 +52,13 @@
     },
 
     tierOf: function (karma) {
-      if (karma >= 200) return 'right';
-      if (karma <= -200) return 'evil';
+      /* 边界取自 `D.KARMA_TIERS`（[下界, id] 降序首个命中，`-Infinity` 行 = 兜底档）——旧版这里硬编码 ±200，
+       * 与表值是同值双源（改表不带动本函数）。引擎侧 karma 全程取整（recompute 里 Math.round），
+       * 表里 -199.999 与 -200 之间那 0.001 的缝落不进整数 ⇒ 整数域行为与改前逐字相同（判据 #293）。 */
+      var rows = (SQ.XDATA || {}).KARMA_TIERS || [];
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i][0] == null || karma >= rows[i][0]) return rows[i][1];
+      }
       return 'neutral';
     },
 

@@ -6002,6 +6002,39 @@
       ' −5=' + l292d.after + ' ‖ (d) 顶格=' + g292e.before + '→' + g292e.after + ' blocked=' + g292e.blocked +
       ' 键数=' + Object.keys(w292.bonds).length);
 
+    /* #293 karma 档位边界取自表（N26④ 附带接线 · 第十三批）：`tierOf` 原硬编码 ±200，而
+     * `D.KARMA_TIERS`（[[200,'right'],[-199.999,'neutral'],[-Infinity,'evil']]）全库零消费 = 同值双源，
+     * 改表不带动判定。本批把 tierOf 改读表 ⇒ 死桩转正、抄本消失。
+     * (a) 整数域行为与改前逐字相同（200 → right / 0 → neutral / −200 → evil）；
+     * (b) **表就是事实源**（差分法）：把首档下界临时改 300 ⇒ karma 250 由 right 变 neutral，改回即复原；
+     * (c) 与 `rankOf` 同边界（九段里 ±200 仍落正道/魔道首段）；
+     * (d) 下游乘区不因本次改口而变（`alignMultOf` 在三档上各测一次，钉住实际生效的数值）。 */
+    var KT293 = D.KARMA_TIERS, KT293old = KT293.map(function (r) { return r.slice(); });
+    var a293 = SQ.XKarma.tierOf(200) === 'right' && SQ.XKarma.tierOf(0) === 'neutral' &&
+      SQ.XKarma.tierOf(-200) === 'evil';
+    KT293[0][0] = 300;
+    var flip293 = SQ.XKarma.tierOf(250);
+    KT293[0][0] = KT293old[0][0];
+    var b293 = flip293 === 'neutral' && SQ.XKarma.tierOf(250) === 'right';
+    var KR293 = D.KARMA_RANKS;
+    var c293 = SQ.XKarma.rankOf(200, D) === KR293[3][1] &&          /* 200 落「正道首段」那一条 */
+      SQ.XKarma.rankOf(199, D) === KR293[4][1] &&                    /* 199 落「左道」那一条 ⇒ 与 tierOf 同边界 */
+      SQ.XKarma.tierOf(199) === 'neutral' && SQ.XKarma.rankOf(-200, D) !== KR293[4][1];
+    var w293 = pack.normalize(mkWs({ realm: 4 }));
+    var mult293 = {};
+    [220, 0, -220].forEach(function (kv) {
+      w293.karma = kv; w293.alignDrift = 0;
+      mult293[SQ.XKarma.tierOf(kv)] = SQ.XKarma.alignMultOf(w293, D);
+    });
+    var d293 = Object.keys(mult293).length === 3 &&
+      ['right', 'neutral', 'evil'].every(function (t) { return typeof mult293[t] === 'number' && mult293[t] > 0; });
+    ok('293', 'karma 档位边界取自 `D.KARMA_TIERS`（N26④ 附带接线）：(a) 整数域与改前逐字相同（200 right / 0 neutral / −200 evil）；(b) 差分法证表是事实源——首档下界临时改 300 ⇒ karma 250 由 right 变 neutral，改回即复原（**旧版硬编码 ±200 时这一发改不动行为**）；(c) 与 `rankOf` 同边界（200 落九段里 `KARMA_RANKS[3]` 那条、199 落 `[4]` 那条，期望值取自表本身而非硬编 id）；(d) 下游 `alignMultOf` 三档各有正乘区（改口不改动结算）',
+      a293 && b293 && c293 && d293,
+      '(a) ' + a293 + ' ‖ (b) 改表后 250=' + flip293 + ' 复原后 250=' + SQ.XKarma.tierOf(250) +
+      ' ‖ (c) 九段同边界=' + c293 + '（200→' + SQ.XKarma.rankOf(200, D) + ' / 199→' + SQ.XKarma.rankOf(199, D) + '）' +
+      ' ‖ (d) 乘区=' +
+      Object.keys(mult293).map(function (t) { return t + ':' + mult293[t]; }).join(' '));
+
 
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：
      * 正典说收集类项（法宝/功法满级/称号/里程碑/成就）复用图鉴账本作幂等键、不在 meta.earnedKeys
