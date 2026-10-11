@@ -214,7 +214,11 @@
     qiScaleOf: qiScaleOf,
 
     /* ── 效果结算核心（事件分支 / 丹药 / failE 共用）；ctx = {log, now, silent, raw, source, eventId, profile}
-     * ctx.raw=true 时 stones/qi 绝对值不再缩放（调用方已预缩放，feed/结果页显示 == 实扣）。── */
+     * ctx.raw=true 时 stones/qi 绝对值不再缩放（调用方已预缩放，feed/结果页显示 == 实扣）。
+     * ⚠️ 纪律（2026-10-11 审计处置批复核立）：本函数会**写传入的 `e`**（未发生的收益撤标签：`e.attrBonus = null`
+     *   等，`applied.fail` 那条通道要靠它闭嘴）⇒ **世界表对象不得直接传入**。丹药三处（`shop.js` 买药 /
+     *   `factions.js` 门中供给 / `combat.js` 秘境赠药）一律 `Object.assign({}, pill.effect)` 传当次副本，
+     *   否则一颗丹被吃出「无槽可进」就把表里那条效果改没了 = 本会话内该丹永久静默无效。── */
     applyEffects: function (ws, pack, D, mods, e, ctx) {
       if (!e) return;
       var now = (ctx && ctx.now) || Date.now();
@@ -351,7 +355,9 @@
           ws.artsLevels[main] = Math.min(D.ARTS_MAX_LV, (ws.artsLevels[main] || 0) + e.artsProgress);
         } else {
           /* 一丁点没进（无槽可进）⇒ 撤销标签与 applied（审计 #6）：原样留着就是「功法精进 N 级」的假账。
-           * 同文件 bondLock 降级那一段早已是「delete 掉未发生的收益」这一口径。 */
+           * 同文件 bondLock 降级那一段早已是「delete 掉未发生的收益」这一口径。
+           * ⚠️ 写 `e` 本身是**必要的**（`applied.fail` 那条通道读的就是这只对象，见 :956 传 fEff），
+           *   所以传进来的必须是**当次调用的效果对象**，不许是表对象——见函数头那条纪律。 */
           e.artsProgress = null;
           if (ctx.applied) delete ctx.applied.artsProgress;
         }
@@ -383,6 +389,7 @@
         } else {
           /* 四槽皆空 = 没有一件法器可受损 ⇒ 撤销「一件法器受损」这条标签（审计 #6） */
           e.gearScoreDown = null;
+          if (ctx.applied) delete ctx.applied.gearScoreDown;
         }
       }
       if (e.attrBonus) {
@@ -391,7 +398,10 @@
         /* 红尘炼心录：attrEventBonus 获取 +10%/级（amp 只放大正增益） */
         var amp = e.attrBonus.n > 0 ? 1 + (mods.sum.attrBonusAmp || 0) : 1;
         var bn = Math.round(e.attrBonus.n * amp);
-        if (bn > 0 && total + bn <= D.ATTR_EVENT_BONUS_CAP) {
+        /* ⚠️ 复核返修：原判据写成 `bn > 0`，把**负值**（减属性，本函数与 `attrBonusAmp` 一直都支持负数、
+         * `effText` 也带符号印）一并撤销了 ⇒ 「折寿/削悟性」类事件会静默不生效而文案照旧。撤销条件只该看
+         * 「有没有真的落账」= `bn !== 0` 且未越上限。 */
+        if (bn !== 0 && total + bn <= D.ATTR_EVENT_BONUS_CAP) {
           ws.attrEventBonus[e.attrBonus.attr] = (ws.attrEventBonus[e.attrBonus.attr] || 0) + bn;
         } else {
           /* 满上限被整笔丢弃（既有设计，改不改属产品裁定 ⇒ 转 N27/N28 登记）或取整后为 0 ⇒
@@ -443,7 +453,7 @@
         if (ctx.applied) { delete ctx.applied.bondLock; ctx.applied.bondDrain = drNpc; }
       }
       if (e.chance && Math.random() < e.chance.p) {
-        SQ.Events.applyEffects(ws, pack, D, mods, e.chance.e, ctx);
+        SQ.Events.applyEffects(ws, pack, D, mods, Object.assign({}, e.chance.e), ctx);   /* 副本 = 同一纪律：`chance.e` 是表里的嵌套对象 */
         if (ctx && ctx.log && !ctx.silent) ctx.log('event', SQ.t('log.eff.chance', null, wid));
       }
       /* 器灵判词 · 大额拾取触发（融合器灵卷 §7.3）：事件钩子产物，纯文本零机制效果 */

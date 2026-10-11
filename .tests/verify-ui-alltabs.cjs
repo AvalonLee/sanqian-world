@@ -31,9 +31,6 @@ const KEY = 'sanqian-state-v1';
   fx.worlds.xiuxian.mode = 'seclude';
   fx.worlds.xiuxian.everDefected = true;
   fx.worlds.xiuxian.factionId = 'huangfeng';
-  /* AT-T 前提：天怒档（defy 70 < nijie 100 且 armed.nu）⇒ 渡劫明细里那一行会渲染，
-   * 屏上数字必须等于 `D.TIANDAO.DEFY_TRIB_MODS[1]`（旧视图硬编码 -0.03，比表里多罚 0.01）。 */
-  fx.worlds.xiuxian.tiandao = Object.assign({}, fx.worlds.xiuxian.tiandao, { defy: 70, armed: { lai: false, nu: true } });
   /* AT-D 的非空前提：给一枚带 qiRate 的天赋（effects 是**按字段名的对象**，不是数组）+ 一对能触发羁绊的
    * 真天赋 id（`TALENT_SYNERGIES` 的 gifted+diligent ⇒ 来源 'synergy'，qiRate +0.04）。
    * 为什么必须凑出 'synergy'：旧视图硬列的 10 个源里**没有它** ⇒ 只有本档真有 synergy 值，
@@ -162,28 +159,6 @@ const KEY = 'sanqian-state-v1';
       'AT-D 明细按 mods 真实来源逐行渲染（漏源与裸英文键名都算失败）',
       '源数=' + dRow.n + ' 漏=' + (dRow.missing || '无') + ' 缺标签=' + (dRow.bare || '无'));
 
-    /* AT-T 渡劫明细的「天怒」行（同页 `data-act="detailTrib"` 展开）：屏上数字必须 === 表值。
-     * 旧视图在这里硬编码 -0.03 / -0.01，而 `D.TIANDAO.DEFY_TRIB_MODS = [-0.01, -0.02]` ⇒ 天怒那行
-     * 比引擎多罚 0.01，且与同面板上方 `ti.parts.tiandao`（引擎实算）两个数打架（审计 #5）。 */
-    const tRow = await page.evaluate(() => {
-      const btn = document.querySelector('#tab-idle [data-act="detailTrib"]');
-      if (btn) btn.click();
-      return new Promise((res) => setTimeout(() => {
-        const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
-        const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
-        const want = D.TIANDAO.DEFY_TRIB_MODS[1].toFixed(2);
-        const stageNu = SQ.t('tiandao.stage.nu', null, 'xiuxian');
-        const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-idle .detailbox .kv'));
-        const hit = rows.map((r) => (r.innerText || '')).filter((x) => x.indexOf(stageNu) >= 0)
-          .map((x) => ((x.match(/-?\d\.\d+/) || [''])[0]));
-        const txt = (document.getElementById('tab-idle') || {}).innerText || '';
-        res({ want: want, shown: hit.join('|'), n: hit.length, stage: SQ.Tiandao.stageOf(w, D),
-          lie: txt.indexOf('-0.03') >= 0 });
-      }, 320));
-    });
-    T(tRow.stage === 'nu' && tRow.n === 1 && tRow.shown === tRow.want && !tRow.lie,
-      'AT-T 渡劫明细「天怒」行的数字 === 表值（旧视图硬编码 -0.03 = 比 DEFY_TRIB_MODS[1] 多罚 0.01）',
-      '档=' + tRow.stage + ' 屏=' + (tRow.shown || '(无该行)') + ' 表=' + tRow.want + ' 残留旧抄本=' + tRow.lie);
   } else {
     T(false, 'AT-R 修行页导航可定位', '找不到「修行」页签');
   }

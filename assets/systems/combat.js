@@ -313,7 +313,7 @@
         (D.PILLS || []).forEach(function (p) { if (p.id === pid) pill = p; });
         if (!pill) return { ok: false, reason: 'pool' };
         if (SQ.Events && SQ.Events.applyEffects) {
-          SQ.Events.applyEffects(ws, pack, D, mods, pill.effect, { log: log, now: now, eventId: null });
+          SQ.Events.applyEffects(ws, pack, D, mods, Object.assign({}, pill.effect), { log: log, now: now, eventId: null });   /* 传副本 = 纪律，见 events.js applyEffects 头注 */
         }
         reward = { type: 'pill', id: pid };
         if (log) log('combat', SQ.t('zone.shard.pill', { name: SQ.t('pill.' + pid + '.name', null, wid) }, wid));

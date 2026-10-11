@@ -1458,7 +1458,9 @@
     var sig = e.op + ':' + e.msg;
     if (ui.ioErrSeen === sig) return;
     ui.ioErrSeen = sig;
-    toast(t(e.op === 'write' ? 'ui.error.save' : 'ui.error.storage', { msg: e.msg }));
+    /* 侧档跳写 = 「展示流没存上、主档已存」那一族，套 ui.error.save 会同时说错两件事（裸英文 + 谎称进度没记下） */
+    toast(t(e.msg === 'sideflow' ? 'ui.error.sideflow'
+      : (e.op === 'write' ? 'ui.error.save' : 'ui.error.storage'), { msg: e.msg }));
   }
 
   /* ── 创角三屏（与 P2 相同逻辑） ── */
@@ -2339,8 +2341,13 @@
                * 取不到表就不印这一行——宁缺一行，不编一个数。 */
               var dmR = d.TIANDAO && d.TIANDAO.DEFY_TRIB_MODS;
               if ((stR === 'lai' || stR === 'nu') && dmR && dmR.length >= 2) {
+                /* 引擎 `tribModOf` 是**两档相加**（armed.lai 与 armed.nu 可以同时亮：实测逆天 25 + 37 = 62 ⇒ 双旗），
+                 * 而 `stageOf` 只回一个档名 ⇒ 按档名取一支会少算另一支，屏上 −0.02 与同面板上方引擎实算 −0.03
+                 * 打架 = 本行立时要消灭的那一类。现按引擎同一式取「已亮档之和」。 */
+                var arR = (w.tiandao && w.tiandao.armed) || {};
+                var penR = (arR.lai ? dmR[0] : 0) + (arR.nu ? dmR[1] : 0);
                 rows += '<div class="kv"><span>' + esc(t('tiandao.tribrow')) + ' · ' + esc(t('tiandao.stage.' + stR)) +
-                  '</span><span class="bad">' + (stR === 'nu' ? dmR[1] : dmR[0]).toFixed(2) + '</span></div>';
+                  '</span><span class="bad">' + penR.toFixed(2) + '</span></div>';
               }
               if (tdR.defy >= (d.TIANDAO.DEFY_STAGES || [30, 60, 100])[2]) {
                 var ni = SQ.Tiandao.nijieInfo(w, p, d, m);

@@ -50,7 +50,7 @@ function fatState(SQ) {
   const w = pack.initialState();
   s.worlds.xiuxian = w;
   w.realm = 9; w.zone = 8; w.qi = 1e9; w.stones = 1e6;
-  /* 奇遇叙事流满档（级⑩ 的裁切对象）*/
+  /* 奇遇叙事流满档（**原**级⑩ 的裁切对象；该级已于第十四批 2026-10-11 整族删除，这里只作满载态构造器）*/
   const feed = [];
   for (let i = 0; i < (D.EVENT_FEED_CAP || 50); i++) {
     feed.push({ id: 'ev_probe_' + i, ts: 1700000000000 + i * 1000, text: '奇遇叙事第 ' + i + ' 条：山风穿林，剑鸣不已，偶得一残卷，字句俱在。',

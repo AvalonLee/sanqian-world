@@ -1642,7 +1642,7 @@
       treasure: 1 };   /* 先天法宝联动授予（二批 A5 · 数值详设 §10.7；恢复批 A3b 引擎 case 已重加） */
     var CHECK_TYPES = { attr: 1, karma: 1, align: 1, stones: 1, qi: 1, art: 1, gear: 1, power: 1, companion: 1,
       prodigySpar: 1 };   /* 天骄对局判定（天骄卷 §5.2/§7.3 同构 · 六向批 A4 新增第十类 DSL） */
-    var BAND118 = D.EVENT_KARMA_BAND;   /* 取表而不是手抄（第十四批审计 #18：手抄正是 A9 把这条列成死桩的原因：手抄 ⇒ 改表不红。 */
+    var BAND118 = D.EVENT_KARMA_BAND;   /* 取表而不是手抄（第十四批审计 #18）。⚠️ 归因纠正（当晚复核）：A9 把这条记成零消费者死桩的理由是**生产侧无人读**（A9 的消费面刻意不含 `.tests/`），不是「因为手抄」⇒ 本改只让测试随表动，摘除在册登记要等生产侧真出现读者。 */
     all118.forEach(function (ev) {
       tiers118[ev.tier] = (tiers118[ev.tier] || 0) + 1;
       if (ev.special) special118++;
@@ -4457,7 +4457,7 @@
     var lvl9_206 = !Array.isArray(pm206disk.rankRows);                       /* 级⑨ rankRows 裁除 */
     var eh206disk = ((re206.worlds || {}).xiuxian || {}).eventHistory || {};
     var feed206disk = Array.isArray(eh206disk.feed) ? eh206disk.feed.length : -1;
-    var lvl10_206 = feed206disk === 0;   /* 级⑩ 已随第十四批整族删除：feed 恒不落主档 ⇒ 判「一条都没有」；旧写法 (0<=5) 恒真 = 没判（审计 #13） */
+    var lvl10_206 = feed206disk < 0;   /* 级⑩ 已随第十四批整族删除 ⇒ `stripSideFlows` 是 `delete ehc.feed`，键**根本不在档上**（= −1）；复核返修：原判 `=== 0` 把「空数组」当正证而键缺失时恒假 = 明细行永远打印「异常」，旧写法 (0<=5) 恒真 = 没判（审计 #13） */
     var lvl8_206 = ((re206.meta || {}).codices || {}).title == null;         /* 级⑧ codices.title 折叠 */
     var logStoreN206 = 0;
     try { logStoreN206 = (JSON.parse(logRaw206).logs.xiuxian || []).length; } catch (e) {}
@@ -4653,11 +4653,13 @@
      * 原口径 = 阶梯级⑩ 在触发线之上把主档 `eventHistory.feed` 裁至最近 5 条（代价 = 重载后玩家奇遇
      *   历史只剩尾巴，且要等主档超 56KB 才动）。
      * 新口径 = feed **恒常不进主档**、整体落侧档 `sanqian-logs-v1` 的 `feed` 段（与日志同键同预算范式），
-     *   级⑩ 降级为「侧档写失败时的保险」，判据 (d) 证明它仍是活的。
+     *   级⑩ 降级为「侧档写失败时的保险」，判据 (d) 证明它仍是活的。〔🔧 **第十四批作废**：级⑩ 整族删除 ⇒ 侧档写失败/读不动时**没有主档侧兜底**，只剩 `ioError` 那条留痕〕
      * 判据：(a) 主档无 feed、`lastId`/`seen` 照旧在主档（去重与 once 幂等非展示流）；
      *       (b) 侧档 feed 满档 50 条**逐条与源全等**且新在前（不是随机取样、不是截断）；
      *       (c) 真机 `SQ.load` 回填后 feed === 落盘前 ⇒ **原级⑩的玩家可见代价被取消**；
      *       (d) 级⑩ 保险仍活：直调 `SQ.compressForSave(带 feed 的态, now, 极小触发线)` → 落盘 feed ≤5；
+     *           〔🔧 **第十四批（2026-10-11）该判据作废并改向**：级⑩ 整族删除 ⇒ (d) 现判「feed 全留 + stage 11 不再出现」，
+     *           见下方 #251 的 (d) 块；恒真的 `0<=5` 同时从 #206 明细里摘掉。〕
      *       (e) 侧档字节预算：超 `FEED_BYTE_BUDGET` 的流 → 保最新、挤最旧（条数 >5，非固定 5）；
      *       (f) 内存态零污染（save 前后活档全等）。 */
     var feed251src = (ref206.worlds.xiuxian.eventHistory || {}).feed || [];
@@ -5061,17 +5063,18 @@
     var skipKeeps283 = st283c.sideBytes === st283b.sideBytes && st283c.sideBytes > 0;
     var nowFixed283 = Date.now();
     var forced283 = await SQ.compressForSave(s283, nowFixed283, 1);
-    /* 审计 #20 尾项把 `stages` 的口径改成「只记真降了字节的级」⇒ 旧写法 `stages.length > 0 && stages[0] === 0`
-     * 恰好在**什么都没可裁**的态上也会报「0 级触发」（= 被治的那个夸大，现在它诚实地是 []）。
-     * 判据因此拆两半：(a) 这份档无可裁 ⇒ stages 必须为空；(b) 另造一份**必然可裁**的态（normalize({}) 生成
-     * 的势力 rels 是双向全存 ⇒ 级⑦三角折叠必降字节）⇒ stages 非空且含 7。两半合起来才叫「那一行会亮」。 */
-    var nothing2Trim283 = forced283.stages.length === 0;
-    var s283t = SQ.defaultState(); s283t.worlds.xiuxian = pack.normalize({});
-    var forced283b = await SQ.compressForSave(s283t, nowFixed283, 1);
-    var ladderVisible283 = nothing2Trim283 && forced283b.stages.length > 0 && forced283b.stages.indexOf(7) >= 0;
-    ok('283', '存档水位读数与盘上同源且不进存档：主档 ' + st283a.mainBytes + 'B === 落盘值字节数（度量线同 §3.5 编码后口径）· 日志 3000 条入侧档后主档仅动 ' + (st283b.mainBytes - st283a.mainBytes) + 'B 且有损级 ' + st283b.stageCount + ' 级 · 侧档 ' + sideBefore283 + '→' + st283b.sideBytes + 'B 亦与盘上相等 · 跳写沿用读数不归零 · 强制跑满时级序只记真降字节的级（无可裁态 = 空、有可裁态含级 7 ⇒ 既会亮也不夸大）' + forced283b.stages.join('/') + '（审计 #20 尾项改了这里的口径）',
+    /* ⚠️ 本批一度把 `stages` 改成「只记真降字节的级」，随即**回退**：`stages` 的现行语义 = 「阶梯执行到哪
+     * 一级」，常驻探针 savecodec(B3) 与 savegrowth(§5a) 正是拿它当「阶梯跑满了没有」的证据，改语义会
+     * 把两处证据打成假红（实测 B3 只剩 [0,1,4,6,7,9,10]、§5a 两侧同时变 `[]`）。审计 #10 那一点夸大留给
+     * 「另加一个真降量字段」去解，不改既有读数的含义（登记 = 任务清单 N28 补记）。
+     * 🔧 复核返修（同日当晚）：原判「级 0 在场 + 级号 ⊆ 0..10 + 不含 11」与「另跑一份 normalize({}) 看级 7
+     *   在列」在 trigger=1 下**两条都恒真**（每一级都无条件 push ⇒ 零鉴别力，还白花一次全阶梯）。改成
+     *   **钉死全序**：加一级、删一级、改级号都会红；这条同时是「级⑩ 已整族删除」的直证（删除前全序 = 0..11）。 */
+    var LADDER283 = '0,1,2,3,4,5,6,7,8,9,10';
+    var ladderVisible283 = forced283.stages.join(',') === LADDER283;
+    ok('283', '存档水位读数与盘上同源且不进存档：主档 ' + st283a.mainBytes + 'B === 落盘值字节数（度量线同 §3.5 编码后口径）· 日志 3000 条入侧档后主档仅动 ' + (st283b.mainBytes - st283a.mainBytes) + 'B 且有损级 ' + st283b.stageCount + ' 级 · 侧档 ' + sideBefore283 + '→' + st283b.sideBytes + 'B 亦与盘上相等 · 跳写沿用读数不归零 · 极小触发线跑满时级序**钉死** ' + LADDER283.split(',').join('→') + '（口径 = 阶梯执行到哪一级；级⑩ 已删 ⇒ 全序止于 10，加/删一级或改级号都红）',
       honest283 && notInSave283 && decoupled283 && sideTruth283 && skipKeeps283 && ladderVisible283,
-      '顶层键=' + topKeys283 + ' 主档真值=' + truthMain283 + 'B 报=' + st283a.mainBytes + 'B · 涨日志后主档=' + st283b.mainBytes + 'B 侧档=' + st283b.sideBytes + 'B（真值=' + SQ.storedBytes(localStorage.getItem(SQ.Log.KEY)) + 'B）· 跳写后=' + st283c.sideBytes + 'B · codec=' + st283b.codec + ' · 无可裁态级=' + (forced283.stages.join('/') || '(空，改口径后不再虚报 0 级)') + ' 有可裁态级=' + forced283b.stages.join('/'));
+      '顶层键=' + topKeys283 + ' 主档真值=' + truthMain283 + 'B 报=' + st283a.mainBytes + 'B · 涨日志后主档=' + st283b.mainBytes + 'B 侧档=' + st283b.sideBytes + 'B（真值=' + SQ.storedBytes(localStorage.getItem(SQ.Log.KEY)) + 'B）· 跳写后=' + st283c.sideBytes + 'B · codec=' + st283b.codec + ' · 跑满级=' + forced283.stages.join('/'));
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY); SQ.Side.resetSig();
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
 
@@ -6071,40 +6074,65 @@
     var SK294 = 'sanqian-logs-v1';
     var origSet294 = localStorage.setItem;
     var order294 = [];
-    localStorage.setItem = function (k, v) { order294.push(k); return origSet294.call(localStorage, k, v); };
-    SQ.Log.push(ref294.worlds.xiuxian, 'sys', '写序取证', 1700000094000);
-    await SQ.save(ref294);
-    localStorage.setItem = origSet294;
-    var iSide294 = order294.indexOf(SK294), iMain294 = order294.indexOf(SQ.KEY);
-    var b294 = iSide294 >= 0 && iMain294 >= 0 && iSide294 < iMain294;
+    /* 🔧 复核返修：本条要换掉 `setItem`（记录器 / 必抛器 / 直写坏档），原先靠「每个 await 后面手接一句还原」，
+     * 中间任何一次抛出都把必抛器留在盘面上 ⇒ 其后 295 条断言每一次写都抛 = 一条测试炸全身。整段收进 try/finally。 */
+    try {
+      localStorage.setItem = function (k, v) { order294.push(k); return origSet294.call(localStorage, k, v); };
+      SQ.Log.push(ref294.worlds.xiuxian, 'sys', '写序取证', 1700000094000);
+      await SQ.save(ref294);
+      localStorage.setItem = origSet294;
+      var iSide294 = order294.indexOf(SK294), iMain294 = order294.indexOf(SQ.KEY);
+      var b294 = iSide294 >= 0 && iMain294 >= 0 && iSide294 < iMain294;
 
-    localStorage.setItem = function () { throw new Error('QUOTA_294'); };
-    await SQ.mutate(ref294, function (s) { s.worlds.xiuxian.stones = 911111; });
-    var memFail294 = ref294.worlds.xiuxian.stones;
-    var errFail294 = SQ.storageError();
-    localStorage.setItem = origSet294;
-    await SQ.claim(ref294);
-    var memClaim294 = ref294.worlds.xiuxian.stones;
-    var diskClaim294 = JSON.parse(localStorage.getItem(SQ.KEY)).worlds.xiuxian.stones;
-    var a294 = errFail294 && errFail294.op === 'write' && memFail294 === 911111 &&
-      memClaim294 >= 911111 && diskClaim294 === memClaim294;
+      localStorage.setItem = function () { throw new Error('QUOTA_294'); };
+      await SQ.mutate(ref294, function (s) { s.worlds.xiuxian.stones = 911111; });
+      var memFail294 = ref294.worlds.xiuxian.stones;
+      var errFail294 = SQ.storageError();
+      localStorage.setItem = origSet294;
+      await SQ.claim(ref294);
+      var memClaim294 = ref294.worlds.xiuxian.stones;
+      var diskClaim294 = JSON.parse(localStorage.getItem(SQ.KEY)).worlds.xiuxian.stones;
+      var a294 = errFail294 && errFail294.op === 'write' && memFail294 === 911111 &&
+        memClaim294 >= 911111 && diskClaim294 === memClaim294;
 
-    origSet294.call(localStorage, SK294, '坏档！');
-    await SQ.claim(ref294);                                   /* 读侧档失败 ⇒ sideUnreadable 置真 */
-    SQ.Log.push(ref294.worlds.xiuxian, 'sys', '跳写取证', 1700000094001);
-    await SQ.mutate(ref294, function (s) { s.worlds.xiuxian.stones = 911111; });
-    var errSide294 = SQ.storageError();
-    var sideBytes294 = localStorage.getItem(SK294);
-    localStorage.removeItem(SK294);
-    await SQ.claim(ref294);                                   /* 侧档不存在 ⇒ 标志归假，不给后面的断言留污染 */
-    var c294 = !!errSide294 && errSide294.op === 'write' && errSide294.msg === 'side-unreadable' &&
-      sideBytes294 === '坏档！' && SQ.storageError() === null;
-    ok('294', '写通道收口（审计 #1/#2/#3）：(a) 写失败后 claim **不回滚**（内存 ' + 911111 + ' 守住、盘上补平 === 内存；修前此处会读回 12345 一档）；(b) 一次带新日志的落盘里**侧档先于主档**写（顺序反了就是「主档已剥日志、侧档尚未写」的丢档窗口）；(c) 侧档坏而跳写 ⇒ `ioError = write/side-unreadable` 有痕、且**没有**拿新内容去覆盖那份读不动的档（`坏档！` 原样在盘上），跳写标记用完即清',
-      a294 && b294 && c294,
+      origSet294.call(localStorage, SK294, '坏档！');
+      await SQ.claim(ref294);                                 /* 读侧档失败 ⇒ sideUnreadable 置真；(b) 那笔带日志的载荷与 lastLogSig 不同 ⇒ 这里必落到「读不动而跳写」那一支 */
+      await SQ.mutate(ref294, function (s) { s.worlds.xiuxian.stones = 911111; });
+      var errSide294 = SQ.storageError();
+      var sideBytes294 = localStorage.getItem(SK294);
+      localStorage.removeItem(SK294);
+      await SQ.claim(ref294);                                 /* 侧档不存在 ⇒ 标志归假，不给后面的断言留污染 */
+      var c294 = !!errSide294 && errSide294.op === 'write' && errSide294.msg === 'sideflow' &&
+        sideBytes294 === '坏档！' && SQ.storageError() === null;
+
+      /* (d) 🔧 复核返修补的那一条：侧档写**抛**（宿主拒写这一族）时主档必须照写。
+       *   本批把写序改成「先侧档后主档」却共用外层 catch ⇒ 侧档一抛就跳到 catch、机制态永不再落盘，
+       *   比原缺陷更重；现侧档异常关在本地 try 里。判 = 盘上主档 === 内存新值 + 留痕照出 + 下一次成功写归零。
+       *   ⚠️ 这里直调 `SQ.save(ref294)` 而不是 `mutate`：mutate 从 `load()` 起态，而日志早被剥进侧档 ⇒ 载荷未变
+       *   ⇒ `sig === lastLogSig` 提前返回，侧档那一次写根本不会被触发（本判据第一版就栽在这里 = 假绿不成、真红也不成）。 */
+      localStorage.setItem = function (k, v) {
+        if (k === SK294) throw new Error('SIDE_294');
+        return origSet294.call(localStorage, k, v);
+      };
+      SQ.Log.push(ref294.worlds.xiuxian, 'sys', '侧档必抛', 1700000094002);
+      ref294.worlds.xiuxian.stones = 922222;
+      await SQ.save(ref294);
+      localStorage.setItem = origSet294;
+      var dMain294 = JSON.parse(localStorage.getItem(SQ.KEY)).worlds.xiuxian.stones === 922222;
+      var errD294 = SQ.storageError();
+      await SQ.save(ref294);                                  /* 侧档恢复可写 ⇒ 这一笔补上，提示归零 */
+      var d294 = dMain294 && !!errD294 && errD294.msg === 'sideflow' && SQ.storageError() === null &&
+        localStorage.getItem(SK294) !== null;
+    } finally {
+      localStorage.setItem = origSet294;
+    }
+    ok('294', '写通道收口（审计 #1/#2/#3）：(a) 写失败后 claim **不回滚**（内存 ' + 911111 + ' 守住、盘上补平 === 内存；修前此处会读回 12345 一档）；(b) 一次带新日志的落盘里**侧档先于主档**写（顺序反了就是「主档已剥日志、侧档尚未写」的丢档窗口）；(c) 侧档坏而跳写 ⇒ `ioError = write/sideflow`（视图按码出中文那句「历史日志与奇遇记事没能保存（修为进度已保存）」，不再把裸英文码打给玩家）+ **没有**拿新内容去覆盖那份读不动的档（`坏档！` 原样在盘上），跳写标记用完即清；(d) 🔧 **侧档写抛（宿主拒写）时主档照落盘**——盘上 === 内存新值 + 同笔出 `write/sideflow` 留痕 + 侧档恢复后下一笔补写并归零（本批改写序时把两次写共用在一个 catch 里 ⇒ 侧档一抛机制态永不再落盘，比它要修的缺陷更重）',
+      a294 && b294 && c294 && d294,
       '(a) 失败后内存=' + memFail294 + ' claim 后=' + memClaim294 + ' 盘上=' + diskClaim294 +
       ' ‖ (b) 侧档第 ' + iSide294 + ' 次写 / 主档第 ' + iMain294 + ' 次（共 ' + order294.length + ' 写）' +
       ' ‖ (c) err=' + JSON.stringify(errSide294) + ' 侧档原样=' + (sideBytes294 === '坏档！') +
-      ' 复位后=' + JSON.stringify(SQ.storageError()));
+      ' ‖ (d) 侧档抛时主档落盘=' + dMain294 + ' 同笔留痕=' + (errD294 && errD294.msg) +
+      ' 补写后侧档在盘=' + (localStorage.getItem(SK294) !== null));
 
     /* #295 审计处置批 C 组（引擎侧「屏上的账」与「单源」）：
      * (a)(b)(c) 三类**静默零收益**必须撤销自己的文案与 applied（审计 #6）——
@@ -6125,6 +6153,12 @@
     var a295 = w295a.attrEventBonus.gunt === undefined && !ap295a.attrBonus && e295a.attrBonus == null &&
       SQ.Events.effText(w295a, pack, D, e295a) === SQ.Events.effText(w295a, pack, D, {}) &&
       w295b.attrEventBonus.gunt === 3 && !!ap295b.attrBonus;
+    /* (a2) 🔧 复核返修：撤销条件原判成 `bn > 0`，连**负值**（减属性）一起撤了 ⇒ 「折寿 / 削悟性」类效果静默
+     *   不生效而文案照印。负值在本仓是受支持的（`attrs.js:38` 直接加、normalize 不夹下界），现补一条负值判。 */
+    var w295a2 = mkWs({}); w295a2.attrEventBonus = { mind: CAP295 };
+    var e295a2 = { attrBonus: { attr: 'gunt', n: -2 } }; var ap295a2 = { attrBonus: { attr: 'gunt', n: -2 } };
+    SQ.Events.applyEffects(w295a2, pack, D, M(mkProf(), w295a2), e295a2, { applied: ap295a2, log: noop295, now: 1700000095000 });
+    var a295b = w295a2.attrEventBonus.gunt === -2 && !!ap295a2.attrBonus && e295a2.attrBonus != null;
 
     var w295c = mkWs({}); w295c.artsSlots = []; w295c.artsKnown = []; w295c.artsLevels = {};
     var e295c = { artsProgress: 2 }; var ap295c = { artsProgress: 2 };
@@ -6214,9 +6248,42 @@
     /* 复原那一判按「6 条全留」写：LOG_KEEP(20) 大于样本条数 ⇒ 上界不生效，这才是对照。 */
     var h295 = mLK.karmaLog.length === 3 && mLK0.karmaLog.length === 6;
 
-    ok('295', '静默零收益撤销 + 价格/上界单源（审计 #6/#8/#9/#14/#20）：(a) `attrEventBonus` 满上限被整笔丢弃 ⇒ applied 无键 + 文案与空效果逐字全等（未满正例照旧入账）；(b) 无槽可进 ⇒ `artsProgress` 撤销（有槽正例 +1 级）；(c) 四槽皆空 ⇒ 「法器受损」行不再出现（有装备正例 atk 真降）；(d) 门中供给价 === `Shop.priceOf(坊市价×倍率)` 且 −15% shopCost 真的吃进去（旧内联式会算出 ' + oldP295 + '）；(e) 材料包按**定价组**发货，抬境到组 2 仍只发组 0 的料（`zoneGroup` 从只写不读接上读者）；(f) `Fusion.reforgeCostOf` 四档 === 表且越界回 huang（旧视图兜底 800 = 玄阶价）；(g) 破障成本随 `APILLS.ap_pozhang.mod` 动（改 −0.5 ⇒ 0.4−0.5）且 `AL.POZHANG_MOD` 已不存在；(h) 读档保留条数随 `D.LEGACY.LOG_KEEP` 动（改 3 ⇒ 6 条只留 3，复原（表 20 > 样本 6）⇒ 6 条全留）',
-      a295 && b295 && c295 && d295 && e295 && f295 && g295 && h295,
-      '判旗 a=' + a295 + ' b=' + b295 + ' c=' + c295 + ' d=' + d295 + ' e=' + e295 + ' f=' + f295 + ' g=' + g295 + ' h=' + h295 +
+    /* (i) 🔧 复核返修补的引擎侧直证：走查 AT-R 比的是「屏面 === `effRate`」，所以 `settle` 内部把乘区
+     *   加两遍或漏一遍时 AT-R 照样绿 —— 那正是本批 B1 立「同源」要防的那一维。这里让**真结算**说话：
+     *   单段、不破境、无 mianxi/claimQi 挂点 ⇒ 每秒实涨必等于视图取数口。 */
+    var w295i = mkWs({ realm: 3, qi: 100, mode: 'seclude' });
+    var m295i = SQ.Mods.collect(mkProf(), w295i, pack, D);
+    var rateI295 = SQ.Idle.effRate(w295i, pack, D, m295i, false);
+    var st295i = SQ.Idle.settle(w295i, pack, D, 5000, 1700000095300, { profile: mkProf(), autoTrib: false });
+    var i295 = Math.abs(st295i.gain / 5 - rateI295) < 1e-6 &&
+      SQ.Idle.effRate(w295i, pack, D, m295i, true) === SQ.Idle.rateOf(w295i, pack, D, m295i);
+
+    /* (j) 🔧 复核返修：`applyEffects` 会**写传入的效果对象**（撤标签靠它），而丹药四处原先把表对象本体
+     *   `D.PILLS[i].effect` 直接递进去 ⇒ 一颗丹吃出「无槽可进」就把表里那条效果改没了（本会话内该丹从此
+     *   静默无效 = 本批自己要修的「写了没人接」同型，只是方向相反）。现四处一律传副本，这条判「真买一单之后表还是原样」。 */
+    var siJ295 = (D.FACTION_SUPPLY || [])[0];
+    var pJ295 = null;
+    (D.PILLS || []).forEach(function (p) { if (siJ295 && p.id === siJ295.pill) pJ295 = p; });
+    var effKeepJ = pJ295 ? pJ295.effect : null;
+    var j295 = false, jPrint295 = null;
+    if (pJ295) {
+      var wJ295 = pack.normalize({});                          /* 与 (d2) 同形：normalize({}) 才保证 `huangfeng` 在世面上（initialState 的势力是掷出来的，会 `reason:'none'`） */
+      wJ295.artsSlots = []; wJ295.artsKnown = []; wJ295.artsLevels = {};
+      wJ295.stones = 999999; wJ295.factionId = 'huangfeng';
+      wJ295.factionRep = { huangfeng: 999999 }; wJ295.factionRepPeak = 999999;
+      pJ295.effect = { artsProgress: 2 };                    /* 造一枚「无槽可进」的丹：这一单必走撤销支 */
+      var rJ295 = SQ.Factions.buySupply(wJ295, pack, D, M(mkProf(), wJ295), siJ295.sku, 1700000095400, noop295);
+      j295 = rJ295.ok === true && wJ295.artsLevels.tuna === undefined &&
+        !!pJ295.effect && pJ295.effect.artsProgress === 2;   /* 表未被改写 */
+      jPrint295 = (pJ295.effect || {}).artsProgress;
+      pJ295.effect = effKeepJ;
+    }
+
+    ok('295', '静默零收益撤销 + 价格/上界单源（审计 #6/#8/#9/#14/#20）：(a) `attrEventBonus` 满上限被整笔丢弃 ⇒ applied 无键 + 文案与空效果逐字全等（未满正例照旧入账）；(b) 无槽可进 ⇒ `artsProgress` 撤销（有槽正例 +1 级）；(c) 四槽皆空 ⇒ 「法器受损」行不再出现（有装备正例 atk 真降）；(d) 门中供给价 === `Shop.priceOf(坊市价×倍率)` 且 −15% shopCost 真的吃进去（旧内联式会算出 ' + oldP295 + '）；(e) 材料包按**定价组**发货，抬境到组 2 仍只发组 0 的料（`zoneGroup` 从只写不读接上读者）；(f) `Fusion.reforgeCostOf` 四档 === 表且越界回 huang（旧视图兜底 800 = 玄阶价）；(g) 破障成本随 `APILLS.ap_pozhang.mod` 动（改 −0.5 ⇒ 0.4−0.5）且 `AL.POZHANG_MOD` 已不存在；(h) 读档保留条数随 `D.LEGACY.LOG_KEEP` 动（改 3 ⇒ 6 条只留 3，复原（表 20 > 样本 6）⇒ 6 条全留）；(a2) 🔧 **负值 `attrBonus` 不被撤销**（原撤条件写成 `bn > 0` 把减项一起撤了）；(i) 🔧 `settle` 单段实涨的每秒 === 视图取数口 `effRate`（走查只比「屏面 vs 函数」，函数内部重 drift 由这条兜）；(j) 🔧 真买一单门中供给后**药方表对象未被改写**（`applyEffects` 写传入对象 ⇒ 丹药四处改传副本）',
+      a295 && a295b && b295 && c295 && d295 && e295 && f295 && g295 && h295 && i295 && j295,
+      '判旗 a=' + a295 + ' a2=' + a295b + ' b=' + b295 + ' c=' + c295 + ' d=' + d295 + ' e=' + e295 + ' f=' + f295 + ' g=' + g295 + ' h=' + h295 + ' i=' + i295 + ' j=' + j295 +
+      ' ‖ (i) 结算每秒=' + (st295i.gain / 5).toFixed(4) + ' 取数口=' + rateI295.toFixed(4) +
+      ' ‖ (j) 买完表值=' + jPrint295 + '（应为 2 = 未被改写）' +
       ' ‖ (a) 上限时 applied=' + JSON.stringify(ap295a) + ' 未满=' + (w295b.attrEventBonus.gunt) +
       ' ‖ (b) 无槽=' + JSON.stringify(w295c.artsLevels) + ' 有槽=' + w295d.artsLevels.tuna +
       ' ‖ (c) 空槽文案等同空效果=' + (SQ.Events.effText(w295e, pack, D, e295e) === SQ.Events.effText(w295e, pack, D, {})) +

@@ -178,6 +178,59 @@ const { chromium } = require('playwright-core');
     await ctx.close();
   }
 
+  /* ── D 天怒罚值行取自表（第十四批审计 #5）──
+   * 旧代码在修行页的渡劫明细里硬编码 `-0.03 / -0.01`，而 `D.TIANDAO.DEFY_TRIB_MODS = [-0.01, -0.02]`
+   * ⇒ 屏上比引擎多罚一档，且与同一面板上方那行引擎实算值互相打架。
+   * 🔧 当晚复核定性：引擎 `tribModOf` 是 **`armed.lai` 与 `armed.nu` 两支相加**（逆天 25 + 37 = 62 就双旗同亮），
+   *   而 `stageOf` 只回一个档名 ⇒ 视图「按档名取一支」仍会少算。故本档 fixture 改成**两旗同亮**，
+   *   D1 的期望从 `表[1]` 改为 **`表[0]+表[1]`**，并加判「不等于只取一支的那个数」——旧写法在这两条下都红。
+   * 判据两半：**(D1)** 行内数字 === 表值之和；**(D2)** 当场把表改成 −0.07 再重绘 ⇒ 行内数字跟着变
+   * （证它是「读表」而不是「碰巧等于表值」；realm 9 没有待渡的劫 ⇒ 这条只能放在这里，alltabs 到不了该块）。 */
+  {
+    const s = buildSave(0);
+    Object.values(s.worlds).forEach(w => {
+      w.tiandao = Object.assign({}, w.tiandao, { defy: 70, armed: { lai: true, nu: true } });
+    });
+    const { ctx, page, errors } = await openPage(s, false);
+    const dRes = await page.evaluate(async () => {
+      const pack = SQ.Worlds.xiuxian.pack, D = pack.data;
+      const open = () => {
+        const b = document.querySelector('#tab-idle [data-act="detailTrib"]');
+        if (b) b.click();
+        return !!b;
+      };
+      const read = () => {
+        const nu = SQ.t('tiandao.stage.nu', null, 'xiuxian');
+        const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-idle .detailbox .kv'));
+        const hit = rows.map(r => (r.innerText || '')).filter(x => x.indexOf(nu) >= 0)
+          .map(x => ((x.match(/-?\d\.\d+/) || [''])[0]));
+        return { n: hit.length, shown: hit[0] || '' };
+      };
+      const hasBtn = open();
+      const dm0 = D.TIANDAO.DEFY_TRIB_MODS.slice();
+      const want0 = (dm0[0] + dm0[1]).toFixed(2);          /* 引擎口径 = 两旗之和 */
+      const single0 = dm0[1].toFixed(2);                    /* 只取一支 = 返修前的形状 */
+      const r0 = read();
+      D.TIANDAO.DEFY_TRIB_MODS = [dm0[0], -0.07];          /* 合成表（不落盘，只验读表形状） */
+      open(); open();                                       /* 折叠再展开 ⇒ 重绘 */
+      const r1 = read();
+      const want1 = (dm0[0] + -0.07).toFixed(2);
+      D.TIANDAO.DEFY_TRIB_MODS = dm0;
+      open(); open();
+      const r2 = read();
+      return { hasBtn: hasBtn, stage: SQ.Tiandao.stageOf(SQ.Worlds.xiuxian.pack ? JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian : {}, D),
+        want0: want0, want1: want1, single0: single0, r0: r0, r1: r1, r2: r2 };
+    });
+    T(dRes.hasBtn && dRes.r0.n === 1 && dRes.r0.shown === dRes.want0 && dRes.r0.shown !== dRes.single0,
+      'D1 修行页「天怒」行 === `DEFY_TRIB_MODS` **两旗之和**（引擎 `tribModOf` 同式；旧写法按 `stageOf` 只取一支 = 少算，硬编码 −0.03 那一版更早）',
+      '屏=' + (dRes.r0.shown || '(无该行)') + ' 表和=' + dRes.want0 + ' 只取一支=' + dRes.single0 + ' 按钮在=' + dRes.hasBtn);
+    T(dRes.r1.shown === dRes.want1 && dRes.r2.shown === dRes.want0,
+      'D2 当场改表 ⇒ 该行跟着变（证「读表」而非「碰巧同值」），改回即复原',
+      '改后=' + dRes.r1.shown + '(应=' + dRes.want1 + ') 复原=' + dRes.r2.shown);
+    T(errors.length === 0, 'D 零页面报错', errors.join(' | ').slice(0, 200) || 'clean');
+    await ctx.close();
+  }
+
   await browser.close();
   console.log(fail === 0 ? 'UI_TRIB_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_TRIB_FAILED ' + fail);
   process.exit(fail === 0 ? 0 : 1);

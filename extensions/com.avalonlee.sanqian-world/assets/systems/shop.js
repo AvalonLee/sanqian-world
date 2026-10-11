@@ -205,7 +205,8 @@
       } else if (it.kind === 'pill') {
         var pill = null;
         for (var i = 0; i < D.PILLS.length; i++) if (D.PILLS[i].id === it.ref) pill = D.PILLS[i];
-        SQ.Events.applyEffects(ws, pack, D, mods, pill.effect, { log: log, now: Date.now(), silent: true });
+        /* 传副本 = 纪律（见 events.js applyEffects 头注）：丹药两处同此 */
+        SQ.Events.applyEffects(ws, pack, D, mods, Object.assign({}, pill.effect), { log: log, now: Date.now(), silent: true });
       } else if (it.kind === 'arts') {
         SQ.Arts.gainArt(ws, pack, D, it.ref, log);
       } else if (it.kind === 'treasure') {
@@ -286,7 +287,8 @@
       } else if (it.kind === 'pill') {
         var pill = null;
         for (var i = 0; i < D.PILLS.length; i++) if (D.PILLS[i].id === it.ref) pill = D.PILLS[i];
-        SQ.Events.applyEffects(ws, pack, D, mods, pill.effect, { log: log, now: Date.now(), silent: true });
+        /* 传副本 = 纪律（见 events.js applyEffects 头注）：丹药两处同此 */
+        SQ.Events.applyEffects(ws, pack, D, mods, Object.assign({}, pill.effect), { log: log, now: Date.now(), silent: true });
       } else if (it.kind === 'arts') {
         /* 购买即获得；学习要求（含 karma 门槛）仍拦截 → 待修习架（验收 4.11 #101） */
         SQ.Arts.gainArt(ws, pack, D, it.ref, log);

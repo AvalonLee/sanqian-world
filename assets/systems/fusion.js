@@ -311,7 +311,7 @@
    * 属潜在分叉而非现行故障，但形状必须只留一份）。 */
   function reforgeCostOf(c, D) {
     var FF = F(D);
-    var nm = TIER_NAME_L[Math.floor((c && c.tier) || 0)];
+    var nm = TIER_NAME_L[(c && c.tier) || 0];   /* 不加 Math.floor：复核指出取整会把「越界档」这一形改判（1.5 ⇒ 玄阶），而旧式与旧兜底都落 huang */
     /* 越界一律回 huang（与旧引擎口径逐字相同；旧视图那里回的是 800 = 玄阶价，那才是要修的不一致） */
     if (!nm) nm = TIER_NAME_L[0];
     var v = (FF.REFORGE_COST || {})[nm];

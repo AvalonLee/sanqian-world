@@ -23,6 +23,7 @@
     'ui.number.yi': '亿',
     'ui.error.storage': '存档读取失败：{msg}',
     'ui.error.save': '存档写入失败：{msg}（本次进度恐未记下）',
+    'ui.error.sideflow': '历史日志与奇遇记事没能保存（修为进度已保存）',
     'ui.error.short': '读取失败',
     'world.status.live': '首发',
     'world.status.coming': '此界尚在混沌，未可投生',

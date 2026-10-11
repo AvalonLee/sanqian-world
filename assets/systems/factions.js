@@ -477,7 +477,7 @@
       if (!ws.factionSupply) ws.factionSupply = {};
       ws.factionSupply[sku] = now;
       if (SQ.Events && SQ.Events.applyEffects) {
-        SQ.Events.applyEffects(ws, pack, D, mods, pill.effect,
+        SQ.Events.applyEffects(ws, pack, D, mods, Object.assign({}, pill.effect),   /* 副本 = 纪律，见 events.js applyEffects 头注 */
           { log: log, now: now, eventId: null });
       }
       if (log) log('sys', SQ.t('faction.supply.bought', { name: SQ.t('faction.supply.sku.' + sku, null, pack.worldId) }, pack.worldId));
