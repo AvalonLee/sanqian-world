@@ -236,7 +236,10 @@
         stones: type === 'gather' ? 0 : Math.round(stonesOf(D, ws) * (tc.stoneK || 100)),
         bornAt: now, expireAt: now + (cfg.TTL_MS || 7200000)
       };
-      if (ctx && ctx.log) ctx.log('sys', SQ.t('faction.quest.new', { type: SQ.t('faction.quest.' + type, null, pack.worldId) }, pack.worldId));
+      /* 委托类型名本身就是带 {n} 的模板（剿除妖邪：击杀 {n} 头 / 闭关进益：修为增长 {n} / 采买军资：上缴 {n} 灵石），
+       * 内层取词必须带上 target —— 原先传 null ⇒ 占位符原样烘进日志文本并随档永久保存（第十四批走查 AT14 抓到，
+       * 屏上读作「门中贴出新委托：采买军资：上缴 {n} 灵石」）。 */
+      if (ctx && ctx.log) ctx.log('sys', SQ.t('faction.quest.new', { type: SQ.t('faction.quest.' + type, { n: target }, pack.worldId) }, pack.worldId));
       return ws.factionQuest;
     },
 
@@ -464,8 +467,9 @@
       var pill = null;
       (D.PILLS || []).forEach(function (p) { if (p.id === item.pill) pill = p; });
       if (!pill) return { ok: false, reason: 'none' };
-      var cost = Math.round(pill.price * (D.FACTION_SUPPLY_PRICE_MULT || 2) *
-        (1 + (ws.realm || 0) * (D.SHOP_PRICE_REALM || 0.4)));
+      /* 价走 SQ.Shop.supplyPriceOf 唯一取数口（审计 #8）：原在这里内联了一遍坊市公式，
+       * 不吃 shopCost 乘区、取整也不同（round vs ceil）⇒ 卷面「坊市价×2」在有折扣法宝时不成立。 */
+      var cost = SQ.Shop.supplyPriceOf(pill, ws, D, mods);
       if (ws.stones < cost) return { ok: false, reason: 'stones', need: cost, have: ws.stones };
       ws.stones -= cost;
       SQ.Ledger.note(ws, 'out', 'shop', cost);

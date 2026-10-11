@@ -951,7 +951,8 @@
       PROF_BONUS: [0, 0.03, 0.06, 0.09, 0.12],
       PROF_TIME_CUT: [0, 0.05, 0.10, 0.15, 0.20],
       RUNE_P: 0.05,                           /* 丹纹变异（宗师起 · 仅炼丹 · 仅时限四型 = 九转丹正名） */
-      POZHANG_MOD: -0.10, ZHENJIE_BONUS: 0.02,
+      /* POZHANG_MOD / ZHENJIE_BONUS 已删（第十四批审计 #14）：与 PILL_EFFECTS.ap_pozhang.mod /
+       * ap_zhenjie.mod 同值两份，而读点用的是这一份 ⇒ 改丹方定义静默无效。取数口统一到丹方那条。 */
       FORGE_DROP_K: 0.5, FORGE_MAT_COST: 6, FORGE_MAIN_RANGE: [0.5, 1.0], FURNACE_MAT_COST: 10,
       FORGE_MAT_COST_JING: 12, REFINE_IN: 4,   /* 精制图纸材料 ×12；材料提炼 4:1（扩容批 §十二） */
       SHOP_PACK_W: { pack: 50, mat: 25, recipe: 10, bp: 10, furnace: 5 },   /* 权重零改动（扩容批裁定）：池扩容稀释由残片兑方新来源补偿，推进主轴零侵入（锚 9.12 复跑不变红线） */

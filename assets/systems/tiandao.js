@@ -867,7 +867,10 @@
   function chronPush(ws, k, v, now) {
     var td = tdOf(ws);
     td.chron.push({ k: k, v: v || {}, at: now || Date.now() });
-    while (td.chron.length > 10) td.chron.shift();
+    /* 上界取表（审计 #20）：原先硬写 10，而 `D.TIANDAO.CHRONICLE_MAX = 10` 是本文件 :152 / :341 已在读的
+     * 那一份 ⇒ 同一件事三个地方两种类名，抬表这里不跟随。 */
+    var cmax = ((SQ.XDATA || {}).TIANDAO || {}).CHRONICLE_MAX;
+    while (td.chron.length > (cmax != null ? cmax : 10)) td.chron.shift();
   }
 
   /* ── 事件钩子（既有结算点位挂产物，不自建 per-tick 掷判）── */

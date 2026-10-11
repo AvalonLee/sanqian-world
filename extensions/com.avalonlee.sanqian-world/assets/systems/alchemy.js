@@ -513,11 +513,13 @@
       SQ.Events.pushBuff(ws, def.buff.field, mult, now + Math.round(def.buff.hours * 3600000), 'alchemy');
       if (log) log('sys', SQ.t('alchemy.log.drink.buff', { name: SQ.t('alchemy.pill.' + pillKey + '.name', null, wid) }, wid));
     } else if (def.once === 'pozhang') {
-      ws.breakCostNext = (ws.breakCostNext || 0) + (AL.POZHANG_MOD != null ? AL.POZHANG_MOD : -0.10);
+      /* 数值取丹方自己那条 `mod`（审计 #14）：原先住的是 AL.POZHANG_MOD，与 PILL_EFFECTS.ap_pozhang.mod
+       * 同值两份 ⇒ 改丹方静默无效。分支已按 def.once 命中，mod 与 once 同在一条定义上，不需要兜底字面量。 */
+      ws.breakCostNext = (ws.breakCostNext || 0) + def.mod;
       al.pillOnce.pozhang = ws.realm;
       if (log) log('sys', SQ.t('alchemy.log.drink.pozhang', null, wid));
     } else if (def.once === 'zhenjie') {
-      ws.tribulation.next = (ws.tribulation.next || 0) + (AL.ZHENJIE_BONUS != null ? AL.ZHENJIE_BONUS : 0.02);
+      ws.tribulation.next = (ws.tribulation.next || 0) + def.mod;
       al.pillOnce.zhenjie = ws.realm;
       if (log) log('sys', SQ.t('alchemy.log.drink.zhenjie', null, wid));
     }
@@ -588,7 +590,14 @@
     ensure(ws, D);
     var al = ws.alchemy;
     if (good.type === 'mat') {
-      var pool = zoneMats(D, Math.min(ws.realm, (D.ZONES || []).length - 1));
+      /* 发货按**定价时那一组**（审计 #9）：rollPackGood 用 groupOf 定价并把组号记进 good.zoneGroup（此前
+       * 只写不读 = 嵌套死字段），而这里原先按「购买时的境界分区」重算池子 ⇒ 4h 补货窗内升境就跨组套利
+       * （组 0 的价拿到组 1 的料，回收价反超买价）。老货架上没记组号的旧包仍走原口径（零迁移）。 */
+      var grp = good.zoneGroup;
+      var pool = (grp != null ? (A(D).MATS || []).filter(function (m) {
+        return groupOf(D, m.id) === grp;
+      }).map(function (m) { return m.id; }) : zoneMats(D, Math.min(ws.realm, (D.ZONES || []).length - 1)));
+      if (!pool.length) pool = zoneMats(D, Math.min(ws.realm, (D.ZONES || []).length - 1));
       var gains = {};
       for (var i = 0; i < 3; i++) {
         var id = pick(pool);

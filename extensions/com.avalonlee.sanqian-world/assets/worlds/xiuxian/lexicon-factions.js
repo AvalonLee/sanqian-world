@@ -222,6 +222,10 @@
   keys['faction.office.dispatch.none'] = '暂无可调遣的同门道友';
   keys['faction.office.dispatch.chan'] = '这位道友的所长不在此途';
   keys['faction.office.dispatch.affinity'] = '好感未至，不听调遣';
+  /* 宗门页调遣补三因提示（第十四批审计 #12）：unknown = 弟子不在册，other = 未来新增 reason 的兜底，
+   * 免得内部字段名直接上屏（#272/#273 同一纪律）。 */
+  keys['faction.office.dispatch.unknown'] = '这位同门已不在门下';
+  keys['faction.office.dispatch.other'] = '此刻调遣不成';
   keys['faction.office.dispatch.cd'] = '调遣冷却中（每 24 小时一次）';
   keys['faction.office.guard'] = '门中护法';
   keys['faction.office.guard.ok'] = '长老亲镇山门大阵——下次渡劫护法加项强制生效';

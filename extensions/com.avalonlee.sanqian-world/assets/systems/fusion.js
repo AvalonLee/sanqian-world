@@ -305,6 +305,19 @@
     var m = (F(D).CHAOS_BY_ATTR) || {};
     return m[c.attr] || 'hundun';
   }
+  /* 淬炼费用唯一取数口（第十四批审计 #9）：引擎与视图原先各写一遍「档位名数组 + 兜底数字」，
+   * 而且**两处兜底不一致**（引擎 `TIER_NAME_L[c.tier] || 'huang'` = 200，视图 `|| 800` = 玄阶价）
+   * ⇒ tier 越界时屏上说的价与真扣的价差 4 倍。现两处同调本函数（现被 ensure() 的 0..3 clamp 挡着，
+   * 属潜在分叉而非现行故障，但形状必须只留一份）。 */
+  function reforgeCostOf(c, D) {
+    var FF = F(D);
+    var nm = TIER_NAME_L[Math.floor((c && c.tier) || 0)];
+    /* 越界一律回 huang（与旧引擎口径逐字相同；旧视图那里回的是 800 = 玄阶价，那才是要修的不一致） */
+    if (!nm) nm = TIER_NAME_L[0];
+    var v = (FF.REFORGE_COST || {})[nm];
+    return v != null ? v : 0;
+  }
+
   function reforgeCustom(ws, pack, D, cid, now, log) {
     var FF = F(D);
     var f = ensure(ws, D);
@@ -314,8 +327,7 @@
     if (f.lastReforgeAt > 0 && now - f.lastReforgeAt < cdMs) {
       return { ok: false, reason: 'cd', until: f.lastReforgeAt + cdMs };
     }
-    var cost = (FF.REFORGE_COST || {})[TIER_NAME_L[c.tier] || 'huang'];
-    if (cost == null) cost = 800;
+    var cost = reforgeCostOf(c, D);
     if (ws.stones < cost) return { ok: false, reason: 'poor', cost: cost };
     if (!SQ.Alchemy || ((ws.materials || {})['mat_wudao'] || 0) < 1) return { ok: false, reason: 'wudao' };
     /* 消耗随尝试（先扣后掷，无中间态：mutate 事务内一次掷判） */
@@ -573,6 +585,7 @@
     registerCustoms: registerCustoms,
     ensure: ensure,
     customById: customById,
+    reforgeCostOf: reforgeCostOf,
     artDefOf: artDefOf,
     toArt: toArt,
     meditateAdd: meditateAdd,

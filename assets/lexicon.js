@@ -535,6 +535,9 @@
     'event.unwalked.ex': '稀有缘法', 'bond.unwalked.bond': '♡ {name} 好感 +{n}',
     'event.unwalked.line': '{b}「{label}」',
     'idle.bond': '道友助力', 'idle.spouse': '道侣双修',
+    /* 修炼明细补全（第十四批审计 #11）：mods 的 qiRate 来源清单里这四项此前没有标签，
+     * 视图硬列十项时它们被静默漏掉 ⇒ 明细相加对不上顶部数。明细行现按真实键集渲染，标签随键取。 */
+    'idle.caveFac': '洞府设施', 'idle.treasure': '法宝加持', 'idle.synergy': '天赋相须', 'idle.newbie': '初境加速',
     'tribulation.guardianLine': '{name} 立于雷幕之外，为你护法',
     'tribulation.guardianSpouse': '{name}（{form}）立于雷幕之外，为你护法',
     'tribulation.guardianNone': '雷云之下，唯你一人',

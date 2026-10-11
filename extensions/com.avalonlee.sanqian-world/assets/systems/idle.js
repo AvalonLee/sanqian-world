@@ -7,11 +7,25 @@
   SQ.Idle = {
     /* 每秒产出 = 境界基础 × (1+ΣqiRate) × 阵营倍率 × caveMult（详设 §1.1 + §八 + §8.2）
      * caveMult 是**独立乘区**（挂末端，不进 qiRate 加算池）——防击穿功法六槽乘区审计上限（#105）；
-     * 在线与离线共用本函数 ⇒ 洞府对闭关同样生效（引擎卷 §2.3「洞府是闭关质量的第一变量」）。 */
+     * 在线与离线共用本函数 ⇒ 洞府对闭关同样生效（引擎卷 §2.3「洞府是闭关质量的第一变量」）。
+     * ⚠️ 本函数**不含**模式乘区与新手加速 ⇒ 要显示「玩家实际每秒在涨多少」请用 effRate（审计 #4）。 */
     rateOf: function (ws, pack, D, mods) {
       var align = pack.worldSystems && pack.worldSystems.alignMultOf ? pack.worldSystems.alignMultOf(ws) : 1;
       var caveMult = SQ.Cave ? SQ.Cave.multOf(ws, pack, D, mods) : 1;
       return D.REALMS[ws.realm].baseQi * (1 + mods.sum.qiRate) * align * caveMult;
+    },
+
+    /* 实际生效的每秒产出（审计 #4 的单一取数口）= rateOf × 模式乘区 × 新手加速。
+     * 立因：视图原先直接打 rateOf，而 settle 在这里还要再乘两重 ⇒ 屏上「N/秒」实测比真涨少 3.9 倍
+     *   （闭关 realm0 ×1.3×3）或多 1.82 倍（历练 ×0.55）。规则只在这一份，settle 与视图同调本函数。
+     * shortcut: 在线口径（offline 时两重乘区按 settle 原语义一律不生效），若离线也要显示则传 offline。 */
+    effRate: function (ws, pack, D, mods, offline) {
+      var r = SQ.Idle.rateOf(ws, pack, D, mods);
+      if (offline) return r;
+      var modeCfg = (D.MODES && D.MODES[ws.mode]) ? D.MODES[ws.mode] : null;
+      r = r * (modeCfg ? modeCfg.qiMult : 1);
+      if (D.NEWBIE_RAMP && ws.realm <= D.NEWBIE_RAMP.realms) r *= D.NEWBIE_RAMP.qiMult;
+      return r;
     },
 
     /* 上限 = max(base×2h, 下一阶need×1.15) × (1+ΣqiCap)（详设 §1.2 复核修订式） */
@@ -41,10 +55,6 @@
       /* 法宝在线成长（X02 生长 / X12 堕落）：仅在线计时，离线冻结（法宝全录 §3.2 挂点 on_tick_idle） */
       if (!offline && SQ.Treasures && pack.treasures) SQ.Treasures.tickIdle(ws, pack, D, dtSec, now, ctx && ctx.log);
       var eff = offline ? (D.OFFLINE_EFF + mods.sum.offlineEff) : 1;
-      /* 修行状态（模式）乘区：**只作用在线口径**——离线 = 潜心悟道，按原有规则结算不变。
-       * 闭关 ×1.0 全速修为；历练 ×MODES.venture.qiMult 放缓（修为让位给灵石/掉落/奇遇）。 */
-      var modeCfg = (!offline && D.MODES && D.MODES[ws.mode]) ? D.MODES[ws.mode] : null;
-      var modeQiMult = modeCfg ? modeCfg.qiMult : 1;
       var remaining = dtSec;
       var iter = 0;
       var totalGain = 0;
@@ -53,9 +63,9 @@
 
       while (remaining > 1e-6 && iter < D.TRIB_ITER_CAP) {
         mods = SQ.Mods.collect(ctx.profile, ws, pack, D);
-        var rate = SQ.Idle.rateOf(ws, pack, D, mods) * modeQiMult;
-        /* 新手起步加速（新手起步批 v1.27）：仅在线、仅境界 ≤ realms，出首境自动失效；离线口径不变 */
-        if (!offline && D.NEWBIE_RAMP && ws.realm <= D.NEWBIE_RAMP.realms) rate *= D.NEWBIE_RAMP.qiMult;
+        var rate = SQ.Idle.effRate(ws, pack, D, mods, offline);
+        /* 乘区口径（模式 ×qiMult、新手起步 ×NEWBIE_RAMP.qiMult，均只作用在线）收在 effRate 一处，
+         * 视图显示与这里结算从此同一个式子（审计 #4）。 */
         /* 绵长内息（on_tick_idle）：本段结算概率双倍 */
         var mianxi = mods.hooks.mianxi || 0;
         var segEff = eff * (mianxi > 0 && Math.random() < mianxi ? 2 : 1);

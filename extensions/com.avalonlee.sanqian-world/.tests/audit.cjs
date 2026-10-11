@@ -744,6 +744,62 @@ const SQ = sandbox.window.SQ;
     '（' + dead9.join(',') + '） ‖ 在册 ' + DEAD_LISTED.length + ' ‖ ' + (bad9.slice(0, 6).join(' | ') || '零命中'));
 })();
 
+/* ── A10 取数口 ⇔ 世界表键存在性（第 21 关 · 第十四批审计 #10 / #16 立）
+ * 立因：本批把视图 13 处「表值兜底字面量」删干净之后，视图与引擎**完全依赖表里有那个键**；
+ *   而「代码引用了表里不存在的键」此前没有任何关卡在管 —— A9 管的是反方向（表里声明了却没人读），
+ *   本关管「读了却没有」。删兜底不配这一关 = 把「屏上说谎」换成「屏上 NaN」，两个都是静默形状。
+ *   同一支判据还顺手抓住键名改名后的残留取数口（`MERCHANT_POWER_ABS` 那一类）。
+ * 口径（刻意收窄，先测散布再定带）：
+ *   · 别名只认明确指向世界表的 `D.` / `SQ.XDATA.` / `pack.data.`；视图里另认 `d.` 与 `D().`（view 的
+ *     `d = D()`）。**不认** `A(D).` / `F(D).` / `FF.` 这类子表访问器 —— 实测把它们算进来会一次报出
+ *     92 条假阳（`A(D).APILLS` 被当成顶层键），一支判据里塞不下「每个模块的访问器返回哪张子表」的映射。
+ *   · assets 里也不认 `d.`：treasures.js:88 的 `d.MAX_LV` 是**局部法宝定义**，不是世界表（实测假阳）。
+ *   · 键名门槛 `^[A-Z][A-Z0-9_]{2,}$`（世界表常量全大写），短名/驼峰一律不管 ⇒ 避开 `Math.PI`、`res.ok`。
+ *   · 声明文件 `assets/worlds/<id>/data.js` 排除（与 A9 同口径，否则每个键在自己的声明行自证存在）。
+ * 在册例外 = `SHOP_SLOTS`：坊市格数随机批退役了这个常量，但 `shop.slotCount()` 留着「旧数据形状」回落支，
+ *   且冒烟 **#285(d)** 专门注入一张**只有 SHOP_SLOTS** 的表来验它 ⇒ 那不是死代码，是给合成旧表用的。
+ * 判据（任一命中即红）：取用到的键名必须 ∈（live 世界包顶层键 ∪ 在册例外）。装载剖面不对（键集 < 100）
+ *   直接判红，不许在空集上恒绿。 */
+(function () {
+  var MISSING_OK = ['SHOP_SLOTS'];
+  var boot10 = null;
+  try { boot10 = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; }
+  catch (e) { ok('A10', '取数口 ⇔ 世界表键存在性（读了表里没有的键 = 引用悬空）', false, '沙箱装载失败：' + e.message); return; }
+  var live10 = Object.keys(boot10.Worlds).filter(function (id) { return boot10.Worlds[id].status === 'live'; });
+  var KEYS10 = {};
+  live10.forEach(function (id) {
+    var d = (boot10.Worlds[id].pack || {}).data;
+    if (d) Object.keys(d).forEach(function (k) { KEYS10[k] = 1; });
+  });
+  if (Object.keys(KEYS10).length < 100) {
+    ok('A10', '取数口 ⇔ 世界表键存在性（读了表里没有的键 = 引用悬空）', false,
+      '键集只有 ' + Object.keys(KEYS10).length + ' 条 ⇒ 装载剖面不对（空集上的对表恒真，不作数）');
+    return;
+  }
+  var seen10 = {}, miss10 = {}, refs10 = 0;
+  [].concat(jsFiles, htmlFiles).forEach(function (f) {
+    var r = relOf(f);
+    if (!(r.indexOf('assets/') === 0 || r.indexOf('view/') === 0 || r.indexOf('module/') === 0)) return;
+    if (/^assets\/worlds\/[^/]+\/data\.js$/.test(r)) return;
+    if (seen10[r]) return; seen10[r] = 1;
+    var alias = r.indexOf('view/') === 0 ? "(?:\\bD|\\bd|SQ\\.XDATA|pack\\.data|D\\(\\))" : "(?:\\bD|SQ\\.XDATA|pack\\.data)";
+    var re = new RegExp(alias + '\\.([A-Z][A-Z0-9_]{2,})', 'g');
+    var src = stripComments(fs.readFileSync(f, 'utf8')), m;
+    while ((m = re.exec(src))) {
+      refs10++;
+      var k = m[1];
+      if (KEYS10[k] || MISSING_OK.indexOf(k) >= 0) continue;
+      miss10[k] = (miss10[k] || 0) + 1;
+    }
+  });
+  var mk10 = Object.keys(miss10);
+  ok('A10', '取数口 ⇔ 世界表键存在性（第十四批删兜底的配套关：读了表里没有的键 = 引用悬空 ⇒ 屏上 NaN/谎数）',
+    mk10.length === 0,
+    '表键 ' + Object.keys(KEYS10).length + ' ‖ 取数引用 ' + refs10 + ' 次 ‖ 悬空键 ' + mk10.length +
+    '（' + (mk10.join(',') || '无') + '） ‖ 在册例外 ' + MISSING_OK.join(',') +
+    (mk10.length ? ' ‖ ' + mk10.map(function (k) { return k + ' ×' + miss10[k]; }).join(' | ') : ' ‖ 零命中'));
+})();
+
 /* ── C 组 · 世界包词族契约（G11 · 换世界即换系统名与菜单描述）
  *   C1 must 族：每个 live 世界分卷必须各自拥有（≥1 条该前缀 key）——世界身份不缺项；
  *   C2 forbid 族：世界分卷不得出现（跨世界通用文案只留 common，防世界间漂移）。 ── */

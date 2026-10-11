@@ -146,6 +146,11 @@
    * 记一条 {op:'read'|'write', msg}，由视图层取词表出人话提示（ui.error.storage / ui.error.save），
    * 成功后清空。读档失败仍回落新档（#4 语义），写档失败不抛（游戏可继续，只是提示未落盘）。 */
   var ioError = null;
+  /* 审计 #1（第十四批）：一次写失败后，盘上就是旧态；claim/mutate 起手若无条件 `await load()`，
+   * 玩家那笔操作会在 1 秒后的 tick 被旧值打回（= 进度静默回滚）。pendingSave 记住没落盘的那一态，
+   * 任一写成功即清空。审计 #3：侧档读不动时跳写要能被 save 观察到（见 sideWriteSkipped）。 */
+  var pendingSave = null;
+  var sideWriteSkipped = false;
 
   async function load() {
     try {
@@ -695,38 +700,6 @@
     return cp;
   }
 
-  /* 级⑩序列化副本：eventHistory.feed 叙事流裁剪（纯展示流 · 奇遇页历史卡），内存态零污染。
-   * feed 上限 = D.EVENT_FEED_CAP（50）条、每条 10 字段含 eff 效果账 ≈215~285B → 满档 ≈11~14KB，
-   * 是**真实存档的最大单项**（sim-playthrough CAP_WATCH 实测 10.5~11.2KB，超过 codices / factions / prodigies），
-   * 而 #206 最坏态模型此前**完全没造 feed**（只造 seen + eventCooldowns）= 与「天骄漏项」同类的模型漏项，
-   * 本批同批补造（见 smoke #206）。落盘只留最近 SAVE_FEED_KEEP 条；代价 = 重载后奇遇页历史卡变少
-   * （与 EVENT_FEED_CAP 自然挤旧同类语义，故列末级 = 前九级全耗尽才动）。
-   * `lastId`（去重）/ `seen`（幂等键，级⑤ 已限 40 键）全保留。 */
-  /* 保留条数裁定 = 5（非 10）：keep 10 时 #206 落盘 51107B、红线余量仅 **93B** —— 任何 +100B 的改动即翻红，
-   * 而历史上翻红的处理方式正是「削弱最坏态模型」（本次事故的成因），故宁可多裁 5 条换 1.5KB 真实余量。
-   * 代价仅「重载后奇遇页历史卡 10→5」，且本级是末级、前九级全耗尽才动（= 极长寿档才触发）。 */
-  var SAVE_FEED_KEEP = 5;
-  function withTrimmedFeed(s) {
-    var ws = s && s.worlds;
-    if (!ws) return s;
-    var cp = {}, k;
-    for (k in s) cp[k] = s[k];
-    var worlds = {};
-    for (var wk in ws) {
-      var w = ws[wk];
-      var eh = w && w.eventHistory;
-      if (!eh || !Array.isArray(eh.feed) || eh.feed.length <= SAVE_FEED_KEEP) { worlds[wk] = w; continue; }
-      var wc = {}, f;
-      for (f in w) wc[f] = w[f];
-      var ehc = {}, ek;
-      for (ek in eh) ehc[ek] = eh[ek];
-      ehc.feed = eh.feed.slice(0, SAVE_FEED_KEEP);      /* 新在前（unshift 写入）→ 取前 N 即最近 N 条 */
-      wc.eventHistory = ehc;
-      worlds[wk] = wc;
-    }
-    cp.worlds = worlds;
-    return cp;
-  }
 
   /* ── 落盘无损压缩编解码（存档瘦身批 2026-10-08 · 正典 = 轮回卷 §8.4 级⑴无损前置）──────
    * 动机：主档与日志档都是「单文件随游玩单调变大」，此前唯一的对策是**有损**阶梯（裁传记 / 裁 feed /
@@ -822,19 +795,20 @@
     var stages = [];
     if (storedBytes(enc) > trig) {
       for (var stage = 0; stage <= 5; stage++) {
+        var beforeSt = storedBytes(enc);                /* 只在真降字节时记这一级（审计 #20）：原先对 no-op 级也 push ⇒ 水位页的「触发级」会夸大 */
         out = compressStep(out, stage, now);            /* 纯函数化（2026-10-09 存档治理批）：返回新态、内存态零污染 */
-        stages.push(stage);
         str = JSON.stringify(out);
         enc = useCodec ? await encodePayload(str) : str;
+        if (storedBytes(enc) < beforeSt) stages.push(stage);
         if (storedBytes(enc) <= trig) break;
       }
-      var copies = [withJoinedCodices, withTriangleRels, withFoldedTitle, withFoldedEarned,
-        withoutRankRows, withTrimmedFeed];
+      var copies = [withJoinedCodices, withTriangleRels, withFoldedTitle, withFoldedEarned, withoutRankRows];
       for (var ci = 0; ci < copies.length && storedBytes(enc) > trig; ci++) {
+        var beforeCi = storedBytes(enc);
         out = copies[ci](out);
-        stages.push(6 + ci);
         str = JSON.stringify(out);
         enc = useCodec ? await encodePayload(str) : str;
+        if (storedBytes(enc) < beforeCi) stages.push(6 + ci);   /* 真裁掉了才记这一级（审计 #20） */
       }
     }
     return { out: out, str: str, enc: enc, stored: storedBytes(enc), stages: stages };
@@ -856,12 +830,15 @@
     try {
       /* 主档剥离日志后再压缩（阶梯不裁日志，日志自带预算） */
       var c = await savePayload(s);
+      /* 写序 = 先侧档、后主档（审计 #2）：主档一落盘就**不再含 log/feed**，若此刻崩在两次写之间，
+       * 侧档还没写过（旧档首次迁移时尤其如此）⇒ 整世日志永久丢。反序的最坏结果只是主档仍带着旧日志
+       * 的多写一份冗余，零损失。 */
+      var side = await writeLogsIfChanged(s);                /* 日志独立落盘（内容未变则跳过）；返回侧档字节 */
       if (hasBridge()) {
         await window.xhub.storage.set(KEY, c.bridgeValue);
       } else {
         localStorage.setItem(KEY, c.str);
       }
-      var side = await writeLogsIfChanged(s);                /* 日志独立落盘（内容未变则跳过）；返回侧档字节 */
       /* 水位读数：落盘成功后一并记（失败走 catch ⇒ 不污染上一次读数，视图据此知道「最近一次成功写」是哪回） */
       saveStats.mainBytes = c.stored;
       saveStats.sideBytes = side || 0;
@@ -871,8 +848,16 @@
       saveStats.readMainBytes = c.stored;                    /* 刚写完 = 盘上当前体量，读档口径与落盘口径对齐 */
       saveStats.readSideBytes = saveStats.sideBytes;
       ioError = null;
+      pendingSave = null;                                    /* 主档 + 侧档都落定 ⇒ 内存与盘对齐 */
+      /* 审计 #3：跳写要在 ioError 复位**之后**落，否则这一行等于没写；文案口径沿用 'codec-unavailable'
+       * 那种英文内部码（读档侧 :189 同形），由视图 ui.error.save 包住，不新增裸英文出口。 */
+      if (sideWriteSkipped) {
+        ioError = { op: 'write', msg: 'side-unreadable' };
+        sideWriteSkipped = false;
+      }
     } catch (e) {
       ioError = { op: 'write', msg: (e && e.message) || String(e) };
+      pendingSave = s;                                       /* 审计 #1：这一态没落到盘上，下一次写通道从它续起 */
     }
   }
 
@@ -901,9 +886,13 @@
     Object.assign(stateRef, s);
   }
 
+  /* 写通道起手取态（审计 #1）：有未落盘的态就续它，否则按老路从盘上读。
+   * 只在这一处判（两处写通道共用一个取数口），免得「续 pending」这条规则被抄成两份。 */
+  async function loadForWrite() { return pendingSave || await load(); }
+
   /* 时间差结算：读档 → 当前世界 claim（含 G2~G8 编排）→ 落盘 → 回填引用 */
   async function claimInner(stateRef) {
-    var s = await load();
+    var s = await loadForWrite();
     var id = s.profile.worldId;
     var ws = s.worlds[id];
     if (ws) {
@@ -934,7 +923,7 @@
   /* 玩家操作通道：fn 抛异常 → 不落盘（验收 4.1 #6 事务性）；
    * 落盘前统一重算派生值（karma/attrs 缓存纪律，工程规范 §3.6） */
   async function mutateInner(stateRef, fn) {
-    var s = await load();
+    var s = await loadForWrite();
     fn(s);
     /* meta 层同步先行（图鉴成就/里程碑即时入账 + 镜像回写），随后派生值重算吃到最新 qiRate 来源 */
     if (SQ.Legacy && SQ.Legacy.sync) SQ.Legacy.sync(s, Date.now());
@@ -999,7 +988,8 @@
    *     留出奇遇池扩容余量，超出从最旧即尾部挤起，与日志「最旧先丢」同向） */
   var FEED_STORE_CAP = 60;
   var FEED_BYTE_BUDGET = 32 * 1024;
-  var lastLogSig = null;              /* 上次落盘日志签名（未变则跳过日志键写入，省一次整档重写） */
+  var lastLogSig = null;
+  var lastRawSig = null;               /* 侧档**原态**签名（条数 + 首末 ts）：O(1) 前置跳过用（审计 #19） */              /* 上次落盘日志签名（未变则跳过日志键写入，省一次整档重写） */
 
   function logPush(ws, cat, text, ts) {
     if (!ws.log) ws.log = [];
@@ -1124,6 +1114,21 @@
   async function writeLogsIfChanged(s) {
     var payload = { v: 1, logs: {}, feed: {} };
     var worlds = (s && s.worlds) || {};
+    /* 先算一条 O(1) 的**原态**签名（每世界只取条数 + 首末 ts）：展示流是 append-only（unshift/push 加条目，
+     * 从不改已有条目），故原态未变 ⇒ 纯函数裁剪出的载荷必未变 ⇒ 可以整段跳过「逐条 strBytes + 数组复制」。
+     * 审计 #19 实测 4000 条日志时这一步 0.44ms/tick（tick 每 1000ms 一次），约整条 claim 的 1/4 是白烧。
+     * 真正的写入判据仍是下面那份载荷签名——本检查只做「肯定没变」的前置，不替代它。 */
+    var rawParts = [];
+    for (var rwk in worlds) {
+      var rw = worlds[rwk];
+      if (!rw) continue;
+      var rl = Array.isArray(rw.log) ? rw.log : [];
+      var rf = (rw.eventHistory && Array.isArray(rw.eventHistory.feed)) ? rw.eventHistory.feed : [];
+      if (rl.length) rawParts.push(rwk + ':L' + rl.length + ':' + (rl[0] && rl[0].ts) + ':' + (rl[rl.length - 1] && rl[rl.length - 1].ts));
+      if (rf.length) rawParts.push(rwk + ':F' + rf.length + ':' + (rf[0] && rf[0].ts) + ':' + (rf[rf.length - 1] && rf[rf.length - 1].ts));
+    }
+    var rawSig = rawParts.join('|');
+    if (rawSig === lastRawSig) return lastSideBytes;
     for (var wk in worlds) {
       var w = worlds[wk];
       if (!w) continue;
@@ -1137,13 +1142,19 @@
     }
     var sig = logSig(payload.logs) + '#' + feedSig(payload.feed);
     /* 返回值 = 侧档当前落盘字节（水位读数用）：跳写时沿用上一次的值，绝不返回 0 冒充「侧档空了」 */
-    if (sig === lastLogSig) return lastSideBytes;
-    if (sideUnreadable) return lastSideBytes;      /* 读不动就不覆盖：宁可留着旧侧档，也不拿空内容去顶掉它 */
+    if (sig === lastLogSig) { lastRawSig = rawSig; return lastSideBytes; }
+    if (sideUnreadable) {
+      /* 审计 #3：读不动就不覆盖侧档（这判断本身对），但此刻主档已经剥掉了 log/feed ⇒ 这一批展示流
+       * 每次落盘都被剥掉又永不写侧档，重载全丢且原本零症状。跳过 = 有损失，必须留痕给 save 落成提示。 */
+      sideWriteSkipped = true;
+      return lastSideBytes;
+    }
     var val = hasBridge() ? await encodeForBridge(payload) : JSON.stringify(payload);
     lastSideBytes = storedBytes(val);
     if (hasBridge()) await window.xhub.storage.set(LOG_KEY, val);
     else localStorage.setItem(LOG_KEY, val);
     lastLogSig = sig;
+    lastRawSig = rawSig;
     return lastSideBytes;
   }
 
@@ -1166,7 +1177,7 @@
   /* 侧档状态复位（签名 + 「读不动」标志）：清档（resetSave）或外部删除/修好脏键后调用。
    * 跳过写的判据是「内容与上次落盘相同」，而**外部把侧档键删掉**这件事本模块无从感知
    * ⇒ 不复位就会出现「内容照旧 ⇒ 不写 ⇒ 侧档永久缺失」。生产路径的唯一入口是 resetSave。 */
-  function resetSideSig() { lastLogSig = null; sideUnreadable = false; lastSideBytes = 0; }   /* 外部修好或删掉脏侧档后，须能恢复写 */
+  function resetSideSig() { lastLogSig = null; lastRawSig = null; sideUnreadable = false; lastSideBytes = 0; }   /* 外部修好或删掉脏侧档后，须能恢复写 */
 
   SQ.Side = {
     KEY: LOG_KEY,

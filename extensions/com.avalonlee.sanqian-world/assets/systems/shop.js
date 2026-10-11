@@ -116,7 +116,16 @@
     return items;
   }
 
+  /* 门中供给价（卷面「坊市价 ×2」的唯一实现，第十四批审计 #8）：与商人特席那一格同走 priceOf
+   * ⇒ 吃 shopCost 乘区、同 Math.ceil 口径。此前 factions.js 与 view 各自内联
+   *   `Math.round(price × 2 × (1 + realm × SHOP_PRICE_REALM))`，既不吃 shopCost 也取整不同
+   *   ⇒ 带 −15% shopCost 的法宝在场时，门中价是坊市价的 2.35 倍而不是 2 倍（正典不成立）。 */
+  function supplyPriceOf(pill, ws, D, mods) {
+    return priceOf(pill.price * (D.FACTION_SUPPLY_PRICE_MULT != null ? D.FACTION_SUPPLY_PRICE_MULT : 2), ws, D, mods, 0, false);
+  }
+
   SQ.Shop = {
+    supplyPriceOf: supplyPriceOf,   /* 门中供给价唯一取数口（factions.buySupply 与视图同调，审计 #8） */
     slotCount: slotCount,   /* 格数取数处（判据 #285 与 #206 最坏态模型同读这一处）*/
     /* 黑市可见性（karma ≤ -200；回升消失、已购保留——购买记录即 ws 内既有状态） */
     blackOpen: function (ws, pack, D) {

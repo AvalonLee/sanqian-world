@@ -1642,7 +1642,7 @@
       treasure: 1 };   /* 先天法宝联动授予（二批 A5 · 数值详设 §10.7；恢复批 A3b 引擎 case 已重加） */
     var CHECK_TYPES = { attr: 1, karma: 1, align: 1, stones: 1, qi: 1, art: 1, gear: 1, power: 1, companion: 1,
       prodigySpar: 1 };   /* 天骄对局判定（天骄卷 §5.2/§7.3 同构 · 六向批 A4 新增第十类 DSL） */
-    var BAND118 = { ren: 8, di: 15, tian: 25 };
+    var BAND118 = D.EVENT_KARMA_BAND;   /* 取表而不是手抄（第十四批审计 #18：手抄正是 A9 把这条列成死桩的原因：手抄 ⇒ 改表不红。 */
     all118.forEach(function (ev) {
       tiers118[ev.tier] = (tiers118[ev.tier] || 0) + 1;
       if (ev.special) special118++;
@@ -4457,7 +4457,7 @@
     var lvl9_206 = !Array.isArray(pm206disk.rankRows);                       /* 级⑨ rankRows 裁除 */
     var eh206disk = ((re206.worlds || {}).xiuxian || {}).eventHistory || {};
     var feed206disk = Array.isArray(eh206disk.feed) ? eh206disk.feed.length : -1;
-    var lvl10_206 = feed206disk >= 0 && feed206disk <= 5;                    /* 级⑩ feed 裁至最近 5 条（SAVE_FEED_KEEP） */
+    var lvl10_206 = feed206disk === 0;   /* 级⑩ 已随第十四批整族删除：feed 恒不落主档 ⇒ 判「一条都没有」；旧写法 (0<=5) 恒真 = 没判（审计 #13） */
     var lvl8_206 = ((re206.meta || {}).codices || {}).title == null;         /* 级⑧ codices.title 折叠 */
     var logStoreN206 = 0;
     try { logStoreN206 = (JSON.parse(logRaw206).logs.xiuxian || []).length; } catch (e) {}
@@ -4484,7 +4484,7 @@
       '/快照' + ((w206.prodMarks.rankRows || []).length) + '行' +
       ' 级⑥=' + (joined206 ? '触发' : '未触发') + ' 级⑦=' + (lvl7_206 ? '触发' : '未触发') +
       ' 级⑧=' + (lvl8_206 ? '触发' : '未触发') + ' 级⑨=' + (lvl9_206 ? '触发' : '未触发') +
-      ' 级⑩=' + (lvl10_206 ? '触发' : '未触发') + '(feed ' + feed206disk + '/' + (D.EVENT_FEED_CAP || 50) + ')' +
+      ' 级⑩已删(feed 不落主档，盘上 ' + feed206disk + ' 条)=' + (lvl10_206 ? '判据成立' : '异常') + '(原满档 ' + (D.EVENT_FEED_CAP || 50) + ')' +
       ' 九面还原=' + codexOk206 + ' ‖ 原账分解 ' + topRaw206 + ' ‖ 落盘分解 ' + topSaved206);
 
     /* #206b 日志存档：离线重开不丢早期日志（独立档 + 主档压缩阶梯不裁日志）+ 展示层每分类 200 上限 */
@@ -4682,14 +4682,18 @@
     var backFeed251 = (((back251.worlds || {}).xiuxian || {}).eventHistory || {}).feed || [];
     var reloadKept251 = backFeed251.length === feed251src.length &&                                    /* (c) */
       backFeed251.every(function (e, i) { return JSON.stringify(e) === JSON.stringify(feed251src[i]); });
-    /* (d) 级⑩ 保险：带 feed 的状态直过 compressForSave（极小触发线 ⇒ 阶梯全跑；副本级序 6..11，feed 裁剪 = 11） */
+    /* (d) 原「级⑩ 保险」已于第十四批整族删除（审计 #13）：`savePayload` 先 `stripSideFlows` 剥掉
+     * eventHistory.feed，阶梯再拿到的是**已经没有 feed 的载荷** ⇒ 那一级在结构上不可达，而 #206 的明细
+     * 却把「级⑩=触发」恒打印（feed 落盘 0 条 ⇒ `0<=5` 恒真）。这里改为判**删除本身成立**：
+     * 带 feed 的状态直过全阶梯（极小触发线）后 feed **一条不少**，且级号 11 不再出现在 stages 里。 */
     var ins251 = JSON.parse(JSON.stringify(ref251));
+    var feedN0251 = (((ins251.worlds || {}).xiuxian || {}).eventHistory || {}).feed.length;
     var rr251 = await SQ.compressForSave(ins251, Date.now(), 1);
     var insEh251 = ((rr251.out.worlds || {}).xiuxian || {}).eventHistory || {};
     var insFeedArr251 = Array.isArray(insEh251.feed) ? insEh251.feed : [];
-    var insured251 = insFeedArr251.length > 0 && insFeedArr251.length <= 5 &&
-      rr251.stages.indexOf(11) >= 0 &&
-      insFeedArr251.every(function (e, i) { return JSON.stringify(e) === JSON.stringify(ins251.worlds.xiuxian.eventHistory.feed[i]); });
+    var insured251 = feedN0251 > 0 && insFeedArr251.length === feedN0251 &&
+      rr251.stages.indexOf(11) < 0 && insFeedArr251.every(function (e, i) {
+        return JSON.stringify(e) === JSON.stringify(ins251.worlds.xiuxian.eventHistory.feed[i]); });
     /* (e) 侧档字节预算（feed 新在前 ⇒ 从尾部最旧挤起、首条恒为最新） */
     var big251 = [];
     for (var bq251 = 0; bq251 < 50; bq251++) {
@@ -4707,8 +4711,7 @@
       noFeedOnDisk251 && idemOnDisk251 && sideFull251 && reloadKept251 && insured251 && budgetOk251 && bytesOk251 && clean251,
       '主档含feed=' + (Array.isArray(eh251disk.feed)) + ' 幂等键在主档=' + idemOnDisk251 +
       ' 侧档=' + sideFeed251.length + '/' + (D.EVENT_FEED_CAP || 50) + ' 逐条全等=' + sideFull251 +
-      ' 重载保留=' + reloadKept251 + '(' + backFeed251.length + '条) 级⑩保险=' + insured251 +
-      '(落盘' + insFeedArr251.length + '条/stage11=' + (rr251.stages.indexOf(11) >= 0) + ')' +
+      ' 重载保留=' + reloadKept251 + '(' + backFeed251.length + '条) 级⑩已删(feed 全留 ' + insFeedArr251.length + '/' + feedN0251 + '，stage11 不再出现=' + (rr251.stages.indexOf(11) < 0) + ')=' + insured251 +
       ' 预算裁=' + trimmed251.length + '/' + big251.length + '>5=' + (trimmed251.length > 5) +
       ' 内存零污染=' + clean251);
 
@@ -5058,10 +5061,17 @@
     var skipKeeps283 = st283c.sideBytes === st283b.sideBytes && st283c.sideBytes > 0;
     var nowFixed283 = Date.now();
     var forced283 = await SQ.compressForSave(s283, nowFixed283, 1);
-    var ladderVisible283 = forced283.stages.length > 0 && forced283.stages[0] === 0;
-    ok('283', '存档水位读数与盘上同源且不进存档：主档 ' + st283a.mainBytes + 'B === 落盘值字节数（度量线同 §3.5 编码后口径）· 日志 3000 条入侧档后主档仅动 ' + (st283b.mainBytes - st283a.mainBytes) + 'B 且有损级 ' + st283b.stageCount + ' 级 · 侧档 ' + sideBefore283 + '→' + st283b.sideBytes + 'B 亦与盘上相等 · 跳写沿用读数不归零 · 强制跑满时级序 ' + forced283.stages.join('/') + '（证明那一行真会亮）',
+    /* 审计 #20 尾项把 `stages` 的口径改成「只记真降了字节的级」⇒ 旧写法 `stages.length > 0 && stages[0] === 0`
+     * 恰好在**什么都没可裁**的态上也会报「0 级触发」（= 被治的那个夸大，现在它诚实地是 []）。
+     * 判据因此拆两半：(a) 这份档无可裁 ⇒ stages 必须为空；(b) 另造一份**必然可裁**的态（normalize({}) 生成
+     * 的势力 rels 是双向全存 ⇒ 级⑦三角折叠必降字节）⇒ stages 非空且含 7。两半合起来才叫「那一行会亮」。 */
+    var nothing2Trim283 = forced283.stages.length === 0;
+    var s283t = SQ.defaultState(); s283t.worlds.xiuxian = pack.normalize({});
+    var forced283b = await SQ.compressForSave(s283t, nowFixed283, 1);
+    var ladderVisible283 = nothing2Trim283 && forced283b.stages.length > 0 && forced283b.stages.indexOf(7) >= 0;
+    ok('283', '存档水位读数与盘上同源且不进存档：主档 ' + st283a.mainBytes + 'B === 落盘值字节数（度量线同 §3.5 编码后口径）· 日志 3000 条入侧档后主档仅动 ' + (st283b.mainBytes - st283a.mainBytes) + 'B 且有损级 ' + st283b.stageCount + ' 级 · 侧档 ' + sideBefore283 + '→' + st283b.sideBytes + 'B 亦与盘上相等 · 跳写沿用读数不归零 · 强制跑满时级序只记真降字节的级（无可裁态 = 空、有可裁态含级 7 ⇒ 既会亮也不夸大）' + forced283b.stages.join('/') + '（审计 #20 尾项改了这里的口径）',
       honest283 && notInSave283 && decoupled283 && sideTruth283 && skipKeeps283 && ladderVisible283,
-      '顶层键=' + topKeys283 + ' 主档真值=' + truthMain283 + 'B 报=' + st283a.mainBytes + 'B · 涨日志后主档=' + st283b.mainBytes + 'B 侧档=' + st283b.sideBytes + 'B（真值=' + SQ.storedBytes(localStorage.getItem(SQ.Log.KEY)) + 'B）· 跳写后=' + st283c.sideBytes + 'B · codec=' + st283b.codec + ' · 强制级=' + forced283.stages.join('/'));
+      '顶层键=' + topKeys283 + ' 主档真值=' + truthMain283 + 'B 报=' + st283a.mainBytes + 'B · 涨日志后主档=' + st283b.mainBytes + 'B 侧档=' + st283b.sideBytes + 'B（真值=' + SQ.storedBytes(localStorage.getItem(SQ.Log.KEY)) + 'B）· 跳写后=' + st283c.sideBytes + 'B · codec=' + st283b.codec + ' · 无可裁态级=' + (forced283.stages.join('/') || '(空，改口径后不再虚报 0 级)') + ' 有可裁态级=' + forced283b.stages.join('/'));
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY); SQ.Side.resetSig();
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
 
@@ -6095,6 +6105,127 @@
       ' ‖ (b) 侧档第 ' + iSide294 + ' 次写 / 主档第 ' + iMain294 + ' 次（共 ' + order294.length + ' 写）' +
       ' ‖ (c) err=' + JSON.stringify(errSide294) + ' 侧档原样=' + (sideBytes294 === '坏档！') +
       ' 复位后=' + JSON.stringify(SQ.storageError()));
+
+    /* #295 审计处置批 C 组（引擎侧「屏上的账」与「单源」）：
+     * (a)(b)(c) 三类**静默零收益**必须撤销自己的文案与 applied（审计 #6）——
+     *     attrBonus 满 `ATTR_EVENT_BONUS_CAP` 被整笔丢弃 / artsProgress 无槽可进 / gearScoreDown 四槽皆空，
+     *     三者原来都照报「永久 +3」「功法精进 N 级」「一件法器受损」。每型都配**未满的正例**防空转。
+     * (d) 门中供给价走 `SQ.Shop.supplyPriceOf`（审计 #8）：与坊市 `priceOf` 同吃 shopCost、同 Math.ceil。
+     * (e) 材料包按**定价时那一组**发货（审计 #9）：`good.zoneGroup` 从此有了读者，抬境界跨组套利被堵。
+     * (f) 淬炼费用单一取数口（审计 #9 姊妹面）：`Fusion.reforgeCostOf` 四档 === 表值，越界回 huang(200) 而非 800。
+     * (g) 丹方 `def.mod` 是事实源（审计 #14）：改 `APILLS.ap_pozhang.mod` ⇒ 破障成本跟着动（旧读 AL.POZHANG_MOD，已删）。
+     * (h) `D.LEGACY.LOG_KEEP` 是事实源（审计 #20 嵌套死常量）：改表 ⇒ 读档保留条数跟着动。 */
+    var noop295 = function () {};
+    var CAP295 = D.ATTR_EVENT_BONUS_CAP;
+    var w295a = mkWs({}); w295a.attrEventBonus = { mind: CAP295 };
+    var e295a = { attrBonus: { attr: 'gunt', n: 3 } }; var ap295a = { attrBonus: { attr: 'gunt', n: 3 } };   /* applied 由 gainToEff 先种（applyEffects 只负责撤销） */
+    SQ.Events.applyEffects(w295a, pack, D, M(mkProf(), w295a), e295a, { applied: ap295a, log: noop295, now: 1700000095000 });
+    var w295b = mkWs({}); var e295b = { attrBonus: { attr: 'gunt', n: 3 } }; var ap295b = { attrBonus: { attr: 'gunt', n: 3 } };
+    SQ.Events.applyEffects(w295b, pack, D, M(mkProf(), w295b), e295b, { applied: ap295b, log: noop295, now: 1700000095000 });
+    var a295 = w295a.attrEventBonus.gunt === undefined && !ap295a.attrBonus && e295a.attrBonus == null &&
+      SQ.Events.effText(w295a, pack, D, e295a) === SQ.Events.effText(w295a, pack, D, {}) &&
+      w295b.attrEventBonus.gunt === 3 && !!ap295b.attrBonus;
+
+    var w295c = mkWs({}); w295c.artsSlots = []; w295c.artsKnown = []; w295c.artsLevels = {};
+    var e295c = { artsProgress: 2 }; var ap295c = { artsProgress: 2 };
+    SQ.Events.applyEffects(w295c, pack, D, M(mkProf(), w295c), e295c, { applied: ap295c, log: noop295, now: 1700000095000 });
+    var w295d = mkWs({}); w295d.artsKnown = ['tuna']; w295d.artsSlots = ['tuna']; w295d.artsLevels = { tuna: 0 };
+    var e295d = { artsProgress: 1 }; var ap295d = { artsProgress: 1 };
+    SQ.Events.applyEffects(w295d, pack, D, M(mkProf(), w295d), e295d, { applied: ap295d, log: noop295, now: 1700000095000 });
+    var b295 = e295c.artsProgress == null && !ap295c.artsProgress && Object.keys(w295c.artsLevels).length === 0 &&
+      w295d.artsLevels.tuna === 1 && !!ap295d.artsProgress;
+
+    var w295e = mkWs({}); w295e.gear = {};
+    var e295e = { gearScoreDown: -0.2 };
+    SQ.Events.applyEffects(w295e, pack, D, M(mkProf(), w295e), e295e, { applied: {}, log: noop295, now: 1700000095000 });
+    var w295f = mkWs({}); w295f.gear = { weapon: mkGear('weapon', { atk: 100 }) };
+    var atk0295 = w295f.gear.weapon ? w295f.gear.weapon.atk : 0;
+    var e295f = { gearScoreDown: -0.2 };
+    SQ.Events.applyEffects(w295f, pack, D, M(mkProf(), w295f), e295f, { applied: {}, log: noop295, now: 1700000095000 });
+    var c295 = e295e.gearScoreDown == null &&
+      SQ.Events.effText(w295e, pack, D, e295e) === SQ.Events.effText(w295e, pack, D, {}) &&
+      atk0295 === 100 && w295f.gear.weapon.atk === 80;
+
+    var pill295 = (D.PILLS || [])[0];
+    var mS295 = { sum: { shopCost: -0.15, qiRate: 0 }, hooks: {}, bonds: {}, detail: {} };
+    var MULT295 = D.FACTION_SUPPLY_PRICE_MULT != null ? D.FACTION_SUPPLY_PRICE_MULT : 2;
+    var newP295 = SQ.Shop.supplyPriceOf(pill295, w295b, D, mS295);
+    var oldP295 = Math.round(pill295.price * MULT295 * (1 + w295b.realm * (D.SHOP_PRICE_REALM || 0.4)));
+    /* 期望值按坊市口径独立写一遍（priceOf 是 shop.js 私有，不外露）：坊市价 ×倍率 ×(1+realm×SHOP_PRICE_REALM)
+     * ×(1+ΣshopCost) 后 **向上取整**、下限 1 —— 这正是旧内联式漏掉折扣与取整口径的那两件事。 */
+    var exp295 = Math.max(1, Math.ceil(pill295.price * MULT295 *
+      (1 + w295b.realm * (D.SHOP_PRICE_REALM || 0.4)) * (1 + mS295.sum.shopCost)));
+    var d295 = newP295 === exp295 && newP295 < oldP295 &&
+      SQ.Shop.supplyPriceOf(pill295, w295b, D, { sum: { shopCost: 0 }, hooks: {}, bonds: {}, detail: {} }) ===
+      Math.max(1, Math.ceil(pill295.price * MULT295 * (1 + w295b.realm * (D.SHOP_PRICE_REALM || 0.4))));
+    /* (d2) 真跑引擎那一笔：买一单门中供给，扣的灵石必须**正好等于** supplyPriceOf（只测函数等于公式，
+     * 证不了调用点接上了 —— 本仓的规矩是判「消费关系」而不是「函数存在」）。 */
+    var si295 = (D.FACTION_SUPPLY || [])[0];
+    var pillS295 = null;
+    (D.PILLS || []).forEach(function (p) { if (si295 && p.id === si295.pill) pillS295 = p; });
+    var w295s = pack.normalize({});
+    w295s.stones = 999999; w295s.factionId = 'huangfeng';
+    w295s.factionRep = { huangfeng: 999999 }; w295s.factionRepPeak = 999999;
+    var expS295 = pillS295 ? SQ.Shop.supplyPriceOf(pillS295, w295s, D, mS295) : -1;
+    var rS295 = si295 ? SQ.Factions.buySupply(w295s, pack, D, mS295, si295.sku, 1700000095200, noop295) : { ok: false };
+    var d295b = !!si295 && !!pillS295 && rS295.ok === true && w295s.stones === 999999 - expS295 && expS295 > 0;
+    d295 = d295 && d295b;
+
+    var w295g = mkWs({ realm: 0 }); var good295 = null;
+    for (var t295 = 0; t295 < 600 && !good295; t295++) {
+      var pg295 = SQ.Alchemy.rollPackGood(w295g, pack, D);
+      if (pg295 && pg295.type === 'mat' && pg295.zoneGroup === 0) good295 = pg295;
+    }
+    var eids295 = [];
+    if (good295) {
+      w295g.realm = 6;                                    /* 抬到组 2 的区：旧口径会照当下境界发货 = 跨组套利 */
+      w295g.materials = {};
+      SQ.Alchemy.deliverPackGood(w295g, pack, D, M(mkProf(), w295g), good295, noop295);
+      eids295 = Object.keys(w295g.materials || {});
+    }
+    var e295 = !!good295 && eids295.length > 0 &&
+      eids295.every(function (id) { return SQ.Alchemy.groupOf(D, id) === 0; });
+
+    var RC295 = (D.FUSE || {}).REFORGE_COST || {};
+    var rc295 = [0, 1, 2, 3].map(function (i) { return SQ.Fusion.reforgeCostOf({ tier: i }, D); });
+    var f295 = rc295.join(',') === [RC295.huang, RC295.xuan, RC295.di, RC295.tian].join(',') &&
+      SQ.Fusion.reforgeCostOf({ tier: 9 }, D) === RC295.huang &&
+      SQ.Fusion.reforgeCostOf({}, D) === RC295.huang;
+
+    var PE295 = ((D.ALCHEMY || {}).APILLS || {}).ap_pozhang;
+    var mod0295 = PE295.mod;
+    var drinkTo = function () {
+      var w = mkWs({ realm: 5 });
+      var al = SQ.Alchemy.ensure(w, D);
+      al.pills = { ap_pozhang: 1 }; al.pillDay = { day: 'x', n: 0 }; al.pillOnce = al.pillOnce || {};
+      w.breakCostNext = 0.4;
+      SQ.Alchemy.drinkPill(w, pack, D, 'ap_pozhang', 1700000095100, noop295, mkProf());
+      return w.breakCostNext;
+    };
+    PE295.mod = -0.5; var gA295 = drinkTo(); PE295.mod = mod0295;
+    var gB295 = drinkTo();
+    var g295 = Math.abs(gA295 - (0.4 - 0.5)) < 1e-9 && Math.abs(gB295 - (0.4 + mod0295)) < 1e-9 &&
+      !('POZHANG_MOD' in D.ALCHEMY);
+
+    var mkLog6 = function () { var a = []; for (var i = 0; i < 6; i++) a.push({ ts: 1700 + i, delta: 1, reason: 'r', balance: 0 }); return a; };
+    var LK0 = D.LEGACY.LOG_KEEP;
+    D.LEGACY.LOG_KEEP = 3; var mLK = SQ.Legacy.metaNormalize({ karmaLog: mkLog6() });
+    D.LEGACY.LOG_KEEP = LK0; var mLK0 = SQ.Legacy.metaNormalize({ karmaLog: mkLog6() });
+    /* 复原那一判按「6 条全留」写：LOG_KEEP(20) 大于样本条数 ⇒ 上界不生效，这才是对照。 */
+    var h295 = mLK.karmaLog.length === 3 && mLK0.karmaLog.length === 6;
+
+    ok('295', '静默零收益撤销 + 价格/上界单源（审计 #6/#8/#9/#14/#20）：(a) `attrEventBonus` 满上限被整笔丢弃 ⇒ applied 无键 + 文案与空效果逐字全等（未满正例照旧入账）；(b) 无槽可进 ⇒ `artsProgress` 撤销（有槽正例 +1 级）；(c) 四槽皆空 ⇒ 「法器受损」行不再出现（有装备正例 atk 真降）；(d) 门中供给价 === `Shop.priceOf(坊市价×倍率)` 且 −15% shopCost 真的吃进去（旧内联式会算出 ' + oldP295 + '）；(e) 材料包按**定价组**发货，抬境到组 2 仍只发组 0 的料（`zoneGroup` 从只写不读接上读者）；(f) `Fusion.reforgeCostOf` 四档 === 表且越界回 huang（旧视图兜底 800 = 玄阶价）；(g) 破障成本随 `APILLS.ap_pozhang.mod` 动（改 −0.5 ⇒ 0.4−0.5）且 `AL.POZHANG_MOD` 已不存在；(h) 读档保留条数随 `D.LEGACY.LOG_KEEP` 动（改 3 ⇒ 6 条只留 3，复原（表 20 > 样本 6）⇒ 6 条全留）',
+      a295 && b295 && c295 && d295 && e295 && f295 && g295 && h295,
+      '判旗 a=' + a295 + ' b=' + b295 + ' c=' + c295 + ' d=' + d295 + ' e=' + e295 + ' f=' + f295 + ' g=' + g295 + ' h=' + h295 +
+      ' ‖ (a) 上限时 applied=' + JSON.stringify(ap295a) + ' 未满=' + (w295b.attrEventBonus.gunt) +
+      ' ‖ (b) 无槽=' + JSON.stringify(w295c.artsLevels) + ' 有槽=' + w295d.artsLevels.tuna +
+      ' ‖ (c) 空槽文案等同空效果=' + (SQ.Events.effText(w295e, pack, D, e295e) === SQ.Events.effText(w295e, pack, D, {})) +
+      ' 有装备 atk ' + atk0295 + '→' + (w295f.gear.weapon ? w295f.gear.weapon.atk : '-') +
+      ' ‖ (d) 新=' + newP295 + ' 期望=' + exp295 + ' 旧内联=' + oldP295 +
+      ' ‖ (d2) 真买一单：扣=' + (999999 - w295s.stones) + ' 应扣=' + expS295 + ' ok=' + rS295.ok +
+      ' ‖ (e) 发货组=' + (good295 ? eids295.map(function (id) { return SQ.Alchemy.groupOf(D, id); }).join('') : '(未掷出组 0 包)') +
+      ' ‖ (f) ' + rc295.join('/') + ' 越界=' + SQ.Fusion.reforgeCostOf({ tier: 9 }, D) +
+      ' ‖ (g) 改表=' + gA295 + ' 原=' + gB295 + ' ‖ (h) 改表留 ' + mLK.karmaLog.length + ' 条 / 原留 ' + mLK0.karmaLog.length + ' 条');
 
 
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：

@@ -25,6 +25,23 @@ const KEY = 'sanqian-state-v1';
   fx.worlds.xiuxian.realm = 9;
   fx.worlds.xiuxian.total = Math.max(fx.worlds.xiuxian.total || 0, 100000);
   fx.worlds.xiuxian.qi = Math.max(fx.worlds.xiuxian.qi || 0, 50000);
+  /* 第十四批审计 #4/#7/#11 三条判据的前置态：
+   *   mode 钉成 seclude（×1.3）⇒ 顶部速率与「未乘模式乘区」的旧读数必然不同，判据才有鉴别力；
+   *   有势力 + 叛离过 + 新门 rank 未达 ⇒ 「身份」那条只有按引擎口径才判得出 ✓（视图旧式会亮红 ✗）。 */
+  fx.worlds.xiuxian.mode = 'seclude';
+  fx.worlds.xiuxian.everDefected = true;
+  fx.worlds.xiuxian.factionId = 'huangfeng';
+  /* AT-T 前提：天怒档（defy 70 < nijie 100 且 armed.nu）⇒ 渡劫明细里那一行会渲染，
+   * 屏上数字必须等于 `D.TIANDAO.DEFY_TRIB_MODS[1]`（旧视图硬编码 -0.03，比表里多罚 0.01）。 */
+  fx.worlds.xiuxian.tiandao = Object.assign({}, fx.worlds.xiuxian.tiandao, { defy: 70, armed: { lai: false, nu: true } });
+  /* AT-D 的非空前提：给一枚带 qiRate 的天赋（effects 是**按字段名的对象**，不是数组）+ 一对能触发羁绊的
+   * 真天赋 id（`TALENT_SYNERGIES` 的 gifted+diligent ⇒ 来源 'synergy'，qiRate +0.04）。
+   * 为什么必须凑出 'synergy'：旧视图硬列的 10 个源里**没有它** ⇒ 只有本档真有 synergy 值，
+   * 「明细漏源」这条判据才有鉴别力（空集上的相等不算证据，本仓纪律）。 */
+  (fx.profile.talents || (fx.profile.talents = [])).push(
+    { id: 'walk-qi', kind: 'positive', tier: 'common', world: 'common', weight: 1, amplified: false, effects: { qiRate: 0.05 } },
+    { id: 'gifted', kind: 'positive', tier: 'common', world: 'common', weight: 1, amplified: false, effects: {} },
+    { id: 'diligent', kind: 'positive', tier: 'common', world: 'common', weight: 1, amplified: false, effects: {} });
   const fixture = JSON.stringify(fx);
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   let pass = 0, fail = 0;
@@ -85,6 +102,111 @@ const KEY = 'sanqian-state-v1';
   }
 
   T(new Set(seen).size === nav.total, 'AT-Set 十五页各点到一次（无重复、无遗漏）', 'distinct=' + new Set(seen).size);
+
+  /* ── 第十四批审计 #4 / #11 / #7：屏上的数必须由引擎同一个式子算出来 ──
+   * 本仓头号缺陷类 = 同一规则两处各写一遍。这三条钉的是「视图自己算了一遍」那一族：
+   *   AT-R 修行页顶部「产出 N/秒」=== `SQ.Idle.effRate`（含模式乘区），且**不等于**旧的 `rateOf` 读数
+   *        （fixture 已把 mode 钉成 seclude ×1.3 ⇒ 两值必不同，摘回 rateOf 这一条就红）；
+   *   AT-D 明细里每个有值的 qiRate 来源都要有一行（旧视图硬列 10 项，cave/caveFac/treasure/synergy/legacy
+   *        被静默漏掉 ⇒ 明细相加永远对不上顶部数），且标签全部解析得出（不许裸英文上屏）；
+   *   AT-G 宗门页四门槛 chip 的 ok/no 逐条 === `SQ.Sect.foundGates`（旧视图自己重写一遍判定，「身份」那条
+   *        与引擎不同式 ⇒ 叛离过、新门 rank 未达的玩家按钮能点、同行亮红 ✗）。 */
+  const clickTab = async (label) => {
+    const idx = nav.texts.findIndex((x) => x.indexOf(label) >= 0);
+    if (idx < 0) return false;
+    await page.evaluate((i) => {
+      const b = Array.prototype.slice.call(document.getElementById('m-tabbar').querySelectorAll('button'))[i];
+      if (b) b.click();
+    }, idx);
+    await page.waitForTimeout(420);
+    return true;
+  };
+
+  if (await clickTab('修行')) {
+    const rRow = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+      const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
+      pack.recalcDerived(w, st.profile);
+      const mods = SQ.Mods.collect(st.profile, w, pack, D);
+      const eff = SQ.Idle.effRate(w, pack, D, mods, false);
+      const raw = SQ.Idle.rateOf(w, pack, D, mods);
+      const btn = document.querySelector('#tab-idle [data-act="detailRate"]');
+      const row = btn ? btn.parentElement : null;
+      const m = ((row && row.innerText) || '').match(/([\d.]+)\/秒/);
+      const shown = m ? m[1] : '';
+      /* 明细展开后再逐源核对 */
+      if (btn) btn.click();
+      return { eff: eff.toFixed(1), raw: raw.toFixed(1), shown: shown, mode: w.mode };
+    });
+    await page.waitForTimeout(320);
+    const dRow = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+      const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
+      pack.recalcDerived(w, st.profile);
+      const mods = SQ.Mods.collect(st.profile, w, pack, D);
+      const box = document.querySelector('#tab-idle .detailbox');
+      const txt = box ? (box.innerText || '') : '';
+      const srcs = Object.keys((mods.detail && mods.detail.qiRate) || {}).filter((k) => Math.abs(mods.detail.qiRate[k]) > 1e-9);
+      const missing = [], bare = [];
+      srcs.forEach((k) => {
+        const lb = SQ.t('idle.' + k, null, 'xiuxian');
+        if (lb === 'idle.' + k) bare.push(k);
+        else if (txt.indexOf(lb) < 0) missing.push(k);
+      });
+      return { n: srcs.length, missing: missing.join(','), bare: bare.join(','), hasBox: !!box };
+    });
+    T(rRow.shown === rRow.eff && rRow.eff !== rRow.raw,
+      'AT-R 修行页顶部速率 === 引擎 effRate（含模式乘区，且与旧 rateOf 读数不同 = 这行改动有鉴别力）',
+      'mode=' + rRow.mode + ' 屏上=' + rRow.shown + ' eff=' + rRow.eff + ' 旧 rateOf=' + rRow.raw);
+    T(dRow.hasBox && dRow.n > 0 && !dRow.missing && !dRow.bare,
+      'AT-D 明细按 mods 真实来源逐行渲染（漏源与裸英文键名都算失败）',
+      '源数=' + dRow.n + ' 漏=' + (dRow.missing || '无') + ' 缺标签=' + (dRow.bare || '无'));
+
+    /* AT-T 渡劫明细的「天怒」行（同页 `data-act="detailTrib"` 展开）：屏上数字必须 === 表值。
+     * 旧视图在这里硬编码 -0.03 / -0.01，而 `D.TIANDAO.DEFY_TRIB_MODS = [-0.01, -0.02]` ⇒ 天怒那行
+     * 比引擎多罚 0.01，且与同面板上方 `ti.parts.tiandao`（引擎实算）两个数打架（审计 #5）。 */
+    const tRow = await page.evaluate(() => {
+      const btn = document.querySelector('#tab-idle [data-act="detailTrib"]');
+      if (btn) btn.click();
+      return new Promise((res) => setTimeout(() => {
+        const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+        const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
+        const want = D.TIANDAO.DEFY_TRIB_MODS[1].toFixed(2);
+        const stageNu = SQ.t('tiandao.stage.nu', null, 'xiuxian');
+        const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-idle .detailbox .kv'));
+        const hit = rows.map((r) => (r.innerText || '')).filter((x) => x.indexOf(stageNu) >= 0)
+          .map((x) => ((x.match(/-?\d\.\d+/) || [''])[0]));
+        const txt = (document.getElementById('tab-idle') || {}).innerText || '';
+        res({ want: want, shown: hit.join('|'), n: hit.length, stage: SQ.Tiandao.stageOf(w, D),
+          lie: txt.indexOf('-0.03') >= 0 });
+      }, 320));
+    });
+    T(tRow.stage === 'nu' && tRow.n === 1 && tRow.shown === tRow.want && !tRow.lie,
+      'AT-T 渡劫明细「天怒」行的数字 === 表值（旧视图硬编码 -0.03 = 比 DEFY_TRIB_MODS[1] 多罚 0.01）',
+      '档=' + tRow.stage + ' 屏=' + (tRow.shown || '(无该行)') + ' 表=' + tRow.want + ' 残留旧抄本=' + tRow.lie);
+  } else {
+    T(false, 'AT-R 修行页导航可定位', '找不到「修行」页签');
+  }
+
+  if (await clickTab('宗门')) {
+    const gRow = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+      const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
+      const g = SQ.Sect.foundGates(w, D, st.meta);
+      const spans = Array.prototype.slice.call(document.querySelectorAll('#tab-sect .reqchips span'));
+      const dom = spans.map((x) => x.classList.contains('ok'));
+      const eng = [g.realm, g.identity, g.peak, g.unlock];
+      const chk = SQ.Sect.canFound(w, pack, D, st.meta);
+      return { dom: dom.join(','), eng: eng.join(','), n: spans.length, everDef: w.everDefected === true,
+        reason: chk.reason, idEng: g.identity };
+    });
+    T(gRow.n === 4 && gRow.dom === gRow.eng,
+      'AT-G 宗门四门槛 chip 逐条 === SQ.Sect.foundGates（规则只留属主那一份）',
+      '屏=' + gRow.dom + ' 引擎=' + gRow.eng + ' 叛离过=' + gRow.everDef + ' canFound=' + gRow.reason);
+  } else {
+    T(false, 'AT-G 宗门页导航可定位', '找不到「宗门」页签');
+  }
+
   T(errors.length === 0, 'AT-Err 全表逐页点完后零 pageerror / 零 console.error', errors.slice(0, 3).join('|') || 'clean');
 
   console.log(fail === 0 ? 'UI_ALLTABS_ALL_GREEN ' + pass + '/' + (pass + fail)

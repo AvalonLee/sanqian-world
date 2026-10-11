@@ -35,6 +35,15 @@
     };
   }
 
+  /* 读档上界取表（第十四批审计 #20）：`D.LEGACY.LOG_KEEP` / `BIO_MAX` 此前是**声明了却没人读**的嵌套常量，
+   * 真值住在下面两处字面量 ⇒ 抬表不带动任何行为（A9 只枚举世界表**顶层**键，这类嵌套死常量一条都不在账上，
+   * 由本批 🆕 A10 兜住）。metaNormalize(m) 没有 D 形参 ⇒ 按 karma.js 同一条口径读全局 SQ.XDATA。
+   * shortcut: 取不到世界表才回落旧字面量（只为无世界包的单测路径），下一版若 A10 覆盖到测试面即可删。 */
+  function legacyCap(k, dflt) {
+    var L = (SQ.XDATA || {}).LEGACY || {};
+    return L[k] != null ? L[k] : dflt;
+  }
+
   function metaNormalize(m) {
     var d = metaBlank();
     if (!m || typeof m !== 'object') return d;
@@ -55,7 +64,7 @@
     out.karma = (kc === sumE - sumS) ? kc : (sumE - sumS);
     var logRaw = arr(m.karmaLog, []);
     out.karmaLog = [];
-    logRaw.slice(-20).forEach(function (l) {
+    logRaw.slice(-legacyCap('LOG_KEEP', 20)).forEach(function (l) {
       if (!l || typeof l !== 'object') return;
       out.karmaLog.push({ ts: Math.max(0, num(l.ts, 0)), delta: Math.floor(num(l.delta, 0)),
         reason: typeof l.reason === 'string' ? l.reason.slice(0, 40) : 'fix', balance: Math.max(0, Math.floor(num(l.balance, 0))) });
@@ -73,7 +82,7 @@
       out.biographies.push({
         life: Math.max(0, Math.floor(num(b.life, 0))),
         name: typeof b.name === 'string' ? b.name.slice(0, 16) : '',
-        text: b.text.slice(0, 500),
+        text: b.text.slice(0, legacyCap('BIO_MAX', 500)),
         stats: obj(b.stats, {}), source: b.source === 'tiandao' ? 'tiandao' : 'local',
         ts: Math.max(0, num(b.ts, 0))
       });

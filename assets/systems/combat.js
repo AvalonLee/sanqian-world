@@ -52,12 +52,9 @@
       var need = zone.need * ((affix && affix.needMult) || 1);
       var raw = SQ.Mods.powerOf(ws, pack, D, mods);
       if (raw >= need) return { bottleneck: false, power: raw, need: need };
-      var shikui = mods.hooks.shikui || 0;
-      /* 护镖（铁承志 on_bottleneck，批 3）：瓶颈态战力 +3%→9%，与尸傀护主同读点加算 */
-      var bnBond = (mods.bonds && mods.bonds.bottleneck) || 0;
-      /* 法宝·两仪太极图 / 护心古镜（hook:on_bottleneck_power，法宝全录 X04/H07）+ 机制天赋同键：同读点加算 */
-      var trBn = (mods.hooks && mods.hooks.on_bottleneck_power) || 0;
-      var power = raw * (1 + shikui + bnBond + trBn);
+      /* 瓶颈态战力 = 同一条加算式（尸傀护主 shikui + 护镖 bonds.bottleneck + 法宝 on_bottleneck_power），
+       * 只留 challengePower 一份（第十四批审计 #20：这里与它各写一遍，注释还互相指着「同公式」）。 */
+      var power = SQ.Combat.challengePower(ws, pack, D, mods);
       if (power >= need) return { bottleneck: false, power: power, need: need };
       var jingOk = ((ws.attrs || {}).jing || 0) >= SQ.Attrs.dcOf(ws, D, D.JING_BOTTLENECK_DC);
       var pen = jingOk ? 2 : D.BOTTLENECK_INTERVAL;

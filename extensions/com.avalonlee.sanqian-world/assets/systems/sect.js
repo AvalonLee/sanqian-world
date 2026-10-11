@@ -198,18 +198,31 @@
   }
 
   /* ── 开宗四门槛（§1.2 逐项校验，缺一拒开）────────────── */
-  function canFound(ws, pack, D, meta) {
+  /* 单一判据（第十四批审计 #7）：视图原先自己重写了一遍这四条，其中「身份」那条与这里**不同式**
+   * （视图 = 有 factionId 时只看 rank；引擎 = rank 达标**或**有叛离经历）⇒ 叛离换门、新门 rank 未达的
+   * 玩家「按钮能点、同行却亮红 ✗」。规则只留这一份，canFound 与视图同调本函数。 */
+  function foundGates(ws, D, meta) {
     var SC = S(D);
-    if (ws.sect) return { ok: false, reason: ws.sect.succession ? 'done' : 'has' };
-    if ((ws.realm || 0) < (SC.FOUND_REALM != null ? SC.FOUND_REALM : 4)) return { ok: false, reason: 'realm' };
     var rankOk = false;
     if (ws.factionId && ws.factionId !== 'sect' && SQ.Factions && SQ.Factions.rankOf) {
       rankOk = SQ.Factions.rankOf(ws, D) >= (SC.FOUND_RANK != null ? SC.FOUND_RANK : 4);
     }
     var everDef = ws.everDefected === true || (ws.sect && ws.sect.everDefected === true);
-    if (!rankOk && !everDef) return { ok: false, reason: 'identity' };
-    if ((ws.factionRepPeak || 0) < (SC.FOUND_REP_PEAK != null ? SC.FOUND_REP_PEAK : 2000)) return { ok: false, reason: 'peak' };
-    if (!meta || !meta.unlocks || meta.unlocks.sect !== true) return { ok: false, reason: 'unlock' };
+    return {
+      realm: (ws.realm || 0) >= (SC.FOUND_REALM != null ? SC.FOUND_REALM : 4),
+      identity: rankOk || everDef,
+      peak: (ws.factionRepPeak || 0) >= (SC.FOUND_REP_PEAK != null ? SC.FOUND_REP_PEAK : 2000),
+      unlock: !!(meta && meta.unlocks && meta.unlocks.sect === true)
+    };
+  }
+
+  function canFound(ws, pack, D, meta) {
+    if (ws.sect) return { ok: false, reason: ws.sect.succession ? 'done' : 'has' };
+    var g = foundGates(ws, D, meta);
+    if (!g.realm) return { ok: false, reason: 'realm' };
+    if (!g.identity) return { ok: false, reason: 'identity' };
+    if (!g.peak) return { ok: false, reason: 'peak' };
+    if (!g.unlock) return { ok: false, reason: 'unlock' };
     return { ok: true };
   }
 
@@ -631,6 +644,7 @@
     sectRep: sectRep,
     npcRepOf: npcRepOf,
     canFound: canFound,
+    foundGates: foundGates,
     foundSect: foundSect,
     recruit: recruit,
     acceptCandidate: acceptCandidate,

@@ -69,8 +69,12 @@
       if (typeof id === 'string' && ownedIds[id] && !used[id]) { out.slots[i] = id; used[id] = 1; }
     }
     var fr = (raw.fate && typeof raw.fate === 'object') ? raw.fate : {};
+    /* 上界取表（审计 #15）：原先这里硬夹 0.2，而 `XTREASURES.FATE_CAP = 0.20` 是同一件事的第二份——
+     * 抬表就变成「累积得进、读档剪掉」的静默削档。0.2 只作**无法宝表的兜底**（古武型世界没有这一族），
+     * 表在时一律以表为准。 */
+    var capF = (T(pack) || {}).FATE_CAP;
     FATE_BUCKETS.forEach(function (b) {
-      out.fate[b] = Math.max(0, Math.min(0.2, num(fr[b], 0)));
+      out.fate[b] = Math.max(0, Math.min(capF != null ? capF : 0.2, num(fr[b], 0)));
     });
     return out;
   }

@@ -349,6 +349,11 @@
         var main = SQ.Arts.progressTarget(ws, D.ARTS_MAX_LV);
         if (main) {
           ws.artsLevels[main] = Math.min(D.ARTS_MAX_LV, (ws.artsLevels[main] || 0) + e.artsProgress);
+        } else {
+          /* 一丁点没进（无槽可进）⇒ 撤销标签与 applied（审计 #6）：原样留着就是「功法精进 N 级」的假账。
+           * 同文件 bondLock 降级那一段早已是「delete 掉未发生的收益」这一口径。 */
+          e.artsProgress = null;
+          if (ctx.applied) delete ctx.applied.artsProgress;
         }
       }
       if (e.tribNext != null) ws.tribulation.next = (ws.tribulation.next || 0) + e.tribNext;
@@ -375,6 +380,9 @@
           if (g.qiBonus) g.qiBonus = Math.round(g.qiBonus * k * 1000) / 1000;
           if (g.resist) g.resist = Math.max(1, Math.round(g.resist * k));
           if (g.attrValue) g.attrValue.value = Math.max(1, Math.round(g.attrValue.value * k));
+        } else {
+          /* 四槽皆空 = 没有一件法器可受损 ⇒ 撤销「一件法器受损」这条标签（审计 #6） */
+          e.gearScoreDown = null;
         }
       }
       if (e.attrBonus) {
@@ -383,8 +391,13 @@
         /* 红尘炼心录：attrEventBonus 获取 +10%/级（amp 只放大正增益） */
         var amp = e.attrBonus.n > 0 ? 1 + (mods.sum.attrBonusAmp || 0) : 1;
         var bn = Math.round(e.attrBonus.n * amp);
-        if (total + bn <= D.ATTR_EVENT_BONUS_CAP) {
+        if (bn > 0 && total + bn <= D.ATTR_EVENT_BONUS_CAP) {
           ws.attrEventBonus[e.attrBonus.attr] = (ws.attrEventBonus[e.attrBonus.attr] || 0) + bn;
+        } else {
+          /* 满上限被整笔丢弃（既有设计，改不改属产品裁定 ⇒ 转 N27/N28 登记）或取整后为 0 ⇒
+           * 一律撤销标签与 applied（审计 #6）：否则文案写「悟性永久 +3」而玩家一分没拿到。 */
+          e.attrBonus = null;
+          if (ctx.applied) delete ctx.applied.attrBonus;
         }
       }
       if (e.breakCost != null) ws.breakCostNext = (ws.breakCostNext || 0) + e.breakCost;
