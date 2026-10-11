@@ -188,6 +188,10 @@ const { chromium } = require('playwright-core');
    * （证它是「读表」而不是「碰巧等于表值」；realm 9 没有待渡的劫 ⇒ 这条只能放在这里，alltabs 到不了该块）。 */
   {
     const s = buildSave(0);
+    /* 🔧 二次复核：D 只读「天怒」那一行，不需要真渡一次劫。起手档 qi 已满 + next=0 + autoTrib 开 ⇒
+     *   首个 tick 就可能把劫渡过掉，而 `tiandao.onTribSettled` 会**清掉 armed.lai/nu** ⇒ 那一行整块消失、
+     *   D1/D2 变成竞态假红。本档单独关自动渡劫（其余场景不动）。 */
+    s.settings.autoTrib = false;
     Object.values(s.worlds).forEach(w => {
       w.tiandao = Object.assign({}, w.tiandao, { defy: 70, armed: { lai: true, nu: true } });
     });

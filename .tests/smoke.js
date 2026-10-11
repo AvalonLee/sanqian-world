@@ -6123,16 +6123,26 @@
       await SQ.save(ref294);                                  /* 侧档恢复可写 ⇒ 这一笔补上，提示归零 */
       var d294 = dMain294 && !!errD294 && errD294.msg === 'sideflow' && SQ.storageError() === null &&
         localStorage.getItem(SK294) !== null;
+
+      /* (e) 🔧 第二次复核补：侧档抛**且主档也抛**的那一笔，「跳写留痕」不许跨笔存活——
+       *   不清的后果 = 侧档恢复可写后的第一次成功落盘仍补打「历史日志没能保存」，而那一刻展示流恰恰写进去了。 */
+      localStorage.setItem = function () { throw new Error('BOTH_294'); };
+      SQ.Log.push(ref294.worlds.xiuxian, 'sys', '两写皆抛', 1700000094003);
+      await SQ.save(ref294);
+      localStorage.setItem = origSet294;
+      await SQ.save(ref294);                                  /* 这一笔两档都落定 ⇒ 提示必须归零 */
+      var e294 = SQ.storageError() === null && localStorage.getItem(SK294) !== null;
     } finally {
       localStorage.setItem = origSet294;
     }
-    ok('294', '写通道收口（审计 #1/#2/#3）：(a) 写失败后 claim **不回滚**（内存 ' + 911111 + ' 守住、盘上补平 === 内存；修前此处会读回 12345 一档）；(b) 一次带新日志的落盘里**侧档先于主档**写（顺序反了就是「主档已剥日志、侧档尚未写」的丢档窗口）；(c) 侧档坏而跳写 ⇒ `ioError = write/sideflow`（视图按码出中文那句「历史日志与奇遇记事没能保存（修为进度已保存）」，不再把裸英文码打给玩家）+ **没有**拿新内容去覆盖那份读不动的档（`坏档！` 原样在盘上），跳写标记用完即清；(d) 🔧 **侧档写抛（宿主拒写）时主档照落盘**——盘上 === 内存新值 + 同笔出 `write/sideflow` 留痕 + 侧档恢复后下一笔补写并归零（本批改写序时把两次写共用在一个 catch 里 ⇒ 侧档一抛机制态永不再落盘，比它要修的缺陷更重）',
-      a294 && b294 && c294 && d294,
+    ok('294', '写通道收口（审计 #1/#2/#3）：(a) 写失败后 claim **不回滚**（内存 ' + 911111 + ' 守住、盘上补平 === 内存；修前此处会读回 12345 一档）；(b) 一次带新日志的落盘里**侧档先于主档**写（顺序反了就是「主档已剥日志、侧档尚未写」的丢档窗口）；(c) 侧档坏而跳写 ⇒ `ioError = write/sideflow`（视图按码出中文那句「历史日志与奇遇记事没能保存（修为进度已保存）」，不再把裸英文码打给玩家）+ **没有**拿新内容去覆盖那份读不动的档（`坏档！` 原样在盘上），跳写标记用完即清；(d) 🔧 **侧档写抛（宿主拒写）时主档照落盘**——盘上 === 内存新值 + 同笔出 `write/sideflow` 留痕 + 侧档恢复后下一笔补写并归零（本批改写序时把两次写共用在一个 catch 里 ⇒ 侧档一抛机制态永不再落盘，比它要修的缺陷更重）；(e) 🔧 **侧档抛且主档也抛**的那一笔，跳写留痕**不许跨笔存活**（第二笔两档都落定后 `storageError()` 必为 null —— 否则展示流明明补写成功了，屏上还挂着「历史日志没能保存」）',
+      a294 && b294 && c294 && d294 && e294,
       '(a) 失败后内存=' + memFail294 + ' claim 后=' + memClaim294 + ' 盘上=' + diskClaim294 +
       ' ‖ (b) 侧档第 ' + iSide294 + ' 次写 / 主档第 ' + iMain294 + ' 次（共 ' + order294.length + ' 写）' +
       ' ‖ (c) err=' + JSON.stringify(errSide294) + ' 侧档原样=' + (sideBytes294 === '坏档！') +
       ' ‖ (d) 侧档抛时主档落盘=' + dMain294 + ' 同笔留痕=' + (errD294 && errD294.msg) +
-      ' 补写后侧档在盘=' + (localStorage.getItem(SK294) !== null));
+      ' 补写后侧档在盘=' + (localStorage.getItem(SK294) !== null) +
+      ' ‖ (e) 两写皆抛的那一笔之后=' + e294);
 
     /* #295 审计处置批 C 组（引擎侧「屏上的账」与「单源」）：
      * (a)(b)(c) 三类**静默零收益**必须撤销自己的文案与 applied（审计 #6）——
@@ -6272,11 +6282,14 @@
       wJ295.stones = 999999; wJ295.factionId = 'huangfeng';
       wJ295.factionRep = { huangfeng: 999999 }; wJ295.factionRepPeak = 999999;
       pJ295.effect = { artsProgress: 2 };                    /* 造一枚「无槽可进」的丹：这一单必走撤销支 */
-      var rJ295 = SQ.Factions.buySupply(wJ295, pack, D, M(mkProf(), wJ295), siJ295.sku, 1700000095400, noop295);
-      j295 = rJ295.ok === true && wJ295.artsLevels.tuna === undefined &&
-        !!pJ295.effect && pJ295.effect.artsProgress === 2;   /* 表未被改写 */
-      jPrint295 = (pJ295.effect || {}).artsProgress;
-      pJ295.effect = effKeepJ;
+      try {
+        var rJ295 = SQ.Factions.buySupply(wJ295, pack, D, M(mkProf(), wJ295), siJ295.sku, 1700000095400, noop295);
+        j295 = rJ295.ok === true && wJ295.artsLevels.tuna === undefined &&
+          !!pJ295.effect && pJ295.effect.artsProgress === 2;   /* 表未被改写 */
+        jPrint295 = (pJ295.effect || {}).artsProgress;
+      } finally {
+        pJ295.effect = effKeepJ;   /* 🔧 二次复核：中途抛出也不许把药方表留在改写态（与 #294 的 finally 同一纪律） */
+      }
     }
 
     ok('295', '静默零收益撤销 + 价格/上界单源（审计 #6/#8/#9/#14/#20）：(a) `attrEventBonus` 满上限被整笔丢弃 ⇒ applied 无键 + 文案与空效果逐字全等（未满正例照旧入账）；(b) 无槽可进 ⇒ `artsProgress` 撤销（有槽正例 +1 级）；(c) 四槽皆空 ⇒ 「法器受损」行不再出现（有装备正例 atk 真降）；(d) 门中供给价 === `Shop.priceOf(坊市价×倍率)` 且 −15% shopCost 真的吃进去（旧内联式会算出 ' + oldP295 + '）；(e) 材料包按**定价组**发货，抬境到组 2 仍只发组 0 的料（`zoneGroup` 从只写不读接上读者）；(f) `Fusion.reforgeCostOf` 四档 === 表且越界回 huang（旧视图兜底 800 = 玄阶价）；(g) 破障成本随 `APILLS.ap_pozhang.mod` 动（改 −0.5 ⇒ 0.4−0.5）且 `AL.POZHANG_MOD` 已不存在；(h) 读档保留条数随 `D.LEGACY.LOG_KEEP` 动（改 3 ⇒ 6 条只留 3，复原（表 20 > 样本 6）⇒ 6 条全留）；(a2) 🔧 **负值 `attrBonus` 不被撤销**（原撤条件写成 `bn > 0` 把减项一起撤了）；(i) 🔧 `settle` 单段实涨的每秒 === 视图取数口 `effRate`（走查只比「屏面 vs 函数」，函数内部重 drift 由这条兜）；(j) 🔧 真买一单门中供给后**药方表对象未被改写**（`applyEffects` 写传入对象 ⇒ 丹药四处改传副本）',
