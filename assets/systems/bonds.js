@@ -283,7 +283,7 @@
       }
       var min = D.BOND_MIN != null ? D.BOND_MIN : -20;
       var after = Math.max(min, Math.min(D.BOND_MAX || 100, before + Math.round(n)));
-      if (after !== before) bonds[npcId] = after;   /* 值未变不写键：clamp 到顶时不 materialize 新键（normalize 剪 0 的口径由此不被绕过） */
+      if (after !== before) bonds[npcId] = after;   /* 值未变不写键：防的是「本来不存在的键被 round 成同值后 materialize 出 0 键」（clamp 到顶时键本就在，不是本条动机） */
       var tierAfter = tierOf(after, D);
       return { before: before, after: after, tierBefore: tierBefore, tierAfter: tierAfter,
         tierUp: tierAfter > tierBefore, blocked: null };

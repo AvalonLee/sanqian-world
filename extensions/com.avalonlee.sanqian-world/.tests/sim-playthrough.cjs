@@ -1113,7 +1113,7 @@ async function playFuzz(round) {
    * → achv_rumo(≤−500) / achv_shenmo(≤−900)；低成算硬闯高境界 → achv_kudu（p≤0.15 一击即中）
    * / achv_lianbai（5 连败后首胜）；defy 满 100 后**反复**逆天 → achv_nitian + achv_fanpan；
    * 车老叟（唯一魔道阵营的 bondLock 奇遇主）好感抬到 ≥30 后 evil 支代签绝交锁 →
-   * achv_juefeng（绝而复续，赎回后 bond=10>0）+ achv_kuashi（赎回唯一写 heirBond）；
+   * achv_juefeng（绝而复续，赎回后 bond=10>0）+ achv_kuashi（heirBond 生产写口 = grantHeir / redeem 两口；本 sim 走 fixture 直写，不代表生产路径）；
    * 叛门 → achv_panzong；逐区斩主 → achv_quantong / achv_shizhu。 */
   reports.push(await playRoute('丁·魔道', dOf(300), 6, {
     alwaysVenture: true, fullSystems: true, bias: 'evil', branch: 'evil',

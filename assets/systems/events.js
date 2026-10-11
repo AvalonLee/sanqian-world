@@ -722,7 +722,7 @@
       }
       if (type === 'power') {
         var power = SQ.Mods.powerOf(ws, pack, D, mods);
-        /* abs（势力批 v2.4）：绝对战力门槛（如神秘商人 = 渡劫期水准），不随当前秘境缩放 */
+        /* abs（势力批 v2.4）：绝对战力门槛（神秘商人 = 真仙档水准；第十二批复核勘正旧注「渡劫期」——REALMS[8] 渡劫 = 125000、REALMS[9] 真仙 = 375000），不随当前秘境缩放 */
         var need = (chk.abs != null) ? chk.abs : D.ZONES[ws.zone].need * (chk.ratio != null ? chk.ratio : 1);
         return { type: type, pass: power >= need, power: power, need: need };
       }

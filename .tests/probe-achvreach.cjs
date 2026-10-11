@@ -54,7 +54,7 @@ const BUILD = {
   },
   achv_xinjie: (c) => { c.w.scars = { [compIds[1]]: 1 }; },
   achv_juefeng: (c) => { c.w.juefengIds = [compIds[2]]; c.w.bonds[compIds[2]] = 10; },
-  achv_kuashi: (c) => { c.w.heirBond = { npcId: compIds[3] }; },
+  achv_kuashi: (c) => { c.w.heirBond = compIds[3]; },   /* 生产只存字符串 id（原塞对象 = fixture 走样）*/
   achv_hufa: (c) => { c.w.bonds[compIds[4]] = D.BOND_MAX || 100; },
   achv_fudi: (c) => {
     c.w.cave = { current: CAVE2, cooldownUntil: 0, owned: [D.CAVE_INITIAL, CAVE2], fac: {} };
