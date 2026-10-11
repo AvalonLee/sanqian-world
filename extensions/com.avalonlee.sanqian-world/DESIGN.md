@@ -80,7 +80,7 @@ bash /e/下载/sanqian-ops/sq-check.sh    # 开场体检（只读）→ ALREADY_
 node .tests/sim-pacing.cjs         # 全程节奏比值带（锚 9.12 天）
 node .tests/sim-event-economy.cjs  # 在线奇遇事件经济（密度 / 主轴）
 node .tests/sim-playthrough.cjs    # 全程模拟（5 路线 + fuzz）→ PLAYTHROUGH_ALL_GREEN；收口双证据 = `SQ_SEED=<种子>` 双跑逐字节相同 + 随机复跑
-node .tests/probe-join.cjs         # ┐ 常驻探针十一路（无浏览器 · 引擎侧 · 收口必跑，244 断言 + 1 水位件 = 逐件相加 182+17+27+10+8，与 `run-dod` 每行打印读数直接对表；⚠️ 本行原记 221 / 222 / 229 / 243 均为历批滞后读数（229 → 243 = 法与器标签化批 `probe-lawmerge` 21 → 35；243 → 244 = 神秘商人节律批 `probe-eventrepeat` 7 → 8 加 §8 新红线））：
+node .tests/probe-join.cjs         # ┐ 常驻探针十一路（现行 **245 断言 + 1 水位件** = 逐件相加 29+19+31+35+61+8+17+27+10+8 · 无浏览器 · 引擎侧 · 收口必跑，与 `run-dod` 每行打印读数直接对表；⚠️ 本行原记 221 / 222 / 229 / 243 均为历批滞后读数（229 → 243 = 法与器标签化批 `probe-lawmerge` 21 → 35；243 → 244 = 神秘商人节律批 `probe-eventrepeat` 7 → 8 加 §8 新红线））：
 node .tests/probe-sectwire.cjs     # │  join 29 / sectwire 19 / heirchoice 31 / lawmerge 35 / achvreach 60 / normround 8
 node .tests/probe-heirchoice.cjs   # │  savecodec 17 = 落盘无损压缩往返 · savegrowth 27 = 主档与游玩时长**解耦**
 node .tests/probe-lawmerge.cjs     # │  realsave 10 = **玩家真档**读→存→读零丢失（只读不写 · 无档即 SKIP 退 0）

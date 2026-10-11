@@ -5111,9 +5111,10 @@
     $('mkd-bar').style.width = (pos * 100).toFixed(1) + '%';
     /* 差值双提示：左道显示两侧距离；正/魔显示距极处 */
     var nextTxt;
+    var eK = SQ.XKarma.edgeOf(d);   /* 边界取自 KARMA_TIERS，视图不再抄 200（#293(e) 钉这条取数口） */
     if (tier === 'neutral') {
-      nextTxt = t('karma.next', { tier: t('karma.tier.right'), n: Math.max(0, 200 - w.karma) }) +
-        ' · ' + t('karma.next', { tier: t('karma.tier.evil'), n: Math.max(0, w.karma + 200) });
+      nextTxt = t('karma.next', { tier: t('karma.tier.right'), n: Math.max(0, eK.up - w.karma) }) +
+        ' · ' + t('karma.next', { tier: t('karma.tier.evil'), n: Math.max(0, w.karma - eK.down) });
     } else if (tier === 'right') {
       nextTxt = w.karma >= d.KARMA_CLAMP ? t('karma.maxed') : t('karma.next', { tier: t('karma.extreme'), n: d.KARMA_CLAMP - w.karma });
     } else {

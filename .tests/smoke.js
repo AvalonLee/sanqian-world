@@ -6028,12 +6028,24 @@
     });
     var d293 = Object.keys(mult293).length === 3 &&
       ['right', 'neutral', 'evil'].every(function (t) { return typeof mult293[t] === 'number' && mult293[t] > 0; });
-    ok('293', 'karma 档位边界取自 `D.KARMA_TIERS`（N26④ 附带接线）：(a) 整数域与改前逐字相同（200 right / 0 neutral / −200 evil）；(b) 差分法证表是事实源——首档下界临时改 300 ⇒ karma 250 由 right 变 neutral，改回即复原（**旧版硬编码 ±200 时这一发改不动行为**）；(c) 与 `rankOf` 同边界（200 落九段里 `KARMA_RANKS[3]` 那条、199 落 `[4]` 那条，期望值取自表本身而非硬编 id）；(d) 下游 `alignMultOf` 三档各有正乘区（改口不改动结算）',
-      a293 && b293 && c293 && d293,
+    /* (e) 视图「距下一档」的取数口 = edgeOf，且它随表动（复核抓到视图原硬编码 200 = 表的第三份抄本）；
+       (f) 合成表可注入（D 形参）= 证 tierOf 真读传入的表而不是只读全局；null 下界行 = 兜底档也走得通 */
+    var e293a = SQ.XKarma.edgeOf(D);
+    KT293[1][0] = -299.5;
+    var e293b = SQ.XKarma.edgeOf(D);
+    KT293[1][0] = KT293old[1][0];
+    var e293 = e293a.up === 200 && e293a.down === -200 && e293b.down === -300 && SQ.XKarma.edgeOf(D).down === -200;
+    var SYN293 = { KARMA_TIERS: [[50, "right"], [-49.5, "neutral"], [null, "evil"]] };
+    var f293 = SQ.XKarma.tierOf(60, SYN293) === "right" && SQ.XKarma.tierOf(0, SYN293) === "neutral" &&
+      SQ.XKarma.tierOf(-999, SYN293) === "evil" && SQ.XKarma.tierOf(60) === "neutral";
+    ok('293', 'karma 档位边界取自 `D.KARMA_TIERS`（N26④ 附带接线）：(a) 整数域与改前逐字相同（200 right / 0 neutral / −200 evil）；(b) 差分法证表是事实源——首档下界临时改 300 ⇒ karma 250 由 right 变 neutral，改回即复原（**旧版硬编码 ±200 时这一发改不动行为**）；(c) 与 `rankOf` 同边界（200 落九段里 `KARMA_RANKS[3]` 那条、199 落 `[4]` 那条，期望值取自表本身而非硬编 id）；(d) 下游 `alignMultOf` 三档各有正乘区（改口不改动结算）；(e) **视图取数口 `edgeOf`** 给出 {up:200, down:-200} 且随表中线动（把中性下界临时改 -299.5 ⇒ down 变 -300，复原回 -200）——复核抓到视图原硬编码 200 = 表的第三份抄本，本批改读 edgeOf；(f) 合成表可注入（`tierOf(60, 合成表)` = right，同一入参走真表仍 = neutral）⇒ 证它真读传入的表，`null` 下界兜底行也走得通',
+      a293 && b293 && c293 && d293 && e293 && f293,
       '(a) ' + a293 + ' ‖ (b) 改表后 250=' + flip293 + ' 复原后 250=' + SQ.XKarma.tierOf(250) +
       ' ‖ (c) 九段同边界=' + c293 + '（200→' + SQ.XKarma.rankOf(200, D) + ' / 199→' + SQ.XKarma.rankOf(199, D) + '）' +
       ' ‖ (d) 乘区=' +
-      Object.keys(mult293).map(function (t) { return t + ':' + mult293[t]; }).join(' '));
+      Object.keys(mult293).map(function (t) { return t + ':' + mult293[t]; }).join(' ') +
+' ‖ (e) edgeOf=' + e293a.up + '/' + e293a.down + ' 改表中线后 down=' + e293b.down + ' 复原=' + SQ.XKarma.edgeOf(D).down +
+' ‖ (f) 合成表注入=' + f293);
 
 
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：
