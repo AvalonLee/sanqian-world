@@ -13,7 +13,7 @@
 | 冒烟断言 | 300 | `.tests/run-smoke.cjs` 末行 `SMOKE_ALL_GREEN` |
 | 静态审计关数 | 23 关 | `.tests/audit.cjs` 末行 `AUDIT_ALL_GREEN` |
 | 常驻探针合计 | 245 断言 | `.tests/probe-*.cjs` 逐件末行求和（run-dod 求和，不手算） |
-| 界面走查 | 27 篇 / 未跑 断言 | `.tests/verify-ui-*.cjs` 目录清单 + 逐篇末行 |
+| 界面走查 | 27 篇 / 582 断言 | `.tests/verify-ui-*.cjs` 目录清单 + 逐篇末行 |
 | 功法（修仙） | 70 部 | `pack.artsMap()` 键数（拆分口径见下方人写表，文档为正典） |
 | 境界 / 秘境 | 10 / 10 | `SQ.XDATA.REALMS` / `D.ZONES` |
 | 道友名录 | 58 人 | `D.COMPANIONS` |
