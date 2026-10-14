@@ -92,7 +92,7 @@
       if (known) {
         ws.artsKnown.splice(ws.artsKnown.indexOf(id), 1);
         /* 散掉的是玩家点定的主修 ⇒ 同批清掉点定值，档里不留永久悬空 id
-         * （暂时移出槽外**不清**，这是记忆式语义，登记 = 任务清单 N43）*/
+         * （暂时移出槽外**不清**，这是记忆式语义，登记 = 任务清单 N44）*/
         if (ws.artsMain === id) ws.artsMain = null;
       } else ws.shelf.splice(ws.shelf.indexOf(id), 1);
       if (ws.artsLevels) delete ws.artsLevels[id];

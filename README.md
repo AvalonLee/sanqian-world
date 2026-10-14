@@ -7,7 +7,7 @@
 **零 CDN、零打包器、零框架**：全部代码是经典 `<script>` 脚本，随扩展包一起走，改完刷新即生效。
 
 <!-- SQ:LEDGER:BEGIN readme 现行读数由 .tests/gen-ledger.cjs 生成，手改即漂；段外不参与覆盖 -->
-- **现行读数**（本行由 `.tests/gen-ledger.cjs` 生成）：扩展版本 `0.5.0` · 冒烟 300 · 审计 23 关 · 常驻探针 245 断言 · 界面走查 27 篇 / 587 断言 · 词表键 4683 · 世界名册 6 界（可见 6）。缺读数 = 「未跑」，不当 0 计。
+- **现行读数**（本行由 `.tests/gen-ledger.cjs` 生成）：扩展版本 `0.5.0` · 冒烟 300 · 审计 23 关 · 常驻探针 245 断言 · 界面走查 27 篇 / 591 断言 · 词表键 4683 · 世界名册 6 界（可见 6）。缺读数 = 「未跑」，不当 0 计。
 <!-- SQ:LEDGER:END -->
 
 ## 一、仓库结构（先看这个）
@@ -91,7 +91,9 @@ node .tests/ledger-selftest.cjs           # LEDGER_SELFTEST_DONE 8 判（账本�
 
 ## 七、给贡献者
 
-改代码前请先读 **[`AGENTS.md`](AGENTS.md)**（八条硬规矩，每一条都对应过一次真实返工）。要点：**现行读数不许手抄**（由 `docs/ledger.json` + `SQ:LEDGER` 哨兵段生成）、**升版只改 `manifest.json` 一处**、**新增系统 `.js` 只挂进 `view/index.html`**、**历史注逐字不改写**。
+**分支规则**：所有改动先进 **`dev`**（`feature/xxx → dev`）；**`master` 只接受 `dev → master` 的发布合并**，直接向 master 提的 PR 会被必需状态检查 **`branch-policy`** 拦下（管理员也不能直改 master）。提 PR 前先看清 base 是 `dev`。
+
+改代码前请先读 **[`AGENTS.md`](AGENTS.md)**（九条硬规矩，每一条都对应过一次真实返工）。要点：**现行读数不许手抄**（由 `docs/ledger.json` + `SQ:LEDGER` 哨兵段生成）、**升版只改 `manifest.json` 一处**、**新增系统 `.js` 只挂进 `view/index.html`**、**历史注逐字不改写**。
 
 ## 八、许可证
 

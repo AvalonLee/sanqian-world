@@ -1676,7 +1676,7 @@
     var n123k = pack.normalize({ artsMain: 'juling' }).artsMain;
     var n123bad = pack.normalize({ artsMain: 42 }).artsMain;
     /* (f) 散功散掉**点定的那部** ⇒ 同批清掉 artsMain（档里不留永久悬空 id）；
-     *     只是移出槽外则**不清**（记忆式语义，登记 = 任务清单 N43）*/
+     *     只是移出槽外则**不清**（记忆式语义，登记 = 任务清单 N44）*/
     var w123h = mkWs({ realm: 3 });
     w123h.artsKnown = ['tuna', 'juling', 'yunzong'];
     w123h.artsSlots = ['tuna', 'yunzong'];
