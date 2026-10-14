@@ -62,7 +62,7 @@
 
 ## 仓库结构与构建口径（改代码、装依赖、打包前先看这一节）
 
-本仓库是 **VibeX 扩展源码**，不是 React 应用。里面有两层，**彼此完全不相干**：
+本仓库是 **x-hub 扩展源码**（VibeX 只是它的出身，2026-10-14 已退役），不是 React 应用。里面有两层，**彼此完全不相干**：
 
 | 层 | 位置与体量 | 由谁加载 | 实测事实 |
 | --- | --- | --- | --- |
@@ -97,11 +97,11 @@ node .tests/probe-eventrepeat.cjs  # │ 第十一路：生产抽取全链的玩
 node .tests/probe-savecap.cjs      # ┘ 存档最坏态水位（阶梯可停 / 对 56KB·64KB 余量）
 ```
 
-界面层另有**廿五篇** `.tests/verify-ui-*.cjs`（**533 断言**〔本句原记 498 = 存档治理批当期读数未随批续刷，链：498 → 511 → 520 → 527，逐篇明细见 FACTS「界面走查断言」行〕；⚠️ 自 2026-10-09 存档治理批起，页内走查件要读日志 / 奇遇叙事流须取**侧档** `sanqian-logs-v1` 的 `logs` / `feed` 段——主档已不含它们，细则见 `.tests/README.md`；⚠️ 本句原记「十七篇 · 298 断言」= 2026-10-07 首次全量实跑时的读数，2026-10-08 冷启与覆盖补批随批校正至现行，逐篇增补链见 `docs/FACTS.md`「界面走查断言」行），需 `npm install --no-save --registry=https://registry.npmmirror.com playwright-core`（官方 registry 本机 `ECONNRESET`）+ 系统已装 Edge，无需下载内核。用法与踩坑见 `.tests/README.md`。其中依赖固定存档件 `.tests/fixture-save.json` 的篇数 = **十二篇**（⚠️ 本句原记「九篇 / 合计 150 断言」为首跑读数；2026-10-08 以 `grep -l fixture-save .tests/verify-ui-*.cjs` 复核为 12 篇，原句按追加不改写留档：batch / cavedot / achvdot / faction / trib / toastdedup / karma / offline / fuse，该件原名 `_tmp_save.json`，2026-10-07 真灵承继补完批已改名；**顶着 `_tmp_` 前缀的正式测试资产会被「清理临时脚本」误删，别改回去**。别改回去**。
+界面层另有 `.tests/verify-ui-*.cjs` 走查（**篇数与断言合计以本文件顶部账本段为准**，2026-10-14 批B 起不再手抄；下文的 533 / 498 等为**历史当日读数留档**〔本句原记 498 = 存档治理批当期读数未随批续刷，链：498 → 511 → 520 → 527，逐篇明细见 FACTS「界面走查断言」行〕；⚠️ 自 2026-10-09 存档治理批起，页内走查件要读日志 / 奇遇叙事流须取**侧档** `sanqian-logs-v1` 的 `logs` / `feed` 段——主档已不含它们，细则见 `.tests/README.md`；⚠️ 本句原记「十七篇 · 298 断言」= 2026-10-07 首次全量实跑时的读数，2026-10-08 冷启与覆盖补批随批校正至现行，逐篇增补链见 `docs/FACTS.md`「界面走查断言」行），需 `npm install --no-save --registry=https://registry.npmmirror.com playwright-core`（官方 registry 本机 `ECONNRESET`）+ 系统已装 Edge，无需下载内核。用法与踩坑见 `.tests/README.md`。其中依赖固定存档件 `.tests/fixture-save.json` 的篇数 = **十二篇**（⚠️ 本句原记「九篇 / 合计 150 断言」为首跑读数；2026-10-08 以 `grep -l fixture-save .tests/verify-ui-*.cjs` 复核为 12 篇，原句按追加不改写留档：batch / cavedot / achvdot / faction / trib / toastdedup / karma / offline / fuse，该件原名 `_tmp_save.json`，2026-10-07 真灵承继补完批已改名；**顶着 `_tmp_` 前缀的正式测试资产会被「清理临时脚本」误删，别改回去**。别改回去**。
 
-> ⚠️ **`node_modules` 永远不进交付包**：`--no-save` 保证 `package.json` 与锁文件零改动；`node_modules` 已在 `.gitignore` 内（现约 487 MB）。另注意 `audit.cjs` 是**整树遍历**的，2026-10-07 前对 `node_modules` 没有排除，一装依赖就 4 GB heap OOM 崩掉——现已在 `walk()` 内对 `node_modules` / `dist` / `dist-ssr` / `build` 剪枝。**推论：交付前静态审计的扫描范围 = 事实源范围，开发期依赖与构建产物不该进闸门。** **本段读数是判据不是历史**：现行读数一律以 `docs/FACTS.md`（冒烟 / 走查 / 常驻探针三行）与 `.tests/README.md`（跑绿清单）为准，本索引件只是快照 —— 收口时**三处同批改**，只改一处就是账本漂移。
+> ⚠️ **`node_modules` 永远不进交付包**：它在 `.gitignore` 内（现约 487 MB）。`playwright-core` 自 2026-10-14 结构整治批A 起是 `package.json` 里**唯一声明的依赖**（devDependencies `^1.63.0`）——此前它靠 `npm install --no-save` 临时装、**从未写进清单**，属于「精简依赖后重装 ⇒ 26 篇走查当场全废」的隐患，故本批改口径为**先入册再清理**，锁文件与 68 个平台依赖随 VibeX 退役一并删除。另注意 `audit.cjs` 是**整树遍历**的，2026-10-07 前对 `node_modules` 没有排除，一装依赖就 4 GB heap OOM 崩掉——现已在 `walk()` 内对 `node_modules` / `dist` / `dist-ssr` / `build` 剪枝。**推论：交付前静态审计的扫描范围 = 事实源范围，开发期依赖与构建产物不该进闸门。** **本段读数是判据不是历史**：现行读数一律以 `docs/FACTS.md`（冒烟 / 走查 / 常驻探针三行）与 `.tests/README.md`（跑绿清单）为准，本索引件只是快照 —— 收口时**三处同批改**，只改一处就是账本漂移。
 
-回传打包按 `.vibex/skills/vibex-app-source-roundtrip/SKILL.md`（ZIP 内路径必须相对你在 VibeX Source 树里选中的目录，且优先只打改动路径）。〔**2026-10-14 批A 随注**：VibeX 已退役，本条 ZIP 回传流程**不再适用**；交付只认 `extensions/com.avalonlee.sanqian-world/` 镜像七项（B9 逐字节）。`AGENTS.md` / `CLAUDE.md` / `.cursor/rules/` / `.vibex/skills/` 四份 agent 指引仍指向该 SKILL，其处置**待用户点头**，本批未动。〕
+交付只认 `extensions/com.avalonlee.sanqian-world/` **镜像七项**（审计 **B9** 逐字节零差异）+ 宿主 x-hub 扩展中心挂源码目录。〔**2026-10-14 结构整治批D 收口**：VibeX 退役已执行到底——原 `vibex-app-source-roundtrip` SKILL 与 `package_vibex_upload.py`（`.vibex/` 整族）已删除，`AGENTS.md` 改写为 x-hub 交付与验收口径并升为 **agent 指引唯一正典**，`CLAUDE.md` 与 `.cursor/rules/project.mdc` 只留一行指针（原 `vibex-source-roundtrip.mdc` 随批改名）。原先那句「回传打包按 `.vibex/skills/…SKILL.md`」不再适用，本行即其替代口径。〕
 
 ## 本地预览
 
