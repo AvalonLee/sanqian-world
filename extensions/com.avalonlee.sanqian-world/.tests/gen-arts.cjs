@@ -11,7 +11,11 @@
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
-const DOC = '/workspace/app/docs/玄幻修仙/功法全录（51部）.md';
+/* 仓库根现找（.tests/repo-root.cjs），不许硬编码层数——原值 '/workspace/app/docs/…' 是容器时代的绝对路径，
+ *    平台壳退役后即失效：本生成器因此长期跑不动，arts.js 事实上成了无源抄本（第卅六批收口时发现并修）。 */
+const REPO = require('./repo-root.cjs')();
+const DOC = path.join(REPO, 'docs/玄幻修仙/功法全录（51部）.md');
+if (!require('fs').existsSync(DOC)) { console.error('DOC_MISSING ' + DOC); process.exit(2); }
 
 const ALIGN = { '正道': 'right', '左道': 'neutral', '魔道': 'evil' };
 const ATTR = { '精': 'jing', '气': 'qi', '神': 'shen' };
@@ -223,6 +227,11 @@ ${lexLines.join('\n')}
     'special.changye.name': '长夜修行',
     'special.sanyan.name': '三尸宴坐', 'special.yanhuo.name': '人间烟火',
     'special.kujing.name': '枯井不波',
+    /* 混沌三签名（融合扩容批 v1.3：自创部专属，混沌淬炼唯一授予；正典部零引用）
+     * ⚠️ 这三枚原本只躺在生成物里、生成器不产出 ⇒ 跑一次 gen-arts 就把它们**静默删掉**（屏上落裸键名）。
+     *    第卅六批收口时补进模板，让「生成物 = 文档 + 本模板」重新成立。 */
+    'special.hundun.name': '混沌重生', 'special.zaohua.name': '造化余韵',
+    'special.taiyi.name': '太一星光',
     'special.grade.0': '弱', 'special.grade.1': '标准', 'special.grade.2': '强'
   });
 })();
