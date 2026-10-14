@@ -3619,25 +3619,14 @@
     var n0 = tbl[tierName] != null ? tbl[tierName] : 0;
     return pd.rune ? Math.round(n0 * (d.BOND_GIFT_RUNE_MULT != null ? d.BOND_GIFT_RUNE_MULT : 1.5)) : n0;
   }
-  /* 今日剩余可赠次数（与引擎同口径：Alchemy.gameDayOf，1 游戏日 = 1 现实秒）*/
-  function giftLeft(w, d) {
-    var cap = d.BOND_GIFT_DAILY != null ? d.BOND_GIFT_DAILY : 3;
-    var al = w && w.alchemy;
-    if (!al || !SQ.Alchemy || !SQ.Alchemy.gameDayOf) return cap;
-    var day = SQ.Alchemy.gameDayOf(w, state.profile, Date.now());
-    var g = al.giftDay;
-    if (!g || g.day !== day) return cap;
-    return Math.max(0, cap - (g.n || 0));
-  }
+  /* 赠丹段（GitHub issue #4）：无日次上限，能送几颗只看丹匣库存 ⇒ 这里不再算「今日 n/cap」*/
   function bondActSection(id) {
     var w = ws(), d = D();
     var tier = SQ.Bonds.tierOf(w, id, d);
     var h = '<div class="dsec"><div class="dt">' + esc(t('bond.detail.act')) + '</div>' +
       '<div class="dd hint" style="margin-bottom:8px">' + esc(t('bond.act.tip')) + '</div>' + visitBtn(id, tier);
-    var cap = d.BOND_GIFT_DAILY != null ? d.BOND_GIFT_DAILY : 3;
-    var left = giftLeft(w, d);
     h += '<div class="kv" style="margin-top:12px"><span class="hint">' +
-      esc(t('bond.gift.head', { n: cap - left, cap: cap })) + '</span></div>';
+      esc(t('bond.gift.head')) + '</span></div>';
     if (SQ.Bonds.locked(w, id) || SQ.Bonds.scarred(w, id)) return h + '</div>';
     if (tier >= maxBondTier()) return h + '<div class="dd hint">' + esc(t('bond.gift.fail.max')) + '</div></div>';
     var pills = giftablePills(w, d);
@@ -3647,14 +3636,13 @@
     pills.forEach(function (pl) {
       var g = Math.min(pillGiftGain(d, pl.key), head);
       if (!(g > 0)) return;
-      chips += '<button type="button" data-act="bondGift" data-v="' + id + '" data-c="' + pl.key + '"' +
-        (left > 0 ? '' : ' disabled') + '>' + esc(t((SQ.Alchemy.pillDefOf(d, pl.key) || {}).nameKey ||
+      chips += '<button type="button" data-act="bondGift" data-v="' + id + '" data-c="' + pl.key + '">' +
+        esc(t((SQ.Alchemy.pillDefOf(d, pl.key) || {}).nameKey ||
           'alchemy.pill.' + pl.key + '.name')) +   /* 两族名各按本族键族（成品丹是 `pill.*`，M4）*/
         '<span class="gv">+' + g + '</span><span class="st">' + esc(t('bond.gift.stock', { n: pl.n })) + '</span></button>';
     });
     if (!chips) return h + '<div class="dd hint">' + esc(t('bond.gift.fail.max')) + '</div></div>';
     h += '<div class="chips">' + chips + '</div>';
-    if (!(left > 0)) h += '<div class="dd hint">' + esc(t('bond.gift.fail.daily', { n: cap })) + '</div>';
     return h + '</div>';
   }
   /* 未识 / 厌恶者的隐匿详情：身份不揭示（「？」+ 未结缘或厌恶值），只给渠道 A 主动结识口 */
@@ -3673,7 +3661,7 @@
     var why = (r && r.reason) || 'unknown';
     if (why === 'cooldown') return t('bond.visit.fail.cooldown', { t: timeLeftText(Math.max(0, (r && r.waitMs) || 0)) });
     var ks = ['bond.visit.fail.' + why, 'bond.gift.fail.' + why, 'bond.fail.' + why];
-    for (var i = 0; i < ks.length; i++) if (SQ.t(ks[i], null, wid()) !== ks[i]) return t(ks[i], why === 'daily' ? { n: (D().BOND_GIFT_DAILY != null ? D().BOND_GIFT_DAILY : 3) } : null);
+    for (var i = 0; i < ks.length; i++) if (SQ.t(ks[i], null, wid()) !== ks[i]) return t(ks[i]);
     return t('bond.fail.unknown');
   }
 
@@ -7281,7 +7269,7 @@
       return;
     }
     /* 赠丹（渠道 B）：data-v = 道友 id、data-c = 丹药 key（含 _rw 丹纹版）。
-     * 引擎侧「入账成功才扣丹、才占日限」，故失败态绝无白扣——视图不做乐观更新。 */
+     * 引擎侧「入账成功才扣丹」，故失败态绝无白扣——视图不做乐观更新。 */
     if (act === 'bondGift') {
       var pkG = el.dataset.c || '';
       var rvG = await SQ.Actions.giftBond(state, v, pkG);

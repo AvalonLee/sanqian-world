@@ -15,13 +15,13 @@
  * 为什么拆四个 context：拜访是**全局单冷却 300,000ms**（ws.bondVisitAt 一个锚、不分人），
  *   同一 context 里点过一次，另一人的按钮必然置灰 —— 结识链与「已识者往来段」不能共用一次拜访。
  *   A = 未识结识链 + 冷却置灰；B = 已识者六段 + 异向/同向拜访 + 赠丹 + 零灵石流动 + 日志；
- *   C = 日限占满（**用假 day 值无效**：giftLeft 与引擎都按 Alchemy.gameDayOf 现算，day 不符即视为
- *   今日未赠过，故必须在页内算出真游戏日再塞 giftDay={day,n:3}）。
+ *   C = **无日限**（GitHub issue #4 · 2026-10-14：同一个冻结游戏日里连赠三次全部入账、丹尽即摘 chip，
+ *   屏上不再出现「今日 n/cap」计数；旧缺陷正是「日限永不生效却恒显 1/3」，故本场景必须钉住同一天）。
  *   D = 一次点击只弹一条提示 + 点完按钮立刻进冷却（第十九批 · 用户报的两条，前置要在道友页待满三轮 tick）。
  *
  * 数字基准（引擎与沙箱实测，非推测）：名录 58 格（44 友 + 14 道侣候选）；BOND_TIERS=[1,30,70,100]、
  *   BOND_MAX=100；BOND_VISIT_BY_TIER=[3,3,2,1,0]、CD=3600000、ALIGN_BONUS=1（**只给已识者**）；
- *   BOND_GIFT_BY_TIER={huang:4,xuan:6,di:9,tian:14}、DAILY=3。
+ *   BOND_GIFT_BY_TIER={huang:4,xuan:6,di:9,tian:14}（🔧 issue #4 起 **无 DAILY**，节流只在丹药库存）。
  *   （⚠️ CD 自 2026-10-09 第六批起 = **300000**（5 分钟），本行原记 3600000 是那一批漏改的旧口径。）
  *   fixture：xie aff 55 = 档 2、align right，世界 karma 0 = neutral ⇒ 异向 gain 2；karmaEventScore 推到
  *   250 ⇒ 世界档 right ⇒ 同向 gain 3；黄丹 +4（库存 3→2）、天丹 +14（距满档余量 45，不被 min 截）。
@@ -39,7 +39,7 @@ const LOG_KEY = 'sanqian-logs-v1';
 /* 存档种子：清空 artsSlots/gear/drift ⇒ karma 精确等于 karmaEventScore（同 karma 篇口径），
  * 异向 / 同向两态可由本文件单方切换，不吃 recalcDerived 的副作用。
  * ⚠️ 时钟口径：Alchemy.gameDayOf = floor((Date.now() − profile.createdAt) / 1000)，即
- *   **1 游戏日 = 1 现实秒**（丹毒日限同源）。赠丹日限类断言若靠真实时间推进，
+ *   **1 游戏日 = 1 现实秒**（丹毒日限同源）。赠丹「同一个游戏日内连点」类断言若靠真实时间推进，
  *   渲染等待的几百毫秒里日锚随时翻篇 ⇒ 用 at + freeze 把 Date.now 钉在一个固定点，
  *   日锚才是确定值（全仓零处 `new Date()`，时间源只有 Date.now，钉它即钉住全部）。 */
 function seed(over) {
@@ -61,7 +61,6 @@ function seed(over) {
   w.alchemy = {
     furnace: true,
     pills: { ap_juqi: 3, ap_pozhang: 1, ap_haina: 1, juqi: 2 },
-    giftDay: over.giftDay || { day: -999999, n: 0 },   /* 远旧日 ⇒ 今日余满 3 次（normalize 原样保留 day/n）*/
     pillDay: { day: -999999, n: 0 }
   };
   return { save: s0, at: T, bornAt: bornAt, freeze: !!over.freeze };
@@ -102,7 +101,8 @@ async function mkPage(browser, S) {
       const w = s.worlds[s.profile.worldId];
       return {
         bonds: w.bonds || {}, visitAt: w.bondVisitAt || 0, stones: w.stones,
-        pills: (w.alchemy && w.alchemy.pills) || {}, giftDay: (w.alchemy && w.alchemy.giftDay) || null,
+        pills: (w.alchemy && w.alchemy.pills) || {},
+        giftDayAbsent: !(w.alchemy && ('giftDay' in w.alchemy)),   /* issue #4：日限字段应已从档里消失 */
         ledger: w.ledger ? JSON.stringify(w.ledger) : 'none', karma: w.karma
       };
     }, KEY);
@@ -320,21 +320,22 @@ async function mkPage(browser, S) {
       'B4 赠丹 chips 只列可赠：底牌族不入列、自产两枚 + 成品一枚（+4/+14/+4）对表 BOND_GIFT_BY_TIER',
       JSON.stringify(chips));
 
-    /* B5 入账三对 + 底线：扣丹 3→2、好感 +4 === chip 标注、日限计数 0→1（「入账成功才扣」的序在真机上成立），
-     *    同时灵石与总账纹丝不动 —— 「以丹会友」送的是自有丹药，不是买好感（侣不可交易底线的视图侧实证）*/
+    /* B5 入账三对 + 底线：扣丹 3→2、好感 +4 === chip 标注（「入账成功才扣」的序在真机上成立），
+     *    同时灵石与总账纹丝不动 —— 「以丹会友」送的是自有丹药，不是买好感（侣不可交易底线的视图侧实证）。
+     *    🔧 issue #4：原「日限计数 0→1」随字段退役取消，改钉落盘档里 `alchemy.giftDay` 已不存在。*/
     const g0 = await h.readW();
     const juqi = chips.find((x) => x.c === 'ap_juqi');
     const stepG = parseInt(String(juqi ? juqi.gv : '').replace(/[^\d]/g, ''), 10) || 4;
     await page.click('#mbd-body [data-act="bondGift"][data-c="ap_juqi"]');
     const g1 = await h.until(() => h.readW().then((w) => (w.bonds.xie === g0.bonds.xie + stepG ? w : null)));
     const g1f = g1 || await h.readW();
-    T(g0.pills.ap_juqi === 3 && g1f.pills.ap_juqi === 2 && g0.giftDay.n === 0 && g1f.giftDay.n === 1 &&
-      g1f.bonds.xie - g0.bonds.xie === stepG && isFinite(g1f.giftDay.day) &&
+    T(g0.pills.ap_juqi === 3 && g1f.pills.ap_juqi === 2 && g1f.giftDayAbsent &&
+      g1f.bonds.xie - g0.bonds.xie === stepG &&
       g1f.stones === g0.stones && g1f.ledger === g0.ledger,
-      'B5 赠丹入账：库存 3→2 / 好感增量 === chip 标注 +4 / 日限 0→1，且灵石与总账零流动',
+      'B5 赠丹入账：库存 3→2 / 好感增量 === chip 标注 +4 / 日限字段已退役，且灵石与总账零流动',
       'pills ' + g0.pills.ap_juqi + '→' + g1f.pills.ap_juqi + ' aff ' + g0.bonds.xie + '→' + g1f.bonds.xie +
-        ' giftDay ' + JSON.stringify(g0.giftDay) + '→' + JSON.stringify(g1f.giftDay) +
-        ' stones ' + g0.stones + '→' + g1f.stones + ' ledgerSame=' + (g1f.ledger === g0.ledger));
+        ' giftDayAbsent=' + g1f.giftDayAbsent + ' stones ' + g0.stones + '→' + g1f.stones +
+        ' ledgerSame=' + (g1f.ledger === g0.ledger));
 
     /* B6 日志：两次拜访与一次赠丹各落一条 cat 'bond'（引擎内记、视图不双写），且日志页「道友」筛选真能看到 */
     await page.evaluate(() => document.getElementById('modal-bonds').classList.add('hide'));
@@ -359,45 +360,56 @@ async function mkPage(browser, S) {
     await mp.ctx.close();
   }
 
-  /* ══════════════ 场景 C：日限占满（冻结时钟 ⇒ 日锚为确定值；真实时间下 1 秒翻一天，必竞态）══════════════ */
+  /* ══════════════ 场景 C：无日限（GitHub issue #4 · 冻结时钟 ⇒ 全程同一个游戏日，连点不会被「跨日」蒙过去）══════════════ */
   {
-    const S = seed({ at: Date.now(), ageMs: 5000, giftDay: { day: 5, n: 3 }, freeze: true });
+    const S = seed({ at: Date.now(), ageMs: 5000, freeze: true });
     const mp = await mkPage(browser, S);
     const page = mp.page, h = wire(page);
     await page.click('#m-tabbar button[data-v="bonds"]');
     await page.waitForTimeout(450);
-
-    /* 日锚不靠猜：用引擎同一个 gameDayOf 现算，确认冻结后的 Date.now 仍落在 seed 的 day = 5 上
-     * （塞假 day 值无效——giftLeft 与引擎都按 gameDayOf 判，day 不符即视作「今日未赠过」自动清零重计）*/
     await h.openDetail('xie');
-    const daily = await page.evaluate(() => {
-      const b = document.getElementById('mbd-body');
-      const chips = Array.from(b.querySelectorAll('[data-act="bondGift"]'));
+
+    /* 日锚不靠猜：用引擎同一个 gameDayOf 现算，确认冻结后的 Date.now 全程停在 day = 5。
+     * 这正是旧缺陷的照妖镜——旧日限在此刻必竞态（1 现实秒翻一天 ⇒ 计数永不累积、屏上恒显「今日 1/3」）。*/
+    const c0 = await h.readW();
+    const dayNow = await page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
-      const w = s.worlds[s.profile.worldId];
+      return SQ.Alchemy.gameDayOf(s.worlds[s.profile.worldId], s.profile, Date.now());
+    });
+    /* C1 同一个游戏日里连赠三次黄丹：三次全部入账（+4×3），库存 3→0 即摘 chip，屏上无「今日 n/cap」计数 */
+    for (let k = 0; k < 3; k++) {
+      await page.click('#mbd-body [data-act="bondGift"][data-c="ap_juqi"]');
+      await page.waitForTimeout(250);
+    }
+    const c1w = await h.until(() => h.readW().then((w) => (w.bonds.xie === c0.bonds.xie + 12 ? w : null)));
+    const c1 = c1w || await h.readW();
+    const dom1 = await page.evaluate(() => {
+      const b = document.getElementById('mbd-body');
+      const cs = Array.from(b.querySelectorAll('[data-act="bondGift"]'));
       return {
-        n: chips.length, disN: chips.filter((x) => x.disabled).length,
-        dayNow: SQ.Alchemy.gameDayOf(w, s.profile, Date.now()),
-        seedDay: w.alchemy.giftDay.day, seedN: w.alchemy.giftDay.n,
+        keys: cs.map((x) => x.dataset.c), disN: cs.filter((x) => x.disabled).length,
         txt: (b.textContent || '').replace(/\s+/g, ' ')
       };
     });
-    /* C1 日限占满：chips 仍呈列但全置灰，并给出次数文案（与「无丹可赠」是两回事）*/
-    T(daily.dayNow === 5 && daily.seedDay === 5 && daily.seedN === 3 &&
-      daily.n === 3 && daily.disN === 3 && /今日已赠过\s*3\s*次/.test(daily.txt) && /以丹相赠（今日 3\/3）/.test(daily.txt),
-      'C1 日限占满：chips 全置灰但仍呈列 + 给出「今日已赠过 3 次」文案',
-      'day=' + daily.dayNow + '/seed ' + daily.seedDay + '·n' + daily.seedN + ' chips=' + daily.disN + '/' + daily.n);
+    T(dayNow === 5 && c1.bonds.xie - c0.bonds.xie === 12 && !c1.pills.ap_juqi && c1.giftDayAbsent &&
+      dom1.keys.indexOf('ap_juqi') < 0 && dom1.keys.indexOf('juqi') >= 0 && dom1.disN === 0 &&
+      /今日\s*\d+\s*\/\s*\d+/.test(dom1.txt) === false &&
+      dom1.txt.indexOf('以丹相赠（丹尽则止，不论日次）') >= 0,
+      'C1 issue #4 · 同一游戏日连赠三次全入账（+4×3=12）、丹尽即摘 chip、屏上再无「今日 n/cap」计数',
+      'day=' + dayNow + ' aff ' + c0.bonds.xie + '→' + c1.bonds.xie + ' pills=' + JSON.stringify(c1.pills) +
+        ' keys=' + dom1.keys.join(',') + ' disN=' + dom1.disN);
 
-    /* C2 被日限拒绝时绝不白扣：库存、好感、日限计数三者零变动 */
-    const c0 = await h.readW();
-    await page.evaluate(() => { const b = document.querySelector('#mbd-body [data-act="bondGift"][data-c="ap_juqi"]'); if (b) b.click(); });
-    await page.waitForTimeout(600);
-    const c1 = await h.readW();
-    T(c0.pills.ap_juqi === c1.pills.ap_juqi && c0.bonds.xie === c1.bonds.xie &&
-      c0.giftDay.n === c1.giftDay.n && c0.visitAt === c1.visitAt,
-      'C2 日限拒绝零白扣（丹 / 好感 / 日限 / 冷却锚四者纹丝不动）',
-      'pills ' + c0.pills.ap_juqi + '→' + c1.pills.ap_juqi + ' aff ' + c0.bonds.xie + '→' + c1.bonds.xie +
-        ' giftDay ' + c0.giftDay.n + '→' + c1.giftDay.n);
+    /* C2 撤销日限不等于放宽校验链：满档道友在同一个游戏日里依旧拒赠，且不扣丹 */
+    const c2 = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+      const w = s.worlds[s.profile.worldId];
+      const pack = SQ.Worlds[s.profile.worldId].pack;
+      const before = w.alchemy.pills.ap_haina;
+      const r = SQ.Bonds.giftPill(w, pack, pack.data, 'suwan', 'ap_haina', Date.now(), null);
+      return { reason: r.reason, before: before, after: w.alchemy.pills.ap_haina };
+    });
+    T(c2.reason === 'max' && c2.before === 1 && c2.after === c2.before,
+      'C2 无日限但校验链未放宽：满档者拒赠 reason max、丹纹丝不动', JSON.stringify(c2));
 
     T(mp.errors.length === 0, 'C3 场景C 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
     await mp.ctx.close();

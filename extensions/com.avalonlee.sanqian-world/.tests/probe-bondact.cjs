@@ -6,6 +6,7 @@
  * （playwright-core + Edge），本环境跑不了；冒烟只加载 assets/**、不碰 view；审计只查
  * 元素 id 存在性——三者都照不出「某个依赖取不到就整段白屏」。故照 probe-lawmerge 立例，
  * 把这几个函数**原样抽出**（一字不改）配真实引擎数据真跑一遍拼接。
+ * 🔧 勘正（GitHub issue #4 · 2026-10-14）：`giftLeft` 随赠丹日限一并退役，本件抽 **八个**渲染器。
  *
  * 边界（照 lawmerge 同纪律如实登记）：子渲染器 esc / t / $ / ui / ws / pack / D / mods /
  * reducedMotion 为桩，卡片内部结构与 CSS 计算值仍需真浏览器走查（verify-ui-bonds 待有环境实跑）。
@@ -69,7 +70,6 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
       return w;
     })()
   };
-  worlds.rich.alchemy.giftDay = { day: -1, n: 0 };
 
   /* ── DOM / 视图桩（与 probe-lawmerge 同纪律：只做最小可用替身）── */
   const written = {};
@@ -99,9 +99,9 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
   };
   vm.createContext(ctx);
 
-  /* 抽出九个新函数，原样编译进桩上下文 */
+  /* 抽出渲染器，原样编译进桩上下文（giftLeft 已随 issue #4 撤销日限一并退役 ⇒ 八个）*/
   const NAMES = ['maxBondTier', 'visitGainOf', 'visitBtn', 'giftablePills', 'pillGiftGain',
-    'giftLeft', 'bondActSection', 'renderBondUnknown', 'bondFailText'];
+    'bondActSection', 'renderBondUnknown', 'bondFailText'];
   /* 依赖的既有纯函数一并抽出真源码（不打桩）：timeLeftText 被 visitBtn 与 bondFailText 共用。
    * 抽真源码而非打桩，才能顺带断言冷却文案不含 NaN。 */
   const DEPS = ['timeLeftText'];
@@ -114,7 +114,7 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
   ctx.Date = Object.create(Date);
   ctx.Date.now = () => NOW;
 
-  ok('九个渲染器 + 一个既有依赖全部抽出并编译通过',
+  ok('八个渲染器 + 一个既有依赖全部抽出并编译通过',
     NAMES.concat(DEPS).every(n => typeof A[n] === 'function'), NAMES.concat(DEPS).join(','));
 
   /* ── 1) 已相识：往来段完整、拜访按钮可点、增量 = 引擎会给的数 ── */
@@ -246,27 +246,23 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
       SQ.t('bond.visit.fail.cooldown', { t: A.timeLeftText(60000) }, 'xiuxian') &&
     A.bondFailText({ reason: 'max' }) === SQ.t('bond.visit.fail.max', null, 'xiuxian') &&
     A.bondFailText({ reason: 'once' }) === SQ.t('bond.gift.fail.once', null, 'xiuxian') &&
-    A.bondFailText({ reason: 'daily' }) === SQ.t('bond.gift.fail.daily', { n: D.BOND_GIFT_DAILY }, 'xiuxian') &&
     A.bondFailText({ reason: 'lock' }) === SQ.t('bond.fail.lock', null, 'xiuxian') &&
     A.bondFailText({ reason: 'scar' }) === SQ.t('bond.fail.scar', null, 'xiuxian') &&
     A.bondFailText({ reason: 'stock' }) === SQ.t('bond.gift.fail.stock', null, 'xiuxian');
-  ok('bondFailText · 七类原因全部命中对应文案（visit / gift / 共用三组前缀）', mapOk);
+  ok('bondFailText · 六类原因全部命中对应文案（visit / gift / 共用三组前缀）', mapOk);
   const fb = A.bondFailText({ reason: 'zzz_nosuch_reason' });
   const fbNull = A.bondFailText(null);
   ok('bondFailText · 未知原因与 null 均回落「查无此人」，绝不把键名抛给用户',
     fb === SQ.t('bond.fail.unknown', null, 'xiuxian') && fbNull === fb && fb.indexOf('zzz') < 0, fb);
 
-  /* ── 8) giftLeft 与引擎同口径（跨日重置）── */
-  const wGl = mkWorld({});
-  wGl.alchemy = SQ.Alchemy.normalize({ pills: { ap_juqi: 5 } }, D);
-  const cap = D.BOND_GIFT_DAILY;
-  const l0 = A.giftLeft(wGl, D);
-  wGl.alchemy.giftDay = { day: SQ.Alchemy.gameDayOf(wGl, ctx.state.profile, NOW), n: 2 };
-  const l2 = A.giftLeft(wGl, D);
-  wGl.alchemy.giftDay = { day: SQ.Alchemy.gameDayOf(wGl, ctx.state.profile, NOW) - 1, n: 3 };
-  const lCross = A.giftLeft(wGl, D);
-  ok('giftLeft · 缺省满额 / 已赠 2 剩 ' + (cap - 2) + ' / 跨日回满',
-    l0 === cap && l2 === cap - 2 && lCross === cap, [l0, l2, lCross].join('/'));
+  /* ── 8) GitHub issue #4：赠丹**无日限**——有丹即全可点，屏上不再出现「今日 n/cap」计数 ── */
+  curWorld = worlds.rich;
+  const hNoCap = A.bondActSection(idKnown);
+  const chipN = (hNoCap.match(/data-act="bondGift"/g) || []).length;
+  ok('issue #4 · 赠丹 chips 一颗都不置灰，且赠丹段无「今日 n/cap」计数文案（head 走无参键）',
+    chipN === 4 && /<button[^>]*data-act="bondGift"[^>]*disabled/.test(hNoCap) === false &&
+    /今日\s*\d+\s*\/\s*\d+/.test(hNoCap) === false &&
+    hNoCap.indexOf(SQ.t('bond.gift.head', null, 'xiuxian')) >= 0, 'chips=' + chipN);
 
   /* ── 9) 四类「漏值」扫描（lawmerge 同款）── */
   const all = [h, hRich, hMax, hCd, hLock, hScar, hu, hh].join('\n');
@@ -303,7 +299,7 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
     w.alchemy = SQ.Alchemy.normalize({ pills: {} }, D);
     w.alchemy.pills[pill] = 1;
     const viewN = Math.min(A.pillGiftGain(D, pill), (D.BOND_MAX || 100) - 5);
-    const r = SQ.Bonds.giftPill(w, pack, D, cs[40].id, pill, NOW, () => {}, { createdAt: NOW });
+    const r = SQ.Bonds.giftPill(w, pack, D, cs[40].id, pill, NOW, () => {});
     if (!r.ok || r.gain !== viewN) misG.push(tierName + ':view' + viewN + '/eng' + (r.ok ? r.gain : r.reason));
   });
   ok('赠丹：视图标注增量 === 引擎实发增量（四阶逐一对齐）', misG.length === 0, misG.join(','));
@@ -317,7 +313,7 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
     w.alchemy = SQ.Alchemy.normalize({ pills: {} }, D);
     w.alchemy.pills[tp.id] = 1;
     const viewN = Math.min(A.pillGiftGain(D, tp.id), (D.BOND_MAX || 100) - 5);
-    const r = SQ.Bonds.giftPill(w, pack, D, cs[40].id, tp.id, NOW, () => {}, { createdAt: NOW });
+    const r = SQ.Bonds.giftPill(w, pack, D, cs[40].id, tp.id, NOW, () => {});
     if (!r.ok || r.gain !== viewN) misT.push(tp.id + ':view' + viewN + '/eng' + (r.ok ? r.gain : r.reason));
   });
   ok('赠丹：成品丹族屏上标注 === 引擎实发（nogift 者除外，非空集）',

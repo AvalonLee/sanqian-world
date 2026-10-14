@@ -68,8 +68,6 @@
         qi: Math.max(0, Math.floor(num((obj(raw.prof, {})).qi, 0))) },
       pills: {},
       pillDay: { day: Math.floor(num((obj(raw.pillDay, {})).day, -1)), n: Math.max(0, Math.floor(num((obj(raw.pillDay, {})).n, 0))) },
-      /* 赠丹日限（好感三渠道批 · 引擎卷 v1.11 §3.2a 渠道 B）：与 pillDay 同形同口径（gameDayOf）*/
-      giftDay: { day: Math.floor(num((obj(raw.giftDay, {})).day, -1)), n: Math.max(0, Math.floor(num((obj(raw.giftDay, {})).n, 0))) },
       pillOnce: { pozhang: Math.floor(num((obj(raw.pillOnce, {})).pozhang, -1)), zhenjie: Math.floor(num((obj(raw.pillOnce, {})).zhenjie, -1)) },
       craft: null,
       farmAt: Math.max(0, num(raw.farmAt, 0)),
@@ -97,7 +95,7 @@
   function ensure(ws, D) {
     if (!ws.alchemy || typeof ws.alchemy !== 'object') {
       ws.alchemy = { furnace: false, recipes: [], blueprints: [], prof: { dan: 0, qi: 0 },
-        pills: {}, pillDay: { day: -1, n: 0 }, giftDay: { day: -1, n: 0 }, pillOnce: { pozhang: -1, zhenjie: -1 },
+        pills: {}, pillDay: { day: -1, n: 0 }, pillOnce: { pozhang: -1, zhenjie: -1 },
         craft: null, farmAt: 0, fires: 0, jiuzhuan: 0, forgeMade: 0 };
     }
     if (!ws.materials || typeof ws.materials !== 'object') ws.materials = {};

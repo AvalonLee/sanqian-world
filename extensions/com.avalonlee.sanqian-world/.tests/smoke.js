@@ -5438,8 +5438,9 @@
      * (c) 渠道 A 同向加成**只对已相识生效**——未识者阵营未揭，给加成会经「+4 而非 +3」把 align 泄漏出去；
      * (d) 渠道 A 全局单冷却：**入账成功才推进** `ws.bondVisitAt`，被拒（满档 / 绝交锁 / 心结锁 / 名录外）一律不推进；
      * (e) 渠道 B 丹方 tier 对表（黄 4 / 玄 6 / 地 9 / 天 14）+ 丹纹版 ×1.5 取整（黄 6）；
-     * (f) 渠道 B 三类拒绝**均不扣丹、不占日限**：双特例（once: pozhang/zhenjie）/ 满档 / 无库存；
-     * (g) 渠道 B 日限 3 次 + 跨日自动重置；`alchemy.giftDay` normalize 三态（缺省 / 脏值 / 保留）；
+     * (f) 渠道 B 三类拒绝**均不扣丹**：双特例（once: pozhang/zhenjie）/ 满档 / 无库存；
+     * (g) 渠道 B **无日限**（GitHub issue #4 · 2026-10-14 撤销原 3 次日限与 `alchemy.giftDay` 字段，
+     *     理由见 bonds.js giftPill 段注）：同刻连赠全成功、库存见底即拒、字段退役后 normalize 不再产出；
      * (h) 渠道 B 溢出 clamp 后返回值 `gain` = **实际增量**（aff 99 赠天阶：名义 14、实际 1）——视图据此标数，不虚标；
      * (i) 渠道 B 未识可赠（「以丹会友」）→ 0 → 4 结识；
      * (j) 渠道 C 同贺遍历范围六类逐人：已相识 +n / 满档 +0 / 未识不入账 / 厌恶不入账 / 绝交锁拒 / 心结锁拒 /
@@ -5448,12 +5449,12 @@
      *     早已写 cat 'bond'，但分类表无此项，那些日志此前只能在「全部」里看到、任何筛选都取不到）；
      * (l) 「侣不可交易」底线：三条渠道**均不扣灵石**（ws.stones 前后逐字节相同），也不动 Ledger；
      * (m) 落盘增量收口：本批仅新增 `ws.bondVisitAt` 与 `ws.alchemy.giftDay` 两字段（bondVisitAt normalize 三态），
-     *     渠道 C **零新增字段**——合约束「只在现有对象上加标记位、不新开随内容池线性增长的容器」。 */
+     *     渠道 C **零新增字段**——合约束「只在现有对象上加标记位、不新开随内容池线性增长的容器」。
+     *     🔧 勘正（GitHub issue #4 · 2026-10-14）：`ws.alchemy.giftDay` 已随该批退役，现行判据见上 (g)。 */
     var W257 = 'xiuxian', cs257 = SQ.Bonds.list(pack), T257 = 1700000000000;
     var lg257 = [];
     var log257 = function (c, tx) { lg257.push(c + '|' + tx); };
     var mk257 = function (ov) { var w257 = pack.initialState(); if (ov) Object.assign(w257, ov); return w257; };
-    var prof257 = { createdAt: T257 };
     /* (a) 档位递减对表 + 满档拒 */
     var tbl257 = D.BOND_VISIT_BY_TIER, affs257 = [0, 5, 40, 80, 100], bad257a = [];
     for (var i257 = 0; i257 < affs257.length; i257++) {
@@ -5534,51 +5535,53 @@
     var got257e = {};
     ['huang', 'xuan', 'di', 'tian'].forEach(function (tr) {
       var wg = mkG257((function () { var o = {}; o[pick257[tr]] = 2; return o; })(), 5);
-      var r = SQ.Bonds.giftPill(wg, pack, D, cs257[0].id, pick257[tr], T257, log257, prof257);
+      var r = SQ.Bonds.giftPill(wg, pack, D, cs257[0].id, pick257[tr], T257, log257);
       got257e[tr] = r.ok ? r.gain : r.reason;
     });
     var e257 = bad257e.length === 0 && got257e.huang === 4 && got257e.xuan === 6 && got257e.di === 9 && got257e.tian === 14;
     /* 丹纹 ×1.5 取整 */
     var wRw257 = mkG257({ ap_juqi_rw: 1 }, 5);
-    var rRw257 = SQ.Bonds.giftPill(wRw257, pack, D, cs257[0].id, 'ap_juqi_rw', T257, log257, prof257);
+    var rRw257 = SQ.Bonds.giftPill(wRw257, pack, D, cs257[0].id, 'ap_juqi_rw', T257, log257);
     var e257b = rRw257.ok && rRw257.rune === true && rRw257.gain === Math.round(4 * (D.BOND_GIFT_RUNE_MULT || 1.5));
-    /* (f) 四类拒绝均不扣丹不占日限（once ×2 / stock / nogift = 洗髓丹） */
+    /* (f) 四类拒绝均不扣丹（once ×2 / stock / nogift = 洗髓丹） */
     var wF1 = mkG257({ ap_pozhang: 2, ap_zhenjie: 2, ap_juqi: 2, ap_xisui: 2 }, 5);
-    var rF1a = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_pozhang', T257, log257, prof257);
-    var rF1b = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_zhenjie', T257, log257, prof257);
-    /* 洗髓丹（第三类底牌）禁赠：拒因单立 'nogift'（不复用 'once' 那句「每境界限 1」的文案）且不扣丹不占日限 */
-    var rF1d = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_xisui', T257, log257, prof257);
-    var rF1c = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_daohe', T257, log257, prof257);
+    var rF1a = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_pozhang', T257, log257);
+    var rF1b = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_zhenjie', T257, log257);
+    /* 洗髓丹（第三类底牌）禁赠：拒因单立 'nogift'（不复用 'once' 那句「每境界限 1」的文案）且不扣丹 */
+    var rF1d = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_xisui', T257, log257);
+    var rF1c = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_daohe', T257, log257);
     var wF2 = mkG257({ ap_juqi: 5 }, 100);
-    var rF2 = SQ.Bonds.giftPill(wF2, pack, D, cs257[0].id, 'ap_juqi', T257, log257, prof257);
+    var rF2 = SQ.Bonds.giftPill(wF2, pack, D, cs257[0].id, 'ap_juqi', T257, log257);
     var f257 = rF1a.reason === 'once' && rF1b.reason === 'once' && rF1c.reason === 'stock' &&
       rF1d.reason === 'nogift' && wF1.alchemy.pills.ap_xisui === 2 &&
       SQ.t('bond.gift.fail.nogift', null, 'xiuxian') !== 'bond.gift.fail.nogift' &&
       wF1.alchemy.pills.ap_pozhang === 2 && wF1.alchemy.pills.ap_zhenjie === 2 && wF1.alchemy.pills.ap_juqi === 2 &&
-      wF1.alchemy.giftDay.n === 0 &&
-      rF2.reason === 'max' && wF2.alchemy.pills.ap_juqi === 5 && wF2.alchemy.giftDay.n === 0;
-    /* (g) 日限 3 + 跨日重置 + normalize 三态 */
+      wF1.alchemy.giftDay === undefined &&
+      rF2.reason === 'max' && wF2.alchemy.pills.ap_juqi === 5;
+    /* (g) GitHub issue #4（2026-10-14）：赠丹**无日限**——同刻连赠 4 次全成功，节流只在库存；
+     *     库存见底即拒 'stock'，且 `alchemy.giftDay` 字段已从 normalize / initialState 退役 */
     var wG257 = mkG257({ ap_juqi: 9 }, 5), okN257 = 0, lastR257 = null;
     for (var gi = 0; gi < 4; gi++) {
-      lastR257 = SQ.Bonds.giftPill(wG257, pack, D, cs257[0].id, 'ap_juqi', T257, log257, prof257);
+      lastR257 = SQ.Bonds.giftPill(wG257, pack, D, cs257[0].id, 'ap_juqi', T257, log257);
       if (lastR257.ok) okN257++;
     }
-    var rCross257 = SQ.Bonds.giftPill(wG257, pack, D, cs257[0].id, 'ap_juqi', T257 + 1000, log257, prof257);
-    var nDef257 = SQ.Alchemy.normalize({}, D).giftDay;
-    var nBad257 = SQ.Alchemy.normalize({ giftDay: { day: 'x', n: -3 } }, D).giftDay;
-    var nKeep257 = SQ.Alchemy.normalize({ giftDay: { day: 77, n: 2 } }, D).giftDay;
-    var g257 = okN257 === (D.BOND_GIFT_DAILY || 3) && lastR257.reason === 'daily' &&
-      /* 跨日那次是第 4 次**成功**赠丹，同样扣丹——库存 = 9 − 日限内 3 次 − 跨日 1 次 */
-      wG257.alchemy.pills.ap_juqi === 9 - okN257 - (rCross257.ok ? 1 : 0) && rCross257.ok === true &&
-      nDef257.day === -1 && nDef257.n === 0 && nBad257.day === -1 && nBad257.n === 0 &&
-      nKeep257.day === 77 && nKeep257.n === 2;
+    var midPills257 = wG257.alchemy.pills.ap_juqi;   /* 四颗出手后的余量，先取再抽干 */
+    var rDry257 = null;
+    for (var dj = 0; dj < 9; dj++) {
+      rDry257 = SQ.Bonds.giftPill(wG257, pack, D, cs257[0].id, 'ap_juqi', T257, log257);
+      if (!rDry257.ok) break;
+    }
+    var g257 = okN257 === 4 && lastR257.ok === true && midPills257 === 5 &&
+      rDry257.reason === 'stock' && !wG257.alchemy.pills.ap_juqi &&
+      wG257.alchemy.giftDay === undefined &&
+      SQ.Alchemy.normalize({ giftDay: { day: 77, n: 2 } }, D).giftDay === undefined;   /* 旧档带这字段 ⇒ 读档即剪 */
     /* (h) 溢出 clamp 后 gain = 实际增量 */
     var wH257 = mkG257({ ap_haina: 1 }, 99);
-    var rH257 = SQ.Bonds.giftPill(wH257, pack, D, cs257[0].id, 'ap_haina', T257, log257, prof257);
+    var rH257 = SQ.Bonds.giftPill(wH257, pack, D, cs257[0].id, 'ap_haina', T257, log257);
     var h257 = rH257.ok && rH257.nominal === 14 && rH257.gain === 1 && rH257.aff === (D.BOND_MAX || 100) && rH257.tier === 4;
     /* (i) 未识可赠（以丹会友）*/
     var wI257 = mkG257({ ap_juqi: 1 });
-    var rI257 = SQ.Bonds.giftPill(wI257, pack, D, cs257[0].id, 'ap_juqi', T257, log257, prof257);
+    var rI257 = SQ.Bonds.giftPill(wI257, pack, D, cs257[0].id, 'ap_juqi', T257, log257);
     var i257 = rI257.ok && wI257.bonds[cs257[0].id] === 4 && rI257.tier === 1 && rI257.tierUp === true;
     /* (j) 渠道 C 同贺遍历范围六类 + total 实算 */
     var wC257 = mk257({ bonds: {}, scars: {} });
@@ -5606,7 +5609,7 @@
     wL257.stones = 12345;
     var led257 = JSON.stringify(wL257.ledger);
     SQ.Bonds.visit(wL257, pack, D, cs257[1].id, T257, log257);
-    SQ.Bonds.giftPill(wL257, pack, D, cs257[0].id, 'ap_juqi', T257, log257, prof257);
+    SQ.Bonds.giftPill(wL257, pack, D, cs257[0].id, 'ap_juqi', T257, log257);
     SQ.Bonds.cheer(wL257, pack, D, 2, T257, log257);
     var l257 = wL257.stones === 12345 && JSON.stringify(wL257.ledger) === led257;
     /* (m) 落盘增量：仅两新字段 + bondVisitAt normalize 三态 */
@@ -5614,15 +5617,16 @@
     var nVk = pack.normalize(Object.assign(pack.initialState(), { bondVisitAt: 424242 })).bondVisitAt;
     var nVb = pack.normalize(Object.assign(pack.initialState(), { bondVisitAt: 'garbage' })).bondVisitAt;
     var m257 = nV0 === 0 && nVk === 424242 && nVb === 0;
-    ok('257', '好感三渠道（引擎卷 v1.11 §3.2a · 诉求⑤）：(a) 渠道 A 拜访档位递减对表 [3,3,2,1,0] + 满档拒 reason max；(b) `met` = **真跨进相识**——未识 0→3 true / 厌恶 −2→1 true / 厌恶 −5→−2 仍 tier0 **false**（防「由此结识 X」假反馈）；(c) 同向加成**仅对已相识**生效（未识者阵营未揭，给加成会经「+4 而非 +3」泄漏 align）；(d) 全局单冷却 `ws.bondVisitAt` **入账才推进**，满档 / 绝交锁 / 心结锁 / 名录外四类被拒一律不推进、冷却中返回 waitMs；(e) 渠道 B 丹方 tier 对表 黄4/玄6/地9/天14 + 丹纹 ×1.5 取整；(f) 双特例丹（once）/ 满档 / 无库存三类拒绝**均不扣丹、不占日限**；(g) 日限 3 次 + 跨日自动重置 + `alchemy.giftDay` normalize 三态；(h) 溢出 clamp 后返回 `gain` = **实际增量**（aff99 赠天阶：名义 14 实际 1，视图不虚标）；(i) 未识可赠（以丹会友）0→4 结识；(j) 渠道 C 同贺六类遍历逐人验证（已相识 +n / 近满 clamp / 满档 +0 / 未识不入账 / 厌恶不入账 / 绝交锁拒 / 心结锁拒 / **在任道侣排除**）+ `total` 实算不虚报；(k) 三条日志一律 cat **bond**（同批 view LOG_CATS 新增该分类，收口批 A 遗留的「写了 cat 却无筛选项」）；(l)「侣不可交易」底线——三渠道**均不扣灵石、不动 Ledger**；(m) 落盘增量仅 `ws.bondVisitAt` + `ws.alchemy.giftDay` 两字段（normalize 三态），渠道 C 零新增',
+    ok('257', '好感三渠道（引擎卷 v1.11 §3.2a · 诉求⑤）：(a) 渠道 A 拜访档位递减对表 [3,3,2,1,0] + 满档拒 reason max；(b) `met` = **真跨进相识**——未识 0→3 true / 厌恶 −2→1 true / 厌恶 −5→−2 仍 tier0 **false**（防「由此结识 X」假反馈）；(c) 同向加成**仅对已相识**生效（未识者阵营未揭，给加成会经「+4 而非 +3」泄漏 align）；(d) 全局单冷却 `ws.bondVisitAt` **入账才推进**，满档 / 绝交锁 / 心结锁 / 名录外四类被拒一律不推进、冷却中返回 waitMs；(e) 渠道 B 丹方 tier 对表 黄4/玄6/地9/天14 + 丹纹 ×1.5 取整；(f) 双特例丹（once）/ 满档 / 无库存三类拒绝**均不扣丹**；(g) **无日限**（GitHub issue #4 · 2026-10-14 撤销 `BOND_GIFT_DAILY` 与 `alchemy.giftDay`）——同刻连赠 4 次全成功、库存见底即拒 stock、normalize 不再产出该字段；(h) 溢出 clamp 后返回 `gain` = **实际增量**（aff99 赠天阶：名义 14 实际 1，视图不虚标）；(i) 未识可赠（以丹会友）0→4 结识；(j) 渠道 C 同贺六类遍历逐人验证（已相识 +n / 近满 clamp / 满档 +0 / 未识不入账 / 厌恶不入账 / 绝交锁拒 / 心结锁拒 / **在任道侣排除**）+ `total` 实算不虚报；(k) 三条日志一律 cat **bond**（同批 view LOG_CATS 新增该分类，收口批 A 遗留的「写了 cat 却无筛选项」）；(l)「侣不可交易」底线——三渠道**均不扣灵石、不动 Ledger**；(m) 落盘增量仅 `ws.bondVisitAt` 一字段（normalize 三态），渠道 B（issue #4 起）与渠道 C 零新增',
       a257 && b257 && c257 && d257 && e257 && e257b && f257 && g257 && h257 && i257 && j257 && k257 && l257 && m257,
       '(a) 越界=' + (bad257a.length ? bad257a.join(',') : '无') + ' 表=' + String(tbl257) +
       ' ‖ (b) met三例=' + r257b1.met + '/' + r257b2.met + '/' + r257b3.met +
       ' ‖ (c) 未识=' + r257c1.gain + '(align ' + r257c1.align + ') 已识同向=' + r257c2.gain + ' 异向=' + r257c3.gain +
       ' ‖ (d) 推进=' + at257 + ' 冷却拒=' + r257d2.reason + '/' + r257d2.waitMs + ' 满档后锚=' + wMax257.bondVisitAt +
       ' ‖ (e) 实测=' + JSON.stringify(got257e) + ' 丹纹=' + rRw257.gain +
-      ' ‖ (f) once=' + rF1a.reason + ' 丹未扣=' + wF1.alchemy.pills.ap_pozhang + ' 满档=' + rF2.reason + ' 日限未占=' + wF2.alchemy.giftDay.n +
-      ' ‖ (g) 连赠成功=' + okN257 + ' 第4次=' + lastR257.reason + ' 跨日=' + rCross257.ok +
+      ' ‖ (f) once=' + rF1a.reason + ' 丹未扣=' + wF1.alchemy.pills.ap_pozhang + ' 满档=' + rF2.reason +
+        ' 丹匣无日限计数=' + (wF2.alchemy.giftDay === undefined) +
+      ' ‖ (g) 同刻连赠成功=' + okN257 + '/4 余量=' + midPills257 + ' 见底拒=' + rDry257.reason +
       ' ‖ (h) 名义=' + rH257.nominal + ' 实际=' + rH257.gain + ' aff=' + rH257.aff +
       ' ‖ (i) 未识赠=' + rI257.ok + ' bond=' + wI257.bonds[cs257[0].id] +
       ' ‖ (j) hit=' + rC257.hit + ' total=' + rC257.total + ' 道侣=' + wC257.bonds[cs257[7].id] +
@@ -5630,7 +5634,8 @@
       ' ‖ (l) 灵石=' + wL257.stones + ' Ledger同=' + (JSON.stringify(wL257.ledger) === led257) +
       ' ‖ (m) bondVisitAt=' + nV0 + '/' + nVk + '/' + nVb +
       ' ‖ (d2) 冷却拒后锚=' + atAfterD2 + ' 锁类拒后锚=' + wLk257.bondVisitAt + '/' + wSc257.bondVisitAt + '/' + rUn257.reason +
-      ' ‖ (g2) 库存=' + wG257.alchemy.pills.ap_juqi + '(9−3−1) giftDay三态=' + JSON.stringify(nDef257) + '/' + JSON.stringify(nBad257) + '/' + JSON.stringify(nKeep257));
+      ' ‖ (g2) 见底后库存键已删=' + (wG257.alchemy.pills.ap_juqi === undefined) +
+      ' 旧档 giftDay 读入即剪=' + (SQ.Alchemy.normalize({ giftDay: { day: 77, n: 2 } }, D).giftDay === undefined));
 
     /* #284 拜访冷却 = 5 分钟（2026-10-09 用户裁定 `BOND_VISIT_CD_MS` 1h → 5min · 引擎卷 v1.12 §3.2a）：
      * #257(d) 全程读表（`D.BOND_VISIT_CD_MS`），它证的是「引擎按表值算」，**证不了表值本身是多少**——
@@ -9188,7 +9193,7 @@
     var gotKey297 = rS297b.ok === true && rS297b.reward.type === 'pill' && rS297b.reward.id;
     var shardOk297 = rS297b.ok === true && w297s.shards[1] === 0 && w297s.alchemy.pills[gotKey297] === 1;
     var shard297 = shardFull297 && shardOk297;
-    /* (f) 赠丹两族：成品丹按 D.PILLS 自带 tier 计好感；成品破障丹拒因 nogift 且不扣丹不占日限 */
+    /* (f) 赠丹两族：成品丹按 D.PILLS 自带 tier 计好感；成品破障丹拒因 nogift 且不扣丹 */
     var cs297 = SQ.Bonds.list(pack).filter(function (c) { return c.category !== 'spouse'; });
     var w297g = mkWs({ realm: 5, stones: 99999 });
     SQ.Alchemy.ensure(w297g, D);
@@ -9196,8 +9201,8 @@
     var gTier = null;
     (D.PILLS || []).forEach(function (p) { if (p.id === 'cuiti') gTier = p.tier; });
     var expGift = (D.BOND_GIFT_BY_TIER || {})[gTier];
-    var rG297a = SQ.Bonds.giftPill(w297g, pack, D, cs297[0].id, 'cuiti', 1000007, null, prof297);
-    var rG297b = SQ.Bonds.giftPill(w297g, pack, D, cs297[0].id, 'pozhang', 1000008, null, prof297);
+    var rG297a = SQ.Bonds.giftPill(w297g, pack, D, cs297[0].id, 'cuiti', 1000007, null);
+    var rG297b = SQ.Bonds.giftPill(w297g, pack, D, cs297[0].id, 'pozhang', 1000008, null);
     var gift297 = rG297a.ok === true && rG297a.gain === expGift && w297g.alchemy.pills.cuiti === 1 &&
       rG297b.ok === false && rG297b.reason === 'nogift' && w297g.alchemy.pills.pozhang === 2 &&
       SQ.t('bond.gift.fail.nogift', null, 'xiuxian') !== 'bond.gift.fail.nogift';
@@ -9239,7 +9244,7 @@
     var capCopy297 = capTpl297 &&
       SQ.t('alchemy.ui.pillcap', { n: D.ALCHEMY.PILL_DAILY_CAP }, 'xiuxian')
         .indexOf(String(D.ALCHEMY.PILL_DAILY_CAP)) >= 0;
-    ok('297', '丹药两族合一（第十七批 · 坊市 / 特席 / 门中供给 / 残片兑丹四口所得一律入丹匣（黑市 buy 体与坊市同码但货架从不掷丹），何时服用玩家定）：(a) 坊市买丹入匣且**不当场生效**（qi / buffs 纹丝不动、灵石与 out.shop 照旧） (b) 匣满 ⇒ 整笔拒单、**灵石分文不动**、货架项不标 sold（先判后扣） (c) 服用成品丹：效果照落 + **占丹毒日限**（与自产同池） (d) 门中供给拒单时灵石 / 声望 / 24h 锚三者不动，成功时入匣不生效 (e) 残片兑丹匣满拒兑且**片不扣**，成功时扣 20 片入匣 (f) 赠丹两族同轨：成品丹按 D.PILLS 自带 tier 计好感、成品破障丹拒因 `nogift` 且不扣丹不占日限 (g) normalize 白名单认四个成品丹键、伪键滤除、旧档（只有自产丹）零受影响 (h) 两族混吃计同一计数（第 5 颗即拒） (i) 🆕 当晚复核补：特席买丹匣满拒单**回传 reason**、灵石分文不动（视图若不接返回值就是静默无反馈；屏上面由 probe-bondact 两条 + 走查 B4 锚） (j) 🆕 丹毒上限文案取表值不写死数（模板零裸数字，改 `PILL_DAILY_CAP` 屏上跟着动）',
+    ok('297', '丹药两族合一（第十七批 · 坊市 / 特席 / 门中供给 / 残片兑丹四口所得一律入丹匣（黑市 buy 体与坊市同码但货架从不掷丹），何时服用玩家定）：(a) 坊市买丹入匣且**不当场生效**（qi / buffs 纹丝不动、灵石与 out.shop 照旧） (b) 匣满 ⇒ 整笔拒单、**灵石分文不动**、货架项不标 sold（先判后扣） (c) 服用成品丹：效果照落 + **占丹毒日限**（与自产同池） (d) 门中供给拒单时灵石 / 声望 / 24h 锚三者不动，成功时入匣不生效 (e) 残片兑丹匣满拒兑且**片不扣**，成功时扣 20 片入匣 (f) 赠丹两族同轨：成品丹按 D.PILLS 自带 tier 计好感、成品破障丹拒因 `nogift` 且不扣丹（issue #4 起赠丹无日限） (g) normalize 白名单认四个成品丹键、伪键滤除、旧档（只有自产丹）零受影响 (h) 两族混吃计同一计数（第 5 颗即拒） (i) 🆕 当晚复核补：特席买丹匣满拒单**回传 reason**、灵石分文不动（视图若不接返回值就是静默无反馈；屏上面由 probe-bondact 两条 + 走查 B4 锚） (j) 🆕 丹毒上限文案取表值不写死数（模板零裸数字，改 `PILL_DAILY_CAP` 屏上跟着动）',
       inBox297 && fullRefuse297 && drinkTrade297 && supply297 && shard297 && gift297 && norm297 &&
       samePool297 && merchant297 && capCopy297,
       '入匣=' + inBox297 + ' 拒单不扣钱=' + fullRefuse297 + ' 服用=' + drinkTrade297 +

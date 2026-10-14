@@ -457,14 +457,14 @@
       });
       return out;
     },
-    /* 赠丹（渠道 B）：耗自有丹药、按丹方 tier 给好感。profile 透传供 Alchemy.gameDayOf 算日限锚。 */
+    /* 赠丹（渠道 B）：耗自有丹药、按丹方 tier 给好感。GitHub issue #4 起无日限，节流只在丹药库存。 */
     giftBond: async function (ref, npcId, pillKey) {
       var out = null;
       await SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
         var pack = packOf(s), D = dataOf(s);
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
-        out = SQ.Bonds.giftPill(ws, pack, D, npcId, pillKey, Date.now(), log, s.profile);
+        out = SQ.Bonds.giftPill(ws, pack, D, npcId, pillKey, Date.now(), log);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
       });
       return out;
