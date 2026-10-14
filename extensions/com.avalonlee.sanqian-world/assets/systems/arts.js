@@ -1,6 +1,7 @@
 /* systems/arts.js — G5 技能（功法）：习得 / 修习槽 / 升级 / 精通 / 待修习架复检
  * 规则源：数值详设 §四 + 功法武学·通用规范 §一（学习要求带）。
- * 等级 0~9（修行状态批）：获得 = Lv0，升级消耗 ARTS_COST[lv]×品阶系数（**耗修为**）；
+ * 等级 1~9（等级起点批 2026-10-14；原 0~9）：**入门即 Lv1**，升级消耗 ARTS_COST[lv−1]×品阶系数（**耗修为**），
+ * Lv9 即满级（再升 = 无价目可扣、钮消失显「满级」，`ARTS_MAX_LV` 仍是唯一上限常量）；
  * 渡劫成功**不再清等级**（第廿五批 2026-10-13：原「artsLevels 全清零」口径作废，详设 §4.1 同批改口）。
  * 精通（原「练习度」，精通批更名）：槽内功法按主修快/其余槽慢增速累积，且随当前等级
  * 递减（低阶快、高阶慢）；满值顿悟 Lv+1（在线 tick 推进，模式乘区：闭关易悟 / 历练难悟）。
@@ -102,12 +103,13 @@
       return { value: v, known: known };
     },
 
-    /* 获得功法：达标 → artsKnown（Lv0）；未达标 → shelf（容量 24，满则按「重复所得」转灵石）。
+    /* 获得功法：达标 → artsKnown（**入门即 Lv1**）；未达标 → shelf（容量 24，满则按「重复所得」转灵石）。
      * logKey 可覆写入门日志模板（自悟批：自行领悟走 `arts.selflearn`，其余走默认 `arts.learned`）。 */
     gainArt: function (ws, pack, D, id, log, logKey) {
       if (SQ.Arts.owned(ws, id)) return null;
       if (SQ.Arts.canLearn(ws, pack, D, id)) {
         ws.artsKnown.push(id);
+        ws.artsLevels[id] = Math.max(1, ws.artsLevels[id] || 0);   /* 入门即 Lv1：屏上不再有「学会了却是 Lv0」；有值则不覆写 */
         if (log) log('arts', SQ.t(logKey || 'arts.learned', { name: SQ.t('skill.' + id + '.name', null, pack.worldId) }, pack.worldId));
         SQ.Arts.autoSlot(ws, pack, D, log); /* 体验手感批：有空槽即自动上槽（无槽则静默留在已学列表） */
         return 'known';
@@ -136,6 +138,7 @@
         if (SQ.Arts.canLearn(ws, pack, D, id)) {
           ws.shelf.splice(i, 1);
           ws.artsKnown.push(id);
+          ws.artsLevels[id] = Math.max(1, ws.artsLevels[id] || 0);   /* 复检入门与直接入门同口径；已有等级绝不覆写（本批自检照出：直写 1 会把满级父本清成 Lv1） */
           moved.push(id);
           if (log) log('arts', SQ.t('arts.learned', { name: SQ.t('skill.' + id + '.name', null, pack.worldId) }, pack.worldId));
         }
@@ -145,18 +148,20 @@
     },
 
     levelOf: function (ws, id) {
-      return (ws.artsKnown.indexOf(id) >= 0 && ws.artsLevels[id]) || 0;
+      if ((ws.artsKnown || []).indexOf(id) < 0) return 0;   /* 未入门（架上 / 未持有）= 0，屏上不出 Lv */
+      return Math.max(1, (ws.artsLevels || {})[id] || 0);   /* 入门即 Lv1：0 只可能来自坏档，读时钳住 */
     },
 
     /* 升级消耗（修行状态批 · §4.2 v2）：
-     * base = ARTS_COST[lv] × ARTS_COST_TIER[品阶]（品级越高、等级越高越贵）
-     * × (1+境界×0.5) × max(50%, 1−ΣartsSpeed)；**消耗修为（ws.qi）而非灵石**。 */
+     * base = ARTS_COST[lv−1] × ARTS_COST_TIER[品阶]（品级越高、等级越高越贵）
+     * × (1+境界×0.5) × max(50%, 1−ΣartsSpeed)；**消耗修为（ws.qi）而非灵石**。
+     * 等级起点批 2026-10-14：表长 9 → 8——原 Lv0→1 那一档随「入门即 Lv1」取消，其余档位价格一字未动。 */
     upgradeCost: function (ws, pack, D, id, mods) {
       var lv = SQ.Arts.levelOf(ws, id);
       if (lv >= D.ARTS_MAX_LV) return null;
       var a = pack.artsMap()[id];
       var tierM = (D.ARTS_COST_TIER && a) ? (D.ARTS_COST_TIER[a.tier] || 1) : 1;
-      var base = D.ARTS_COST[lv] * tierM;
+      var base = D.ARTS_COST[lv - 1] * tierM;
       var disc = Math.max(D.ARTS_SPEED_FLOOR, 1 - mods.sum.artsSpeed);
       return Math.ceil(base * (1 + ws.realm * D.ARTS_COST_REALM) * disc);
     },
@@ -174,7 +179,7 @@
      * 每部功法独立精通 artsPractice[id]（0~PRACTICE_MAX），只有**槽内且已入门**
      * 且未满级（Lv<ARTS_MAX_LV）才增长；满值 → 顿悟：Lv+1 并清零重来。
      * 增速 = 主修（槽位第 1 位）PRACTICE_MAIN_PER_H / 其余槽 PRACTICE_OTHER_PER_H，
-     * × PRACTICE_LV_RATE[当前等级]（低阶领悟快、高阶领悟慢）
+     * × PRACTICE_LV_RATE[当前等级 − 1]（低阶领悟快、高阶领悟慢；等级起点批后 Lv1 起表头）
      * × (1+ΣartsSpeed) × 模式 practiceMult（闭关 1.5 易悟 / 历练 0.5 难悟）。
      * 仅在线 tick 推进（离线不涨，与战斗同口径）。返回 {id, lv} 领悟记录供日志（≤1 条/tick）。 */
     tickPractice: function (ws, pack, D, mods, dtSec, ctx) {
@@ -186,16 +191,16 @@
       for (var i = 0; i < (ws.artsSlots || []).length; i++) {
         var id = ws.artsSlots[i];
         if (!id || (ws.artsKnown || []).indexOf(id) < 0) continue;
-        var lv = ws.artsLevels[id] || 0;
+        var lv = SQ.Arts.levelOf(ws, id);
         if (lv >= D.ARTS_MAX_LV) continue;   /* 满级不再练 */
-        /* 精通增速随等级递减：低阶快、高阶慢（精通批） */
-        var lvRate = (D.PRACTICE_LV_RATE && D.PRACTICE_LV_RATE[lv] != null) ? D.PRACTICE_LV_RATE[lv] : 1;
+        /* 精通增速随等级递减：低阶快、高阶慢（精通批）；等级起点批后索引 = lv−1（表长 8） */
+        var lvRate = (D.PRACTICE_LV_RATE && D.PRACTICE_LV_RATE[lv - 1] != null) ? D.PRACTICE_LV_RATE[lv - 1] : 1;
         var perSec = (id === mainId ? D.PRACTICE_MAIN_PER_H : D.PRACTICE_OTHER_PER_H) / 3600;
         var cur = (ws.artsPractice || {})[id] || 0;
         cur += perSec * lvRate * speedMult * modeMult * dtSec;
         if (cur >= D.PRACTICE_MAX) {
           cur = 0;
-          ws.artsLevels[id] = (ws.artsLevels[id] || 0) + 1;
+          ws.artsLevels[id] = lv + 1;
           insight = { id: id, lv: ws.artsLevels[id] };
           if (ctx && ctx.log) {
             ctx.log('arts', SQ.t('arts.insight', {

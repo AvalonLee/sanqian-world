@@ -5,12 +5,14 @@
  *   携才投效全部退化成「同一会话不刷新才碰得到」的一次性内容（任务清单 N19）。同类缺陷不可能
  *   靠 grep 穷举 ⇒ 立一条**结构性**回归：拿真存档 fixture 过一遍 `SQ.normalize`，逐叶子路径对表，
  *   **非预期丢键必须为 0**；每条被允许的丢失都要写明成因，防日后把它当 bug 反复调查、也防新代码偷偷丢数据。
- * 已知且已证的三条豁免（本文件末尾断言里逐条点名，不做无名单放行）：
+ * 已知且已证的四条豁免（本文件末尾断言里逐条点名，不做无名单放行）：
  *   E1 `ws.rumorSeq` —— 全库 `assets/**` 零读零写（含 `view`），是历史遗留落盘字段，normalize 不认它属正常清理；
  *   E2 `ws.bonds.pr{n}` 值为 **0** 者 —— 0 = 缺省好感，`bonds` 白名单只收 ≥1 或负区间（值 0 不入档是既有正典，
  *      与 N19 修的是「值 ≥1 被整键剪掉」，两回事）；
  *   E3 `ws.tiandao.omenSeen` 空数组 / 长度不等于 `OMEN_NODES` 者 —— 按位掩码重建（`tiandao.js:804-805`），
  *      天象扩容批 v1.4 的既定语义（节点数变动即整局去重位归零）。
+ *   E4 `ws.artsLevels..{}` 空对象占位 —— 等级起点批 2026-10-14（入门即 Lv1）：normalize 逐部补等级键，
+ *      占位叶随之消失。§1 同时正面证「补完的每个已入门功法等级 ≥1」，不只认它消失了。
  * 用法：node .tests/probe-normround.cjs     末行 NORMROUND_ALL_GREEN n/n 或 NORMROUND_FAILED k
  */
 'use strict';
@@ -39,6 +41,9 @@ function leaves(o, pre, out) {
 const isZeroBond = (k, v) => /^ws\.bonds\.pr\d+\.$/.test(k) && v === 0;
 /* 空数组叶子路径形如 `ws.tiandao.omenSeen..[]`（对象段带尾点再拼 `.[]`）⇒ 按 endsWith 判定，不写死整串 */
 const isOmenSeenReset = (k) => k.indexOf('ws.tiandao.omenSeen') === 0 && k.endsWith('.[]');
+/* E4 `ws.artsLevels..{}` —— 等级起点批（入门即 Lv1）：normalize 把「已入门却没有等级键」的旧档逐部补成 Lv1，
+ * 于是**空对象占位叶**消失。这是加键（迁移），不是丢数据；只认这一条路径，别把整张 artsLevels 放行。 */
+const isArtsLevelsBackfill = (k) => k === 'ws.artsLevels..{}';
 
 function buildRichState() {
   const raw = JSON.parse(fs.readFileSync(path.join(ROOT, '.tests/fixture-save.json'), 'utf8'));
@@ -82,12 +87,17 @@ function lost(a, b) {
   return { drop, chg };
 }
 const dws = lost(snap.ws, after.ws), dme = lost(snap.meta, after.meta);
-const unexpected = dws.drop.filter(([k, v]) => !(k === 'ws.rumorSeq.' || isOmenSeenReset(k)|| isZeroBond(k, v)));
+const unexpected = dws.drop.filter(([k, v]) => !(k === 'ws.rumorSeq.' || isOmenSeenReset(k)|| isZeroBond(k, v) || isArtsLevelsBackfill(k)));
 
-ok('§1 三条豁免逐条存在（豁免清单不是空口白话：拿实测数据证明它们确实发生且成因如述）',
+ok('§1 四条豁免逐条存在（豁免清单不是空口白话：拿实测数据证明它们确实发生且成因如述）',
   dws.drop.some(([k]) => k === 'ws.rumorSeq.') &&
   dws.drop.some(([k, v]) => isZeroBond(k, v)) &&
-  dws.drop.some(([k]) => isOmenSeenReset(k)),
+  dws.drop.some(([k]) => isOmenSeenReset(k)) &&
+  dws.drop.some(([k, v]) => isArtsLevelsBackfill(k) && (Object.keys(nw.artsLevels || {}).length > 0)) &&
+  (Object.keys(nw.artsLevels || {}).every(function (id) {
+    return (nw.artsKnown || []).indexOf(id) < 0 || nw.artsLevels[id] >= 1;
+  })) &&
+  (nw.artsKnown || []).every(function (id) { return (nw.artsLevels || {})[id] >= 1; }),
   '丢键合计 ' + dws.drop.length + ' 条');
 ok('§2 真档（含本批新字段）过 normalize：**非预期丢键 = 0**',
   unexpected.length === 0, unexpected.slice(0, 6).map(([k, v]) => k + '=' + JSON.stringify(v)).join(' '));

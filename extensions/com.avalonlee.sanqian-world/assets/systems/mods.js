@@ -82,7 +82,7 @@
           var lvm = (fx && fx.indexOf(k) >= 0) ? (lv > 0 ? 1 : 0) : lv;
           note(k, 'arts', a.effects[k] * lvm);
         }
-        /* 特殊属性：Lv1 即全效（只解锁不缩放，详设 §4.5）；Lv0 未入门不生效。
+        /* 特殊属性：Lv1 即全效（只解锁不缩放，详设 §4.5）；未入门（架上 / 坏档 Lv0）不生效。
          * yufeng（御风系）走乘算因子表（§三·补 注记 2：同池多部加算会把乘数叠反，本批统一 Π 合并） */
         if (lv > 0 && a.special) {
           var def = D.SPECIAL_POOL[a.special.pool];

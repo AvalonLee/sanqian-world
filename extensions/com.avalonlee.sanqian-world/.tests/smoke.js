@@ -500,17 +500,18 @@
     ok(37, '魔道 ×1.10 且 alignment=evil', ratio37 > 1.03 && ratio37 < 1.18 && evilAlign, 'ratio=' + ratio37.toFixed(3));
 
     /* #38 功法升级消耗对表（修行状态批：改耗修为 + 品阶系数）+ artsSpeed 折扣下限 50%
-     * tuna=黄阶：cost = 60 × 1 × (1+realm×0.5) × max(0.5, 1−ΣartsSpeed) */
+     * tuna=黄阶：cost = ARTS_COST[lv−1] × 1 × (1+realm×0.5) × max(0.5, 1−ΣartsSpeed)。
+     * 等级起点批（入门即 Lv1）：原 Lv0→1 那档 60 取消，**Lv1 起价 = 240**（其余档位价格一字未动）。 */
     var w38 = mkWs({ realm: 0 });
     var w38b = mkWs({ realm: 2 });
     var p38c = mkProf([mkTalent({ artsSpeed: 0.9 })]);
-    var c0 = SQ.Arts.upgradeCost(w38, pack, D, 'tuna', M(mkProf(), w38));
-    var c2 = SQ.Arts.upgradeCost(w38b, pack, D, 'tuna', M(mkProf(), w38b));
-    w38b.artsLevels = { tuna: 1 };
-    var c2b = SQ.Arts.upgradeCost(w38b, pack, D, 'tuna', M(mkProf(), w38b));
-    var cFloor = SQ.Arts.upgradeCost(w38, pack, D, 'tuna', M(p38c, w38));
-    ok(38, '升级消耗 60/240×(1+r×0.5)（黄阶）· 折扣下限 50%',
-      c0 === 60 && c2 === 120 && c2b === 480 && cFloor === 30,
+    var c0 = SQ.Arts.upgradeCost(w38, pack, D, 'tuna', M(mkProf(), w38));        /* Lv1 realm0 = 240 */
+    var c2 = SQ.Arts.upgradeCost(w38b, pack, D, 'tuna', M(mkProf(), w38b));      /* ×(1+2×0.5) = 480 */
+    w38b.artsLevels = { tuna: 8 };
+    var c2b = SQ.Arts.upgradeCost(w38b, pack, D, 'tuna', M(mkProf(), w38b));     /* 1300000 × 2 */
+    var cFloor = SQ.Arts.upgradeCost(w38, pack, D, 'tuna', M(p38c, w38));        /* 240 × 0.5（折扣下限） */
+    ok(38, '升级消耗 240/480×(1+r×0.5)（黄阶 · 入门即 Lv1 起价）· 折扣下限 50%',
+      c0 === 240 && c2 === 480 && c2b === 2600000 && cFloor === 120,
       [c0, c2, c2b, cFloor].join('/'));
 
     /* #39 渡劫成功 → **功法等级保留**（第廿五批改口：原口径为 artsLevels 清零）、artsKnown 与槽位保留 */
@@ -595,8 +596,10 @@
     var prof43 = mkProf();
     pack.claim(w43, 5000, Date.now(), prof43);
     var m43 = SQ.Mods.collect(prof43, w43, pack, D);
-    ok(43, 'buff 过期清理且不进乘区',
-      w43.buffs.length === 1 && Math.abs(m43.sum.qiRate - 0.2) < 1e-9);
+    /* 等级起点批（入门即 Lv1）后**在槽功法自带 qiRate** ⇒ 判据改认 buff 来源，
+     * 不再拿乘区总和当 buff 值（旧写法只是恰好因为那时首发功法是 Lv0、贡献为 0）。 */
+    ok(43, 'buff 过期清理且不进乘区（过期条不进 buff 来源）',
+      w43.buffs.length === 1 && Math.abs(((m43.detail.qiRate || {}).buff || 0) - 0.2) < 1e-9);
 
     /* #44 同乘区加算/跨乘区乘算（总表 §八 抽查 3 条：qiRate/combatPower/qiCap） */
     var w44 = mkWs({ realm: 0, artsKnown: ['tuna', 'juling', 'jinzhong'], artsSlots: ['jinzhong', 'juling'], artsLevels: { jinzhong: 5, juling: 5 } });
@@ -1541,7 +1544,8 @@
       sigOk && leftOk && capOk &&
       Math.abs(offSf108 - 1.625) < 1e-6 && Math.abs(offSw108 - 1.12) < 1e-6,
       'rate比=' + (rateSf108 / ratePl108).toFixed(4) + ' qiRate同=' + qiRateSame +
-      ' 签名=' + sigOk + ' 搬离=' + leftOk + ' 离线=' + offSf108.toFixed(4) + '/' + offSw108.toFixed(4));
+      ' 签名=' + sigOk + ' 搬离=' + leftOk + ' 离线=' + offSf108.toFixed(4) + '/' + offSw108.toFixed(4) +
+      ' qi=' + [wOn108.qi, wCv108.qi, wSw108.qi].join('/') + ' realm=' + [wOn108.realm, wSw108.realm].join('/'));
 
     /* #113 ledger 对账：随机操作序列后 100 + Σin − Σout === stones（零漂移）；只增不清、跨渡劫不清零 */
     localStorage.removeItem(SQ.KEY);
@@ -2543,7 +2547,9 @@
       w135c.treasures.fate.trib === 0.2;
     ok('135', '法宝引擎：获得/装备/乘区并入/祭炼成长/栏位解锁/脏档归一',
       g135.ok && dup135.ok === false && dup135.reason === 'dup' && eq135.ok && eq135.slot === 0 &&
-      Math.abs(scaled1 - 0.15) < 1e-9 && Math.abs((m135.sum.qiRate || 0) - 0.15) < 1e-9 &&
+      Math.abs(scaled1 - 0.15) < 1e-9 &&
+      /* 同 #43：等级起点批后首发功法自带 qiRate，判「法宝并入乘区」要认 treasure 来源而不是总和 */
+      Math.abs(((m135.detail.qiRate || {}).treasure || 0) - 0.15) < 1e-9 &&
       cost135 === 1040 && r135.ok && r135.fail === false && r135.lv === 2 &&
       w135.stones === st135 - 1040 && Math.abs(scaled2 - 0.1875) < 1e-9 &&
       unlock135 && norm135,
@@ -2617,10 +2623,12 @@
 
     /* #140 在线修为模式乘区（体验批 v2.4）：闭关 ×1.3 增益 / 历练 ×0.55 放缓 →
      * 收益比值 = venture.qiMult / seclude.qiMult（由引擎常量驱动，模式乘区漂移即暴露）。 */
-    var w140 = mkWs({ realm: 5, mode: 'seclude', qi: 0 });
+    /* 两件都清空功法：等级起点批（入门即 Lv1）后首发两部从第一天就带词条与签名，
+     * 历练支的战斗/掉落结果会被它们推动 ⇒ 本条只测「模式乘区」，不留别的变量。 */
+    var w140 = mkWs({ realm: 5, mode: 'seclude', qi: 0, artsKnown: [], artsSlots: [] });
     pack.recalcDerived(w140, mkProf());
     var r140 = SQ.Idle.settle(w140, pack, D, 30000, Date.now(), { log: noopLog(), profile: mkProf() });
-    var w140b = mkWs({ realm: 5, mode: 'venture', qi: 0 });
+    var w140b = mkWs({ realm: 5, mode: 'venture', qi: 0, artsKnown: [], artsSlots: [] });
     pack.recalcDerived(w140b, mkProf());
     var r140b = SQ.Idle.settle(w140b, pack, D, 30000, Date.now(), { log: noopLog(), profile: mkProf() });
     var ratio140 = r140b.gain / r140.gain;
@@ -2636,16 +2644,18 @@
     pack.recalcDerived(w141, mkProf());
     var m141 = SQ.Mods.collect(mkProf(), w141, pack, D);
     SQ.Arts.tickPractice(w141, pack, D, m141, 3600, { log: noopLog() });
-    var pMain = w141.artsPractice.tuna, pSub = w141.artsPractice.juling;   /* 30×1.6×1.5=72 / 12×1.6×1.5=28.8 */
+    var pMain = w141.artsPractice.tuna, pSub = w141.artsPractice.juling;   /* 30×1.45×1.5=65.25 / 12×1.45×1.5=26.1（Lv1 起表头） */
     var guard141 = 0;
-    while ((w141.artsLevels.tuna || 0) < 1 && guard141++ < 10) {
+    /* 等级起点批：入门即 Lv1 ⇒ 首次顿悟升到 **Lv2**（旧判据是从 Lv0 悟到 Lv1） */
+    while ((w141.artsLevels.tuna || 0) < 2 && guard141++ < 10) {
       SQ.Arts.tickPractice(w141, pack, D, m141, 3600, { log: noopLog() });
     }
-    /* 低阶快、高阶慢：速率表 Lv0 > Lv8 且单调不增 */
-    var lvRate0 = D.PRACTICE_LV_RATE[0], lvRate8 = D.PRACTICE_LV_RATE[8];
-    var dec141 = lvRate0 > lvRate8 && D.PRACTICE_LV_RATE.every(function (v, i, a) {
-      return i === 0 || v <= a[i - 1];
-    });
+    /* 低阶快、高阶慢：速率表 Lv1 > Lv8 且单调不增（表长 8，索引 = lv−1） */
+    var lvRate1 = D.PRACTICE_LV_RATE[0], lvRate8 = D.PRACTICE_LV_RATE[7];
+    var dec141 = lvRate1 > lvRate8 && D.PRACTICE_LV_RATE.length === D.ARTS_MAX_LV - 1 &&
+      D.PRACTICE_LV_RATE.every(function (v, i, a) {
+        return i === 0 || v <= a[i - 1];
+      });
     var w141b = mkWs({ mode: 'venture' });
     w141b.artsKnown = ['tuna']; w141b.artsSlots = ['tuna'];
     var m141b = SQ.Mods.collect(mkProf(), w141b, pack, D);
@@ -2660,12 +2670,12 @@
     SQ.Arts.tickPractice(w141c, pack, D, m141c, 3600, { log: noopLog() });
     var c141 = w141c.artsPractice.juling === pMain && w141c.artsPractice.tuna === pSub;
     ok('141', '精通：主修快于副槽（增速认主修指向，issue #3 起不认槽序）· 满值顿悟清零重来 · 闭关易悟历练难悟 · 低阶快高阶慢',
-      Math.abs(pMain - 72) < 1e-6 && Math.abs(pSub - 28.8) < 1e-6 &&
-      w141.artsLevels.tuna === 1 && w141.artsPractice.tuna < D.PRACTICE_MAX &&
-      Math.abs(w141b.artsPractice.tuna - 24) < 1e-6 && dec141 && c141,
+      Math.abs(pMain - 65.25) < 1e-6 && Math.abs(pSub - 26.1) < 1e-6 &&
+      w141.artsLevels.tuna === 2 && w141.artsPractice.tuna < D.PRACTICE_MAX &&
+      Math.abs(w141b.artsPractice.tuna - 21.75) < 1e-6 && dec141 && c141,
       'main=' + pMain.toFixed(1) + ' sub=' + pSub.toFixed(1) +
       ' insight lv=' + w141.artsLevels.tuna + ' venture=' + w141b.artsPractice.tuna.toFixed(1) +
-      ' lvRate=' + lvRate0 + '>' + lvRate8 +
+      ' lvRate=' + lvRate1 + '>' + lvRate8 +
       ' ‖ 点定第2格: juling=' + w141c.artsPractice.juling.toFixed(1) + ' tuna=' + w141c.artsPractice.tuna.toFixed(1));
 
     /* #142 升级改耗修为（不入灵石账）· 品阶/等级成本递增 · Lv9 封顶 */
@@ -2673,20 +2683,20 @@
     w142.artsKnown = ['tuna']; w142.artsSlots = ['tuna'];
     pack.recalcDerived(w142, mkProf());
     var m142 = SQ.Mods.collect(mkProf(), w142, pack, D);
-    var c142a = SQ.Arts.upgradeCost(w142, pack, D, 'tuna', m142);      /* 60×黄1 = 60 */
+    var c142a = SQ.Arts.upgradeCost(w142, pack, D, 'tuna', m142);      /* Lv1 黄：240×1 = 240 */
     var up142 = SQ.Arts.upgrade(w142, pack, D, 'tuna', m142);
     var tianId142 = null;
     for (var id142 in SQ.XARTS) if (SQ.XARTS[id142].tier === 'tian') { tianId142 = id142; break; }
     w142.artsKnown.push(tianId142);
-    var c142t0 = SQ.Arts.upgradeCost(w142, pack, D, tianId142, m142);  /* 60×天36 = 2160 */
+    var c142t0 = SQ.Arts.upgradeCost(w142, pack, D, tianId142, m142);  /* Lv1 天：240×36 = 8640 */
     w142.artsLevels[tianId142] = 8;
-    var c142t8 = SQ.Arts.upgradeCost(w142, pack, D, tianId142, m142);  /* 1300000×36 */
+    var c142t8 = SQ.Arts.upgradeCost(w142, pack, D, tianId142, m142);  /* 1300000×36（末档，索引 lv−1） */
     w142.artsLevels[tianId142] = 9;
     var c142t9 = SQ.Arts.upgradeCost(w142, pack, D, tianId142, m142);  /* 满级 = null */
-    ok('142', '升级耗修为不动灵石 · 品阶/等级成本递增 · Lv9 封顶',
-      up142 && c142a === 60 && w142.qi === 1e9 - 60 && w142.stones === 100 &&
-      c142t0 === 60 * D.ARTS_COST_TIER.tian && c142t8 === D.ARTS_COST[8] * D.ARTS_COST_TIER.tian &&
-      c142t9 === null,
+    ok('142', '升级耗修为不动灵石 · 品阶/等级成本递增 · Lv9 封顶（升到 Lv9 即满，无价目可扣）',
+      up142 && c142a === 240 && w142.qi === 1e9 - 240 && w142.stones === 100 &&
+      c142t0 === 240 * D.ARTS_COST_TIER.tian && c142t8 === D.ARTS_COST[D.ARTS_COST.length - 1] * D.ARTS_COST_TIER.tian &&
+      c142t9 === null && w142.artsLevels.tuna === 2,
       'cost0=' + c142a + ' costT0=' + c142t0 + ' costT8=' + c142t8 + ' costT9=' + c142t9);
 
     /* #143 日志「功法」分类路由（v2.3）：入门/顿悟/升级全记 arts（渡劫/晋升仍走 trib） */
@@ -2710,12 +2720,13 @@
       s.worlds.xiuxian.artsSlots = ['tuna'];
     });
     await SQ.Actions.upgradeArt(ref143, 'tuna');
+    /* 入门即 Lv1 ⇒ 这次升级日志写「升至 Lv2」（旧口径 Lv0→1 记 Lv1） */
     var hasArtsLog143 = ref143.worlds.xiuxian.log.some(function (l) {
-      return l.cat === 'arts' && l.text.indexOf('Lv1') >= 0;
+      return l.cat === 'arts' && l.text.indexOf('Lv2') >= 0;
     });
     ok('143', '日志「功法」分类：入门/顿悟/升级全记 arts',
       cats143.length === 3 && cats143.every(function (c) { return c === 'arts'; }) &&   /* 入门 + 自动入槽（体验手感批）+ 顿悟 */
-      w143.artsLevels.yinqi === 1 && w143.artsPractice.yinqi < D.PRACTICE_MAX && hasArtsLog143,
+      w143.artsLevels.yinqi === 2 && w143.artsPractice.yinqi < D.PRACTICE_MAX && hasArtsLog143,
       'cats=' + cats143.join(',') + ' upgradeLog=' + hasArtsLog143);
 
     /* ═══ 势力批（G16 势力 + 神秘商人 + 渡劫 nerf · v2.4）═══ */
@@ -4253,9 +4264,12 @@
     var n202c = SQ.Legacy.metaNormalize(n202b);
     var zero202 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.338 &&
       D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 && SQ.Mods.FIELDS.length === 17 &&
-      D.ARTS_COST.join() === '60,240,900,3200,11000,36000,120000,400000,1300000' &&
+      /* 等级起点批（入门即 Lv1）：ARTS_COST **有意改档**——删掉原 Lv0→1 那档 60，表长 9 → 8，
+       * 其余八档价格一字未动；判据同时钉「表长 = ARTS_MAX_LV − 1」，防将来又漂出第九条。 */
+      D.ARTS_COST.join() === '240,900,3200,11000,36000,120000,400000,1300000' &&
+      D.ARTS_COST.length === D.ARTS_MAX_LV - 1 &&
       LGc.FEISHENG_BASE_P === 0.25 && LGc.BINGJIE_MULT === 0.7;
-    ok('202', 'meta normalize 幂等（旧档补默认/脏档逐项清理/恒等式自检修复）+ p 公式/CLAMP/REALMS/FIELDS/ARTS_COST 零改动回归',
+    ok('202', 'meta normalize 幂等（旧档补默认/脏档逐项清理/恒等式自检修复）+ p 公式/CLAMP/REALMS/FIELDS 零改动回归 ‖ ARTS_COST 按等级起点批对表（八档）',
       old202 && n202b.karma === 5 && n202b.earnedKeys.bad == null && n202b.codices.event == null &&
       n202b.codices.art.join() === 'a' && n202b.achv.join() === 'achv_jichu' && n202b.titles.length === 0 &&
       n202b.biographies.length === 1 && n202b.unlocks.alchemy === false && n202b.stats.lives === 0 &&
@@ -7149,9 +7163,12 @@
     }
     var aptOk212 = Math.abs(aptCnt[0] / 3000 - 0.50) <= 0.05 && Math.abs(aptCnt[1] / 3000 - 0.35) <= 0.05 &&
       Math.abs(aptCnt[2] / 3000 - 0.15) <= 0.04;
-    /* 玩家数值轴零影响：有无天骄 mods 全等 */
+    /* 玩家数值轴零影响：有无天骄 mods 全等。
+     * 等级起点批注：先跑一次 M() 把「首次入槽回填」（artsAutoInit 一次性）吃掉再做对照——
+     * 首发功法现在是 Lv1，回填后自带乘区贡献，若拿回填前后比就会把这条一次性动作误判成天骄侵入。 */
     var w212d = pack.initialState(); w212d.realm = 3;
     var prof212 = mkProf([]);
+    M(prof212, w212d);
     var modsNo212 = JSON.stringify(M(prof212, w212d));
     SQ.Prodigy.rollForNewLife(w212d, pack, D, mkMeta(), Date.now());
     var modsYes212 = JSON.stringify(M(prof212, w212d));
@@ -7202,6 +7219,7 @@
       { id: 'pr2', nm: [1, 1, 1], tl: [], al: 1, fc: -1, fid: null, apt: 2, rlm: 9, prg: 0, feud: false, feudBond: 0, lastSparAt: 0, rivAt: 0, boost: null, eternal: false, wl: [0, 0, 0] }
     ];
     var prof213 = mkProf([]);
+    M(prof213, w213);   /* 同 #212：先吃掉「首次入槽回填」的一次性差异，再比「天骄推进零玩家轴影响」 */
     var snap213 = JSON.stringify([w213.qi, w213.realm, w213.stones, w213.buffs, M(prof213, w213)]);
     var bqi213 = D.REALMS[0].baseQi;
     SQ.Prodigy.tick(w213, pack, D, M(prof213, w213), 30000, Date.now(), { log: noopLog() });
@@ -7407,10 +7425,10 @@
       c217.effects.offlineEff === 0.04 &&                               /* 副字段原值保一 */
       c217.special && c217.special.pool === 'sp_test' && c217.special.grade === 2 &&
       c217.align === 'neutral' && c217.attr === 'qi' &&
-      w217.artsLevels.tz_a == null && w217.artsLevels.tz_b == null &&   /* 双亲消耗 */
+      w217.artsLevels.tz_a === 1 && w217.artsLevels.tz_b === 1 &&   /* 双亲消耗 = 回落 Lv1（等级起点批：已知态不留无键 0） */
       w217.artsSlots.indexOf('tz_a') < 0 && w217.shelf.indexOf('tz_b') < 0 &&
       w217.artsKnown.indexOf('tz_a') >= 0 && w217.artsKnown.indexOf('tz_b') >= 0 &&   /* 已知态保留 */
-      w217.artsLevels.c1 === 0 && w217.artsKnown.indexOf('c1') >= 0 &&  /* 子部 Lv0 */
+      w217.artsLevels.c1 === 1 && w217.artsKnown.indexOf('c1') >= 0 &&  /* 子部入门即 Lv1（等级起点批） */
       SQ.t('skill.c1.name', null, 'xiuxian') === '测试名';               /* 运行时注入 LEX 非静态词表 */
     /* FIELD_CAP clamp + NEVER_FIELDS + gen≥3 拒 + 名长/敏感词 */
     SQ.XARTS.tz_c = { id: 'tz_c', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.12 }, special: null, obtain: { type: 'shop' } };
@@ -7436,11 +7454,15 @@
       w.fusion.lastFuseAt = 0;
       w.fusion.customs.push({ id: 'c9', name: '三代部', gen: 3, tier: 3, attr: 'qi', align: 'neutral', effects: { qiRate: 0.1 }, special: null, parents: [], createdAt: 1 });
       w.artsKnown.push('c9'); w.artsLevels.c9 = 9;
+      w.artsLevels.tz_f = 9;   /* 同 sens217：上一笔融合已把 tz_f 消耗回 Lv1，先重新练满才测得到 gen 这一因 */
       SQ.Fusion.registerCustoms(w.fusion, D);
       return SQ.Fusion.canFuse(w, pack, D, 'c9', 'tz_f', Date.now());
     })();
     var sens217 = (function () {
       w217b.fusion.lastFuseAt = 0;
+      /* 上一笔融合已把 tz_e/tz_f 消耗回 Lv1（满级关现在真的生效）⇒ 本笔要验的是「敏感词回落」，
+       * 先把两位父本重新练满，别让门槛关替它作结论。 */
+      ['tz_e', 'tz_f'].forEach(function (aid) { w217b.artsLevels[aid] = 9; });
       var rs = stubRandom(function (i) { return i === 0 ? 0.0 : 0.5; });
       var r = SQ.Fusion.fuse(w217b, pack, D, M(mkProf([]), w217b), '赌博邪功', 'tz_e', 'tz_f', Date.now(), noopLog());
       rs();
@@ -7449,8 +7471,10 @@
     var sensOk217 = sens217.success === true && sens217.art.name !== '赌博邪功' && sens217.art.name.length > 0;
     /* 清理注入（防 #153 计数与后续断言污染） */
     delete SQ.XARTS.tz_a; delete SQ.XARTS.tz_b; delete SQ.XARTS.tz_c; delete SQ.XARTS.tz_d; delete SQ.XARTS.tz_e; delete SQ.XARTS.tz_f;
-    ok('217', '词条重组与封顶：主修同名均值 ×1.1×GEN_MULT→0.104；FIELD_CAP clamp 0.13/tribBonus 0.025；NEVER 字段永不产出；副字段原值保一；special 保留表；tier=min(⌊均值+0.5⌋,天)；双亲消耗已知态保留子部 Lv0；gen≥3 拒；名 ≤8 敏感词回落；名称运行时注入非静态词表',
-      recon217 && cap217b && never217 && gen217.reason === 'gen' && sensOk217);
+    ok('217', '词条重组与封顶：主修同名均值 ×1.1×GEN_MULT→0.104；FIELD_CAP clamp 0.13/tribBonus 0.025；NEVER 字段永不产出；副字段原值保一；special 保留表；tier=min(⌊均值+0.5⌋,天)；双亲消耗已知态保留子部 Lv1；gen≥3 拒；名 ≤8 敏感词回落；名称运行时注入非静态词表',
+      recon217 && cap217b && never217 && gen217.reason === 'gen' && sensOk217,
+      'recon=' + recon217 + ' cap=' + cap217b + ' never=' + never217 + ' gen=' + gen217.reason +
+      ' sens=' + sensOk217 + '/' + sens217.reason);
 
     /* #218 器灵全链路（温养三源 / 六档满值 / 觉醒人格加权 / 五技通道 / CD 三件套 / 判词限流） */
     var T218 = pack.treasures.LIST[0];
@@ -8060,11 +8084,12 @@
     (D.PILLS || []).forEach(function (pp) { w230.alchemy.pills[pp.id] = 99; });   /* 成品丹四枚同属最坏态（同 #206）*/
     w230.alchemy.prof = { dan: 999, qi: 999 };
     var size230 = JSON.stringify({ alchemy: w230.alchemy, materials: w230.materials }).length;
-    /* 红线零改动（p 公式主体 / TRIB_P_CLAMP / REALMS / mods FIELDS / ARTS_COST） */
+    /* 红线零改动（p 公式主体 / TRIB_P_CLAMP / REALMS / mods FIELDS）；
+     * ARTS_COST 是**本批有意改的那一处**：等级起点批删 Lv0→1 档 ⇒ 八档，其余价格一字未动。 */
     var zero230 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.338 &&
       D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 && SQ.Mods.FIELDS.length === 17 &&
-      D.ARTS_COST.join() === '60,240,900,3200,11000,36000,120000,400000,1300000';
-    ok('230', '经济参数与容量红线回归：六新参对表（tian 12000/精制 1500·12 料·0.70·45min/提炼 4:1）；既有经济锚**只动一处并如实报**：`PILL_DAILY_CAP` 3 → **4**（第十七批丹药两族合一）；其余（坊市权重全表 50/25/10/10/5——锚 9.12 复跑不变红线）零改动；normalize 上限数据驱动（脏档 16→11、12→9）；alchemy 独立最坏态 <2.5KB（50KB 红线分摊）；p 公式/CLAMP/REALMS/FIELDS/ARTS_COST 红线零改动',
+      D.ARTS_COST.join() === '240,900,3200,11000,36000,120000,400000,1300000';
+    ok('230', '经济参数与容量红线回归：六新参对表（tian 12000/精制 1500·12 料·0.70·45min/提炼 4:1）；既有经济锚**只动一处并如实报**：`PILL_DAILY_CAP` 3 → **4**（第十七批丹药两族合一）；其余（坊市权重全表 50/25/10/10/5——锚 9.12 复跑不变红线）零改动；normalize 上限数据驱动（脏档 16→11、12→9）；alchemy 独立最坏态 <2.5KB（50KB 红线分摊）；p 公式/CLAMP/REALMS/FIELDS 红线零改动 ‖ ARTS_COST 按等级起点批改八档并如实报',
       par230 && keep230 && capOk230 && size230 < 2500 && zero230,
       'size=' + size230 + 'B cap=' + capOk230);
 
@@ -9036,6 +9061,11 @@
     }) };
     var lats274 = [];
     for (var la274 in (pack270.artsMap ? pack270.artsMap() : {})) { lats274.push(la274); if (lats274.length >= 2) break; }
+    /* 等级起点批顺带接通的一条**潜在真缺陷**：`canFuse` 的满级门槛原写
+     * `(ws.artsLevels || {})[idA] < 9`——档里无值时是 `undefined < 9` = false ⇒ 门槛被整体跳过，
+     * 未修满的功法本来能进融合坛。入门即 Lv1 后每部都有值，这道关第一次真的生效，
+     * 于是本 fixture 必须先把两位父本摆到 Lv9，才测得到它声称的那一因 `full`（不是放宽判据）。 */
+    lats274.forEach(function (id) { x274.artsLevels[id] = 9; });
     var rFull274 = SQ.Fusion.canFuse(x274, pack270, D270, lats274[0], lats274[1], 1700000000000);
     var rUnk274 = SQ.Fusion.reforgeCustom(x274, pack270, D270, 'cu_not_exist', 1700000000000, function () {});
     var k274 = function (k) { var v = SQ.t(k, null, 'xiuxian');

@@ -161,7 +161,9 @@
     'special.changye.name': '长夜修行',
     'special.sanyan.name': '三尸宴坐', 'special.yanhuo.name': '人间烟火',
     'special.kujing.name': '枯井不波',
-    /* 混沌三签名（融合扩容批 v1.3：自创部专属，混沌淬炼唯一授予；正典部零引用） */
+    /* 混沌三签名（融合扩容批 v1.3：自创部专属，混沌淬炼唯一授予；正典部零引用）
+     * ⚠️ 这三枚原本只躺在生成物里、生成器不产出 ⇒ 跑一次 gen-arts 就把它们**静默删掉**（屏上落裸键名）。
+     *    功法数值重排批（gen-arts 修复那一笔）已把它们补进模板，让「生成物 = 文档 + 本模板」重新成立。 */
     'special.hundun.name': '混沌重生', 'special.zaohua.name': '造化余韵',
     'special.taiyi.name': '太一星光',
     'special.grade.0': '弱', 'special.grade.1': '标准', 'special.grade.2': '强'

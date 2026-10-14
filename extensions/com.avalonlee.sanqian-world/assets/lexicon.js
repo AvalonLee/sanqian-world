@@ -207,7 +207,7 @@
     'arts.selflearn.pct': '自悟进度 {p}%',
     'arts.selflearn.hint': '修持中随机领悟市面传承功法（黄/玄阶；闭关易悟、历练难悟）；越悟越难，离线潜心悟道亦可缓进；进度满必得一部',
     'arts.selflearn.none': '当前无可自悟之功法（已尽数持有，或境界未达）',
-    /* 升级消耗口径（修行状态批）：Lv0-9，消耗修为而非灵石 */
+    /* 升级消耗口径（修行状态批）：Lv1-9（入门即 Lv1，Lv9 封顶），消耗修为而非灵石 */
     'arts.upgrade.qi': '升级 · {n} {res}',
     /* 功法页改版（走查 v2.5 §4）：已学会/待修习架独立节 + 图鉴化 */
     'arts.sec.known': '已 学 会',
@@ -215,14 +215,9 @@
     'arts.codex.title': '功 法 图 鉴',
     'arts.codex.known': '已学会 · Lv{lv}',
     'arts.codex.shelf': '待复检 · 要求未达',
-    /* 已学会卡增益行（走查 v2.7 §3 · Lv0/Lv1 同形修正批）：
-     * Lv0 引擎吃 0（`mods.js` 的 `note()` 见 0 即跳），卡面必须先把「尚无增益」说明白再给每级预告——
-     * 旧文案 `+{p}%/级` 与 Lv1 的 `+5%` 只差一个 `/级`，玩家读成「Lv0 已经生效」（GitHub issue 反馈）。
-     * `{v}` 由调用方带符号传入（旧写法把 `+` 写死 ⇒ 负字段会渲染成 `+-8%`）；
-     * `arts.gain.fixed` 服务 `effectsFixed` 字段（Lv1 即全效、不随等级缩放，数值详设 §4.5），别说「/级」。 */
-    'arts.gain.perslot': '{v}/级',
-    'arts.gain.zero': '入门未修持 · 尚无增益',
-    'arts.gain.fixed': '{v}（Lv1 起全效）',
+    /* 已学会卡增益行（走查 v2.7 §3）：等级起点批（2026-10-14 · 入门即 Lv1）后「Lv0 未修持」态不可达，
+     * 随批删 `arts.gain.zero` / `arts.gain.perslot` / `arts.gain.fixed` 三键（留着就是 A6 孤儿）。
+     * 该行只剩一件事：把当前等级的**实际生效值**列出来（缩放口径见 view 的 artCard 与 mods.js）。 */
     /* 功法升级（v2.3 日志「功法」分类）模板：升级成功即记，含消耗修为口径 */
     'arts.upgraded': '{name} 修习精进，升至 Lv{lv}（耗{res} {n}）',
 

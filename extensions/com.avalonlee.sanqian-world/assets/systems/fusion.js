@@ -2,7 +2,7 @@
  * 融合：双 Lv9 父本（非 event_locked、gen<3）+ 悟道双通道（闭关累计 ≥12h 或悟道石 ×1）
  *   → p = clamp(0.60 + min(floor(神/6),8)×0.01 + min(境界,9)×0.02, 0.60, 0.86)
  *   → 词条重组（主修均值 ×1.1×GEN_MULT 三代递减 + FIELD_CAP 守恒双闸 + 独占签名与非乘区字段永不产出）
- *   → 自创部 Lv0 入持有（双亲消耗：移出等级/槽位/书阁，已知态留 artsKnown——散功同构型不退灵石）。
+ *   → 自创部 Lv1 入持有（双亲消耗：移出等级/槽位/书阁，已知态留 artsKnown——散功同构型不退灵石）。
  * 器灵：温养三来源（祭出在线 +3/h · 渡劫 +15 · 击杀 +0.5）→ 满值六档觉醒（人格器型加权 60/10×4）
  *   → 一灵一技（护魂/剑意/吞噬/凶性/仙音，CD 7 现实天，全走既有通道）→ 判词模板池（限流 10min）。
  * 纪律：ws.fusion 与 owned[].st.spirit 唯一写口 = 本模块；不进 tick 掷判（温养 = 结算点标量累加）；
@@ -139,7 +139,9 @@
     if ((a.obtain || {}).type === 'event_locked' || (b.obtain || {}).type === 'event_locked') {
       return { ok: false, reason: 'locked' };               /* 天阶独占 3 部禁入融合 */
     }
-    if ((ws.artsLevels || {})[idA] < 9 || (ws.artsLevels || {})[idB] < 9) return { ok: false, reason: 'lv' };
+    /* 双亲必须满级。原写法 `(ws.artsLevels||{})[id] < 9` 在「档里无值」时是 `undefined < 9` = false
+     * ⇒ 整道关被跳过（等级起点批照出的潜在缺陷）；改走 `Arts.levelOf`，读的是入门口径而不是对象有无键。 */
+    if (SQ.Arts.levelOf(ws, idA) < 9 || SQ.Arts.levelOf(ws, idB) < 9) return { ok: false, reason: 'lv' };
     var cA = customById(ws, idA), cB = customById(ws, idB);
     if ((cA && cA.gen >= (FF.GEN_MAX || 3)) || (cB && cB.gen >= (FF.GEN_MAX || 3))) return { ok: false, reason: 'gen' };
     if ((f.customs || []).length >= (FF.CUSTOM_MAX || 4)) return { ok: false, reason: 'full' };
@@ -270,16 +272,18 @@
       effects: effects, special: special, parents: parentsSnap, createdAt: now
     };
     f.customs.push(custom);
-    /* 双亲消耗（散功同构型）：等级/槽位/书阁移除、已知态保留 artsKnown，不退灵石 */
+    /* 双亲消耗（散功同构型）：等级回落 Lv1（入门即 Lv1 的口径 ⇒ 「等级/槽位/书阁移除、已知态保留」
+     * 现在落成回到一级，而不是留一个无键的 0——留无键正是 `canFuse` 满级关被 `undefined < 9` 跳过的源头）、
+     * 槽位移出、书阁移除；不退灵石 */
     [idA, idB].forEach(function (pid) {
-      delete ws.artsLevels[pid];
+      ws.artsLevels[pid] = 1;
       ws.artsSlots = (ws.artsSlots || []).filter(function (x) { return x !== pid; });
       ws.shelf = (ws.shelf || []).filter(function (x) { return x !== pid; });
       if (ws.artsKnown.indexOf(pid) < 0) ws.artsKnown.push(pid);
     });
-    /* 子部 Lv0 入持有（直接入门，学习要求不再校验——融合门槛已含资格） */
+    /* 子部 Lv1 入持有（直接入门，学习要求不再校验——融合门槛已含资格；等级起点批同 gainArt） */
     if (ws.artsKnown.indexOf(cid) < 0) ws.artsKnown.push(cid);
-    ws.artsLevels[cid] = 0;
+    ws.artsLevels[cid] = 1;
     registerCustoms(f, D);
     if (log) log('arts', SQ.t('fuse.log.win', { name: nm, gen: gen, tier: SQ.t('skill.tier.' + TIER_NAME[tierI], null, pack.worldId) }, pack.worldId));
     return { ok: true, success: true, p: p, art: custom };
