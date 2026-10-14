@@ -1,0 +1,36 @@
+name: branch-policy
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  branch-policy:
+    name: branch-policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: 校验 PR 的 base / head 组合
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+        run: |
+          echo "PR: ${HEAD}  →  ${BASE}"
+          fail() {
+            echo "::error::$1"
+            echo ""
+            echo "本仓分支规则："
+            echo "  1. 所有改动先进 dev（feature/xxx → dev）"
+            echo "  2. master 只接受 dev → master（发布合并）"
+            echo "  3. 不允许 feature 分支直接 PR 到 master，也不允许 master 倒灌进 dev"
+            exit 1
+          }
+          if [ "$BASE" = "master" ] && [ "$HEAD" != "dev" ]; then
+            fail "目标是 master，但来源是 ${HEAD}：请改成先 PR 到 dev，或由 dev 向 master 发起发布合并"
+          elif [ "$BASE" = "dev" ] && [ "$HEAD" = "master" ]; then
+            fail "master 不应倒灌进 dev：请把 ${HEAD} 换成实际的 feature 分支"
+          elif [ "$BASE" != "dev" ] && [ "$BASE" != "master" ]; then
+            fail "目标分支必须是 dev（日常改动）或 master（仅由 dev 发起的发布合并），当前是 ${BASE}"
+          fi
+          echo "✅ 分支策略通过：${HEAD} → ${BASE}"
