@@ -98,7 +98,16 @@
     ARTS_COST_TIER: { huang: 1, xuan: 3, di: 10, tian: 36 },
     ARTS_COST_REALM: 0.5,                        /* ×(1 + 境界索引×0.5) */
     ARTS_SPEED_FLOOR: 0.5,                       /* 折扣下限 50% */
-    ARTS_NURTURE: { right: 2, neutral: 2, evil: 3 },  /* 滋养点/级 */
+    ARTS_NURTURE: { right: 2, neutral: 2, evil: 3 },  /* 滋养点/级 × ARTS_NURTURE_TIER[品阶] */
+    /* 品阶强度阶梯（第卅八批 · 用户令「四品阶数值太接近，高品阶要明显更强」；档位经询 = 1 / 2 / 3.5 / 6，
+     * 且**黄阶保持现值** ⇒ 账由终局付：6 槽满级同乘区合计 qiRate +540%→+1072%、qiCap +315%→+1044% 等，
+     * 极限审计表（#105 / #153 / 通用规范 §一）与 `FUSE.FIELD_CAP` 同步重基线，判据 = 冒烟 **#301** 五面）。
+     * 词条那一半**不在这里乘**——数值直接重排进《功法全录》每级效果列（正典 = 文档，改完
+     * `node .tests/gen-arts.cjs` 再生成）；「消费端再乘一遍」的旧方案已废：那会让 Lv9 天阶 qiRate 冲到
+     * +479% 且与文档对不上号（第卅六批遗留，见 sq-wip-tier-leftover.patch）。滋养这一半原本与品阶完全无关
+     * （只看阵营），所以下表就是目标阶梯本身。红线四类（tribBonus / tribFailLossMod / realmCost / shopCost）
+     * 两条通道都不吃：它们接 TRIB_P_CLAMP 与 ARTS_COST* 两条红线，本次一字未动。 */
+    ARTS_NURTURE_TIER: { huang: 1, xuan: 2, di: 3.5, tian: 6 },
 
     /* ── 修行状态（模式）与功法精通（本批新增）──
      * mode = 'seclude'（闭关领悟）| 'venture'（外出历练）；离线回归 = 潜心悟道，
@@ -1154,9 +1163,13 @@
       CHAOS_BY_ATTR: { qi: 'hundun', jing: 'zaohua', shen: 'taiyi' },
       REFORGE_COST: { huang: 200, xuan: 800, di: 2500, tian: 8000 },   /* ≈同阶坊市功法半价 */
       REFORGE_CD_MS: 86400000,
-      FIELD_CAP: { combatPower: 0.14, qiRate: 0.13, offlineEff: 0.12, combatSpeed: 0.09,
-        qiCap: 0.10, stonesRate: 0.10, artsSpeed: 0.08, eventRate: 0.06,
-        eventLuck: 0.05, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
+      /* ⚠️ 导出口，不独立调参：每格 = 全录该字段「每级值」的最大值（红线四类 = 其现行 clamp 值，不在此列）。
+       * 第卅八批品阶强度重排（阶梯 黄1/玄2/地3.5/天6）随之整表重导：qiRate 0.13→0.225、qiCap 0.10→0.30、
+       * combatPower 0.14→0.315 …… ⇒ **自创部的字段封顶同步抬高**。
+       * 谁改了《功法全录》的每级效果却忘了这里，冒烟 #301(d)（FIELD_CAP === 全录最大值）直接判红。 */
+      FIELD_CAP: { combatPower: 0.315, qiRate: 0.225, offlineEff: 0.288, combatSpeed: 0.219,
+        qiCap: 0.30, stonesRate: 0.267, artsSpeed: 0.07, eventRate: 0.14,
+        eventLuck: 0.09, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
       NEVER_FIELDS: ['checkBonus', 'attrBonusAmp', 'tribFailLossMod']   /* 非乘区字段永不进重组池（第二道闸） */
     },
 

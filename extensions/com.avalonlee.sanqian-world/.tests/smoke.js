@@ -330,9 +330,12 @@
     var p27 = mkProf([mkTalent({ qiRate: 0.15 })]);
     var m27 = M(p27, w27);
     var rate27 = SQ.Idle.rateOf(w27, pack, D, m27);
-    ok(27, '挂机产出逐项对表（9×1.5×0.75=10.125）',
-      Math.abs(rate27 - 10.125) < 1e-9 && w27.karma === 300 &&
-      Math.abs(m27.detail.qiRate.talent - 0.15) < 1e-9 && Math.abs(m27.detail.qiRate.arts - 0.10) < 1e-9 &&
+    /* 吐纳法每级 qiRate 0.05 → **0.038**（第卅八批品阶重排：黄阶保持阶中位、把「高于中位的偏强值」压回带内 ⇒
+     * 本条 Lv2 的功法项从 0.10 变 0.076，其余四项不变 ⇒ 期望式跟着新表走，不写死小数） */
+    var exp27 = 9 * (1 + 0.15 + 0.076 + 0.05 + 0.2) * 0.75;
+    ok(27, '挂机产出逐项对表（9×1.476×0.75=9.963）',
+      Math.abs(rate27 - exp27) < 1e-9 && w27.karma === 300 &&
+      Math.abs(m27.detail.qiRate.talent - 0.15) < 1e-9 && Math.abs(m27.detail.qiRate.arts - 0.076) < 1e-9 &&
       Math.abs(m27.detail.qiRate.gear - 0.05) < 1e-9 && Math.abs(m27.detail.qiRate.buff - 0.2) < 1e-9,
       'rate=' + rate27);
     /* #27b 战力末端 × combatPowerMult（B6：魔道 1.25；精被动 18×0.1%=1.8%） */
@@ -601,20 +604,24 @@
     ok(43, 'buff 过期清理且不进乘区（过期条不进 buff 来源）',
       w43.buffs.length === 1 && Math.abs(((m43.detail.qiRate || {}).buff || 0) - 0.2) < 1e-9);
 
-    /* #44 同乘区加算/跨乘区乘算（总表 §八 抽查 3 条：qiRate/combatPower/qiCap） */
+    /* #44 同乘区加算/跨乘区乘算（总表 §八 抽查 3 条：qiRate/combatPower/qiCap）
+     * 第卅八批品阶阶梯进了滋养与词条 ⇒ 两处期望随新表重导，且**这两条正是阶梯本身的对表**：
+     *   金钟罩 = 玄阶 combatPower 每级 0.083 → Lv5 = 0.415（旧 0.06×5=0.3）
+     *   滋养：精 = 基础 6 + 5 级 × 正道 2 × **玄阶 2** = 26 ‖ 气 = 6 + 5 × 2 × **黄阶 1** = 16
+     *   ⇒ 同等级同阵营的两部功法，只因品阶差一档，属性差就从 10 变成 20（这条不再可能悄悄退回去） */
     var w44 = mkWs({ realm: 0, artsKnown: ['tuna', 'juling', 'jinzhong'], artsSlots: ['jinzhong', 'juling'], artsLevels: { jinzhong: 5, juling: 5 } });
     w44.gear.weapon = mkGear('weapon', { tier: 2, atk: 100 });
     var p44 = mkProf([mkTalent({ combatPower: 0.1, qiCap: 0.25 })]);
     var m44 = M(p44, w44);
-    /* combatPower: 天赋0.1 + 金钟罩0.06×5=0.3 + 精被动(6+精滋养10=16 →1.6%) */
+    /* combatPower: 天赋0.1 + 金钟罩(玄)0.083×5=0.415 + 精被动(6+精滋养20=26 →2.6%) */
     var jing44 = w44.attrs.jing;
-    var expPower = (20 + 100) * (1 + 0.1 + 0.3 + Math.min(jing44 * 0.001, 0.12));
-    /* qiCap: 天赋0.25 + 聚灵诀0.1×5=0.5 + 气被动(6+气滋养10=16 →8%) */
-    var expCap = Math.max(1 * 7200, 1000 * 1.15) * (1 + 0.25 + 0.1 * 5 + Math.min((w44.attrs.qi || 0) * 0.005, 0.3));
-    ok(44, '乘区叠加秩序（战力/上限抽查）',
+    var expPower = (20 + 100) * (1 + 0.1 + 0.415 + Math.min(jing44 * 0.001, 0.12));
+    /* qiCap: 天赋0.25 + 聚灵诀(黄)0.05×5=0.25 + 气被动(6+气滋养10=16 →8%) */
+    var expCap = Math.max(1 * 7200, 1000 * 1.15) * (1 + 0.25 + 0.05 * 5 + Math.min((w44.attrs.qi || 0) * 0.005, 0.3));
+    ok(44, '乘区叠加秩序（战力/上限抽查 · 含品阶滋养阶梯 玄2/黄1）',
       Math.abs(SQ.Mods.powerOf(w44, pack, D, m44) - expPower) < 1e-6 &&
       Math.abs(SQ.Idle.capOf(w44, pack, D, m44) - expCap) < 1e-6 &&
-      jing44 === 16 && w44.attrs.qi === 16,
+      jing44 === 26 && w44.attrs.qi === 16,
       'power=' + SQ.Mods.powerOf(w44, pack, D, m44).toFixed(2) + '/' + expPower.toFixed(2) + ' cap=' + SQ.Idle.capOf(w44, pack, D, m44).toFixed(0) + '/' + expCap.toFixed(0));
 
     /* ═══ P5 · 验收 4.5 修仙专属（#45~#58）═══ */
@@ -1323,22 +1330,25 @@
     }
     ok(103, '品阶要求带 + 属性门槛（70 部 · 独占 +6~12）', bad103.length === 0, bad103.join(','));
 
-    /* #105 同乘区功法层极限审计（通用规范 §一 P5 修订上限 · v2.2 独占重基线：qiRate 300% / offlineEff 250%）
+    /* #105 同乘区功法层极限审计（通用规范 §一 · 第卅八批品阶重排换基线）
+     * 口径两处一起改：① 缩放从「×5」纠正为**×9**（Lv9 满级 = 每级 ×9，与 §一 现行表的推导式一致——
+     *   旧写法留着 Lv5 时代的 ×5 与 300% 一档，是「判据口径落后于机制」的又一形）；
+     *   ② 上限 = 新表 top6 每级合计 ×9 向上取整（**恰顶格、零余量** = 本仓惯例：任何一部功法词条再涨都会红）。
      * 口径（通用规范 §一 v2.3 澄清）：本上限 = **功法层六槽自身**极限；洞府签名/装备词条/道友助力
-     * 是 §8.2 独立登记的小额加算来源，各有不叠加或合计封顶约束，不并入本合计（否则 offlineEff
-     * 功法层恰好 250% 顶格 ⇒ 任何追加来源天生破线，与 §8.2 登记表自相矛盾）。签名预算另见 #128。 */
-    var CAPS105 = { combatPower: 3.00, qiRate: 3.00, offlineEff: 2.50, combatSpeed: 1.95, qiCap: 1.75, stonesRate: 1.70, artsSpeed: 0.80, eventLuck: 0.85, eventRate: 0.65, dropRate: 0.45, tribBonus: 0.33 };
+     * 是 §8.2 独立登记的小额加算来源，各有不叠加或合计封顶约束，不并入本合计。签名预算另见 #128。 */
+    var CAPS105 = { combatPower: 12.40, qiRate: 10.72, offlineEff: 10.00, combatSpeed: 10.35, qiCap: 10.45,
+      stonesRate: 7.20, artsSpeed: 1.20, eventLuck: 2.05, eventRate: 2.35, dropRate: 0.81, tribBonus: 0.59 };
     var per105 = {};
     for (var id105 in SQ.XARTS) {
       var ef = SQ.XARTS[id105].effects;
-      for (var k105 in ef) (per105[k105] = per105[k105] || []).push(ef[k105] * 5);
+      for (var k105 in ef) (per105[k105] = per105[k105] || []).push(ef[k105] * 9);
     }
     var bad105 = [];
     for (var f105 in per105) {
       var top = per105[f105].sort(function (a, b) { return b - a; }).slice(0, 6);
       var sum105 = top.reduce(function (s, v) { return s + v; }, 0);
       var capv = CAPS105[f105] != null ? CAPS105[f105] : (f105 === 'realmCost' ? 0 : Infinity);
-      if (f105 === 'realmCost') { if (sum105 < -0.10 - 1e-9) bad105.push(f105 + '=' + sum105); }
+      if (f105 === 'realmCost') { if (sum105 < -0.20 - 1e-9) bad105.push(f105 + '=' + sum105); }
       else if (sum105 > capv + 1e-9) bad105.push(f105 + '=' + (sum105 * 100).toFixed(0) + '%>' + (capv * 100) + '%');
     }
     ok(105, '功法层极限审计（六槽自身，逐字段上限）', bad105.length === 0, bad105.join(','));
@@ -3832,9 +3842,12 @@
       bad151.length === 0 && solo151.length === 0, bad151.concat(solo151).join(','));
 
     /* #153 功法 70 部 #105 乘区零漂移对表（功法全录 v1.4 §2.7 联合验算表 = 对账基线）：
-     * top6 每级合计十二字段 60/60/50/39/35/34/16/17/13/9/0.065/−2 全部不变 */
-    var EXP153 = { combatPower: 0.60, qiRate: 0.60, offlineEff: 0.50, combatSpeed: 0.39, qiCap: 0.35,
-      stonesRate: 0.34, artsSpeed: 0.16, eventLuck: 0.17, eventRate: 0.13, dropRate: 0.09,
+     * 🔧 第卅八批品阶强度重排换基线（阶梯 黄1/玄2/地3.5/天6，黄阶保持现值 ⇒ 终局通胀 2~3.3 倍）：
+     *   top6 每级合计十二字段 60/60/50/39/35/34/16/17/13/9/0.065/−2 → **137.5/119.1/111/114.7/116/80/13/22.5/26/9/0.065/−2**；
+     *   红线两类（tribBonus / realmCost）与 dropRate 一字未动 ⇒ 这三条仍是旧值，正是「重排没碰到红线」的证据。
+     *   本表与 #105 上限、通用规范 §一 极限表、`FUSE.FIELD_CAP` 四处同动（改任一处必红其余三处）。 */
+    var EXP153 = { combatPower: 1.375, qiRate: 1.191, offlineEff: 1.11, combatSpeed: 1.147, qiCap: 1.16,
+      stonesRate: 0.80, artsSpeed: 0.13, eventLuck: 0.225, eventRate: 0.26, dropRate: 0.09,
       tribBonus: 0.065, realmCost: -0.02 };
     var per153 = {};
     for (var id153 in SQ.XARTS) {
@@ -4384,7 +4397,7 @@
       w.shelf = Object.keys(pack.artsMap()).slice(0, 30);
       w.fusion = { lastFuseAt: 1, meditate: 100, seq: 4, customs: [] };
       for (var cu = 1; cu <= 4; cu++) w.fusion.customs.push({ id: 'c' + cu, name: '测试自创名', gen: 3, tier: 3, attr: 'shen', align: 'neutral',
-        effects: { combatPower: 0.14, qiRate: 0.13, offlineEff: 0.12, combatSpeed: 0.09, qiCap: 0.10, stonesRate: 0.10, artsSpeed: 0.08, eventRate: 0.06, eventLuck: 0.05, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
+        effects: { combatPower: 0.315, qiRate: 0.225, offlineEff: 0.288, combatSpeed: 0.219, qiCap: 0.30, stonesRate: 0.267, artsSpeed: 0.07, eventRate: 0.14, eventLuck: 0.09, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
         special: { pool: 'some_special_pool', grade: 2 }, parents: [{ id: 'art_a', name: '父本一', tier: 3 }, { id: 'art_b', name: '父本二', tier: 2 }], createdAt: 1 });
       SQ.Events.allIds(pack).forEach(function (eid, ei) { w.eventHistory.seen[eid] = 1700000000000 + ei; w.eventCooldowns[eid] = 1700000000000; });
       /* eventHistory.feed 满档（2026-10-05 存档容量防线批补造）：叙事流上限 D.EVENT_FEED_CAP 条、
@@ -7430,9 +7443,12 @@
       w217.artsKnown.indexOf('tz_a') >= 0 && w217.artsKnown.indexOf('tz_b') >= 0 &&   /* 已知态保留 */
       w217.artsLevels.c1 === 1 && w217.artsKnown.indexOf('c1') >= 0 &&  /* 子部入门即 Lv1（等级起点批） */
       SQ.t('skill.c1.name', null, 'xiuxian') === '测试名';               /* 运行时注入 LEX 非静态词表 */
-    /* FIELD_CAP clamp + NEVER_FIELDS + gen≥3 拒 + 名长/敏感词 */
-    SQ.XARTS.tz_c = { id: 'tz_c', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.12 }, special: null, obtain: { type: 'shop' } };
-    SQ.XARTS.tz_d = { id: 'tz_d', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.12 }, special: null, obtain: { type: 'shop' } };
+    /* FIELD_CAP clamp + NEVER_FIELDS + gen≥3 拒 + 名长/敏感词
+     * 🔧 第卅八批：FIELD_CAP 是「全录该字段每级最大值」的导出口，品阶重排后 qiRate 封顶 0.13 → **0.225** ⇒
+     *   父本注入值必须跟着抬高，否则 clamp 根本不触发、这条判据就退化成「均值原样通过」（假绿）。
+     *   0.22 双亲均值 ×1.1×GEN_MULT(1.05) = 0.2541 > 0.225 ⇒ 仍被闸在封顶。 */
+    SQ.XARTS.tz_c = { id: 'tz_c', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.22 }, special: null, obtain: { type: 'shop' } };
+    SQ.XARTS.tz_d = { id: 'tz_d', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.22 }, special: null, obtain: { type: 'shop' } };
     SQ.XARTS.tz_e = { id: 'tz_e', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { combatPower: 0.10, checkBonus: 0.5, tribBonus: 0.09 }, special: null, obtain: { type: 'shop' } };
     SQ.XARTS.tz_f = { id: 'tz_f', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.05 }, special: null, obtain: { type: 'shop' } };
     var w217b = pack.initialState();
@@ -7442,7 +7458,7 @@
     ['tz_c', 'tz_d', 'tz_e', 'tz_f'].forEach(function (aid) { w217b.artsLevels[aid] = 9; });
     w217b.fusion.lastFuseAt = 0;
     var f217b = (function () { var rs = stubRandom([0.0]); var r = SQ.Fusion.fuse(w217b, pack, D, M(mkProf([]), w217b), '', 'tz_c', 'tz_d', Date.now(), noopLog()); rs(); return r; })();
-    var cap217b = f217b.success === true && f217b.art.effects.qiRate === FUc.FIELD_CAP.qiRate;   /* 0.1386 → clamp 0.13 */
+    var cap217b = f217b.success === true && f217b.art.effects.qiRate === FUc.FIELD_CAP.qiRate;   /* 0.2541 → clamp 0.225（第卅八批新封顶） */
     w217b.fusion.lastFuseAt = 0;
     var f217c = (function () { var rs = stubRandom([0.0, 0.0]); var r = SQ.Fusion.fuse(w217b, pack, D, M(mkProf([]), w217b), '一二三四五六七八九十', 'tz_e', 'tz_f', Date.now(), noopLog()); rs(); return r; })();
     var never217 = f217c.success === true && f217c.art.name.length === 8 &&
@@ -7471,7 +7487,7 @@
     var sensOk217 = sens217.success === true && sens217.art.name !== '赌博邪功' && sens217.art.name.length > 0;
     /* 清理注入（防 #153 计数与后续断言污染） */
     delete SQ.XARTS.tz_a; delete SQ.XARTS.tz_b; delete SQ.XARTS.tz_c; delete SQ.XARTS.tz_d; delete SQ.XARTS.tz_e; delete SQ.XARTS.tz_f;
-    ok('217', '词条重组与封顶：主修同名均值 ×1.1×GEN_MULT→0.104；FIELD_CAP clamp 0.13/tribBonus 0.025；NEVER 字段永不产出；副字段原值保一；special 保留表；tier=min(⌊均值+0.5⌋,天)；双亲消耗已知态保留子部 Lv1；gen≥3 拒；名 ≤8 敏感词回落；名称运行时注入非静态词表',
+    ok('217', '词条重组与封顶：主修同名均值 ×1.1×GEN_MULT→0.104；FIELD_CAP clamp 0.225/tribBonus 0.025；NEVER 字段永不产出；副字段原值保一；special 保留表；tier=min(⌊均值+0.5⌋,天)；双亲消耗已知态保留子部 Lv1；gen≥3 拒；名 ≤8 敏感词回落；名称运行时注入非静态词表',
       recon217 && cap217b && never217 && gen217.reason === 'gen' && sensOk217,
       'recon=' + recon217 + ' cap=' + cap217b + ' never=' + never217 + ' gen=' + gen217.reason +
       ' sens=' + sensOk217 + '/' + sens217.reason);
@@ -7587,7 +7603,7 @@
     /* 最坏 fusion+spirit 存档增量（正典理论 ≈4.7KB） */
     var worst219 = { fusion: { lastFuseAt: 1, meditate: 100, seq: 4, customs: [] }, treasures: { owned: [], slots: [] } };
     for (var cw = 1; cw <= 4; cw++) worst219.fusion.customs.push({ id: 'c' + cw, name: '八字自定义名', gen: 3, tier: 3, attr: 'shen', align: 'neutral',
-      effects: { combatPower: 0.14, qiRate: 0.13, offlineEff: 0.12, combatSpeed: 0.09, qiCap: 0.10, stonesRate: 0.10, artsSpeed: 0.08, eventRate: 0.06, eventLuck: 0.05, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
+      effects: { combatPower: 0.315, qiRate: 0.225, offlineEff: 0.288, combatSpeed: 0.219, qiCap: 0.30, stonesRate: 0.267, artsSpeed: 0.07, eventRate: 0.14, eventLuck: 0.09, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
       special: { pool: 'some_special_pool', grade: 2 }, parents: [{ id: 'art_parent_a', name: '父本一', tier: 3 }, { id: 'art_parent_b', name: '父本二', tier: 2 }], createdAt: 1 });
     pack.treasures.LIST.slice(0, 6).forEach(function (tt) { worst219.treasures.owned.push({ id: tt.id, st: { spirit: { w: 1200, a: 1, p: 'xian', cd: 1, mk: 1, hun: 1, vt: { trib: 1, omen: 1, skill: 1, pickup: 1 }, awakenAt: 1 } } }); });
     var inc219 = byteLen(worst219.fusion) + byteLen(worst219.treasures.owned);
@@ -7607,7 +7623,7 @@
     SQ.Fusion.normalize({ customs: [{ id: 'c1', gen: 9, tier: 9, attr: 'bad', align: 'bad', effects: { qiRate: 0.5, realmCost: -0.9 }, special: 'nope', parents: 'nope', name: '超长自定义名超八字' }] }, D);
     var fn219c = SQ.Fusion.normalize({ customs: [{ id: 'c1', gen: 9, tier: 9, attr: 'bad', align: 'bad', effects: { qiRate: 0.5, realmCost: -0.9 }, special: 'nope', parents: 'nope', name: '超长自定义名超八字' }] }, D).customs[0];
     var clamp219 = fn219c.gen === 3 && fn219c.tier === 3 && fn219c.attr === 'qi' && fn219c.align === 'neutral' &&
-      fn219c.effects.qiRate === 0.13 && fn219c.effects.realmCost === -0.02 && fn219c.special === null &&
+      fn219c.effects.qiRate === 0.225 && fn219c.effects.realmCost === -0.02 && fn219c.special === null &&
       fn219c.parents.length === 0 && fn219c.name.length <= 8;
     ok('219b', 'fusion normalize 字段级钳位：gen/tier clamp、attr/align 回落、effects FIELD_CAP 双闸（realmCost 负向 clamp）、name ≤8、special/parents 结构校验 + 幂等二次 normalize 全等',
       clamp219 && matLed219 && inc219 <= 5 * 1024 &&
@@ -9608,6 +9624,90 @@
       '界=' + rankEdge300 + ' ‖ 池=' + [gid300(0).length, gid300(1).length, gid300(2).length, gid300(3).length].join('/') +
       ' 覆盖=' + cover300 + ' ‖ 同池=' + poolSame300 + '(得 ' + pool1[0] + ') ‖ 顶档拒=' + topNo300 +
       ' ‖ 不入档=' + noField300);
+
+    /* #301 品阶强度阶梯对表（第卅八批 · 用户令「四品阶数值太接近，重排到高品阶要明显更强」；档位经询 = 1/2/3.5/6）
+     * 五面各钉一条，少钉一面都能悄悄退回去：
+     *  (a) 逐字段逐阶**阶中位 === 基准 × 阶梯**（±0.5%）——阶梯的绝对那一半（基准 = 该字段黄阶中位，黄阶无样时用该阶现值 ÷ 阶梯）；
+     *  (b) 逐字段**跨阶零重叠**（高一阶该字段最小值 > 低一阶最大值）——「不倒挂」那一半（本批开工前实测有 42 对倒挂）；
+     *  (c) **黄阶中位仍是原锚**（qiRate .03 / combatPower .045 / offlineEff .04 / qiCap .04）⇒ 「前期不通胀」是判据而不是口头承诺；
+     *  (d) `FUSE.FIELD_CAP` === 全录该字段每级最大值（导出口不许手调；红线四类另有 clamp 通道，不在此列）；
+     *  (e) **属性滋养也走阶梯**：同阵营同级的黄/玄/地/天四部，`SQ.Attrs.artsNurtureOf` 之比 === 1 : 2 : 3.5 : 6
+     *      （引擎与视图同读这一处算式，第卅六批那条「屏上说的必须等于生效的」在这里继续生效）。 */
+    (function () {
+      var LAD = { huang: 1, xuan: 2, di: 3.5, tian: 6 }, TIERS301 = ['huang', 'xuan', 'di', 'tian'];
+      var UN301 = ['tribBonus', 'tribFailLossMod', 'realmCost', 'shopCost'];
+      function med301(a) {
+        var s = a.slice().sort(function (x, y) { return x - y; });
+        return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+      }
+      var byF301 = {};
+      Object.keys(SQ.XARTS).forEach(function (id) {
+        var ef = SQ.XARTS[id].effects || {};
+        Object.keys(ef).forEach(function (k) {
+          var g = byF301[k] || (byF301[k] = {});
+          (g[SQ.XARTS[id].tier] || (g[SQ.XARTS[id].tier] = [])).push(ef[k]);
+        });
+      });
+      var bad301 = [], nField301 = 0, nPair301 = 0;
+      Object.keys(byF301).forEach(function (k) {
+        if (UN301.indexOf(k) >= 0) return;
+        var g = byF301[k];
+        if (!g.huang || !g.huang.length) return;
+        nField301++;
+        var base = med301(g.huang);
+        TIERS301.forEach(function (t) {
+          if (!g[t] || !g[t].length) return;
+          var want = base * LAD[t], got = med301(g[t]);
+          if (Math.abs(got - want) > Math.abs(want) * 0.005) bad301.push(k + '.' + t + '=' + got.toFixed(4) + '≠' + want.toFixed(4));
+        });
+        for (var i = 1; i < TIERS301.length; i++) {
+          var lo = g[TIERS301[i - 1]], hi = g[TIERS301[i]];
+          if (!lo || !lo.length || !hi || !hi.length) continue;
+          nPair301++;
+          if (Math.min.apply(0, hi) <= Math.max.apply(0, lo)) bad301.push(k + ':' + TIERS301[i - 1] + '→' + TIERS301[i] + ' 重叠');
+        }
+      });
+      var ANCHOR301 = { qiRate: 0.03, combatPower: 0.045, offlineEff: 0.04, qiCap: 0.04 };
+      Object.keys(ANCHOR301).forEach(function (k) {
+        if (Math.abs(med301(byF301[k].huang) - ANCHOR301[k]) > 1e-9) bad301.push('黄锚漂 ' + k + '=' + med301(byF301[k].huang));
+      });
+      var CAPS301 = D.FUSE.FIELD_CAP, badCap301 = [];
+      Object.keys(CAPS301).forEach(function (k) {
+        if (UN301.indexOf(k) >= 0 || !byF301[k]) return;
+        var all = [];
+        TIERS301.forEach(function (t) { all = all.concat(byF301[k][t] || []); });
+        if (!all.length) return;
+        var mx = Math.max.apply(0, all);
+        if (Math.abs(mx - CAPS301[k]) > 1e-9) badCap301.push(k + ' cap=' + CAPS301[k] + ' 全录最大=' + mx);
+      });
+      var pick301 = {}, badNur301 = [];
+      TIERS301.forEach(function (t) {
+        var hit = Object.keys(SQ.XARTS).filter(function (id) {
+          return SQ.XARTS[id].tier === t && SQ.XARTS[id].alignment === 'neutral';
+        })[0];
+        if (hit) pick301[t] = hit;
+      });
+      var n301 = {};
+      TIERS301.forEach(function (t) {
+        if (!pick301[t]) return;
+        var wq = pack.initialState();
+        wq.artsKnown = [pick301[t]]; wq.artsSlots = [pick301[t]];
+        wq.artsLevels = {}; wq.artsLevels[pick301[t]] = 4;
+        n301[t] = SQ.Attrs.artsNurtureOf(wq, pack, D, SQ.XARTS[pick301[t]].attr);
+      });
+      TIERS301.forEach(function (t) {
+        if (n301[t] == null || !n301.huang) return;
+        if (Math.abs(n301[t] / n301.huang - LAD[t]) > 1e-9) badNur301.push(t + '=' + (n301[t] / n301.huang).toFixed(3));
+      });
+      ok('301', '品阶强度阶梯对表（第卅八批）：(a) 逐字段阶中位 === 基准×阶梯(±0.5%) ' + nField301 + ' 字段' +
+        ' (b) 逐字段跨阶零重叠 ' + nPair301 + ' 对相邻阶 (c) 黄阶中位仍是原锚 0.03/0.045/0.04/0.04' +
+        ' (d) FIELD_CAP === 全录每级最大值（红线四类除外） (e) 滋养比 === 1:2:3.5:6（同阵营同级四部）',
+        nField301 >= 8 && nPair301 >= 8 && bad301.length === 0 && badCap301.length === 0 && badNur301.length === 0 &&
+        TIERS301.every(function (t) { return !!pick301[t]; }),
+        '字段=' + nField301 + ' 对=' + nPair301 + ' ‖ ' + bad301.slice(0, 4).join(',') +
+        ' ‖ cap=' + badCap301.join(',') + ' ‖ 滋养=' + badNur301.join(',') +
+        ' (' + TIERS301.map(function (t) { return n301[t]; }).join('/') + ')');
+    })();
 
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');

@@ -5143,13 +5143,7 @@
       h += '<div class="bar slim"><i style="width:' + Math.min(100, (v / dc2) * 100).toFixed(1) + '%"></i></div>';
       /* 构成明细 */
       var base = SQ.Attrs.baseOf(w, d);
-      var artsMap = p.artsMap();
-      var nurture = 0;
-      (w.artsSlots || []).forEach(function (aid) {
-        if ((w.artsKnown || []).indexOf(aid) < 0) return;
-        var a = artsMap[aid];
-        if (a && a.attr === id) nurture += (w.artsLevels[aid] || 0) * (d.ARTS_NURTURE[a.alignment] || 2);
-      });
+      var nurture = SQ.Attrs.artsNurtureOf(w, p, d, id);   /* 与引擎同一处算式（含品阶阶梯），视图不再自己抄一遍 */
       var gearV = 0;
       for (var slot in w.gear) {
         var it = w.gear[slot];
