@@ -129,6 +129,9 @@
     'idle.auto.sec': '自动',
     'settings.autoevent.title': '自动奇遇',
     'settings.autoevent.desc': '触发奇遇时自动择一路抉择并结算，不再弹出询问',
+    /* 自动炼化开关（GitHub issue #2 · 用户报「系统判断不符合要求就自动炼化更好更强的装备」）*/
+    'settings.gearrefine.title': '自动炼化',
+    'settings.gearrefine.desc': '开启时，换下的旧件与不如在件的新件直接炼化回灵石；关闭则先进库藏阁，由你定夺（库藏阁满时仍需炼化腾位）',
     'event.auto.resolved': '奇遇「{name}」已自动抉择 · {branch}',
     /* 奇遇倾向（体验批）：自动抉择时的分支偏好；选项复用 branch 名，none 另起 */
     'settings.eventpref.title': '奇遇倾向',
@@ -158,6 +161,10 @@
     'toast.gear.refine': '拾得 {name}（{tier}）→ 已炼化 +{n} {cur}',
     'toast.gear.stash': '拾得 {name}（{tier}）→ 境界不足，已收入库藏阁',
     'toast.gear.stashfull': '库藏阁已满，炼化 {name} +{n} {cur}',
+    /* 自动炼化关闭时的两条如实文案（GitHub issue #2）——**不经 `t('…')` 字面量**、只作 `itemLog` 第三形参传入，
+     * 所以 A2 的静态键扫描照不到它们（判据盲区登记见冒烟 #35 的 log 文本对表）。 */
+    'toast.gear.keep': '拾得 {name}（{tier}）→ 未炼化，已收入库藏阁',
+    'toast.gear.kept': '换下 {name}（{tier}）→ 未炼化，已收入库藏阁',
     'toast.gear.tierup': '福缘凝华：{name}（{tier}）品阶上浮！',
     'toast.gear.exhold': '拾得 {name}（{tier}）→ 独占法器在位，已入库藏阁，手动替换需确认',
     /* 库藏阁处置（道具处置打磨包）：手动炼化出口 */
@@ -176,6 +183,10 @@
        **要重新接线必须先改值**，否则是把已作废的机制搬回屏上。 */
     'arts.reset': '待重修',
     'arts.main': '主修', 'arts.main.empty': '主修虚位',
+    /* 主修可点定（GitHub issue #3）：非主修的在槽功法逐格挂此按钮，不必再「全拆重装」 */
+    'arts.main.set': '设为主修',
+    'arts.main.ok': '已转修「{name}」，此后此功修持最快',
+    'arts.main.reject': '此功不在修习槽内，无从主修',
     /* 功法处置（道具处置打磨包）：已入门 → 散功、架上未入门 → 弃置 */
     'arts.salvage': '散功', 'arts.discard': '弃置',
     'arts.salvage.confirm': '确认{act}「{name}」？返还 {n} {cur}，此功法将从你的道途中抹去。',
@@ -433,7 +444,7 @@
     /* ── 批 2 · B4 功法页（双维分组 / 独占剪影 / 架上三态；**待重修横幅自第廿五批退役**，见本卷 `arts.reset` 上方注）── */
     'ui.arts.reset_hint': '渡劫功成，功法等级归零，持有与槽位保留——重修即恢复原有效果（等级为 0 的槽位挂「待重修」金标，练回即摘）',
     /* 法柱浮层（修行页四柱「法」：只读一览修习槽内功法） */
-    'arts.modal.title': '修习功法', 'arts.modal.sub': '已装备 {n}/{cap} · 第 1 位为主修',
+    'arts.modal.title': '修习功法', 'arts.modal.sub': '已装备 {n}/{cap} · 挂「主修」角标者修持最快（点格子上的「设为主修」自由指定）',
     'arts.group.tier': '品阶', 'arts.group.align': '阵营', 'arts.group.all': '全部',
     'arts.tierchar.huang': '黄', 'arts.tierchar.xuan': '玄', 'arts.tierchar.di': '地', 'arts.tierchar.tian': '天',
     'arts.sec.tier': '待修习架 · {g}字阶', 'arts.sec.align': '待修习架 · {g}',

@@ -83,6 +83,15 @@
         SQ.Arts.unslot(s.worlds[s.profile.worldId], id);
       });
     },
+    /* 设主修（GitHub issue #3）：玩家点定六槽中任一功法为主修；拒因由视图如实弹文案。
+     * 主修只改修习增速的指向，不动任何属性乘区 ⇒ 无需 recalcDerived。 */
+    setMainArt: async function (ref, id) {
+      var out = null;
+      await SQ.mutate(ref, function (s) {
+        out = SQ.Arts.setMain(s.worlds[s.profile.worldId], id);
+      });
+      return out;
+    },
     upgradeArt: function (ref, id) {
       return SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
@@ -457,14 +466,14 @@
       });
       return out;
     },
-    /* 赠丹（渠道 B）：耗自有丹药、按丹方 tier 给好感。profile 透传供 Alchemy.gameDayOf 算日限锚。 */
+    /* 赠丹（渠道 B）：耗自有丹药、按丹方 tier 给好感。GitHub issue #4 起无日限，节流只在丹药库存。 */
     giftBond: async function (ref, npcId, pillKey) {
       var out = null;
       await SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
         var pack = packOf(s), D = dataOf(s);
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
-        out = SQ.Bonds.giftPill(ws, pack, D, npcId, pillKey, Date.now(), log, s.profile);
+        out = SQ.Bonds.giftPill(ws, pack, D, npcId, pillKey, Date.now(), log);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
       });
       return out;
@@ -509,6 +518,15 @@
       return SQ.mutate(ref, function (s) {
         if (!s.settings) s.settings = {};
         s.settings.eventPref = (pref === 'right' || pref === 'evil' || pref === 'neutral') ? pref : 'none';
+      });
+    },
+
+    /* 自动炼化开关（GitHub issue #2 · 默认开）：存 ws 而非 settings——autoEquip 十一个调用点
+     * 只有 ws 是一定在场的，避免为了一个偏好去改十一条签名。 */
+    setGearRefine: function (ref, on) {
+      return SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        ws.gearAutoRefine = !!on;
       });
     },
 

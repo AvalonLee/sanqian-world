@@ -89,8 +89,12 @@
       if (!SQ.Arts.canSalvage(ws, pack, D, id)) return null;
       var known = (ws.artsKnown || []).indexOf(id) >= 0;
       var v = SQ.Arts.salvageValue(ws, pack, D, id);
-      if (known) ws.artsKnown.splice(ws.artsKnown.indexOf(id), 1);
-      else ws.shelf.splice(ws.shelf.indexOf(id), 1);
+      if (known) {
+        ws.artsKnown.splice(ws.artsKnown.indexOf(id), 1);
+        /* 散掉的是玩家点定的主修 ⇒ 同批清掉点定值，档里不留永久悬空 id
+         * （暂时移出槽外**不清**，这是记忆式语义，登记 = 任务清单 N44）*/
+        if (ws.artsMain === id) ws.artsMain = null;
+      } else ws.shelf.splice(ws.shelf.indexOf(id), 1);
       if (ws.artsLevels) delete ws.artsLevels[id];
       var st0 = ws.stones;
       ws.stones += v;
@@ -177,6 +181,7 @@
       var cfg = D.MODES && D.MODES[ws.mode] ? D.MODES[ws.mode] : null;
       var modeMult = cfg ? cfg.practiceMult : 1;
       var speedMult = 1 + (mods.sum.artsSpeed || 0);
+      var mainId = SQ.Arts.mainArt(ws);   /* issue #3：增速跟主修走，不再跟槽位序号走 */
       var insight = null;
       for (var i = 0; i < (ws.artsSlots || []).length; i++) {
         var id = ws.artsSlots[i];
@@ -185,7 +190,7 @@
         if (lv >= D.ARTS_MAX_LV) continue;   /* 满级不再练 */
         /* 精通增速随等级递减：低阶快、高阶慢（精通批） */
         var lvRate = (D.PRACTICE_LV_RATE && D.PRACTICE_LV_RATE[lv] != null) ? D.PRACTICE_LV_RATE[lv] : 1;
-        var perSec = (i === 0 ? D.PRACTICE_MAIN_PER_H : D.PRACTICE_OTHER_PER_H) / 3600;
+        var perSec = (id === mainId ? D.PRACTICE_MAIN_PER_H : D.PRACTICE_OTHER_PER_H) / 3600;
         var cur = (ws.artsPractice || {})[id] || 0;
         cur += perSec * lvRate * speedMult * modeMult * dtSec;
         if (cur >= D.PRACTICE_MAX) {
@@ -291,7 +296,8 @@
     },
 
     /* 槽位管理（6 槽，自由装移无成本；只有槽内生效）
-     * replaceId（批 2·B4）：满槽时的原位替换目标——替换后槽序不变（主修位语义保持，引擎卷 §4.2）。 */
+     * replaceId（批 2·B4）：满槽时的原位替换目标——替换后槽序不变（issue #3 前这是主修语义的唯一保障，
+     * 现在主修认 `ws.artsMain`，槽序不变仍保「不会把玩家的第 1 格换掉」）。 */
     slot: function (ws, pack, D, id, replaceId) {
       if (ws.artsKnown.indexOf(id) < 0) return false;
       if (ws.artsSlots.indexOf(id) >= 0) return false;
@@ -330,12 +336,27 @@
       return added;
     },
 
-    /* 主修（引擎卷 §4.2 形式化）：**修习槽第 1 位**；槽位空 = 主修为无（不顺延到其他槽）。
-     * UI 功法页首位加「主修」角标即读本函数，语义与事件收益指向同源。 */
+    /* 主修（引擎卷 §4.2 · GitHub issue #3 起可由玩家点定）：**`ws.artsMain` 优先**，
+     * 未点定 / 点定的功法已被移出槽外 ⇒ 回落「修习槽第 1 位」，旧档零迁移、行为与改前逐字相同。
+     * 槽位空 = 主修为无（不顺延到其他槽）。UI 功法页角标与事件收益指向都读本函数。 */
     mainArt: function (ws) {
-      var first = (ws.artsSlots || [])[0];
+      var slots = ws.artsSlots || [], known = ws.artsKnown || [];
+      var pick = ws.artsMain;
+      if (pick && slots.indexOf(pick) >= 0 && known.indexOf(pick) >= 0) return pick;
+      var first = slots[0];
       if (!first) return null;
-      return (ws.artsKnown || []).indexOf(first) >= 0 ? first : null;
+      return known.indexOf(first) >= 0 ? first : null;
+    },
+
+    /* 设主修（issue #3）：只认**已在槽内且已入门**的功法——槽外点定等于给一个不生效的主修，
+     * 会造出「角标说 A、修习增速给 B」的第二事实源，故直接拒。同值重复点不落盘。
+     * 返回 {ok, id, reason | same}。 */
+    setMain: function (ws, id) {
+      var slots = ws.artsSlots || [], known = ws.artsKnown || [];
+      if (!id || slots.indexOf(id) < 0 || known.indexOf(id) < 0) return { ok: false, reason: 'inslot' };
+      if (ws.artsMain === id) return { ok: true, id: id, same: true };
+      ws.artsMain = id;
+      return { ok: true, id: id };
     },
 
     /* artsProgress 类收益的实际指向（引擎卷 §4.2）：主修优先；主修为空或已满级 →

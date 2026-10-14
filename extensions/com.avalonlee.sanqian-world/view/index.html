@@ -2194,13 +2194,14 @@
     for (var i = 0; i < d.ARTS_SLOTS; i++) {
       var id = w.artsSlots[i];
       if (!id) {
+        /* 「主修虚位」只在整页没有一个主修时说（issue #3 后第 1 格空着不代表没有主修）*/
         h += '<div class="lrow locked"><div class="nm">—</div><div class="meta">' +
-          esc(t(i === 0 ? 'arts.main.empty' : 'arts.empty')) + '</div></div>';
+          esc(t(i === 0 && !SQ.Arts.mainArt(w) ? 'arts.main.empty' : 'arts.empty')) + '</div></div>';
         continue;
       }
       var a = am[id];
       var lv = w.artsLevels[id] || 0;
-      var isMain = i === 0 && SQ.Arts.mainArt(w) === id;
+      var isMain = SQ.Arts.mainArt(w) === id;   /* issue #3：主修可由玩家点定，不再绑第 1 位 */
       h += '<div class="lrow cur">';
       h += '<div class="nm"><span class="align-sym align-' + a.alignment + '">' + esc(t('align.sym.' + a.alignment)) + '</span>' +
         esc(t('skill.' + id + '.name')) +
@@ -2500,6 +2501,7 @@
     /* ── 自动区（自动批）：自动渡劫（自设置页迁入）+ 自动奇遇（新增），修行页页尾统一挂靠 ── */
     var autoT = !!(state.settings && state.settings.autoTrib);
     var autoE = !!(state.settings && state.settings.autoEvent);
+    var autoR = ws().gearAutoRefine !== false;   /* 自动炼化（issue #2）：缺省开 = 旧行为 */
     h += '<div class="sechead" style="margin-top:14px"><span class="t">' + esc(t('idle.auto.sec')) + '</span></div>';
     h += '<div class="setrow"><span class="sl">' + esc(t('settings.auto.title')) +
       '<span class="sd">' + esc(t('settings.auto.desc')) + '</span></span>' +
@@ -2509,6 +2511,10 @@
       '<span class="sd">' + esc(t('settings.autoevent.desc')) + '</span></span>' +
       '<button class="switch' + (autoE ? ' on' : '') + '" data-act="toggleAutoEvent" role="switch" aria-checked="' + autoE + '">' +
       '<i></i><span>' + esc(autoE ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>';
+    h += '<div class="setrow"><span class="sl">' + esc(t('settings.gearrefine.title')) +
+      '<span class="sd">' + esc(t('settings.gearrefine.desc')) + '</span></span>' +
+      '<button class="switch' + (autoR ? ' on' : '') + '" data-act="toggleGearRefine" role="switch" aria-checked="' + autoR + '">' +
+      '<i></i><span>' + esc(autoR ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>';
     /* 奇遇倾向（体验批）：自动抉择时的分支偏好——优先选倾向分支，不可用则随机其他。
      * 仅自动奇遇开启时展开（子选项，关闭时无意义，避免界面干扰）。 */
     if (autoE) {
@@ -2828,11 +2834,12 @@
       esc(t('arts.shelf', { n: (w.shelf || []).length, cap: d.SHELF_CAP })) + '</span></div>';
     h += '<p class="hint" style="margin:0 0 8px">' + esc(t('arts.practice.hint')) + '</p>';
     h += '<div class="cards" style="grid-template-columns:repeat(3,1fr)">';
+    var mainId = SQ.Arts.mainArt(w);   /* issue #3：主修由玩家点定（ws.artsMain），未点定回落第 1 位 */
     for (var i = 0; i < d.ARTS_SLOTS; i++) {
       var id = w.artsSlots[i];
-      /* 主修 = 修习槽第 1 位（B4 · 引擎卷 §4.2）：角标 + 定位锚（法柱 chip 滚动到此） */
-      /* 槽序即语义：第 1 位 = 主修（引擎卷 §4.2）。data-slot = 槽序号，供替换态定位与走查取数。 */
-      var isMain = (i === 0 && id && SQ.Arts.mainArt(w) === id);
+      /* 角标 + 定位锚（法柱 chip 滚动到此）读 mainArt，与引擎修习增速指向同源。
+       * data-slot = 槽序号，供替换态定位与走查取数。 */
+      var isMain = !!id && id === mainId;
       if (id) {
         var a = am[id];
         var lvS = w.artsLevels[id] || 0;
@@ -2843,21 +2850,24 @@
              '<div class="tname">' + esc(t('skill.' + id + '.name')) + '</div>' +
              '<div class="teff">Lv' + lvS + '</div>' +
              '<div class="tdesc">' + esc(t('special.' + a.special.pool + '.name')) + '</div>' +
-             /* 精通迷你条（修行状态批）：主修（第 1 位）增速最高 */
+             /* 精通迷你条（修行状态批）：主修增速最高（issue #3 起看玩家点定的那一格） */
              '<div class="tpract"><span class="pbar"><i style="width:' +
                (lvS >= d.ARTS_MAX_LV ? 100 : prS).toFixed(0) + '%"></i></span><span class="hint">' +
                esc(lvS >= d.ARTS_MAX_LV ? t('arts.max') : t('arts.practice', { p: Math.floor(prS) })) + '</span></div>' +
              /* 满槽「原位替换」（批 2·B4 引擎支路 + 本批补渲染点）：抉择态下每格挂「替换」——
               * data-v = 待入槽功法、data-r = 被顶下的在槽功法，handler 走 Arts.slot 的 replaceId 分支。
               * 缺这一段 = 整条替换链不可达（引擎 + handler + 文案三件齐全、只无渲染点）：玩家只能
-              * 「卸下再装」，新功法落到队列**尾部**，「主修 = 修习槽第 1 位」（引擎卷 §4.2）语义被静默改掉。 */
+              * 「卸下再装」，新功法落到队列**尾部**，未点定主修的旧档会因此换人（issue #3 前的唯一语义）。 */
              (ui.slotPickFor ? '<div class="tacts-src"><button data-act="slotReplace" data-v="' +
                esc(ui.slotPickFor) + '" data-r="' + esc(id) + '">' + esc(t('arts.slotpick.replace')) +
                '</button></div>' : '') +
+             /* 设主修入口（issue #3）：非主修的在槽功法逐格给一颗按钮，玩家不必再「全拆重装」 */
+             (isMain ? '' : '<div class="tacts-src"><button data-act="setMainArt" data-v="' + esc(id) + '">' +
+               esc(t('arts.main.set')) + '</button></div>') +
              '</div>';
       } else {
-        h += '<div class="tcard"' + (i === 0 ? ' data-mainart="1"' : '') + '><div class="tdesc" style="text-align:center;padding:14px 0">' +
-             (i === 0 ? esc(t('arts.main.empty')) : esc(t('arts.empty'))) + '</div></div>';
+        h += '<div class="tcard"' + (i === 0 && !mainId ? ' data-mainart="1"' : '') + '><div class="tdesc" style="text-align:center;padding:14px 0">' +
+             (i === 0 && !mainId ? esc(t('arts.main.empty')) : esc(t('arts.empty'))) + '</div></div>';
       }
     }
     h += '</div>';
@@ -3619,25 +3629,14 @@
     var n0 = tbl[tierName] != null ? tbl[tierName] : 0;
     return pd.rune ? Math.round(n0 * (d.BOND_GIFT_RUNE_MULT != null ? d.BOND_GIFT_RUNE_MULT : 1.5)) : n0;
   }
-  /* 今日剩余可赠次数（与引擎同口径：Alchemy.gameDayOf，1 游戏日 = 1 现实秒）*/
-  function giftLeft(w, d) {
-    var cap = d.BOND_GIFT_DAILY != null ? d.BOND_GIFT_DAILY : 3;
-    var al = w && w.alchemy;
-    if (!al || !SQ.Alchemy || !SQ.Alchemy.gameDayOf) return cap;
-    var day = SQ.Alchemy.gameDayOf(w, state.profile, Date.now());
-    var g = al.giftDay;
-    if (!g || g.day !== day) return cap;
-    return Math.max(0, cap - (g.n || 0));
-  }
+  /* 赠丹段（GitHub issue #4）：无日次上限，能送几颗只看丹匣库存 ⇒ 这里不再算「今日 n/cap」*/
   function bondActSection(id) {
     var w = ws(), d = D();
     var tier = SQ.Bonds.tierOf(w, id, d);
     var h = '<div class="dsec"><div class="dt">' + esc(t('bond.detail.act')) + '</div>' +
       '<div class="dd hint" style="margin-bottom:8px">' + esc(t('bond.act.tip')) + '</div>' + visitBtn(id, tier);
-    var cap = d.BOND_GIFT_DAILY != null ? d.BOND_GIFT_DAILY : 3;
-    var left = giftLeft(w, d);
     h += '<div class="kv" style="margin-top:12px"><span class="hint">' +
-      esc(t('bond.gift.head', { n: cap - left, cap: cap })) + '</span></div>';
+      esc(t('bond.gift.head')) + '</span></div>';
     if (SQ.Bonds.locked(w, id) || SQ.Bonds.scarred(w, id)) return h + '</div>';
     if (tier >= maxBondTier()) return h + '<div class="dd hint">' + esc(t('bond.gift.fail.max')) + '</div></div>';
     var pills = giftablePills(w, d);
@@ -3647,14 +3646,13 @@
     pills.forEach(function (pl) {
       var g = Math.min(pillGiftGain(d, pl.key), head);
       if (!(g > 0)) return;
-      chips += '<button type="button" data-act="bondGift" data-v="' + id + '" data-c="' + pl.key + '"' +
-        (left > 0 ? '' : ' disabled') + '>' + esc(t((SQ.Alchemy.pillDefOf(d, pl.key) || {}).nameKey ||
+      chips += '<button type="button" data-act="bondGift" data-v="' + id + '" data-c="' + pl.key + '">' +
+        esc(t((SQ.Alchemy.pillDefOf(d, pl.key) || {}).nameKey ||
           'alchemy.pill.' + pl.key + '.name')) +   /* 两族名各按本族键族（成品丹是 `pill.*`，M4）*/
         '<span class="gv">+' + g + '</span><span class="st">' + esc(t('bond.gift.stock', { n: pl.n })) + '</span></button>';
     });
     if (!chips) return h + '<div class="dd hint">' + esc(t('bond.gift.fail.max')) + '</div></div>';
     h += '<div class="chips">' + chips + '</div>';
-    if (!(left > 0)) h += '<div class="dd hint">' + esc(t('bond.gift.fail.daily', { n: cap })) + '</div>';
     return h + '</div>';
   }
   /* 未识 / 厌恶者的隐匿详情：身份不揭示（「？」+ 未结缘或厌恶值），只给渠道 A 主动结识口 */
@@ -3673,7 +3671,7 @@
     var why = (r && r.reason) || 'unknown';
     if (why === 'cooldown') return t('bond.visit.fail.cooldown', { t: timeLeftText(Math.max(0, (r && r.waitMs) || 0)) });
     var ks = ['bond.visit.fail.' + why, 'bond.gift.fail.' + why, 'bond.fail.' + why];
-    for (var i = 0; i < ks.length; i++) if (SQ.t(ks[i], null, wid()) !== ks[i]) return t(ks[i], why === 'daily' ? { n: (D().BOND_GIFT_DAILY != null ? D().BOND_GIFT_DAILY : 3) } : null);
+    for (var i = 0; i < ks.length; i++) if (SQ.t(ks[i], null, wid()) !== ks[i]) return t(ks[i]);
     return t('bond.fail.unknown');
   }
 
@@ -5656,6 +5654,25 @@
     });
   });
 
+  /* 命名框的字跨重渲染存活（GitHub issue #5 · 融合坛自定义名打不进字）：
+   * 立派名早有 `ui.sectRollName` 这条口，融合坛自定义名此前没有——DOM 一重建就清空，
+   * 于是「输入框里的字」只活在节点上。两处一律收进 ui.* 单源，渲染时再回填 value。 */
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (!t || t.tagName !== 'INPUT') return;
+    if (t.classList.contains('fusename')) ui.fuseName = t.value;
+    else if (t.id === 'sect-name-input') ui.sectRollName = t.value;
+  });
+
+  /* 输入闸（GitHub issue #5）：焦点在输入框里时 tick 不重建 DOM（见 startTick），
+   * 焦点离开输入框（focusout）时补一次渲染 ⇒ 读数最多只停更到打完字，不会长期不刷新。 */
+  document.addEventListener('focusout', function (e) {
+    var t = e.target;
+    if (!t || (t.tagName !== 'INPUT' && t.tagName !== 'TEXTAREA')) return;
+    if ($('sc-main').classList.contains('hide')) return;   /* 创角屏的输入框（#c1-name）不归游戏页渲染管 */
+    renderAll();   /* 顶栏读数与红点也一并补上（tick 跳过的是整次 DOM 重建）*/
+  });
+
   /* ══════════ 六向长线批视图（轮回/图鉴/炼丹/天骄/融合器灵/宗门 六页）══════════ */
 
   /* ── 真灵承继选择（轮回卷 §3.4「可选一件」玩家入口 · 器灵卷 §九）───────────────
@@ -6495,7 +6512,7 @@
     });
     h += '</div>';
     if (ui.fuseSel.length === 2) {
-      h += '<div class="sectnamebox"><input class="tdta fusename" style="min-height:38px" maxlength="8" placeholder="' + esc(t('fuse.ui.name.ph')) + '"></div>';
+      h += '<div class="sectnamebox"><input class="tdta fusename" style="min-height:38px" maxlength="8" placeholder="' + esc(t('fuse.ui.name.ph')) + '" value="' + esc(ui.fuseName || '') + '"></div>';
       h += '<button class="primary" data-act="fuseStart" style="width:100%;margin-top:6px">' + esc(t('fuse.ui.btn')) + '</button>';
     } else if (chk.ok) {
       h += '<p class="hint">' + esc(t('fuse.ui.pick2')) + '</p>';
@@ -6680,6 +6697,14 @@
     if (act === 'artsGroup') { ui.artsGroup = v; ui.artsGroupVal = null; renderTab(); return; }
     if (act === 'artsGroupVal') { ui.artsGroupVal = ui.artsGroupVal === v ? null : v; renderTab(); return; }
     if (act === 'unslotArt') { await SQ.Actions.unslotArt(state, v); renderAll(); return; }
+    /* 设主修（GitHub issue #3）：六槽任一都可选，选中即换人；被引擎拒（不在槽内）给如实文案 */
+    if (act === 'setMainArt') {
+      var rvM = await SQ.Actions.setMainArt(state, v);
+      if (!rvM || !rvM.ok) toast(t('arts.main.reject'));
+      else if (!rvM.same) toast(t('arts.main.ok', { name: t('skill.' + rvM.id + '.name') }));
+      renderAll();   /* 同值重复点也重渲染：屏上角标必须立刻回到真值，不留「点了没反应」 */
+      return;
+    }
     if (act === 'upgradeArt') { await SQ.Actions.upgradeArt(state, v); renderAll(); return; }
     if (act === 'shopTab') { ui.shopBlack = v === '1'; renderTab(); return; }
     if (act === 'refreshShop') {
@@ -6697,6 +6722,12 @@
       await SQ.Actions.setAutoEvent(state, !(state.settings && state.settings.autoEvent));
       /* 开启瞬间若已有挂起抉择，立即自动结算，不留残窗 */
       if ((state.settings && state.settings.autoEvent) && ws() && ws().pendingChoice) autoResolveChoice();
+      renderTab();
+      return;
+    }
+    /* 自动炼化（GitHub issue #2）：开关存 ws.gearAutoRefine（autoEquip 只认得到 ws） */
+    if (act === 'toggleGearRefine') {
+      await SQ.Actions.setGearRefine(state, ws().gearAutoRefine === false);   /* 关→开、开→关 */
       renderTab();
       return;
     }
@@ -7106,6 +7137,7 @@
         var rF = await SQ.Actions.fuseStart(state, ui.fuseSel[0], ui.fuseSel[1], nameIn ? nameIn.value : '');
         if (rF && rF.ok && rF.success) {
           ui.fuseSel = [];
+          ui.fuseName = '';                 /* 成交即清：下一对父母不该继承上一部的自定义名 */
           toast(t('fuse.log.win', { name: rF.art.name, gen: rF.art.gen, tier: t('skill.tier.' + ['huang', 'xuan', 'di', 'tian'][rF.art.tier]) }));
         } else if (rF && rF.ok) {
           toast(t('fuse.log.fail', { p: Math.round(rF.p * 100) }));
@@ -7281,7 +7313,7 @@
       return;
     }
     /* 赠丹（渠道 B）：data-v = 道友 id、data-c = 丹药 key（含 _rw 丹纹版）。
-     * 引擎侧「入账成功才扣丹、才占日限」，故失败态绝无白扣——视图不做乐观更新。 */
+     * 引擎侧「入账成功才扣丹」，故失败态绝无白扣——视图不做乐观更新。 */
     if (act === 'bondGift') {
       var pkG = el.dataset.c || '';
       var rvG = await SQ.Actions.giftBond(state, v, pkG);
@@ -7547,10 +7579,16 @@
       if (!$('modal-choice').classList.contains('hide')) return; /* 选择模态期间暂停自动结算展示 */
       var prev = ws() ? ws().tribulation.attempts : 0;
       var keep = document.querySelector('.tabbody') ? document.querySelector('.tabbody').scrollTop : 0;
+      /* 输入闸（GitHub issue #5 · 用户报「融合坛自定义名输入框无法输入文字，点击后很快丢失焦点」）：
+       * renderAll() 把当前页整块 innerHTML 重建 ⇒ 正在打字的 <input> 换成新节点，焦点被抢、字一起丢。
+       * 结算照跑（玩家进程不能停），只跳过这一次 DOM 重建；focusout 时补渲染。 */
+      var ae = document.activeElement;
+      var typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
       try {
         snapTrib();                       /* 劫前成算/损失快照（F7 复盘行） */
         await SQ.claim(state);
         afterClaim(prev);
+        if (typing) return;
         renderAll();
         var tb = document.querySelector('.tabbody');
         if (tb) tb.scrollTop = keep;
