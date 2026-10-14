@@ -394,7 +394,17 @@
     var w33 = mkWs({ realm: 5, zone: 4 });
     w33.zoneAffix = { affixId: 'lingchao', until: Date.now() + 86400000 };
     var m33 = M(mkProf(), w33);
+    /* 固定种子抽样（同 #125 治理批先例）：±5pp 品阶权重带在真随机下约 26 跑 1 红（实测 tier1 偏差 5.2pp），
+     * 是统计噪声不是数值漂——种子化后判据恒定，阈值一字不上调。 */
+    var seed33 = 3320261015, origRand33 = Math.random;
+    Math.random = function () {
+      seed33 |= 0; seed33 = (seed33 + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed33 ^ (seed33 >>> 15), 1 | seed33);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
     var r33 = SQ.Combat.simulate(w33, pack, D, m33, 10000 * 60, { log: noopLog(), now: Date.now(), profile: mkProf() });
+    Math.random = origRand33;   /* 种子化窗口结束 */
     var tierCnt33 = [0, 0, 0, 0, 0];
     r33.drops.forEach(function (d) { if (!d.clear) tierCnt33[d.item.tier]++; });
     var tot33 = r33.drops.filter(function (d) { return !d.clear; }).length;
@@ -1539,9 +1549,13 @@
     /* 在线/离线同口径：离线结算倍率 = caveMult ×（离线效率含签名 offlineEff） */
     var nowA = Date.now();
     var wOn108 = caveWs(null, 5), wCv108 = caveWs('star_fall', 5), wSw108 = caveWs('sword_cliff', 5);
+    /* 绵长内息（tuna 签名）在 settle 内每段掷双倍——不桩则三档离线比是随机比（2026-10-14 实测 20 跑 1 红，
+     * dev 同现）；恒高值 = 双倍恒不中，比数回到纯乘区差。 */
+    var restore108 = stubRandom(function () { return 0.99999; });
     SQ.Idle.settle(wOn108, pack, D, 2 * 3600000, nowA, { log: noopLog(), profile: mkProf() });
     SQ.Idle.settle(wCv108, pack, D, 2 * 3600000, nowA, { log: noopLog(), profile: mkProf() });
     SQ.Idle.settle(wSw108, pack, D, 2 * 3600000, nowA, { log: noopLog(), profile: mkProf() });
+    restore108();
     var offSf108 = wCv108.qi / wOn108.qi;      /* 1.25 × (0.5+0.15)/0.5 = 1.625 */
     var offSw108 = wSw108.qi / wOn108.qi;      /* 1.12（剑崖签名不涉离线） */
     /* 引擎硬顶：表值超 CAVE_MULT_CAP 即被截断（世界包不得超） */
@@ -2622,10 +2636,12 @@
     /* #139 潜心悟道（离线）：按原有规则结算，模式不进离线口径；lastOffline 记 mode 叙事口径 */
     var w139 = mkWs({ realm: 8, mode: 'venture' });
     pack.recalcDerived(w139, mkProf());
+    var restore139 = stubRandom(function () { return 0.99999; });   /* 同 #108：绵长内息双倍掷必须桩掉，否则两边收益比是掷点比 */
     var r139 = SQ.Idle.settle(w139, pack, D, 48 * 3600 * 1000, Date.now(), { log: noopLog(), profile: mkProf() });
     var w139b = mkWs({ realm: 8, mode: 'seclude' });
     pack.recalcDerived(w139b, mkProf());
     var r139b = SQ.Idle.settle(w139b, pack, D, 48 * 3600 * 1000, Date.now(), { log: noopLog(), profile: mkProf() });
+    restore139();
     ok('139', '离线 = 潜心悟道：模式不影响离线收益 · lastOffline 记录叙事口径',
       r139.offline && r139b.offline && Math.abs(r139.gain - r139b.gain) < 1 &&
       w139.lastOffline.mode === 'venture' && w139b.lastOffline.mode === 'seclude',

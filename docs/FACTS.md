@@ -10,7 +10,7 @@
 | 现行读数 | 值 | 唯一事实源 |
 |---|---|---|
 | 扩展版本 | `0.5.0` | `manifest.json`（唯一事实源；D4 守仓库根不复活第二份副本） |
-| 冒烟断言 | 300 | `.tests/run-smoke.cjs` 末行 `SMOKE_ALL_GREEN` |
+| 冒烟断言 | 301 | `.tests/run-smoke.cjs` 末行 `SMOKE_ALL_GREEN` |
 | 静态审计关数 | 24 关 | `.tests/audit.cjs` 末行 `AUDIT_ALL_GREEN` |
 | 常驻探针合计 | 245 断言 | `.tests/probe-*.cjs` 逐件末行求和（run-dod 求和，不手算） |
 | 界面走查 | 27 篇 / 605 断言 | `.tests/verify-ui-*.cjs` 目录清单 + 逐篇末行 |
