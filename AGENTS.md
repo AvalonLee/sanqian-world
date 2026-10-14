@@ -28,6 +28,7 @@ VibeX 已退役：不再打 ZIP 回传、不再跑 `npm run dev` / `build` / `ts
 - **通用层与视图禁止直读世界专属全局**（`SQ.XDATA` 等）：新旁路由审计 **D3** 拦，在册例外按出现次数钉死、失效同判红。
 - **历史注逐字不改写**：只在新位置加勘正行；能自动对的账（版本总账、计数）交给 `versions-check --fix` 与 `gen-ledger --fix`，不靠人抄。
 - **`sim-playthrough` 的轨迹锚是判据**：改了结算/掉率类代码会换 md5，必须先复跑再改锚，别把换值当自然结果。
+- **分支流**：改动一律 PR 进 `dev`，`master` 只由 `dev → master` 发布合并；直连 master 的 PR 会被必需检查 `branch-policy` 拦红（`master` 上 `enforce_admins=true`，管理员也推不动）。日常动作 = `git checkout -b <主题> dev` → 改 → 收口 → PR 到 `dev`；不要指望能 `git push origin master`。
 - **提交后必须复确认整批落库**：`git status --porcelain` 为空 **且** `git show --stat HEAD` 的文件清单与批次叙述一致（混合「删除 + 修改」时用不带 `-a/-u` 的 commit，正文改动会整批漏在外面——本仓 2026-10-14 又犯过一次并已记进规范）。
 
 ## 环境注意（本机 Windows / Git Bash）

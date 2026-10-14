@@ -91,7 +91,9 @@ node .tests/ledger-selftest.cjs           # LEDGER_SELFTEST_DONE 8 判（账本�
 
 ## 七、给贡献者
 
-改代码前请先读 **[`AGENTS.md`](AGENTS.md)**（八条硬规矩，每一条都对应过一次真实返工）。要点：**现行读数不许手抄**（由 `docs/ledger.json` + `SQ:LEDGER` 哨兵段生成）、**升版只改 `manifest.json` 一处**、**新增系统 `.js` 只挂进 `view/index.html`**、**历史注逐字不改写**。
+**分支规则**：所有改动先进 **`dev`**（`feature/xxx → dev`）；**`master` 只接受 `dev → master` 的发布合并**，直接向 master 提的 PR 会被必需状态检查 **`branch-policy`** 拦下（管理员也不能直改 master）。提 PR 前先看清 base 是 `dev`。
+
+改代码前请先读 **[`AGENTS.md`](AGENTS.md)**（九条硬规矩，每一条都对应过一次真实返工）。要点：**现行读数不许手抄**（由 `docs/ledger.json` + `SQ:LEDGER` 哨兵段生成）、**升版只改 `manifest.json` 一处**、**新增系统 `.js` 只挂进 `view/index.html`**、**历史注逐字不改写**。
 
 ## 八、许可证
 
