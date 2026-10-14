@@ -161,6 +161,10 @@
     'toast.gear.refine': '拾得 {name}（{tier}）→ 已炼化 +{n} {cur}',
     'toast.gear.stash': '拾得 {name}（{tier}）→ 境界不足，已收入库藏阁',
     'toast.gear.stashfull': '库藏阁已满，炼化 {name} +{n} {cur}',
+    /* 自动炼化关闭时的两条如实文案（GitHub issue #2）——**不经 `t('…')` 字面量**、只作 `itemLog` 第三形参传入，
+     * 所以 A2 的静态键扫描照不到它们（判据盲区登记见冒烟 #35 的 log 文本对表）。 */
+    'toast.gear.keep': '拾得 {name}（{tier}）→ 未炼化，已收入库藏阁',
+    'toast.gear.kept': '换下 {name}（{tier}）→ 未炼化，已收入库藏阁',
     'toast.gear.tierup': '福缘凝华：{name}（{tier}）品阶上浮！',
     'toast.gear.exhold': '拾得 {name}（{tier}）→ 独占法器在位，已入库藏阁，手动替换需确认',
     /* 库藏阁处置（道具处置打磨包）：手动炼化出口 */

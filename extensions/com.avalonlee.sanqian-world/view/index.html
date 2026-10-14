@@ -6681,10 +6681,9 @@
     /* 设主修（GitHub issue #3）：六槽任一都可选，选中即换人；被引擎拒（不在槽内）给如实文案 */
     if (act === 'setMainArt') {
       var rvM = await SQ.Actions.setMainArt(state, v);
-      if (rvM && rvM.ok && !rvM.same) {
-        toast(t('arts.main.ok', { name: t('skill.' + rvM.id + '.name') }));
-        renderAll();
-      } else if (!rvM || !rvM.ok) toast(t('arts.main.reject'));
+      if (!rvM || !rvM.ok) toast(t('arts.main.reject'));
+      else if (!rvM.same) toast(t('arts.main.ok', { name: t('skill.' + rvM.id + '.name') }));
+      renderAll();   /* 同值重复点也重渲染：屏上角标必须立刻回到真值，不留「点了没反应」 */
       return;
     }
     if (act === 'upgradeArt') { await SQ.Actions.upgradeArt(state, v); renderAll(); return; }

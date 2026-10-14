@@ -61,6 +61,7 @@ function seed(over) {
   w.alchemy = {
     furnace: true,
     pills: { ap_juqi: 3, ap_pozhang: 1, ap_haina: 1, juqi: 2 },
+    giftDay: { day: 7, n: 2 },                    /* issue #4 旧档残留字段：读档后必须被剪掉（B5/C1 的 giftDayAbsent 靠它才有鉴别力）*/
     pillDay: { day: -999999, n: 0 }
   };
   return { save: s0, at: T, bornAt: bornAt, freeze: !!over.freeze };
@@ -388,14 +389,15 @@ async function mkPage(browser, S) {
       const cs = Array.from(b.querySelectorAll('[data-act="bondGift"]'));
       return {
         keys: cs.map((x) => x.dataset.c), disN: cs.filter((x) => x.disabled).length,
+        head: SQ.t('bond.gift.head', null, 'xiuxian'),
         txt: (b.textContent || '').replace(/\s+/g, ' ')
       };
     });
     T(dayNow === 5 && c1.bonds.xie - c0.bonds.xie === 12 && !c1.pills.ap_juqi && c1.giftDayAbsent &&
       dom1.keys.indexOf('ap_juqi') < 0 && dom1.keys.indexOf('juqi') >= 0 && dom1.disN === 0 &&
-      /今日\s*\d+\s*\/\s*\d+/.test(dom1.txt) === false &&
-      dom1.txt.indexOf('以丹相赠（丹尽则止，不论日次）') >= 0,
-      'C1 issue #4 · 同一游戏日连赠三次全入账（+4×3=12）、丹尽即摘 chip、屏上再无「今日 n/cap」计数',
+      /今日\s*\d+\s*\/\s*\d+/.test(dom1.txt) === false && dom1.head !== 'bond.gift.head' &&
+      dom1.txt.indexOf(dom1.head) >= 0,
+      'C1 issue #4 · 同一游戏日连赠三次全入账（+4×3=12）、丹尽即摘 chip、屏上再无「今日 n/cap」计数（head 取真词表值，seed 里的旧 giftDay 字段被 normalize 剪掉）',
       'day=' + dayNow + ' aff ' + c0.bonds.xie + '→' + c1.bonds.xie + ' pills=' + JSON.stringify(c1.pills) +
         ' keys=' + dom1.keys.join(',') + ' disN=' + dom1.disN);
 

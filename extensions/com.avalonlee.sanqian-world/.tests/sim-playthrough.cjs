@@ -642,8 +642,9 @@ async function playerStep(ref, tag, opts) {
       if (aff === SQ.Bonds.LOCK) continue;                      /* 缘尽：由 opts.redeem 通道处理 */
       const goal = bt.goal != null ? bt.goal : (D.BOND_MAX || 100);
       if (aff < goal) {
-        /* 两条主动渠道并列点满（真玩家就是这么刷好感）：渠道 B 赠丹无 CD（日限锚 gameDayOf
-         * = 1 游戏日 1 现实秒 ⇒ 每步都算新一天，真节流是丹产），渠道 A 拜访按 CD 纯读放行 */
+        /* 两条主动渠道并列点满（真玩家就是这么刷好感）：渠道 B 赠丹**无 CD 也无日限**（GitHub issue #4
+         * 撤销原 3 次日限；1 游戏日 = 1 现实秒 ⇒ 那种计数永不生效），真节流是丹产；
+         * 渠道 A 拜访按 CD 纯读放行 */
         let acted = false;
         const alB = (wB2.alchemy || {}).pills || {};
         const pk = Object.keys(alB).find(k => alB[k] > 0 && !/^ap_(pozhang|zhenjie)$/.test(k));

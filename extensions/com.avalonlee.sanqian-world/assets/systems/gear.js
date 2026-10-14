@@ -194,8 +194,14 @@
       SQ.Gear.recordSeen(ws, item);
       var cur = ws.gear[item.slot];
       if (cur && !cur.exclusive) {
-        var rv = addRefine(ws, SQ.Gear.refineValue(cur, ws, D, mods));
-        if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.replace', item, rv));
+        /* issue #2 开关也管这一口：授予独占时换下的普通件，关炼化则先入库藏阁（库满才回落炼化）*/
+        if (ws.gearAutoRefine === false && ws.stash.length < SQ.Gear.stashCap(ws, D, mods)) {
+          ws.stash.push(cur);
+          if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.kept', cur, 0));
+        } else {
+          var rv = addRefine(ws, SQ.Gear.refineValue(cur, ws, D, mods));
+          if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.replace', item, rv));
+        }
       } else if (log) {
         log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.replace', item, 0));
       }

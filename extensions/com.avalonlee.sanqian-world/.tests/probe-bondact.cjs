@@ -262,7 +262,11 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
   ok('issue #4 · 赠丹 chips 一颗都不置灰，且赠丹段无「今日 n/cap」计数文案（head 走无参键）',
     chipN === 4 && /<button[^>]*data-act="bondGift"[^>]*disabled/.test(hNoCap) === false &&
     /今日\s*\d+\s*\/\s*\d+/.test(hNoCap) === false &&
-    hNoCap.indexOf(SQ.t('bond.gift.head', null, 'xiuxian')) >= 0, 'chips=' + chipN);
+    hNoCap.indexOf(SQ.t('bond.gift.head', null, 'xiuxian')) >= 0 &&
+    SQ.t('bond.gift.head', null, 'xiuxian') !== 'bond.gift.head', 'chips=' + chipN);
+  /* 结构性反证：日限助手与旧计数真从 view 里消失了（只比字符串会把「键名恰好没渲染」读成绿）*/
+  ok('issue #4 · 视图侧计数器助手已退役（HTML 里搜不到 giftLeft，桩上下文也取不到该函数）',
+    HTML.indexOf('function giftLeft') < 0 && A.giftLeft === undefined);
 
   /* ── 9) 四类「漏值」扫描（lawmerge 同款）── */
   const all = [h, hRich, hMax, hCd, hLock, hScar, hu, hh].join('\n');

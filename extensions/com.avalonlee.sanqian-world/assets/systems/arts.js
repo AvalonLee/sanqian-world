@@ -89,8 +89,12 @@
       if (!SQ.Arts.canSalvage(ws, pack, D, id)) return null;
       var known = (ws.artsKnown || []).indexOf(id) >= 0;
       var v = SQ.Arts.salvageValue(ws, pack, D, id);
-      if (known) ws.artsKnown.splice(ws.artsKnown.indexOf(id), 1);
-      else ws.shelf.splice(ws.shelf.indexOf(id), 1);
+      if (known) {
+        ws.artsKnown.splice(ws.artsKnown.indexOf(id), 1);
+        /* 散掉的是玩家点定的主修 ⇒ 同批清掉点定值，档里不留永久悬空 id
+         * （暂时移出槽外**不清**，这是记忆式语义，登记 = 任务清单 N43）*/
+        if (ws.artsMain === id) ws.artsMain = null;
+      } else ws.shelf.splice(ws.shelf.indexOf(id), 1);
       if (ws.artsLevels) delete ws.artsLevels[id];
       var st0 = ws.stones;
       ws.stones += v;
@@ -292,7 +296,8 @@
     },
 
     /* 槽位管理（6 槽，自由装移无成本；只有槽内生效）
-     * replaceId（批 2·B4）：满槽时的原位替换目标——替换后槽序不变（主修位语义保持，引擎卷 §4.2）。 */
+     * replaceId（批 2·B4）：满槽时的原位替换目标——替换后槽序不变（issue #3 前这是主修语义的唯一保障，
+     * 现在主修认 `ws.artsMain`，槽序不变仍保「不会把玩家的第 1 格换掉」）。 */
     slot: function (ws, pack, D, id, replaceId) {
       if (ws.artsKnown.indexOf(id) < 0) return false;
       if (ws.artsSlots.indexOf(id) >= 0) return false;

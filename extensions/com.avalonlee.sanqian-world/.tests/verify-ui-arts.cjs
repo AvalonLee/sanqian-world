@@ -217,6 +217,7 @@ async function buildSave() {
   });
   T(mainPick.btnN === 1 && mainPick.mainIdxBefore === 0 && mainAfter.mainIdx === 1 &&
     mainAfter.markerIdx === 1 && mainAfter.artsMain === 'juling' &&
+    mainAfter.mainName !== '' && mainAfter.ovMain !== '' &&
     mainAfter.ovMain.indexOf(mainAfter.mainName) >= 0,
     'A4d 主修点定（issue #3）：第 2 格挂按钮（在槽 2 部 − 主修 1 部）· 点后角标与 data-mainart 同移到第 2 格 · 概览条「主修」格随之改名 · ws.artsMain 落盘',
     'btn=' + mainPick.btnN + ' idx ' + mainPick.mainIdxBefore + '→' + mainAfter.mainIdx +
