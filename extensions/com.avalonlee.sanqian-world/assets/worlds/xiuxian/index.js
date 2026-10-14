@@ -15,7 +15,7 @@
     return {
       qi: 0, total: 0, stones: 100, realm: 0,
       artsKnown: ['tuna', 'juling'], artsLevels: {}, artsSlots: [], shelf: [],
-      artsAutoInit: false, artsLearnClock: 0, artsSelfLearnN: 0,
+      artsAutoInit: false, artsLearnClock: 0, artsSelfLearnN: 0, artsMain: null,
       zone: 0, prog: {}, cleared: [], combatAcc: 0, kills: 0,
       /* 系统深化批 A4（数值详设 §2.5~§2.7）：区域词缀 {affixId, until} / 域主 {zone, state, retryAt}
        * / 探宝残片 10 元分区计数；A6：天道垂青 fateSeen [{id, realm}]（同境界段排除） */
@@ -110,6 +110,9 @@
       artsKnown: arr(raw.artsKnown, d.artsKnown),
       artsLevels: obj(raw.artsLevels, {}),
       artsSlots: arr(raw.artsSlots, []).slice(0, D.ARTS_SLOTS),
+      /* issue #3：玩家点定的主修（null = 未点定 ⇒ 回落槽内第 1 位，旧档零迁移）。
+       * 是否在槽内 / 是否已入门由 SQ.Arts.mainArt 读时校验，脏值即回落。 */
+      artsMain: typeof raw.artsMain === 'string' ? raw.artsMain : null,
       artsAutoInit: raw.artsAutoInit === true, /* 体验手感批：一次性入槽回填旗标（旧档缺省 false → 首次 claim 补齐） */
       shelf: arr(raw.shelf, []).slice(0, D.SHELF_CAP),
       zone: num(raw.zone, 0), prog: obj(raw.prog, {}),

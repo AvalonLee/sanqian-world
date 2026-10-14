@@ -1581,8 +1581,9 @@
       'first=' + first105b + ' after=' + after105b + ' ex=' + exSeen105b +
       ' rate=' + rateWith105b + '/' + rateNo105b);
 
-    /* #123 主修形式化（引擎卷 §4.2）：主修 = 修习槽第 1 位（不顺延）；空槽 = 无；
-     * artsProgress 类收益指向主修，主修满级时顺延「随机槽内未满级功法」 */
+    /* #123 主修形式化（引擎卷 §4.2 · issue #3 起可由玩家点定）：`ws.artsMain` 优先，未点定 / 点定的
+     * 已不在槽内 ⇒ 回落「修习槽第 1 位」（旧档口径逐字不变，下面 a~d 全部按未点定跑）；
+     * 空槽 = 无主修（不顺延）；artsProgress 类收益指向主修，主修满级时顺延「随机槽内未满级功法」 */
     var w123 = mkWs({ realm: 3 });
     w123.artsKnown = ['tuna', 'juling', 'yunzong'];
     w123.artsSlots = ['tuna', 'juling'];
@@ -1607,14 +1608,39 @@
     /* 全空槽 → 主修 null、progressTarget null（无处可加，不报错） */
     var w123d = mkWs({ realm: 3 });
     w123d.artsSlots = [];
-    ok(123, '主修 = 槽第 1 位 · 满级顺延槽内 · 全空不报错',
+    /* (e) issue #3 点定主修：setMain 认槽内已入门者 ⇒ mainArt 跟着点定的走；
+     *     点定的那部被移出槽后回落第 1 位；槽外 / 未入门一律拒且**不改档**；同值重复点幂等；
+     *     artsMain 过 normalize（字符串保值、脏值归 null）*/
+    var w123e = mkWs({ realm: 3 });
+    w123e.artsKnown = ['tuna', 'juling', 'yunzong'];
+    w123e.artsSlots = ['tuna', 'juling'];
+    var sm123 = SQ.Arts.setMain(w123e, 'juling');
+    var main123e = SQ.Arts.mainArt(w123e);
+    var sm123out = SQ.Arts.setMain(w123e, 'yunzong');            /* 已入门、不在槽 ⇒ 拒 */
+    var main123out = SQ.Arts.mainArt(w123e);
+    w123e.artsSlots = ['tuna'];                                   /* 点定的那部被移出槽 ⇒ 回落第 1 位 */
+    var main123f = SQ.Arts.mainArt(w123e);
+    var w123g = mkWs({ realm: 3 });
+    w123g.artsSlots = ['tuna'];
+    SQ.Arts.setMain(w123g, 'tuna');
+    var sm123dup = SQ.Arts.setMain(w123g, 'tuna');        /* 同值重复点 ⇒ same，不二次写档 */
+    var n123k = pack.normalize({ artsMain: 'juling' }).artsMain;
+    var n123bad = pack.normalize({ artsMain: 42 }).artsMain;
+    ok(123, '主修指向（引擎卷 §4.2 · GitHub issue #3）：未点定 = 槽第 1 位（旧档逐字不变）· 点定 = 跟随 ws.artsMain · ' +
+      '点定者被移出槽则回落第 1 位 · 满级顺延槽内 · 全空不报错 · setMain 拒槽外且不脏写 · artsMain 过 normalize',
       main123 === 'tuna' && lvAfter123[0] === 2 && lvAfter123[1] === 1 &&
       SQ.Arts.mainArt(w123b) === 'tuna' && w123b.artsLevels.juling === 3 &&
       w123b.artsLevels.tuna === D.ARTS_MAX_LV &&
       main123c === 'juling' &&
-      SQ.Arts.mainArt(w123d) === null && SQ.Arts.progressTarget(w123d, D.ARTS_MAX_LV) === null,
+      SQ.Arts.mainArt(w123d) === null && SQ.Arts.progressTarget(w123d, D.ARTS_MAX_LV) === null &&
+      sm123.ok === true && main123e === 'juling' &&
+      sm123out.ok === false && sm123out.reason === 'inslot' && main123out === 'juling' &&
+      main123f === 'tuna' && sm123dup.ok === true && sm123dup.same === true &&
+      n123k === 'juling' && n123bad === null,
       'main=' + main123 + ' lv=' + lvAfter123.join('/') + ' 满级顺延→juling=' + w123b.artsLevels.juling +
-      ' 首位=' + main123c + ' 全空=' + SQ.Arts.mainArt(w123d));
+      ' 首位=' + main123c + ' 全空=' + SQ.Arts.mainArt(w123d) +
+      ' ‖ (e) 点定=' + main123e + ' 槽外拒=' + sm123out.reason + ' 移出后回落=' + main123f +
+      ' 幂等=' + sm123dup.same + ' normalize=' + n123k + '/' + n123bad);
 
     /* #117 normalize：事件新字段 + seenOnce→seen 迁移 + drift 钳位 + profile 三字段 */
     var n117 = SQ.normalize({ v: SQ.V, profile: { name: '旧档', alignBias: 'weird' }, worlds: { xiuxian: {
@@ -2562,13 +2588,23 @@
     w141b.artsKnown = ['tuna']; w141b.artsSlots = ['tuna'];
     var m141b = SQ.Mods.collect(mkProf(), w141b, pack, D);
     SQ.Arts.tickPractice(w141b, pack, D, m141b, 3600, { log: noopLog() });
-    ok('141', '精通：主修快于副槽 · 满值顿悟清零重来 · 闭关易悟历练难悟 · 低阶快高阶慢',
+    /* issue #3：主修点在**第 2 格**时增速跟着第 2 格走（旧实现按 `i === 0` 分配 ⇒ 这一格必红，
+     * 也证明本条判据认的是「主修指向」而不是「槽序」）*/
+    var w141c = mkWs({ mode: 'seclude' });
+    w141c.artsKnown = ['tuna', 'juling']; w141c.artsSlots = ['tuna', 'juling'];
+    SQ.Arts.setMain(w141c, 'juling');
+    pack.recalcDerived(w141c, mkProf());
+    var m141c = SQ.Mods.collect(mkProf(), w141c, pack, D);
+    SQ.Arts.tickPractice(w141c, pack, D, m141c, 3600, { log: noopLog() });
+    var c141 = w141c.artsPractice.juling === pMain && w141c.artsPractice.tuna === pSub;
+    ok('141', '精通：主修快于副槽（增速认主修指向，issue #3 起不认槽序）· 满值顿悟清零重来 · 闭关易悟历练难悟 · 低阶快高阶慢',
       Math.abs(pMain - 72) < 1e-6 && Math.abs(pSub - 28.8) < 1e-6 &&
       w141.artsLevels.tuna === 1 && w141.artsPractice.tuna < D.PRACTICE_MAX &&
-      Math.abs(w141b.artsPractice.tuna - 24) < 1e-6 && dec141,
+      Math.abs(w141b.artsPractice.tuna - 24) < 1e-6 && dec141 && c141,
       'main=' + pMain.toFixed(1) + ' sub=' + pSub.toFixed(1) +
       ' insight lv=' + w141.artsLevels.tuna + ' venture=' + w141b.artsPractice.tuna.toFixed(1) +
-      ' lvRate=' + lvRate0 + '>' + lvRate8);
+      ' lvRate=' + lvRate0 + '>' + lvRate8 +
+      ' ‖ 点定第2格: juling=' + w141c.artsPractice.juling.toFixed(1) + ' tuna=' + w141c.artsPractice.tuna.toFixed(1));
 
     /* #142 升级改耗修为（不入灵石账）· 品阶/等级成本递增 · Lv9 封顶 */
     var w142 = mkWs({ realm: 0, qi: 1e9, stones: 100 });

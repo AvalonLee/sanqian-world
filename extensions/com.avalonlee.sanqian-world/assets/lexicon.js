@@ -176,6 +176,10 @@
        **要重新接线必须先改值**，否则是把已作废的机制搬回屏上。 */
     'arts.reset': '待重修',
     'arts.main': '主修', 'arts.main.empty': '主修虚位',
+    /* 主修可点定（GitHub issue #3）：非主修的在槽功法逐格挂此按钮，不必再「全拆重装」 */
+    'arts.main.set': '设为主修',
+    'arts.main.ok': '已转修「{name}」，此后此功修持最快',
+    'arts.main.reject': '此功不在修习槽内，无从主修',
     /* 功法处置（道具处置打磨包）：已入门 → 散功、架上未入门 → 弃置 */
     'arts.salvage': '散功', 'arts.discard': '弃置',
     'arts.salvage.confirm': '确认{act}「{name}」？返还 {n} {cur}，此功法将从你的道途中抹去。',
@@ -433,7 +437,7 @@
     /* ── 批 2 · B4 功法页（双维分组 / 独占剪影 / 架上三态；**待重修横幅自第廿五批退役**，见本卷 `arts.reset` 上方注）── */
     'ui.arts.reset_hint': '渡劫功成，功法等级归零，持有与槽位保留——重修即恢复原有效果（等级为 0 的槽位挂「待重修」金标，练回即摘）',
     /* 法柱浮层（修行页四柱「法」：只读一览修习槽内功法） */
-    'arts.modal.title': '修习功法', 'arts.modal.sub': '已装备 {n}/{cap} · 第 1 位为主修',
+    'arts.modal.title': '修习功法', 'arts.modal.sub': '已装备 {n}/{cap} · 挂「主修」角标者修持最快（点格子上的「设为主修」自由指定）',
     'arts.group.tier': '品阶', 'arts.group.align': '阵营', 'arts.group.all': '全部',
     'arts.tierchar.huang': '黄', 'arts.tierchar.xuan': '玄', 'arts.tierchar.di': '地', 'arts.tierchar.tian': '天',
     'arts.sec.tier': '待修习架 · {g}字阶', 'arts.sec.align': '待修习架 · {g}',

@@ -83,6 +83,15 @@
         SQ.Arts.unslot(s.worlds[s.profile.worldId], id);
       });
     },
+    /* 设主修（GitHub issue #3）：玩家点定六槽中任一功法为主修；拒因由视图如实弹文案。
+     * 主修只改修习增速的指向，不动任何属性乘区 ⇒ 无需 recalcDerived。 */
+    setMainArt: async function (ref, id) {
+      var out = null;
+      await SQ.mutate(ref, function (s) {
+        out = SQ.Arts.setMain(s.worlds[s.profile.worldId], id);
+      });
+      return out;
+    },
     upgradeArt: function (ref, id) {
       return SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];

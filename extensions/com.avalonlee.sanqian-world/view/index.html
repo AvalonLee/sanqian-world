@@ -2194,13 +2194,14 @@
     for (var i = 0; i < d.ARTS_SLOTS; i++) {
       var id = w.artsSlots[i];
       if (!id) {
+        /* 「主修虚位」只在整页没有一个主修时说（issue #3 后第 1 格空着不代表没有主修）*/
         h += '<div class="lrow locked"><div class="nm">—</div><div class="meta">' +
-          esc(t(i === 0 ? 'arts.main.empty' : 'arts.empty')) + '</div></div>';
+          esc(t(i === 0 && !SQ.Arts.mainArt(w) ? 'arts.main.empty' : 'arts.empty')) + '</div></div>';
         continue;
       }
       var a = am[id];
       var lv = w.artsLevels[id] || 0;
-      var isMain = i === 0 && SQ.Arts.mainArt(w) === id;
+      var isMain = SQ.Arts.mainArt(w) === id;   /* issue #3：主修可由玩家点定，不再绑第 1 位 */
       h += '<div class="lrow cur">';
       h += '<div class="nm"><span class="align-sym align-' + a.alignment + '">' + esc(t('align.sym.' + a.alignment)) + '</span>' +
         esc(t('skill.' + id + '.name')) +
@@ -2828,11 +2829,12 @@
       esc(t('arts.shelf', { n: (w.shelf || []).length, cap: d.SHELF_CAP })) + '</span></div>';
     h += '<p class="hint" style="margin:0 0 8px">' + esc(t('arts.practice.hint')) + '</p>';
     h += '<div class="cards" style="grid-template-columns:repeat(3,1fr)">';
+    var mainId = SQ.Arts.mainArt(w);   /* issue #3：主修由玩家点定（ws.artsMain），未点定回落第 1 位 */
     for (var i = 0; i < d.ARTS_SLOTS; i++) {
       var id = w.artsSlots[i];
-      /* 主修 = 修习槽第 1 位（B4 · 引擎卷 §4.2）：角标 + 定位锚（法柱 chip 滚动到此） */
-      /* 槽序即语义：第 1 位 = 主修（引擎卷 §4.2）。data-slot = 槽序号，供替换态定位与走查取数。 */
-      var isMain = (i === 0 && id && SQ.Arts.mainArt(w) === id);
+      /* 角标 + 定位锚（法柱 chip 滚动到此）读 mainArt，与引擎修习增速指向同源。
+       * data-slot = 槽序号，供替换态定位与走查取数。 */
+      var isMain = !!id && id === mainId;
       if (id) {
         var a = am[id];
         var lvS = w.artsLevels[id] || 0;
@@ -2843,21 +2845,24 @@
              '<div class="tname">' + esc(t('skill.' + id + '.name')) + '</div>' +
              '<div class="teff">Lv' + lvS + '</div>' +
              '<div class="tdesc">' + esc(t('special.' + a.special.pool + '.name')) + '</div>' +
-             /* 精通迷你条（修行状态批）：主修（第 1 位）增速最高 */
+             /* 精通迷你条（修行状态批）：主修增速最高（issue #3 起看玩家点定的那一格） */
              '<div class="tpract"><span class="pbar"><i style="width:' +
                (lvS >= d.ARTS_MAX_LV ? 100 : prS).toFixed(0) + '%"></i></span><span class="hint">' +
                esc(lvS >= d.ARTS_MAX_LV ? t('arts.max') : t('arts.practice', { p: Math.floor(prS) })) + '</span></div>' +
              /* 满槽「原位替换」（批 2·B4 引擎支路 + 本批补渲染点）：抉择态下每格挂「替换」——
               * data-v = 待入槽功法、data-r = 被顶下的在槽功法，handler 走 Arts.slot 的 replaceId 分支。
               * 缺这一段 = 整条替换链不可达（引擎 + handler + 文案三件齐全、只无渲染点）：玩家只能
-              * 「卸下再装」，新功法落到队列**尾部**，「主修 = 修习槽第 1 位」（引擎卷 §4.2）语义被静默改掉。 */
+              * 「卸下再装」，新功法落到队列**尾部**，未点定主修的旧档会因此换人（issue #3 前的唯一语义）。 */
              (ui.slotPickFor ? '<div class="tacts-src"><button data-act="slotReplace" data-v="' +
                esc(ui.slotPickFor) + '" data-r="' + esc(id) + '">' + esc(t('arts.slotpick.replace')) +
                '</button></div>' : '') +
+             /* 设主修入口（issue #3）：非主修的在槽功法逐格给一颗按钮，玩家不必再「全拆重装」 */
+             (isMain ? '' : '<div class="tacts-src"><button data-act="setMainArt" data-v="' + esc(id) + '">' +
+               esc(t('arts.main.set')) + '</button></div>') +
              '</div>';
       } else {
-        h += '<div class="tcard"' + (i === 0 ? ' data-mainart="1"' : '') + '><div class="tdesc" style="text-align:center;padding:14px 0">' +
-             (i === 0 ? esc(t('arts.main.empty')) : esc(t('arts.empty'))) + '</div></div>';
+        h += '<div class="tcard"' + (i === 0 && !mainId ? ' data-mainart="1"' : '') + '><div class="tdesc" style="text-align:center;padding:14px 0">' +
+             (i === 0 && !mainId ? esc(t('arts.main.empty')) : esc(t('arts.empty'))) + '</div></div>';
       }
     }
     h += '</div>';
@@ -6668,6 +6673,15 @@
     if (act === 'artsGroup') { ui.artsGroup = v; ui.artsGroupVal = null; renderTab(); return; }
     if (act === 'artsGroupVal') { ui.artsGroupVal = ui.artsGroupVal === v ? null : v; renderTab(); return; }
     if (act === 'unslotArt') { await SQ.Actions.unslotArt(state, v); renderAll(); return; }
+    /* 设主修（GitHub issue #3）：六槽任一都可选，选中即换人；被引擎拒（不在槽内）给如实文案 */
+    if (act === 'setMainArt') {
+      var rvM = await SQ.Actions.setMainArt(state, v);
+      if (rvM && rvM.ok && !rvM.same) {
+        toast(t('arts.main.ok', { name: t('skill.' + rvM.id + '.name') }));
+        renderAll();
+      } else if (!rvM || !rvM.ok) toast(t('arts.main.reject'));
+      return;
+    }
     if (act === 'upgradeArt') { await SQ.Actions.upgradeArt(state, v); renderAll(); return; }
     if (act === 'shopTab') { ui.shopBlack = v === '1'; renderTab(); return; }
     if (act === 'refreshShop') {

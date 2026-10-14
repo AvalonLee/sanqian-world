@@ -189,6 +189,38 @@ async function buildSave() {
   T(arts.selfHead, 'A4b 自悟节标题（自行领悟）在位');
   T(arts.cands, 'A4c 自悟节含候选/说明文案');
 
+  /* ── A4d 主修可点定（GitHub issue #3）：点第 2 格的「设为主修」⇒ 角标与概览条同时换人 ──
+   * 旧实现「主修 = 第 1 位」下这颗按钮根本不存在，故本条也是「设为主修」入口的在位判据。 */
+  const mainPick = await page.evaluate(() => {
+    const cards = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .cards > .tcard'));
+    const btns = document.querySelectorAll('#tab-arts [data-act="setMainArt"]');
+    return {
+      btnN: btns.length,
+      mainIdxBefore: cards.findIndex((c) => !!c.querySelector('.maincorner'))
+    };
+  });
+  if (mainPick.btnN > 0) await page.click('#tab-arts [data-act="setMainArt"]');
+  await page.waitForTimeout(500);
+  const mainAfter = await page.evaluate(() => {
+    const cards = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .cards > .tcard'));
+    const ov = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .laware button .v'));
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const w = s.worlds[s.profile.worldId];
+    return {
+      mainIdx: cards.findIndex((c) => !!c.querySelector('.maincorner')),
+      markerIdx: cards.findIndex((c) => c.getAttribute('data-mainart') === '1'),
+      mainName: ((cards[mainIdx === -1 ? 0 : mainIdx].querySelector('.tname') || {}).textContent || '').trim(),
+      ovMain: ov.length ? (ov[0].textContent || '').trim() : '',
+      artsMain: w.artsMain
+    };
+  });
+  T(mainPick.btnN === 1 && mainPick.mainIdxBefore === 0 && mainAfter.mainIdx === 1 &&
+    mainAfter.markerIdx === 1 && mainAfter.artsMain === 'juling' &&
+    mainAfter.ovMain.indexOf(mainAfter.mainName) >= 0,
+    'A4d 主修点定（issue #3）：第 2 格挂按钮（在槽 2 部 − 主修 1 部）· 点后角标与 data-mainart 同移到第 2 格 · 概览条「主修」格随之改名 · ws.artsMain 落盘',
+    'btn=' + mainPick.btnN + ' idx ' + mainPick.mainIdxBefore + '→' + mainAfter.mainIdx +
+    ' marker=' + mainAfter.markerIdx + ' 落盘=' + mainAfter.artsMain + ' 概览=' + mainAfter.ovMain);
+
   /* ── N6 点法器标签：只渲染法器段 + 滚动归零（先滚深再切，验「切段等价换页」）── */
   await page.evaluate(() => { const b = document.querySelector('.tabbody'); b.scrollTop = 600; });
   await page.waitForTimeout(120);
