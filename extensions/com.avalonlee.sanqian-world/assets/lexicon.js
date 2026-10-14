@@ -311,7 +311,7 @@
     /* 奇遇页（F2：叙事流 + 图鉴 + 系统日志弹层）——tab.event 由世界分卷拥有（词族契约） */
     'event.page.progress': '图鉴 {n}/{total}',
     'event.feed.title': '近来奇遇', 'event.feed.empty': '尚无奇遇记录——时辰到了，缘分自来。',
-    'event.feed.more': '展开全部 {n} 条', 'event.feed.less': '收起',
+    'event.feed.more': '展开最近 {n} 条', 'event.feed.less': '收起',
     'event.codex.title': '奇遇图鉴', 'event.codex.unknown': '？？？', 'event.codex.unseen': '未遇',
     'event.codex.sec': '{tier} {n}/{total}',
     'event.badge.special': '特', 'event.badge.once': '缘', 'event.badge.exGear': '宝', 'event.badge.exArt': '法',
