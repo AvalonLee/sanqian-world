@@ -20,6 +20,7 @@
  *   B9 交付镜像一致性（源侧 ↔ extensions/com.avalonlee.sanqian-world 七项逐字节零差异；2026-10-09 版本控制纳管批立）
  * D 组 · 账本与装载（2026-10-14 结构整治批B 立）：
  *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 全等 ⇔ smoke.html 保序子集 ⇔ assets 无未挂载件）
+ *   D3 世界专属全局别名封闭（通用层与视图直读 SQ.XDATA 必须挂册，例外失效同判；2026-10-14 批C 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
  */
@@ -1052,6 +1053,45 @@ const SQ = sandbox.window.SQ;
   js.forEach((f) => { if (view.indexOf(f) < 0) bad.push('assets 件未挂进 view/index.html：' + f); });
   ok('D2', '加载顺序单源（view 事实源 ⇔ 引用件存在 ⇔ module 全等 ⇔ smoke.html 保序子集 ⇔ assets 无未挂载件）',
     bad.length === 0, '序列 ' + view.length + ' 项 · assets ' + js.length + ' 件' + (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 四判全合'));
+})();
+
+/* ── D3 世界专属全局别名封闭（2026-10-14 结构整治批C · 方案 §六 D3）
+ * 立因：`assets/worlds/xiuxian/data.js` 把整张修仙表同时挂成全局 `SQ.XDATA`，通用层与视图直接吃它
+ *   = 世界包契约（数据经 pack 注入）旁路。第二个世界装上后这些位置仍会读修仙的数，且零报错。
+ * 口径：`assets/worlds/**` 内合法（世界包读自己的表）；其余各处的每一处都必须挂在**在册例外**上，
+ *   例外同时记「命中数」——**例外失效（表里记了、实际零命中）同样算红**（A9/A10 的同型教训：
+ *   白名单不复核就会腐烂）。视图与卡片内联脚本一并扫（批C 收口时视图 8 处已改回 pack 取数）。 */
+(function () {
+  /* 例外计数 = **出现次数**（一行两处算两处），不是行数 */
+  const EXC = {
+    'assets/core.js': 4,            /* BioCaps.keep/store 两行，每行各读两次 ⇒ 4 处；meta 层数值正典住在世界表内，随 N35 归位 */
+    'assets/systems/legacy.js': 1,  /* legacyCap(k)：metaNormalize 无 D 形参（卷注 shortcut 已记） */
+    'assets/systems/tiandao.js': 1  /* chronPush 上界：天道本属修仙专属，目录名实不符同属 N35 */
+  };
+  const seen = {}, bad = [];
+  const count = (code) => (code.match(/SQ\.XDATA/g) || []).length;
+  const note = (rel, n) => { if (!n) return; (seen[rel] = seen[rel] || 0, seen[rel] += n); };
+  jsFiles.forEach((f) => {
+    const rel = relOf(f);
+    if (rel.startsWith('assets/worlds/')) return;
+    let code;
+    try { code = stripComments(fs.readFileSync(f, 'utf8')); } catch (e) { return; }
+    note(rel, count(code));
+  });
+  htmlFiles.forEach((f) => {
+    const rel = relOf(f);
+    if (!/^(view|module)\/index\.html$/.test(rel)) return;
+    inlineScripts(f).forEach((b) => note(rel, count(stripComments(b.code))));
+  });
+  Object.keys(seen).forEach((rel) => {
+    if (EXC[rel] == null) bad.push(rel + ' 直读 SQ.XDATA ×' + seen[rel]);
+    else if (EXC[rel] !== seen[rel]) bad.push(rel + ' 例外登记 ' + EXC[rel] + ' 处、实际 ' + seen[rel] + ' 处');
+  });
+  Object.keys(EXC).forEach((rel) => { if (!seen[rel]) bad.push(rel + ' 例外失效（表里记 ' + EXC[rel] + ' 处、实际零命中 ⇒ 删表项）'); });
+  const total = Object.keys(seen).reduce((n, k) => n + seen[k], 0);
+  ok('D3', '世界专属全局别名封闭（通用层与视图的 SQ.XDATA 直读必须挂册 · 例外失效同判）',
+    bad.length === 0, '通用层+视图命中 ' + total + ' 处 ‖ 在册例外 ' + Object.keys(EXC).length + ' 件 ' +
+    (bad.length ? '‖ ' + bad.slice(0, 8).join(' ‖ ') : '‖ 逐件数合'));
 })();
 
 /* ── 输出 ── */

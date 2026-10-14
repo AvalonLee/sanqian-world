@@ -56,7 +56,11 @@ function compute() {
   v.ext_version = man && man.version ? man.version : null;
   if (!dod) { v.dod_missing = true; return v; }
   const it = dod.items || {};
-  const get = (k) => (it[k] && it[k].asserts ? it[k].asserts : null);
+  /* 红件的末行常常自带一个残缺读数（例如 AUDIT_FAILED 只剩 20/22）——那种数不许进账本，
+   * 更不许被 --fix 刷进文档：一律当「未跑」，等它跑绿再说。 */
+  const live = {};
+  Object.keys(it).forEach((k) => { if (it[k] && it[k].ok) live[k] = it[k]; });
+  const get = (k) => (live[k] && live[k].asserts ? live[k].asserts : null);
   v.dod_items = dod.lastRun ? dod.lastRun.count : null;
   v.dod_asserts = dod.lastRun ? dod.lastRun.asserts : null;
   v.dod_secs = dod.lastRun ? dod.lastRun.secs : null;
@@ -64,13 +68,13 @@ function compute() {
   v.audit_gates = get('audit');
   v.versions_rows = null;
   let probe = 0, probeRun = false;
-  Object.keys(it).forEach((k) => { if (/^probe-/.test(k)) { probe += it[k].asserts || 0; probeRun = true; } });
+  Object.keys(live).forEach((k) => { if (/^probe-/.test(k)) { probe += live[k].asserts || 0; probeRun = true; } });
   v.probe_asserts = probeRun ? probe : null;
   const uiSet = uiFiles().map((f) => f.replace(/^verify-ui-|\.cjs$/g, ''));
   v.ui_files = uiSet.length;
-  const uiSum = uiSet.reduce((n, k) => n + ((it[k] && it[k].asserts) || 0), 0);
-  v.ui_asserts = uiSet.some((k) => it[k]) ? uiSum : null;
-  v.sim_playthrough = it['sim-playthrough'] ? true : false;
+  const uiSum = uiSet.reduce((n, k) => n + ((live[k] && live[k].asserts) || 0), 0);
+  v.ui_asserts = uiSet.some((k) => live[k]) ? uiSum : null;
+  v.sim_playthrough = live['sim-playthrough'] ? true : false;
   try { Object.assign(v, poolCounts()); } catch (e) { v.pool_error = e.message.slice(0, 80); }
   return v;
 }

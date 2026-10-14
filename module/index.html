@@ -324,7 +324,7 @@
 
     /* 洞府 flavour：驻留洞府名 + 灵脉倍率 */
     var cv = SQ.Cave.current(ws, pack);
-    var mult = SQ.Cave.multOf(ws, pack, SQ.XDATA, SQ.Mods.collect(p, ws, pack, SQ.XDATA));
+    var mult = SQ.Cave.multOf(ws, pack, pack.data, SQ.Mods.collect(p, ws, pack, pack.data));
     set('c-cave-t', SQ.t('cave.system', null, wid) + ' ' + SQ.t('cave.' + cv.id + '.name', null, wid));
     set('c-cave-m', '×' + mult.toFixed(2));
   }

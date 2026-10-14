@@ -1658,7 +1658,7 @@
   function renderLegacyGifts() {
     var meta = state.meta || {};
     var spent = meta.spent || {};
-    var d = SQ.XDATA;
+    var d = D();   /* 批C：世界表经 pack 取数，不吃世界专属全局（D3 射程） */
     draft.legacy = draft.legacy || { startRealm: 0, talents: [], bond: null };
     var has = { r1: spent['shop.startRealm1'] != null, r2: spent['shop.startRealm2'] != null, r3: spent['shop.startRealm3'] != null };
     var ownedT = SQ.Legacy ? SQ.Legacy.ownedTalents(meta, d) : [];
@@ -1730,11 +1730,11 @@
         if (lg.bond && s.meta.unlocks.bond) {
           /* 好感播种与 heirBond 判定源都由引擎唯一写口 grantHeir 落在成功分支里
              （耦合缺陷收口批 2026-10-10 引擎卷 §3.2 收 bonds 直写 + N23① 收口批收 heirBond 无条件赋值） */
-          SQ.Bonds.grantHeir(nws, SQ.Worlds[w].pack, SQ.XDATA, lg.bond, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
+          SQ.Bonds.grantHeir(nws, SQ.Worlds[w].pack, SQ.Worlds[w].pack.data, lg.bond, SQ.Worlds[w].pack.data.LEGACY.BOND_HEIR_BASE);
         }
       }
       /* 同代天骄创角生成（天骄卷 §二：默认 2 / 解锁 4 + 跨世宿敌带记忆转世） */
-      if (SQ.Prodigy) SQ.Prodigy.rollForNewLife(nws, SQ.Worlds[w].pack, SQ.XDATA, s.meta, Date.now());
+      if (SQ.Prodigy) SQ.Prodigy.rollForNewLife(nws, SQ.Worlds[w].pack, SQ.Worlds[w].pack.data, s.meta, Date.now());
     });
     draft.legacy = null;
     enterMain();
@@ -4656,9 +4656,9 @@
     rk.textContent = t('karma.rank.' + rankId);
     $('m-stones').textContent = t('resource.currency') + ' ' + SQ.fmt(w.stones);
     /* 第三行 = 战力 + 修为（走查 v2.7 §1：修为以「万」为单位，SQ.fmt 缩放） */
-    var m3 = SQ.Mods.collect(state.profile || { talents: [] }, w, p, SQ.XDATA);
-    $('m-sub').textContent = t('resource.power') + ' ' + SQ.fmt(SQ.Mods.powerOf(w, p, SQ.XDATA, m3)) +
-      ' · ' + t('resource.primary') + ' ' + SQ.fmt(w.qi) + ' / ' + SQ.fmt(SQ.Idle.capOf(w, p, SQ.XDATA, m3));
+    var m3 = SQ.Mods.collect(state.profile || { talents: [] }, w, p, p.data);
+    $('m-sub').textContent = t('resource.power') + ' ' + SQ.fmt(SQ.Mods.powerOf(w, p, p.data, m3)) +
+      ' · ' + t('resource.primary') + ' ' + SQ.fmt(w.qi) + ' / ' + SQ.fmt(SQ.Idle.capOf(w, p, p.data, m3));
   }
 
   function renderTab() {
@@ -6925,13 +6925,13 @@
     if (act === 'lgTalent') {
       draft.legacy = draft.legacy || { startRealm: 0, talents: [], bond: null };
       var arrT = draft.legacy.talents;
-      var ownedL = SQ.Legacy.ownedTalents(state.meta, SQ.XDATA);
+      var ownedL = SQ.Legacy.ownedTalents(state.meta, D());
       var hitL = null;
       ownedL.forEach(function (x) { if (x.id === v) hitL = x; });
       var ixL = -1;
       arrT.forEach(function (x, i) { if (x.id === v) ixL = i; });
       if (ixL >= 0) arrT.splice(ixL, 1);
-      else if (hitL && arrT.length < (SQ.XDATA.LEGACY.LEGACY_TALENT_SLOTS || 2)) arrT.push(hitL);
+      else if (hitL && arrT.length < (D().LEGACY.LEGACY_TALENT_SLOTS || 2)) arrT.push(hitL);
       renderLegacyGifts();
       return;
     }
