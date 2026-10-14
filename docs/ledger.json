@@ -1,0 +1,136 @@
+{
+ "generated_by": ".tests/gen-ledger.cjs",
+ "at": "2026-10-14T03:14:55.703Z",
+ "values": {
+  "ext_version": "0.4.1",
+  "dod_items": 45,
+  "dod_asserts": 1138,
+  "dod_secs": 1086,
+  "smoke": 300,
+  "audit_gates": 22,
+  "versions_rows": null,
+  "probe_asserts": 245,
+  "ui_files": 26,
+  "ui_asserts": 571,
+  "sim_playthrough": true,
+  "arts": 70,
+  "zones": 10,
+  "realms": 10,
+  "companions": 58,
+  "caves": 13,
+  "factions_fixed": 16,
+  "achv": 60,
+  "mats": 30,
+  "recipes": 11,
+  "blueprints": 9,
+  "worlds": 6,
+  "live_worlds": 6,
+  "name_pool": "9 × 7 × 5",
+  "lex_keys": 4677
+ },
+ "segments": [
+  {
+   "file": "docs/FACTS.md",
+   "name": "facts"
+  },
+  {
+   "file": "README.md",
+   "name": "readme"
+  },
+  {
+   "file": "DESIGN.md",
+   "name": "design"
+  },
+  {
+   "file": "docs/三千世界-工程规范与验收计划.md",
+   "name": "eng-spec"
+  },
+  {
+   "file": "docs/三千世界-项目设计文档.md",
+   "name": "main-design"
+  }
+ ],
+ "attrib": {
+  "smoke": {
+   "src": ".tests/smoke.js（300 案顺序共享沙箱态，不可单跑）",
+   "touches": [
+    "assets/core.js",
+    "assets/systems/**",
+    "assets/worlds/xiuxian/**"
+   ],
+   "repro": "node .tests/run-smoke.cjs"
+  },
+  "audit": {
+   "src": ".tests/audit.cjs（A/B/C 各组静态关）",
+   "touches": [
+    "view/index.html",
+    "module/index.html",
+    "assets/**",
+    "extensions/com.avalonlee.sanqian-world/**（B9 镜像）"
+   ],
+   "repro": "node .tests/audit.cjs"
+  },
+  "versions-check": {
+   "src": "各卷卷头 = 事实源，docs/VERSIONS.md = 视图",
+   "touches": [
+    "docs/*.md 卷头",
+    "docs/VERSIONS.md"
+   ],
+   "repro": "node .tests/versions-check.cjs（先 --fix 再看）"
+  },
+  "sim-pacing": {
+   "src": ".tests/sim-pacing.cjs（画像 × 口径矩阵）",
+   "touches": [
+    "assets/systems/idle.js",
+    "assets/systems/realm.js",
+    "assets/worlds/xiuxian/data.js"
+   ],
+   "repro": "node .tests/sim-pacing.cjs"
+  },
+  "sim-event-economy": {
+   "src": ".tests/sim-event-economy.cjs（固定种子 20261008）",
+   "touches": [
+    "assets/systems/events.js",
+    "assets/worlds/xiuxian/events.js",
+    "D.EVENT_* 权重与冷却"
+   ],
+   "repro": "node .tests/sim-event-economy.cjs 2 20261008"
+  },
+  "probe-savecodec": {
+   "src": "core.js 编解码与压缩阶梯 ⓪~⑤",
+   "touches": [
+    "assets/core.js",
+    "docs/三千世界-工程规范与验收计划.md §3.6"
+   ],
+   "repro": "node .tests/probe-savecodec.cjs"
+  },
+  "probe-savegrowth": {
+   "src": "主档平坦 / 侧档增长（600 次真奇遇结算）",
+   "touches": [
+    "assets/core.js",
+    "stripSideFlows",
+    "侧档 LOG_KEY"
+   ],
+   "repro": "node .tests/probe-savegrowth.cjs"
+  },
+  "probe-realsave": {
+   "src": "玩家真档 读→存→读 零丢失",
+   "touches": [
+    ".tests/storage-read.cjs 候选路径",
+    "assets/core.js"
+   ],
+   "repro": "node .tests/probe-realsave.cjs"
+  },
+  "gen-ledger": {
+   "src": "docs/ledger.json + 各文件哨兵段",
+   "touches": [
+    "docs/FACTS.md",
+    "README.md",
+    "DESIGN.md",
+    "docs/三千世界-工程规范与验收计划.md",
+    "docs/三千世界-项目设计文档.md"
+   ],
+   "repro": "node .tests/gen-ledger.cjs --fix 后复跑"
+  }
+ }
+}

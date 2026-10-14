@@ -18,6 +18,10 @@
  *   B6 外链行为（#88，零 window.open / target=_blank）
  *   B7 壁纸透底态规则（#86 静态半区）  B8 桥容错（#89，单一桥模块 + try/catch + 失败出口）
  *   B9 交付镜像一致性（源侧 ↔ extensions/com.avalonlee.sanqian-world 七项逐字节零差异；2026-10-09 版本控制纳管批立）
+ * D 组 · 账本与装载（2026-10-14 结构整治批B 立）：
+ *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 全等 ⇔ smoke.html 保序子集 ⇔ assets 无未挂载件）
+ *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
+ *   反证常驻件 = `.tests/ledger-selftest.cjs`。
  */
 'use strict';
 const fs = require('fs');
@@ -955,7 +959,9 @@ const SQ = sandbox.window.SQ;
   var EXT = 'com.avalonlee.sanqian-world';
   var DIRS = ['assets', 'view', 'module', '.tests'];
   var FILES = ['manifest.json', 'icon.svg', 'DESIGN.md'];
-  var SKIP = { '.storage.json': 1 };
+  var SKIP = { '.storage.json': 1, 'dod-last.json': 1 };
+  /* dod-last.json = run-dod 的逐件读数落盘（2026-10-14 批B · gen-ledger 的取数口），
+     与实时存档同类：运行时产物、已 gitignore，进比对就永远红。 */
   /* 两侧都可辨才比：默认「源侧 = 当前根 / 镜像 = extensions/<EXT>」；
      若从镜像根起跑（../.. 是源码树根），反过来指 —— 同一条判据，两种起跑位置都成立。 */
   function isRoot(d) { return fs.existsSync(d + '/assets') && fs.existsSync(d + '/manifest.json'); }
@@ -1007,6 +1013,45 @@ const SQ = sandbox.window.SQ;
   } catch (e) {
     ok('B9', '交付镜像一致性（七项逐字节零差异）', false, '比对异常：' + (e && e.message));
   }
+})();
+
+/* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）
+ * 射程说明（批A 自发现的盲区，写在这里免得下次又按错口径造反证）：`view/index.html` 是装载顺序的
+ * **唯一事实源**，所以「HTML 少挂一个标签」本身是有意卸载、不是漂移，本关绝不判 HTML 自比。判这四件
+ * 真会静默失效的：① HTML 引用的件不存在（改名 / 漏提交 ⇒ 真机 404、沙箱装载缺件）；
+ * ② `module/index.html` 的序列与 view 不同（卡片与主界面加载两套引擎顺序 = 双份事实源复活）；
+ * ③ `.tests/smoke.html` 的 assets 序列必须是 view 的**保序子集**（无头页与真机不同序就没有对照价值）；
+ * ④ `assets/**.js` 存在却没挂进 view（新写一个系统忘了挂上 ⇒ 引擎里有、屏上没有，零报错）。 */
+(function () {
+  const srcs = (rel) => {
+    let t;
+    try { t = fs.readFileSync(path.join(ROOT, rel), 'utf8'); } catch (e) { return null; }
+    return [...t.matchAll(/<script[^>]*\bsrc="([^"]+)"[^>]*>/g)]
+      .map((m) => m[1].replace(/^\.\.\//, '').replace(/^\.\//, ''));
+  };
+  const view = srcs('view/index.html');
+  if (!view) { ok('D2', '加载顺序单源（view 为事实源 ⇔ 四判）', false, 'view/index.html 读不到'); return; }
+  const bad = [];
+  view.forEach((f) => { if (!fs.existsSync(path.join(ROOT, f))) bad.push('引用不存在的件 ' + f); });
+  const mod = srcs('module/index.html');
+  if (!mod) bad.push('module/index.html 读不到');
+  else if (JSON.stringify(mod) !== JSON.stringify(view)) bad.push('module 序列与 view 不同（' + mod.length + ' vs ' + view.length + '）');
+  const smoke = srcs('.tests/smoke.html');
+  if (smoke) {
+    const only = smoke.filter((f) => f.startsWith('assets/'));
+    let i = 0;
+    only.forEach((f) => { i = view.indexOf(f, i); if (i < 0) bad.push('smoke.html 有件不在 view 序内/乱序：' + f); else i++; });
+  }
+  const js = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p); else if (e.name.endsWith('.js')) js.push(relOf(p));
+    }
+  })(path.join(ROOT, 'assets'));
+  js.forEach((f) => { if (view.indexOf(f) < 0) bad.push('assets 件未挂进 view/index.html：' + f); });
+  ok('D2', '加载顺序单源（view 事实源 ⇔ 引用件存在 ⇔ module 全等 ⇔ smoke.html 保序子集 ⇔ assets 无未挂载件）',
+    bad.length === 0, '序列 ' + view.length + ' 项 · assets ' + js.length + ' 件' + (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 四判全合'));
 })();
 
 /* ── 输出 ── */

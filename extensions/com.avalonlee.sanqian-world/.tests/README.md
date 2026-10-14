@@ -10,9 +10,9 @@
 **一条命令版（2026-10-08 文档效率批新增，推荐收口用）**：
 
 ```powershell
-node .tests/run-dod.cjs          # 快速预检：无浏览器依赖 14 件 + 版本总账对账
-node .tests/run-dod.cjs --ui     # 追加界面走查 25 篇（逐篇末行由脚本求和，不手算）
-node .tests/run-dod.cjs --sim    # 追加 sim-playthrough 全量
+node .tests/run-dod.cjs          # 快速预检：无浏览器依赖 18 件（实测累计墙钟 ~19s，**不是文档旧写的「2~4 分钟」**）
+node .tests/run-dod.cjs --ui     # 追加界面走查 26 篇（逐篇末行由脚本求和，不手算；每篇各起一次 Edge，约 8~10 分钟）
+node .tests/run-dod.cjs --sim    # 追加 sim-playthrough 全量（约 10~20 分钟，收口必跑）
 node .tests/run-dod.cjs --full   # 两者都要 = 收口终检
 ```
 
@@ -39,10 +39,13 @@ node .tests/probe-realsave.cjs
 node .tests/probe-eventrepeat.cjs
 node .tests/probe-savecap.cjs
 node .tests/versions-check.cjs
+node .tests/gen-ledger.cjs
+node .tests/ledger-selftest.cjs
 ```
 
 判据：出现 `SMOKE_ALL_GREEN n/n`、`AUDIT_ALL_GREEN`、`PACING_ALL_GREEN`、`EVENT_ECON_WATCH`（机制断言 10/10）、`PLAYTHROUGH_ALL_GREEN`、`JOIN_ALL_GREEN` / `SECTWIRE_ALL_GREEN` / `PROBE_HEIRCHOICE_ALL_GREEN` / `LAWMERGE_ALL_GREEN` / `ACHVREACH_ALL_GREEN` / `NORMROUND_ALL_GREEN` / `SAVECODEC_ALL_GREEN` / `SAVEGROWTH_ALL_GREEN` / `REALSAVE_ALL_GREEN` / `EVENTREPEAT_ALL_GREEN`、`PROBE_SAVECAP_DONE`、`VERSIONS_IN_SYNC`（漂移时末行 `VERSIONS_DRIFT n` ⇒ 跑 `--fix` 后复跑）即为绿灯。
 
+> ⚠️ **2026-10-14 结构整治批B 再补两件 + 一条口径变更**：① 🆕 `gen-ledger.cjs`（**D1 账本件**）——`docs/ledger.json` 与五处 `SQ:LEDGER:BEGIN/END` 哨兵段的对账件，**只判漂、不代跑测试**（取数读 `.tests/dod-last.json`，该文件由 run-dod **每件跑完即写**，所以它判的是本轮而不是上一轮），`--fix` 才写文档；判据 = 末行 `LEDGER_IN_SYNC segments=5` / `LEDGER_DRIFT n`（漂 ⇒ 退码 1）。**凡探针末行已打印的读数（冒烟 / 审计关数 / 探针 / 走查 / 词表键 / 扩展版本 / 池规模），文档一律不再手抄**——要么进哨兵段，要么把数值改成指针。② 🆕 `ledger-selftest.cjs`（**D1 常驻反证 8 判**）：造漂必检出 / 干净必绿 / 缺段与断段必报 missing / **段外历史注逐字存活**，全程内存操作不脏工作树。③ 🆕 审计 **D2（第 22 关）= 加载顺序单源四判**，与 `.tests/sandbox.cjs` 的 ORDER 改读 `view/index.html`（五份抄本 → 一份）同批落；⚠️ **勘正一条**：「HTML 删一行 `<script>` 标签」**不构成漂移**（HTML 就是源，少挂是有意卸载），别拿它当反证——本批自己先踩过这个假反证。④ `.tests/dod-last.json` 是运行时产物，**已 gitignore 并加进 B9 的 SKIP**（与 `.storage.json` 同类，进比对就永远红）。⑤ **失败归因**：run-dod 红件会按 `docs/ledger.json` 的 `attrib` 打印「事实源 + 同动点 + 最小复现命令」，映射的正典在 `gen-ledger.cjs` 的 `ATTRIB` 表——**改了判据面就顺手改那张表**，否则归因指引会说谎。
 > ⚠️ **2026-10-08 存档瘦身批又补两件**：① `probe-savecodec.cjs`（第八路常驻探针，17 断言）守落盘无损压缩的**往返无损 + 阶梯保险未失修 + 降级不故障 + 读不动必须显式报错**；② `versions-check.cjs` 把 `docs/VERSIONS.md` 版本总账与**各卷卷头**自动对账（立因：本批实测总账表格整片滞后于卷头，而散文追记里却写着刚升的版本 = 同一文件内账实自相矛盾，**能自动对的账不该靠手抄**）。`storage-read.cjs` 是离线读平台 `.storage.json` 的调查件辅助（`probe-selflearn` / `probe-tdmemo` 用），**不作任何容量或无损判据**——那些一律走 `core.js` 的编解码。
 > ⚠️ **2026-10-09 存档治理批再补四件**：① 🆕 `probe-savegrowth.cjs`（**第九路**常驻探针，27 断言 · 判据按 ≥400 轮标定 · 同种子双跑逐字节相同）——它把「单文件越玩越大」量成曲线：用生产 writer 连跑 600 次真奇遇结算，断言**主档字节平坦**而展示流增长只出现在侧档；含**反向验证**（摘掉 `stripSideFlows` 即触发全阶梯）与**旧档迁移闭环**（feed 仍在主档的旧档 → 首读沿用 → 存一次自动迁入 → 再读一条不丢）。② **走查件读展示流的红线变了**：`ws.log` 与 `ws.eventHistory.feed` 落盘时都不在主档里，页内 `localStorage.getItem('sanqian-state-v1')` 取不到它们——要读叙事流须取侧档 `sanqian-logs-v1` 的 `feed.<wid>`（`verify-ui-auto.cjs` 两处判据同批改读，判据本体不变）；离线读件请用 `.tests/storage-read.cjs` 新加的 `readFlows()`（它按「侧档优先、缺该族回落主档遗留」的与 core.js 同口径处理，别自己拼）。③ 🆕 `probe-realsave.cjs`（**第十路**，10 断言）以**玩家真实档**为输入做读→存→读零丢失取证（本批的侧档签名缺陷即由此类「真档口径」暴露）；④ **压缩阶梯就地级 ⓪~⑤ 已纯函数化**，所以「落盘被裁」与「内存态被改」从此可分判——新增容量类判据请**两侧都核**（只比内存态会把摧毁性缺陷读成绿灯，#258 就是先例）。
 >

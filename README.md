@@ -2,11 +2,15 @@
 
 修仙人生模拟放置游戏，以 **x-hub / VibeX 扩展**形态交付：起名 → 择界 → 抽天赋 → 挂机修炼 → 渡劫证道，一世终了可兵解转世带着「遗泽」再来。**当前可玩的是一整局修仙人生**：十境界 × 十秘境 + 洞天福地、功法与法器 / 法宝（含融合与器灵）、炼丹炼器、坊市 / 黑市 / 神秘商人、势力 16 处 + 宗门 + 同代天骄、道友（拜访 / 赠丹 / 护法 / 道侣）、奇遇与江湖传闻、天道问天与天象、成就九面图鉴与人生传记、飞升大劫与遗泽商店；天赋也不再一局定死——一世之内可洗髓换 3 枚。**世界名册 = 6 张卡（1 界可投生 + 5 界灰显待开启）**，唯一事实源是 `assets/worlds/registry.js`。零 CDN、零打包器、零框架——全部代码是**经典 `<script>` 脚本**，随扩展包一起走。
 
+<!-- SQ:LEDGER:BEGIN readme 现行读数由 .tests/gen-ledger.cjs 生成，手改即漂；段外不参与覆盖 -->
+- **现行读数**（本行由 `.tests/gen-ledger.cjs` 生成）：扩展版本 `0.4.1` · 冒烟 300 · 审计 22 关 · 常驻探针 245 断言 · 界面走查 26 篇 / 571 断言 · 词表键 4677 · 世界名册 6 界（可见 6）。缺读数 = 「未跑」，不当 0 计。
+<!-- SQ:LEDGER:END -->
+
 ## 一、交付物是什么
 
 | 件 | 作用 |
 |---|---|
-| `manifest.json` | 扩展清单：`id: com.avalonlee.sanqian-world`、`author: avalonlee`（市场卡片与详情页展示的署名）、`version: 0.4.1`（第廿三批随批递增）（平台扩展版本，与 `docs/VERSIONS.md` 的文档版本号互不相干）、`surfaces: module/view/window/drawer`、`permissions: []` |
+| `manifest.json` | 扩展清单：`id: com.avalonlee.sanqian-world`、`author: avalonlee`（市场卡片与详情页展示的署名）、`version`（**现行值见本文件顶部账本段**，唯一事实源 = `manifest.json`；本行不再抄数值）（平台扩展版本，与 `docs/VERSIONS.md` 的文档版本号互不相干）、`surfaces: module/view/window/drawer`、`permissions: []` |
 | `view/index.html` | 主入口（view / window / drawer 三形态共用）：51 个 `<script src="../assets/…">` **按顺序加载**，无 `import` / `export` |
 | `module/index.html` | 工作台卡片（同一引擎的紧凑壳），同样 51 个顺序脚本 |
 | `assets/**` | 引擎与数据，共 51 个 `.js`：`core.js`（存档 / 压缩阶梯 / 世界注册）+ `systems/`（战斗 / 挂机 / 炼丹 / 宗门…）+ `worlds/xiuxian/`（修仙世界包：词表 / 数据 / 事件）+ `lexicon/` + `talents/` + `events/` |

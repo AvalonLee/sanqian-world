@@ -28,6 +28,9 @@ dist-ssr
 # （镜像目录 extensions/** 里的同名件同样排除）
 .storage.json
 
+# DoD 逐件读数落盘（2026-10-14 结构整治批B）：运行时产物，现行读数以 docs/ledger.json 与各文件哨兵段为准
+.tests/dod-last.json
+
 # 快照解包目录与一次性补丁/调查脚本（过程件，用完即弃；有复用价值的收进 .tests/）
 restore-*/
 sq-wip-*
