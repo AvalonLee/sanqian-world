@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 游玩入口（不是问题）
+    url: https://github.com/AvalonLee/sanqian-world#readme
+    about: 想直接玩：在 x-hub 扩展中心的市场搜「三千世界」安装即可，不需要本仓库任何文件
+  - name: 商业授权与合作
+    url: https://github.com/AvalonLee/sanqian-world/blob/master/LICENSE
+    about: 本作品以 CC BY-NC-SA 4.0 发布，商用请另行取得授权（不走 issue）

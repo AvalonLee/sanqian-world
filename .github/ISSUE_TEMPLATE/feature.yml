@@ -1,0 +1,48 @@
+name: "✨ 功能建议"
+description: "想要的新玩法、新系统、新内容（含第二个世界的方向性建议）"
+title: "[功能] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        本项目是**多世界框架 + 放置修仙人生模拟**，当前只开放玄幻修仙一界，其余五界灰显待开启。
+
+        作者按「玩法是否自洽 + 会不会破坏存档与跨世界契约」取舍，**不承诺排期**；写清下面四点，
+        被看到的概率会高很多。
+  - type: textarea
+    id: ask
+    attributes:
+      label: 一句话诉求
+      placeholder: 希望渡劫失败后有一个「兵解闭关」的缓冲玩法，而不是直接掉境界
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: 它解决什么体验问题 / 增加什么乐趣
+      description: 现在为什么会卡住、无聊或不知道干什么
+    validations:
+      required: true
+  - type: textarea
+    id: shape
+    attributes:
+      label: 大概长什么样
+      description: 入口在哪个页面、玩家做什么、系统给什么反馈（不用设计数值，说清循环即可）
+      placeholder: |
+        入口：渡劫失败后的修行页
+        玩家动作：点击「兵解闭关」，消耗此生修为的三成
+        系统反馈：本世不掉境界，但下一世遗泽减少，并解锁一条专属传记
+  - type: textarea
+    id: scope
+    attributes:
+      label: 它属于哪一层（可留空，作者会判断）
+      description: |
+        写一点线索就够：
+        - 只改修仙世界的内容，还是所有世界都要有（后者要进世界包契约）
+        - 是否需要新的存档字段、新的文案条目
+        - 会不会影响离线结算、落盘体积上限
+  - type: textarea
+    id: done
+    attributes:
+      label: 怎样算做好了
+      description: 可验证的一条判据，比「更好玩」有用

@@ -1,0 +1,83 @@
+name: "🐞 BUG 反馈"
+description: "玩法出错、数值不对、界面空白或卡住、存档异常"
+title: "[BUG] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先在 x-hub 扩展中心把「三千世界」升级到最新版，再复现一次。
+
+        ⚠️ **不要粘贴 `.storage.json` 或任何存档内容** —— 里面含玩家角色名、世界名与生平文本。
+        描述清楚「当时处在什么阶段」比给存档更有用，需要存档作者会单独私下要。
+  - type: input
+    id: version
+    attributes:
+      label: 扩展版本
+      description: 扩展中心里显示的版本号
+      placeholder: "0.4.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: surfaces
+    attributes:
+      label: 出现形态（可多选）
+      description: 工作台卡片 / 主界面 / 独立窗口 / 抽屉 / 浏览器直开预览
+      multiple: true
+      options:
+        - 工作台卡片
+        - 主界面 view
+        - 独立窗口 window
+        - 抽屉 drawer
+        - 浏览器直开预览
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 怎么复现
+      description: 从入世开始走到出问题那一步，越具体越好
+      placeholder: |
+        1. 修行页切到「闭关悟道」
+        2. 挂机约 3 分钟，修为到圆满
+        3. 点「渡劫」
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望是什么
+      placeholder: 应该进入渡劫演出并结算境界
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际发生了什么
+      description: 有截图更好（拖进来即可）；是「整页空白」还是「数字不对」还是「没反应」请写清
+    validations:
+      required: true
+  - type: textarea
+    id: stage
+    attributes:
+      label: 当时所处阶段
+      description: 境界、第几世、大概游戏年、在哪个页面（不用贴存档）
+      placeholder: 金丹二期 · 第 3 世 · 约 4200 年 · 在坊市页
+  - type: textarea
+    id: console
+    attributes:
+      label: 控制台红字（可选）
+      description: 浏览器 F12 → Console；只有报错时才需要填
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 已在最新版复现过
+          required: true
+        - label: 已搜过 issues，没找到同样的反馈
+          required: true
+        - label: 没有粘贴任何真实存档内容
+          required: true

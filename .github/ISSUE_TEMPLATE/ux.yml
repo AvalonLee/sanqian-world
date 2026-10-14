@@ -1,0 +1,65 @@
+name: "🎛 体验优化"
+description: "功能没坏，但用起来别扭：排版、找不到的信息、多余点击、读不懂的文案"
+title: "[体验] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        这一类是给「能用但不好用」的意见，不涉及玩法数值平衡（那类请走功能建议或注明）。
+        作者只看这一版：**说清在哪个页面、哪一步别扭、你希望它变成什么样**，三行就够。
+  - type: dropdown
+    id: area
+    attributes:
+      label: 涉及的页面 / 系统
+      multiple: true
+      options:
+        - 创角与择界
+        - 主界面（修行）
+        - 功法法宝（法与器）
+        - 秘境与坊市
+        - 炼丹炼器
+        - 道友与结缘
+        - 势力与宗门
+        - 洞府福地
+        - 天道与天象
+        - 轮回转世与遗泽商店
+        - 成就图鉴与人生传记
+        - 同代天骄
+        - 江湖传闻
+        - 工作台卡片
+        - 设置与其他
+    validations:
+      required: true
+  - type: textarea
+    id: now
+    attributes:
+      label: 现在是什么样
+      description: 在做什么操作时看到的、为什么别扭（截图很有帮助）
+      placeholder: 想确认手里这批材料精炼后能出哪一档，得逐个把鼠标移上去看提示
+    validations:
+      required: true
+  - type: textarea
+    id: want
+    attributes:
+      label: 你希望变成什么样
+      description: 一句话可执行的改法就行，不用替作者设计方案
+      placeholder: 材料段头直接写「本段可炼为 ××、××」
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: 这个别扭你会多久遇到一次
+      options:
+        - 几乎每次游玩都会碰到
+        - 特定阶段会碰到（请补充）
+        - 只在第一次上手时
+    validations:
+      required: true
+  - type: textarea
+    id: cost
+    attributes:
+      label: 不改的话会怎样
+      description: 会误判成 bug？会以为功能缺失？还是只是稍麻烦？
