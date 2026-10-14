@@ -63,12 +63,12 @@
 | 层 | 位置与体量 | 由谁加载 | 实测事实 |
 | --- | --- | --- | --- |
 | **扩展本体（真身）** | `manifest.json` 的 `entry` → `view/index.html`（424,761 B，内含 **52** 个 `<script>`）+ `module/index.html`（卡片）；引擎与数据 = `assets/**.js`（**51 个文件 / 19,113 行**） | x-hub 宿主，或浏览器直开 `view/index.html` | 全部是**经典脚本、非 ES module**：`assets/` 与两个入口 HTML 里 `import` / `export` 语句 **0 条**，不引用 `src/`、不 `require` 任何 npm 包；`audit.cjs` B3 钉死「入口 HTML 零外链/零 CDN」，代码全随包走 |
-| **平台脚手架（壳）** | `index.html` → `src/main.tsx` → `src/App.tsx`，外加 `package.json`（**68** 个 dependencies + devDependencies：react / radix / shadcn 系 / recharts / pocketbase / miniprogram-ci…）、`vite.config.ts`、`tailwind.config.js`、`tsconfig*.json`、`eslint.config.js`、`components.json` | 只被 VibeX 容器工作台用（`npm run dev` / `npm run build`） | `src/App.tsx` 就是 VibeX **新建项目的默认占位页**（其文件头原注：「仅占位……生成后的应用完全由自己的样式控制」）。2026-10-07 实测 `npm run build` **能成功**（`tsc -b` + vite 8.3.3，16 模块，610ms），但产物 `dist/index.html` 的 title 仍是占位名「**初**」，且 `dist/` 内搜存档键 `sanqian-state-v1` 命中 **0**——**构建产物不含一行游戏代码** |
+| **平台脚手架（壳）〔已于 2026-10-14 结构整治批A 整族删除〕** | 原 `index.html` → `src/main.tsx` → `src/App.tsx`，外加 `package.json`（原 **68** 个 dependencies + devDependencies）、`vite.config.ts`、`tailwind.config.js`、`tsconfig*.json`、`eslint.config.js`、`components.json`、`public/`、`vibex-local/`、`pocketbase/`、`pnpm-lock.yaml` | 原只被 VibeX 容器工作台用（`npm run dev` / `npm run build`）；现 `package.json` 只声明走查用的 `playwright-core` | 删除前取证（**2026-10-07 当日事实，逐字保留**）：`src/App.tsx` 就是 VibeX **新建项目的默认占位页**（其文件头原注：「仅占位……生成后的应用完全由自己的样式控制」）。2026-10-07 实测 `npm run build` **能成功**（`tsc -b` + vite 8.3.3，16 模块，610ms），但产物 `dist/index.html` 的 title 仍是占位名「**初**」，且 `dist/` 内搜存档键 `sanqian-state-v1` 命中 **0**——**构建产物不含一行游戏代码**。退役口径与「先钉 `playwright-core` 再删」的顺序见 [`README.md` §八](README.md) |
 
 由此三条口径：
 
-1. **改游戏不需要、也不应该跑 `npm run dev` / `npm run build` / `tsc`**。验收一律走 `.tests/`（见下方「回归」）。别把 `dist/` 当产物上传——它跟这个扩展无关。
-2. **但也不要删壳**。`index.html` / `src/` / `vite.config.ts` 及那几个 config 属于 **VibeX 平台契约**：`vite.config.ts` 头部明令「整体 Write 覆盖本文件是禁忌」，且 `rhSourcePlugin()` 必须排在 `plugins[0]`（`enforce: 'pre'`），`@babel/parser` / `@babel/traverse` / `magic-string` 三个 import 不许删。删掉会让应用在工作台里无法预览。
+1. **改游戏不跑任何 npm 命令**。壳与脚本已随批A 删除（`package.json` 里现在连 `dev` / `build` / `lint` 脚本都不存在），验收一律走 `.tests/`（见下方「回归」）。`dist/` 从来不是本扩展的产物。
+2. **原「不要删壳」口径已作废（2026-10-14 结构整治批A · 用户裁定 VibeX 不再使用）**。当时禁删的理由是「删掉应用在工作台里无法预览」，且 `vite.config.ts` 头部明令不得整体覆盖、`rhSourcePlugin()` 必须排在 `plugins[0]`（`enforce: 'pre'`）、`@babel/parser` / `@babel/traverse` / `magic-string` 三个 import 不许删——这些约束的**对象是 VibeX 容器**，容器不再使用后约束随之消失。此处保留理由原文，是为了记录「曾经为什么不许删」，不是留一条还生效的禁令。
 3. **两套版本号互不相干**：`manifest.json` 的 `version`（现 **0.4.1**）是平台扩展版本；设计文档的版本在 `docs/VERSIONS.md`（全卷唯一总账）。两边不同步、不互相套用，也不要把文档版本号写进 manifest。
 
 **回归（改完必跑，只需 node，四条都无浏览器依赖）**：
@@ -97,7 +97,7 @@ node .tests/probe-savecap.cjs      # ┘ 存档最坏态水位（阶梯可停 / 
 
 > ⚠️ **`node_modules` 永远不进交付包**：`--no-save` 保证 `package.json` 与锁文件零改动；`node_modules` 已在 `.gitignore` 内（现约 487 MB）。另注意 `audit.cjs` 是**整树遍历**的，2026-10-07 前对 `node_modules` 没有排除，一装依赖就 4 GB heap OOM 崩掉——现已在 `walk()` 内对 `node_modules` / `dist` / `dist-ssr` / `build` 剪枝。**推论：交付前静态审计的扫描范围 = 事实源范围，开发期依赖与构建产物不该进闸门。** **本段读数是判据不是历史**：现行读数一律以 `docs/FACTS.md`（冒烟 / 走查 / 常驻探针三行）与 `.tests/README.md`（跑绿清单）为准，本索引件只是快照 —— 收口时**三处同批改**，只改一处就是账本漂移。
 
-回传打包按 `.vibex/skills/vibex-app-source-roundtrip/SKILL.md`（ZIP 内路径必须相对你在 VibeX Source 树里选中的目录，且优先只打改动路径）。
+回传打包按 `.vibex/skills/vibex-app-source-roundtrip/SKILL.md`（ZIP 内路径必须相对你在 VibeX Source 树里选中的目录，且优先只打改动路径）。〔**2026-10-14 批A 随注**：VibeX 已退役，本条 ZIP 回传流程**不再适用**；交付只认 `extensions/com.avalonlee.sanqian-world/` 镜像七项（B9 逐字节）。`AGENTS.md` / `CLAUDE.md` / `.cursor/rules/` / `.vibex/skills/` 四份 agent 指引仍指向该 SKILL，其处置**待用户点头**，本批未动。〕
 
 ## 本地预览
 

@@ -1,6 +1,10 @@
 /* .tests/sandbox.cjs — 无头 vm 沙箱装载器（node，无浏览器依赖）
- * 唯一事实源：加载顺序必须与 view/index.html 的 <script> 顺序完全一致——
- * 三个脚本（run-smoke / sim-pacing / sim-event-economy）共用本文件，避免顺序漂移。
+ * 加载顺序唯一事实源 = view/index.html 的 <script src> 序列（2026-10-14 结构整治批A 改）。
+ * 立因：此前这里是 51 行硬编码抄本，与 view/module 两份 HTML + 交付镜像两份 + .tests/smoke.html
+ *   共五份并列；注释虽自称「必须与 view/index.html 完全一致」，却没有任何一关在守。加一个系统文件
+ *   只改 HTML ⇒ 沙箱装载缺件 = 测试假绿 + 真机白屏。删抄本优于加门禁。
+ * 自校验（任一不满足即拒绝装载，绝不拿残缺顺序继续跑）：解析出 ≥50 项、末项是 core.js、每项文件真实存在。
+ * 三个消费件（run-smoke / sim-pacing / sim-event-economy）共用本文件。
  * 用法：const { SQ, sandbox } = require('./sandbox.cjs').load(['.tests/smoke.js']);
  */
 'use strict';
@@ -10,59 +14,21 @@ const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '..');
 
-const ORDER = [
-  'assets/util.js',
-  'assets/worlds/registry.js',
-  'assets/lexicon.js',
-  'assets/worlds/xiuxian/lexicon.js',
-  'assets/worlds/xiuxian/lexicon-arts.js',
-  'assets/worlds/xiuxian/lexicon-bonds.js',
-  'assets/worlds/xiuxian/lexicon-factions.js',
-  'assets/worlds/xiuxian/lexicon-treasures.js',
-  'assets/worlds/xiuxian/lexicon-tiandao.js',
-  'assets/worlds/xiuxian/lexicon-meta.js',
-  'assets/worlds/xiuxian/lexicon-alchemy.js',
-  'assets/worlds/xiuxian/lexicon-prodigy.js',
-  'assets/worlds/xiuxian/lexicon-spirit.js',
-  'assets/worlds/xiuxian/lexicon-sect.js',
-  'assets/lexicon/talents.js',
-  'assets/lexicon/events.js',
-  'assets/talents/common.js',
-  'assets/talents/xiuxian.js',
-  'assets/worlds/xiuxian/data.js',
-  'assets/worlds/xiuxian/arts.js',
-  'assets/worlds/xiuxian/treasures.js',
-  'assets/events/common.js',
-  'assets/worlds/xiuxian/events.js',
-  'assets/systems/ledger.js',
-  'assets/systems/cave.js',
-  'assets/systems/bonds.js',
-  'assets/systems/factions.js',
-  'assets/systems/treasures.js',
-  'assets/systems/mods.js',
-  'assets/systems/attrs.js',
-  'assets/systems/gear.js',
-  'assets/systems/arts.js',
-  'assets/systems/combat.js',
-  'assets/systems/realm.js',
-  'assets/systems/idle.js',
-  'assets/systems/shop.js',
-  'assets/systems/events.js',
-  'assets/systems/rumors.js',
-  'assets/systems/tiandao.js',
-  'assets/systems/legacy.js',
-  'assets/systems/codex.js',
-  'assets/systems/alchemy.js',
-  'assets/systems/prodigy.js',
-  'assets/systems/fusion.js',
-  'assets/systems/sect.js',
-  'assets/systems/actions.js',
-  'assets/worlds/xiuxian/karma.js',
-  'assets/worlds/xiuxian/tribulation.js',
-  'assets/worlds/xiuxian/index.js',
-  'assets/talents/engine.js',
-  'assets/core.js'
-];
+/* 从宿主 HTML 抽装载序列：src 一律归一为相对扩展根的正斜杠路径。
+ * 从交付镜像根起跑时读的是镜像自己的 view/index.html（B9 守两份逐字节相同），故无需分支。 */
+function readOrder(html) {
+  const src = fs.readFileSync(html, 'utf8');
+  const out = [];
+  const re = /<script[^>]*\bsrc="([^"]+)"[^>]*>/g;
+  let m;
+  while ((m = re.exec(src))) out.push(m[1].replace(/^\.\.\//, '').replace(/^\.\//, ''));
+  if (out.length < 50) throw new Error('sandbox: <script src> 只解析出 ' + out.length + ' 项（< 50），清单或 HTML 已漂：' + html);
+  if (!/core\.js$/.test(out[out.length - 1])) throw new Error('sandbox: 末项不是 core.js，装载顺序不可信：' + out[out.length - 1]);
+  out.forEach((f) => { if (!fs.existsSync(path.join(ROOT, f))) throw new Error('sandbox: 清单里的文件不存在 ' + f); });
+  return out;
+}
+
+const ORDER = readOrder(path.join(ROOT, 'view', 'index.html'));
 
 /* localStorage mock（无桥预览分支） */
 function mkStorage() {

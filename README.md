@@ -49,7 +49,7 @@ for p in assets view module .tests; do diff -rq "$p" "$M/$p"; done
 diff -q manifest.json "$M/manifest.json"; diff -q icon.svg "$M/icon.svg"; diff -q DESIGN.md "$M/DESIGN.md"
 ```
 
-七项全部无输出才算同步完成。`$M/.storage.json` 是宿主实时存档，**不参与同步**。回传打包按 `.vibex/skills/vibex-app-source-roundtrip/SKILL.md`（ZIP 内路径相对你在 VibeX Source 树里选中的目录）。
+七项全部无输出才算同步完成。`$M/.storage.json` 是宿主实时存档，**不参与同步**。〔2026-10-14 结构整治批A 随注：VibeX 已退役，原先「按 `.vibex/skills/…/SKILL.md` 打 ZIP 回传」的流程**不再适用**，交付只认上面这七项；另注意源侧**删除**的件也要同步从镜像删——手工 `cp -a` 只做覆盖不做删除，漏删会被 B9 判成「单侧多文件」。〕
 
 > 🆕 **2026-10-09 起这条不变量已进门闸**：`node .tests/audit.cjs` 的 **B9** 就是把它自动化（四目录递归逐字节 + 三单件，`.storage.json` 两侧排除，单侧多/缺文件同算漂移），手工 `diff -rq` 退为「知道差异在哪」的排障工具。立因 = 本批实测两次源侧改完忘了同步镜像，**只写在文档里的不变量等于没有不变量**。
 
@@ -70,4 +70,9 @@ diff -q manifest.json "$M/manifest.json"; diff -q icon.svg "$M/icon.svg"; diff -
 
 ## 八、`src/` / vite / `pocketbase/` 是什么
 
-VibeX **平台脚手架**，与游戏无关：根 `index.html`（title 仍是占位名「初」）→ `src/main.tsx` → `src/App.tsx`（默认占位页），加 `package.json` / `vite.config.ts` / `tailwind.config.js` / `tsconfig*.json` / `eslint.config.js` / `components.json` / `public/` / `vibex-local/`；`pocketbase/pb_hooks/_rh_admin_sso.pb.js` 是平台侧 SSO 钩子。`manifest.json` 的 `entry` 不指向它们，`assets/**` 与两个入口 HTML 里对 `src/` 的引用 **0 条**，`npm run build` 的 `dist/` 不含一行游戏代码——**改游戏不跑 `npm run dev` / `build` / `tsc`**，验收只走 `.tests/`。**也不要删壳**：`vite.config.ts` 头部明令不得整文件覆盖、`rhSourcePlugin()` 必须排在 `plugins[0]`，删掉应用在工作台里无法预览。
+**已于 2026-10-14 结构整治批A 整族删除**（用户裁定：VibeX 不再作为交付与工作台路径）。本节原文记录的正是那套 **VibeX 平台脚手架**：根 `index.html`（title 是占位名「初」）→ `src/main.tsx` → `src/App.tsx`（平台新建项目的默认占位页），加 `vite.config.ts` / `tailwind.config.js` / `postcss.config.js` / `tsconfig*.json` / `components.json` / `eslint.config.js` / `public/` / `vibex-local/`（本地预览器）/ `pocketbase/pb_hooks/_rh_admin_sso.pb.js`（平台侧 SSO 钩子）/ `pnpm-lock.yaml` + `pnpm-workspace.yaml`，以及 `package.json` 里 68 个 dependencies。
+
+删除前的取证（这些正是当初「与游戏无关」的证据，保留结论）：`manifest.json` 的 `entry` 不指向它们；`assets/**` 与两个入口 HTML 对 `src/` 的引用 0 条；`npm run build` 的 `dist/` 不含一行游戏代码；全仓测试件的外部依赖实测只有 `playwright-core`（27 处 require），无任何文件 require 过 react / vite / @babel / tailwind / pocketbase。
+
+⚠️ **随删随交底的两件事**：① `playwright-core` 此前**没写进 `package.json`**，只靠 `NODE_PATH` 注入——一旦精简依赖后重装，26 篇界面走查会当场全废，所以本次把它以 `^1.63.0` 钉进 `devDependencies`（**先钉后删**是本批第 1 步）；现在 `package.json` 只剩 name/private/version/description/devDependencies，`version: 0.0.0` 是占位、**不是扩展版本**（扩展版本唯一落点仍是 `manifest.json`，勿在此开第二事实源）。② `AGENTS.md` / `CLAUDE.md` / `.cursor/rules/` / `.vibex/skills/` 四件 agent 指引**尚未处置**（等用户点头），其中「改代码前先读 roundtrip SKILL、产出上传 ZIP」的口径随 VibeX 退役已不再适用。
+
