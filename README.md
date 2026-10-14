@@ -1,6 +1,6 @@
 # 三千世界 · sanqian-world
 
-一个**多世界框架**的放置修仙人生模拟，以 **x-hub 扩展**形态交付（出身是 VibeX，2026-10-14 退役）。起名 → 择界 → 抽天赋 → 挂机修炼 → 渡劫证道，一世终了可兵解转世、带着「遗泽」再来。
+一个**多世界框架**的放置修仙人生模拟，以 **x-hub 扩展**形态交付。起名 → 择界 → 抽天赋 → 挂机修炼 → 渡劫证道，一世终了可兵解转世、带着「遗泽」再来。
 
 当前可玩的是一整局修仙人生：十境界 × 十秘境 + 洞天福地、功法与法器 / 法宝（含融合与器灵）、炼丹炼器、坊市 / 黑市 / 神秘商人、势力 16 处 + 宗门 + 同代天骄、道友（拜访 / 赠丹 / 护法 / 道侣）、奇遇与江湖传闻、天道问天与天象、成就九面图鉴与人生传记、飞升大劫与遗泽商店。天赋也不再一局定死——一世之内可洗髓换 3 枚。世界名册现为 6 张卡（1 界可投生 + 5 界灰显待开启）。
 
@@ -28,16 +28,20 @@
 ├── README.md / AGENTS.md / CLAUDE.md / package.json / LICENSE
 ```
 
-## 二、跑起来
+## 二、玩起来
+
+**想玩游戏：直接从 x-hub 扩展中心的市场装。** 打开 x-hub → 扩展中心 → 市场 → 搜「**三千世界**」（扩展 id `com.avalonlee.sanqian-world`）→ 安装并启用。装完就有 view / window / drawer 三种形态与工作台卡片，进度存在扩展自己的存档里，**不需要本仓库的任何文件**。
+
+下面这些只在你要改代码、或想自己起一份独立调试档时才用得上：
 
 ```bash
 cd extensions/com.avalonlee.sanqian-world
 # 浏览器直开 view/index.html：无桥环境自动走 localStorage 回退（窗口 ≥720px 触发双栏）
 ```
 
-真机：x-hub 扩展中心 →「我的扩展」→ 添加 `extensions/com.avalonlee.sanqian-world` 目录（添加即加载，改代码约 1.5 秒自动重载）。卡片形态可用 `module/index.html?xhub-variant=compact|standard|wide`。
+源码加载：x-hub 扩展中心 →「我的扩展」→ 添加 `extensions/com.avalonlee.sanqian-world` 目录（添加即加载，改代码约 1.5 秒自动重载）；市场版与源码版**互不覆盖**，各用各的档。卡片形态：`module/index.html?xhub-variant=compact|standard|wide`。
 
-没有构建步骤。仓库根的 `package.json` 只声明一样东西：界面走查用的 `playwright-core`。
+没有构建步骤，游戏侧零运行时依赖 —— 仓库根 `package.json` 里唯一声明的东西是界面走查用的 `playwright-core`。
 
 ## 三、怎么验收（只需 node）
 
@@ -100,9 +104,8 @@ node .tests/ledger-selftest.cjs           # LEDGER_SELFTEST_DONE 8 判（账本�
 - 衍生作品必须以**同一份**协议（CC BY-NC-SA 4.0）发布，且不得用于商业目的。
 - `SPDX-License-Identifier: CC BY-NC-SA-4.0`
 - **玩家存档不在发布内容内**：宿主实时存档 `.storage.json` 已被 `.gitignore` 排除，本仓库不含任何
-  真实玩家数据。仓库亦零 CDN、零外链、无第三方字体与音视频素材（审计 B3 钉死「入口 HTML 零外链 /
-  零 CDN」，全部代码与文案随包走）。
-- 需要商业授权请通过上述 GitHub 仓库联系作者另行约定。
+  真实玩家数据；提交前也别手动 `git add` 它。
 
-VibeX 平台壳（React / Vite / PocketBase / pnpm 脚手架）已于 2026-10-14 整族删除，取证与口径见
-[`docs/结构整治方案-2026-10-14.md`](docs/结构整治方案-2026-10-14.md) 与工程规范 §4.47~§4.49。
+本仓库不含第三方素材与外部服务：零 CDN、零外链、无外部字体与音视频，`icon.svg` 为项目自绘，全部游戏文案与数值表均为本项目原创（词表落 `assets/lexicon*` 与 `assets/worlds/xiuxian/lexicon-*.js`，审计 A1/A2/A4 钉死这一点）。
+
+需要商业授权请通过上述 GitHub 仓库联系作者另行约定。
