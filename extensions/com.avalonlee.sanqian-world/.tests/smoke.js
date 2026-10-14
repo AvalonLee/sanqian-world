@@ -425,10 +425,38 @@
     var a2 = SQ.Gear.autoEquip(w35, pack, D, m35, mkGear('weapon', { tier: 0, atk: 1 }), null);
     var held35 = w35.gear.weapon.atk === 10; /* 低分件被炼化、原件保住（在 a3 之前取证） */
     var a3 = SQ.Gear.autoEquip(w35, pack, D, m35, mkGear('weapon', { tier: 2, atk: 99 }), null);
-    ok(35, '评分公式 + 择优只在更高时',
+    /* GitHub issue #2 自动炼化开关（关 ⇒ 先入库藏阁，库满才回落炼化）。
+     * 与 a1/a2/a3 同件同序做对照：空槽照穿、低分件不再被练、被换下的旧件留档、灵石与总账零流动。 */
+    var w35b = mkWs({ realm: 9 });
+    w35b.gearAutoRefine = false;
+    var m35b = M(mkProf(), w35b);
+    var b1 = SQ.Gear.autoEquip(w35b, pack, D, m35b, mkGear('weapon', { tier: 2, atk: 10, qiBonus: 0.1, resist: 40, attrValue: { attr: 'jing', value: 5 } }), null);
+    var b2 = SQ.Gear.autoEquip(w35b, pack, D, m35b, mkGear('weapon', { tier: 0, atk: 1 }), null);
+    var b3 = SQ.Gear.autoEquip(w35b, pack, D, m35b, mkGear('weapon', { tier: 2, atk: 99 }), null);
+    var st35b = w35b.stash.length;                       /* 低分件 + 换下的旧件 = 2，一件都没炼 */
+    var led35b = JSON.stringify(w35b.ledger);
+    var bLedger = SQ.Gear.autoEquip(w35b, pack, D, m35b, mkGear('weapon', { tier: 0, atk: 2 }), null);
+    var w35c = mkWs({ realm: 9 });
+    w35c.gearAutoRefine = false;
+    w35c.gear.weapon = mkGear('weapon', { tier: 2, atk: 50 });
+    for (var si35 = 0; si35 < D.STASH_CAP; si35++) w35c.stash.push(mkGear('armor', { tier: 0, atk: 1 }));
+    var c35 = SQ.Gear.autoEquip(w35c, pack, D, M(mkProf(), w35c), mkGear('weapon', { tier: 0, atk: 1 }), null);
+    var n35d = pack.normalize({}, {}).gearAutoRefine;
+    var n35f = pack.normalize({ gearAutoRefine: false }, {}).gearAutoRefine;
+    var n35x = pack.normalize({ gearAutoRefine: 'yes' }, {}).gearAutoRefine;
+    ok(35, '评分公式 + 择优只在更高时 + 自动炼化开关（issue #2：关 ⇒ 低分新件与被换旧件都入库藏阁，' +
+      '库满才回落炼化，灵石与总账零流动；normalize 三态 缺省 true / false 保留 / 脏值归 true）',
       SQ.Gear.scoreOf(it35) === 55 && SQ.Gear.scoreOf(it35s) === Math.round(55 * 1.15 * 100) / 100 &&
-      a1.action === 'equip' && a2.action === 'refine' && held35 && a3.action === 'replace' && w35.gear.weapon.atk === 99,
-      'score=' + SQ.Gear.scoreOf(it35) + '/' + SQ.Gear.scoreOf(it35s) + ' acts=' + [a1.action, a2.action, a3.action].join(',') + ' held=' + held35);
+      a1.action === 'equip' && a2.action === 'refine' && held35 && a3.action === 'replace' && w35.gear.weapon.atk === 99 &&
+      b1.action === 'equip' && b2.action === 'stash' && b3.action === 'replace' && b3.gained === 0 &&
+      st35b === 2 && w35b.stash.length === 3 && w35b.gear.weapon.atk === 99 &&
+      w35b.stones === mkWs({ realm: 9 }).stones &&
+      bLedger.action === 'stash' && JSON.stringify(w35b.ledger) === led35b &&
+      c35.action === 'refine' && n35d === true && n35f === false && n35x === true,
+      'score=' + SQ.Gear.scoreOf(it35) + '/' + SQ.Gear.scoreOf(it35s) + ' acts=' + [a1.action, a2.action, a3.action].join(',') + ' held=' + held35 +
+      ' ‖ 开关关 acts=' + [b1.action, b2.action, b3.action, bLedger.action].join(',') + ' 库=' + w35b.stash.length +
+      ' 灵石=' + w35b.stones + ' Ledger同=' + (JSON.stringify(w35b.ledger) === led35b) +
+      ' ‖ 库满回落=' + c35.action + ' normalize=' + n35d + '/' + n35f + '/' + n35x);
 
     /* #36 炼化返还 = 品阶固定表 ×(1+境界×0.5) */
     var ok36 = SQ.Gear.refineValue({ tier: 0 }, { realm: 0 }, D, { hooks: {} }) === 5 &&

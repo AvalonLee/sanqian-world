@@ -72,18 +72,18 @@ function buildSave(autoEvent, withPend, eventPref) {
     /* 倒计时数字也在（秒级 tick 刷新） */
     const hasTtl = await page.$$eval('#tab-idle .rumorcard .rt', els => els.length);
     T(hasTtl === 2, 'R2 传闻倒计时同源渲染', 'n=' + hasTtl);
-    /* 底部自动区：两开关 + 文案 */
+    /* 底部自动区：三开关（自动渡劫 / 自动奇遇 / 自动炼化 · GitHub issue #2）+ 文案 */
     const idleTxt = await page.$eval('#tab-idle', el => el.textContent);
     const swT = await page.$$eval('#tab-idle [data-act="toggleAutoTrib"].switch', els => els.length);
     const swE = await page.$$eval('#tab-idle [data-act="toggleAutoEvent"].switch', els => els.length);
-    T(swT === 1 && swE === 1, 'R1 修行页底部 = 自动渡劫 + 自动奇遇两开关', 'trib=' + swT + ' event=' + swE);
-    T(idleTxt.includes('自动渡劫') && idleTxt.includes('自动奇遇'), 'R1 两开关文案齐备');
-    const idxAuto = idleTxt.indexOf('自动'), idxTalents = idleTxt.length; /* 开关应在页尾（天赋卡之后）——以 DOM 末尾近邻验证 */
-    const lastIsSwitch = await page.$$eval('#tab-idle .setrow', els => {
-      const last = els[els.length - 1];
-      return last && last.textContent.indexOf('自动奇遇') >= 0;
-    });
-    T(lastIsSwitch, 'R1 自动区位于页面最底部');
+    const swR = await page.$$eval('#tab-idle [data-act="toggleGearRefine"].switch', els => els.length);
+    T(swT === 1 && swE === 1 && swR === 1, 'R1 修行页底部 = 自动渡劫 + 自动奇遇 + 自动炼化三开关',
+      'trib=' + swT + ' event=' + swE + ' refine=' + swR);
+    T(idleTxt.includes('自动渡劫') && idleTxt.includes('自动奇遇') && idleTxt.includes('自动炼化'), 'R1 三开关文案齐备');
+    /* 末尾四行 setrow 里必须含三开关（第四行可能是自动奇遇展开的倾向子行）*/
+    const autoTail = await page.$$eval('#tab-idle .setrow', els => els.slice(-4).map(e => e.textContent).join('|'));
+    T(autoTail.indexOf('自动渡劫') >= 0 && autoTail.indexOf('自动奇遇') >= 0 && autoTail.indexOf('自动炼化') >= 0,
+      'R1 自动区位于页面最底部', 'tail=' + autoTail.replace(/\s+/g, '').slice(0, 60));
     /* 设置页不再有自动渡劫 */
     await page.click('#m-tabbar button:has-text("设置")');
     await page.waitForTimeout(200);
@@ -165,6 +165,30 @@ function buildSave(autoEvent, withPend, eventPref) {
       return hit ? hit.branch : null;
     });
     T(br === 'neutral', 'R3 倾向分支可用 → 自动抉择优先该分支', 'branch=' + br);
+    await ctx.close();
+  }
+
+  /* ── E. 自动炼化开关（GitHub issue #2）：缺省为开、点一下随档持久化到 ws.gearAutoRefine、可逆 ── */
+  {
+    const { ctx, page, errors } = await boot(false, false);
+    const sw = await page.$eval('#tab-idle [data-act="toggleGearRefine"]', el => ({
+      cls: /(^| )on( |$)/.test(el.className), aria: el.getAttribute('aria-checked'),
+      label: (el.textContent || '').trim()
+    }));
+    T(sw.cls === true && sw.aria === 'true' && sw.label === '已开启',
+      'E1 自动炼化开关缺省为开（手造旧档无该字段 ⇒ 读档补 true，行为逐字不变）', JSON.stringify(sw));
+    await page.click('#tab-idle [data-act="toggleGearRefine"]');
+    await page.waitForTimeout(400);
+    const off = await page.evaluate(() => ({
+      saved: JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.gearAutoRefine,
+      aria: document.querySelector('#tab-idle [data-act="toggleGearRefine"]').getAttribute('aria-checked')
+    }));
+    T(off.saved === false && off.aria === 'false', 'E2 点一下 ⇒ 关：落盘字段与 aria-checked 同变', JSON.stringify(off));
+    await page.click('#tab-idle [data-act="toggleGearRefine"]');
+    await page.waitForTimeout(400);
+    const on2 = await page.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.gearAutoRefine);
+    T(on2 === true, 'E3 再点 ⇒ 回开（开关可逆，不是一次性旗标）', 'gearAutoRefine=' + on2);
+    T(errors.length === 0, 'E 零页面报错', errors.join('|').slice(0, 150) || 'clean');
     await ctx.close();
   }
 

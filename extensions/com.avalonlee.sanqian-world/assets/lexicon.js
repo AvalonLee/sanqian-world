@@ -129,6 +129,9 @@
     'idle.auto.sec': '自动',
     'settings.autoevent.title': '自动奇遇',
     'settings.autoevent.desc': '触发奇遇时自动择一路抉择并结算，不再弹出询问',
+    /* 自动炼化开关（GitHub issue #2 · 用户报「系统判断不符合要求就自动炼化更好更强的装备」）*/
+    'settings.gearrefine.title': '自动炼化',
+    'settings.gearrefine.desc': '开启时，换下的旧件与不如在件的新件直接炼化回灵石；关闭则先进库藏阁，由你定夺（库藏阁满时仍需炼化腾位）',
     'event.auto.resolved': '奇遇「{name}」已自动抉择 · {branch}',
     /* 奇遇倾向（体验批）：自动抉择时的分支偏好；选项复用 branch 名，none 另起 */
     'settings.eventpref.title': '奇遇倾向',

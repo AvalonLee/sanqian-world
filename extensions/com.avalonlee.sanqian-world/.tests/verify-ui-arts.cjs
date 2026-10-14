@@ -204,12 +204,13 @@ async function buildSave() {
   const mainAfter = await page.evaluate(() => {
     const cards = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .cards > .tcard'));
     const ov = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .laware button .v'));
+    const idx = cards.findIndex((c) => !!c.querySelector('.maincorner'));
     const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
     const w = s.worlds[s.profile.worldId];
     return {
-      mainIdx: cards.findIndex((c) => !!c.querySelector('.maincorner')),
+      mainIdx: idx,
       markerIdx: cards.findIndex((c) => c.getAttribute('data-mainart') === '1'),
-      mainName: ((cards[mainIdx === -1 ? 0 : mainIdx].querySelector('.tname') || {}).textContent || '').trim(),
+      mainName: idx >= 0 ? ((cards[idx].querySelector('.tname') || {}).textContent || '').trim() : '',
       ovMain: ov.length ? (ov[0].textContent || '').trim() : '',
       artsMain: w.artsMain
     };

@@ -2501,6 +2501,7 @@
     /* ── 自动区（自动批）：自动渡劫（自设置页迁入）+ 自动奇遇（新增），修行页页尾统一挂靠 ── */
     var autoT = !!(state.settings && state.settings.autoTrib);
     var autoE = !!(state.settings && state.settings.autoEvent);
+    var autoR = ws().gearAutoRefine !== false;   /* 自动炼化（issue #2）：缺省开 = 旧行为 */
     h += '<div class="sechead" style="margin-top:14px"><span class="t">' + esc(t('idle.auto.sec')) + '</span></div>';
     h += '<div class="setrow"><span class="sl">' + esc(t('settings.auto.title')) +
       '<span class="sd">' + esc(t('settings.auto.desc')) + '</span></span>' +
@@ -2510,6 +2511,10 @@
       '<span class="sd">' + esc(t('settings.autoevent.desc')) + '</span></span>' +
       '<button class="switch' + (autoE ? ' on' : '') + '" data-act="toggleAutoEvent" role="switch" aria-checked="' + autoE + '">' +
       '<i></i><span>' + esc(autoE ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>';
+    h += '<div class="setrow"><span class="sl">' + esc(t('settings.gearrefine.title')) +
+      '<span class="sd">' + esc(t('settings.gearrefine.desc')) + '</span></span>' +
+      '<button class="switch' + (autoR ? ' on' : '') + '" data-act="toggleGearRefine" role="switch" aria-checked="' + autoR + '">' +
+      '<i></i><span>' + esc(autoR ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>';
     /* 奇遇倾向（体验批）：自动抉择时的分支偏好——优先选倾向分支，不可用则随机其他。
      * 仅自动奇遇开启时展开（子选项，关闭时无意义，避免界面干扰）。 */
     if (autoE) {
@@ -6699,6 +6704,12 @@
       await SQ.Actions.setAutoEvent(state, !(state.settings && state.settings.autoEvent));
       /* 开启瞬间若已有挂起抉择，立即自动结算，不留残窗 */
       if ((state.settings && state.settings.autoEvent) && ws() && ws().pendingChoice) autoResolveChoice();
+      renderTab();
+      return;
+    }
+    /* 自动炼化（GitHub issue #2）：开关存 ws.gearAutoRefine（autoEquip 只认得到 ws） */
+    if (act === 'toggleGearRefine') {
+      await SQ.Actions.setGearRefine(state, ws().gearAutoRefine === false);   /* 关→开、开→关 */
       renderTab();
       return;
     }

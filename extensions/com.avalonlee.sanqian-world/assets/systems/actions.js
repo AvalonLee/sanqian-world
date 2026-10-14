@@ -521,6 +521,15 @@
       });
     },
 
+    /* 自动炼化开关（GitHub issue #2 · 默认开）：存 ws 而非 settings——autoEquip 十一个调用点
+     * 只有 ws 是一定在场的，避免为了一个偏好去改十一条签名。 */
+    setGearRefine: function (ref, on) {
+      return SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        ws.gearAutoRefine = !!on;
+      });
+    },
+
     /* 菜单顺序（设置页 · 仅游戏页可调；系统页固定底部）：存 id 数组，未知 id 由视图层对账 */
     setTabOrder: function (ref, order) {
       return SQ.mutate(ref, function (s) {
