@@ -277,6 +277,7 @@
     'bond.gift.ok.tier': '{name} 收下{pill}，情分更进一步，现为{title}',
     'bond.gift.fail.stock': '丹匣里没有这一味',
     'bond.gift.fail.once': '破障丹与镇劫丹是你自己的底牌，送不得人',
+    'bond.gift.fail.nogift': '洗髓丹换的是你自己的骨，送不得人',
     'bond.gift.fail.daily': '今日已赠过 {n} 次，改日再送',
     'bond.gift.fail.max': '已是道护之交，无须再赠',
     /* 两渠道共用拒绝文案（绝交锁 / 心结锁 / 名录外） */

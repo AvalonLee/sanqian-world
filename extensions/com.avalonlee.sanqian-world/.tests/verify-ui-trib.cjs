@@ -235,6 +235,51 @@ const { chromium } = require('playwright-core');
     await ctx.close();
   }
 
+  /* ── E 修行页渡劫倒计时（第十八批 · 用户令「修行页面，在合适地方增加一个倒计时，好让用户知道大约多少小时候可以渡劫」）──
+   * 本项是**纯派生显示量**（不入存档、不改任何结算），所以判据必须落在屏上：
+   *   **E1** 未满 ⇒ 该行在，且时间桶（天 / 小时 / 分钟）与现场复算的 `(need − qi)/rate` 同桶 ⇒ 证它真按差额与实时增速算，不是常量；
+   *   **E2** qi 顶到 `need` ⇒ 该行**消失**、手动渡劫按钮出现 ⇒ 证口径是 `Realm.needEffOf` 而非 `Idle.capOf`
+   *          （cap = max(baseQi×CAP_HOURS×3600, need×CAP_NEED_FACTOR)×(1+qiCap) 恒 ≥ need ⇒ 写错成 cap 时这一行在圆满仍在屏上 ⇒ 本条红）。 */
+  {
+    const scan = () => {
+      const pack = SQ.Worlds.xiuxian.pack, D = pack.data;
+      const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+      const w = s.worlds[s.profile.worldId];
+      const m = SQ.Mods.collect(s.profile, w, pack, D);
+      const need = SQ.Realm.needEffOf(w, pack, D, m);
+      const rate = SQ.Idle.effRate(w, pack, D, m, false);
+      const tmpl = (SQ.LEX.xiuxian || {})['idle.trib.eta'] || '';
+      const suffix = tmpl.split('{time}')[1] || '';
+      const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-idle .kv'))
+        .map(r => (r.innerText || '').replace(/\s+/g, ' ')).filter(x => suffix && x.indexOf(suffix) >= 0);
+      const sec = rate > 0 ? (need - w.qi) / rate : -1;
+      return { n: rows.length, text: rows[0] || '', need: need, qi: w.qi, rate: rate, sec: Math.round(sec),
+        bucket: sec >= 86400 ? '天' : (sec >= 3600 ? '小时' : '分钟'),
+        hasBtn: !!document.querySelector('#tab-idle [data-act="trib"]') };
+    };
+    const sU = buildSave(0);
+    sU.settings.autoTrib = false;
+    Object.values(sU.worlds).forEach(w => { w.qi = 400; });     /* realm 0 的 need = 1000 ⇒ 未满 */
+    const aU = await openPage(sU, false);
+    const e1 = await aU.page.evaluate(scan);
+    T(e1.n === 1 && e1.need > e1.qi && e1.rate > 0 && e1.text.indexOf(e1.bucket) >= 0 &&
+      !/NaN|undefined|\{|idle\.trib\.eta/.test(e1.text),
+      'E1 未满 · 修行页有「约 X 后可渡劫」一行，时间桶 === 现场复算 (need−qi)/rate 的桶（非常量、无 NaN、无键名回落）',
+      e1.text + ' ‖ need=' + e1.need + ' qi=' + e1.qi + ' rate=' + e1.rate.toFixed(2) + ' 复算=' + e1.sec + 's 桶=' + e1.bucket);
+    await aU.ctx.close();
+
+    const sF = buildSave(0);                                    /* qi = 1000 === realm 0 的 need ⇒ 圆满 */
+    sF.settings.autoTrib = false;
+    const aF = await openPage(sF, false);
+    const e2 = await aF.page.evaluate(scan);
+    T(e2.n === 0 && e2.qi >= e2.need && e2.hasBtn,
+      'E2 圆满 · 倒计时行消失且手动渡劫按钮在（证按 needEffOf 计，不是按 capOf 那个上限）',
+      '行=' + e2.n + ' qi=' + e2.qi + ' need=' + e2.need + ' 按钮=' + e2.hasBtn);
+    T(aU.errors.length === 0 && aF.errors.length === 0, 'E 零页面报错',
+      aU.errors.concat(aF.errors).join(' | ').slice(0, 200) || 'clean');
+    await aF.ctx.close();
+  }
+
   await browser.close();
   console.log(fail === 0 ? 'UI_TRIB_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_TRIB_FAILED ' + fail);
   process.exit(fail === 0 ? 0 : 1);

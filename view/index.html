@@ -66,6 +66,18 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   }
   .wrap { max-width: 480px; margin: 0 auto; }
+  /* ── 滚动条（界面美化 · 第十九批）：细身 + 全圆角 + 无箭头 + 透明轨道，滑块用主色描一圈透明边
+   *    做成「内缩的胶囊」，hover 时变粗——只用既有主题变量，零新色（暗色主题随 --xhub-* 自动换肤）。
+   * shortcut: 只写 `::-webkit-scrollbar`（宿主 x-hub 与走查用的 Edge 都是 Chromium）；
+   *           Firefox 需另加 `scrollbar-color`，但那条会让 Chromium 改走标准渲染、反把本套样式废掉 ⇒ 刻意不并存。 */
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--primary); border: 3px solid transparent; border-radius: 99px;
+    background-clip: padding-box; min-height: 34px;
+  }
+  ::-webkit-scrollbar-thumb:hover { border-width: 2px; }
+  ::-webkit-scrollbar-button, ::-webkit-scrollbar-corner { width: 0; height: 0; display: none; }
   .panel {
     background: var(--surface); border: 1px solid var(--line);
     border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
@@ -121,6 +133,9 @@
   .tcard.neg .tname { color: var(--bad); }
   .tcard .teff { margin: 4px 0; color: var(--ink); }
   .tcard .tdesc { color: var(--ink-3); font-size: 12px; }
+  /* 洗髓浮层（v1.8 §十）：卡面对象即按钮（data-act 走全局派发），选中态描主色环 */
+  .tcard.pickable { cursor: pointer; }
+  .tcard.pick { border-color: var(--primary); box-shadow: 0 0 0 2px var(--brand-soft); }
   .corner { position: absolute; top: -7px; right: 8px; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--primary); color: #fff; white-space: nowrap; }
   :root[data-xhub-theme="dark"] .corner { color: #1c1a12; }
   .corner.amp { right: auto; left: 8px; background: var(--good); color: #fff; }
@@ -208,7 +223,7 @@
    * ≥720px 侧栏媒体查询（flex-direction:column + align-items:stretch）覆盖本规则，不受影响。
    * 合并页取三字标签「法与器」正是以本修复为前提（否则窄屏截成「法…」比原两字更糟）。 */
   .tabbar { display: flex; gap: 4px; padding: 8px 0 0; overflow-x: auto; overflow-y: hidden;
-    -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+    -webkit-overflow-scrolling: touch; }   /* scrollbar-width 已摘：Chromium 一见它就走标准渲染，把本套 ::-webkit-scrollbar 样式整个废掉 */
   .tabbar button { flex: 0 0 auto; min-width: 52px; min-height: 44px; padding: 8px 8px; font-size: 12px; border-radius: 8px; position: relative;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tabbar button.on { border-color: var(--primary); color: var(--primary); background: var(--brand-soft); }
@@ -522,7 +537,7 @@
   .logline.ev { white-space: pre-line; line-height: 1.65; }
   .logline.ev .ts { margin-right: 6px; }
 
-  /* ── 批 2 · B4 功法页：双维分组 / 独占剪影 / 三态标 / 待重修 ── */
+  /* ── 批 2 · B4 功法页：双维分组 / 独占剪影 / 三态标（「待重修」金标随第廿五批撤除）── */
   .grouper { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin: 12px 0 6px; }
   .gseg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
   .gseg span { font-size: 11px; padding: 2px 10px; cursor: pointer; color: var(--ink-2); }
@@ -533,8 +548,6 @@
   .gchip.on { border-color: var(--primary); color: var(--primary); background: var(--brand-soft); }
   .resetbanner { border: 1px dashed var(--sq-karma-right); border-radius: 10px; padding: 8px 11px;
     margin: 8px 0; font-size: 11.5px; color: var(--sq-karma-right); background: var(--well); line-height: 1.65; }
-  .goldmark { color: var(--sq-karma-right); border: 1px solid var(--sq-karma-right); border-radius: 4px;
-    font-size: 9.5px; padding: 0 4px; margin-left: 5px; vertical-align: 1px; white-space: nowrap; }
   .tagok { color: var(--good); border: 1px solid var(--good); border-radius: 4px;
     font-size: 9.5px; padding: 0 4px; margin-left: 5px; vertical-align: 1px; white-space: nowrap; }
   .daoline { color: var(--primary); }
@@ -730,6 +743,9 @@
    * 抬到 68（> 演出层 64/65、< toasts 70），任何浮层内触发的确认都浮在触发者之上。 */
   #modal-confirm { z-index: 68; }
   .modal { width: min(360px, calc(100vw - 48px)); max-height: 80vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; backdrop-filter: blur(8px); }
+  /* 角色浮层单独加宽（2026-10-12）：360px 内宽只有 324px，天赋卡（minmax 130px）排不下三列 ⇒ 第三枚掉到次行；
+   * 取创角「观天赋」屏同一档 480px（= .wrap 上限），三列卡阵与创角一致；窄屏仍按视口收拢，其它浮层不受影响 */
+  #modal-role .modal { width: min(480px, calc(100vw - 32px)); }
   .modal h2 { margin: 0 0 8px; font-size: 15px; }
   .modal p { margin: 0 0 14px; color: var(--ink-2); }
   .modal .branch { display: block; width: 100%; text-align: left; margin: 8px 0; }
@@ -1051,7 +1067,24 @@
     <div class="cards" id="mr-talents" style="margin-top:10px"></div>
     <div class="row between">
       <button id="mr-karma"></button>
+      <button id="mr-wash" class="hide" data-act="washOpen"></button>
       <button id="mr-close" class="primary"></button>
+    </div>
+  </div>
+</div>
+
+<!-- 洗髓浮层（天赋池设计 v1.8 §十 · 洗髓批）：三格择一替换 + 三候选择一 → 换骨 -->
+<div id="modal-talentwash" class="mask hide">
+  <div class="modal">
+    <h2 id="tw-title"></h2>
+    <p id="tw-sub" class="hint"></p>
+    <p class="hint" id="tw-pick-label"></p>
+    <div class="cards" id="tw-slots"></div>
+    <p class="hint" id="tw-cand-label"></p>
+    <div class="cards" id="tw-cands"></div>
+    <div class="row between">
+      <button id="tw-close"></button>
+      <button id="tw-ok" class="primary" data-act="washOk"></button>
     </div>
   </div>
 </div>
@@ -1440,6 +1473,14 @@
     box.appendChild(el);
     setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 3000);
   }
+  /* 动作处自弹提示（第十九批 · 用户报「点登门拜访弹两条」）：拜访 / 赠丹 / 赎回三处的 toast
+   * 文案本来就比引擎那条日志更具体（结识 / 升档 / 同道相投…），旧的「文本全等」去重永远对不上
+   * ⇒ 下一个 tick 又把日志末条弹一遍 = 同一次动作两条提示。此函数在弹之前把当前末条记为已呈报。 */
+  function toastAction(text) {
+    var wA = state.worlds[wid()];
+    ui.announcedLogKey = (wA && wA.log) ? logKeyOf(wA.log) : '';
+    toast(text);
+  }
 
   /* 轻震反馈（未结缘格 / 缘尽格 / 未录格共用）：可感知但无信息（交互说明 ★） */
   function nudgeEl(elx) {
@@ -1714,7 +1755,10 @@
       card.innerHTML =
         '<span class="wstatus">' + esc(SQ.t(coming ? 'world.status.coming' : 'world.status.live', null, w.id)) + '</span>' +
         '<div class="wname">' + esc(coming ? SQ.t('world.' + w.id + '.name', null, w.id) : (draft.worldNames[w.id] || '')) + '</div>' +
-        '<div class="wtags">' + esc(SQ.t('world.' + w.id + '.name', null, w.id)) + (tags ? ' · ' + esc(tags) : '') + '</div>';
+        /* 副行只放「还多出来的信息」：live 卡的 .wname 是随机界名，故副行要带上界系名（玄幻修仙 · 标签…）；
+         * coming 卡的 .wname 已经是界系名，副行再抄一遍就是重复排字（第二十批克苏鲁入列后 4/6 张卡都这样）*/
+        (coming ? (tags ? '<div class="wtags">' + esc(tags) + '</div>' : '')
+                : '<div class="wtags">' + esc(SQ.t('world.' + w.id + '.name', null, w.id)) + (tags ? ' · ' + esc(tags) : '') + '</div>');
       if (!coming) {
         card.addEventListener('click', function () {
           draft.worldId = w.id;
@@ -1891,23 +1935,15 @@
     return String(Math.floor(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 
-  /* ── 游戏时间（v2.3）：1 游戏日 = 现实 1 秒，自入世（profile.createdAt）起算；
-   * 12 月 × 30 日 = 360 日/年；起始年 = ws.calYear（创角随机 1~9000）。
-   * 显示名 = 世界名去尾字（罗云州 → 罗云历…）；createdAt 缺失时返回空串（旧档兜底）── */
+  /* ── 游戏时间（v2.3）：算式与显示名口径**已上移到 core**（`SQ.gameDateOf` / `SQ.gameDateStr`，
+   * 第廿八批）——引擎侧的人生传记也用它，视图这里只留一层取当前档的薄壳，别留第二套历法。
+   * 1 游戏日 = 现实 1 秒，自入世（profile.createdAt）起算；12 月 × 30 日 = 360 日/年；
+   * 起始年 = ws.calYear（创角随机 1~9000）；createdAt 缺失时返回空串（旧档兜底）── */
   function gameDateOf(ts) {
-    var p = state.profile, w = ws();
-    if (!p || !p.createdAt || !w) return null;
-    var days = Math.max(0, Math.floor((ts - p.createdAt) / 1000));
-    var y = (w.calYear || 1) + Math.floor(days / 360);
-    var rem = days % 360;
-    return { y: y, m: Math.floor(rem / 30) + 1, d: (rem % 30) + 1 };
+    return SQ.gameDateOf(state.profile, ws(), ts);
   }
   function gameDateStr(ts) {
-    var g = gameDateOf(ts);
-    if (!g) return '';
-    var nm = state.profile.worldName || '';
-    if (nm.length >= 2) nm = nm.slice(0, -1);   /* 罗云州 → 罗云（去世界后缀字） */
-    return t('calendar.date', { name: nm, y: g.y, m: g.m, d: g.d });
+    return SQ.gameDateStr(state.profile, ws(), ts, state.profile && state.profile.worldId);
   }
 
   /* ── Tab 1 修行 ── */
@@ -2170,7 +2206,7 @@
         esc(t('skill.' + id + '.name')) +
         ' <span class="tierbadge ' + artTierCls(a) + '">' + esc(t('skill.tier.' + a.tier)) + '</span>' +
         (isMain ? ' <span class="special-mark">' + esc(t('arts.main')) + '</span>' : '') +
-        ' <span class="hint">Lv' + lv + (lv === 0 ? ' <span class="goldmark">' + esc(t('arts.reset')) + '</span>' : '') + '</span></div>';
+        ' <span class="hint">Lv' + lv + '</span></div>';
       h += '<div class="meta">' + esc(t('skill.' + id + '.desc')) + (lv > 0 ? ' ×' + lv : '') + '</div>';
       h += '<div class="meta"><span class="special-mark">' + esc(t('arts.special')) + ' · ' + t('special.' + a.special.pool + '.name') + '</span> · ' +
         esc(t('skill.nurture.' + a.attr)) + '</div>';
@@ -2284,6 +2320,13 @@
     }
     if (need != null) {
       h += '<div class="kv"><span>' + esc(t('idle.next', { realm: t('realm.' + (w.realm + 1)), n: SQ.fmt(Math.max(0, need - w.qi)), res: t('resource.primary') })) + '</span></div>';
+      /* 渡劫倒计时（第十八批 · 用户令「修行页要让人知道大约多久后可以渡劫」）：**纯派生显示量**——
+       * 差额取 `needEffOf`（与手动渡劫按钮同一口径，不是 capOf 那个修为上限），增速取 `effRate`（与 settle 同一个式子），
+       * 格式复用拜访/飞升冷却那一个 `timeLeftText`；不入存档、不改任何结算。增速为 0（如离线效率算不进在线口径）时不印。 */
+      if (need > w.qi && rate > 0) {
+        h += '<div class="kv hint"><span>' + esc(t('idle.trib.eta',
+          { time: timeLeftText((need - w.qi) / rate * 1000) })) + '</span></div>';
+      }
       var ti = p.worldSystems.tribInfo(w, p, d, m);
       if (ti) {
         h += '<div class="kv"><span>' + esc(t('tribulation.estimate', { p: Math.round(ti.p * 100) })) + '</span>' +
@@ -2603,7 +2646,8 @@
     $('tab-combat').innerHTML = h;
   }
 
-  /* ── Tab 3 功法（批 2 · B4：主修角标 + 待重修金标 + 品阶×阵营双维分组 + 架上三态 + 独占剪影）── */
+  /* ── Tab 3 功法（批 2 · B4：主修角标 + 品阶×阵营双维分组 + 架上三态 + 独占剪影；
+   * 「待重修」金标与渡劫 24h 横幅随第廿五批撤除——渡劫不再清功法等级）── */
   /* 相对时间（百器录首获 / 回看首遇共用） */
   function timeAgo(ts) {
     if (!isFinite(ts)) ts = Date.now();            /* 防脏字段：NaN/undefined 一律按「此刻」计 */
@@ -2766,19 +2810,14 @@
       '</span><span class="sub">' + esc(t(subKey)) + '</span></div>';
   }
 
-  /* ③ 功法段（原 renderArts 主体逐段照搬：待重修横幅 / 槽位抉择横幅 / 修习槽 6 格 /
+  /* ③ 功法段（原 renderArts 主体逐段照搬：槽位抉择横幅 / 修习槽 6 格 /
    * 自行领悟 / 已学会 / 品阶×阵营分组切换 / 功法图鉴 / 融合坛） */
   function artsBody() {
     var w = ws(), m = mods(), d = D(), p = pack();
     var am = p.artsMap();
-    /* 「待重修」金标：纯等级制——已装备功法等级为 0 即挂标，修习练回（非 0）即摘标（纯视觉，不动数值）。
-     * 顶部横幅仍是渡劫成功后的 24h 预期管理（lastSuccessTs 上界兜底），与金标解耦。 */
-    var lsTs = (w.tribulation && w.tribulation.lastSuccessTs) || 0;
-    var inReset = lsTs > 0 && (Date.now() - lsTs < 86400000);
-    var pendingReset = function (id) { return !!id && (w.artsLevels[id] || 0) === 0; };
-    var anyPending = inReset && w.artsSlots.some(pendingReset);
+    /* 「待重修」金标与渡劫 24h 横幅随第廿五批撤除：渡劫不再清功法等级 ⇒ 两者语义失效。
+     * 词表键 `arts.reset` / `ui.arts.reset_hint` 按用户裁定保留不删（成孤儿，登记 N32 ②）。 */
     var h = '';
-    if (anyPending) h += '<div class="resetbanner">' + esc(t('ui.arts.reset_hint')) + '</div>';
     /* 满槽抉择态横幅（批 2·B4）：正典文案 + 取消；**原位替换入口渲染在下方每个槽卡内**
      * （`slotReplace` + `data-r`）——此处只留提示不留按钮，是因为「替换哪一格」必须由玩家逐格点定。 */
     if (ui.slotPickFor) {
@@ -2802,8 +2841,7 @@
              (isMain ? ' data-mainart="1"' : '') + ' data-slot="' + i + '">' +
              (isMain ? '<span class="corner maincorner">' + esc(t('arts.main')) + '</span>' : '') +
              '<div class="tname">' + esc(t('skill.' + id + '.name')) + '</div>' +
-             '<div class="teff">Lv' + lvS +
-               (pendingReset(id) ? ' <span class="goldmark">' + esc(t('arts.reset')) + '</span>' : '') + '</div>' +
+             '<div class="teff">Lv' + lvS + '</div>' +
              '<div class="tdesc">' + esc(t('special.' + a.special.pool + '.name')) + '</div>' +
              /* 精通迷你条（修行状态批）：主修（第 1 位）增速最高 */
              '<div class="tpract"><span class="pbar"><i style="width:' +
@@ -2940,7 +2978,7 @@
       h += '<div class="hint">' + esc(t('arts.codex.shelf')) + '</div>';
       /* 待修习架功法：复检未过，先弃置止损（走查 v2.8 §1——弃置动作随卡走） */
       h += '<div class="acts"><button data-act="salvageArt" data-v="' + id + '">' +
-        esc(t('arts.discard')) + ' · +' + esc(SQ.fmt(SQ.Arts.dupValue(w, pack(), d0, id))) + ' ' + esc(t('resource.currency')) + '</button></div>';
+        esc(t('arts.discard')) + ' · +' + esc(SQ.fmt(SQ.Arts.salvageValue(w, pack(), d0, id))) + ' ' + esc(t('resource.currency')) + '</button></div>';
     } else {
       h += '<div class="hint">' + esc(t('arts.state.unowned', { via: via })) + '</div>';
       var lacks = artLackTexts(id);
@@ -3378,8 +3416,14 @@
   /* 道友名录：浮层（openBonds）与「道友」页（势力批 v2.4 §9）共用同一套渲染；
    * dest = 'tab' 渲染进 #tab-bonds，缺省 = 浮层 #mbd-body。 */
   function renderBonds(dest) {
-    if (dest) ui.bondsDest = dest;
-    var isTab = ui.bondsDest === 'tab';
+    /* dest = 「用户最后打开的是哪一个容器」，只由用户动作改写：`renderTab()` 的秒级 tick 也带 'tab'
+     * 走进这里，若让它顺手改写 ui.bondsDest，**浮层开着时容器就被偷换成 'tab'** ⇒ 拜访 / 赠丹成功后
+     * 重渲渲到背后的道友页上，屏上那颗按钮停在旧态（第十九批 · 用户报「点完还亮着，关掉重开才显冷却」）。
+     * 浮层可见期间不夺。 */
+    if (dest && (dest !== 'tab' || $('modal-bonds').classList.contains('hide'))) ui.bondsDest = dest;
+    /* 容器由**本次调用的 dest** 决定，不由归属决定：否则 tick 带着 'tab' 进来时，
+     * 归属被守住（仍 = 'modal'）却把名录渲进浮层里，等于把 bug 换了个方向（走查 A4 即此形）*/
+    var isTab = (dest || ui.bondsDest) === 'tab';
     var w = ws(), p = pack(), d = D();
     var g = SQ.Bonds.guardianOf(w, p, d);
     var evil = p.worldSystems.tierOf(w) === 'evil';
@@ -3551,27 +3595,29 @@
   function giftablePills(w, d) {
     var al = w && w.alchemy, out = [];
     if (!al || !al.pills) return out;
-    var AP = (d.ALCHEMY || {}).APILLS || {};
     for (var k in al.pills) {
       if (!(al.pills[k] > 0)) continue;
-      var rune = /_rw$/.test(k);
-      var def = AP[rune ? k.replace(/_rw$/, '') : k];
-      if (!def || def.once) continue;
-      out.push({ key: k, n: al.pills[k], rune: rune });
+      /* 两族合一（第十七批）：可赠与否只认引擎那一个判据（pillDefOf.nogift）——
+       * 底牌族 = 自产破障 / 镇劫 / 洗髓 + 成品破障，视图不再自带一份名单（两份名单必然漂） */
+      var pd = SQ.Alchemy.pillDefOf(D(), k);
+      if (!pd || pd.nogift) continue;
+      out.push({ key: k, n: al.pills[k], rune: pd.rune });
     }
     return out;
   }
-  /* 赠丹名义增量（丹方 tier → BOND_GIFT_BY_TIER，丹纹 ×倍率取整）；调用方再对余量取 min */
+  /* 赠丹名义增量：档次一律问引擎那一个判据 `SQ.Alchemy.pillDefOf`（两族合一 · 第十七批）。
+   * 旧写法在这里**另摆了一份只查 RECIPES 的名单** ⇒ 成品丹（D.PILLS）查不到 tier ⇒ 增量 0 ⇒ 赠丹 chip
+   * 被整颗跳过；引擎侧 bonds.js 用 pd.tier 是给的，#297(f) 因此全绿 —— 又是一处「引擎对、屏上错」。 */
   function pillGiftGain(d, key) {
-    var rune = /_rw$/.test(key);
-    var base = rune ? key.replace(/_rw$/, '') : key;
-    var tierName = null;
-    (((d.ALCHEMY || {}).RECIPES) || []).forEach(function (r) {
-      if (r && r.pill === base && r.tier) tierName = r.tier;
+    var pd = SQ.Alchemy.pillDefOf(d, key);
+    if (!pd) return 0;
+    var tierName = pd.tier || null;
+    if (!tierName) (((d.ALCHEMY || {}).RECIPES) || []).forEach(function (r) {
+      if (r && r.pill === pd.id && r.tier) tierName = r.tier;
     });
     var tbl = d.BOND_GIFT_BY_TIER || {};
     var n0 = tbl[tierName] != null ? tbl[tierName] : 0;
-    return rune ? Math.round(n0 * (d.BOND_GIFT_RUNE_MULT != null ? d.BOND_GIFT_RUNE_MULT : 1.5)) : n0;
+    return pd.rune ? Math.round(n0 * (d.BOND_GIFT_RUNE_MULT != null ? d.BOND_GIFT_RUNE_MULT : 1.5)) : n0;
   }
   /* 今日剩余可赠次数（与引擎同口径：Alchemy.gameDayOf，1 游戏日 = 1 现实秒）*/
   function giftLeft(w, d) {
@@ -3602,7 +3648,8 @@
       var g = Math.min(pillGiftGain(d, pl.key), head);
       if (!(g > 0)) return;
       chips += '<button type="button" data-act="bondGift" data-v="' + id + '" data-c="' + pl.key + '"' +
-        (left > 0 ? '' : ' disabled') + '>' + esc(t('alchemy.pill.' + pl.key + '.name')) +
+        (left > 0 ? '' : ' disabled') + '>' + esc(t((SQ.Alchemy.pillDefOf(d, pl.key) || {}).nameKey ||
+          'alchemy.pill.' + pl.key + '.name')) +   /* 两族名各按本族键族（成品丹是 `pill.*`，M4）*/
         '<span class="gv">+' + g + '</span><span class="st">' + esc(t('bond.gift.stock', { n: pl.n })) + '</span></button>';
     });
     if (!chips) return h + '<div class="dd hint">' + esc(t('bond.gift.fail.max')) + '</div></div>';
@@ -3653,7 +3700,7 @@
   $('mbd-close').addEventListener('click', function () {
     $('modal-bonds').classList.add('hide');
     ui.bondDetail = null;
-    if (ui.bondsDest === 'tab') renderBonds('tab');   /* 从道友页点开的详情：关浮层后还原名录页 */
+    if (ui.tab === 'bonds') renderBonds('tab');   /* 从道友页点开的详情：关浮层后还原名录页（此刻浮层已 hide，容器归属可以交还给 tab） */
   });
   $('mbd-title').addEventListener('click', function () {
     /* 显式指明浮层容器：秒级 tick 会把 bondsDest 翻成 'tab'，无参调用会误渲到道友页 */
@@ -3839,47 +3886,65 @@
     return (aff ? ' ' + aff : '') + (cat ? ' ' + cat : '');
   }
 
+  /* 货架件名与价格文案的唯一取数口（本批立 · 三处同源：货架卡 / 购单 CONFIRM / 商人特席）。
+   * 立因：CONFIRM 那处自抄了一套三元式且没跟上 pack 子货（材料包/丹方/图纸/丹炉成品），
+   * 买「丹炉成品」弹出「确认购入『灵石包』？价格 修为 0」——名称取 `shop.pack.name`、
+   * 价格取根本不存在的 `it.qiPrice`（`fmt(undefined)` = 0）。 */
+  function shopGoodName(it) {
+    if (it.kind === 'gear' && it.gear) return it.gear.name;
+    if (it.kind === 'pill') return t('pill.' + it.ref + '.name');
+    if (it.kind === 'arts') return t('skill.' + it.ref + '.name');
+    if (it.kind === 'treasure') return t('treasure.' + it.ref + '.name');
+    var gp = it.pack;
+    if (gp) return gp.type === 'mat' ? t('alchemy.good.mat')
+      : gp.type === 'recipe' ? t('alchemy.good.recipe', { name: t('alchemy.recipe.' + gp.ref + '.name') })
+      : gp.type === 'bp' ? t('alchemy.good.bp', { name: t('alchemy.bp.' + gp.ref + '.name') })
+      : t('alchemy.good.furnace');
+    return t('shop.pack.name');
+  }
+  /* 只有**灵石包**这一种货耗修为（其余含 pack 子货一律按灵石计价）⇒ 判据取 `!it.pack`，
+   * 不是取 `kind === 'pack'`（后者把子货也算成灵石包）。 */
+  function shopPriceTxt(it) {
+    return (it.kind === 'pack' && !it.pack)
+      ? t('shop.qiprice', { p: SQ.fmt(it.qiPrice) })
+      : t('shop.price', { n: SQ.fmt(it.price) }) + ' ' + t('resource.currency');
+  }
+
   function shopItemRow(it, idx, black, w) {
     var h = '<div class="lrow shopcard' + (it.sold ? ' locked' : '') + '">';
     if (it.kind === 'gear') {
-      h += '<div class="nm">' + esc(it.gear.name) + shopTagHtml(it) +
+      h += '<div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) +
            (it.gear.special ? ' <span class="special-mark">' + esc(t('gear.special.' + it.gear.special)) + '</span>' : '') + '</div>';
       h += '<div class="meta">' + esc(statLine(it.gear)) + '</div>';
       if (!SQ.Gear.canWear(it.gear, w)) h += '<div class="meta red">' + esc(t('gear.req', { realm: t('realm.' + it.gear.reqs.realm) })) + '</div>';
     } else if (it.kind === 'pill') {
-      h += '<div class="nm">' + esc(t('pill.' + it.ref + '.name')) + shopTagHtml(it) + '</div>';
+      h += '<div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) + '</div>';
       h += '<div class="meta">' + esc(t('pill.' + it.ref + '.desc')) + '</div>';
     } else if (it.kind === 'arts') {
       var a = pack().artsMap()[it.ref];
       /* 情报角标（势力全录卷 §9.9 · B4）：intelArts 条目在坊市显示「情报」角标 + 豁免提示行 */
       var intelS = !!(w.intelArts && w.intelArts[it.ref]);
-      h += '<div class="nm"><span class="align-sym align-' + a.alignment + '">' + esc(t('align.sym.' + a.alignment)) + '</span>' + esc(t('skill.' + it.ref + '.name')) +
+      h += '<div class="nm"><span class="align-sym align-' + a.alignment + '">' + esc(t('align.sym.' + a.alignment)) + '</span>' + esc(shopGoodName(it)) +
         (intelS ? ' <span class="tierbadge t2">' + esc(t('faction.intel.tag')) + '</span>' : '') + shopTagHtml(it) + '</div>';
       h += '<div class="meta">' + esc(t('skill.' + it.ref + '.desc')) + '</div>';
       if (intelS) h += '<div class="meta" style="color:var(--sq-tier-2)">' + esc(t('faction.intel.ignore')) + '</div>';
     } else if (it.kind === 'treasure') {
       var td = SQ.Treasures.def(pack(), it.ref);
-      h += '<div class="nm">' + esc(t('treasure.' + it.ref + '.name')) + shopTagHtml(it) + '</div>';
+      h += '<div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) + '</div>';
       h += '<div class="meta">' + esc(t('treasure.grade.' + td.grade)) + ' · ' + esc(t('treasure.' + it.ref + '.desc')) + '</div>';
     } else if (it.pack) {
       /* 炼丹炼器子货（材料包/丹方/图纸/丹炉成品 · §2.5 pack 格二级权重） */
       var gp = it.pack;
-      var gnm = gp.type === 'mat' ? t('alchemy.good.mat')
-        : gp.type === 'recipe' ? t('alchemy.good.recipe', { name: t('alchemy.recipe.' + gp.ref + '.name') })
-        : gp.type === 'bp' ? t('alchemy.good.bp', { name: t('alchemy.bp.' + gp.ref + '.name') })
-        : t('alchemy.good.furnace');
-      h += '<div class="nm">' + esc(gnm) + shopTagHtml(it) + '</div>';
+      h += '<div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) + '</div>';
       h += '<div class="meta">' + esc(gp.type === 'recipe' ? t('alchemy.recipe.' + gp.ref + '.name') : (gp.type === 'bp' ? t('alchemy.bp.' + gp.ref + '.desc') : (gp.type === 'mat' ? t('alchemy.shopdesc.mat') : t('alchemy.furnace.desc')))) + '</div>';
     } else {
-      h += '<div class="nm">' + esc(t('shop.pack.name')) + shopTagHtml(it) + '</div>';
+      h += '<div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) + '</div>';
       h += '<div class="meta">' + esc(t('shop.pack.desc')) + ' → ' + SQ.fmt(it.stones) + ' ' + esc(t('resource.currency')) + '</div>';
     }
     if (it.sold) {
       h += '<div class="acts"><button disabled>' + esc(t('shop.sold')) + '</button></div>';
     } else {
-      var priceTxt = (it.kind === 'pack' && !it.pack)
-        ? t('shop.qiprice', { p: SQ.fmt(it.qiPrice) })
-        : t('shop.price', { n: SQ.fmt(it.price) }) + ' ' + t('resource.currency');
+      var priceTxt = shopPriceTxt(it);
       /* 道友折扣可视化（B9 · 坊市稿）：柳三变「消息灵通」在位 → 划线参考原价 + 绿字生效行。
        * 原价 = 现价按当前乘区反推去掉 bond 份额（同一 mods 快照，参考口径如实标注）。 */
       var mS = mods();
@@ -4184,13 +4249,11 @@
         '<p class="hint" style="margin:2px 0 6px">' + esc(t('shop.merchant.hint')) + '</p><div class="shopgrid">';
       (merch.items || []).forEach(function (it, i) {
         if (it.sold) { h += '<div class="lrow shopcard locked"><div class="nm">—</div><div class="meta">' + esc(t('shop.sold')) + '</div></div>'; return; }
-        var nm = it.kind === 'gear' ? it.gear.name
-          : it.kind === 'arts' ? t('skill.' + it.ref + '.name')
-          : t('pill.' + it.ref + '.name');
         /* 词缀 + 分类一律走 `shopTagHtml`（本批起与货架同一函数）——旧写法在此另拼一套，
-         * 结果特席上「法器有品阶、功法没有、丹药一个都没有」，同一件货在两个货架上标签不一致。 */
-        h += '<div class="lrow shopcard"><div class="nm">' + esc(nm) + shopTagHtml(it) + '</div>' +
-          '<div class="meta">' + esc(SQ.fmt(it.price)) + ' ' + esc(t('resource.currency')) + '</div>' +
+         * 结果特席上「法器有品阶、功法没有、丹药一个都没有」，同一件货在两个货架上标签不一致。
+         * 名与价同走 shopGoodName / shopPriceTxt（特席旧式的三元式不含 treasure ⇒ 法宝会错显成丹药名）。 */
+        h += '<div class="lrow shopcard"><div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) + '</div>' +
+          '<div class="meta">' + esc(shopPriceTxt(it)) + '</div>' +
           '<div class="acts"><button data-act="buyMerchant" data-v="' + i + '"' + (w.stones < it.price ? ' disabled' : '') + '>' +
           esc(t('shop.buy')) + '</button></div></div>';
       });
@@ -5060,8 +5123,12 @@
     }
     var metaT = (state.meta && state.meta.titles) || [];
     if (metaT.length) {
-      h += '<div class="kv"><span class="hint">' + esc(t('codex.ui.titles')) + '</span><span>' +
-        metaT.slice(-6).map(function (id) { return esc(t('codex.title.' + id)); }).join(' · ') + '</span></div>';
+      /* 称号墙：改与成就页同款 chips（一枚称号整块不换行）——旧 `.kv` 写法把「称号墙」标签与称号串
+       * 一起塞进 flex 两端对齐的一行里，窄浮层下标签会被从中间截断（"墙" 独自掉到次行） */
+      h += '<p class="hint" style="margin:0 0 4px">' + esc(t('codex.ui.titles')) + '</p>' +
+        '<div class="chips">' + metaT.slice(-6).map(function (id) {
+          return '<span class="tdtitle">' + esc(t('codex.title.' + id)) + '</span>';
+        }).join('') + '</div>';
     }
     h += '<p class="hint">' + esc(t('role.attrs.title')) + '</p>';
     d.ATTRS.forEach(function (id) {
@@ -5098,10 +5165,84 @@
     (state.profile.talents || []).forEach(function (el) { tb.appendChild(talentCard(el, wid())); });
     $('mr-karma').textContent = t('karma.system') + ' →';
     $('mr-close').textContent = t('ui.close');
+    /* 洗髓入口（v1.8 §十）：本世有预算才露出，手中无缘时置灰（灰置而非隐藏——玩家要看得见「还有这条路」） */
+    var swapCap = (D().TALENT_SWAP || {}).PER_LIFE || 0;
+    var wb = $('mr-wash');
+    if (swapCap > 0) {
+      wb.classList.remove('hide');
+      wb.textContent = t('talent.swap.entry', { owed: w.talentOwed || 0, cap: swapCap });
+      wb.disabled = !((w.talentOwed || 0) > 0);
+    } else wb.classList.add('hide');
     $('modal-role').classList.remove('hide');
   }
   $('mr-close').addEventListener('click', function () { $('modal-role').classList.add('hide'); });
   $('mr-karma').addEventListener('click', function () { $('modal-role').classList.add('hide'); showKarma(); });
+
+  /* ── 洗髓浮层（天赋池设计 v1.8 §十 · 洗髓批）：三格择一替换 + 三候选择一 ──
+   * 候选只掷一次并存在 washDraft 里（选格不重掷，否则「看着换」变成「赌着换」）；
+   * 真正改档只走 SQ.Talents.applySwap 单口，视图不自带判定。 */
+  var washDraft = { slot: -1, cand: -1, cands: [] };
+  function washCard(el, i, act, picked) {
+    var d = talentCard(el, wid());
+    d.setAttribute('data-act', act);
+    d.setAttribute('data-v', i);
+    d.className += ' pickable' + (picked ? ' pick' : '');
+    return d;
+  }
+  function renderWash() {
+    var sl = $('tw-slots');
+    sl.innerHTML = '';
+    (state.profile.talents || []).forEach(function (el, i) { sl.appendChild(washCard(el, i, 'washSlot', i === washDraft.slot)); });
+    var cb = $('tw-cands');
+    cb.innerHTML = '';
+    washDraft.cands.forEach(function (el, i) { cb.appendChild(washCard(el, i, 'washPick', i === washDraft.cand)); });
+    $('tw-ok').disabled = !(washDraft.slot >= 0 && washDraft.cand >= 0);
+  }
+  function showWash() {
+    var w = ws(), cap = (D().TALENT_SWAP || {}).PER_LIFE || 0;
+    if (!(cap > 0)) return;
+    if (!((w.talentOwed || 0) > 0)) { toast(t('talent.swap.none')); return; }
+    washDraft.cands = SQ.Talents.candidates(wid(), state.profile, 3);
+    washDraft.slot = -1; washDraft.cand = -1;
+    $('tw-title').textContent = t('talent.swap.title');
+    $('tw-sub').textContent = t('talent.swap.sub', {
+      n: Math.max(0, cap - (w.talentUsed || 0)), cap: cap, owed: w.talentOwed || 0
+    });
+    $('tw-pick-label').textContent = t('talent.swap.pick');
+    $('tw-cand-label').textContent = t('talent.swap.cand');
+    $('tw-close').textContent = t('ui.cancel');
+    $('tw-ok').textContent = t('talent.swap.ok');
+    renderWash();
+    $('modal-role').classList.add('hide');
+    $('modal-talentwash').classList.remove('hide');
+  }
+  async function doWash() {
+    var cand = washDraft.cands[washDraft.cand];
+    if (washDraft.slot < 0 || !cand) { toast(t('talent.swap.need')); return; }
+    var res = null;
+    await SQ.mutate(state, function (s) {
+      var id = s.profile.worldId;
+      res = SQ.Talents.applySwap(id, s.profile, s.worlds[id], SQ.Worlds[id].pack.data, washDraft.slot, cand.id);
+      if (res.ok) SQ.Log.push(s.worlds[id], 'sys', SQ.t('talent.swap.done', {
+        from: SQ.t('talent.' + res.from + '.name', null, id),
+        to: SQ.t('talent.' + res.to + '.name', null, id)
+      }, id));
+    });
+    if (!res || !res.ok) {
+      /* 引擎拒因只有 none（无缘）与形状类（格号/候选非法、撞已持有）两类 ⇒ 前者说「手中没有洗髓缘」，
+       * 后者属档面异常，一律回「本世之数已尽」并重的渲染，绝不打裸英文 */
+      toast(t(res && res.reason === 'none' ? 'talent.swap.none' : 'talent.swap.cap'));
+      renderAll();
+      return;
+    }
+    $('modal-talentwash').classList.add('hide');
+    toast(t('talent.swap.done', {
+      from: t('talent.' + res.from + '.name', null, wid()),
+      to: t('talent.' + res.to + '.name', null, wid())
+    }));
+    renderAll();
+  }
+  $('tw-close').addEventListener('click', function () { $('modal-talentwash').classList.add('hide'); });
 
   /* ── karma 浮层（F5：四行构成 + 色带游标 + 差值双提示 + ALIGN_EFFECTS 摘要六行 + 护法行灰置） ── */
   function showKarma() {
@@ -5487,7 +5628,7 @@
   var MASKS = ['modal-role', 'modal-karma', 'modal-offline', 'modal-lock', 'modal-confirm',
     'modal-ledger', 'modal-arts', 'modal-realm', 'modal-gearcodex', 'modal-recall', 'modal-bonds', 'modal-propose',
     'modal-slotpick', 'modal-tiandao', 'modal-decree', 'modal-omens', 'rank-stage', 'modal-matwudao',
-    'modal-heirchoice'];
+    'modal-heirchoice', 'modal-talentwash'];
   document.addEventListener('click', function (e) {
     var el = e.target;
     if (!el.classList || !el.classList.contains('mask')) return;
@@ -5770,7 +5911,7 @@
         (heirLine ? '<div class="hint" style="font-weight:650">' + esc(heirLine) + '</div>' : '') +
         '<button data-act="heirSwitch" style="width:100%;margin-top:6px">' + esc(t('spirit.ui.heir.switch')) + '</button></div>';
     }
-    /* 遗泽商店（价目总表 6600 · 已购置灰不隐藏） */
+    /* 遗泽商店（价目总表 6800 · 已购置灰不隐藏） */
     h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('legacy.ui.shop')) + '</p>';
     h += '<p class="hint" style="margin:0 0 6px">' + esc(t('legacy.ui.shop.hint')) + '</p>';
     h += '<div class="shopgrid">';
@@ -5794,11 +5935,27 @@
      * core.js 容量级① 裁到 10 条——**全库此前零读点**：玩家看得见余额、看不见钱怎么来怎么去。
      * 本节即该账本的常驻面，沿用页内 .lrow 行语域 + 既有 legacy.reason.* 五键，零新键。 */
     var klog = (meta.karmaLog || []).slice().reverse();
+    /* 一次转世结算会以**同一个 ts** 推入十几行（`legacy.js` 的 `applyPreview` 逐明细行 logPush），
+     * 于是轮回页出现整屏一模一样的「转世结算」（2026-10-13 用户报，真机档实测 20 行全是它，
+     * 还把别的 reason 全挤出 20 条窗口）。账本按明细留痕是对的（可复算 ⇒ #197/#295），
+     * **呈现按事件合并**：同 reason + 同 ts 折成一行、金额相加、末尾标 ×N。
+     * shortcut: 合并身份 = reason+ts（同一毫秒的两笔不同结算会被并；结算由玩家点击发起且有
+     * 转世 CD，不成立）。若将来要逐行摆明细，得在 `meta.karmaLog` 里带上明细 key（新增存档
+     * 字段 + 容量 re-anchor），那时再改判据，别现在先写。 */
+    var kgrp = [];
+    klog.forEach(function (l) {
+      var g = kgrp[kgrp.length - 1];
+      if (g && g.reason === l.reason && g.ts === l.ts) {
+        g.delta += l.delta; g.n++;   /* 余额留「先遇见的那条」= 倒序里的最新一笔（链尾），不覆写成链首 */
+        return;
+      }
+      kgrp.push({ ts: l.ts, delta: l.delta, reason: l.reason, balance: l.balance, n: 1 });
+    });
     h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' +
       esc(t('legacy.ui.balance', { n: '' })) + '</p>';
-    if (!klog.length) h += '<p class="hint">' + esc(t('log.empty')) + '</p>';
+    if (!kgrp.length) h += '<p class="hint">' + esc(t('log.empty')) + '</p>';
     h += '<div data-karmalog="1">';
-    klog.forEach(function (l) {
+    kgrp.forEach(function (l) {
       var rk = 'legacy.reason.' + l.reason;
       var rl = t(rk);
       if (rl === rk) rl = t('legacy.reason.fix');   /* 未知 reason 兜底「账本修复」，绝不上屏裸拉丁 */
@@ -5807,7 +5964,8 @@
         var kdt = new Date(l.ts);
         kgt = ('0' + kdt.getHours()).slice(-2) + ':' + ('0' + kdt.getMinutes()).slice(-2);
       }
-      h += '<div class="lrow" data-karmalog-row="' + esc(l.reason) + '"><div class="nm">' + esc(rl) +
+      h += '<div class="lrow" data-karmalog-row="' + esc(l.reason) + '" data-karmalog-n="' + l.n +
+        '"><div class="nm">' + esc(rl) + (l.n > 1 ? esc(' ×' + l.n) : '') +
         (kgt ? ' <span class="hint">' + esc(kgt) + '</span>' : '') + '</div>' +
         '<div class="meta">' + esc((l.delta >= 0 ? '+' : '−') + SQ.fmt(Math.abs(l.delta)) + ' · ' +
           t('legacy.ui.balance', { n: SQ.fmt(l.balance) })) + '</div></div>';
@@ -5952,18 +6110,19 @@
       h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('alchemy.ui.stock', { n: '' })) + '</p>';
       h += '<div class="cardgrid">';
       pillKeys.forEach(function (pk) {
-        var base = pk.replace(/_rw$/, '');
-        var rune = /_rw$/.test(pk);
+        /* 两族合一（第十七批）：自产丹与坊市 / 门中 / 特席 / 残片所得的成品丹同匣同渲染，
+         * 名字与描述各按本族词表键取（pillDefOf 给），徽标分「自炼」/「坊市」两色不新造色、共用 .tierbadge */
+        var pd = SQ.Alchemy.pillDefOf(D(), pk);
+        if (!pd) return;                                    /* 白名单外的脏键不渲染（normalize 已滤，双保险） */
         var stronger = '';
-        var pd = (A.APILLS || {})[base];
-        if (pd && pd.buff) {
-          var liveB = (w.buffs || []).filter(function (b) { return b.field === pd.buff.field && b.mult > pd.buff.mult * (rune ? 2 : 1) && b.until > Date.now(); });
+        if (pd.buff) {
+          var liveB = (w.buffs || []).filter(function (b) { return b.field === pd.buff.field && b.mult > pd.buff.mult * (pd.rune ? 2 : 1) && b.until > Date.now(); });
           if (liveB.length) stronger = ' · ' + t('alchemy.ui.stronger');
         }
-        h += '<div class="lrow carditem"><div class="nm">' + esc(t('alchemy.pill.' + pk + '.name')) +
-          (rune ? ' <span class="special-mark">' + esc(t('alchemy.ui.rune')) + '</span>' : '') +
-          ' <span class="tierbadge t2">' + esc(t('alchemy.ui.selfmade')) + '</span></div>' +
-          '<div class="meta">' + esc(t('alchemy.pill.' + base + '.desc')) + ' ×' + al.pills[pk] + esc(stronger) + '</div>' +
+        h += '<div class="lrow carditem"><div class="nm">' + esc(t(pd.nameKey)) +
+          (pd.rune ? ' <span class="special-mark">' + esc(t('alchemy.ui.rune')) + '</span>' : '') +
+          ' <span class="tierbadge t2">' + esc(t(pd.kind === 'self' ? 'alchemy.ui.selfmade' : 'alchemy.ui.traded')) + '</span></div>' +
+          '<div class="meta">' + esc(t(pd.descKey)) + ' ×' + al.pills[pk] + esc(stronger) + '</div>' +
           '<div class="acts"><button data-act="alDrink" data-v="' + pk + '">' + esc(t('alchemy.ui.drink')) + '</button></div></div>';
       });
       h += '</div>';
@@ -6016,18 +6175,47 @@
     var matIds = Object.keys(w.materials || {});
     if (!matIds.length) h += '<p class="hint">' + esc(t('alchemy.ui.mats.empty')) + '</p>';
     else {
-      h += '<p class="hint" style="margin:0 0 4px">' + esc(t('alchemy.ui.refine.hint')) + '</p><div class="cardgrid">';
+      /* ── 第廿九批（2026-10-13 · 用户：「材料背包中的材料顺序是乱的，应该让用户明白低级材料精炼升级的是哪种
+       * 高级材料，同一条升级线的材料应该要有标识给用户感知到」）──
+       * 引擎的提炼规则是**四档制**（`alchemy.js:groupOf`：z0~2 = 一档 / z3~5 = 二档 / z6~8 = 三档 / z9 = 顶档），
+       * 同材 ×4 → **次档候选池里随机一种** ×1（池 = `SQ.Alchemy.groupIds(D, g+1)`，与 `refineMats` 读同一处）。
+       * 旧背包按 `Object.keys(ws.materials)` 的入账先后排 ⇒ 三档料夹着一档料摆在一起，玩家既看不出线、
+       * 也看不出「这把料炼上去会变成哪几样」。现按 (档, 秘境序, id) 全序排，**逐档分段**：段头写次档与候选种数，
+       * 每枚料挂一枚档标识（同标识 = 同一条升级线）。 */
+      var matMeta = {};
+      ((A && A.MATS) || []).forEach(function (m) { matMeta[m.id] = m; });
+      matIds.sort(function (x1, x2) {
+        var m1 = matMeta[x1] || { z: 0 }, m2 = matMeta[x2] || { z: 0 };
+        var r = SQ.Alchemy.groupOf(d, x1) - SQ.Alchemy.groupOf(d, x2);
+        if (r) return r;
+        /* 悟道石（z = -1）按 groupOf 落顶档卖价，但它不入任何产出池 ⇒ 段内置后，不与仙玉级并排 */
+        r = (m1.z < 0 ? 99 : m1.z) - (m2.z < 0 ? 99 : m2.z);
+        return r || (x1 < x2 ? -1 : (x1 > x2 ? 1 : 0));
+      });
+      h += '<p class="hint" style="margin:0 0 4px">' + esc(t('alchemy.ui.refine.hint')) + '</p>';
+      var curRank = -1;
+      matIds.forEach(function (mid) {
+        var gM = SQ.Alchemy.groupOf(d, mid);
+        if (gM !== curRank) {
+          if (curRank >= 0) h += '</div>';
+          curRank = gM;
+          var nxtN = SQ.Alchemy.groupIds(d, gM + 1).length;
+          h += '<p class="hint" data-matline="' + gM + '" style="margin:8px 0 2px;font-weight:650">' +
+            esc(t('alchemy.ui.mat.rank', { n: gM + 1 })) + ' · ' +
+            esc(nxtN ? t('alchemy.ui.mat.line', { k: A.REFINE_IN || 4, up: gM + 2, p: nxtN })
+              : t('alchemy.ui.mat.line.top', { n: gM + 1 })) + '</p><div class="cardgrid">';
+        }
+        h += '<div class="lrow carditem"><div class="nm">' + esc(t('alchemy.mat.' + mid + '.name')) + ' ×' + w.materials[mid] +
+          ' <span class="catbadge">' + esc(t('alchemy.ui.mat.rank', { n: gM + 1 })) + '</span></div>' +
+          '<div class="meta">' + esc(SQ.fmt(SQ.Alchemy.sellPriceOf(d, mid))) + ' ' + esc(t('resource.currency')) + '/' + esc(t('alchemy.ui.sell')) + '</div>' +
+          '<div class="acts"><button data-act="alSell" data-v="' + mid + '" data-c="1">' + esc(t('alchemy.ui.sell')) + '</button>' +
+          '<button data-act="alSell" data-v="' + mid + '" data-c="0">' + esc(t('alchemy.ui.sellall')) + '</button>' +
+          (gM < 3 ? '<button data-act="alRefine" data-v="' + mid + '"' +
+            ((w.materials[mid] >= (A.REFINE_IN || 4)) ? '' : ' disabled') + '>' + esc(t('alchemy.ui.refine')) + '</button>' : '') +
+          '</div></div>';
+      });
+      h += '</div>';
     }
-    matIds.forEach(function (mid) {
-      h += '<div class="lrow carditem"><div class="nm">' + esc(t('alchemy.mat.' + mid + '.name')) + ' ×' + w.materials[mid] + '</div>' +
-        '<div class="meta">' + esc(SQ.fmt(SQ.Alchemy.sellPriceOf(d, mid))) + ' ' + esc(t('resource.currency')) + '/' + esc(t('alchemy.ui.sell')) + '</div>' +
-        '<div class="acts"><button data-act="alSell" data-v="' + mid + '" data-c="1">' + esc(t('alchemy.ui.sell')) + '</button>' +
-        '<button data-act="alSell" data-v="' + mid + '" data-c="0">' + esc(t('alchemy.ui.sellall')) + '</button>' +
-        (SQ.Alchemy.groupOf(d, mid) < 3 ? '<button data-act="alRefine" data-v="' + mid + '"' +
-          ((w.materials[mid] >= (A.REFINE_IN || 4)) ? '' : ' disabled') + '>' + esc(t('alchemy.ui.refine')) + '</button>' : '') +
-        '</div></div>';
-    });
-    if (matIds.length) h += '</div>';
     /* 采集 / 灵田已改自动轴（采集：驻区历练每 1 游戏年入账 1~4 枚本区材料；灵田：驻留福地每 6 游戏月入账 1~4 枚），
      * 无手动入口；材料产出说明见「秘境洞天 → 洞天福地 → 附属设施 · 灵田」描述。 */
     $('tab-alchemy').innerHTML = h;
@@ -6412,6 +6600,10 @@
     if (act === 'detailRate') { ui.detailRate = !ui.detailRate; renderTab(); return; }
     if (act === 'detailTrib') { ui.detailTrib = !ui.detailTrib; renderTab(); return; }
     if (act === 'role') { showRole(); return; }
+    if (act === 'washOpen') { showWash(); return; }
+    if (act === 'washSlot') { washDraft.slot = parseInt(v, 10); renderWash(); return; }
+    if (act === 'washPick') { washDraft.cand = parseInt(v, 10); renderWash(); return; }
+    if (act === 'washOk') { await doWash(); return; }
     if (act === 'karma') { showKarma(); return; }
     if (act === 'matWudao') { openMatWudao(); return; }
     if (act === 'setZone') { await SQ.Actions.setZone(state, parseInt(v)); renderAll(); return; }
@@ -6433,6 +6625,8 @@
       var resS = await SQ.Actions.exchangeShard(state, parseInt(v), el.dataset.c || null);
       if (resS && resS.ok) toast(t('zone.shard.done'));
       else if (resS && resS.reason === 'shards') toast(t('zone.shard.fail', { n: resS.have, need: resS.need }));
+      else if (resS && resS.reason === 'pillfull') toast(t('zone.shard.fail.pillfull'));
+      else if (resS && resS.ok !== true) toast(t('zone.shard.fail.other'));   /* 原为静默无提示（pool / zone 两因点了没反应） */
       renderAll();
       return;
     }
@@ -6455,7 +6649,14 @@
       return;
     }
     /* 叛离入口（系统深化批 B4 改造）：升级为去向感知两级弹窗——处理见下方 leaveFaction/defectGo 段 */
-    if (act === 'buyMerchant') { await SQ.Actions.buyMerchant(state, parseInt(v)); renderAll(); return; }
+    if (act === 'buyMerchant') {
+      /* 特席拒因必须有中文回显（第十七批复核 M2）：匣满时扣钱前的拒单在屏上是静默的 */
+      var rMc = await SQ.Actions.buyMerchant(state, parseInt(v));
+      if (rMc && rMc.ok === false)
+        toast(t(rMc.reason === 'pillfull' ? 'shop.fail.pillfull' : 'shop.fail.other'));
+      renderAll();
+      return;
+    }
     if (act === 'slotArt') {
       /* 满槽 → 进入替换选择模式（B4：点按入槽，满槽弹替换；原位替换保主修位语义） */
       var wSA = ws();
@@ -6524,10 +6725,21 @@
       var idx = parseInt(v);
       var items = black ? ws().shop.blackItems : ws().shop.items;
       var it = items[idx];
-      var nm = it.kind === 'gear' ? it.gear.name : it.kind === 'pill' ? t('pill.' + it.ref + '.name') : it.kind === 'arts' ? t('skill.' + it.ref + '.name') : it.kind === 'treasure' ? t('treasure.' + it.ref + '.name') : t('shop.pack.name');
-      var priceTxt = it.kind === 'pack' ? t('shop.qiprice', { p: SQ.fmt(it.qiPrice) }) : SQ.fmt(it.price) + ' ' + t('resource.currency');
+      if (!it) { renderAll(); return; }
+      var nm = shopGoodName(it);
+      var priceTxt = shopPriceTxt(it);
+      /* 弹窗是无阻塞的：CONFIRM 开着的时候秒级 tick 仍会跑，4h 补货或手动刷新会把
+       * `ws.shop.items` **整表替换**，此时旧序号指向的是另一件货 ⇒ 第廿六批实测：弹窗写
+       * 「春风化雨篇 · 2,300 灵石」，点确认实扣 360 买走一件法器。故开弹窗时先记身份指纹，
+       * 确认时复查「这一格还是不是它」，不是就不成交（与引擎先判后扣同一族）。 */
+      var sig = SQ.Shop.goodSig(it);
       askConfirm(t('shop.buy'), t('shop.confirm', { name: nm, price: priceTxt }), async function () {
-        await SQ.Actions.buy(state, idx, black);
+        /* 指纹回给引擎复查（SQ.Shop.buy 里 reason:'stale' ⇒ 分文不动），视图不再自判一套 */
+        var rBy = await SQ.Actions.buy(state, idx, black, sig);
+        /* 丹匣满 / 已拥有 / 待修习架已满 ⇒ 引擎在扣钱之前整笔拒单（先判后扣），屏上必须说一句 ——
+         * 与 #272/#273 那条「失败不告警」同族，未知 reason 走 .other 兜底、不打内部字段名 */
+        if (rBy && rBy.ok === false)
+          toast(t(rBy.reason === 'pillfull' ? 'shop.fail.pillfull' : 'shop.fail.other'));
         renderAll();
       });
       return;
@@ -6769,6 +6981,7 @@
         if (rBuy && rBuy.ok) toast(t('legacy.log.buy', { name: t(rBuy.item.nameKey) }));
         else if (rBuy && rBuy.reason === 'dup') toast(t('legacy.ui.owned'));
         else if (rBuy && rBuy.reason === 'poor') toast(t('legacy.ui.poor'));
+        else if (rBuy && rBuy.reason === 'swapfull') toast(t('legacy.ui.buy.swapfull'));
         /* 其余因（'unknown' = 名录与商店两张表背离）原为**静默无提示** ⇒ 点了没反应，
          * 属「失败不告警」缺陷：一律给一句中文，绝不静默、也绝不裸英文 */
         else if (rBuy) toast(t('legacy.ui.buy.fail'));
@@ -6814,10 +7027,18 @@
     if (act === 'alDrink') {
       var rDk = await SQ.Actions.alDrink(state, v);
       if (rDk && !rDk.ok) {
-        /* 服丹失败三 reason（drinkPill: stock / once / daily）全覆盖——旧兜底把 'stock' 裸打上屏，
-         * 与本批 C3 同族，顺手收口。 */
+        /* 服丹失败四 reason（drinkPill: stock / once / daily / swapfull）全覆盖——旧兜底把 'stock' 裸打上屏，
+         * 与本批 C3 同族，顺手收口。swapfull = 洗髓丹在本世三次已尽时拒服（扣丹前判，不白吃）。 */
         toast(t(rDk.reason === 'daily' ? 'alchemy.ui.pillcap'
-          : rDk.reason === 'once' ? 'alchemy.ui.once' : 'alchemy.ui.pillnone'));
+          : rDk.reason === 'once' ? 'alchemy.ui.once'
+          : rDk.reason === 'swapfull' ? 'alchemy.ui.swapfull' : 'alchemy.ui.pillnone',
+          /* 上限取表值不留魔数（M3）；兜底与 alchemy.js 服丹闸的 `|| 3` 同口径 */
+          { n: D().ALCHEMY.PILL_DAILY_CAP || 3 }));
+      } else if (rDk && rDk.ok && rDk.swap) {
+        /* 洗髓丹服下即开洗髓浮层（缘已入账，先 renderAll 让顶栏与角色浮层读数跟上） */
+        renderAll();
+        showWash();
+        return;
       }
       renderAll();
       return;
@@ -7037,7 +7258,7 @@
       askConfirm(t('bond.redeem.btn'), t('bond.redeem.tip', { cost: costD }), async function () {
         var rD = await SQ.Actions.redeemBond(state, idD);
         if (rD && rD.ok) {
-          toast(t('bond.redeem.ok', { name: t('bond.' + idD + '.name'), aff: rD.aff }));
+          toastAction(t('bond.redeem.ok', { name: t('bond.' + idD + '.name'), aff: rD.aff }));
           renderBonds(ui.bondsDest); renderTab();
         } else if (rD && rD.reason === 'poor') {
           toast(t('bond.redeem.poor', { need: costD, have: SQ.fmt((state.meta && state.meta.karma) || 0) }));
@@ -7051,7 +7272,7 @@
       var rvV = await SQ.Actions.visitBond(state, v);
       if (rvV && rvV.ok) {
         var nmV = t('bond.' + v + '.name');
-        toast(rvV.met ? t('bond.visit.ok.met', { name: nmV, n: rvV.gain })
+        toastAction(rvV.met ? t('bond.visit.ok.met', { name: nmV, n: rvV.gain })
           : (rvV.tierUp ? t('bond.visit.ok.tier', { name: nmV, title: t('bond.' + v + '.title.' + rvV.tier) })
             : (rvV.align ? t('bond.visit.ok.align', { name: nmV, n: rvV.gain })
               : t('bond.visit.ok', { name: nmV, n: rvV.gain }))));
@@ -7065,8 +7286,10 @@
       var pkG = el.dataset.c || '';
       var rvG = await SQ.Actions.giftBond(state, v, pkG);
       if (rvG && rvG.ok) {
-        var nmG = t('bond.' + v + '.name'), pnG = t('alchemy.pill.' + pkG + '.name');
-        toast(rvG.tierUp
+        var nmG = t('bond.' + v + '.name');
+        var pdG = SQ.Alchemy.pillDefOf(D(), pkG);
+        var pnG = t(pdG ? pdG.nameKey : 'alchemy.pill.' + pkG + '.name');   /* 同上（M4）*/
+        toastAction(rvG.tierUp
           ? t('bond.gift.ok.tier', { name: nmG, pill: pnG, title: t('bond.' + v + '.title.' + rvG.tier) })
           : t('bond.gift.ok', { name: nmG, pill: pnG, n: rvG.gain }));
       } else { toast(bondFailText(rvG)); nudgeEl(el); }
@@ -7119,10 +7342,13 @@
         n: SQ.fmt(SQ.Gear.refineValue(itR, wR, dR, mR)), cur: t('resource.currency')
       });
       askConfirm(t('gear.refine.title'), bodyR, async function () {
-        var rR = await SQ.Actions.refineGear(state, idxR);
+        /* 指纹回给引擎复查（库藏会被掉落与溢出炼化重排 ⇒ 序号错位 = 炼掉玩家没点的那件）；
+         * 拒单一律不销毁、不加分文，屏上兜底走坊市同一句「这一单没有成交」 */
+        var rR = await SQ.Actions.refineGear(state, idxR, SQ.Gear.itemSig(itR));
         if (rR && rR.ok) toast(t('toast.gear.salvage', {
           name: rR.item.name, tier: t('gear.tier.' + rR.item.tier), n: SQ.fmt(rR.value), cur: t('resource.currency')
         }));
+        else if (rR && rR.reason === 'stale') toast(t('shop.fail.other'));
         renderAll();
       });
       return;

@@ -121,25 +121,29 @@
     },
 
     /* 库藏阁手动炼化（道具处置打磨包）：第 idx 件 → 灵石；独占豁免。返回 {ok, item?, value?, reason?} */
-    refineGear: async function (ref, idx) {
+    refineGear: async function (ref, idx, expect) {
       var out = null;
       await SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
         var pack = packOf(s), D = dataOf(s);
         var mods = SQ.Mods.collect(s.profile, ws, pack, D);
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
-        out = SQ.Gear.salvage(ws, pack, D, mods, idx, log);
+        out = SQ.Gear.salvage(ws, pack, D, mods, idx, log, expect);
       });
       return out;
     },
 
-    buy: function (ref, idx, black) {
+    buy: function (ref, idx, black, expect) {
+      var out = null;
       return SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
         var pack = packOf(s), D = dataOf(s);
         var mods = SQ.Mods.collect(s.profile, ws, pack, D);
-        SQ.Shop.buy(ws, pack, D, mods, idx, !!black, null);
-      });
+        /* 第廿六批：原传 null ⇒ 坊市/黑市买到的东西**全程不写日志**（入门、上架、折算、
+         * 溢出炼化全都没有痕迹），玩家事后无从知道自己那单到底落到了哪里。与其余动作同规范。 */
+        function log(cat, text) { SQ.Log.push(ws, cat, text); }
+        out = SQ.Shop.buy(ws, pack, D, mods, idx, !!black, log, expect);
+      }).then(function () { return out; });   /* 结果原样回给视图：匣满拒单不许静默（第十七批丹药入匣带来的新拒因） */
     },
     refreshShop: function (ref, black) {
       return SQ.mutate(ref, function (s) {
@@ -664,7 +668,9 @@
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
         out = SQ.Alchemy.drinkPill(ws, pack, D, pillKey, Date.now(), log, s.profile);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
-        else if (out && out.reason === 'daily') SQ.Log.push(ws, 'sys', SQ.t('alchemy.log.pillcap', null, s.profile.worldId));
+        /* 上限取表值不留魔数（M3）；兜底与 alchemy.js 服丹闸的 `|| 3` 同口径 */
+        else if (out && out.reason === 'daily') SQ.Log.push(ws, 'sys', SQ.t('alchemy.log.pillcap',
+          { n: (D().ALCHEMY || {}).PILL_DAILY_CAP || 3 }, s.profile.worldId));
       });
       return out;
     },

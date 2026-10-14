@@ -937,7 +937,10 @@ const SQ = sandbox.window.SQ;
       }
     }
   }
-  ok('B8', '桥容错（单一桥模块 + 读写 try/catch + 失败出口被视图消费）', b8.length === 0, b8.join(';'));
+  /* 第二十一批当晚改判：module 卡的 `runtime.open` 已**删掉**（宿主预检判其未实现，warn 就来自这串字面量）。
+   * 这条禁令是防它悄悄回来——回来 = 预检又多一条 warn，而卡片本来就不该是入口。 */
+  if (/xhub\.runtime\s*\.\s*open\s*\(/.test(modSrc)) b8.push('module 卡不得调用 runtime.open（宿主未注册，删之消 warn）');
+  ok('B8', '桥容错（单一桥模块 + 读写 try/catch + 失败出口被视图消费 + 未注册 API 走能力探测降级）', b8.length === 0, b8.join(';'));
 })();
 
 /* ── B9 交付镜像一致性（2026-10-09 版本控制纳管批立）─────────────────────────

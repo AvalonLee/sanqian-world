@@ -64,7 +64,7 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
     rich: (function () {
       const w = mkWorld({ bonds: Object.assign({}, baseBonds), scars: Object.assign({}, baseScars) });
       w.alchemy = SQ.Alchemy.normalize({
-        pills: { ap_juqi: 3, ap_haina: 1, ap_juqi_rw: 2, ap_pozhang: 5, ap_daohe: 0 }
+        pills: { ap_juqi: 3, ap_haina: 1, ap_juqi_rw: 2, ap_pozhang: 5, ap_daohe: 0, juqi: 2 }
       }, D);
       return w;
     })()
@@ -139,8 +139,8 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
     h.indexOf(SQ.t('bond.gift.empty', null, 'xiuxian')) >= 0);
   const pills = A.giftablePills(worlds.rich, D);
   const pillKeys = pills.map(p => p.key).sort().join(',');
-  ok('giftablePills 剔除双特例（ap_pozhang）与零库存（ap_daohe），保留丹纹版',
-    pillKeys === 'ap_haina,ap_juqi,ap_juqi_rw', pillKeys);
+  ok('giftablePills 剔底牌族（ap_pozhang）与零库存（ap_daohe），保留丹纹版与成品丹（第十七批）',
+    pillKeys === 'ap_haina,ap_juqi,ap_juqi_rw,juqi', pillKeys);
   ok('pillGiftGain 对表：黄 4 / 天 14 / 黄丹纹 round(4×1.5)=6',
     A.pillGiftGain(D, 'ap_juqi') === 4 && A.pillGiftGain(D, 'ap_haina') === 14 &&
     A.pillGiftGain(D, 'ap_juqi_rw') === 6,
@@ -156,6 +156,11 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
   ok('有丹 · 赠丹段列出可赠丹 chip', hRich.indexOf('data-act="bondGift"') >= 0);
   ok('赠丹 chips 带 data-c = 丹药 key（双载荷约定，与 exchangeShard 同例）',
     hRich.indexOf('data-c="ap_juqi"') >= 0 && hRich.indexOf('data-c="ap_juqi_rw"') >= 0);
+  /* M1 锚（当晚复核）：成品丹的 tier 自带在 D.PILLS 上，视图若另摆一份只查 RECIPES 的名单就给它 0 增量
+   * ⇒ chip 整颗消失（引擎给、屏上不给）。这里钉「chip 真在屏上」，下一处钉「屏上标注 === 引擎实发」。 */
+  ok('成品丹也上屏：pillGiftGain(juqi)=4 且赠丹 chip 列出 data-c="juqi"',
+    A.pillGiftGain(D, 'juqi') === 4 && hRich.indexOf('data-c="juqi"') >= 0,
+    'gain=' + A.pillGiftGain(D, 'juqi'));
   ok('赠丹 chips 显示库存数', hRich.indexOf(SQ.t('bond.gift.stock', { n: 3 }, 'xiuxian')) >= 0);
 
   /* ── 3) 满档：拜访与赠丹双双让位给说明文案，不留可点按钮 ── */
@@ -302,6 +307,21 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
     if (!r.ok || r.gain !== viewN) misG.push(tierName + ':view' + viewN + '/eng' + (r.ok ? r.gain : r.reason));
   });
   ok('赠丹：视图标注增量 === 引擎实发增量（四阶逐一对齐）', misG.length === 0, misG.join(','));
+
+  /* M1 锚第二半：成品丹（D.PILLS 族）同判——屏上标注必须等于引擎实发，两族一条判据 */
+  const misT = [];
+  (D.PILLS || []).forEach(function (tp) {
+    if (!tp || tp.nogift) return;
+    const w = mkWorld({ bonds: {} });
+    w.bonds[cs[40].id] = 5;
+    w.alchemy = SQ.Alchemy.normalize({ pills: {} }, D);
+    w.alchemy.pills[tp.id] = 1;
+    const viewN = Math.min(A.pillGiftGain(D, tp.id), (D.BOND_MAX || 100) - 5);
+    const r = SQ.Bonds.giftPill(w, pack, D, cs[40].id, tp.id, NOW, () => {}, { createdAt: NOW });
+    if (!r.ok || r.gain !== viewN) misT.push(tp.id + ':view' + viewN + '/eng' + (r.ok ? r.gain : r.reason));
+  });
+  ok('赠丹：成品丹族屏上标注 === 引擎实发（nogift 者除外，非空集）',
+    misT.length === 0 && (D.PILLS || []).filter(p => p && !p.nogift).length > 0, misT.join(','));
 
   /* ── 输出 ── */
   let fails = 0;

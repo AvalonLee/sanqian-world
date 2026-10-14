@@ -6,7 +6,7 @@
  * 词条 schema：{id, tier:'ren'|'di'|'tian', nature:'good'|'bad', special?, weight, once?,
  *   cooldownHours?|cd?, cond?, choices:{right:{karma,gain:[],check?}, evil:{…}, neutral:{…}}}
  * gain 词条（池设计 §五）：{type:'stones'|'qi'|'qiPct'|'buff'|'dropGear'|'exclusiveGear'|
- *   'exclusiveArt'|'artsProgress'|'attrBonus'|'tribNext'|'eventShield'|'bond', …}；数值一律 [min,max] 区间。
+ *   'exclusiveArt'|'artsProgress'|'attrBonus'|'tribNext'|'eventShield'|'bond'|'talentSwap', …}；数值一律 [min,max] 区间。
  * 判定 DSL（池设计 §六）：attr/karma/align/stones/qi/art/gear/power 八类；check 为数组 = 判定链全过才算成。
  */
 (function () {
@@ -162,6 +162,7 @@
     if (e.artsProgress) parts.push(SQ.t('log.eff.artsProgress', { n: e.artsProgress }, wid));
     if (e.tribNext != null) parts.push(SQ.t('log.eff.tribNext', { sign: sign(e.tribNext), n: Math.abs(e.tribNext) }, wid));
     if (e.fateShard != null) parts.push(SQ.t('log.eff.fateShard', { n: e.fateShard }, wid));
+    if (e.talentSwap != null) parts.push(SQ.t('log.eff.talentSwap', { n: e.talentSwap }, wid));
     if (e.shopDiscount != null) parts.push(SQ.t('log.eff.shopDiscount', { p: pct(e.shopDiscount * 100) }, wid));
     if (e.eventShield != null) parts.push(SQ.t('log.eff.eventShield', { h: e.eventShield }, wid));
     if (e.combatProgress != null) parts.push(SQ.t('log.eff.combatProgress', {}, wid));
@@ -291,7 +292,7 @@
           reduce = Math.min(reduce, D.DEBUFF_REDUCE_CAP != null ? D.DEBUFF_REDUCE_CAP : 0.5);
           hours = hours * (1 - Math.max(0, reduce));
         }
-        pushBuff(ws, e.buff.field, e.buff.mult, now + Math.round(hours * 3600 * 1000));
+        pushBuff(ws, e.buff.field, e.buff.mult, now + Math.round(hours * 3600 * 1000), ctx && ctx.buffSource);   /* 来源可透传（第十七批）：从丹匣服下的成品丹标 alchemy，与自产丹同规矩；奇遇不传 ⇒ 行为不变 */
       }
       if (e.eventShield != null) {
         pushBuff(ws, 'eventShield', 1, now + rollRange(e.eventShield) * 3600 * 1000);
@@ -372,6 +373,15 @@
         ws.shards[fsZ] = Math.max(0, Math.floor(ws.shards[fsZ] || 0)) + fsN;
       }
       if (e.shopDiscount != null) ws.shop.discount = Math.max(ws.shop.discount || 0, e.shopDiscount);
+      if (e.talentSwap != null) {
+        /* 洗髓缘（天赋池设计 v1.8 §十 · 洗髓批）：只经 SQ.Talents.grantSwap 单口赐缘。
+         * 本世预算已满 ⇒ 撤销这条收益标签（与 artsProgress「无槽可进」、gearScoreDown「四槽皆空」
+         * 同一口径：没真落账的收益不许留在文案与 applied 里）。 */
+        if (!SQ.Talents.grantSwap(ws, D).ok) {
+          e.talentSwap = null;
+          if (ctx.applied) delete ctx.applied.talentSwap;
+        }
+      }
       if (e.combatProgress != null) {
         var z = ws.zone;
         ws.prog[z] = Math.max(0, Math.round(((ws.prog[z] || 0) * (1 + e.combatProgress))));
@@ -842,6 +852,10 @@
           n = Math.round(rollRange(g.n) * mult);
           applied.fateShard = (applied.fateShard || 0) + n;
           return { fateShard: n };
+        case 'talentSwap':
+          /* 洗髓缘：计数型（不吃 mult 减半 —— 判定失败要么给一枚要么不给，没有「半枚」） */
+          applied.talentSwap = (applied.talentSwap || 0) + 1;
+          return { talentSwap: 1 };
         case 'eventShield':
           n = rollRange(g.hours != null ? g.hours : g.h);
           applied.eventShield = n;

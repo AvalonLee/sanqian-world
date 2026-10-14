@@ -1,12 +1,12 @@
 # 三千世界 · sanqian-world
 
-修仙人生模拟放置游戏，以 **x-hub / VibeX 扩展**形态交付：起名 → 择界 → 抽天赋 → 挂机修炼 → 渡劫证道，一世终了可兵解转世带着「遗泽」再来。零 CDN、零打包器、零框架——全部代码是**经典 `<script>` 脚本**，随扩展包一起走。
+修仙人生模拟放置游戏，以 **x-hub / VibeX 扩展**形态交付：起名 → 择界 → 抽天赋 → 挂机修炼 → 渡劫证道，一世终了可兵解转世带着「遗泽」再来。**当前可玩的是一整局修仙人生**：十境界 × 十秘境 + 洞天福地、功法与法器 / 法宝（含融合与器灵）、炼丹炼器、坊市 / 黑市 / 神秘商人、势力 16 处 + 宗门 + 同代天骄、道友（拜访 / 赠丹 / 护法 / 道侣）、奇遇与江湖传闻、天道问天与天象、成就九面图鉴与人生传记、飞升大劫与遗泽商店；天赋也不再一局定死——一世之内可洗髓换 3 枚。**世界名册 = 6 张卡（1 界可投生 + 5 界灰显待开启）**，唯一事实源是 `assets/worlds/registry.js`。零 CDN、零打包器、零框架——全部代码是**经典 `<script>` 脚本**，随扩展包一起走。
 
 ## 一、交付物是什么
 
 | 件 | 作用 |
 |---|---|
-| `manifest.json` | 扩展清单：`id: com.avalonlee.sanqian-world`、`version: 0.3.0`（平台扩展版本，与 `docs/VERSIONS.md` 的文档版本号互不相干）、`surfaces: module/view/window/drawer`、`permissions: []` |
+| `manifest.json` | 扩展清单：`id: com.avalonlee.sanqian-world`、`author: avalonlee`（市场卡片与详情页展示的署名）、`version: 0.4.1`（第廿三批随批递增）（平台扩展版本，与 `docs/VERSIONS.md` 的文档版本号互不相干）、`surfaces: module/view/window/drawer`、`permissions: []` |
 | `view/index.html` | 主入口（view / window / drawer 三形态共用）：51 个 `<script src="../assets/…">` **按顺序加载**，无 `import` / `export` |
 | `module/index.html` | 工作台卡片（同一引擎的紧凑壳），同样 51 个顺序脚本 |
 | `assets/**` | 引擎与数据，共 51 个 `.js`：`core.js`（存档 / 压缩阶梯 / 世界注册）+ `systems/`（战斗 / 挂机 / 炼丹 / 宗门…）+ `worlds/xiuxian/`（修仙世界包：词表 / 数据 / 事件）+ `lexicon/` + `talents/` + `events/` |
@@ -62,7 +62,7 @@ diff -q manifest.json "$M/manifest.json"; diff -q icon.svg "$M/icon.svg"; diff -
 
 ## 六、当前范围
 
-**只做第一个世界（玄幻修仙）**，已 live。`assets/worlds/registry.js` 里 `guwu`（古武第二世界）= `status:'coming'` + `pack:null`，卡片灰显、不可投生。古武**未启动**：不排期、不占「现行未实施表」的行、不为它新增跨世界字段或存档容器。`docs/古武军势/` 内的设定卷是库存设计稿，不是待办来源。
+**只做第一个世界（玄幻修仙）**，已 live。`assets/worlds/registry.js` 现行名册 = **6 条：1 `live` + 5 `coming`（`pack:null`、卡片灰显、不可投生）**——三国无双（原「古武军势」· 工程 id 仍 `guwu`）/ 西方魔幻（原「魔法能量」· id 仍 `magic`）/ 科技降神 / 现代都市 / 克苏鲁世界（2026-10-12 第二十批由 `hidden` 改 `coming`，自此注册表**无 hidden 实例**）。**屏上正名与工程 id、目录名是分开的**：改 id 会牵动存档 `profile.worldId` 与整套词表命名空间，故第二十批只改显示层，全量统一改名登记在任务清单 **N30**。这些界**未启动**：不排期、不占「现行未实施表」的玩法行、不为它们新增跨世界字段或存档容器。`docs/古武军势/` 内的设定卷是库存设计稿，不是待办来源。
 
 ## 七、本地预览
 

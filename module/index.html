@@ -46,7 +46,7 @@
     background: transparent;
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
-    cursor: pointer;
+    cursor: default;          /* 卡片只读：宿主切形态那条桥 API 本机未注册，第二十一批删调用消 warn */
     overflow: hidden;
     container-type: size;          /* 格子自适应：最矮 ~86px 也不裁切 */
     display: grid;
@@ -339,14 +339,10 @@
     }
   }
 
-  /* 点卡进主界面：走宿主桥 runtime.open（免权限）；无桥预览或桥拒绝时静默（#89 桥容错） */
-  $('card').addEventListener('click', function () {
-    try {
-      if (typeof window.xhub !== 'undefined' && window.xhub.runtime) {
-        window.xhub.runtime.open('view');
-      }
-    } catch (e) { /* 卡片仍可读，不白屏 */ }
-  });
+  /* 卡片**不绑跳转**（第二十一批）：切形态要调宿主那条尚未注册的桥 API，预检的 warn 就来自它的字面量，
+   * 故整段删除、卡片只读（cursor 已在样式里回 default）。全名与来龙去脉只记在 docs（主设计 §七A 第 63 条）——
+   * 预检是纯文本匹配，注释里写它的点号名同样会被判"用到"。
+   * shortcut: 宿主把它注册进 capabilities 后若要恢复"点卡进全量"，届时连同能力探测一起加回。 */
 
   refresh();
   setInterval(refresh, 30000);

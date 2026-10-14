@@ -1003,6 +1003,22 @@
         evil: { karma: -4 },
         /* 左「以酒抵仇」：心结除、bond 解冻 */
         neutral: { karma: 2 }
+      } },
+    /* ── 洗髓批 2026-10-12（天赋池设计 v1.8 §十 / 专属事件池 v2.13 №125）：奇遇赐洗髓缘 ──
+     * 全池唯一以 talentSwap 为正支收益的词条；冷却 168h = 池内最长档（受 #277(c) 反漂移闸约束：
+     * 池内 cooldownHours 最大值不得越 SQ.COOL_MAX_HOURS，否则落盘裁剪会剪掉冷却键 ⇒ 冷却静默失效）。
+     * ⚠ **weight 实测定为 2 而非 4**：本仓 sim-event-economy 在 SEED 20261008 下，w4 会把三条政策的
+     * 触发密度压成 正5.00 / 左4.30 / 魔4.30 ⇒ 「正 > 左 > 魔」这条机制判据**打平即红**（判据不放宽带）；
+     * w2 复跑 = 5.10 / 4.60 / 3.90（基线不含本词条 = 4.90 / 4.60 / 3.60）⇒ 排序与余量都回到原口径。
+     * 与丹方/破境共用本世三次预算，预算已满时引擎撤销这条收益标签（events.js applyEffects），
+     * 不会报「得洗髓缘」的空话。 */
+    { id: 'xisui_pond', tier: 'di', nature: 'good', weight: 2, cooldownHours: 168,
+      cond: { realmMin: 5 },
+      choices: {
+        right: { karma: 6, gain: [{ type: 'talentSwap' }], check: { type: 'attr', attr: 'jing', dc: 'medium' } },
+        evil: { karma: -6, gain: [{ type: 'stones', n: [900, 1500] }],
+          check: { type: 'attr', attr: 'shen', dc: 'medium', failE: { qiPct: [-0.10, -0.06] } } },
+        neutral: { karma: 1, gain: [{ type: 'qi', n: [400, 800] }] }
       } }
   ];
 })();

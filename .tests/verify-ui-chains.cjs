@@ -2,7 +2,8 @@
  * 覆盖四条此前玩家不可达的链（本批修复）：
  *   C1 功法满槽「原位替换」——引擎支路 + handler + 文案俱全，只缺渲染点：
  *      满槽点「装入」→ 抉择横幅 + 每格「替换」按钮 → 点第 1 位 → 落点仍是第 1 位（主修语义保住）。
- *   C2 遗泽收支流水——meta.karmaLog 一直写了没人读：轮回页现在逐行渲染五类 reason 标签。
+ *   C2 遗泽收支流水——meta.karmaLog 一直写了没人读：轮回页现在按**事件**渲染五类 reason
+ *      （同 reason + 同 ts 折一行，第廿八批；一次转世结算在旧口径下会占满 20 行窗口）。
  *   C3 炼丹/炼器失败原因——alchemy.ui.fail.* 整族无键 ⇒ 裸英文上屏：现在前置不齐即置灰 + 人话说明，
  *      且真失败（连点造成的陈旧渲染态）toast 也零裸拉丁。
  *   C4 日志分类缺 3 类——combat / cave / shop 有写口无筛选项：现在三张新 tag 各自筛得出自己的行。
@@ -72,6 +73,17 @@ async function buildSave() {
   const poorMats = recPoor.mats.map(function (m) { return m[0]; });
   const forgeGift = forgePool.filter(function (id) { return poorMats.indexOf(id) < 0; });
   forgeGift.forEach(function (id) { ws.materials[id] = Math.max(ws.materials[id] || 0, 3); });
+  /* ── C5 建场（第廿九批：材料背包按提炼档排序 + 档位标识）──
+   * 背包原先按入账先后排（`Object.keys(ws.materials)`），与档序无关 ⇒ 排序判据必须有一种
+   * 「插入序 != 档序」的料才测得动。这里补两枚**不被任何配方与图纸池消费**的料
+   * （风纹木 = 一档 z1、界外之石 = 顶档 z9，逐条查过 RECIPES / zoneMats 池都不入），
+   * 并刻意把顶档放最前、一档料放最后。顶档给到 5 枚（>= REFINE_IN）⇒ 顺带钉「顶档不得出现提炼钮」。 */
+  ws.materials = (function () {
+    const shuffled = { mat_jiewai: 5 };
+    Object.keys(ws.materials).forEach(function (k) { shuffled[k] = ws.materials[k]; });
+    shuffled.mat_fengwen = 2;
+    return shuffled;
+  })();
   const cloneQ = JSON.parse(JSON.stringify(ws));
   const probeQiDir = SQ.Alchemy.startCraft(cloneQ, pack, D, 'qi', 'bp_weapon', {}, { unlocks: {} }, Date.now(), null);
   cloneQ.alchemy.craft = null;
@@ -96,7 +108,12 @@ async function buildSave() {
     spent: { 'shop.heir': 600 }, karma: 0, codices: {}, titles: [], biographies: [],
     stats: { lives: 3, ascensions: 0, dissolutions: 1, realmMax: 5 },
     karmaLog: [
+      /* 第廿八批：一次转世结算会以**同一个 ts** 推入多行（legacy.js 的 applyPreview 逐明细行
+       * logPush），真机档实测轮回页出现 20 行一模一样的「转世结算」⇒ 这里刻意放三行同 ts 的
+       * settle，钉住「账本按明细留痕、呈现按事件合并」这条新口径 */
       { ts: now - 500000, delta: 350, reason: 'settle', balance: 1000 },
+      { ts: now - 500000, delta: 120, reason: 'settle', balance: 1120 },
+      { ts: now - 500000, delta: 30, reason: 'settle', balance: 1150 },
       { ts: now - 400000, delta: 150, reason: 'milestone', balance: 850 },
       { ts: now - 300000, delta: -600, reason: 'buy', balance: 250 },
       { ts: now - 200000, delta: 100, reason: 'achv', balance: 350 },
@@ -283,21 +300,39 @@ async function buildSave() {
     const head = wrap && wrap.previousElementSibling ? wrap.previousElementSibling.textContent.replace(/\s+/g, '') : '';
     const st = JSON.parse(localStorage.getItem(k) || '{}');
     const stored = ((st.meta || {}).karmaLog || []).map((l) => l.reason);
+    /* 期望值独立算一遍（第廿八批口径：账本按明细留痕、**呈现按事件合并**——同 reason + 同 ts 折一行） */
+    const grp = [];
+    ((st.meta || {}).karmaLog || []).slice().reverse().forEach((l) => {
+      const g = grp.length ? grp[grp.length - 1] : null;
+      if (g && g.reason === l.reason && g.ts === l.ts) { g.delta += l.delta; g.n++; return; }
+      grp.push({ reason: l.reason, ts: l.ts, delta: l.delta, balance: l.balance, n: 1 });
+    });
+    const settleG = grp.filter((g) => g.reason === 'settle')[0] || {};
     const txt = rows.map((r) => (r.textContent || '').replace(/\s+/g, ''));
     const area = document.getElementById('tab-legacy').innerText || '';
     return {
       n: rows.length, storedN: stored.length,
       reasons: rows.map((r) => r.dataset.karmalogRow),
+      grpReasons: grp.map((g) => g.reason).join(','), grpN: grp.length,
+      settleN: settleG.n, settleDelta: settleG.delta, settleBalance: settleG.balance,
+      settleRow: (rows.filter((r) => r.dataset.karmalogRow === 'settle')[0] || {}).textContent
+        ? rows.filter((r) => r.dataset.karmalogRow === 'settle')[0].textContent.replace(/\s+/g, '') : '',
       storedRev: stored.slice().reverse().join(','),
       txt: txt, head: head,
       labels: ['转世结算', '图鉴里程碑', '遗泽商店', '行为成就', '账本修复'].filter((x) => area.indexOf(x) >= 0),
       bodyLatin: (area.match(/[A-Za-z]{3,}/g) || []).filter((x) => ['Lv', 'NPC', 'pp', 'AI', 'JSON'].indexOf(x) < 0)
     };
   }, KEY);
-  T(led.n === led.storedN && led.n >= 5,
-    'C2a 流水逐行渲染（meta.karmaLog 终于有了读点；行数 = 存储条数）', 'n=' + led.n + ' 存储=' + led.storedN);
-  T(led.reasons.join(',') === led.storedRev,
-    'C2b 行序 = 存储倒序（最新在前，与 normalize 的 slice(-20) 同口径）', led.reasons.join(','));
+  /* 断言取「关系」不取绝对条数：开局成就扫描会随时往账本追加行（本仓走查纪律） */
+  T(led.n === led.grpN && led.n >= 5 && led.storedN > led.grpN,
+    'C2a 流水按事件渲染（同 reason+ts 折一行 ⇒ 行数 = 分组数，且严格小于存储明细数：建场三行结算并成一行）',
+    'n=' + led.n + ' 分组=' + led.grpN + ' 存储=' + led.storedN);
+  T(led.reasons.join(',') === led.grpReasons,
+    'C2b 行序 = 存储倒序的分组序（最新在前，与 normalize 的 slice(-20) 同口径）', led.reasons.join(','));
+  T(led.settleN === 3 && led.settleRow.indexOf('×3') >= 0 &&
+    led.settleRow.indexOf('+' + (led.settleDelta || -1)) >= 0 && led.settleDelta === 500 &&
+    led.settleRow.indexOf('1,150') >= 0,
+    'C2g 合并行交底：标 ×3、金额 = 三行之和（350+120+30=500）、余额取链尾 1,150', led.settleRow);
   T(led.labels.length === 5, 'C2c 五类 reason 标签全部上屏（legacy.reason.* 五键就此收口）', led.labels.join('/'));
   T(led.txt.every((x) => /遗泽/.test(x) && /[+−]/.test(x)) && led.txt.some((x) => x.indexOf('−600') >= 0),
     'C2d 每行「收支 + 余额」双列且负数带负号', led.txt.slice(0, 2).join(' / '));
@@ -386,6 +421,68 @@ async function buildSave() {
   T(!!craftNow && craftNow.id === seed.recEnough,
     'C3j 首下确实开炉成功（走查没把正常路径改成点不动；busy 只是第二下的陈旧态）', JSON.stringify(craftNow));
 
+  /* ============ C5 材料背包的档位序 + 档位标识（第廿九批 · 用户报「顺序是乱的，要看得出低级料
+   * 炼成哪种高级料、同一条升级线要有标识）============ */
+  const c5 = await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const w = st.worlds.xiuxian;
+    const XD = window.SQ.XDATA, Al = window.SQ.Alchemy;
+    const meta = {};
+    XD.ALCHEMY.MATS.forEach((m) => { meta[m.id] = m; });
+    /* 期望序独立算一遍（档 -> 秘境序 -> id；悟道石 z<0 段内置后） */
+    const want = Object.keys(w.materials).slice().sort((a, b) => {
+      const r1 = Al.groupOf(XD, a) - Al.groupOf(XD, b); if (r1) return r1;
+      const z1 = (meta[a] || { z: 0 }).z, z2 = (meta[b] || { z: 0 }).z;
+      const r2 = (z1 < 0 ? 99 : z1) - (z2 < 0 ? 99 : z2); if (r2) return r2;
+      return a < b ? -1 : (a > b ? 1 : 0);
+    });
+    const cards = Array.prototype.slice.call(document.querySelectorAll(
+      '#tab-alchemy [data-act="alSell"][data-c="1"]'));
+    const got = cards.map((b) => b.dataset.v);
+    const badgeOf = (btn) => {
+      const card = btn.closest(".carditem");
+      const bd = card && card.querySelector(".catbadge");
+      return bd ? bd.textContent.replace(/\s+/g, '') : '';
+    };
+    /* 卡落在哪一段 = 按 DOM 前驱找最近的段头（段头与卡网格同为该段直接兄弟） */
+    const lineOfCard = (btn) => {
+      let el = btn.closest(".cardgrid");
+      el = el ? el.previousElementSibling : null;
+      return el && el.hasAttribute('data-matline') ? el.getAttribute('data-matline') : 'no-line';
+    };
+    return {
+      got: got, want: want, insOrder: Object.keys(w.materials),
+      ranks: got.map((g) => Al.groupOf(XD, g)),
+      badges: cards.map((b) => badgeOf(b)),
+      cardLine: cards.map((b) => lineOfCard(b)),
+      lines: Array.prototype.slice.call(document.querySelectorAll('#tab-alchemy [data-matline]')),
+      lineRanks: Array.prototype.slice.call(document.querySelectorAll(
+        '#tab-alchemy [data-matline]')).map((l) => l.getAttribute('data-matline')),
+      lineTxt: Array.prototype.slice.call(document.querySelectorAll('#tab-alchemy [data-matline]'))
+        .map((l) => l.textContent.replace(/\s+/g, '')),
+      poolLens: [0, 1, 2, 3].map((g) => Al.groupIds(XD, g).length),
+      refineBtns: Array.prototype.slice.call(document.querySelectorAll(
+        '#tab-alchemy [data-act="alRefine"]')).map((b) => b.dataset.v),
+      latin: (document.getElementById('tab-alchemy').innerText.match(/[A-Za-z]{3,}/g) || [])
+        .filter((x) => ['Lv', 'NPC', 'pp', 'AI', 'JSON'].indexOf(x) < 0)
+    };
+  });
+  T(c5.got.join(',') === c5.want.join(',') && c5.got.join(',') !== c5.insOrder.join(','),
+    "C5a 背包按**提炼档**升序重排（档 -> 秘境序 -> id），且屏上序不等于入账序 => 排序判据有鉴别力",
+    '屏上=' + c5.got.slice(0, 3).join(',') + '... 插入序=' + c5.insOrder.slice(0, 3).join(',') + '...');
+  T(c5.ranks.every((r, i) => i === 0 || c5.ranks[i - 1] <= r),
+    'C5b 档序单调不降（低档永不排在高档之后）', c5.ranks.join('/'));
+  T(c5.badges.every((b, i) => b === '第' + (c5.ranks[i] + 1) + '档') && new Set(c5.badges).size >= 2,
+    'C5c 每枚料挂档标识「第N档」，且同一条升级线同标识（至少两档同时在场才成立）', c5.badges.join('|'));
+  T(c5.cardLine.every((l, i) => l === String(c5.ranks[i])) && c5.lineRanks.join(',') === Array.from(new Set(c5.ranks)).join(','),
+    'C5d 分段与段头对齐：每枚卡落在自己档的段里，段序 = 档序且每档只一段', c5.lineRanks.join(',') + ' vs ' + c5.ranks.join(','));
+  T(/第2档任一/.test(c5.lineTxt[0]) && c5.lineTxt[0].indexOf('共' + c5.poolLens[1] + '种') >= 0,
+    'C5e 段头把「低级料 ×4 炼成哪一档、有哪几样」写到屏上：次档号 + 候选种数 === 引擎产出池长度（`groupIds` 同口，屏上不说谎）', c5.lineTxt[0]);
+  T(c5.lineTxt[c5.lineTxt.length - 1].indexOf('已至顶档，不可再炼') >= 0 &&
+    c5.refineBtns.indexOf('mat_jiewai') < 0 && c5.refineBtns.indexOf('mat_fengwen') >= 0,
+    'C5f 顶档段头写「不可再炼」且**顶档无提炼钮**（给到 5 枚 >= 用量也不得出现），一档料有钮',
+    c5.lineTxt[c5.lineTxt.length - 1] + ' || 顶档钮=' + (c5.refineBtns.indexOf('mat_jiewai') < 0));
+  T(c5.latin.length === 0, 'C5g 档位段文案零裸拉丁', c5.latin.slice(0, 3).join(','));
   T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 150) || 'clean');
 
   console.log(fail === 0 ? 'UI_CHAINS_ALL_GREEN ' + pass + '/' + (pass + fail)

@@ -74,7 +74,7 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
   w.artsKnown = artIds.slice();
   w.artsSlots = artIds.slice(0, 2);
   w.artsLevels[artIds[0]] = 4;
-  w.artsLevels[artIds[1]] = 0;                 /* 触发「待重修」金标分支 */
+  w.artsLevels[artIds[1]] = 0;                 /* Lv0 槽内功法（第廿五批起「待重修」金标已撤，此桩只覆盖 Lv0 正常渲染） */
   const slots = D.GEAR_SLOTS || [];
   slots.forEach((s, i) => {
     if (i < 2) w.gear[s] = { id: 'probe_gear_' + i, slot: s, tier: 2, atk: 10 + i, resist: 5 + i, score: 30 };

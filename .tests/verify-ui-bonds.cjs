@@ -12,15 +12,17 @@
  *      这条读法同时证明「真的落盘了」；日志另走独立键 sanqian-logs-v1，见 core.js 日志存档批）；
  *   ② 页内注入 = `await SQ.mutate({}, function (s) { ... })`（回调参数即 state，同 verify-ui-karma.cjs:79）。
  *
- * 为什么拆三个 context：拜访是**全局单冷却 3,600,000ms**（ws.bondVisitAt 一个锚、不分人），
+ * 为什么拆四个 context：拜访是**全局单冷却 300,000ms**（ws.bondVisitAt 一个锚、不分人），
  *   同一 context 里点过一次，另一人的按钮必然置灰 —— 结识链与「已识者往来段」不能共用一次拜访。
  *   A = 未识结识链 + 冷却置灰；B = 已识者六段 + 异向/同向拜访 + 赠丹 + 零灵石流动 + 日志；
  *   C = 日限占满（**用假 day 值无效**：giftLeft 与引擎都按 Alchemy.gameDayOf 现算，day 不符即视为
  *   今日未赠过，故必须在页内算出真游戏日再塞 giftDay={day,n:3}）。
+ *   D = 一次点击只弹一条提示 + 点完按钮立刻进冷却（第十九批 · 用户报的两条，前置要在道友页待满三轮 tick）。
  *
  * 数字基准（引擎与沙箱实测，非推测）：名录 58 格（44 友 + 14 道侣候选）；BOND_TIERS=[1,30,70,100]、
  *   BOND_MAX=100；BOND_VISIT_BY_TIER=[3,3,2,1,0]、CD=3600000、ALIGN_BONUS=1（**只给已识者**）；
  *   BOND_GIFT_BY_TIER={huang:4,xuan:6,di:9,tian:14}、DAILY=3。
+ *   （⚠️ CD 自 2026-10-09 第六批起 = **300000**（5 分钟），本行原记 3600000 是那一批漏改的旧口径。）
  *   fixture：xie aff 55 = 档 2、align right，世界 karma 0 = neutral ⇒ 异向 gain 2；karmaEventScore 推到
  *   250 ⇒ 世界档 right ⇒ 同向 gain 3；黄丹 +4（库存 3→2）、天丹 +14（距满档余量 45，不被 min 截）。
  */
@@ -58,7 +60,7 @@ function seed(over) {
   w.bondVisitAt = 0;
   w.alchemy = {
     furnace: true,
-    pills: { ap_juqi: 3, ap_pozhang: 1, ap_haina: 1 },
+    pills: { ap_juqi: 3, ap_pozhang: 1, ap_haina: 1, juqi: 2 },
     giftDay: over.giftDay || { day: -999999, n: 0 },   /* 远旧日 ⇒ 今日余满 3 次（normalize 原样保留 day/n）*/
     pillDay: { day: -999999, n: 0 }
   };
@@ -309,11 +311,13 @@ async function mkPage(browser, S) {
       st: ((x.querySelector('.st') || {}).textContent || '').trim(), dis: x.disabled
     })));
     const onceIn = chips.some((x) => x.c === 'ap_pozhang' || x.c === 'ap_zhenjie');
-    T(chips.length === 2 && !onceIn &&
+    T(chips.length === 3 && !onceIn &&
       chips.some((x) => x.c === 'ap_juqi' && x.gv === '+4' && x.st === '×3') &&
       chips.some((x) => x.c === 'ap_haina' && x.gv === '+14' && x.st === '×1') &&
+      /* M1 真机锚：成品丹（坊市购入 · 第十七批入匣）必须在屏上有赠丹 chip——旧视图给它 0 增量 ⇒ 整颗消失 */
+      chips.some((x) => x.c === 'juqi' && x.gv === '+4' && x.st === '×2') &&
       chips.every((x) => x.dis === false),
-      'B4 赠丹 chips 只列可赠：双特例不入列、+4/+14 对表 BOND_GIFT_BY_TIER',
+      'B4 赠丹 chips 只列可赠：底牌族不入列、自产两枚 + 成品一枚（+4/+14/+4）对表 BOND_GIFT_BY_TIER',
       JSON.stringify(chips));
 
     /* B5 入账三对 + 底线：扣丹 3→2、好感 +4 === chip 标注、日限计数 0→1（「入账成功才扣」的序在真机上成立），
@@ -380,7 +384,7 @@ async function mkPage(browser, S) {
     });
     /* C1 日限占满：chips 仍呈列但全置灰，并给出次数文案（与「无丹可赠」是两回事）*/
     T(daily.dayNow === 5 && daily.seedDay === 5 && daily.seedN === 3 &&
-      daily.n === 2 && daily.disN === 2 && /今日已赠过\s*3\s*次/.test(daily.txt) && /以丹相赠（今日 3\/3）/.test(daily.txt),
+      daily.n === 3 && daily.disN === 3 && /今日已赠过\s*3\s*次/.test(daily.txt) && /以丹相赠（今日 3\/3）/.test(daily.txt),
       'C1 日限占满：chips 全置灰但仍呈列 + 给出「今日已赠过 3 次」文案',
       'day=' + daily.dayNow + '/seed ' + daily.seedDay + '·n' + daily.seedN + ' chips=' + daily.disN + '/' + daily.n);
 
@@ -396,6 +400,43 @@ async function mkPage(browser, S) {
         ' giftDay ' + c0.giftDay.n + '→' + c1.giftDay.n);
 
     T(mp.errors.length === 0, 'C3 场景C 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
+    await mp.ctx.close();
+  }
+
+  /* ══════════════ 场景 D：一次点击一条提示 + 点完按钮立刻进冷却（第十九批 · 用户报的两条）══════════════
+   * 前置刻意「先切到道友页待满 3 秒再点开详情」：秒级 tick 会调 `renderBonds('tab')`，
+   * 旧代码在那里顺手改写 `ui.bondsDest` ⇒ **浮层开着时容器归属被偷换成 'tab'**，拜访成功后
+   * 那一次重渲渲到了背后的道友页上，屏上这颗按钮停在旧态（还亮着、点下去才吃一句冷却提示，
+   * 要关掉重开才见倒计时）。同一次拜访引擎写一条日志、动作处又弹一条更具体的文案，
+   * 旧的「文本全等」去重对不上 ⇒ 同一次动作两条提示。两条都是**摘掉修复即复现**的形状。 */
+  {
+    const S = seed({ karmaEventScore: 0 });
+    const mp = await mkPage(browser, S);
+    const page = mp.page, h = wire(page);
+    await page.click('#m-tabbar button[data-v="bonds"]');
+    await page.waitForTimeout(3000);                 /* 让 tick 至少跑满三轮（旧代码在这里被偷换归属）*/
+    await h.openDetail('xie');
+    const pre = await page.evaluate(() => {
+      const b = document.querySelector('#mbd-body [data-act="bondVisit"]');
+      return { live: !!b, txt: b ? (b.innerText || '').replace(/\s+/g, ' ') : '' };
+    });
+    await page.evaluate(() => { const b = document.querySelector('#mbd-body [data-act="bondVisit"]'); if (b) b.click(); });
+    await page.waitForTimeout(1600);                 /* 给 tick 一次重复呈报的机会 */
+    const post = await page.evaluate(() => ({
+      toasts: Array.prototype.slice.call(document.querySelectorAll('#toasts .toast')).map(x => x.textContent),
+      live: !!document.querySelector('#mbd-body [data-act="bondVisit"]'),
+      body: (document.getElementById('mbd-body') || {}).textContent.replace(/\s+/g, ' '),
+      modalOpen: !document.getElementById('modal-bonds').classList.contains('hide')
+    }));
+    T(pre.live && /登门拜访/.test(pre.txt),
+      'D0 前置成立：道友页待满 3 秒后点开详情，拜访按钮此刻可点', JSON.stringify(pre));
+    T(post.toasts.length === 1,
+      'D1 一次拜访只弹一条提示（旧状：动作处一条 + tick 把日志末条再弹一条 = 两条）',
+      JSON.stringify(post.toasts));
+    T(post.modalOpen && !post.live && /后可再访/.test(post.body),
+      'D2 不关浮层就刷新：按钮已转冷却倒计时（旧状：归属被 tick 偷换 ⇒ 重渲渲到背后页，按钮仍亮）',
+      '浮层在=' + post.modalOpen + ' 按钮仍可点=' + post.live);
+    T(mp.errors.length === 0, 'D3 场景D 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
     await mp.ctx.close();
   }
 

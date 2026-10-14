@@ -277,13 +277,20 @@
     var td = ws.tiandao || {};
     var tri = ws.tribulation || {};
     var name = (profile && profile.name) || SQ.t('profile.default_name', null, wid);
-    /* ② 时间轴：编年史大事（天道卷 §3.3 同源模板族）+ 通道终行 */
+    /* ② 时间轴：编年史大事（天道卷 §3.3 同源模板族）+ 通道终行
+     * 「是日…」一族在编年史里靠**行位置**表意，落到传记正文里就成了「是日、是日、是日」而
+     * 不知哪天（2026-10-13 用户报「前世书写着是日但没有写具体游戏时间」）⇒ 行首选补游戏日期，
+     * 模板一字不动（同一族键还与问天谪星/天道编年史共用）。旧档缺 createdAt ⇒ 不补、不写假日期。 */
     var lines = [];
     (td.chron || []).slice(-7).forEach(function (c) {
       var txt = SQ.Tiandao ? SQ.Tiandao.chronText(ws, pack, D, c) : '';
-      if (txt) lines.push(txt);
+      if (!txt) return;
+      var gd = SQ.gameDateStr(profile, ws, c.at, wid);
+      lines.push(gd ? gd + ' · ' + txt : txt);
     });
-    lines.push(SQ.t(channel === 'feisheng' ? 'codex.bio.line.ascend' : 'codex.bio.line.dissolve', null, wid));
+    var endTxt = SQ.t(channel === 'feisheng' ? 'codex.bio.line.ascend' : 'codex.bio.line.dissolve', null, wid);
+    var endGd = SQ.gameDateStr(profile, ws, now, wid);
+    lines.push(endGd ? endGd + ' · ' + endTxt : endTxt);
     /* ③ 统计摘要（≤60 字模板拼装） */
     var bondsN = 0;
     for (var b in (ws.bonds || {})) if ((ws.bonds[b] || 0) >= 1) bondsN++;
@@ -359,7 +366,11 @@
     var parts = [SQ.t('tiandao.prompt.bio', null, wid)];
     (td.chron || []).forEach(function (c) {
       var txt = SQ.Tiandao ? SQ.Tiandao.chronText(ws, pack, D, c) : '';
-      if (txt) parts.push(txt);
+      /* 同 §传记那一条（第廿八批）：奏疏也是「是日」族模板的读者，带上那天的游戏日期，
+       * 请天道作传时才有一条时间线可依附；旧档缺 createdAt ⇒ 不补、不写假日期。 */
+      if (!txt) return;
+      var gdM = SQ.gameDateStr(s.profile, ws, c.at, wid);
+      parts.push(gdM ? gdM + ' · ' + txt : txt);
     });
     var bondsN = 0;
     for (var b in (ws.bonds || {})) if ((ws.bonds[b] || 0) >= 1) bondsN++;

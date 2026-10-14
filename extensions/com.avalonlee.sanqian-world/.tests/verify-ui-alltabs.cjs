@@ -182,6 +182,32 @@ const KEY = 'sanqian-state-v1';
     T(false, 'AT-G 宗门页导航可定位', '找不到「宗门」页签');
   }
 
+  /* AT-SB 滚动条已换成主题样式（第十九批 · 用户令「整个游戏的滚动条和界面不太匹配，美化一下」）。
+   * ⚠️ 量法：本环境（Win11 + 新版 Chromium）走 **overlay 滚动条**，`offsetWidth − clientWidth` 恒为 0
+   *   ——拿布局占位当判据会把一条正确的样式测成红（首跑即此形，登记防下批重踩）。
+   *   改问 CSSOM：探针元素上 `::-webkit-scrollbar` 的计算宽度 === 本仓定义的 9px ⇒ 证「规则在、且作用到本文件」。 */
+  const sbW = await page.evaluate(() => {
+    const probe = (doc) => {
+      const box = doc.createElement('div');
+      box.style.cssText = 'width:60px;height:60px;overflow-y:scroll;position:absolute;left:0;top:0';
+      const inner = doc.createElement('div'); inner.style.height = '400px'; box.appendChild(inner);
+      doc.body.appendChild(box);
+      const w = doc.defaultView.getComputedStyle(box, '::-webkit-scrollbar').width;
+      const gap = box.offsetWidth - box.clientWidth;
+      doc.body.removeChild(box);
+      return { w: w, gap: gap };
+    };
+    const fr = document.createElement('iframe');
+    fr.style.cssText = 'position:absolute;left:-9999px;width:120px;height:120px';
+    document.body.appendChild(fr);
+    const bare = probe(fr.contentDocument);      /* 无本仓样式的对照文档 */
+    document.body.removeChild(fr);
+    return { own: probe(document), bare: bare };
+  });
+  T(sbW.own.w === '9px' && sbW.bare.w !== '9px',
+    'AT-SB 滚动条 = 主题细身样式（本文件 `::-webkit-scrollbar` 计算宽 9px，无样式对照文档不是 9px）',
+    '本仓=' + sbW.own.w + ' 对照=' + sbW.bare.w + ' ‖ 布局占位=' + sbW.own.gap + 'px（overlay 不占位，不作判据）');
+
   T(errors.length === 0, 'AT-Err 全表逐页点完后零 pageerror / 零 console.error', errors.slice(0, 3).join('|') || 'clean');
 
   console.log(fail === 0 ? 'UI_ALLTABS_ALL_GREEN ' + pass + '/' + (pass + fail)

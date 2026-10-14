@@ -156,7 +156,7 @@
     return { ok: true };
   }
 
-  /* ── 遗泽商店（§三 · 价目总表 6600）──────────────────── */
+  /* ── 遗泽商店（§三 · 价目总表 6800：洗髓批 +SWAP_PRICE 200）────────── */
   function shopItems(D) {
     var L = D.LEGACY;
     var items = [];
@@ -169,6 +169,8 @@
         nameKey: 'legacy.talent.' + t.id + '.name' });
     });
     items.push({ id: 'heir', key: 'shop.heir', price: L.HEIR_PRICE, kind: 'heir', nameKey: 'legacy.shop.heir' });
+    /* 洗髓缘（洗髓批 · 轮回卷 v1.17 §3.4）：买断一次即赐一枚，与丹/奇遇/破境共用本世 PER_LIFE 预算 */
+    items.push({ id: 'swap', key: 'shop.swap', price: L.SWAP_PRICE, kind: 'swap', nameKey: 'legacy.shop.swap' });
     for (var uk in L.UNLOCK_PRICES) {
       items.push({ id: 'unlock.' + uk, key: 'shop.unlock.' + uk, price: L.UNLOCK_PRICES[uk], kind: 'unlock', unlock: uk,
         nameKey: 'legacy.shop.unlock.' + uk });
@@ -205,9 +207,15 @@
     if (!item) return { ok: false, reason: 'unknown' };
     var meta = s.meta;
     if (meta.spent[item.key] != null) return { ok: false, reason: 'dup' };   /* spent 幂等键：断线重发不二次扣款 */
+    /* 洗髓商品先判预算再扣泽：本世三次已尽时买它拿不到东西，扣完再退就是白花 200 遗泽 */
+    if (item.kind === 'swap') {
+      var wsSwap = (s.worlds || {})[s.profile.worldId];
+      if (!wsSwap || !SQ.Talents.swapRoom(wsSwap, D)) return { ok: false, reason: 'swapfull' };
+    }
     var r = spend(meta, item.key, item.price, now);
     if (!r.ok) return r;
     if (item.kind === 'unlock') meta.unlocks[item.unlock] = true;
+    if (item.kind === 'swap') SQ.Talents.grantSwap(s.worlds[s.profile.worldId], D);
     return { ok: true, item: item };
   }
 

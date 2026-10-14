@@ -13,7 +13,7 @@
   K['idle.codex'] = '图鉴';
   K['legacy.ui.balance'] = '遗泽 {n}';
   K['legacy.ui.shop'] = '遗泽商店';
-  K['legacy.ui.shop.hint'] = '全部为永久资格，跨世生效；价目总表 6600 遗泽。';
+  K['legacy.ui.shop.hint'] = '全部为永久资格，跨世生效；价目总表 6800 遗泽。';
   K['legacy.ui.owned'] = '已请回';
   K['legacy.ui.buy'] = '请回';
   K['legacy.ui.poor'] = '遗泽不足';
@@ -30,6 +30,7 @@
   K['legacy.ui.feisheng.lock.info'] = '此世尚未具备叩门之格。';
   K['legacy.ui.fail.other'] = '此事暂不可行——条件未具。';
   K['legacy.ui.buy.fail'] = '遗泽未动：此资格不在名录或已失效。';
+  K['legacy.ui.buy.swapfull'] = '本世洗髓之数已尽，这枚缘买了也无从安放。';
   K['legacy.ui.feisheng.cd'] = '天门暂闭（{t} 后可再叩）';
   K['legacy.ui.feisheng.p'] = '基础成算 {p}%（常规渡劫加成依然有效）';
   K['legacy.ui.gifts'] = '轮回赠礼（转世前择定，一世一次）';
@@ -91,7 +92,9 @@
   K['legacy.shop.startRealm3'] = '起步 · 元婴';
   K['legacy.shopdesc.startRealm'] = '新周目创角可选该起步境界（跳档不跳渡劫）';
   K['legacy.shop.heir'] = '法宝真灵承继';
+  K['legacy.shop.swap'] = '改命 · 洗髓缘';
   K['legacy.shopdesc.heir'] = '每世转世自动携一件已觉醒器灵的法宝入下世';
+  K['legacy.shopdesc.swap'] = '立刻得一枚洗髓缘（与丹方 / 奇遇 / 破境共用本世三次之额，买断一次）';
   K['legacy.shop.unlock.alchemy'] = '丹房资格';
   K['legacy.shopdesc.unlock.alchemy'] = '解锁转世丹房路线（炼丹炼器）';
   K['legacy.shop.unlock.sect'] = '开宗资格';

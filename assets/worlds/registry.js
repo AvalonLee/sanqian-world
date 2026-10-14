@@ -1,6 +1,8 @@
 /* registry.js — G10 世界注册表 + 命名生成器
  * 加载顺序第 1：创建 window.SQ 与 Worlds 表；世界包（xiuxian/index.js）随后填充 pack。
  * status: live 可投生 / coming 灰显待开启 / hidden 完全不露出（UI 走 visibleWorlds）。
+ * 第二十批起本表**已无 hidden 实例**（克苏鲁改 coming）；hidden 这一档保留为机制，不是死码——
+ * 它由 `SQ.visibleWorlds()` 的过滤分支承担，将来放「内测世界」时用。
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
@@ -30,7 +32,9 @@
     magic: { id: 'magic', displayNameKey: 'world.magic.name', status: 'coming', nameParts: null, tagsKeys: [], pack: null },
     tech: { id: 'tech', displayNameKey: 'world.tech.name', status: 'coming', nameParts: null, tagsKeys: [], pack: null },
     urban: { id: 'urban', displayNameKey: 'world.urban.name', status: 'coming', nameParts: null, tagsKeys: [], pack: null },
-    cthulhu: { id: 'cthulhu', displayNameKey: 'world.cthulhu.name', status: 'hidden', nameParts: null, tagsKeys: [], pack: null }
+    /* 克苏鲁第二十批改 hidden → coming：从「完全不露出」变成「屏上灰显待开启」，与另三界同列；
+     * 注册表条目本就在（不是新增世界），pack 仍 null ⇒ 依旧不可投生。 */
+    cthulhu: { id: 'cthulhu', displayNameKey: 'world.cthulhu.name', status: 'coming', nameParts: null, tagsKeys: [], pack: null }
   };
 
   /* 世界名生成：各段独立随机拼接。

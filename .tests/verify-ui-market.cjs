@@ -261,7 +261,115 @@ async function buildSave() {
     'M22 同型面收口：两处置席 + 两类丹药，分类计数与货类计数互相对得上（可复算，不是只数总数）',
     '丹药卡=' + sh.filter((r) => r.cat[0] === '丹药').length + ' 特席=' + mc.length);
 
-  T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 200) || 'clean');
+  /* ── D 相（第十七批 · 丹药两族合一）：门中供给买丹 → 入匣不当场生效 → 丹匣看得见 → 点服用才落效 ──
+   * 选「淬体丹」这条 SKU：它的效果是 buff（战力 +20%/4h），"没挂上 buff" 是可确定的屏上证言；
+   * 且 rank 3 门槛由本件的富态档（声望 2000 → rank 4）稳定跨过，不吃随机。 */
+  const readPill = () => page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const w = st.worlds.xiuxian;
+    return {
+      pills: ((w.alchemy || {}).pills || {}).cuiti || 0,
+      buffs: (w.buffs || []).filter(b => b.field === 'combatPower' && b.source === 'alchemy').length,
+      stones: w.stones, day: ((w.alchemy || {}).pillDay || {}).n || 0
+    };
+  });
+  await page.click('#m-tabbar button[data-v="faction"]');
+  await page.waitForSelector('[data-act="supplyBuy"][data-v="cuiti"]', { timeout: 8000 });
+  const bD = await readPill();
+  await page.click('[data-act="supplyBuy"][data-v="cuiti"]');
+  await page.waitForTimeout(500);
+  const aD = await readPill();
+  T(aD.pills === bD.pills + 1 && aD.buffs === bD.buffs && aD.stones < bD.stones && aD.day === bD.day,
+    'M25 门中供给买丹：入丹匣且**不当场生效**（战力 buff 数不变、丹毒计数不占、灵石照扣）',
+    '匣 ' + bD.pills + '→' + aD.pills + ' buff ' + bD.buffs + '→' + aD.buffs + ' 灵石 ' + bD.stones + '→' + aD.stones);
+  await page.click('#m-tabbar button[data-v="alchemy"]');
+  await page.waitForSelector('[data-act="alDrink"][data-v="cuiti"]', { timeout: 8000 });
+  const rowD = await page.evaluate(() => {
+    const el = document.querySelector('[data-act="alDrink"][data-v="cuiti"]').closest('.carditem');
+    return { txt: (el.innerText || '').replace(/\s+/g, ' '), badge: (el.querySelector('.tierbadge') || {}).textContent || '' };
+  });
+  T(rowD.txt.indexOf('淬体丹') >= 0 && rowD.badge === '坊市' && rowD.txt.indexOf('undefined') < 0,
+    'M26 丹匣两族合一：坊市丹与自产丹同列同渲染，名字取词表、徽标是「坊市」而非「自炼」',
+    '徽标=' + JSON.stringify(rowD.badge) + ' 行=' + rowD.txt.slice(0, 46));
+  await page.click('[data-act="alDrink"][data-v="cuiti"]');
+  await page.waitForTimeout(500);
+  const cD = await readPill();
+  T(cD.pills === aD.pills - 1 && cD.buffs === aD.buffs + 1 && cD.day === aD.day + 1,
+    'M27 点「服用」才落效：战力 buff 挂上、库存 −1、**占丹毒日限**（与自产丹同池计数）',
+    '匣 ' + aD.pills + '→' + cD.pills + ' buff ' + aD.buffs + '→' + cD.buffs + ' 日限 ' + aD.day + '→' + cD.day);
+
+  /* ── M28~M31（第廿六批 2026-10-13 · 买到的东西必须落得下）：弹窗与成交同源 + 先判后扣 ──
+   * 桩：货架钉成 [春风化雨篇]，并把 nextRestock 设到 1.2 秒后 ⇒ 无阻塞 CONFIRM 开着的那两秒多
+   * 里 tick 必然换架。旧写法按**旧序号**成交 ⇒ 弹窗写「春风化雨篇 · 2,300 灵石」而实扣另一件。
+   * M28 先证「换架真的发生了」，否则 M29/M30 是空集上的假绿（本仓老坑）。 */
+  const shop26 = (items, known, restockIn) => {
+    const s = JSON.parse(JSON.stringify(save));
+    const w = s.worlds.xiuxian;
+    w.realm = 5; w.stones = 100000; w.qi = 100; w.total = 100;
+    w.artsKnown = known; w.artsSlots = ['tuna']; w.artsLevels = {}; w.shelf = [];
+    w.shop = { items: items, blackItems: [], nextRestock: Date.now() + restockIn, refreshStep: 0, discount: 0 };
+    return s;
+  };
+  const artChunyu = () => ({ kind: 'arts', ref: 'chunyu', sold: false, price: 2300 });
+  const openShop26 = async (s) => {
+    const c = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    await c.addInitScript((x) => { localStorage.setItem('sanqian-state-v1', JSON.stringify(x)); }, s);
+    const p = await c.newPage();
+    p.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+    await p.goto(url);
+    await p.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+    await p.waitForTimeout(700);
+    await p.click('#m-tabbar button[data-v="shop"]');
+    await p.waitForTimeout(400);
+    return { c: c, p: p };
+  };
+  const readShop26 = (p) => p.evaluate(() => {
+    const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian;
+    const first = ((w.shop || {}).items || [])[0] || {};
+    return {
+      stones: w.stones, knownChunyu: (w.artsKnown || []).indexOf('chunyu') >= 0,
+      firstRef: first.ref || first.kind || '(空)', soldFirst: !!first.sold,
+      toast: Array.prototype.map.call(document.querySelectorAll('#toasts > *'),
+        (x) => x.textContent.replace(/\s+/g, ' ').trim()).join('|')
+    };
+  });
+
+  {
+    const o26 = await openShop26(shop26([artChunyu()], ['tuna'], 3500));
+    await o26.p.click('#tab-shop [data-act="buy"]');
+    await o26.p.waitForTimeout(250);
+    const dlg26 = await o26.p.evaluate(() => document.getElementById('cf-text').textContent.replace(/\s+/g, ' ').trim());
+    await o26.p.waitForTimeout(3600);
+    const mid26 = await readShop26(o26.p);
+    T(dlg26.indexOf('春风化雨篇') >= 0 && mid26.firstRef !== 'chunyu',
+      'M28 前置：无阻塞弹窗期间货架真被补货换掉了（不先证这条，M29/M30 就是空集假绿）',
+      '弹窗=' + dlg26.slice(0, 24) + ' 换架后首格=' + mid26.firstRef);
+    await o26.p.click('#cf-ok');
+    await o26.p.waitForTimeout(800);
+    const end26 = await readShop26(o26.p);
+    T(/没有成交/.test(end26.toast) && !end26.soldFirst && !end26.knownChunyu,
+      'M29 序号已换 ⇒ 这一单不成交（旧写法：按旧序号买走另一件，春风化雨没入门、屏上还零提示）',
+      'toast=' + end26.toast.slice(0, 24) + ' 售罄=' + end26.soldFirst + ' 入门=' + end26.knownChunyu);
+    T(end26.stones === mid26.stones,
+      'M30 拒单分文不动（弹窗上写的 2,300 不会扣到别的货上）',
+      mid26.stones + '→' + end26.stones);
+    await o26.c.close();
+  }
+  {
+    const o27 = await openShop26(shop26([artChunyu()], ['tuna', 'chunyu'], 86400000));
+    const st0 = (await readShop26(o27.p)).stones;
+    await o27.p.click('#tab-shop [data-act="buy"]');
+    await o27.p.waitForTimeout(250);
+    await o27.p.click('#cf-ok');
+    await o27.p.waitForTimeout(800);
+    const st1 = await readShop26(o27.p);
+    T(/没有成交/.test(st1.toast) && !st1.soldFirst && st1.stones === st0,
+      'M31 已拥有的功法还挂在货架上：扣钱前先拒（旧实测形状 = 2,300 灵石打水漂、零收益、零日志）',
+      'toast=' + st1.toast.slice(0, 24) + ' 灵石=' + st0 + '→' + st1.stones + ' 售罄=' + st1.soldFirst);
+    await o27.c.close();
+  }
+
+    T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 200) || 'clean');
 
   console.log(fail === 0 ? 'UI_MARKET_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_MARKET_FAILED ' + fail);
   await browser.close();

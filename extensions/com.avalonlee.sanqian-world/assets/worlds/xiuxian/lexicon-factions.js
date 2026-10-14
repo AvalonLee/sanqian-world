@@ -278,6 +278,7 @@
   keys['faction.supply.fail.rep'] = '声望不足';
   keys['faction.supply.fail.cd'] = '今日已兑（明日再来）';
   keys['faction.supply.fail.stones'] = '灵石不足';
+  keys['faction.supply.fail.pillfull'] = '丹匣已满（每种上限 99），先服几颗再来';
 
   /* ── 关系正典一句（势力全录卷 §二，展开显示）── */
   keys['faction.relcanon.huangfeng.yanue'] = '小派仰仗大宗照拂，大宗念其守拙本分——百余年的老交情。';

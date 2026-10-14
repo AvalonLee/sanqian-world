@@ -25,6 +25,7 @@
     'idle.action': '打坐',
     'idle.rate': '产出 {n}/秒',
     'idle.next': '下一境界：{realm}（还需 {n} {res}）',
+    'idle.trib.eta': '按当前增速约 {time} 后可渡劫',   /* 第十八批 · 修行页渡劫倒计时（纯派生显示量，不入档） */
     'idle.maxed': '已臻化境',
     'idle.detail': '含加成明细',
     'idle.base': '境界基础', 'idle.talent': '天赋', 'idle.arts': '功法',
@@ -120,7 +121,7 @@
     'tribulation.wulou': '无漏道基——一击即中，天道无从挑剔（业力 +{n}）',
     'tribulation.fate': '天道垂青：{name}',
     'tribulation.xinmo.row': '心魔（连败 {n} 层未消）',
-    'tribulation.reset': '境界重置，功法重修',
+    'tribulation.reset': '功法不失，等级依旧',
     'tribulation.estimate': '渡劫成功率预估 {p}%',
     'tribulation.detail': '明细',
     'tribulation.base': '境界基础', 'tribulation.resist': '法器抗性',

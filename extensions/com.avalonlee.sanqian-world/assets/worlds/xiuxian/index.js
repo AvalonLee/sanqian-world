@@ -88,6 +88,9 @@
        *                 违反本批「只在现有对象上加标记位、不新开随内容池线性增长的容器」约束。
        *                 代价 = 拜访不能连点两人（须等冷却），收益 = 落盘恒定 ≈18B。*/
       everDefected: false, factionRepPeak: 0,
+      /* 洗髓批（天赋池设计 v1.8 §十）：talentOwed = 已得未用之洗髓缘，talentUsed = 本世已换枚数；
+       * 预算上限 D.TALENT_SWAP.PER_LIFE，赐缘与换骨都只走 SQ.Talents 两个写口 */
+      talentOwed: 0, talentUsed: 0,
       prodigies: [], prodMarks: {}, prodigyClock: 0,
       materials: {}, alchemy: null, gather: {}, ledgerMat: null,
       fusion: null,
@@ -183,6 +186,9 @@
       lastOffline: obj(raw.lastOffline, null),
       pendingChoice: obj(raw.pendingChoice, null),
       breakCostNext: num(raw.breakCostNext, 0),
+      /* 洗髓缘两字段：非负整数（脏值/小数/负数一律归零，与 artsSelfLearnN 同口径） */
+      talentOwed: Math.max(0, Math.floor(num(raw.talentOwed, 0))),
+      talentUsed: Math.max(0, Math.floor(num(raw.talentUsed, 0))),
       lastSave: num(raw.lastSave, Date.now()),
       log: arr(raw.log, []).slice(-((SQ.Log && SQ.Log.HARD_CAP) || 2000)),
       karma: num(raw.karma, 0),
@@ -240,7 +246,8 @@
       SQ.Fusion.normalizeSpirits(out, D);
       SQ.Fusion.registerCustoms(out.fusion, D);
     }
-    /* lastSuccessTs 只认有限正数（待重修 24h 金标消费，脏值归 null；批 2·B4） */
+    /* lastSuccessTs 只认有限正数（脏值归 null；批 2·B4 立。🔧 第廿五批 2026-10-13：原消费者是
+       「待重修」金标 24h 横幅，随该横幅撤除现无消费者 ⇒ 字段与写口保留，见任务清单 N32 ①） */
     out.tribulation.lastSuccessTs =
       (typeof out.tribulation.lastSuccessTs === 'number' && isFinite(out.tribulation.lastSuccessTs) &&
         out.tribulation.lastSuccessTs > 0) ? out.tribulation.lastSuccessTs : null;

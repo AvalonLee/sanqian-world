@@ -37,6 +37,7 @@
     'log.eff.artsProgress': '功法精进 {n} 级',
     'log.eff.tribNext': '下次突破判定 {sign}{n}',
     'log.eff.fateShard': '秘境残片 +{n}',
+    'log.eff.talentSwap': '得洗髓缘 ×{n}',
     'log.eff.shopDiscount': '下次补货折扣 -{p}%',
     'log.eff.eventShield': '获得护佑（{h}小时内抵消一次祸事）',
     'log.eff.combatProgress': '秘境进度受挫',
@@ -727,6 +728,12 @@
     'event.luanxing_yebu.story': '乱星海的星象六十年一乱。这一夜漫天星辰偏离本位，连星宫的推演盘都算出三个矛盾的凶吉。星宫按例封港，唯独对你这过路修士开了一线：老宫主亲自登坛夜卜，求一位「局外人」执签——星象乱时，局内人的命数已被搅进乱星，只有局外人的签才作得准。老宫主把三支签递到你面前：一支问商路，一支问战事，一支无字。「无字那支，」他声音很轻，「问的是星宫自己该不该散。六十年一乱，乱的不止是星。」坛下弟子屏息而立，乱星在每个人眼底摇晃。三支签，只能执一支。',
     'event.luanxing_yebu.branch.right': '执无字签，如实报出星象所示——哪怕答案是「散」',
     'event.luanxing_yebu.branch.evil': '执签后篡改卦辞，把乱星凶兆卖给囤积居奇的商会',
-    'event.luanxing_yebu.branch.neutral': '三签都不执，退回签筒：局外人的本分，是不入局'
+    'event.luanxing_yebu.branch.neutral': '三签都不执，退回签筒：局外人的本分，是不入局',
+    /* 洗髓批（专属事件池 v2.13 №125 · 全池唯一赐洗髓缘的词条） */
+    'event.xisui_pond.name': '枯骨泉',
+    'event.xisui_pond.story': '山坳里一汪黑泉，泉底沉着历代散修的骨殖，水寒刺骨却隐有灵光。老碑上只剩四个字：饮之洗骨。',
+    'event.xisui_pond.branch.right': '掬泉灌顶，任旧骨被一点点洗去',
+    'event.xisui_pond.branch.evil': '汲尽泉眼，把沉骨里的残蕴一并夺来',
+    'event.xisui_pond.branch.neutral': '只浅饮一口，余下的留给后来人'
   });
 })();

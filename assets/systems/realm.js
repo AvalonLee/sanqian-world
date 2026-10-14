@@ -47,8 +47,9 @@
         var prevStreak = ws.tribulation.streak || 0;
         ws.realm = targetRealm;
         ws.qi = 0;
-        ws.artsLevels = {};                 /* 功法等级清零，持有与槽位保留（详设 §4.1） */
-        ws.tribulation.lastSuccessTs = nowS; /* 待重修金标 24h 窗口起点（批 2·B4，仅视觉） */
+        /* 功法等级**保留**（第廿五批 2026-10-13 · 用户令「渡劫后功法等级保持不变」）：原此处
+         * `ws.artsLevels = {}` 已删——等级 / 持有 / 槽位 / 精通从此全程连续（详设 §4.1 同批改口）。 */
+        ws.tribulation.lastSuccessTs = nowS; /* 渡劫成功时间戳（第廿五批起视图无消费者，字段与写口保留，见 N32 ①） */
         ws.tribulation.success++;
         ws.tribulation.lastResult = 'success';
         /* streak 清零 + 心魔层清零（心魔层数 = streak 派生值，无独立字段，§8.3.1） */
@@ -95,6 +96,14 @@
          * 零新增落盘字段。 */
         if (SQ.Bonds && SQ.Bonds.cheer) {
           SQ.Bonds.cheer(ws, pack, D, D.BOND_CHEER_ON_BREAK != null ? D.BOND_CHEER_ON_BREAK : 2, nowS, log);
+        }
+        /* ⑥「破境洗髓」（天赋池设计 v1.8 §十 · 洗髓批）：**只在化神那一次破境赐一枚**（targetRealm === TRIB_FROM）。
+         * 原写 `>=` ⇒ realm 6/7/8/9 四次突破各赐一枚，而本世预算只有 3 ⇒ **破境独占全部额度，丹/奇遇/商店三条渠道沦为摆设**
+         * （玩家从没机会为「用哪一次」做选择）。收成一次 = 破境保底一枚、另两枚归玩家自己挣。
+         * 预算已满即静默不赐（先 swapRoom 再 grant，不留「渡了劫却什么都没得到」的空播报）。 */
+        if (SQ.Talents && targetRealm === ((D.TALENT_SWAP || {}).TRIB_FROM || 0) && SQ.Talents.swapRoom(ws, D)) {
+          SQ.Talents.grantSwap(ws, D);
+          if (log) log('trib', SQ.t('talent.swap.log.trib', { n: ws.talentOwed }, pack.worldId));
         }
         pack.recalcDerived(ws, ctx && ctx.profile);
         SQ.Arts.recheckShelf(ws, pack, D, log);

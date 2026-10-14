@@ -192,10 +192,10 @@
         met: tierBefore < 1 && r.tierAfter >= 1, reason: null };
     },
 
-    /* 渠道 B · 赠丹：主动、耗**自有丹药**（ws.alchemy.pills 扣 1）、按丹方 tier 给好感——
+    /* 渠道 B · 赠丹：主动、耗**自有丹药**（ws.alchemy.pills 扣 1）、按 `pillDefOf` 的档次给好感——
      * 把炼丹炼器整条产线接进道友系统（此前丹药只有「自服」一个出口）。「以丹会友」。
-     * 校验链**全串行**，任一不合即返回且**不扣丹、不占日限**：有名录 → 有库存 → 非双特例丹
-     * （once: pozhang / zhenjie，那是自己的破障 / 镇劫底牌，「每境界限 1」语义不可外移）→
+     * 校验链**全串行**，任一不合即返回且**不扣丹、不占日限**：有名录 → 有库存 → 非底牌族
+     * （自产 once: pozhang / zhenjie + swap: xisui；成品丹自带 nogift，第十七批破障丹入此族）→
      * 有丹方 tier → 非绝交锁 / 心结锁 → 未满档 → 日限 → gain 未被拒。
      * 丹纹版（key 尾 _rw）收益 ×BOND_GIFT_RUNE_MULT 取整。接近满档时 gain 自带 clamp，
      * 返回值 gain = **实际增量**（可能小于名义值），视图与日志一律显示实际值，不做静默溢出。
@@ -209,14 +209,16 @@
       now = (typeof now === 'number' && isFinite(now)) ? now : Date.now();
       var al = ws.alchemy;
       if (!al || !al.pills || !(al.pills[pillKey] > 0)) return { ok: false, reason: 'stock' };
-      var rune = /_rw$/.test(pillKey);
-      var baseId = rune ? pillKey.replace(/_rw$/, '') : pillKey;
       var ALC = D.ALCHEMY || {};
-      var apDef = (ALC.APILLS || {})[baseId];
-      if (!apDef) return { ok: false, reason: 'nopill' };
-      if (apDef.once) return { ok: false, reason: 'once' };
-      var pillTier = null;
-      (ALC.RECIPES || []).forEach(function (r) { if (r && r.pill === baseId && r.tier) pillTier = r.tier; });
+      /* 丹药两族合一（第十七批）：定义一律经 SQ.Alchemy.pillDefOf 取（自产 ap_* / 成品 D.PILLS 一视同仁），
+       * 拒因分两档如实报：'once' = 每境界限 1 的双特例，'nogift' = 底牌族（洗髓丹 / 成品破障丹）。
+       * 成品丹自带 tier（黄/玄/地），自产丹仍按丹方查档 ⇒ 好感值表一字未动。 */
+      var pd = SQ.Alchemy.pillDefOf(D, pillKey);
+      if (!pd) return { ok: false, reason: 'nopill' };
+      if (pd.nogift) return { ok: false, reason: pd.giftReason };
+      var rune = pd.rune, baseId = pd.id;
+      var pillTier = pd.tier || null;
+      if (!pillTier) (ALC.RECIPES || []).forEach(function (r) { if (r && r.pill === baseId && r.tier) pillTier = r.tier; });
       if (!pillTier) return { ok: false, reason: 'notier' };
       if (SQ.Bonds.locked(ws, npcId)) return { ok: false, reason: 'lock' };
       if (SQ.Bonds.scarred(ws, npcId)) return { ok: false, reason: 'scar' };
@@ -238,7 +240,8 @@
       al.giftDay.n += 1;
       if (log) log('bond', SQ.t('bond.log.gift', {
         name: SQ.t('bond.' + npcId + '.name', null, pack.worldId),
-        pill: SQ.t('alchemy.pill.' + pillKey + '.name', null, pack.worldId),
+        pill: SQ.t((SQ.Alchemy.pillDefOf(D, pillKey) || {}).nameKey ||
+          'alchemy.pill.' + pillKey + '.name', null, pack.worldId),   /* 两族名各按本族键族（M4）*/
         n: r.after - r.before
       }, pack.worldId));
       return { ok: true, gain: r.after - r.before, aff: r.after, tier: r.tierAfter, tierUp: r.tierUp,

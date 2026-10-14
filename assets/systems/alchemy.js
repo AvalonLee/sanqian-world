@@ -52,7 +52,14 @@
     var recIds = {}; (A(D).RECIPES || []).forEach(function (r) { recIds[r.id] = 1; });
     var bpIds = {}; (A(D).BLUEPRINTS || []).forEach(function (b) { bpIds[b.id] = 1; });
     var pillKeys = {};
-    for (var pk in (A(D).APILLS || {})) { pillKeys[pk] = 1; pillKeys[pk + '_rw'] = 1; }
+    for (var pk in (A(D).APILLS || {})) { pillKeys[pk] = 1;
+      /* 丹纹版只归时限型（`buff`）——出炉处 `isRune` 本就要求 buff，非 buff 型的 `_rw` 键是纯幽灵：
+       * 旧写法照单全收 ⇒ 脏档里一个 `ap_pozhang_rw` 会在丹匣上打出裸词表键（第十七批截图取证时照出） */
+      if ((A(D).APILLS || {})[pk] && (A(D).APILLS || {})[pk].buff) pillKeys[pk + '_rw'] = 1; }
+    /* 丹匣键空间两族合一（第十七批）：坊市 / 门中供给 / 特席 / 残片所得的成品丹（D.PILLS）也入匣，
+     * 白名单必须一并认它 —— 否则 normalize 会在下一次读档时把它**静默剪掉**（玩家花钱买的丹凭空消失）。
+     * 成品丹无丹纹版 ⇒ 只登记裸 id。 */
+    (D.PILLS || []).forEach(function (p) { if (p && p.id) pillKeys[p.id] = 1; });
     var out = {
       furnace: raw.furnace === true,
       recipes: arr(raw.recipes, []).filter(function (x) { return recIds[x]; }).slice(0, (A(D).RECIPES || []).length),
@@ -122,6 +129,15 @@
   }
   function sellPriceOf(D, matId) {
     return (A(D).MAT_SELL || [8, 40, 160, 600])[groupOf(D, matId)] || 8;
+  }
+  /* 某一提炼档的全部材料 id（第廿九批）：材料背包要告诉玩家「这把料 ×4 能炼成哪几样」，
+   * 而那份候选池归 `refineMats` 自己算 ⇒ 视图再筛一遍就是第二套实现（口径一改就各说各话）。
+   * 现由本口**同时**服务引擎与界面 ⇒ 屏上写的池 === 引擎真会随机抽的池（冒烟 #300 钉这一条）。
+   * 顶档（g >= 3）无次组；悟道石（z < 0）按 groupOf 落 3 档卖价但**不入任何产出池**。 */
+  function groupIds(D, g) {
+    return (A(D).MATS || []).filter(function (m) {
+      return m.z >= 0 && groupOf(D, m.id) === g;
+    }).map(function (m) { return m.id; });
   }
 
   /* 材料入账（唯一写口）：堆叠 999 溢出折算——超出部分按组价折灵石 in.event +
@@ -487,20 +503,69 @@
     var born = (profile && profile.createdAt) || 0;
     return born > 0 ? Math.floor((now - born) / 1000) : 0;   /* 1 游戏日 = 1 现实秒（§1.6 同源） */
   }
+  /* 丹药两族合一（第十七批）：自产 APILLS（ap_*，可带 _rw 丹纹版）与成品丹 D.PILLS 在**这一处**统一描述，
+   * 进匣 / 服用 / 丹毒 / 赠礼四件事同轨；两族只在「效果怎么落」上不同。 */
+  function pillDefOf(D, key) {
+    var AL = A(D);
+    var k = String(key || '');
+    var base = k.replace(/_rw$/, ''), rune = /_rw$/.test(k);
+    var ap = (AL.APILLS || {})[base];
+    if (ap) return { id: base, kind: 'self', rune: rune, def: ap, tier: null,
+      nogift: !!(ap.once || ap.swap), giftReason: ap.once ? 'once' : 'nogift',
+      nameKey: 'alchemy.pill.' + (rune ? k : base) + '.name', descKey: 'alchemy.pill.' + base + '.desc',
+      buff: ap.buff || null };
+    var tp = null;
+    (D.PILLS || []).forEach(function (p) { if (p && p.id === base) tp = p; });
+    if (!tp) return null;
+    return { id: base, kind: 'trade', rune: false, def: tp, tier: tp.tier,
+      nogift: !!tp.nogift, giftReason: 'nogift',
+      nameKey: 'pill.' + base + '.name', descKey: 'pill.' + base + '.desc',
+      buff: (tp.effect || {}).buff || null };
+  }
+  /* 还有没有位置：**纯谓词，不改状态**（预检若顺手把丹加了，扣钱后再来一次就是双份 —— 第十七批首跑即栽在此）
+   * shortcut: 四个购买口靠 `pillRoom` 预检保证 `gainPill` 必成，故不接其返回值；
+   *           若将来出现「预检与入匣之间还能加丹」的并发口（赠送入匣 / 批量兑换），必须改接 gainPill 的 {ok,reason}。 */
+  function pillRoom(ws, D, key, n) {
+    ensure(ws, D);
+    var pd = pillDefOf(D, key);
+    if (!pd) return false;
+    var cap = A(D).PILL_STOCK_CAP || 99;
+    return (ws.alchemy.pills[pd.id] || 0) + Math.max(1, Math.floor(Number(n) || 1)) <= cap;
+  }
+  /* 入匣（四口共用：坊市 / 特席 / 门中供给 / 残片兑丹——黑市只掷装备·功法·法宝，从不掷丹）：**先判库存上限再扣钱** ——
+   * 扣了灵石或残片却丢一颗丹，正是本仓反复收口的那一类静默零收益。 */
+  function gainPill(ws, D, key, n, log, wid) {
+    ensure(ws, D);
+    var pd = pillDefOf(D, key);
+    if (!pd) return { ok: false, reason: 'unknown' };
+    var add = Math.max(1, Math.floor(Number(n) || 1));
+    var cap = A(D).PILL_STOCK_CAP || 99;
+    var now2 = ws.alchemy.pills[pd.id] || 0;
+    if (now2 + add > cap) return { ok: false, reason: 'pillfull', have: now2, cap: cap };
+    ws.alchemy.pills[pd.id] = now2 + add;
+    if (log) log('sys', SQ.t('alchemy.log.stock.in', {
+      name: SQ.t(pd.nameKey, null, wid), n: add, cur: ws.alchemy.pills[pd.id]
+    }, wid));
+    return { ok: true, id: pd.id, n: ws.alchemy.pills[pd.id], kind: pd.kind };
+  }
   function drinkPill(ws, pack, D, pillKey, now, log, profile) {
     var AL = A(D);
     ensure(ws, D);
     var al = ws.alchemy;
-    var def = (AL.APILLS || {})[pillKey.replace(/_rw$/, '')];
-    if (!def || (al.pills[pillKey] || 0) < 1) return { ok: false, reason: 'stock' };
+    var pd = pillDefOf(D, pillKey);
+    var def = pd && pd.kind === 'self' ? pd.def : null;
+    if (!pd || (al.pills[pillKey] || 0) < 1) return { ok: false, reason: 'stock' };
     var rune = /_rw$/.test(pillKey);
     /* 双特例每境界限 1（独立于丹毒计数；被拒时不消耗当日计数——串行校验，§3.3） */
-    if (def.once) {
+    if (def && def.once) {
       if ((al.pillOnce[def.once] != null ? al.pillOnce[def.once] : -1) === ws.realm) {
         return { ok: false, reason: 'once' };
       }
     }
-    /* 丹毒：每游戏日 3 颗（六型共享；跨日自动清零重计） */
+    /* 洗髓丹刻意**不套**每境界一服闸（本世上限已由 D.TALENT_SWAP.PER_LIFE 卡住，同境连服是设计意图）；
+     * 但预算已满必须在扣丹之前拒 —— 先扣后赐就是「吃一颗丹、零收益、还报成功」 */
+    if (def && def.swap && !SQ.Talents.swapRoom(ws, D)) return { ok: false, reason: 'swapfull' };
+    /* 丹毒：每游戏日 4 颗（第十七批 3 → 4）——**自产丹与成品丹同池同计数**（跨日自动清零重计） */
     var day = gameDayOf(ws, profile, now);
     if (al.pillDay.day !== day) al.pillDay = { day: day, n: 0 };
     if (al.pillDay.n >= (AL.PILL_DAILY_CAP || 3)) return { ok: false, reason: 'daily' };
@@ -508,22 +573,33 @@
     if (al.pills[pillKey] <= 0) delete al.pills[pillKey];
     al.pillDay.n += 1;
     var wid = pack.worldId;
-    if (def.buff) {
+    if (def && def.buff) {
       var mult = def.buff.mult * (rune ? 2 : 1);   /* 丹纹版数值 ×2、时长不变（§4.5） */
       SQ.Events.pushBuff(ws, def.buff.field, mult, now + Math.round(def.buff.hours * 3600000), 'alchemy');
       if (log) log('sys', SQ.t('alchemy.log.drink.buff', { name: SQ.t('alchemy.pill.' + pillKey + '.name', null, wid) }, wid));
-    } else if (def.once === 'pozhang') {
+    } else if (def && def.once === 'pozhang') {
       /* 数值取丹方自己那条 `mod`（审计 #14）：原先住的是 AL.POZHANG_MOD，与 PILL_EFFECTS.ap_pozhang.mod
        * 同值两份 ⇒ 改丹方静默无效。分支已按 def.once 命中，mod 与 once 同在一条定义上，不需要兜底字面量。 */
       ws.breakCostNext = (ws.breakCostNext || 0) + def.mod;
       al.pillOnce.pozhang = ws.realm;
       if (log) log('sys', SQ.t('alchemy.log.drink.pozhang', null, wid));
-    } else if (def.once === 'zhenjie') {
+    } else if (def && def.once === 'zhenjie') {
       ws.tribulation.next = (ws.tribulation.next || 0) + def.mod;
       al.pillOnce.zhenjie = ws.realm;
       if (log) log('sys', SQ.t('alchemy.log.drink.zhenjie', null, wid));
+    } else if (def && def.swap) {
+      /* 洗髓丹：只赐缘不改属性，换不换、换哪一格都由玩家在洗髓浮层里定（天赋池设计 v1.8 §十） */
+      SQ.Talents.grantSwap(ws, D);
+      if (log) log('sys', SQ.t('alchemy.log.drink.xisui', null, wid));
+    } else if (pd.kind === 'trade') {
+      /* 成品丹（第十七批入匣）：效果字典与旧「购买即生效」逐字同一份，只是**由玩家决定何时落**。
+       * 传副本 = 纪律（见 events.js applyEffects 头注）：直传 `tp.effect` 会让一次服用改坏表。 */
+      SQ.Events.applyEffects(ws, pack, D, SQ.Mods.collect(profile, ws, pack, D),
+        Object.assign({}, pd.def.effect), { log: log, now: now, silent: false, buffSource: 'alchemy' });
+      /* 时长口径与改前**逐字相同**：`applyEffects` 的 resolveEff 直接用 effect 里的 `hours` 原值
+       * （`rollBuffHours` 只作用于奇遇掷点现生成的 buff，见 events.js:54 / :826），本处不另算一套 */
     }
-    return { ok: true, rune: rune };
+    return { ok: true, rune: rune, swap: !!(def && def.swap), kind: pd.kind };
   }
 
   /* ── 出售材料（背包 → 系统回收：in.event，卖价 = MAT_SELL[组] 固定价）── */
@@ -586,9 +662,26 @@
     return chosen;
   }
   /* pack 格购买兑现（shop.buy 内调用；灵石已扣、out.shop 已记） */
+  /* 这手子货玩家是否已经有了（第廿六批 · 坊市购买的先判后扣用）：与 `deliverPackGood` 的三分支
+   * 同口径 —— 丹方看在册、图纸看「丹炉图 → 已有炉即无意义 / 普通图看在册」、丹炉成品看炉。
+   * 材料包永远可入（叠加无上限），故恒 false。 */
+  function goodOwned(ws, D, good) {
+    var al = ws.alchemy;
+    if (!al) return false;
+    if (good.type === 'recipe') return al.recipes.indexOf(good.ref) >= 0;
+    if (good.type === 'bp') {
+      var bp = bpById(D, good.ref);
+      if (bp && bp.furnace) return !!al.furnace;
+      return al.blueprints.indexOf(good.ref) >= 0;
+    }
+    if (good.type === 'furnace') return !!al.furnace;
+    return false;
+  }
+
   function deliverPackGood(ws, pack, D, mods, good, log) {
     ensure(ws, D);
     var al = ws.alchemy;
+    if (goodOwned(ws, D, good)) return { ok: false, reason: 'dup' };   /* 第廿六批：已拥有不再重复发货（坊市侧先判后扣） */
     if (good.type === 'mat') {
       /* 发货按**定价时那一组**（审计 #9）：rollPackGood 用 groupOf 定价并把组号记进 good.zoneGroup（此前
        * 只写不读 = 嵌套死字段），而这里原先按「购买时的境界分区」重算池子 ⇒ 4h 补货窗内升境就跨组套利
@@ -631,8 +724,7 @@
     if ((ws.materials[matId] || 0) < need) return { ok: false, reason: 'stock' };
     var costs = {}; costs[matId] = need;
     if (!takeMats(ws, D, costs)) return { ok: false, reason: 'stock' };
-    var pool = (A(D).MATS || []).filter(function (x2) { return x2.z >= 0 && groupOf(D, x2.id) === g + 1; })
-      .map(function (x3) { return x3.id; });
+    var pool = groupIds(D, g + 1);
     if (!pool.length) return { ok: false, reason: 'pool' };   /* 理论不可达（组 0~2 均有次组池） */
     var gainId = pick(pool);
     addMats(ws, pack, D, (function () { var o = {}; o[gainId] = 1; return o; })(), now, null);
@@ -664,6 +756,7 @@
     autoGrant: autoGrant,
     zoneMats: zoneMats,
     groupOf: groupOf,
+    groupIds: groupIds,   /* 第廿九批：某一提炼档的材料 id，`refineMats` 的产出池与材料背包的「下一档候选」同读这一处 */
     sellPriceOf: sellPriceOf,
     addMats: addMats,
     takeMats: takeMats,
@@ -686,9 +779,13 @@
     forgeItem: forgeItem,
     collectCraft: collectCraft,
     drinkPill: drinkPill,
+    pillDefOf: pillDefOf,
+    gainPill: gainPill,
+    pillRoom: pillRoom,
     sellMats: sellMats,
     rollPackGood: rollPackGood,
     deliverPackGood: deliverPackGood,
+    goodOwned: goodOwned,   /* 第廿六批：坊市购买「先判后扣」的重复判定口（与 deliverPackGood 同一分支口径） */
     consumeWudao: consumeWudao,
     gameDayOf: gameDayOf
   };

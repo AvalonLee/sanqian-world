@@ -83,6 +83,7 @@
   K['alchemy.recipe.rc_zhenjie.name'] = '低品镇劫丹丹方';
   K['alchemy.recipe.rc_fengxing.name'] = '低品驭风丹丹方';
   K['alchemy.recipe.rc_xirui.name'] = '低品寻宝丹丹方';
+  K['alchemy.recipe.rc_xisui.name'] = '低品洗髓丹丹方';
   K['alchemy.recipe.rc_haina.name'] = '低品纳海丹丹方';
   K['alchemy.recipe.rc_daohe.name'] = '低品得谐丹丹方';
   K['alchemy.bp.bp_weapon.name'] = '兵刃图纸';
@@ -138,11 +139,17 @@
   K['alchemy.ui.nofurnace'] = '尚无丹炉';
   K['alchemy.ui.refine'] = '提炼';
   K['alchemy.ui.refine.hint'] = '同材 ×4 可炼上一档材料 ×1（仙玉级与悟道石不可炼）';
+  /* ── 材料背包的「提炼档」标识（第廿九批 2026-10-13 · 用户诉求：材料顺序乱、要看得出低级料炼成哪种高级料、
+   *    同一条升级线要有标识）：n = 本档号、k = 起炼用量（取表 REFINE_IN）、up = 次档号、p = 次档候选种数 ── */
+  K['alchemy.ui.mat.rank'] = '第 {n} 档';
+  K['alchemy.ui.mat.line'] = '同材 ×{k} 可炼 → 第 {up} 档任一（随机其一 · 共 {p} 种）';
+  K['alchemy.ui.mat.line.top'] = '已至顶档，不可再炼（只可出售）';
   K['alchemy.ui.sell'] = '出售';
   K['alchemy.ui.sellall'] = '全售';
   K['alchemy.ui.drink'] = '服用';
-  K['alchemy.ui.pillcap'] = '丹毒已满（每游戏日 3 颗），再服无效';
+  K['alchemy.ui.pillcap'] = '丹毒已满（每游戏日 {n} 颗），再服无效';
   K['alchemy.ui.once'] = '此境界已服过（每境界限 1）';
+  K['alchemy.ui.swapfull'] = '本世洗髓之数已尽，此丹服下也无益处（且留着）';
   K['alchemy.ui.stronger'] = '已有更强同源效力在身——此时服用只延长时长';
   K['alchemy.ui.selfmade'] = '自炼';
   K['alchemy.ui.rune'] = '丹纹';
@@ -200,6 +207,11 @@
   K['alchemy.log.drink.buff'] = '服下{name}';
   K['alchemy.log.drink.pozhang'] = '服下低品破障丹——下次破境消耗 −10%';
   K['alchemy.log.drink.zhenjie'] = '服下低品镇劫丹——下次渡劫成算 +0.02';
+  K['alchemy.pill.ap_xisui.name'] = '低品洗髓丹';
+  K['alchemy.pill.ap_xisui.desc'] = '服后得洗髓缘一枚，可换去一枚既定天赋（本世限 3 次）';
+  K['alchemy.log.drink.xisui'] = '服下低品洗髓丹——骨髓如被春雨洗过，得洗髓缘一枚';
+  K['alchemy.log.stock.in'] = '得{name} ×{n}，收入丹匣（现存 {cur}）——何时服用由你定';
+  K['alchemy.ui.traded'] = '坊市';
   K['alchemy.log.refine'] = '炼材入宝：{name} ×4 化作 {gain}';
   K['alchemy.shard.pick.recipe'] = '地/天阶丹方';
   K['alchemy.shard.recipe'] = '残片兑方：得「{name}」';
@@ -207,7 +219,7 @@
   K['alchemy.shard.bp'] = '残片兑图：得「{name}」';
   K['alchemy.log.sell'] = '售出{name} ×{n}，得 {v} {cur}';
   K['alchemy.log.matpack'] = '购得材料包 ×3';
-  K['alchemy.log.pillcap'] = '丹毒警示：今日已服满 3 颗，这颗吃了也是白吃';
+  K['alchemy.log.pillcap'] = '丹毒警示：今日已服满 {n} 颗，这颗吃了也是白吃';
 
   /* ── buff 来源溯源 ── */
   K['buff.src.alchemy'] = '自炼丹';

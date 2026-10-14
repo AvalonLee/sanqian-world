@@ -202,6 +202,13 @@
       { id: 'syn_trib_lightning',   pair: ['tribulation_scar', 'lightning_rod'],      field: 'tribBonus',       value: 0.03 }
     ],
 
+    /* ── 一世洗髓（天赋池设计 v1.8 §十 · 洗髓批 2026-10-12）：本世可换天赋枚数上限。
+     * 四渠道（洗髓丹 ap_xisui / 奇遇 talentSwap / 破境 / 遗泽商店 shop.swap）共用这一份预算，
+     * 由 SQ.Talents.grantSwap 单口赐缘 —— 上限是「能不能刷出全 epic 组合」的唯一闸，
+     * 改大它等于放开乘区预算 #129 的天赋侧，须先过数值复核。
+     * TRIB_FROM = 破境赐缘的最低目标境界（realm 索引 6 = 化神；在此之前不给，避免前三次被突破独占）。 ── */
+    TALENT_SWAP: { PER_LIFE: 3, TRIB_FROM: 6 },
+
     /* ── 独占法宝（专属事件池 v2.0.1 §4.2：定名定品阶定词条；atk 授予时按最高首通定格缩放）── */
     EXCLUSIVE_GEAR: {
       evil_sword:   { slot: 'weapon',   tier: 4, alignment: 'right',   atkBase: 36, resist: 260, special: 'ignore_req' },
@@ -225,13 +232,13 @@
     BLACKMARKET_PRICE: 1.3,
     /* `tier` = **展示用**品阶（坊市标签批 2026-10-09 · UI 卷 §3.4 货架双标签），取「与同名丹方同档」：
      * 聚气 rc_juqi=huang / 凝神 rc_ningshen=xuan / 淬体 rc_cuiti=xuan / 破障 rc_pozhang=di。
-     * ⚠️ 只作认知锚，**不参与任何结算**（效果字段一字未动）；坊市这四颗丹与炼丹产出的 `ap_*` 是两种货，
-     * 同档口径指的是「同名丹方的档次」，不是「同一件东西」。 */
+     * ⚠️ 丹药两族合一（第十七批）后本字段**参与赠丹结算**（→ BOND_GIFT_BY_TIER，见 §3.9）；效果字段仍一字未动。
+     * 坊市这四颗丹与炼丹产出的 `ap_*` 是两种货，同档口径指「同名丹方的档次」，不是「同一件东西」。 */
     PILLS: [
       { id: 'juqi',     price: 80,  tier: 'huang', effect: { qiPct: 0.30 } },
       { id: 'ningshen', price: 150, tier: 'xuan',  effect: { buff: { field: 'qiRate', mult: 0.25, hours: 2 } } },
       { id: 'cuiti',    price: 200, tier: 'xuan',  effect: { buff: { field: 'combatPower', mult: 0.20, hours: 4 } } },
-      { id: 'pozhang',  price: 400, tier: 'di',    effect: { tribNext: 0.05 } }
+      { id: 'pozhang',  price: 400, tier: 'di',    effect: { tribNext: 0.05 }, nogift: true }   /* 底牌丹（第十七批）：与自产破障 / 镇劫 / 洗髓同族，送不得人 */
     ],
     PACK_QI_PCT: 0.10,              /* 灵石包：花当前上限 10% 修为 */
     PACK_STONES: 60,                /* 得 60 × (1+境界索引)³ 灵石 */
@@ -673,9 +680,11 @@
     BOND_VISIT_ALIGN_BONUS: 1,        /* 道友 align 与玩家 karma 档位同向 → +1（复用批 A align 字段与 tierOf）。
      *                                 **仅对已相识者生效**——未识者阵营未揭，给加成会经「+4 而非 +3」泄漏 align */
 
-    /* 渠道 B · 赠丹：主动、耗**自有丹药**（ws.alchemy.pills 扣 1）、按丹方 tier 给好感。
+    /* 渠道 B · 赠丹：主动、耗**自有丹药**（ws.alchemy.pills 扣 1）、按丹药档次给好感
+     * （自产查丹方 tier，成品丹自带 tier，判据同一条 `SQ.Alchemy.pillDefOf`）。
      * 把炼丹炼器整条产线接进道友系统（此前丹药只有自服一个出口）——「以丹会友」。
-     * 双特例丹（once: pozhang / zhenjie）不可赠：那是自己的破障 / 镇劫底牌，且「每境界限 1」语义不可外移。
+     * 底牌族不可赠（第十七批）：自产双特例（once: pozhang / zhenjie）+ 洗髓（swap）+ 成品破障（nogift）——
+     * 「每境界限 1」语义不可外移，破障与洗髓是本世自己的底牌。
      * 丹纹版（key 尾 _rw）×1.5 取整。满档者拒赠且**不扣丹**。
      * ⚠️ 日限走既有 gameDayOf（**1 游戏日 = 1 现实秒**，与丹毒日限 PILL_DAILY_CAP 同口径），
      *    故真正的节流是**丹药库存与炼制耗时**，日限只防单帧连点；此口径须与丹毒一并读，勿误判为 24h。 */
@@ -796,6 +805,9 @@
       START_REALM_PRICES: [100, 300, 700],   /* 跳档 筑基/金丹/元婴（封顶元婴 = REALMS 索引 1/2/3） */
       LEGACY_TALENT_SLOTS: 2,
       HEIR_PRICE: 600,
+      /* 洗髓批：买断一次即赐一枚洗髓缘（越不过本世 3 次的预算，满了则拒购不扣泽）；
+       * 计入价目总表 6600 → 6800（轮回卷 v1.17 / FACTS 遗泽商店行同批） */
+      SWAP_PRICE: 200,
       UNLOCK_PRICES: { alchemy: 300, sect: 500, prodigySlot: 350, nemesis: 200, bond: 250 },
       BOND_HEIR_BASE: 40,
       QIRATE_STEP: 0.02, QIRATE_STAGES: 5,
@@ -943,7 +955,10 @@
       GATHER_INTERVAL_MS: 360000, GATHER_N_MIN: 1, GATHER_N_MAX: 4, GATHER_WUDAO_P: 0.10,
       /* 灵田材料轴（灵田迁栏批）：驻留福地灵田 Lv≥1 时每 6 游戏月（180 现实秒）入账 1~4 枚本区材料 */
       FARM_INTERVAL_MS: 180000, FARM_N_MIN: 1, FARM_N_MAX: 4,
-      PILL_DAILY_CAP: 3, PILL_STOCK_CAP: 99,
+      /* 丹毒日限 3 → **4**（丹药两族合一 · 第十七批）：坊市 / 门中供给 / 特席 / 残片所得的成品丹从此与自产丹
+       * 同池同规矩（同一具身体吃药，两类丹分开计限 = 第二条静默旁路）；抬一档是给用户交底的补偿：
+       * 旧「买 10 颗当场全吞」不受日限约束，改后受约束 ⇒ 择时自由换来了吞吐上限。判据 = 冒烟 #226 / #297(b)。 */
+      PILL_DAILY_CAP: 4, PILL_STOCK_CAP: 99,
       CRAFT_BASE: { huang: 0.85, xuan: 0.70, di: 0.55, tian: 0.40, qi: 0.80, qi_jing: 0.70 },
       CRAFT_CAP: 0.95,
       CRAFT_TIME_MIN: { huang: 10, xuan: 20, di: 40, tian: 80, qi: 30, qi_jing: 45 },
@@ -983,11 +998,15 @@
         { id: 'rc_pozhang', tier: 'di', pill: 'ap_pozhang', realm: 5, mats: [['mat_leisui', 2], ['mat_leimu', 2], ['mat_dansha', 2]] },
         { id: 'rc_zhenjie', tier: 'di', pill: 'ap_zhenjie', realm: 6, mats: [['mat_xingchen', 2], ['mat_luanxing', 2], ['mat_jiaotu', 3]] },
         { id: 'rc_fengxing', tier: 'di', pill: 'ap_fengxing', realm: 7, mats: [['mat_xiuluo', 2], ['mat_zhanhun', 2], ['mat_xukong', 2]] },
+        /* 洗髓方（炼丹卷 v1.9 · 第三特例丹）：成品丹服下即赐一枚洗髓缘（换一枚天赋），
+         * 无 buff、不入丹纹、不可赠（双特例丹同口径）；材料三样全为既有品种，零新料 */
+        { id: 'rc_xisui', tier: 'di', pill: 'ap_xisui', realm: 6, mats: [['mat_xingchen', 2], ['mat_shousui', 2], ['mat_jingxue', 2]] },
         { id: 'rc_xirui', tier: 'di', pill: 'ap_xirui', realm: 8, mats: [['mat_longlin', 2], ['mat_longxi', 2], ['mat_xuerong', 2]] },
         { id: 'rc_haina', tier: 'tian', pill: 'ap_haina', realm: 9, mats: [['mat_hundun', 2], ['mat_jingni', 2], ['mat_tianyuan', 2]] },
         { id: 'rc_daohe', tier: 'tian', pill: 'ap_daohe', realm: 9, mats: [['mat_jiewai', 2], ['mat_xianyu', 1], ['mat_gudao', 1], ['mat_zilei', 2], ['mat_wudao', 1]] }
       ],
-      /* 丹药六型（id 用 ap_ 前缀独立命名空间，与成品丹 D.PILLS 双轨防歧义；§3.7 裁定）：
+      /* 丹药六型（id 用 ap_ 前缀独立命名空间防歧义；§3.7 裁定。第十七起两族在**丹匣 / 服用 / 丹毒 / 赠礼**四件事上同轨，
+       * 只在「效果怎么落」上不同，判据统一在 `SQ.Alchemy.pillDefOf`）：
        * 时限四型 pushBuff（source 'alchemy'，丹纹版 key = id+'_rw' 数值 ×2 时长不变）；
        * 双特例 = 一次性标记（每境界限 1，独立于丹毒日限，串行校验） */
       APILLS: {
@@ -999,6 +1018,7 @@
         ap_xirui: { buff: { field: 'dropRate', mult: 0.20, hours: 2 } },
         ap_pozhang: { once: 'pozhang', mod: -0.10 },
         ap_zhenjie: { once: 'zhenjie', mod: 0.02 },
+        ap_xisui: { swap: true },   /* 洗髓丹：无 buff 无法力，服下即赐一枚洗髓缘（SQ.Talents.grantSwap） */
         ap_haina: { buff: { field: 'qiCap', mult: 0.25, hours: 4 } },
         ap_daohe: { buff: { field: 'artsSpeed', mult: 0.25, hours: 4 } }
       },

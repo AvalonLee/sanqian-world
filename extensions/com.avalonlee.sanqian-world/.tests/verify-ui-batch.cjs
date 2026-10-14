@@ -85,7 +85,7 @@ const { chromium } = require('playwright-core');
   await page.click('#m-tabbar button:has-text("道友")');
   await page.waitForTimeout(200);
   const spTip = await page.$eval('#tab-bonds .spouserow.none', el => el.textContent);
-  T(spTip.includes('候选好感满档可结缘双修') && !spTip.includes('可提亲'), 'R6 道侣位文案改为「可结缘双修」', spTip.slice(0, 40));
+  T(spTip.includes('候选好感满档可结缘双修') && !/提亲/.test(spTip), 'R6 道侣位文案改为「可结缘双修」（且不留旧称）', spTip.slice(0, 40));
 
   /* 需求 5：护法位点开择选浮层 */
   await page.click('#tab-bonds .guardline.pickable');
@@ -114,12 +114,12 @@ const { chromium } = require('playwright-core');
   const sTitle = await page.$eval('#msp-title', el => el.textContent);
   const sBody = await page.$eval('#msp-body', el => el.textContent);
   T(sTitle.includes('道'), 'R5 道侣位点开择选浮层', 'title=' + sTitle);
-  T(sBody.includes('苏晚') && sBody.includes('提亲'), 'R5 满档候选在列且可提亲', sBody.slice(0, 30));
+  T(sBody.includes('苏晚') && sBody.includes('双修'), 'R5 满档候选在列且可双修（第廿二批：屏上不再出现「提亲」）', sBody.slice(0, 30));
   T(!sBody.includes('谢青鸾'), 'R5 未满档候选不显示');
   await page.click('#msp-body [data-act="spousePickPropose"]');
   await page.waitForTimeout(300);
   const proposeShown = await page.$eval('#modal-propose', el => !el.classList.contains('hide'));
-  T(proposeShown, 'R5 点候选进入提亲 CONFIRM（复用既有三形态）');
+  T(proposeShown, 'R5 点候选进入双修 CONFIRM（复用既有三形态）');
   await page.click('#mpr-no');
 
   /* 需求 4：道友页点解锁卡片 → 弹出详情浮层 */

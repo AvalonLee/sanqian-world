@@ -116,6 +116,39 @@
     return items;
   }
 
+  /* 货架件身份指纹（第廿六批 · 弹窗与成交同源）：CONFIRM 是无阻塞弹窗，它开着的时候秒级
+   * tick 仍会跑，4h 补货或手动刷新会把 `ws.shop.items` **整表替换** ⇒ 旧序号指向另一件货。
+   * 实测形状：弹窗写「春风化雨篇 · 2,300 灵石」，点确认实扣 360 买走一件法器。
+   * 故开弹窗时把指纹交给引擎，成交前复查「这一格还是不是它」，对不上就分文不动地拒单。
+   * 法器是随机生成的实例（无稳定 id）⇒ 用它的属性组合当指纹（同指纹即同一件）。 */
+  function goodSig(it) {
+    if (!it) return '';
+    var g = it.pack ? (it.pack.type + ':' + (it.pack.ref || '')) : '';
+    var ge = it.gear ? SQ.Gear.itemSig(it.gear) : '';   /* 与库藏同一口径（第廿六批）， gear 指纹只此一处 */
+    return [it.kind, it.ref || '', g, ge, it.price, it.qiPrice, it.stones].join('|');
+  }
+
+  /* 落点前置判定（第廿六批 2026-10-13 · 用户报「买了春风化雨，法与器里却没解锁」）：
+   * 掷货时按「未持有」过滤候选，但货架要挂满 4 小时才补货——这期间玩家可能已经通过
+   * 自悟 / 奇遇 / 残片兑换 / 图纸打造拿到同一件 ⇒ 旧写法不复查，于是**照扣钱、零收益、零日志**
+   * （实测：功法 2,300、丹方 400、图纸 600、丹炉 2,000、法宝 6,000 全是这个形状）。
+   * 现按本仓「先判后扣」纪律（第十七批 pillfull 同族）在扣钱**之前**拦住；
+   * 未达标且待修习架已满也不再折半收单（gainArt 的溢出折算只留给白拿的渠道）。
+   * 返回 null = 可成交；否则给出拒因（视图侧统一回显中文，未知 reason 走 shop.fail.other 兜底）。 */
+  function undeliverable(ws, pack, D, it) {
+    if (!it) return 'sold';
+    if (it.sold) return 'sold';
+    if (it.kind === 'arts') {
+      if (SQ.Arts.owned(ws, it.ref)) return 'owned';
+      if (!SQ.Arts.canLearn(ws, pack, D, it.ref) && (ws.shelf || []).length >= D.SHELF_CAP) return 'shelffull';
+    } else if (it.kind === 'pack' && it.pack) {
+      if (SQ.Alchemy.goodOwned(ws, D, it.pack)) return 'owned';
+    } else if (it.kind === 'treasure') {
+      if (SQ.Treasures.entryOf(ws, it.ref)) return 'owned';
+    }
+    return null;
+  }
+
   /* 门中供给价（卷面「坊市价 ×2」的唯一实现，第十四批审计 #8）：与商人特席那一格同走 priceOf
    * ⇒ 吃 shopCost 乘区、同 Math.ceil 口径。此前 factions.js 与 view 各自内联
    *   `Math.round(price × 2 × (1 + realm × SHOP_PRICE_REALM))`，既不吃 shopCost 也取整不同
@@ -125,6 +158,8 @@
   }
 
   SQ.Shop = {
+    goodSig: goodSig,   /* 第廿六批：货架件身份指纹（视图与引擎同一口径） */
+    undeliverable: undeliverable,   /* 第廿六批：扣钱前的落点判定（视图在 CONFIRM 回调里也用它复查「还是不是那一件」） */
     supplyPriceOf: supplyPriceOf,   /* 门中供给价唯一取数口（factions.buySupply 与视图同调，审计 #8） */
     slotCount: slotCount,   /* 格数取数处（判据 #285 与 #206 最坏态模型同读这一处）*/
     /* 黑市可见性（karma ≤ -200；回升消失、已购保留——购买记录即 ws 内既有状态） */
@@ -195,18 +230,21 @@
       if (!m || m.until <= Date.now()) return { ok: false, reason: 'closed' };
       var it = (m.items || [])[idx];
       if (!it || it.sold) return { ok: false, reason: 'sold' };
+      var undM = undeliverable(ws, pack, D, it);   /* 同坊市：已拥有 / 架满 ⇒ 分文不动地拒（第廿六批） */
+      if (undM) return { ok: false, reason: undM };
       if (ws.stones < it.price) return { ok: false, reason: 'poor' };
       var st2 = ws.stones;
+      /* 丹药两族合一（第十七批）：坊市 / 黑市 / 特席买到的成品丹**入丹匣**，何时服用由玩家定
+       * （旧行为是购买瞬间 applyEffects，玩家没有选择权，且绕过丹毒日限）。**先判后扣**：匣满即拒单，
+       * 灵石分文不动 —— 扣了钱却丢一颗丹 = 静默零收益那一族。 */
+      if (it.kind === 'pill' && !SQ.Alchemy.pillRoom(ws, D, it.ref, 1)) return { ok: false, reason: 'pillfull' };
       ws.stones -= it.price;
       SQ.Ledger.note(ws, 'out', 'shop', st2 - ws.stones);
       it.sold = true;
       if (it.kind === 'gear') {
         SQ.Gear.autoEquip(ws, pack, D, mods, it.gear, log);
       } else if (it.kind === 'pill') {
-        var pill = null;
-        for (var i = 0; i < D.PILLS.length; i++) if (D.PILLS[i].id === it.ref) pill = D.PILLS[i];
-        /* 传副本 = 纪律（见 events.js applyEffects 头注）：丹药两处同此 */
-        SQ.Events.applyEffects(ws, pack, D, mods, Object.assign({}, pill.effect), { log: log, now: Date.now(), silent: true });
+        SQ.Alchemy.gainPill(ws, D, it.ref, 1, log, pack.worldId);
       } else if (it.kind === 'arts') {
         SQ.Arts.gainArt(ws, pack, D, it.ref, log);
       } else if (it.kind === 'treasure') {
@@ -252,11 +290,16 @@
     },
 
     /* 购买（mutate 通道内调用）：idx 为货架序号；返回 {ok, reason?, item?} */
-    buy: function (ws, pack, D, mods, idx, black, log) {
+    buy: function (ws, pack, D, mods, idx, black, log, expect) {
       var shelf = black ? ws.shop.blackItems : ws.shop.items;
       var it = shelf && shelf[idx];
       if (!it || it.sold) return { ok: false, reason: 'sold' };
+      /* 弹窗与成交同源（第廿六批）：视图把开弹窗时记下的指纹带回来，对不上就是补货换过架 ⇒ 不成交 */
+      if (expect && goodSig(it) !== expect) return { ok: false, reason: 'stale' };
       if (black && !SQ.Shop.blackOpen(ws, pack, D)) return { ok: false, reason: 'closed' };
+      /* 先判后扣（第廿六批）：已拥有 / 未达标且架已满 ⇒ 分文不动地拒单（旧写法照扣钱、零收益、零日志） */
+      var und = undeliverable(ws, pack, D, it);
+      if (und) return { ok: false, reason: und };
       if (it.kind === 'pack' && it.pack) {
         /* 炼丹炼器子货（材料包/丹方/图纸/丹炉成品）：灵石购买记 out.shop，兑现走 Alchemy 写口 */
         if (ws.stones < it.price) return { ok: false, reason: 'poor' };
@@ -279,16 +322,17 @@
       }
       if (ws.stones < it.price) return { ok: false, reason: 'poor' };
       var st2 = ws.stones;
+      /* 丹药两族合一（第十七批）：坊市 / 黑市 / 特席买到的成品丹**入丹匣**，何时服用由玩家定
+       * （旧行为是购买瞬间 applyEffects，玩家没有选择权，且绕过丹毒日限）。**先判后扣**：匣满即拒单，
+       * 灵石分文不动 —— 扣了钱却丢一颗丹 = 静默零收益那一族。 */
+      if (it.kind === 'pill' && !SQ.Alchemy.pillRoom(ws, D, it.ref, 1)) return { ok: false, reason: 'pillfull' };
       ws.stones -= it.price;
       SQ.Ledger.note(ws, 'out', 'shop', st2 - ws.stones);
       it.sold = true;
       if (it.kind === 'gear') {
         SQ.Gear.autoEquip(ws, pack, D, mods, it.gear, log);
       } else if (it.kind === 'pill') {
-        var pill = null;
-        for (var i = 0; i < D.PILLS.length; i++) if (D.PILLS[i].id === it.ref) pill = D.PILLS[i];
-        /* 传副本 = 纪律（见 events.js applyEffects 头注）：丹药两处同此 */
-        SQ.Events.applyEffects(ws, pack, D, mods, Object.assign({}, pill.effect), { log: log, now: Date.now(), silent: true });
+        SQ.Alchemy.gainPill(ws, D, it.ref, 1, log, pack.worldId);
       } else if (it.kind === 'arts') {
         /* 购买即获得；学习要求（含 karma 门槛）仍拦截 → 待修习架（验收 4.11 #101） */
         SQ.Arts.gainArt(ws, pack, D, it.ref, log);

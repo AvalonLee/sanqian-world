@@ -25,18 +25,30 @@
     'ui.error.save': '存档写入失败：{msg}（本次进度恐未记下）',
     'ui.error.sideflow': '历史日志与奇遇记事没能保存（修为进度已保存）',
     'ui.error.short': '读取失败',
+    /* ── 一世洗髓（天赋池设计 v1.8 §十 · 洗髓批 2026-10-12）：世界无关的机制文案 ── */
+    'talent.swap.title': '洗髓 · 换骨',
+    'talent.swap.sub': '本世可换 {n}/{cap} 枚 · 手中缘 {owed} 枚',
+    'talent.swap.pick': '择一格旧骨',
+    'talent.swap.cand': '三枚候选 · 择其一',
+    'talent.swap.ok': '换骨',
+    'talent.swap.need': '两样都要择：一格旧骨、一枚候选',
+    'talent.swap.none': '手中没有洗髓缘',
+    'talent.swap.cap': '本世洗髓之数已尽',
+    'talent.swap.entry': '洗髓 {owed}/{cap}',
+    'talent.swap.done': '洗髓功成：{from} → {to}',
+    'talent.swap.log.trib': '破境之际骨髓一清，得洗髓缘一枚（手中缘 {n} 枚）',
     'world.status.live': '首发',
     'world.status.coming': '此界尚在混沌，未可投生',
     /* coming 世界显示名兜底（世界包交付后由各自 lexicon 分卷覆盖） */
-    'world.guwu.name': '古武军势',
-    'world.magic.name': '魔法能量',
+    'world.guwu.name': '三国无双',   /* 第二十批改口：屏上正名，工程 id 与 docs/古武军势/ 目录名沿用旧称 */
+    'world.magic.name': '西方魔幻',   /* 同上（第二十批）*/
     'world.tech.name': '科技降神',
     'world.urban.name': '现代都市',
     'world.cthulhu.name': '克苏鲁世界',
     'world.tag.zhan': '战意',
     'world.tag.gate': '攻关',
     'ui.sep': '，',
-    'module.empty': '点击开启新生',
+    'module.empty': '未入世 · 请到工作区打开「三千世界」',   /* 第二十一批：卡片不再绑跳转，文案不许诺"点击"（API 名不写进被扫描的源码，见工程规范 §7.2 第 2 条） */
     'log.boot': '天地初开，灵气始生',
     /* ── 创角三屏（流程：起名 → 择界 → 观天赋；键族按屏语义命名，见「世界包词族契约」）──
      * 世界词表可整族覆写 creation.* / world.* 等，实现「换世界即换系统名与菜单描述」。 */
@@ -158,7 +170,11 @@
     'arts.max': '满级',
     'arts.learned': '{name} 修炼有成，已入门',
     'arts.autoslot': '{name} 已自动入修习槽',
-    'arts.special': '签名', 'arts.reset': '待重修',
+    'arts.special': '签名',
+    /* ⚠️ 下面这键与 `ui.arts.reset_hint` 自**第廿五批 2026-10-13**（渡劫不再清功法等级）起零消费：
+       横幅与「待重修」金标已撤，值里描述的机制不复存在。按用户裁定保留不删（登记 = 任务清单 N32 ②）；
+       **要重新接线必须先改值**，否则是把已作废的机制搬回屏上。 */
+    'arts.reset': '待重修',
     'arts.main': '主修', 'arts.main.empty': '主修虚位',
     /* 功法处置（道具处置打磨包）：已入门 → 散功、架上未入门 → 弃置 */
     'arts.salvage': '散功', 'arts.discard': '弃置',
@@ -241,6 +257,8 @@
     'zone.shard.pick.fac': '洞府设施图纸',
     'zone.shard.pick.intel': '功法情报',
     'zone.shard.fail': '残片不足（{n}/{need}）',
+    'zone.shard.fail.pillfull': '丹匣已满，这一片先留着',
+    'zone.shard.fail.other': '兑换未成：这一档暂无可授之物',
     'zone.shard.pill': '残片兑丹：得「{name}」',
     'zone.shard.gear': '残片开匣：得 {name}',
     'zone.shard.fac': '图纸落成：「{cave}」{fac} 营进一级',
@@ -256,7 +274,7 @@
     'zone.cavelink': '福地「{name}」以此为凭', 'zone.cavelink.locked': '首通可开福地',
     'zone.pw.ok': '战力富余 {p}%', 'zone.pw.tight': '战力压线 {p}%', 'zone.pw.bad': '战力不足，差 {n}',
     /* 商店 */
-    'shop.refresh': '刷新（{n}）', 'shop.restock': '{t}后补货', 'shop.sold': '已售罄',
+    'shop.refresh': '刷新（{n}）', 'shop.restock': '{t}后补货', 'shop.fail.other': '这一单没有成交（货已卖出，或手头不足）', 'shop.sold': '已售罄', 'shop.fail.pillfull': '丹匣已满（每种上限 99），先服几颗再来',
     'shop.buy': '购入', 'shop.price': '{n}', 'shop.qiprice': '修为 {p}',
     'shop.confirm': '确认购入「{name}」？价格 {price}', 
     'shop.blackHint': '价高三成，慎入',
@@ -412,7 +430,7 @@
     'rumor.war.tpl': '急讯：「{a}」与「{b}」刀兵相见，战线就在左近——你效力若在其中，此刻正是用命之时。',
     /* ── 批 2 · 明细行（B7）── */
     'idle.cave': '洞府', 'tribulation.caveSig': '洞府签名',
-    /* ── 批 2 · B4 功法页（双维分组 / 独占剪影 / 架上三态 / 待重修横幅）── */
+    /* ── 批 2 · B4 功法页（双维分组 / 独占剪影 / 架上三态；**待重修横幅自第廿五批退役**，见本卷 `arts.reset` 上方注）── */
     'ui.arts.reset_hint': '渡劫功成，功法等级归零，持有与槽位保留——重修即恢复原有效果（等级为 0 的槽位挂「待重修」金标，练回即摘）',
     /* 法柱浮层（修行页四柱「法」：只读一览修习槽内功法） */
     'arts.modal.title': '修习功法', 'arts.modal.sub': '已装备 {n}/{cap} · 第 1 位为主修',
@@ -468,7 +486,7 @@
     'ui.time.ago.now': '刚刚', 'ui.time.ago.m': '{n} 分钟前', 'ui.time.ago.h': '{n} 小时前', 'ui.time.ago.d': '{n} 日前',
     /* ── 批 2 · B3 入驻轻演出（第一次拥有才出；迁居只弹 toast）── */
     'cave.show.title': '入驻「{name}」', 'cave.show.mult': '修为 ×{mult} · 签名生效', 'cave.show.skip': '点击任意处继续',
-    /* ── 批 3 · 侣柱 G14（B1~B9：chip / 名录浮层 / 详情五段式 / 提亲三形态 / 护法叙事 / 未择之路）── */
+    /* ── 批 3 · 侣柱 G14（B1~B9：chip / 名录浮层 / 详情五段式 / 双修三形态 / 护法叙事 / 未择之路）── */
     'pillar.lv.sub': '护法·{name}{num}', 'pillar.lv.subnone': '尚未结缘',
     'bond.tiernum.1': '①', 'bond.tiernum.2': '②', 'bond.tiernum.3': '③', 'bond.tiernum.4': '④',
     'bond.title': '道友名录',
@@ -478,7 +496,7 @@
     'bond.badge.spouse': '双', 'bond.deadava': '缘', 'bond.guard.tag': '护法位', 'bond.fav.label': '好感度',
     'bond.spouse.form.yinyang': '阴阳双修', 'bond.spouse.form.huzhu': '互助双修', 'bond.spouse.form.luding': '炉鼎采补',
     'bond.perk.shieldval': '每七日 1 层护身符光', 'bond.perk.cur.max': '{v}（满档）',
-    'bond.propose.ready': '可提亲', 'bond.propose.fail.unknown': '暂不可提亲', 'bond.propose.fail.notspouse': '非道侣候选',
+    'bond.propose.ready': '可双修', 'bond.propose.fail.unknown': '暂不可双修', 'bond.propose.fail.notspouse': '非道侣候选',
     'bond.guard.line': '☂ 护法位 · {name}（{title} {num}）',
     'bond.guard.eff': '渡劫 +{b} 生效中', 'bond.guard.none': '☂ 护法位 · 无人',
     'bond.guard.low': '好感档 ≥3 方可护法',
@@ -491,8 +509,8 @@
     'bond.spouse.active': '♡ {form} · {name} —— {eff} 生效中',
     'bond.spouse.luding.warn': '回头即散',
     'bond.spouse.pick': '择 道 侣',
-    'bond.spouse.pick.hint': '仅列当前满足结缘条件的道侣候选——点选即行提亲，形态由结缘瞬间的业力档位决定。',
-    'bond.spouse.pick.empty': '暂无满足条件的候选——好感满档（100）方可提亲。',
+    'bond.spouse.pick.hint': '仅列当前满足结缘条件的道侣候选——点选即行双修，形态由结缘瞬间的业力档位决定。',
+    'bond.spouse.pick.empty': '暂无满足条件的候选——好感满档（100）方可双修。',
     'bond.perk.active': '个体助力生效中 · 下一档「{title}」还需 {n} 点好感',
     'bond.perk.maxed': '个体助力生效中 · 已满档',
     'bond.fv.next': '{n}/{next}', 'bond.fv.max': '{n}/100',
@@ -503,11 +521,11 @@
     'bond.perk.why.luding': '鼎炉被采，何暇助你（双修期间归零）',
     'bond.guard.record': '已为你护法 {n} 次 · 成功 {s} 次',
     'bond.origin.via': '出身 · 奇遇「{ev}」', 'bond.origin.go': '回看图鉴 ›',
-    'bond.spousecond.text': '好感满档（100）可提亲 · 形态由结缘瞬间的业力档位决定 · 同时仅一位',
-    'bond.propose.btn': '提亲 ♡', 'bond.propose.title': '提 亲',
+    'bond.spousecond.text': '好感满档（100）可双修 · 形态由结缘瞬间的业力档位决定 · 同时仅一位',
+    'bond.propose.btn': '双修 ♡', 'bond.propose.title': '双 修',
     'bond.propose.sub': '与 {name} 结为道侣 · 形态由结缘瞬间的业力档位决定',
     'bond.form.cur': '当前可达 · {align}', 'bond.form.off': '未达 · {align}',
-    'bond.form.cond.yinyang': '需道心 ≥ +200 · 跌破即解除，7 日后可重新提亲',
+    'bond.form.cond.yinyang': '需道心 ≥ +200 · 跌破即解除，7 日后可重新双修',
     'bond.form.cond.huzhu': '需 −200 < 道心 < +200 · 无维持条件，最稳',
     'bond.form.cond.luding': '需道心 ≤ −200',
     'bond.form.eff.yinyang': '主资源产出 +6% · 离线收益 +10% · 心魔类减益 −25%',
@@ -517,9 +535,9 @@
     'bond.propose.go': '结 · {form}', 'bond.propose.no': '且 慢',
     'bond.propose.foot': '结契后将全屏停留一句结缘词 · 同时只能与一位道侣双修',
     'bond.propose.fail.scar': '这段缘已被炉鼎心结锁死',
-    'bond.propose.fail.occupied': '已有道侣在身', 'bond.propose.fail.cooldown': '解除后 {t} 内不可重新提亲',
+    'bond.propose.fail.occupied': '已有道侣在身', 'bond.propose.fail.cooldown': '解除后 {t} 内不可重新双修',
     'bond.propose.fail.affinity': '好感未满档',
-    'bond.spouse.dissolve.karma': '道心跌破 +200，阴阳双修缘散——七日之后，方可重新提亲。',
+    'bond.spouse.dissolve.karma': '道心跌破 +200，阴阳双修缘散——七日之后，方可重新双修。',
     'bond.spouse.dissolve.redemption': '道心回转向善，炉鼎之契应声而碎——这段缘就此锁死，此生不再护法。',
     'bond.show.title': '结契 · {form}', 'bond.show.skip': '点击任意处继续',
     'bond.toast.tier': '{name} 好感升档 · {title}',

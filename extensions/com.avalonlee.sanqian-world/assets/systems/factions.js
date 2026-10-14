@@ -471,15 +471,15 @@
        * 不吃 shopCost 乘区、取整也不同（round vs ceil）⇒ 卷面「坊市价×2」在有折扣法宝时不成立。 */
       var cost = SQ.Shop.supplyPriceOf(pill, ws, D, mods);
       if (ws.stones < cost) return { ok: false, reason: 'stones', need: cost, have: ws.stones };
+      /* 丹药两族合一（第十七批）：先判丹匣上限再扣灵石与声望（旧行为 = 买了当场生效，玩家无择时权）。
+       * 判在扣之前 ⇒ 拒单时灵石 / 声望 / 24h 兑换锚三者纹丝不动。 */
+      if (!SQ.Alchemy.pillRoom(ws, D, pill.id, 1)) return { ok: false, reason: 'pillfull' };
       ws.stones -= cost;
       SQ.Ledger.note(ws, 'out', 'shop', cost);
       ws.factionRep[f.id] = SQ.Factions.repOf(ws, f.id) - item.rep;
       if (!ws.factionSupply) ws.factionSupply = {};
       ws.factionSupply[sku] = now;
-      if (SQ.Events && SQ.Events.applyEffects) {
-        SQ.Events.applyEffects(ws, pack, D, mods, Object.assign({}, pill.effect),   /* 副本 = 纪律，见 events.js applyEffects 头注 */
-          { log: log, now: now, eventId: null });
-      }
+      SQ.Alchemy.gainPill(ws, D, pill.id, 1, log, pack.worldId);   /* 入匣（第十七批），效果由玩家点击服用时才落 */
       if (log) log('sys', SQ.t('faction.supply.bought', { name: SQ.t('faction.supply.sku.' + sku, null, pack.worldId) }, pack.worldId));
       return { ok: true, cost: cost, rep: item.rep };
     },

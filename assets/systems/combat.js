@@ -312,9 +312,10 @@
         var pill = null;
         (D.PILLS || []).forEach(function (p) { if (p.id === pid) pill = p; });
         if (!pill) return { ok: false, reason: 'pool' };
-        if (SQ.Events && SQ.Events.applyEffects) {
-          SQ.Events.applyEffects(ws, pack, D, mods, Object.assign({}, pill.effect), { log: log, now: now, eventId: null });   /* 传副本 = 纪律，见 events.js applyEffects 头注 */
-        }
+        /* 丹药两族合一（第十七批）：兑来的成品丹**入丹匣**而非当场生效；匣满即整笔拒兑 ——
+         * 扣片在本函数末尾（:418），此处提前 return ⇒ 片分文不动（「奖励发放成功才扣片」既有纪律沿用）。 */
+        if (!SQ.Alchemy.pillRoom(ws, D, pid, 1)) return { ok: false, reason: 'pillfull' };
+        SQ.Alchemy.gainPill(ws, D, pid, 1, null, wid);
         reward = { type: 'pill', id: pid };
         if (log) log('combat', SQ.t('zone.shard.pill', { name: SQ.t('pill.' + pid + '.name', null, wid) }, wid));
       } else if (z <= 5) {

@@ -123,7 +123,7 @@
     ok('E3', 'DoD 闭环：创角后 claim 出灵气', ref13b.worlds.xiuxian.qi > 0 && ref13b.profile.worldName.length >= 2,
       'qi=' + ref13b.worlds.xiuxian.qi.toFixed(2) + ' world=' + ref13b.profile.worldName);
 
-    /* #14 命名生成器与可见世界：hidden 永不出现 */
+    /* #14 命名生成器与可见世界：屏上名册逐位钉死（第二十批起 6 界全露出、5 界灰显；原判据是「克苏鲁不露出」）*/
     var chars = { p: '玄青紫太九沧天罗幽', m: '云霄虚阳冥岚岳', s: '界境天域洲' };
     var nameOk = true;
     for (var i = 0; i < 200; i++) {
@@ -131,7 +131,8 @@
       if (nm.length !== 3 || chars.p.indexOf(nm[0]) < 0 || chars.m.indexOf(nm[1]) < 0 || chars.s.indexOf(nm[2]) < 0) { nameOk = false; break; }
     }
     var vis = SQ.visibleWorlds().map(function (w) { return w.id; });
-    ok('E4', '命名池合规且克苏鲁不露出', nameOk && vis.indexOf('cthulhu') < 0 && vis.length === 5, 'visible=' + vis.join(','));
+    ok('E4', '命名池合规 + 屏上名册逐位对表（live 1 · coming 5 · 无 hidden 实例）',
+      nameOk && vis.join(',') === 'xiuxian,guwu,magic,tech,urban,cthulhu', 'visible=' + vis.join(','));
 
     /* #15 词表回落：世界词表 → common → key 本身 */
     ok('E5', 't() 三级回落',
@@ -219,13 +220,15 @@
     ok(16, '天赋确认锁定后不可变',
       JSON.stringify(after21.profile.talents) === JSON.stringify(locked) && locked.length >= 2);
 
-    /* #22 屏 3 数据源：live 1 + coming 4，hidden 永不出现 */
+    /* #22 屏 3 数据源：live 1 + coming 5（第二十批克苏鲁入灰显列）；hidden 档仍由 visibleWorlds 过滤，只是本表暂无实例 */
     var vis22 = SQ.visibleWorlds();
     var live22 = vis22.filter(function (w) { return w.status === 'live'; });
     var coming22 = vis22.filter(function (w) { return w.status === 'coming'; });
-    ok(17, '可见世界 = live 1 + coming 4（无 hidden）',
-      vis22.length === 5 && live22.length === 1 && live22[0].id === 'xiuxian' && coming22.length === 4 &&
-      vis22.every(function (w) { return w.id !== 'cthulhu'; }));
+    ok(17, '可见世界 = live 1 + coming 5（克苏鲁第二十批改灰显；屏上名册与注册表逐位相等）',
+      vis22.length === 6 && live22.length === 1 && live22[0].id === 'xiuxian' && coming22.length === 5 &&
+      SQ.visibleWorlds().map(function (w) { return w.id; }).join(',') ===
+        Object.keys(SQ.Worlds).join(',') &&
+      Object.keys(SQ.Worlds).every(function (id) { return SQ.Worlds[id].status !== 'hidden'; }));
 
     /* #23 入世一次性写入完整：profile 五字段 + 世界初始化 + meta */
     ok(18, '入世写入完整性',
@@ -461,13 +464,13 @@
       c0 === 60 && c2 === 120 && c2b === 480 && cFloor === 30,
       [c0, c2, c2b, cFloor].join('/'));
 
-    /* #39 渡劫成功 → artsLevels 清零、artsKnown 与槽位保留 */
+    /* #39 渡劫成功 → **功法等级保留**（第廿五批改口：原口径为 artsLevels 清零）、artsKnown 与槽位保留 */
     var w39 = mkWs({ realm: 0, qi: 1000, artsKnown: ['tuna', 'juling'], artsSlots: ['tuna'], artsLevels: { tuna: 3, juling: 2 } });
     var restore39 = stubRandom([0]);
     SQ.Realm.tryBreakthrough(w39, pack, D, M(mkProf(), w39), Date.now(), { log: noopLog(), profile: mkProf() });
     restore39();
-    ok(39, '渡劫成功功法清零/持有保留',
-      w39.realm === 1 && w39.qi === 0 && Object.keys(w39.artsLevels).length === 0 &&
+    ok(39, '渡劫成功功法等级保留/持有与槽位保留（不再清零）',
+      w39.realm === 1 && w39.qi === 0 && w39.artsLevels.tuna === 3 && w39.artsLevels.juling === 2 &&
       /* 体验手感批后：M() 触发一次性回填把 juling 补进空槽（数值详设 §4.4 v1.26），槽位保留关系不变 */
       w39.artsKnown.join() === 'tuna,juling' && w39.artsSlots.join() === 'tuna,juling' && w39.tribulation.lastResult === 'success');
 
@@ -641,7 +644,7 @@
     var want50 = [0.95, 0.668, 0.623, 0.57, 0.525, 0.48, 0.435, 0.383, 0.338];
     ok(50, '渡劫 base 表 9 点（金丹起 ×0.75）', want50.every(function (v, i) { return D.REALMS[i + 1].tribBase === v; }));
 
-    /* #51 成功：realm+1、qi=0、artsLevels 清零、lastResult（#39 已覆盖，此处核 success 计数） */
+    /* #51 成功：realm+1、qi=0、功法等级保留（第廿五批）、lastResult（#39 已覆盖，此处核 success 计数） */
     ok(51, '渡劫成功计数与状态', w39.tribulation.success === 1 && w39.tribulation.attempts === 1);
 
     /* #52 失败：qi×loss（tribFailLossMod/神修正生效）、境界不变 */
@@ -1639,7 +1642,9 @@
       bondDrain: 1,   /* 情谊生裂（缘尽收敛批 · 引擎卷 v1.10 §3.6）：轻中度背叛替代绝交锁 */
       merchant: 1, merchantScout: 1, primeGear: 1, primeArt: 1,
       fateShard: 1,   /* 探宝残片计数（事件池 v2.7 №117 ⏳ 键，系统深化批 A6 登记） */
-      treasure: 1 };   /* 先天法宝联动授予（二批 A5 · 数值详设 §10.7；恢复批 A3b 引擎 case 已重加） */
+      treasure: 1,
+      talentSwap: 1 };   /* 洗髓缘（天赋池设计 v1.8 §十 · 洗髓批）：计数型收益，无区间 */
+      /* 先天法宝联动授予（二批 A5 · 数值详设 §10.7；恢复批 A3b 引擎 case 已重加） */
     var CHECK_TYPES = { attr: 1, karma: 1, align: 1, stones: 1, qi: 1, art: 1, gear: 1, power: 1, companion: 1,
       prodigySpar: 1 };   /* 天骄对局判定（天骄卷 §5.2/§7.3 同构 · 六向批 A4 新增第十类 DSL） */
     var BAND118 = D.EVENT_KARMA_BAND;   /* 取表而不是手抄（第十四批审计 #18）。⚠️ 归因纠正（当晚复核）：A9 把这条记成零消费者死桩的理由是**生产侧无人读**（A9 的消费面刻意不含 `.tests/`），不是「因为手抄」⇒ 本改只让测试随表动，摘除在册登记要等生产侧真出现读者。 */
@@ -1670,8 +1675,8 @@
         if (SQ.t(key, null, 'xiuxian') === key) bad118.push(ev.id + ':lex.branch.' + bk);
       });
     });
-    ok(118, '124 条分布（天24/地41/人59 · 特殊12 · once12 · tags11=垂青6+天骄5）+ schema/词表对表（六向批 №120~124 入池）',
-      all118.length === 124 && tiers118.tian === 24 && tiers118.di === 41 && tiers118.ren === 59 &&
+    ok(118, '125 条分布（天24/地42/人59 · 特殊12 · once12 · tags11=垂青6+天骄5）+ schema/词表对表（洗髓批 №125 入池 · GAIN_TYPES 登记 talentSwap）',
+      all118.length === 125 && tiers118.tian === 24 && tiers118.di === 42 && tiers118.ren === 59 &&
       special118 === 12 && once118 === 12 && tagged118 === 11 && bad118.length === 0,
       'n=' + all118.length + ' ' + JSON.stringify(tiers118) + ' sp=' + special118 + ' once=' + once118 +
       ' tags=' + tagged118 + ' bad=' + bad118.slice(0, 5).join(','));
@@ -1874,7 +1879,7 @@
       bump125 && Math.abs(rate125 - exp125) <= 0.03 && keep125.prime === true,
       'rate=' + (rate125 * 100).toFixed(1) + '% exp=' + (exp125 * 100).toFixed(1) + '% prime=' + prime125 + '/4000');
 
-    /* #126 渡劫成功时间戳（B4 待重修金标 24h 窗口）：成功写 / 失败不动 / normalize 脏值归 null */
+    /* #126 渡劫成功时间戳（第廿五批起视图无消费者，字段与写口保留 = N32 ①）：成功写 / 失败不动 / normalize 脏值归 null */
     var t126 = 1700000000000;
     var w126 = mkWs({ realm: 0, qi: 1e9 });
     pack.recalcDerived(w126, mkProf());
@@ -3688,8 +3693,8 @@
         });
       });
     });
-    ok('150', '113 条 lint 带（karma 人8/地15/天25 · failE ≥−15% · 负 buff ≤24h）',
-      pool150.length === 113 && bad150.length === 0, 'n=' + pool150.length + ' bad=' + bad150.slice(0, 5).join(','));
+    ok('150', '114 条 lint 带（karma 人8/地15/天25 · failE ≥−15% · 负 buff ≤24h · 洗髓批 №125 入带）',
+      pool150.length === 114 && bad150.length === 0, 'n=' + pool150.length + ' bad=' + bad150.slice(0, 5).join(','));
 
     /* #151 二批 30 人十三字段增量对表（道友池卷 §五 登记 · 满档口径；单人单字段 ≤8%/≤4pp 带随附） */
     var C30_151 = { lihuayuan: 1, mojuren: 1, zhangtie: 1, yuzhitong: 1, wuyan: 1, wangchan: 1, xiangzhili: 1,
@@ -4359,9 +4364,12 @@
       w.shop.merchant.items.push({ kind: 'treasure', ref: 'x14', sold: false, price: 99999 });
       D.ALCHEMY.MATS.forEach(function (mm) { w.materials[mm.id] = 999; });
       w.alchemy = { furnace: true, recipes: D.ALCHEMY.RECIPES.map(function (rr) { return rr.id; }), blueprints: D.ALCHEMY.BLUEPRINTS.map(function (bb) { return bb.id; }),
-        prof: { dan: 999, qi: 999 }, pills: {}, pillDay: { day: 99, n: 3 }, pillOnce: { pozhang: 9, zhenjie: 9 },
+        prof: { dan: 999, qi: 999 }, pills: {}, pillDay: { day: 99, n: 4 }, pillOnce: { pozhang: 9, zhenjie: 9 },
         craft: null, farmAt: 1, fires: 999, jiuzhuan: 99, forgeMade: 99 };
+      /* 丹药两族合一（第十七批）：最坏态必须把**成品丹四枚**一起摆满（玩家在坊市 / 门中 / 特席 / 残片也能囤到 99），
+       * 只按 RECIPES 造 = 少算四键 ⇒ 红线余量虚报 */
       D.ALCHEMY.RECIPES.forEach(function (rr) { w.alchemy.pills[rr.pill] = 99; w.alchemy.pills[rr.pill + '_rw'] = 99; });
+      (D.PILLS || []).forEach(function (pp) { w.alchemy.pills[pp.id] = 99; });
       w.tiandao = SQ.Tiandao.normalize({ defy: 100, title: true, shield: 1, nextTrib: 0.03 }, D);
       /* 本局去重位掩码满档（2026-10-06 天象扩容批补造）：omenSeen 逐节点全亮 = 2^OMEN_TPL_N[node] − 1、
        * chenSeen = 2^CHENYU_N − 1。位掩码本就是为「落档增量 ≈30B」选的形状（对比 id 字符串数组方案的
@@ -5534,14 +5542,18 @@
     var wRw257 = mkG257({ ap_juqi_rw: 1 }, 5);
     var rRw257 = SQ.Bonds.giftPill(wRw257, pack, D, cs257[0].id, 'ap_juqi_rw', T257, log257, prof257);
     var e257b = rRw257.ok && rRw257.rune === true && rRw257.gain === Math.round(4 * (D.BOND_GIFT_RUNE_MULT || 1.5));
-    /* (f) 三类拒绝均不扣丹不占日限 */
-    var wF1 = mkG257({ ap_pozhang: 2, ap_zhenjie: 2, ap_juqi: 2 }, 5);
+    /* (f) 四类拒绝均不扣丹不占日限（once ×2 / stock / nogift = 洗髓丹） */
+    var wF1 = mkG257({ ap_pozhang: 2, ap_zhenjie: 2, ap_juqi: 2, ap_xisui: 2 }, 5);
     var rF1a = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_pozhang', T257, log257, prof257);
     var rF1b = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_zhenjie', T257, log257, prof257);
+    /* 洗髓丹（第三类底牌）禁赠：拒因单立 'nogift'（不复用 'once' 那句「每境界限 1」的文案）且不扣丹不占日限 */
+    var rF1d = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_xisui', T257, log257, prof257);
     var rF1c = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_daohe', T257, log257, prof257);
     var wF2 = mkG257({ ap_juqi: 5 }, 100);
     var rF2 = SQ.Bonds.giftPill(wF2, pack, D, cs257[0].id, 'ap_juqi', T257, log257, prof257);
     var f257 = rF1a.reason === 'once' && rF1b.reason === 'once' && rF1c.reason === 'stock' &&
+      rF1d.reason === 'nogift' && wF1.alchemy.pills.ap_xisui === 2 &&
+      SQ.t('bond.gift.fail.nogift', null, 'xiuxian') !== 'bond.gift.fail.nogift' &&
       wF1.alchemy.pills.ap_pozhang === 2 && wF1.alchemy.pills.ap_zhenjie === 2 && wF1.alchemy.pills.ap_juqi === 2 &&
       wF1.alchemy.giftDay.n === 0 &&
       rF2.reason === 'max' && wF2.alchemy.pills.ap_juqi === 5 && wF2.alchemy.giftDay.n === 0;
@@ -6897,7 +6909,7 @@
     var sc209c = SQ.Alchemy.startCraft(w209, pack, D, 'dan', 'rc_pozhang', {}, null, 300, null);
     var cc209c = (function () { var rs = stubRandom([0.0, 0.0]); var r = SQ.Alchemy.collectCraft(w209, pack, D, null, null, sc209c.craft.doneAt + 1, null); rs(); return r; })();
     var noRune209 = cc209c.success === true && cc209c.pill === 'ap_pozhang';  /* 双特例无丹纹 */
-    /* 丹毒日限 3 颗 + pushBuff 同字段保最强（丹纹版 ×2） */
+    /* 丹毒日限 4 颗（丹药两族合一 · 第十七批：3 → 4）+ pushBuff 同字段保最强（丹纹版 ×2） */
     var prof209 = mkProf([]);
     w209.alchemy.pills.ap_juqi = 5; w209.alchemy.pills.ap_juqi_rw = 5;
     var born209 = 1000000;
@@ -6908,12 +6920,14 @@
     var dk209c = SQ.Alchemy.drinkPill(w209, pack, D, 'ap_juqi', now209 + 2, null, prof209);
     var dk209d = SQ.Alchemy.drinkPill(w209, pack, D, 'ap_juqi', now209 + 3, null, prof209);
     var qBuffs209 = w209.buffs.filter(function (b2) { return b2.field === 'qiRate' && b2.source === 'alchemy'; });
+    var dk209f = SQ.Alchemy.drinkPill(w209, pack, D, 'ap_juqi', now209 + 4, null, prof209);        /* 第 5 颗 → 丹毒拒 */
     var dk209e = SQ.Alchemy.drinkPill(w209, pack, D, 'ap_juqi', now209 + 5000, null, prof209);   /* 跨游戏日 */
-    ok('209', '炼丹流程：成功率表 0.85/0.95cap/0.70/0.55/0.67 对表；开工扣料记 out、失败不还熟练度照涨；宗师丹纹 5% 仅时限型（九转正名）；丹毒日限 3 跨日重置；pushBuff 同字段保最强（丹纹 ×2）',
+    ok('209', '炼丹流程：成功率表 0.85/0.95cap/0.70/0.55/0.67 对表；开工扣料记 out、失败不还熟练度照涨；宗师丹纹 5% 仅时限型（九转正名）；丹毒日限 4 跨日重置（第十七批 3 → 4，第 5 颗才拒）；pushBuff 同字段保最强（丹纹 ×2）',
       p209a === 0.85 && p209b === 0.95 && p209c === 0.70 && p209d === 0.55 && p209e === 0.67 &&
       sc209.ok === true && busy209.reason === 'busy' && profUp209 && matOut209b === matOut209a + 3 &&
       fail209 && rune209 && noRune209 &&
-      dk209a.ok === true && dk209b.ok === true && dk209c.ok === true && dk209d.reason === 'daily' && dk209e.ok === true &&
+      dk209a.ok === true && dk209b.ok === true && dk209c.ok === true && dk209d.ok === true &&
+      dk209f.reason === 'daily' && dk209e.ok === true &&
       qBuffs209.length === 1 && qBuffs209[0].mult === 0.20);
 
     /* #210 双特例每境界限（破障 −0.10 下限不破 / 镇劫 +0.02 判后即清 / 相互独立于丹毒） */
@@ -7766,19 +7780,20 @@
     var lock225 = SQ.Alchemy.recipeActive(w225, D, 'rc_daohe') === false;          /* realm 8 未激活 */
     w225.realm = 9;
     var unlock225 = SQ.Alchemy.recipeActive(w225, D, 'rc_daohe') === true;         /* realm 9 复检激活 */
-    ok('225', '丹方十份结构对表：黄2/玄2/地4/天2 分布；realm = 主材区 +1（z8 起封顶 9）逐份吻合；材料引用全在 MATS 且量 ≥1；pill 引用全在 APILLS；天阶 rc_daohe 含悟道石 ×1（第二消耗口落实）；获得 ≠ 解锁（realm 8 拒 / 9 复检激活）',
-      REC225.length === 10 && tierCnt225.huang === 2 && tierCnt225.xuan === 2 && tierCnt225.di === 4 && tierCnt225.tian === 2 &&
+    ok('225', '丹方十一份结构对表：黄2/玄2/地5/天2 分布（洗髓批 +rc_xisui）；realm = 主材区 +1（z8 起封顶 9）逐份吻合；材料引用全在 MATS 且量 ≥1；pill 引用全在 APILLS；天阶 rc_daohe 含悟道石 ×1（第二消耗口落实）；获得 ≠ 解锁（realm 8 拒 / 9 复检激活）',
+      REC225.length === 11 && tierCnt225.huang === 2 && tierCnt225.xuan === 2 && tierCnt225.di === 5 && tierCnt225.tian === 2 &&
       matsOk225 && realmOk225 && pillOk225 && wudaoUse225 && lock225 && unlock225,
       'tiers=' + JSON.stringify(tierCnt225) + ' wudao=' + wudaoUse225 + ' lock/unlock=' + lock225 + '/' + unlock225);
 
     /* #226 丹药十型效果通道（FIELDS 内 / 服用落地 / 丹纹 ×2 / 丹毒日限十型共享 / 双特例维持） */
     var AP226 = D.ALCHEMY.APILLS;
     var keys226 = Object.keys(AP226);
-    var buffCnt226 = 0, onceCnt226 = 0, fieldOk226 = true;
+    var buffCnt226 = 0, onceCnt226 = 0, swapCnt226 = 0, fieldOk226 = true;
     keys226.forEach(function (k) {
       var d = AP226[k];
       if (d.buff) { buffCnt226++; if (SQ.Mods.FIELDS.indexOf(d.buff.field) < 0) fieldOk226 = false; }
       else if (d.once) onceCnt226++;
+      else if (d.swap) swapCnt226++;   /* 洗髓丹：第三类通道（无 buff 无 once，赐一枚洗髓缘） */
     });
     var w226 = mkWs({ realm: 9 });
     SQ.Alchemy.ensure(w226, D);
@@ -7790,16 +7805,17 @@
     var dk226b = SQ.Alchemy.drinkPill(w226, pack, D, 'ap_haina_rw', now226 + 1, null, prof226);
     var bH226 = w226.buffs.filter(function (b) { return b.field === 'qiCap' && b.source === 'alchemy'; });
     var dk226c = SQ.Alchemy.drinkPill(w226, pack, D, 'ap_xirui', now226 + 2, null, prof226);
-    var dk226d = SQ.Alchemy.drinkPill(w226, pack, D, 'ap_daohe', now226 + 3, null, prof226);   /* 第 4 颗 → 丹毒拒 */
+    var dk226d = SQ.Alchemy.drinkPill(w226, pack, D, 'ap_daohe', now226 + 3, null, prof226);   /* 第 4 颗 = 新上限内 */
+    var dk226e = SQ.Alchemy.drinkPill(w226, pack, D, 'ap_fengxing', now226 + 4, null, prof226); /* 第 5 颗 → 丹毒拒 */
     var bX226 = w226.buffs.filter(function (b) { return b.field === 'dropRate' && b.source === 'alchemy'; });
     /* 脏档 normalize：新丹纹 key 保留（pillKeys 自动跟随 APILLS） */
-    var n226 = SQ.Alchemy.normalize({ pills: { ap_daohe_rw: 5, ap_juqi_rw: 2, fake_pill: 9 } }, D);
-    ok('226', '丹药十型：8 时限 buff + 2 once 特例（双特例零新增）；buff 字段全在 mods FIELDS（combatSpeed/dropRate/qiCap/artsSpeed 新用）；服用落地 pushBuff source=alchemy 数值对表（驭风 0.12 / 丹纹纳海 ×2=0.50）；丹毒日限 3 十型共享（第 4 颗拒）；normalize 新丹纹 key 保留、伪 key 滤除',
-      keys226.length === 10 && buffCnt226 === 8 && onceCnt226 === 2 && fieldOk226 &&
+    var n226 = SQ.Alchemy.normalize({ pills: { ap_daohe_rw: 5, ap_juqi_rw: 2, fake_pill: 9, ap_pozhang_rw: 3 } }, D);
+    ok('226', '丹药十一型：8 时限 buff + 2 once 特例 + 1 swap 洗髓（洗髓批，特例仍两枚）；buff 字段全在 mods FIELDS（combatSpeed/dropRate/qiCap/artsSpeed 新用）；服用落地 pushBuff source=alchemy 数值对表（驭风 0.12 / 丹纹纳海 ×2=0.50）；丹毒日限 4 全型共享（第 5 颗拒 · 第十七批 3 → 4）；normalize 新丹纹 key 保留、伪 key 滤除',
+      keys226.length === 11 && buffCnt226 === 8 && onceCnt226 === 2 && swapCnt226 === 1 && fieldOk226 &&
       dk226a.ok === true && bF226.length === 1 && Math.abs(bF226[0].mult - 0.12) < 1e-9 &&
       dk226b.ok === true && bH226.length === 1 && Math.abs(bH226[0].mult - 0.50) < 1e-9 &&
       dk226c.ok === true && bX226.length === 1 && Math.abs(bX226[0].mult - 0.20) < 1e-9 &&
-      dk226d.reason === 'daily' && n226.pills.ap_daohe_rw === 5 && n226.pills.ap_juqi_rw === 2 && n226.pills.fake_pill == null,
+      dk226d.ok === true && dk226e.reason === 'daily' && n226.pills.ap_daohe_rw === 5 && n226.pills.ap_juqi_rw === 2 && n226.pills.fake_pill == null && n226.pills.ap_pozhang_rw == null,   /* 非 buff 型无丹纹版 */
       'keys=' + keys226.length + ' buff/once=' + buffCnt226 + '/' + onceCnt226);
 
     /* #227 精制图纸跨阶打造（+1 口径三处共用 / 材料 12 / 45min / 0.70 档 / attr 必选同判 / 上品价 1500） */
@@ -7895,14 +7911,14 @@
     var mods229 = M(mkProf([]), w229);
     var ex229 = SQ.Combat.exchangeShard(w229, pack, D, mods229, 6, 'recipe', 1, null);
     var isDT229 = ex229.ok === true && ex229.reward && ex229.reward.type === 'recipe' &&
-      ['rc_pozhang', 'rc_zhenjie', 'rc_fengxing', 'rc_xirui', 'rc_haina', 'rc_daohe'].indexOf(ex229.reward.id) >= 0;
+      ['rc_pozhang', 'rc_zhenjie', 'rc_fengxing', 'rc_xirui', 'rc_haina', 'rc_daohe', 'rc_xisui'].indexOf(ex229.reward.id) >= 0;
     var has229 = isDT229 && w229.alchemy.recipes.indexOf(ex229.reward.id) >= 0 && w229.shards[6] === 0;
     /* 缺 choice：三选必选语义维持 */
     w229.shards[6] = 20;
     var exNC229 = SQ.Combat.exchangeShard(w229, pack, D, mods229, 6, null, 1, null);
     var shardKept229 = exNC229.reason === 'choice' && w229.shards[6] === 20;      /* 拒绝不扣片 */
     /* 地/天阶全持有 → 回落 intel（无可授情报则 pool 拒，两种结果均不双授丹方、不白扣片） */
-    w229.alchemy.recipes = ['rc_juqi', 'rc_pozhang', 'rc_zhenjie', 'rc_fengxing', 'rc_xirui', 'rc_haina', 'rc_daohe'];
+    w229.alchemy.recipes = ['rc_juqi', 'rc_pozhang', 'rc_zhenjie', 'rc_fengxing', 'rc_xirui', 'rc_haina', 'rc_daohe', 'rc_xisui'];
     var exFb229 = SQ.Combat.exchangeShard(w229, pack, D, mods229, 6, 'recipe', 1, null);
     var fbOk229 = (exFb229.ok === true && exFb229.reward.type === 'intel') ||
       (exFb229.ok === false && exFb229.reason === 'pool' && w229.shards[6] === 20);
@@ -7921,7 +7937,7 @@
       AL230.BP_PRICE_JING === 1500 && AL230.FORGE_MAT_COST_JING === 12 && AL230.REFINE_IN === 4 &&
       AL230.CRAFT_BASE.qi_jing === 0.70 && AL230.CRAFT_TIME_MIN.qi_jing === 45;
     /* 既有经济锚零改动（扩容只加不改） */
-    var keep230 = AL230.MAT_DROP_P === 0.15 && AL230.PILL_DAILY_CAP === 3 && AL230.FORGE_DROP_K === 0.5 &&
+    var keep230 = AL230.MAT_DROP_P === 0.15 && AL230.PILL_DAILY_CAP === 4 &&   /* 第十七批 3 → 4（丹药两族合一，同池同限），故本条不再是「零改动」 */ AL230.FORGE_DROP_K === 0.5 &&
       AL230.FORGE_MAT_COST === 6 && AL230.RUNE_P === 0.05 && AL230.GATHER_WUDAO_P === 0.10 &&
       AL230.CRAFT_BASE.huang === 0.85 && AL230.CRAFT_BASE.tian === 0.40 && AL230.CRAFT_BASE.qi === 0.80 &&
       AL230.MAT_SELL.join() === '8,40,160,600' && AL230.RECIPE_PRICES.huang === 400 && AL230.BP_PRICE === 600 &&
@@ -7930,7 +7946,7 @@
     var dirty230 = { recipes: AL230.RECIPES.map(function (r) { return r.id; }).concat(['fake1', 'fake2', 'fake3', 'fake4', 'fake5']),
       blueprints: AL230.BLUEPRINTS.map(function (b) { return b.id; }).concat(['bx1', 'bx2', 'bx3']) };
     var n230 = SQ.Alchemy.normalize(dirty230, D);
-    var capOk230 = n230.recipes.length === 10 && n230.blueprints.length === 9;
+    var capOk230 = n230.recipes.length === 11 && n230.blueprints.length === 9;
     /* alchemy 独立最坏态（全丹方 + 20 pill key × 99 + 全图纸 + 30 材料 × 999）< 2.5KB（红线分摊核算） */
     var w230 = mkWs({ realm: 9 });
     SQ.Alchemy.ensure(w230, D);
@@ -7938,13 +7954,14 @@
     w230.alchemy.recipes = AL230.RECIPES.map(function (r) { return r.id; });
     w230.alchemy.blueprints = AL230.BLUEPRINTS.map(function (b) { return b.id; });
     AL230.RECIPES.forEach(function (r) { w230.alchemy.pills[r.pill] = 99; w230.alchemy.pills[r.pill + '_rw'] = 99; });
+    (D.PILLS || []).forEach(function (pp) { w230.alchemy.pills[pp.id] = 99; });   /* 成品丹四枚同属最坏态（同 #206）*/
     w230.alchemy.prof = { dan: 999, qi: 999 };
     var size230 = JSON.stringify({ alchemy: w230.alchemy, materials: w230.materials }).length;
     /* 红线零改动（p 公式主体 / TRIB_P_CLAMP / REALMS / mods FIELDS / ARTS_COST） */
     var zero230 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.338 &&
       D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 && SQ.Mods.FIELDS.length === 17 &&
       D.ARTS_COST.join() === '60,240,900,3200,11000,36000,120000,400000,1300000';
-    ok('230', '经济参数与容量红线回归：六新参对表（tian 12000/精制 1500·12 料·0.70·45min/提炼 4:1）；既有经济锚零改动（含坊市权重全表 50/25/10/10/5——锚 9.12 复跑不变红线）；normalize 上限数据驱动（脏档 15→10、12→9）；alchemy 独立最坏态 <2.5KB（50KB 红线分摊）；p 公式/CLAMP/REALMS/FIELDS/ARTS_COST 红线零改动',
+    ok('230', '经济参数与容量红线回归：六新参对表（tian 12000/精制 1500·12 料·0.70·45min/提炼 4:1）；既有经济锚**只动一处并如实报**：`PILL_DAILY_CAP` 3 → **4**（第十七批丹药两族合一）；其余（坊市权重全表 50/25/10/10/5——锚 9.12 复跑不变红线）零改动；normalize 上限数据驱动（脏档 16→11、12→9）；alchemy 独立最坏态 <2.5KB（50KB 红线分摊）；p 公式/CLAMP/REALMS/FIELDS/ARTS_COST 红线零改动',
       par230 && keep230 && capOk230 && size230 < 2500 && zero230,
       'size=' + size230 + 'B cap=' + capOk230);
 
@@ -8993,11 +9010,477 @@
       '有派=' + t276.length + '字 含句=' + (t276.indexOf('立「云壑宗」') >= 0) +
       ' 反例=' + (t276b.indexOf('立「') < 0) + '/' + (t276c.indexOf('立「') < 0) + ' 长度上限=' + (D.LEGACY.BIO_MAX || 500));
 
+    /* #296 一世洗髓（天赋池设计 v1.8 §十 · 洗髓批 2026-10-12）：四渠道赐缘 + 单口换骨 + 先判后扣 + 存档往返
+     * 立因：创角锁定后天赋一世不改（旧 §一原则 5「已拍板」），本批开四条变更途径 ⇒ 「每世 3 次」预算与
+     * 「先判预算再扣资源」是唯一的刷词条防线，而视图不自带判定（候选与替换全在 SQ.Talents）⇒ 判据一律走引擎真入口。
+     * 全条零随机：词条一律取自池（不写字面量 id），候选那三枚用 stubRandom 钉住首三位 ⇒ 复跑同值。 */
+    var SW296 = D.TALENT_SWAP, cap296 = SW296.PER_LIFE;
+    var posPool296 = SQ.TALENTS.common.positive.concat(SQ.TALENTS.xiuxian.positive);
+    var negPool296 = SQ.TALENTS.common.negative.concat(SQ.TALENTS.xiuxian.negative);
+    var cp296 = function (t) { return JSON.parse(JSON.stringify(t)); };
+    var held296 = [cp296(posPool296[0]), cp296(posPool296[1]), cp296(negPool296[0])];
+    var prof296 = mkProf(held296); prof296.createdAt = 1000000;
+    /* (a) 洗髓丹：真走 drinkPill —— 服下即赐缘且扣丹 */
+    var w296 = mkWs({ realm: 7 });
+    SQ.Alchemy.ensure(w296, D);
+    w296.alchemy.pills = { ap_xisui: 4 };
+    var dk296a = SQ.Alchemy.drinkPill(w296, pack, D, 'ap_xisui', 1000001, null, prof296);
+    var pill296 = dk296a.ok === true && dk296a.swap === true &&
+      w296.talentOwed === 1 && w296.alchemy.pills.ap_xisui === 3;
+    /* (b) 预算已满 ⇒ 拒服且**不扣丹**（先判后扣；扣了丹零收益正是第十四批刚收的那一类静默缺陷） */
+    w296.talentOwed = cap296;
+    var dk296b = SQ.Alchemy.drinkPill(w296, pack, D, 'ap_xisui', 1000002, null, prof296);
+    var capRefuse296 = dk296b.ok === false && dk296b.reason === 'swapfull' && w296.alchemy.pills.ap_xisui === 3;
+    /* (c) 奇遇效果键 talentSwap：真走 applyEffects；预算已满时收益标签必须被撤销（applied 里不许留没落账的收益） */
+    var w296c = mkWs({ realm: 6 });
+    SQ.Events.applyEffects(w296c, pack, D, M(prof296, w296c), { talentSwap: 1 }, { applied: {} });
+    var evGrant296 = w296c.talentOwed === 1;
+    var ctx296 = { applied: { talentSwap: 1 } };
+    w296c.talentOwed = cap296;
+    SQ.Events.applyEffects(w296c, pack, D, M(prof296, w296c), { talentSwap: 1 }, ctx296);
+    var evRevoke296 = ctx296.applied.talentSwap == null && w296c.talentOwed === cap296;
+    /* (d) 破境赐缘：**只在 targetRealm === TRIB_FROM 那一次赐**。三档对照 = 起始境界取 TRIB_FROM−2 / −1 / 0
+     *     （⇒ 目标境界 TRIB_FROM−1 / 命中档 / +1），故「每次突破都给」（后两档必红）、「永远不给」（命中档红）、
+     *     与「档号写错」都跑不掉 */
+    var tribPair296 = [SW296.TRIB_FROM - 2, SW296.TRIB_FROM - 1, SW296.TRIB_FROM].map(function (rl, i) {
+      var w = mkWs({ realm: rl, qi: 1e9 });
+      pack.recalcDerived(w, prof296);
+      var rs = stubRandom([0]);
+      var r = SQ.Realm.tryBreakthrough(w, pack, D, M(prof296, w), 1000003 + i, { log: noopLog(), profile: prof296 });
+      rs();
+      return { res: r.result, owed: w.talentOwed };
+    });
+    var trib296 = tribPair296.every(function (r) { return r.res === 'success'; }) &&
+      tribPair296[0].owed === 0 && tribPair296[1].owed === 1 && tribPair296[2].owed === 0;
+    /* (e) 遗泽商店：满预算拒购且**不扣泽**、不落幂等键；有余量则扣泽 + 赐缘 + spent = 实价（#197 恒等式口径） */
+    var s296 = SQ.defaultState();
+    s296.profile = prof296;
+    s296.worlds.xiuxian = mkWs({ realm: 6, talentOwed: cap296 });
+    s296.meta.karma = 1000;
+    var buyFull296 = SQ.Legacy.buy(s296, 'swap', 1000005);
+    var shopRefuse296 = buyFull296.ok === false && buyFull296.reason === 'swapfull' &&
+      s296.meta.karma === 1000 && s296.meta.spent['shop.swap'] == null && s296.worlds.xiuxian.talentOwed === cap296;
+    s296.worlds.xiuxian.talentOwed = 0;
+    SQ.Legacy.buy(s296, 'swap', 1000006);
+    var shopGrant296 = s296.worlds.xiuxian.talentOwed === 1 && s296.meta.karma === 1000 - D.LEGACY.SWAP_PRICE &&
+      s296.meta.spent['shop.swap'] === D.LEGACY.SWAP_PRICE;
+    /* (f) 三候选：互不相同、与已持有（含转世天赋槽）零交集、且每条都是池里那条的副本（改它不污染源池） */
+    prof296.legacyTalents = [cp296((D.LEGACY.TALENTS || [])[0])];
+    var rs296f = stubRandom([0.0001, 0.0001, 0.0001]);
+    var cands296 = SQ.Talents.candidates('xiuxian', prof296, 3);
+    rs296f();
+    var heldIds296 = held296.map(function (t) { return t.id; }).concat([D.LEGACY.TALENTS[0].id]);
+    var candIds296 = cands296.map(function (t) { return t.id; });
+    var candOk296 = cands296.length === 3 && new Set(candIds296).size === 3 &&
+      candIds296.every(function (id) { return heldIds296.indexOf(id) < 0; }) &&
+      cands296.every(function (t) { return t.amplified === false && !!t.effects && t.id !== heldIds296[0]; });
+    /* (g) 换骨：四拒（无缘 / 未知 id / 撞已持有 / 格号越界）一律不动档，一成则 effects 逐字等于池内定义 */
+    var w296g = mkWs({ realm: 6 });
+    var profG = mkProf(held296.map(cp296));
+    var rNone296 = SQ.Talents.applySwap('xiuxian', profG, w296g, D, 0, cands296[0].id);
+    w296g.talentOwed = 1;
+    var rBad296 = SQ.Talents.applySwap('xiuxian', profG, w296g, D, 0, 'no_such_talent_zzz');
+    var rDup296 = SQ.Talents.applySwap('xiuxian', profG, w296g, D, 0, held296[1].id);
+    var rSlot296 = SQ.Talents.applySwap('xiuxian', profG, w296g, D, 99, cands296[0].id);
+    var refuse296 = rNone296.reason === 'none' && rBad296.reason === 'unknown' &&
+      rDup296.reason === 'dup' && rSlot296.reason === 'badslot' &&
+      w296g.talentOwed === 1 && w296g.talentUsed === 0 &&
+      profG.talents.every(function (t, i) { return t.id === held296[i].id; });
+    var sumBefore296 = JSON.stringify(M(profG, w296g).sum);
+    var rGo296 = SQ.Talents.applySwap('xiuxian', profG, w296g, D, 0, cands296[0].id);
+    var sumAfter296 = JSON.stringify(M(profG, w296g).sum);
+    var goOk296 = rGo296.ok === true && rGo296.from === held296[0].id && rGo296.to === cands296[0].id &&
+      profG.talents[0].id === cands296[0].id &&
+      JSON.stringify(profG.talents[0].effects) === JSON.stringify(cands296[0].effects) &&
+      w296g.talentOwed === 0 && w296g.talentUsed === 1 &&
+      sumBefore296 !== sumAfter296;                       /* 乘区真的跟着换骨走（不重算引擎公式，只判「变了」） */
+    /* (h) 存档往返：两计数过 normalize 保留、脏值归非负整数；换后的 talent id 过整档 normalize 不丢 */
+    var n296 = pack.normalize(Object.assign(pack.initialState(), { talentOwed: 2, talentUsed: 1 }));
+    var nDirty296 = pack.normalize(Object.assign(pack.initialState(), { talentOwed: 'x', talentUsed: -5 }));
+    var nFrac296 = pack.normalize(Object.assign(pack.initialState(), { talentOwed: 1.7, talentUsed: 2.9 }));
+    var s296h = SQ.defaultState();
+    s296h.profile = profG;
+    s296h.worlds.xiuxian = w296g;
+    var back296 = SQ.normalize(s296h);
+    var normOk296 = n296.talentOwed === 2 && n296.talentUsed === 1 &&
+      nDirty296.talentOwed === 0 && nDirty296.talentUsed === 0 &&
+      nFrac296.talentOwed === 1 && nFrac296.talentUsed === 2 &&
+      back296.profile.talents[0].id === cands296[0].id &&
+      back296.worlds.xiuxian.talentUsed === 1 && back296.worlds.xiuxian.talentOwed === 0;
+    /* (i) 池与文档同源：洗髓方在丹方表内且为地阶、洗髓丹在 APILLS 且既无 buff 也无 once（第三类通道） */
+    var rcX296 = null; D.ALCHEMY.RECIPES.forEach(function (r) { if (r.id === 'rc_xisui') rcX296 = r; });
+    var tbl296 = !!rcX296 && rcX296.tier === 'di' && rcX296.pill === 'ap_xisui' &&
+      !!D.ALCHEMY.APILLS.ap_xisui && !D.ALCHEMY.APILLS.ap_xisui.buff && !D.ALCHEMY.APILLS.ap_xisui.once &&
+      D.ALCHEMY.APILLS.ap_xisui.swap === true && cap296 === 3 &&
+      SQ.Legacy.shopItems(D).some(function (it) { return it.id === 'swap' && it.price === D.LEGACY.SWAP_PRICE; });
+    ok('296', '一世洗髓（天赋池设计 v1.8 §十 · 洗髓批）：(a) 洗髓丹真走 drinkPill 赐缘且扣丹 (b) 预算满 ⇒ 拒服**不扣丹**（先判后扣） (c) 奇遇 talentSwap 真走 applyEffects，满则撤销收益标签（applied 不留空账） (d) 破境赐缘三档对照（TRIB_FROM−1 不给 / 命中档给 / +1 不给 ⇒ 「每次突破都给」「永远不给」「档号写错」都红） (e) 遗泽商店满预算拒购**不扣泽**、有余量则扣泽 + 赐缘 + spent = 实价 (f) 三候选互不相同 ∩ 已持有（含转世槽）= ∅ 且 amplified 恒 false (g) 换骨四拒（none/unknown/dup/badslot）一律不动档、一成则 effects 逐字等于池内定义且乘区 sum 跟着变 (h) 两计数过 pack.normalize 保留、脏值/小数归非负整数，换后 id 过整档 normalize 不丢 (i) 丹方/丹药/商店三表同源（ap_xisui 既无 buff 也无 once = 第三类通道，PER_LIFE=3）',
+      pill296 && capRefuse296 && evGrant296 && evRevoke296 && trib296 &&
+      shopRefuse296 && shopGrant296 && candOk296 && refuse296 && goOk296 && normOk296 && tbl296,
+      '丹=' + pill296 + ' 拒服不扣丹=' + capRefuse296 + '(余' + (w296.alchemy.pills.ap_xisui || 0) + ') 事件=' +
+      evGrant296 + '/' + evRevoke296 + ' 破境三档=' + tribPair296.map(function (r) { return r.owed; }).join('/') +
+      ' 商店=' + shopRefuse296 + '/' + shopGrant296 + ' 候选=' + candIds296.join(',') +
+      ' 四拒=' + [rNone296.reason, rBad296.reason, rDup296.reason, rSlot296.reason].join('/') +
+      ' 成=' + goOk296 + ' 档=' + normOk296 + ' 表=' + tbl296);
+
+    /* #297 丹药两族合一（第十七批 · 用户令「坊市购买的丹药或者其他地方获得的丹药，统一都放在炼丹炼器页面内，什么时候使用由用户自行决定，也可以赠送给道友」）
+     * 旧行为 = 坊市 / 特席 / 门中供给 / 残片兑丹**四口买下去当场生效**（直接 applyEffects，不入库存、绕过丹毒日限），
+     * 玩家没有「何时用」的选择权；本批把成品丹（D.PILLS）并入丹匣键空间，四口一律入匣、服用走同一条 drinkPill。
+     * （黑市 buy 体与坊市逐字同码、一并改向，但 `genShelf` 的黑市 kind 池只掷 gear/arts/treasure ⇒ 货架从不出现丹药。）
+     * 判据取向：**不重算效果公式**（那由 events 侧既有断言守），只钉「流向 + 先判后扣 + 两族同规矩」这一族新形状。 */
+    var P297 = D.PILLS[0];   /* juqi · 修为 +30% */
+    var prof297 = mkProf([]); prof297.createdAt = 1000000;
+    /* (a) 坊市买丹：入匣、**不当场生效**、灵石与账目照旧 */
+    var w297 = mkWs({ realm: 3, stones: 100000, qi: 5000 });   /* qiPct 型成品丹按**当前修为**折算 ⇒ 起始修为必须非 0 */
+    SQ.Alchemy.ensure(w297, D);
+    w297.shop.items = [{ kind: 'pill', ref: P297.id, sold: false, price: P297.price }];
+    var qiB297 = w297.qi, buffsB297 = (w297.buffs || []).length, stB297 = w297.stones;
+    var b297a = SQ.Shop.buy(w297, pack, D, M(prof297, w297), 0, false, null);
+    var inBox297 = b297a.ok === true && w297.alchemy.pills[P297.id] === 1 &&
+      w297.qi === qiB297 && (w297.buffs || []).length === buffsB297 && w297.stones === stB297 - P297.price;
+    /* (b) 匣满 ⇒ 整笔拒单且**灵石分文不动**（先判后扣；扣了钱丢一颗丹 = 静默零收益那一族） */
+    w297.alchemy.pills[P297.id] = (D.ALCHEMY.PILL_STOCK_CAP || 99);
+    w297.shop.items = [{ kind: 'pill', ref: P297.id, sold: false, price: P297.price }];
+    var stFull297 = w297.stones;
+    var b297b = SQ.Shop.buy(w297, pack, D, M(prof297, w297), 0, false, null);
+    var fullRefuse297 = b297b.ok === false && b297b.reason === 'pillfull' && w297.stones === stFull297 &&
+      w297.shop.items[0].sold === false && w297.alchemy.pills[P297.id] === (D.ALCHEMY.PILL_STOCK_CAP || 99);
+    /* (c) 服用成品丹：效果落 + 占丹毒日限（与自产丹同池同规矩） */
+    w297.alchemy.pills[P297.id] = 2;
+    var qiC297 = w297.qi;
+    var d297c = SQ.Alchemy.drinkPill(w297, pack, D, P297.id, 1006002, null, prof297);
+    var drinkTrade297 = d297c.ok === true && w297.qi > qiC297 && w297.alchemy.pillDay.n === 1 &&
+      w297.alchemy.pills[P297.id] === 1;
+    /* (d) 门中供给：拒单时灵石 / 声望 / 24h 锚三者纹丝不动；成功时入匣不当场生效 */
+    var w297f = pack.normalize(Object.assign(pack.initialState(), { realm: 4, stones: 999999 }));
+    var T297 = 1700000000000;   /* 现实量级：门中供给 24h 冷却以 `now − last` 计，last=0 时小时间戳必被误判 'cd' */
+    var supId = ((D.FACTION_SUPPLY || [])[0] || {});
+    var supPill = null; (D.PILLS || []).forEach(function (p) { if (p.id === supId.pill) supPill = p; });
+    var ok297f = false, ok297g = false;
+    if (supId.sku && supPill) {
+      w297f.factionId = w297f.factions[0].id;                 /* 名册由 normalize 轮出（固定池 16 + 随机补足），不自己编 id */
+      w297f.factionRep = {}; w297f.factionRep[w297f.factionId] = 9999;
+      w297f.factionJoinedAt = 0;
+      SQ.Alchemy.ensure(w297f, D);
+      w297f.alchemy.pills[supPill.id] = (D.ALCHEMY.PILL_STOCK_CAP || 99);
+      var stF297 = w297f.stones, repF297 = w297f.factionRep[w297f.factionId];
+      var rF297 = SQ.Factions.buySupply(w297f, pack, D, M(prof297, w297f), supId.sku, T297, null);
+      ok297f = rF297.ok === false && rF297.reason === 'pillfull' && w297f.stones === stF297 &&
+        w297f.factionRep[w297f.factionId] === repF297 && ((w297f.factionSupply || {})[supId.sku] || 0) === 0 &&
+        rF297.reason !== 'cd' && rF297.reason !== 'rank' && rF297.reason !== 'rep';   /* 场景本身要成立，不能靠拒因蒙对 */
+      w297f.alchemy.pills[supPill.id] = 0;
+      w297f.qi = 5000;
+      var qiF297 = w297f.qi, bfF297 = (w297f.buffs || []).length;
+      var rG297 = SQ.Factions.buySupply(w297f, pack, D, M(prof297, w297f), supId.sku, T297 + 1, null);
+      ok297g = rG297.ok === true && w297f.alchemy.pills[supPill.id] === 1 &&
+        w297f.qi === qiF297 && (w297f.buffs || []).length === bfF297;
+    }
+    var supply297 = ok297f && ok297g;
+    /* (e) 残片兑丹：匣满拒兑且**片不扣**；成功时扣 20 片、丹入匣 */
+    var w297s = mkWs({ realm: 1, zone: 1 });
+    SQ.Alchemy.ensure(w297s, D); w297s.shards = [0, 20, 0, 0, 0, 0, 0, 0, 0, 0];
+    /* 兑来的丹种是三支里随机一支 ⇒ 满档档必须**三支全满**、成功档必须**三支全清**，否则判据吃随机（采样族） */
+    var CAP297 = D.ALCHEMY.PILL_STOCK_CAP || 99;
+    w297s.alchemy.pills.juqi = CAP297; w297s.alchemy.pills.ningshen = CAP297; w297s.alchemy.pills.cuiti = CAP297;
+    var rS297 = SQ.Combat.exchangeShard(w297s, pack, D, M(prof297, w297s), 1, null, 1000005, null);
+    var shardFull297 = rS297.ok === false && rS297.reason === 'pillfull' && w297s.shards[1] === 20;
+    w297s.alchemy.pills.juqi = 0; w297s.alchemy.pills.ningshen = 0; w297s.alchemy.pills.cuiti = 0;
+    var rS297b = SQ.Combat.exchangeShard(w297s, pack, D, M(prof297, w297s), 1, null, 1000006, null);
+    var gotKey297 = rS297b.ok === true && rS297b.reward.type === 'pill' && rS297b.reward.id;
+    var shardOk297 = rS297b.ok === true && w297s.shards[1] === 0 && w297s.alchemy.pills[gotKey297] === 1;
+    var shard297 = shardFull297 && shardOk297;
+    /* (f) 赠丹两族：成品丹按 D.PILLS 自带 tier 计好感；成品破障丹拒因 nogift 且不扣丹不占日限 */
+    var cs297 = SQ.Bonds.list(pack).filter(function (c) { return c.category !== 'spouse'; });
+    var w297g = mkWs({ realm: 5, stones: 99999 });
+    SQ.Alchemy.ensure(w297g, D);
+    w297g.alchemy.pills.cuiti = 2; w297g.alchemy.pills.pozhang = 2;
+    var gTier = null;
+    (D.PILLS || []).forEach(function (p) { if (p.id === 'cuiti') gTier = p.tier; });
+    var expGift = (D.BOND_GIFT_BY_TIER || {})[gTier];
+    var rG297a = SQ.Bonds.giftPill(w297g, pack, D, cs297[0].id, 'cuiti', 1000007, null, prof297);
+    var rG297b = SQ.Bonds.giftPill(w297g, pack, D, cs297[0].id, 'pozhang', 1000008, null, prof297);
+    var gift297 = rG297a.ok === true && rG297a.gain === expGift && w297g.alchemy.pills.cuiti === 1 &&
+      rG297b.ok === false && rG297b.reason === 'nogift' && w297g.alchemy.pills.pozhang === 2 &&
+      SQ.t('bond.gift.fail.nogift', null, 'xiuxian') !== 'bond.gift.fail.nogift';
+    /* (g) normalize 白名单：四个成品丹键保留、伪键滤除、旧档（只有自产丹）零受影响 */
+    var n297 = SQ.Alchemy.normalize({ pills: { juqi: 3, ningshen: 2, cuiti: 1, pozhang: 9, ap_juqi: 4, bogus_pill: 7 } }, D);
+    var n297b = SQ.Alchemy.normalize({ pills: { ap_juqi: 4 } }, D);
+    var norm297 = n297.pills.juqi === 3 && n297.pills.ningshen === 2 && n297.pills.cuiti === 1 &&
+      n297.pills.pozhang === 9 && n297.pills.ap_juqi === 4 && n297.pills.bogus_pill == null &&
+      n297b.pills.ap_juqi === 4 && Object.keys(n297b.pills).length === 1;
+    /* (h) 两族同池同限：自产 + 成品混着吃也计同一计数（第 5 颗即拒） */
+    var w297h = mkWs({ realm: 9 });
+    SQ.Alchemy.ensure(w297h, D);
+    w297h.alchemy.pills = { ap_juqi: 3, juqi: 3 };
+    var profH = mkProf([]); profH.createdAt = 1000000;
+    var seqH = [SQ.Alchemy.drinkPill(w297h, pack, D, 'ap_juqi', 1000001, null, profH),
+      SQ.Alchemy.drinkPill(w297h, pack, D, 'juqi', 1000002, null, profH),
+      SQ.Alchemy.drinkPill(w297h, pack, D, 'ap_juqi', 1000003, null, profH),
+      SQ.Alchemy.drinkPill(w297h, pack, D, 'juqi', 1000004, null, profH),
+      SQ.Alchemy.drinkPill(w297h, pack, D, 'juqi', 1000005, null, profH)];
+    var samePool297 = seqH.slice(0, 4).every(function (r) { return r.ok === true; }) &&
+      seqH[4].reason === 'daily' && w297h.alchemy.pillDay.n === 4;
+    /* (i) 🆕 当晚复核 M2 锚：特席是第四个购买口，拒单必须回传可消费的 reason
+     * （上一版只给坊市 / 黑市接了返回值 ⇒ 匣满时点了没反应，屏上静默 = 本仓头号缺陷族）*/
+    var w297m = mkWs({ realm: 9 });
+    w297m.stones = 99999;
+    SQ.Alchemy.ensure(w297m, D);
+    w297m.shop.merchant = { until: Date.now() + 600000,
+      items: [{ kind: 'pill', ref: P297.id, price: P297.price, sold: false }] };
+    w297m.alchemy.pills[P297.id] = (D.ALCHEMY.PILL_STOCK_CAP || 99);
+    var stM297 = w297m.stones;
+    var bM297 = SQ.Shop.buyMerchant(w297m, pack, D, M(prof297, w297m), 0, null);
+    var merchant297 = bM297.ok === false && bM297.reason === 'pillfull' &&
+      w297m.stones === stM297 && w297m.shop.merchant.items[0].sold === false;
+    /* (j) 🆕 当晚复核 M3 锚：丹毒上限文案取表值——模板里不许留裸数字，数字只从表里来 */
+    var capTpl297 = ['alchemy.ui.pillcap', 'alchemy.log.pillcap'].every(function (k2) {
+      var raw = (SQ.LEX.xiuxian || {})[k2] || '';
+      return raw.indexOf('{n}') >= 0 && !/\d/.test(raw);
+    });
+    var capCopy297 = capTpl297 &&
+      SQ.t('alchemy.ui.pillcap', { n: D.ALCHEMY.PILL_DAILY_CAP }, 'xiuxian')
+        .indexOf(String(D.ALCHEMY.PILL_DAILY_CAP)) >= 0;
+    ok('297', '丹药两族合一（第十七批 · 坊市 / 特席 / 门中供给 / 残片兑丹四口所得一律入丹匣（黑市 buy 体与坊市同码但货架从不掷丹），何时服用玩家定）：(a) 坊市买丹入匣且**不当场生效**（qi / buffs 纹丝不动、灵石与 out.shop 照旧） (b) 匣满 ⇒ 整笔拒单、**灵石分文不动**、货架项不标 sold（先判后扣） (c) 服用成品丹：效果照落 + **占丹毒日限**（与自产同池） (d) 门中供给拒单时灵石 / 声望 / 24h 锚三者不动，成功时入匣不生效 (e) 残片兑丹匣满拒兑且**片不扣**，成功时扣 20 片入匣 (f) 赠丹两族同轨：成品丹按 D.PILLS 自带 tier 计好感、成品破障丹拒因 `nogift` 且不扣丹不占日限 (g) normalize 白名单认四个成品丹键、伪键滤除、旧档（只有自产丹）零受影响 (h) 两族混吃计同一计数（第 5 颗即拒） (i) 🆕 当晚复核补：特席买丹匣满拒单**回传 reason**、灵石分文不动（视图若不接返回值就是静默无反馈；屏上面由 probe-bondact 两条 + 走查 B4 锚） (j) 🆕 丹毒上限文案取表值不写死数（模板零裸数字，改 `PILL_DAILY_CAP` 屏上跟着动）',
+      inBox297 && fullRefuse297 && drinkTrade297 && supply297 && shard297 && gift297 && norm297 &&
+      samePool297 && merchant297 && capCopy297,
+      '入匣=' + inBox297 + ' 拒单不扣钱=' + fullRefuse297 + ' 服用=' + drinkTrade297 +
+      ' 门中=' + supply297 + ' 残片=' + shard297 + ' 赠=' + gift297 + '(玄=' + expGift + ') 档=' + norm297 +
+      ' 同池=' + samePool297 + ' 特席拒因=' + merchant297 + ' 上限取表=' + capCopy297);
+
+    /* #298 坊市与特席的先判后扣（第廿六批 2026-10-13 · 用户报「买了春风化雨篇，法与器里却没解锁」，
+     *   排查出的整族缺陷——掷货时按「未持有」过滤候选，但货架要挂满 4 小时才补货，这期间玩家可能
+     *   经自悟 / 奇遇 / 残片兑换 / 图纸打造先拿到同一件；旧写法购买时不复查 ⇒ 照扣钱、零收益、零日志）：
+     *   (a) 功法已拥有 → 拒 owned：灵石分文不动、货架项不标 sold
+     *   (b) 未达标且待修习架已满 24 → 拒 shelffull（旧行为 = 扣 2,300 折回 1,150、功法凭空消失）
+     *   (c) 丹方 / 普通图纸 / 丹炉图(已有炉) / 丹炉成品 / 法宝 已拥有 → 各拒 owned；材料包永远放行
+     *   (d) 未达标但架未满 → 仍落待修习架（#101 旧口径不回归），灵石照扣
+     *   (e) 弹窗与成交同源：expect 指纹与序号上的货对不上 → 拒 stale（实测过：弹窗写功法、扣的是另一件）
+     *   (f) 成交路径真的写日志（旧：Actions.buy 给 Shop.buy 传 null ⇒ 入门/上架/折算全程无痕）
+     *   (g) 特席 buyMerchant 走同一判定（已拥有 → owned、灵石不动）
+     *   (h) 库藏阁手动炼化：指纹对不上 → 拒 stale，**两件都还在、灵石分文不动**（旧写法会在序号位移后炼掉玩家没点的那件） */
+    var shopArtIds = Object.keys(SQ.XARTS).filter(function (id) {
+      return (SQ.XARTS[id].obtain || {}).type === 'shop' && id !== 'chunyu';
+    });
+    function shelf298(w, items) {
+      w.shop = { items: items, blackItems: [], nextRestock: Date.now() + 864000000, refreshStep: 0, discount: 0 };
+      return w;
+    }
+    var artItem298 = function () { return { kind: 'arts', ref: 'chunyu', sold: false, price: 2300 }; };
+    var prof298 = mkProf();
+    var w298a = shelf298(mkWs({ realm: 5, stones: 100000, artsKnown: ['tuna', 'chunyu'], artsSlots: ['tuna'] }), [artItem298()]);
+    var r298a = SQ.Shop.buy(w298a, pack, D, M(prof298, w298a), 0, false, noopLog());
+    var own298 = r298a.ok === false && r298a.reason === 'owned' &&
+      w298a.stones === 100000 && w298a.shop.items[0].sold === false;
+
+    var w298b = shelf298(mkWs({ realm: 1, stones: 100000, artsKnown: ['tuna'], artsSlots: ['tuna'], shelf: [] }), [artItem298()]);
+    var mB = M(prof298, w298b);            /* 先重算（recalcDerived 会把可达标的架上功法转正），再摆满架 */
+    w298b.shelf = shopArtIds.slice(0, D.SHELF_CAP);
+    var r298b = SQ.Shop.buy(w298b, pack, D, mB, 0, false, noopLog());
+    var full298 = w298b.shelf.length === D.SHELF_CAP && r298b.ok === false && r298b.reason === 'shelffull' &&
+      w298b.stones === 100000 && w298b.artsKnown.indexOf('chunyu') < 0 && w298b.shelf.indexOf('chunyu') < 0;
+
+    var rec298 = D.ALCHEMY.RECIPES[0], bp298 = null, bpF298 = null;
+    D.ALCHEMY.BLUEPRINTS.forEach(function (b) { if (!b.furnace && !bp298) bp298 = b; if (b.furnace) bpF298 = b; });
+    function packBuy298(good, price, w) {
+      shelf298(w, [{ kind: 'pack', pack: good, sold: false, price: price }]);
+      return SQ.Shop.buy(w, pack, D, M(prof298, w), 0, false, noopLog());
+    }
+    var w298c = mkWs({ realm: 6, stones: 100000 });
+    SQ.Alchemy.ensure(w298c, D);
+    w298c.alchemy.recipes.push(rec298.id);
+    var gRec = packBuy298({ type: 'recipe', ref: rec298.id, price: 400 }, 400, w298c);
+    var w298bp = mkWs({ realm: 6, stones: 100000 }); SQ.Alchemy.ensure(w298bp, D); w298bp.alchemy.blueprints.push(bp298.id);
+    var gBp = packBuy298({ type: 'bp', ref: bp298.id, price: 600 }, 600, w298bp);
+    var w298bf = mkWs({ realm: 6, stones: 100000 }); SQ.Alchemy.ensure(w298bf, D); w298bf.alchemy.furnace = true;
+    var gBpF = packBuy298({ type: 'bp', ref: bpF298.id, price: 800 }, 800, w298bf);
+    var gFur = packBuy298({ type: 'furnace', price: 2000 }, 2000, w298bf);
+    var tid298 = Object.keys(pack.treasures.byId)[0];
+    var w298t = mkWs({ realm: 6, stones: 100000 }); SQ.Treasures.gain(w298t, pack, D, tid298, noopLog());
+    shelf298(w298t, [{ kind: 'treasure', ref: tid298, sold: false, price: 6000 }]);
+    var r298t = SQ.Shop.buy(w298t, pack, D, M(prof298, w298t), 0, false, noopLog());
+    var w298m = mkWs({ realm: 6, stones: 100000, materials: {} });
+    var gMat = packBuy298({ type: 'mat', ref: 'mat_linglu', price: 300 }, 300, w298m);
+    var dup298 = gRec.ok === false && gRec.reason === 'owned' && w298c.stones === 100000 &&
+      gBp.ok === false && gBp.reason === 'owned' && w298bp.stones === 100000 &&
+      gBpF.ok === false && gBpF.reason === 'owned' && gFur.ok === false && gFur.reason === 'owned' &&
+      w298bf.stones === 100000 && w298bf.alchemy.furnace === true &&
+      r298t.ok === false && r298t.reason === 'owned' && w298t.stones === 100000 &&
+      gMat.ok === true && w298m.stones === 99700 && Object.keys(w298m.materials).length > 0;
+
+    var w298d = shelf298(mkWs({ realm: 1, stones: 100000, artsKnown: ['tuna'], artsSlots: ['tuna'], shelf: [] }), [artItem298()]);
+    var r298d = SQ.Shop.buy(w298d, pack, D, M(prof298, w298d), 0, false, noopLog());
+    var shelfPath298 = r298d.ok === true && w298d.shelf.indexOf('chunyu') >= 0 &&
+      w298d.artsKnown.indexOf('chunyu') < 0 && w298d.stones === 97700;
+
+    var w298e = shelf298(mkWs({ realm: 5, stones: 100000, artsKnown: ['tuna'], artsSlots: ['tuna'], shelf: [] }), [artItem298()]);
+    var mE = M(prof298, w298e);
+    var other298 = { kind: 'arts', ref: 'qingxin', sold: false, price: 120 };
+    var r298e = SQ.Shop.buy(w298e, pack, D, mE, 0, false, noopLog(), SQ.Shop.goodSig(other298));
+    var stoneAfterStale298 = w298e.stones;
+    var r298e2 = SQ.Shop.buy(w298e, pack, D, mE, 0, false, noopLog(), SQ.Shop.goodSig(w298e.shop.items[0]));
+    var stale298 = r298e.ok === false && r298e.reason === 'stale' && stoneAfterStale298 === 100000 &&
+      r298e2.ok === true && w298e.artsKnown.indexOf('chunyu') >= 0;
+
+    var ref298 = {};
+    await SQ.mutate(ref298, function (s) {
+      s.profile = mkProf();
+      s.worlds.xiuxian = pack.initialState();
+      var wS = s.worlds.xiuxian;
+      wS.realm = 5; wS.stones = 100000; wS.artsKnown = ['tuna']; wS.artsSlots = ['tuna']; wS.shelf = [];
+      shelf298(wS, [artItem298()]);
+    });
+    var logs298Before = (ref298.worlds.xiuxian.log || []).length;
+    await SQ.Actions.buy(ref298, 0, false, SQ.Shop.goodSig(ref298.worlds.xiuxian.shop.items[0]));
+    var logTxt298 = (ref298.worlds.xiuxian.log || []).slice(logs298Before).map(function (l) { return String(l.text || l.txt || ''); }).join(' ');
+    var log298 = (ref298.worlds.xiuxian.log || []).length > logs298Before && /春风化雨篇/.test(logTxt298);
+
+    var w298g = shelf298(mkWs({ realm: 5, stones: 100000, artsKnown: ['tuna', 'chunyu'], artsSlots: ['tuna'] }), []);
+    w298g.shop.merchant = { until: Date.now() + 600000, scout: false, items: [artItem298()] };
+    var r298g = SQ.Shop.buyMerchant(w298g, pack, D, M(prof298, w298g), 0, noopLog());
+    var merch298 = r298g.ok === false && r298g.reason === 'owned' && w298g.stones === 100000 &&
+      w298g.shop.merchant.items[0].sold === false;
+
+    /* (h) 库藏阁的手动炼化（销毁性操作）：CONFIRM 无阻塞，期间战斗掉落会 push 库藏、
+       溢出还会炼化别件 ⇒ 序号整体位移。视图带回指纹，对不上就不销毁任何东西。 */
+    var w298h = mkWs({ realm: 5, stones: 100000 });
+    var gA = mkGear('weapon', { name: '甲', tier: 2, atk: 40 });
+    var gB = mkGear('weapon', { name: '乙', tier: 1, atk: 20 });
+    w298h.stash = [gA, gB];
+    var mH = M(prof298, w298h);
+    var r298h = SQ.Gear.salvage(w298h, pack, D, mH, 0, noopLog(), SQ.Gear.itemSig(gB));
+    var mid298h = { n: w298h.stash.length, st: w298h.stones };      /* 拒单当下的现场（后续成交会改档，不能事后回看） */
+    var r298h2 = SQ.Gear.salvage(w298h, pack, D, mH, 0, noopLog(), SQ.Gear.itemSig(gA));
+    var stash298 = r298h.ok === false && r298h.reason === 'stale' && mid298h.n === 2 &&
+      mid298h.st === 100000 && r298h2.ok === true && w298h.stash.length === 1 && w298h.stones > 100000;
+
+    ok('298', '坊市与特席的先判后扣（第廿六批 · "买到的东西必须落得下"整族）：(a) 功法已拥有拒 owned (b) 未达标且待修习架已满拒 shelffull（不再"扣全价退半、功法凭空消失"） (c) 丹方/普通图纸/丹炉图(已有炉)/丹炉成品/法宝 已拥有各拒 owned，材料包放行 (d) 未达标而架未满仍落架（#101 口径不回归） (e) expect 指纹与序号上的货不符 → 拒 stale（弹窗期间被补货换架的实测形状） (f) 成交写交付日志（旧传 null ⇒ 全程无痕） (g) 特席同判定 (h) 库藏炼化错位拒单、不销毁',
+      own298 && full298 && dup298 && shelfPath298 && stale298 && log298 && merch298 && stash298,
+      '已拥有=' + own298 + ' 架满=' + full298 + ' 子货重复=' + dup298 + ' 落架=' + shelfPath298 +
+      ' 错位=' + stale298 + ' 日志=' + log298 + '(' + logTxt298.slice(0, 26) + ') 特席=' + merch298 + ' 炼化=' + stash298);
+
+
+    /* ═══ #299 前世书的游戏日期 + 历法单源（第廿八批 2026-10-13 · 用户报「前世书里的文本描述有问题，
+     * 写着是日但是没有写具体游戏时间」；同批把视图里的历法算式上移到 core 收成单源）═══
+     * 全条零随机：日期一律由固定 createdAt / calYear / ts 推出，正文取 generateBio 真产物。 */
+    var CA299 = 1700000000000, CY299 = 7, NOW299 = CA299 + 800000;
+    var w299 = mkWs({ calYear: CY299 });
+    var prof299 = mkProf([]); prof299.createdAt = CA299; prof299.worldName = '沧霄界';
+    /* (a) 历法逐值对表：入世当日 = 起始年 1 月 1 日；第 359 日 = 12 月 30 日；第 360 日翻年；
+     *     ts 早于入世 ⇒ 钳到第 0 日（不出现负日） */
+    var g299a = SQ.gameDateOf(prof299, w299, CA299);
+    var g299b = SQ.gameDateOf(prof299, w299, CA299 + 359 * 1000);
+    var g299c = SQ.gameDateOf(prof299, w299, CA299 + 360 * 1000);
+    var g299d = SQ.gameDateOf(prof299, w299, CA299 - 5000);
+    var cal299 = g299a.y === 7 && g299a.m === 1 && g299a.d === 1 &&
+      g299b.y === 7 && g299b.m === 12 && g299b.d === 30 &&
+      g299c.y === 8 && g299c.m === 1 && g299c.d === 1 &&
+      g299d.y === 7 && g299d.m === 1 && g299d.d === 1;
+    /* (b) 显示名 = 世界名去尾字（沧霄界 → 沧霄）；createdAt 缺失 ⇒ 空串（**绝不写「0年0月0日」那种假日期**） */
+    var str299 = SQ.gameDateStr(prof299, w299, CA299 + 41 * 1000, 'xiuxian');
+    var str299no = SQ.gameDateStr({ name: 'x' }, w299, CA299, 'xiuxian');
+    var strOk299 = str299 === '沧霄历7年2月12日' && str299no === '';
+    /* (c) 传记时间轴：每条大事与通道终行都带**各自那天**的日期；「是日」族模板一字未动
+     *     （同一批键还与天道编年史、问天谪星共用，改模板会连坐两处 ⇒ 只补行首日期） */
+    var w299e = mkWs({ calYear: CY299, realm: 5 });
+    w299e.tiandao = w299e.tiandao || {};
+    w299e.tiandao.chron = [
+      { k: 'clear', v: { z: 0 }, at: CA299 + 9 * 1000 },
+      { k: 'break', v: { realm: 3 }, at: CA299 + 370 * 1000 }
+    ];
+    var t299 = String((SQ.Codex.generateBio(w299e, mkMeta(), pack, D, prof299, 'bingjie', NOW299) || {}).text || '');
+    var d299a = SQ.gameDateStr(prof299, w299e, CA299 + 9 * 1000, 'xiuxian');
+    var d299b = SQ.gameDateStr(prof299, w299e, CA299 + 370 * 1000, 'xiuxian');
+    var d299c = SQ.gameDateStr(prof299, w299e, NOW299, 'xiuxian');
+    var bioOk299 = t299.indexOf(d299a + ' · 是日首通青云试炼地。') >= 0 &&
+      t299.indexOf(d299b + ' · 是日渡劫破境，入元婴。') >= 0 &&
+      t299.indexOf(d299c + ' · 是日自散修为，兵解转世。') >= 0;
+    /* (d) 旧档兜底：无 createdAt ⇒ 正文照常出、不补日期、零花括号残留 */
+    var prof299old = { name: 't', talents: [], worldId: 'xiuxian', worldName: '沧霄界' };
+    var t299old = String((SQ.Codex.generateBio(w299e, mkMeta(), pack, D, prof299old, 'bingjie', NOW299) || {}).text || '');
+    var oldOk299 = t299old.indexOf('是日首通青云试炼地。') >= 0 && t299old.indexOf('沧霄历') < 0 && t299old.indexOf('{') < 0;
+    /* (e) 硬截不破：编年史塞满（>slice(-7) 上界）时正文仍受 BIO_MAX 约束，且**尾行「计：」不被日期挤掉**
+     *     ——日期每行多 12~14 字，这一判就是盯「补了日期把摘要挤出 500 字」这一新风险 */
+    var w299f = mkWs({ calYear: CY299, realm: 8 });
+    w299f.tiandao = w299f.tiandao || {};
+    w299f.tiandao.chron = [];
+    for (var ci299 = 0; ci299 < 9; ci299++) w299f.tiandao.chron.push({ k: 'break', v: { realm: ci299 % 6 }, at: CA299 + (ci299 + 1) * 1000 });
+    var t299f = String((SQ.Codex.generateBio(w299f, mkMeta(), pack, D, prof299, 'bingjie', NOW299) || {}).text || '');
+    var maxOk299 = t299f.length <= (D.LEGACY.BIO_MAX || 500) && t299f.indexOf('计：') >= 0;
+    /* (f) 单源：core 导出两枚函数（视图那两份算式已改成委托，文件级 grep 由 sq-wip-dbg-cal.cjs 出数） */
+    var src299 = typeof SQ.gameDateOf === 'function' && typeof SQ.gameDateStr === 'function';
+    /* (g) 同型面：烧表请天道作传的**奏疏**读的是同一族「是日」模板 ⇒ 同批补日期，两个读点不分叉 */
+    var memo299 = String(SQ.Codex.bioMemo(
+      { profile: prof299, worlds: { xiuxian: w299e }, meta: mkMeta() }, NOW299) || '');
+    var memoOk299 = memo299.indexOf(d299a + ' · 是日首通青云试炼地。') >= 0 &&
+      memo299.indexOf('{') < 0 && memo299.length <= (D.LEGACY.BIO_MEMO_LEN || 1500);
+    ok('299', '前世书写得出游戏时间 + 历法算式收成单源（第廿八批 · 用户报「轮回页面的前世书，文本描述有问题，写着是日但是没有写具体游戏时间」）：(a) 历法逐值对表（入世当日 / 第 359 日 / 第 360 日翻年 / ts 早于入世钳零） (b) 世界名去尾字 + createdAt 缺失返空串，不写假日期 (c) 传记时间轴每条大事与终行各带**那天**的日期，「是日」族模板一字未动 (d) 旧档无 createdAt ⇒ 原样不补、零花括号 (e) BIO_MAX 硬截不破且尾行「计：」不被挤掉 (f) core 导出 gameDateOf / gameDateStr 成唯一实现 (g) 同型面：烧表奏疏同口径带日期、不破 BIO_MEMO_LEN',
+      cal299 && strOk299 && bioOk299 && oldOk299 && maxOk299 && src299 && memoOk299,
+      '历法=' + [g299a.m + '/' + g299a.d, g299b.m + '/' + g299b.d, g299c.y + '/' + g299c.m + '/' + g299c.d, g299d.m + '/' + g299d.d].join(' ') +
+      ' 正文=' + str299 + ' 缺createdAt=' + (str299no === '') + ' ‖ 传记三条=' + bioOk299 +
+      ' ‖ 旧档=' + oldOk299 + ' ‖ 上限=' + maxOk299 + '(' + t299f.length + '/' + (D.LEGACY.BIO_MAX || 500) + ') ‖ 单源=' + src299);
+
+
+    /* ═══ #300 材料背包的「提炼档」标识（第廿九批 2026-10-13 · 用户报「材料背包顺序是乱的，要让玩家明白
+     * 低级材料精炼升级的是哪种高级材料，同一条升级线的材料要有标识」）═══
+     * 立的是**取数口** `SQ.Alchemy.groupIds`：界面段头写的「第 X 档任一（共 p 种）」与 `refineMats`
+     * 真正随机抽的池必须同源，否则改一处口径屏上就开始说谎（本仓反复登记的那一族缺陷）。 */
+    var gid300 = function (g) { return SQ.Alchemy.groupIds(D, g); };
+    var allPos300 = D.ALCHEMY.MATS.filter(function (m) { return m.z >= 0; }).map(function (m) { return m.id; });
+    var union300 = [], dup300 = false, g300;
+    for (g300 = 0; g300 <= 3; g300++) gid300(g300).forEach(function (x) {
+      if (union300.indexOf(x) >= 0) dup300 = true; else union300.push(x);
+    });
+    /* (a) 四档划分 = 表内 z>=0 全料**不重不漏**，且档号边界逐值对表（z2→0 / z3→1 / z5→1 / z6→2 / z8→2 / z9→3） */
+    var rankEdge300 = SQ.Alchemy.groupOf(D, 'mat_dansha') === 0 &&        /* z2 */
+      SQ.Alchemy.groupOf(D, 'mat_jiaotu') === 1 &&                        /* z3 */
+      SQ.Alchemy.groupOf(D, 'mat_xukong') === 1 &&                        /* z5 */
+      SQ.Alchemy.groupOf(D, 'mat_xiuluo') === 2 &&                        /* z6 */
+      SQ.Alchemy.groupOf(D, 'mat_zilei') === 2 &&                         /* z8 */
+      SQ.Alchemy.groupOf(D, 'mat_jiewai') === 3 &&                        /* z9 = 顶档 */
+      SQ.Alchemy.groupOf(D, 'mat_wudao') === 3;                           /* z<0 按顶档卖价 */
+    var cover300 = !dup300 && union300.length === allPos300.length &&
+      allPos300.every(function (x) { return union300.indexOf(x) >= 0; }) &&
+      gid300(3).indexOf('mat_wudao') < 0 &&                               /* 悟道石不入任何产出池 */
+      gid300(0).length === 8 && gid300(1).length === 9 && gid300(2).length === 9 && gid300(3).length === 3;
+    /* (b) **屏上候选池 === 引擎真抽的池**：钉随机取池首，真跑 refineMats ⇒ 得料必须等于界面那一份的第一位，
+     *     且池长 === 界面写的种数（p）。这一步不做，界面写 9 种而引擎抽 8 种是不会红的。 */
+    var w300 = mkWs({ realm: 5, materials: { mat_linglu: 4 } });
+    SQ.Alchemy.ensure(w300, D);
+    w300.materials = { mat_linglu: 4 };
+    var pool1 = gid300(1), rest300 = null;
+    rest300 = stubRandom([0]);
+    var rf300 = SQ.Alchemy.refineMats(w300, pack, D, 'mat_linglu', 1000, noopLog());
+    rest300();
+    var poolSame300 = rf300 && (w300.materials[pool1[0]] || 0) === 1 &&
+      Object.keys(w300.materials).filter(function (k) { return (w300.materials[k] || 0) > 0; }).length === 1 &&
+      (w300.materials.mat_linglu || 0) === 0;   /* 四枚低级料全部消失（0 或被剪键都算，视 normalize 而定） */
+    /* (c) 顶档与悟道石不可炼，且一律**先判后扣**（料分文不动） */
+    var w300t = mkWs({ realm: 9 });
+    SQ.Alchemy.ensure(w300t, D);
+    w300t.materials = { mat_jiewai: 9, mat_wudao: 9 };
+    var rfTop = SQ.Alchemy.refineMats(w300t, pack, D, 'mat_jiewai', 1001, noopLog());
+    var rfWud = SQ.Alchemy.refineMats(w300t, pack, D, 'mat_wudao', 1002, noopLog());
+    var topNo300 = rfTop.ok === false && rfTop.reason === 'top' &&
+      rfWud.ok === false && rfWud.reason === 'wudao' &&
+      w300t.materials.mat_jiewai === 9 && w300t.materials.mat_wudao === 9;
+    /* (d) 差分证明「档是**派生值**、口径只有那张表」：把 mat_linglu 的 z 从 0 改成 3 ⇒ 它当场从一档挪进二档
+    *     （界面与引擎同读一份 MATS；若视图自己抄了一份档位划分，这一步就不会跟着动）。原表未被污染。 */
+    var D300 = JSON.parse(JSON.stringify(D));
+    D300.ALCHEMY.MATS.forEach(function (m) { if (m.id === 'mat_linglu') m.z = 3; });
+    var noField300 = SQ.Alchemy.groupOf(D300, 'mat_linglu') === 1 &&
+      SQ.Alchemy.groupIds(D300, 0).indexOf('mat_linglu') < 0 &&
+      SQ.Alchemy.groupIds(D300, 1).indexOf('mat_linglu') >= 0 &&
+      SQ.Alchemy.groupOf(D, 'mat_linglu') === 0 && gid300(0).length === 8;
+    ok('300', '材料背包的「提炼档」标识（第廿九批 · 用户报「材料顺序是乱的，要看得出低级料炼成哪种高级料、同一条升级线要有标识」）：(a) 四档划分不重不漏 + 档界逐值对表（z2→1档 / z3~z5→2档 / z6~z8→3档 / z9 与悟道石→顶档卖价） (b) 屏上候选池 === `refineMats` 真抽的池（钉随机取池首，得料 = 界面所列第一种，且背包只剩这一枚） (c) 顶档与悟道石不可炼且**先判后扣**（料分文不动） (d) 档位是派生值不入存档（零新字段、零 normalize 面）',
+      rankEdge300 && cover300 && poolSame300 && topNo300 && noField300,
+      '界=' + rankEdge300 + ' ‖ 池=' + [gid300(0).length, gid300(1).length, gid300(2).length, gid300(3).length].join('/') +
+      ' 覆盖=' + cover300 + ' ‖ 同池=' + poolSame300 + '(得 ' + pool1[0] + ') ‖ 顶档拒=' + topNo300 +
+      ' ‖ 不入档=' + noField300);
+
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');
 
     /* #77 script 顺序加载无依赖错误（本套件能跑完即证；此处核系统命名空间齐全） */
-    ok(77, 'IIFE 挂载顺序完整', ['Mods', 'Attrs', 'Gear', 'Arts', 'Combat', 'Realm', 'Idle', 'Shop', 'Events', 'Actions']
+    ok(77, 'IIFE 挂载顺序完整', ['Mods', 'Talents', 'Attrs', 'Gear', 'Arts', 'Combat', 'Realm', 'Idle', 'Shop', 'Events', 'Actions']
       .every(function (n) { return !!SQ[n]; }));
 
     return R;

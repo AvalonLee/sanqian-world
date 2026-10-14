@@ -18,6 +18,15 @@
     return SQ.Ledger.note(ws, 'in', 'refine', ws.stones - s0);
   }
 
+  /* 库藏法器的身份指纹（第廿六批）：随机生成的实例没有稳定 id ⇒ 用「决定它是哪件」的属性全集。
+     坊市货架 / 特席的 gear 分支同走此口（SQ.Shop.goodSig 内部调用）——不留第二套抄本。 */
+  function itemSig(it) {
+    if (!it) return '';
+    return [it.name, it.slot, it.tier, it.atk, it.resist || 0, it.qiBonus || 0,
+      (it.special || ''), it.exclusive ? 1 : 0, (it.reqs || {}).realm || 0,
+      (it.attrValue || {}).attr || '', (it.attrValue || {}).value || 0].join('~');
+  }
+
   SQ.Gear = {
     /* 装备命名（世界设定 §5.1：材质 × 器形） */
     nameOf: function (slot, worldId) {
@@ -123,10 +132,14 @@
     /* 手动炼化（道具处置打磨包）：库藏阁第 idx 件 → 灵石；独占豁免（不参与炼化，无灵石流动）。
      * 返还与自动溢出同口径（refineValue），入账 in.refine，落 gear 日志。
      * 返回 {ok, item?, value?, reason?}；reason ∈ index（越界）/ exclusive（独占豁免）。 */
-    salvage: function (ws, pack, D, mods, idx, log) {
+    itemSig: itemSig,
+    salvage: function (ws, pack, D, mods, idx, log, expect) {
       var it = (ws.stash || [])[idx];
       if (!it) return { ok: false, reason: 'index' };
       if (it.exclusive) return { ok: false, reason: 'exclusive' };
+      /* 炼化是**销毁性**操作，而 CONFIRM 无阻塞：弹窗期间战斗掉落 push 库藏、溢出还会炼化别件
+       * ⇒ 序号整体位移，旧写法会把玩家没点的那件炼掉。视图带回开弹窗时的指纹，对不上就不动手。 */
+      if (expect && itemSig(it) !== expect) return { ok: false, reason: 'stale' };
       ws.stash.splice(idx, 1);
       var v = addRefine(ws, SQ.Gear.refineValue(it, ws, D, mods));
       if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.salvage', it, v));

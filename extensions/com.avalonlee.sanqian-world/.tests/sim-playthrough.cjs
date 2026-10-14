@@ -763,7 +763,8 @@ async function playerStep(ref, tag, opts) {
    * 三条正当通道并进——① 补架：市面渠道（坊市/黑市/情报豁免）达标未持有的功法买进来；
    * ② 槽位轮作：六槽只留未满级的（精通 tickPractice 只对槽内功法生效）；
    * ③ 手动升级：Actions.upgradeArt 耗修为，每步限量（真玩家点到手酸也就这样）。
-   * ⚠️ 破境会把 artsLevels 整表清零（realm.js:50）⇒ 满级窗口只在真仙（境界顶）之后。 */
+   * 🔧 第廿五批（2026-10-13）：破境**不再清** artsLevels（realm.js 原 :50 那句已删）⇒ 等级全程累积，
+   * 满级窗口不再被「渡劫归零」压到真仙之后；本件 maxArtsRealm 档位与万法成就的达成时点随之提前。 */
   if (opts.maxArts && ref.worlds[ref.profile.worldId].realm >= (opts.maxArtsRealm != null ? opts.maxArtsRealm : 1)) {
     const MAXLV = D.ARTS_MAX_LV || 9;
     const tierW = { huang: 0, xuan: 1, di: 2, tian: 3 };
@@ -1144,7 +1145,8 @@ async function playFuzz(round) {
     bonds: [{ npc: 'yinyue', goal: 100, spouse: true }, { npc: 'chenqiaoyue', goal: 100, spouse: true }],
     goalAchv: ['achv_daolv', 'achv_xinjie', 'achv_shuangxiu', 'achv_fudi', 'achv_hufa', 'achv_panzong']
   }));
-  /* 庚·万法满藏：真仙不飞升（opts.noAscend）——破境清零 artsLevels（realm.js:50），满级窗口只在境界顶之后；
+  /* 庚·万法满藏：真仙不飞升（opts.noAscend）——🔧 第廿五批 2026-10-13 起破境**不再清** artsLevels
+   * （原 `realm.js` 那句已删）⇒ 满级窗口不再被境界顶锁死，本路线的「不飞升」只用来把真仙境留在档上；
    * ① 逐格买断坊市/黑市/特席 + 各区残片到期即兑（z9 留到最后收 x10/x11 这两件**仅残片通道**的先天）
    *   → achv_baoquan（法宝图鉴 46/46）；② 已购功法批量 upgradeArt 点满 10 部 → achv_wanfa。
    * 黑市可见性靠魔道初心 drift（≤−200）⇒ 本条同时把 BLACK_IDS 五件补进-collection。 */

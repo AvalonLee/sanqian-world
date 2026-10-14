@@ -977,6 +977,31 @@
     return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 
+  /* ── 游戏历法（第廿八批 2026-10-13 从视图抽出）──────────────────────────
+   * 口径一字未动：1 游戏日 = 现实 1 秒，自入世（profile.createdAt）起算；12 月 × 30 日 = 360
+   * 日/年；起始年 = ws.calYear（创角随机 1~9000）；显示名 = 世界名去尾字（沧霄界 → 沧霄）。
+   * 抽出来的理由：这段算式此前**只在 view/index.html 有一份**，而引擎侧也要写日期——人生传记的
+   * 时间轴取自天道编年史模板族（「是日…」），屏上没有第二列日期可对齐 ⇒ 传记里只剩一串
+   * 「是日」而不知哪天（用户报「前世书写着是日但没写具体游戏时间」）。引擎抄一份就是第三套
+   * 历法，故正典落 core，视图与传记同走这一个口。
+   * 兜底与视图原行为一致：createdAt 缺失（旧档）或 ts 缺失 ⇒ gameDateOf 返回 null、
+   * gameDateStr 返回空串，调用方自己决定「不写日期」，绝不写「0年0月0日」那种假日期。 */
+  function gameDateOf(profile, ws, ts) {
+    var createdAt = (profile || {}).createdAt;
+    if (!createdAt || !ws || !ts) return null;
+    var days = Math.max(0, Math.floor((ts - createdAt) / 1000));
+    var y = (ws.calYear || 1) + Math.floor(days / 360);
+    var rem = days % 360;
+    return { y: y, m: Math.floor(rem / 30) + 1, d: (rem % 30) + 1 };
+  }
+  function gameDateStr(profile, ws, ts, wid) {
+    var g = gameDateOf(profile, ws, ts);
+    if (!g) return '';
+    var nm = String((profile || {}).worldName || '');
+    if (nm.length >= 2) nm = nm.slice(0, -1);   /* 沧霄界 → 沧霄 */
+    return SQ.t('calendar.date', { name: nm, y: g.y, m: g.m, d: g.d }, wid);
+  }
+
   /* 显示名：未入世/空名走词表兜底（P3 词表纪律，core 内禁止裸中文） */
   function displayName(s) {
     return (s && s.profile && s.profile.name) || SQ.t('profile.default_name');
@@ -1239,5 +1264,7 @@
   SQ.mutate = mutate;
   SQ.resetSave = resetSave;
   SQ.fmt = fmt;
+  SQ.gameDateOf = gameDateOf;
+  SQ.gameDateStr = gameDateStr;
   SQ.displayName = displayName;
 })();
