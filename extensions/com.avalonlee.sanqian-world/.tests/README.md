@@ -10,16 +10,6 @@
 > `playwright-core` 已写进根 `package.json` 的 devDependencies，Node 会从扩展目录逐级向上解析到仓库根
 > `node_modules` ⇒ **下面的 `NODE_PATH` 步骤已不再必需**（保留给把扩展目录单独拷走跑的场景）。
 
-> **路径口径（2026-10-14 GitHub 整理批）**：本目录随项目本体一起搬到了
-> `extensions/com.avalonlee.sanqian-world/.tests/`——**仓库根不再有第二份副本**（原交付镜像与根侧文件
-> 逐字节重复，审计 B9 退役、由 D4 守「不许复活第二份源」）。以下命令凡写 `node .tests/xxx.cjs` 的，
-> 都在**扩展目录**里执行；在仓库根请直接用 `npm test` / `npm run test:ui` / `npm run test:full` /
-> `npm run ledger:fix`。仓库根与扩展根由 `.tests/repo-root.cjs` 现找（找带 `docs/VERSIONS.md` 的那一层），
-> 工具里不许硬编码层数。
->
-> `playwright-core` 已写进根 `package.json` 的 devDependencies，Node 会从扩展目录逐级向上解析到仓库根
-> `node_modules` ⇒ **下面的 `NODE_PATH` 步骤已不再必需**（保留给把扩展目录单独拷走跑的场景）。
-
 本目录是三千世界扩展的**回归资产**，分四层：引擎断言（冒烟）、静态审计、仿真/探针、界面走查。
 改动代码后请按「快速复跑」跑一遍；改动界面（`view/index.html`）时额外跑 UI 走查。
 

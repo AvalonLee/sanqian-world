@@ -974,7 +974,7 @@ const SQ = sandbox.window.SQ;
   const REPO = require('./repo-root.cjs')();
   if (!REPO) bad.push('仓库根定位失败（找不到 docs/VERSIONS.md）⇒ 账本工具无所依');
   else {
-    ['assets', 'view', 'module', 'manifest.json'].forEach((f) => {
+    ['assets', 'view', 'module', 'manifest.json', '.tests'].forEach((f) => {   /* .tests 也算：2026-10-14 整理批就漏了一个根 .tests/repo-root.cjs（rm 之后才 git add 捞回来的）*/
       if (fs.existsSync(path.join(REPO, f))) bad.push('仓库根复活了第二份事实源 ' + f);
     });
     if (!fs.existsSync(path.join(REPO, 'README.md'))) bad.push('仓库根缺 README.md');
