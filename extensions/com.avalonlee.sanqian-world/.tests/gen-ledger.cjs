@@ -17,7 +17,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname, '..');   /* 扩展根：assets / view / module / .tests / manifest.json */
+/* 仓库根（docs/ 与 README.md 所在）自 2026-10-14 GitHub 整理批起与扩展根分开：项目文件只留扩展目录那一份。
+ * 定位失败必须报错退出，绝不拿空路径当「无漂」通过（本仓 SKIP 假绿反复登记过）。 */
+const REPO = require('./repo-root.cjs')();
 const FIX = process.argv.indexOf('--fix') >= 0;
 const BEGIN = (name) => '<!-- SQ:LEDGER:BEGIN ' + name + ' 现行读数由 .tests/gen-ledger.cjs 生成，手改即漂；段外不参与覆盖 -->';
 const END = '<!-- SQ:LEDGER:END -->';
@@ -92,7 +95,7 @@ function oneLine(v) {
 function factsTable(v) {
   const row = (name, val, src) => '| ' + name + ' | ' + val + ' | ' + src + ' |';
   return ['| 现行读数 | 值 | 唯一事实源 |', '|---|---|---|',
-    row('扩展版本', '`' + f(v.ext_version) + '`', '`manifest.json`（镜像由审计 B9 逐字节守）'),
+    row('扩展版本', '`' + f(v.ext_version) + '`', '`manifest.json`（唯一事实源；D4 守仓库根不复活第二份副本）'),
     row('冒烟断言', f(v.smoke), '`.tests/run-smoke.cjs` 末行 `SMOKE_ALL_GREEN`'),
     row('静态审计关数', f(v.audit_gates) + ' 关', '`.tests/audit.cjs` 末行 `AUDIT_ALL_GREEN`'),
     row('常驻探针合计', f(v.probe_asserts) + ' 断言', '`.tests/probe-*.cjs` 逐件末行求和（run-dod 求和，不手算）'),
@@ -113,7 +116,7 @@ function factsTable(v) {
 const SEGMENTS = [
   { file: 'docs/FACTS.md', name: 'facts', render: factsTable },
   { file: 'README.md', name: 'readme', render: oneLine },
-  { file: 'DESIGN.md', name: 'design', render: oneLine },
+  { file: 'DESIGN.md', name: 'design', render: oneLine, at: 'ext' },   /* DESIGN.md 随扩展走（在扩展根，不在仓库根）*/
   { file: 'docs/三千世界-工程规范与验收计划.md', name: 'eng-spec', render: oneLine },
   { file: 'docs/三千世界-项目设计文档.md', name: 'main-design', render: oneLine }
 ];
@@ -127,11 +130,14 @@ function region(text, name) {
   if (j < 0) return { missing: true, unterminated: true };
   return { body: text.slice(i + b.length, j).replace(/^\n/, '').replace(/\n$/, ''), start: i, end: j + e.length };
 }
+/* 段的宿主目录：默认在仓库根（docs/ 与 README.md），`at: 'ext'` 的在扩展根（DESIGN.md 随扩展交付）。 */
+const segBase = (s) => (s.at === 'ext' ? ROOT : REPO);
+
 function check(v) {
   const drift = [], missing = [];
   for (const s of SEGMENTS) {
     let text;
-    try { text = fs.readFileSync(path.join(ROOT, s.file), 'utf8'); }
+    try { text = fs.readFileSync(path.join(segBase(s), s.file), 'utf8'); }
     catch (e) { missing.push(s.file + ' [' + s.name + '] 文件读不到'); continue; }
     const want = s.render(v), reg = region(text, s.name);
     if (reg.missing) { missing.push(s.file + ' [' + s.name + '] 缺哨兵段（先手工插 BEGIN/END 各一行）'); continue; }
@@ -147,17 +153,17 @@ function applyFix(v, drift) {
     const next = d.text.slice(0, i + BEGIN(s.name).length) + '\n' + d.want + '\n' + d.text.slice(j);
     /* 行尾保护（versions-check 同型）：本仓文档纯 LF，混进 CRLF 会变成整文件假改动 */
     const eol = /\r\n/.test(d.text) ? '\r\n' : '\n';
-    fs.writeFileSync(path.join(ROOT, s.file), eol === '\n' ? next : next.replace(/\n/g, '\r\n'), 'utf8');
+    fs.writeFileSync(path.join(segBase(s), s.file), eol === '\n' ? next : next.replace(/\n/g, '\r\n'), 'utf8');
   }
   const ledger = { generated_by: '.tests/gen-ledger.cjs', at: new Date().toISOString(),
     values: v, segments: SEGMENTS.map((s) => ({ file: s.file, name: s.name })), attrib: ATTRIB };
-  fs.writeFileSync(path.join(ROOT, 'docs', 'ledger.json'), JSON.stringify(ledger, null, 1) + '\n', 'utf8');
+  fs.writeFileSync(path.join(REPO, 'docs', 'ledger.json'), JSON.stringify(ledger, null, 1) + '\n', 'utf8');
 }
 
 /* ── 失败归因映射（run-dod 红件时打印；正典在本表，改判据面就改这里）── */
 const ATTRIB = {
   smoke: { src: '.tests/smoke.js（300 案顺序共享沙箱态，不可单跑）', touches: ['assets/core.js', 'assets/systems/**', 'assets/worlds/xiuxian/**'], repro: 'node .tests/run-smoke.cjs' },
-  audit: { src: '.tests/audit.cjs（A/B/C 各组静态关）', touches: ['view/index.html', 'module/index.html', 'assets/**', 'extensions/com.avalonlee.sanqian-world/**（B9 镜像）'], repro: 'node .tests/audit.cjs' },
+  audit: { src: '.tests/audit.cjs（A/B/C 各组静态关）', touches: ['view/index.html', 'module/index.html', 'assets/**', '仓库根 docs/（账本段宿主）'], repro: 'node .tests/audit.cjs' },
   'versions-check': { src: '各卷卷头 = 事实源，docs/VERSIONS.md = 视图', touches: ['docs/*.md 卷头', 'docs/VERSIONS.md'], repro: 'node .tests/versions-check.cjs（先 --fix 再看）' },
   'sim-pacing': { src: '.tests/sim-pacing.cjs（画像 × 口径矩阵）', touches: ['assets/systems/idle.js', 'assets/systems/realm.js', 'assets/worlds/xiuxian/data.js'], repro: 'node .tests/sim-pacing.cjs' },
   'sim-event-economy': { src: '.tests/sim-event-economy.cjs（固定种子 20261008）', touches: ['assets/systems/events.js', 'assets/worlds/xiuxian/events.js', 'D.EVENT_* 权重与冷却'], repro: 'node .tests/sim-event-economy.cjs 2 20261008' },
@@ -170,6 +176,7 @@ const ATTRIB = {
  * 待走查改成单浏览器会话（N36）时再按篇建目。 */
 
 if (require.main === module) {
+  if (!REPO) { console.log('LEDGER_NO_REPO 找不到含 docs/VERSIONS.md 的仓库根 ⇒ 无法对账（判红）'); process.exit(1); }
   const v = compute();
   if (v.dod_missing) console.log('MISSING .tests/dod-last.json —— 先跑一次 node .tests/run-dod.cjs（本件不代跑测试）');
   if (v.pool_error) console.log('POOL_ERROR ' + v.pool_error);
@@ -188,4 +195,4 @@ if (require.main === module) {
   process.exit(r.drift.length || r.missing.length ? 1 : 0);
 }
 
-module.exports = { compute, check, region, SEGMENTS, BEGIN, END, oneLine, factsTable, ATTRIB, ROOT };
+module.exports = { compute, check, region, SEGMENTS, BEGIN, END, oneLine, factsTable, ATTRIB, ROOT, REPO };

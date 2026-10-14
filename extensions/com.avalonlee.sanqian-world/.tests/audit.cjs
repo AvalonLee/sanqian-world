@@ -17,10 +17,11 @@
  *   B5 module 格子纪律（#87，无 min-height/12px/container-type/overflow）
  *   B6 外链行为（#88，零 window.open / target=_blank）
  *   B7 壁纸透底态规则（#86 静态半区）  B8 桥容错（#89，单一桥模块 + try/catch + 失败出口）
- *   B9 交付镜像一致性（源侧 ↔ extensions/com.avalonlee.sanqian-world 七项逐字节零差异；2026-10-09 版本控制纳管批立）
+ *   B9 交付镜像一致性（七项逐字节零差异）〔**2026-10-14 GitHub 整理批退役**：根侧副本删除后没有第二份可比 ⇒ 由 D4 接管〕
  * D 组 · 账本与装载（2026-10-14 结构整治批B 立）：
  *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 全等 ⇔ smoke.html 保序子集 ⇔ assets 无未挂载件）
- *   D3 世界专属全局别名封闭（通用层与视图直读 SQ.XDATA 必须挂册，例外失效同判；2026-10-14 批C 立）
+ *   D3 世界专属别名封闭（通用层与视图直读 SQ.XDATA 必须挂册，例外失效同判；2026-10-14 批C 立）
+ *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
  */
@@ -948,72 +949,39 @@ const SQ = sandbox.window.SQ;
   ok('B8', '桥容错（单一桥模块 + 读写 try/catch + 失败出口被视图消费 + 未注册 API 走能力探测降级）', b8.length === 0, b8.join(';'));
 })();
 
-/* ── B9 交付镜像一致性（2026-10-09 版本控制纳管批立）─────────────────────────
- * 立因：镜像 `extensions/com.avalonlee.sanqian-world/` 与源侧的「七项 diff -rq 零差异」是本仓最强的一条不变量
- *   （工程规范 §八 记的两次单侧回退都靠这份镜像反向救回），但它**历来只靠人手敲命令 + 收口时口头承诺**——
- *   本轮存档治理批就出现过一次「改了 .tests/README 忘了同步镜像」，靠 git status 才照出来。
- *   不变量不进门闸 = 迟早漂，故收进审计。
- * 口径：四目录递归比内容（逐字节），三单件比内容；`.storage.json` 是宿主实时存档，
- *   **两侧都不参与比对**（与工程规范 §8.6 快照排除口径一致）；单侧多出来的文件同样算漂移。
- * 判据细节：只列前 8 条差异，其余计数汇总，避免镜像整棵树缺失时刷屏。 */
+/* ── D4 唯一事实源自洽（2026-10-14 GitHub 整理批 · 取代 B9）
+ * 立因：B9 守的是「源侧 ↔ extensions/com.avalonlee.sanqian-world 两份逐字节相同」，而两份副本本身就是一条事实
+ *   抄本——122 个跟踪文件是为镜像而复制的。GitHub 整理批删掉根侧那份，只留扩展目录这一份事实源（宿主挂载路径
+ *   与 .storage.json 实时存档原地不动），B9 因此失去对象。本关守住删完之后必须成立的四件事：
+ *   ① 扩展根七项齐备（少任一 = 宿主加载不了）；② manifest 的 entry 路径件真实存在；
+ *   ③ 仓库根不得再长出 assets/ view/ module/ manifest.json 的第二份副本（防重复源复活）；
+ *   ④ 仓库根仍在原位持有 docs/VERSIONS.md 与 README.md（账本工具靠它定位，缺了必须判红而不是静默跳过）。
+ * shortcut: 本关不再比对两份副本，因而失去 B9「单侧回退可用另一侧反向救回」的能力——兜底改由 git 远端与
+ *   sanqian-ops tar 快照承担；若将来重新引入镜像目录，本关会红，届时再决定恢复 B9 还是删掉第二份。 */
 (function () {
-  var EXT = 'com.avalonlee.sanqian-world';
-  var DIRS = ['assets', 'view', 'module', '.tests'];
-  var FILES = ['manifest.json', 'icon.svg', 'DESIGN.md'];
-  var SKIP = { '.storage.json': 1, 'dod-last.json': 1 };
-  /* dod-last.json = run-dod 的逐件读数落盘（2026-10-14 批B · gen-ledger 的取数口），
-     与实时存档同类：运行时产物、已 gitignore，进比对就永远红。 */
-  /* 两侧都可辨才比：默认「源侧 = 当前根 / 镜像 = extensions/<EXT>」；
-     若从镜像根起跑（../.. 是源码树根），反过来指 —— 同一条判据，两种起跑位置都成立。 */
-  function isRoot(d) { return fs.existsSync(d + '/assets') && fs.existsSync(d + '/manifest.json'); }
-  var SRC = '.', MIR = 'extensions/' + EXT;
-  if (!fs.existsSync(MIR) && isRoot('../..')) { SRC = '../..'; MIR = '.'; }
-  function walk(dir, base, acc) {
-    var ents;
-    try { ents = fs.readdirSync(dir); } catch (e) { return acc; }
-    ents.forEach(function (f) {
-      if (SKIP[f]) return;
-      var p = dir + '/' + f, st;
-      try { st = fs.statSync(p); } catch (e) { return; }
-      if (st.isDirectory()) walk(p, base, acc);
-      else acc[p.slice(base.length + 1)] = st.size;
+  const EXT_DIRS = ['assets', 'view', 'module', '.tests'];
+  const EXT_FILES = ['manifest.json', 'icon.svg', 'DESIGN.md'];
+  const bad = [];
+  EXT_DIRS.forEach((d) => { if (!fs.existsSync(path.join(ROOT, d))) bad.push('扩展根缺目录 ' + d); });
+  EXT_FILES.forEach((f) => { if (!fs.existsSync(path.join(ROOT, f))) bad.push('扩展根缺件 ' + f); });
+  let entry = {};
+  try { entry = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8')).entry || {}; }
+  catch (e) { bad.push('manifest.json 解析失败'); }
+  Object.keys(entry).forEach((k) => {
+    const rel = String(entry[k] || '').split('/').join('/').replace(/^\.\//, '');
+    if (rel && !fs.existsSync(path.join(ROOT, rel))) bad.push('entry.' + k + ' 指向不存在的件 ' + rel);
+  });
+  const REPO = require('./repo-root.cjs')();
+  if (!REPO) bad.push('仓库根定位失败（找不到 docs/VERSIONS.md）⇒ 账本工具无所依');
+  else {
+    ['assets', 'view', 'module', 'manifest.json'].forEach((f) => {
+      if (fs.existsSync(path.join(REPO, f))) bad.push('仓库根复活了第二份事实源 ' + f);
     });
-    return acc;
+    if (!fs.existsSync(path.join(REPO, 'README.md'))) bad.push('仓库根缺 README.md');
   }
-  var diffs = [];
-  function cmpTree(rel) {
-    var A = SRC + '/' + rel, B = MIR + '/' + rel;
-    var a = walk(A, A, {}), b = walk(B, B, {});
-    var keys = {}, kk;
-    for (kk in a) keys[kk] = 1;
-    for (kk in b) keys[kk] = 1;
-    Object.keys(keys).sort().forEach(function (k) {
-      if (!(k in a)) { diffs.push('仅镜像有 ' + rel + '/' + k); return; }
-      if (!(k in b)) { diffs.push('仅源侧有 ' + rel + '/' + k); return; }
-      var ba = fs.readFileSync(A + '/' + k), bb = fs.readFileSync(B + '/' + k);
-      if (ba.length !== bb.length) diffs.push('字节数不同 ' + k + '（' + ba.length + ' vs ' + bb.length + '）');
-      else if (!ba.equals(bb)) diffs.push('内容不同 ' + rel + '/' + k);
-    });
-  }
-  function cmpFile(rel) {
-    var fa = SRC + '/' + rel, fb = MIR + '/' + rel;
-    var ea = fs.existsSync(fa), eb = fs.existsSync(fb);
-    if (!ea || !eb) { diffs.push(rel + ' ' + (ea ? '镜像缺件' : '源侧缺件')); return; }
-    if (!fs.readFileSync(fa).equals(fs.readFileSync(fb))) diffs.push('内容不同 ' + rel);
-  }
-  try {
-    if (!isRoot(SRC) || !isRoot(MIR)) {
-      ok('B9', '交付镜像一致性（七项逐字节零差异）', false,
-        '两侧不可辨：源侧 ' + SRC + ' / 镜像 ' + MIR + ' 有一侧缺 assets+manifest.json（audit 须从源码树根或镜像根起跑）');
-      return;
-    }
-    DIRS.forEach(cmpTree);
-    FILES.forEach(cmpFile);
-    ok('B9', '交付镜像一致性（assets/view/module/.tests 四目录 + manifest/icon/DESIGN 三单件 = 七项逐字节零差异；.storage.json 实时存档按 §8.6 口径排除）',
-      diffs.length === 0, diffs.slice(0, 8).join(' | ') + (diffs.length > 8 ? ' …共 ' + diffs.length + ' 处' : ''));
-  } catch (e) {
-    ok('B9', '交付镜像一致性（七项逐字节零差异）', false, '比对异常：' + (e && e.message));
-  }
+  ok('D4', '唯一事实源自洽（扩展根七项齐备 · entry 件存在 · 仓库根无重复源 · docs 与 README 在位）',
+    bad.length === 0, '事实源 ' + path.basename(ROOT) + ' ‖ ' + EXT_DIRS.length + ' 目录 + ' + EXT_FILES.length + ' 单件' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 8).join(' ‖ ') : ' ‖ 四判全合'));
 })();
 
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）

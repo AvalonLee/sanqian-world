@@ -5,7 +5,7 @@
 **完整设计文档在本地项目归档 `sanqian-world-b836d9da-source/docs/`（41 份现行卷 + `docs/_archive/` 只读归档）**。本文件仅为快照索引，避免双源漂移，故：**版本号一律看 `docs/VERSIONS.md`（全卷现行版本唯一总账），计数一律看 `docs/FACTS.md`（池规模 / 格数 / 断言计数唯一总账）**——本表**不写版本号与条目数**，旧表在卷名后内嵌「（16处）/ v1.0」这类数与版，正是双源漂移的来源（2026-10-07 账实校正批移除）。
 
 <!-- SQ:LEDGER:BEGIN design 现行读数由 .tests/gen-ledger.cjs 生成，手改即漂；段外不参与覆盖 -->
-- **现行读数**（本行由 `.tests/gen-ledger.cjs` 生成）：扩展版本 `0.4.2` · 冒烟 300 · 审计 23 关 · 常驻探针 245 断言 · 界面走查 27 篇 / 582 断言 · 词表键 4677 · 世界名册 6 界（可见 6）。缺读数 = 「未跑」，不当 0 计。
+- **现行读数**（本行由 `.tests/gen-ledger.cjs` 生成）：扩展版本 `0.4.2` · 冒烟 300 · 审计 23 关 · 常驻探针 245 断言 · 界面走查 27 篇 / 未跑 断言 · 词表键 4677 · 世界名册 6 界（可见 6）。缺读数 = 「未跑」，不当 0 计。
 <!-- SQ:LEDGER:END -->
 
 ### 通用卷（引擎与规范，`docs/` 根）
@@ -79,8 +79,8 @@
 
 ```bash
 node .tests/run-smoke.cjs          # 引擎断言      → SMOKE_ALL_GREEN 295/295（⚠️ 本行原记 265/265、276/276、277/277、279/279、283/283、287/287、288/288、289/289、293/293 均为历批滞后读数，2026-10-08 / 10-09 / 10-10 随批校正）
-node .tests/audit.cjs              # 交付前静态审计 → AUDIT_ALL_GREEN 21/21（A6 为报告级；🆕 **A10**（2026-10-11 第十四批 20 → 21 关）= 取数口 ⇔ 世界表键存在性（代码引用了表里没有的键即红；在册例外 `SHOP_SLOTS` 是 #285(d) 的旧数据形状回落支）· 🆕 **A9**（2026-10-10 第十二批 19 → 20 关）= 世界表顶层常量 ⇔ 消费面对表（零消费者 = 死桩，与在册清单双向相等）；A8 自同批起**四段**（+ ④ heirBond 直写白名单）；🆕 B9 = 源侧 ↔ 交付镜像七项逐字节零差异；🆕 A7 = 法宝运行态 st 键集登记对表；🆕 A8 = 「静默失效」普查：账本分类 ⇔ 调用点 · `ws.*` 写点 ⇔ `normalize` 声明集 · `.bonds` 直写白名单；① 逐调用点解析实参 + 调用点数自证 + 反空集护栏，② 是单向包含、③ 是禁写白名单。现值 白名单 in5/out6 ‖ 声明键 91 ‖ note 调用点 34/34 ‖ 写点字段 81）
-bash /e/下载/sanqian-ops/sq-check.sh    # 开场体检（只读）→ ALREADY_IN_SYNC；收口后另跑 sq-snapshot.sh <批次名> → BACKUP_OK
+node .tests/audit.cjs              # 交付前静态审计 → AUDIT_ALL_GREEN n/n（关数以本文件顶部账本段为准）（A6 为报告级；🆕 **A10**（2026-10-11 第十四批 20 → 21 关）= 取数口 ⇔ 世界表键存在性（代码引用了表里没有的键即红；在册例外 `SHOP_SLOTS` 是 #285(d) 的旧数据形状回落支）· 🆕 **A9**（2026-10-10 第十二批 19 → 20 关）= 世界表顶层常量 ⇔ 消费面对表（零消费者 = 死桩，与在册清单双向相等）；A8 自同批起**四段**（+ ④ heirBond 直写白名单）；🆕 B9 = 源侧 ↔ 交付镜像七项逐字节零差异；🆕 A7 = 法宝运行态 st 键集登记对表；🆕 A8 = 「静默失效」普查：账本分类 ⇔ 调用点 · `ws.*` 写点 ⇔ `normalize` 声明集 · `.bonds` 直写白名单；① 逐调用点解析实参 + 调用点数自证 + 反空集护栏，② 是单向包含、③ 是禁写白名单。现值 白名单 in5/out6 ‖ 声明键 91 ‖ note 调用点 34/34 ‖ 写点字段 81）
+bash <项目外的 ops 目录>/sq-check.sh   # 开场体检（只读）→ ALREADY_IN_SYNC；收口后另跑 sq-snapshot.sh <批次名>（本机路径不写死在仓库里；仓库外脚本与 tar 快照是本地兜底，公开兜底是 git 远端） → BACKUP_OK
 node .tests/sim-pacing.cjs         # 全程节奏比值带（锚 9.12 天）
 node .tests/sim-event-economy.cjs  # 在线奇遇事件经济（密度 / 主轴）
 node .tests/sim-playthrough.cjs    # 全程模拟（5 路线 + fuzz）→ PLAYTHROUGH_ALL_GREEN；收口双证据 = `SQ_SEED=<种子>` 双跑逐字节相同 + 随机复跑
@@ -101,7 +101,7 @@ node .tests/probe-savecap.cjs      # ┘ 存档最坏态水位（阶梯可停 / 
 
 > ⚠️ **`node_modules` 永远不进交付包**：它在 `.gitignore` 内（现约 487 MB）。`playwright-core` 自 2026-10-14 结构整治批A 起是 `package.json` 里**唯一声明的依赖**（devDependencies `^1.63.0`）——此前它靠 `npm install --no-save` 临时装、**从未写进清单**，属于「精简依赖后重装 ⇒ 26 篇走查当场全废」的隐患，故本批改口径为**先入册再清理**，锁文件与 68 个平台依赖随 VibeX 退役一并删除。另注意 `audit.cjs` 是**整树遍历**的，2026-10-07 前对 `node_modules` 没有排除，一装依赖就 4 GB heap OOM 崩掉——现已在 `walk()` 内对 `node_modules` / `dist` / `dist-ssr` / `build` 剪枝。**推论：交付前静态审计的扫描范围 = 事实源范围，开发期依赖与构建产物不该进闸门。** **本段读数是判据不是历史**：现行读数一律以 `docs/FACTS.md`（冒烟 / 走查 / 常驻探针三行）与 `.tests/README.md`（跑绿清单）为准，本索引件只是快照 —— 收口时**三处同批改**，只改一处就是账本漂移。
 
-交付只认 `extensions/com.avalonlee.sanqian-world/` **镜像七项**（审计 **B9** 逐字节零差异）+ 宿主 x-hub 扩展中心挂源码目录。〔**2026-10-14 结构整治批D 收口**：VibeX 退役已执行到底——原 `vibex-app-source-roundtrip` SKILL 与 `package_vibex_upload.py`（`.vibex/` 整族）已删除，`AGENTS.md` 改写为 x-hub 交付与验收口径并升为 **agent 指引唯一正典**，`CLAUDE.md` 与 `.cursor/rules/project.mdc` 只留一行指针（原 `vibex-source-roundtrip.mdc` 随批改名）。原先那句「回传打包按 `.vibex/skills/…SKILL.md`」不再适用，本行即其替代口径。〕
+交付只认 `extensions/com.avalonlee.sanqian-world/` **这一份事实源**（宿主直接挂这个目录；仓库内不再有第二份副本可比对）。〔**2026-10-14 GitHub 整理批**：原 **B9**「源侧 ↔ 镜像七项逐字节零差异」退役——根侧副本已删，122 个重复文件归零；接管的 **D4** 反过来守「扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不得复活第二份源 ‖ docs 与 README 在位」。失去的「单侧回退可反向救回」能力由 git 远端 + 仓库外 tar 快照承担。〕〔**2026-10-14 结构整治批D 收口**：VibeX 退役已执行到底——原 `vibex-app-source-roundtrip` SKILL 与 `package_vibex_upload.py`（`.vibex/` 整族）已删除，`AGENTS.md` 改写为 x-hub 交付与验收口径并升为 **agent 指引唯一正典**，`CLAUDE.md` 与 `.cursor/rules/project.mdc` 只留一行指针（原 `vibex-source-roundtrip.mdc` 随批改名）。原先那句「回传打包按 `.vibex/skills/…SKILL.md`」不再适用，本行即其替代口径。〕
 
 ## 本地预览
 

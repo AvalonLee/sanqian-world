@@ -1,18 +1,18 @@
 {
  "generated_by": ".tests/gen-ledger.cjs",
- "at": "2026-10-14T03:59:20.871Z",
+ "at": "2026-10-14T06:54:06.287Z",
  "values": {
   "ext_version": "0.4.2",
   "dod_items": 18,
   "dod_asserts": 568,
-  "dod_secs": 25.8,
+  "dod_secs": 23,
   "smoke": 300,
   "audit_gates": 23,
   "versions_rows": null,
   "probe_asserts": 245,
   "ui_files": 27,
-  "ui_asserts": 582,
-  "sim_playthrough": true,
+  "ui_asserts": null,
+  "sim_playthrough": false,
   "arts": 70,
   "zones": 10,
   "realms": 10,
@@ -66,7 +66,7 @@
     "view/index.html",
     "module/index.html",
     "assets/**",
-    "extensions/com.avalonlee.sanqian-world/**（B9 镜像）"
+    "仓库根 docs/（账本段宿主）"
    ],
    "repro": "node .tests/audit.cjs"
   },

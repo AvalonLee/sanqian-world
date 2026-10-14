@@ -28,7 +28,7 @@ ok('① 现行文档无漂', clean.drift.length === 0 && clean.missing.length ==
 
 /* ② 造漂必红：把 FACTS 段内一个值改坏，判据必须检出差异 */
 const seg = G.SEGMENTS[0];
-const real = fs.readFileSync(path.join(G.ROOT, seg.file), 'utf8');
+const real = fs.readFileSync(path.join(G.REPO, seg.file), 'utf8');
 const want = seg.render(v);
 const regClean = G.region(real, seg.name);
 ok('② 段体抽取正确（与渲染一致）', regClean.body === want);

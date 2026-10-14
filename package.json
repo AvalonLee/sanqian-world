@@ -2,7 +2,17 @@
   "name": "sanqian-world",
   "private": true,
   "version": "0.0.0",
-  "description": "三千世界（x-hub 扩展）。游戏本体是 assets/** 的经典 <script> 标签脚本：零运行时依赖、零打包器、不跑 npm。本文件只为 node 侧界面走查声明 playwright-core（2026-10-14 起入册；此前它未声明、仅靠 NODE_PATH 注入，重装依赖即消失）。验收一律走 .tests/，扩展版本只在 manifest.json。",
+  "description": "三千世界（x-hub 扩展）：多世界框架的放置修仙人生模拟。游戏本体唯一事实源在 extensions/com.avalonlee.sanqian-world/，零运行时依赖、零打包器、不跑 npm 构建。本文件只提供仓库根的一条 npm test 入口与界面走查依赖 playwright-core（2026-10-14 起入册；此前未声明、只靠 NODE_PATH 注入，重装依赖即消失）。验收一律走 .tests/，扩展版本只在 manifest.json。",
+  "scripts": {
+    "test": "node extensions/com.avalonlee.sanqian-world/.tests/run-dod.cjs",
+    "test:ui": "node extensions/com.avalonlee.sanqian-world/.tests/run-dod.cjs --ui",
+    "test:sim": "node extensions/com.avalonlee.sanqian-world/.tests/run-dod.cjs --sim",
+    "test:full": "node extensions/com.avalonlee.sanqian-world/.tests/run-dod.cjs --full",
+    "test:audit": "node extensions/com.avalonlee.sanqian-world/.tests/audit.cjs",
+    "test:smoke": "node extensions/com.avalonlee.sanqian-world/.tests/run-smoke.cjs",
+    "ledger": "node extensions/com.avalonlee.sanqian-world/.tests/gen-ledger.cjs",
+    "ledger:fix": "node extensions/com.avalonlee.sanqian-world/.tests/gen-ledger.cjs --fix"
+  },
   "devDependencies": {
     "playwright-core": "^1.63.0"
   }

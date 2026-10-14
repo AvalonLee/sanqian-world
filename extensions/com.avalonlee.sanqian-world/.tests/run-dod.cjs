@@ -106,7 +106,7 @@ if (bad.length) {
   console.log('DOD_FAILED ' + bad.length + ' 件: ' + bad.map((x) => x.label.trim()).join(', '));
   /* 失败归因：件 → 相关同动点（映射的正典在 gen-ledger 的 SPEC.attrib，随账本落盘）*/
   let attrib = {};
-  try { attrib = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs', 'ledger.json'), 'utf8')).attrib || {}; } catch (e) { /* 账本未生成时不给假指引 */ }
+  try { attrib = JSON.parse(fs.readFileSync(path.join(require('./repo-root.cjs')() || ROOT, 'docs', 'ledger.json'), 'utf8')).attrib || {}; } catch (e) { /* 账本未生成时不给假指引 */ }
   bad.forEach((x) => {
     const k = x.label.trim();
     const a = attrib[k];

@@ -29,7 +29,9 @@ dist-ssr
 .storage.json
 
 # DoD 逐件读数落盘（2026-10-14 结构整治批B）：运行时产物，现行读数以 docs/ledger.json 与各文件哨兵段为准
-.tests/dod-last.json
+# 不带路径前缀 = 任意层级都忽略（2026-10-14 GitHub 整理批：.tests 已随项目本体搬到
+# extensions/com.avalonlee.sanqian-world/ 下，锚在根部的写法会漏掉它）
+dod-last.json
 
 # 快照解包目录与一次性补丁/调查脚本（过程件，用完即弃；有复用价值的收进 .tests/）
 restore-*/

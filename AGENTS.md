@@ -1,28 +1,38 @@
 # 三千世界 · agent 正典指引
 
-本项目是 **x-hub 扩展**（`manifest.json`，id `com.avalonlee.sanqian-world`），运行时是经典 `<script>` 脚本：`assets/**` 引擎 + 数据，入口 `view/index.html`（view / window / drawer 三形态）与 `module/index.html`（工作台卡片）。**没有构建步骤**，改完 `.js` 或 HTML 刷新即生效。
+本项目是 **x-hub 扩展**（`manifest.json`，id `com.avalonlee.sanqian-world`），运行时是经典 `<script>` 脚本。**项目文件只有一份，在 `extensions/com.avalonlee.sanqian-world/` 下**——宿主加载的就是这个目录，它自己就是完整的扩展根（`assets/**` 引擎 + 数据，入口 `view/index.html` 三形态 + `module/index.html` 卡片）。**没有构建步骤**，改完 `.js` 或 HTML 刷新即生效。
 
-VibeX 已于 2026-10-14 退役：不再打 ZIP 回传、不再跑 `npm run dev` / `build` / `tsc`（原平台壳已整族删除；`package.json` 现在只声明界面走查用的 `playwright-core`）。
+2026-10-14 GitHub 整理批把仓库根的逐字节副本删掉了（那 122 个文件是交付镜像 B9 的产物，本身就是抄本）；审计 **B9 退役、由 D4 接管**——D4 反过来守「仓库根不许再长出第二份事实源」。仓库根只剩 `docs/`（设计正典）、`README.md`、`AGENTS.md`、`CLAUDE.md`、`package.json`、`LICENSE`。
+
+VibeX 已退役：不再打 ZIP 回传、不再跑 `npm run dev` / `build` / `tsc`（原平台壳与 `.vibex/` 已整族删除；根 `package.json` 只声明界面走查用的 `playwright-core`，并只提供 `npm test` 系列入口）。
 
 ## 改动前按顺序读
 
 1. `docs/三千世界-工程规范与验收计划.md` — 存档字段契约 / 世界包契约 / 断言总表 / 平台关卡 / §八 工作树持久化纪律。
 2. `docs/README.md` — 全卷索引。现行计数看 `docs/FACTS.md` 顶部**账本段**；各卷版本看 `docs/VERSIONS.md`；还没做什么看任务清单「现行未实施表」（销号唯一落点）。
-3. `.tests/README.md` — 怎么验收、每件判据的末行标记是什么。
+3. `extensions/com.avalonlee.sanqian-world/.tests/README.md` — 怎么验收、每件判据的末行标记是什么。
+
+## 路径口径（本仓最容易搞错的一条）
+
+`assets/**`、`view/`、`module/`、`.tests/**` 这些写法都**相对扩展目录** `extensions/com.avalonlee.sanqian-world/`；`docs/**`、`README.md`、`LICENSE` 相对仓库根。工具靠 `.tests/repo-root.cjs` 现找仓库根（找带 `docs/VERSIONS.md` 的那一层），**不许硬编码层数**。
+
+在仓库根跑门禁请用 `npm test`（等价于 `node extensions/com.avalonlee.sanqian-world/.tests/run-dod.cjs`）；要逐件跑就先 `cd extensions/com.avalonlee.sanqian-world`。
 
 ## 硬规矩（每一条都对应过一次真实返工）
 
-- **收口必跑** `node .tests/run-dod.cjs`（无头 18 件 / ~20 秒，含 `audit` 23 关 + `versions-check` + `gen-ledger` + `ledger-selftest`）；改到界面再跑 `--ui`（27 篇）。改玩法数值或节奏才需要 `--sim`。
-- **交付 = 源侧 + 镜像逐字节相同**：`extensions/com.avalonlee.sanqian-world/` 只镜像七项（`assets` `view` `module` `.tests` + `manifest.json` `icon.svg` `DESIGN.md`），同步与判据见工程规范 §7.2 与 `README.md` §七；源侧删的件要同步从镜像删。
-- **现行读数不许手抄**：探针末行已打印的值（冒烟 / 审计关数 / 探针 / 走查 / 词表键 / 扩展版本 / 池规模）一律由 `docs/ledger.json` + `SQ:LEDGER:BEGIN/END` 哨兵段生成；`gen-ledger` 只判漂，要写文档才显式 `--fix`。
-- **升扩展版本 = 改 `manifest.json` 一处** + `node .tests/gen-ledger.cjs --fix` + 同步镜像。旧「六处同动」口径已作废。
-- **新增系统 `.js` 只挂进 `view/index.html`**：装载序列以它为唯一事实源（`.tests/sandbox.cjs` 直接解析 HTML）；漏挂或 `module/index.html` 分叉由审计 **D2** 拦。
+- **收口必跑** `npm test`（无头 18 件 / ~20 秒，含 `audit` 23 关 + `versions-check` + `gen-ledger` + `ledger-selftest`）；改到界面再 `npm run test:ui`（27 篇）；改玩法数值或节奏才需要 `npm run test:sim`。
+- **只有一份事实源**：不要为了「交付方便」再在仓库根复制 `assets/` 或 `manifest.json`——审计 **D4** 会直接判红。交付物就是 `extensions/com.avalonlee.sanqian-world/` 目录本身（宿主挂载它；`.storage.json` 实时存档在它里面且已 gitignore，永不入库）。
+- **现行读数不许手抄**：探针末行已打印的值（冒烟 / 审计关数 / 探针 / 走查 / 词表键 / 扩展版本 / 池规模）一律由 `docs/ledger.json` + `SQ:LEDGER:BEGIN/END` 哨兵段生成；`gen-ledger` 只判漂，要写文档才显式 `--fix`（或 `npm run ledger:fix`）。
+- **升扩展版本 = 改 `manifest.json` 一处** + `npm run ledger:fix`。旧「六处同动」与「同步镜像」两条口径都已作废。
+- **新增系统 `.js` 只挂进 `view/index.html`**：装载序列以它为唯一事实源（`.tests/sandbox.cjs` 直接解析 HTML）；`module/index.html` 分叉、引用不存在的件、`assets/` 里有未挂载件，都由审计 **D2** 拦。
 - **通用层与视图禁止直读世界专属全局**（`SQ.XDATA` 等）：新旁路由审计 **D3** 拦，在册例外按出现次数钉死、失效同判红。
 - **历史注逐字不改写**：只在新位置加勘正行；能自动对的账（版本总账、计数）交给 `versions-check --fix` 与 `gen-ledger --fix`，不靠人抄。
 - **`sim-playthrough` 的轨迹锚是判据**：改了结算/掉率类代码会换 md5，必须先复跑再改锚，别把换值当自然结果。
+- **提交后必须复确认整批落库**：`git status --porcelain` 为空 **且** `git show --stat HEAD` 的文件清单与批次叙述一致（混合「删除 + 修改」时用不带 `-a/-u` 的 commit，正文改动会整批漏在外面——本仓 2026-10-14 又犯过一次并已记进规范）。
 
 ## 环境注意（本机 Windows / Git Bash）
 
-- 没有 `rsync`；镜像重同步用 `README.md` §七 的 `cp -a` 命令组。
-- `playwright-core` 需 `NODE_PATH=<仓库>/node_modules` 才能被界面走查 require（现已写进 `package.json`，别再依赖临时注入）。
-- 长跑命令要真脱离（PowerShell `Start-Process`），重定向日志约 4KB 才刷盘 ⇒ 中途不动 ≠ 卡住。
+- 没有 `rsync`，也没有 `python3`；脚本一律用 `node`。含反引号的脚本正文走文件（`Write`），不要用 `bash -e` / heredoc 现拼。
+- `playwright-core` 已在根 `package.json` 声明，且 Node 的模块解析会从扩展目录逐级向上找到仓库根 `node_modules` ⇒ **不再需要 `NODE_PATH` 临时注入**。
+- 长跑命令要真脱离（PowerShell `Start-Process`），重定向日志约 4KB 才刷盘 ⇒ 中途不动 ≠ 卡住；判完成只看末行标记与 PID。
+- 实时存档在 `extensions/com.avalonlee.sanqian-world/.storage.json`，离线读它用 `node .tests/storage-read.cjs`（候选路径已含这一条）。

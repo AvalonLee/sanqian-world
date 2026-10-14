@@ -14,7 +14,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const DOCS = path.resolve(__dirname, '..', 'docs');
+/* 仓库根由 repo-root.cjs 现找（2026-10-14 GitHub 整理批：项目文件只留扩展目录那份，docs 在仓库根）。
+ * 定位失败 ⇒ 判红不判绿（SKIP 冒充在跑是本仓反复登记的假绿形状）。 */
+const REPO = require('./repo-root.cjs')();
+if (!REPO) { console.log('VERSIONS_NO_DOCS 找不到含 docs/VERSIONS.md 的仓库根 ⇒ 无法对账（判红）'); process.exit(1); }
+const DOCS = path.join(REPO, 'docs');
 const LEDGER = path.join(DOCS, 'VERSIONS.md');
 const FIX = process.argv.indexOf('--fix') >= 0;
 
