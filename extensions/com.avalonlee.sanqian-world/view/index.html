@@ -5654,6 +5654,25 @@
     });
   });
 
+  /* 命名框的字跨重渲染存活（GitHub issue #5 · 融合坛自定义名打不进字）：
+   * 立派名早有 `ui.sectRollName` 这条口，融合坛自定义名此前没有——DOM 一重建就清空，
+   * 于是「输入框里的字」只活在节点上。两处一律收进 ui.* 单源，渲染时再回填 value。 */
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (!t || t.tagName !== 'INPUT') return;
+    if (t.classList.contains('fusename')) ui.fuseName = t.value;
+    else if (t.id === 'sect-name-input') ui.sectRollName = t.value;
+  });
+
+  /* 输入闸（GitHub issue #5）：焦点在输入框里时 tick 不重建 DOM（见 startTick），
+   * 焦点离开输入框（focusout）时补一次渲染 ⇒ 读数最多只停更到打完字，不会长期不刷新。 */
+  document.addEventListener('focusout', function (e) {
+    var t = e.target;
+    if (!t || (t.tagName !== 'INPUT' && t.tagName !== 'TEXTAREA')) return;
+    if ($('sc-main').classList.contains('hide')) return;   /* 创角屏的输入框（#c1-name）不归游戏页渲染管 */
+    renderAll();   /* 顶栏读数与红点也一并补上（tick 跳过的是整次 DOM 重建）*/
+  });
+
   /* ══════════ 六向长线批视图（轮回/图鉴/炼丹/天骄/融合器灵/宗门 六页）══════════ */
 
   /* ── 真灵承继选择（轮回卷 §3.4「可选一件」玩家入口 · 器灵卷 §九）───────────────
@@ -6493,7 +6512,7 @@
     });
     h += '</div>';
     if (ui.fuseSel.length === 2) {
-      h += '<div class="sectnamebox"><input class="tdta fusename" style="min-height:38px" maxlength="8" placeholder="' + esc(t('fuse.ui.name.ph')) + '"></div>';
+      h += '<div class="sectnamebox"><input class="tdta fusename" style="min-height:38px" maxlength="8" placeholder="' + esc(t('fuse.ui.name.ph')) + '" value="' + esc(ui.fuseName || '') + '"></div>';
       h += '<button class="primary" data-act="fuseStart" style="width:100%;margin-top:6px">' + esc(t('fuse.ui.btn')) + '</button>';
     } else if (chk.ok) {
       h += '<p class="hint">' + esc(t('fuse.ui.pick2')) + '</p>';
@@ -7118,6 +7137,7 @@
         var rF = await SQ.Actions.fuseStart(state, ui.fuseSel[0], ui.fuseSel[1], nameIn ? nameIn.value : '');
         if (rF && rF.ok && rF.success) {
           ui.fuseSel = [];
+          ui.fuseName = '';                 /* 成交即清：下一对父母不该继承上一部的自定义名 */
           toast(t('fuse.log.win', { name: rF.art.name, gen: rF.art.gen, tier: t('skill.tier.' + ['huang', 'xuan', 'di', 'tian'][rF.art.tier]) }));
         } else if (rF && rF.ok) {
           toast(t('fuse.log.fail', { p: Math.round(rF.p * 100) }));
@@ -7559,10 +7579,16 @@
       if (!$('modal-choice').classList.contains('hide')) return; /* 选择模态期间暂停自动结算展示 */
       var prev = ws() ? ws().tribulation.attempts : 0;
       var keep = document.querySelector('.tabbody') ? document.querySelector('.tabbody').scrollTop : 0;
+      /* 输入闸（GitHub issue #5 · 用户报「融合坛自定义名输入框无法输入文字，点击后很快丢失焦点」）：
+       * renderAll() 把当前页整块 innerHTML 重建 ⇒ 正在打字的 <input> 换成新节点，焦点被抢、字一起丢。
+       * 结算照跑（玩家进程不能停），只跳过这一次 DOM 重建；focusout 时补渲染。 */
+      var ae = document.activeElement;
+      var typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
       try {
         snapTrib();                       /* 劫前成算/损失快照（F7 复盘行） */
         await SQ.claim(state);
         afterClaim(prev);
+        if (typing) return;
         renderAll();
         var tb = document.querySelector('.tabbody');
         if (tb) tb.scrollTop = keep;
