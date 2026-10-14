@@ -34,7 +34,11 @@ async function buildSave() {
   const ws = pack.normalize({});
   const now = Date.now();
   ws.realm = 5; ws.stones = 5000; ws.qi = 100; ws.total = 100;
-  ws.artsKnown = ['tuna', 'juling']; ws.artsSlots = ['tuna', 'juling'];
+  /* A11 三态取样（等级起点批后改档）：Lv1 入门 / Lv3 常规字段 / Lv9 带 effectsFixed 字段
+   * ——emotionless 只「学会」不「入槽」，避免动到 A4d 依赖的 setMainArt 按钮计数。
+   * 旧的 Lv0 态已不可达（入门即 Lv1），改由 A11f 反向钉「屏上不许出现 Lv0」。 */
+  ws.artsKnown = ['tuna', 'juling', 'emotionless']; ws.artsSlots = ['tuna', 'juling'];
+  ws.artsLevels = { tuna: 3, juling: 1, emotionless: 9 };
   ws.lastSave = now; ws.lastOffline = null; ws.pendingChoice = null;
   return {
     v: 1,
@@ -194,8 +198,10 @@ async function buildSave() {
   const mainPick = await page.evaluate(() => {
     const cards = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .cards > .tcard'));
     const btns = document.querySelectorAll('#tab-arts [data-act="setMainArt"]');
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
     return {
       btnN: btns.length,
+      slotN: (s.worlds[s.profile.worldId].artsSlots || []).length,
       mainIdxBefore: cards.findIndex((c) => !!c.querySelector('.maincorner'))
     };
   });
@@ -215,13 +221,85 @@ async function buildSave() {
       artsMain: w.artsMain
     };
   });
-  T(mainPick.btnN === 1 && mainPick.mainIdxBefore === 0 && mainAfter.mainIdx === 1 &&
+  T(mainPick.slotN >= 2 && mainPick.btnN === mainPick.slotN - 1 &&
+    mainPick.mainIdxBefore === 0 && mainAfter.mainIdx === 1 &&
     mainAfter.markerIdx === 1 && mainAfter.artsMain === 'juling' &&
     mainAfter.mainName !== '' && mainAfter.ovMain !== '' &&
     mainAfter.ovMain.indexOf(mainAfter.mainName) >= 0,
-    'A4d 主修点定（issue #3）：第 2 格挂按钮（在槽 2 部 − 主修 1 部）· 点后角标与 data-mainart 同移到第 2 格 · 概览条「主修」格随之改名 · ws.artsMain 落盘',
-    'btn=' + mainPick.btnN + ' idx ' + mainPick.mainIdxBefore + '→' + mainAfter.mainIdx +
+    'A4d 主修点定（issue #3）：按钮数 = 在槽数 − 1（主修那格不给）· 点后角标与 data-mainart 同移到第 2 格 · 概览条「主修」格随之改名 · ws.artsMain 落盘',
+    'btn=' + mainPick.btnN + '/在槽 ' + mainPick.slotN + ' idx ' + mainPick.mainIdxBefore + '→' + mainAfter.mainIdx +
     ' marker=' + mainAfter.markerIdx + ' 落盘=' + mainAfter.artsMain + ' 概览=' + mainAfter.ovMain);
+
+  /* ── A11 卡片增益行 = 引擎实际生效值（等级起点批：入门即 Lv1，Lv9 即满级）──
+   * 立因两笔：① 用户报「Lv0 显示得和 Lv1 一样」→ 本批把 Lv0 态取消（入门即 Lv1），
+   *   呈现面反过来钉「屏上不许再有 Lv0」；② 取证时另抓出的真缺陷：**effectsFixed** 字段卡面也乘了
+   *   lv（太上忘情篇引擎只吃 −8pp，Lv9 曾写 −72%，`mods.js` 用 `lv > 0 ? 1 : 0`）。
+   * 判据不写死数字、也不写死文案：整行文本逐字段与**消费端** `SQ.Mods.collect` 的
+   * `detail[字段].arts` 对表 ⇒ 改卡面公式或改引擎缩放口径，两侧不同步就红（消费关系判据）。 */
+  const gain = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const w = s.worlds.xiuxian;
+    const pack = SQ.Worlds.xiuxian.pack, D = pack.data, AM = pack.artsMap();
+    const wf = (k, o) => SQ.t(k, o || null, 'xiuxian');
+    const pctv = (v) => (Math.round(Math.abs(v) * 1000) / 10).toString().replace(/\.0$/, '') + '%';
+    const lvOf = (id) => (w.artsLevels || {})[id] || 0;
+    /* 单部入槽重算：detail[field].arts 就是「这一部在这一级实际吃进去的值」 */
+    const eng = (id, f, lv) => {
+      const w2 = JSON.parse(JSON.stringify(w));
+      w2.artsSlots = [id]; w2.artsKnown = [id];
+      w2.artsLevels = {}; w2.artsLevels[id] = lv;
+      const m = SQ.Mods.collect(s.profile, w2, pack, D);
+      const v = (m.detail[f] ? m.detail[f].arts : 0) || 0;
+      return (v >= 0 ? '+' : '−') + pctv(v);
+    };
+    const expect = (id, lv) => Object.keys(AM[id].effects)
+      .map((f) => wf('talent.field.' + f) + ' ' + eng(id, f, lv)).join(' · ');
+    const at = (i) => {
+      const c = document.querySelectorAll('#tab-arts .artgrid > .tcard')[i];
+      return c ? {
+        name: ((c.querySelector('.tname') || {}).textContent || '').trim(),
+        hint: ((c.querySelector('.hint') || {}).textContent || '').trim(),
+        meta: ((c.querySelector('.meta') || {}).textContent || '').trim(),
+        upgradeBtns: c.querySelectorAll('[data-act="upgradeArt"]').length,
+        txt: (c.textContent || '')
+      } : { name: '', hint: '', meta: '', upgradeBtns: 0, txt: '' };
+    };
+    /* 顺序 = knownS 排序结果（在槽两格落在前，未入槽的 emotionless 落第 3） */
+    const ids = ['tuna', 'juling', 'emotionless'];
+    const rows = ids.map((id, i) => {
+      const c = at(i);
+      return { id, lv: lvOf(id), name: c.name, want: wf('skill.' + id + '.name'), hint: c.hint,
+        meta: c.meta, exp: expect(id, lvOf(id)), upgradeBtns: c.upgradeBtns, txt: c.txt };
+    });
+    const knownLv = (w.artsKnown || []).map((id) => lvOf(id));
+    const anyLv0 = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .artgrid > .tcard'))
+      .some((c) => ((c.querySelector('.hint') || {}).textContent || '').indexOf('Lv0') >= 0);
+    return { rows, knownLv, anyLv0, maxTxt: wf('arts.max') };
+  });
+  const gBy = {}; gain.rows.forEach((r) => { gBy[r.id] = r; });
+  T(gain.rows.length === 3 && gain.rows.every((r) => r.name.indexOf(r.want) >= 0),
+    'A11a 已学会卡三态取样在位（tuna Lv3 / juling Lv1 / emotionless Lv9，名称逐格对上）',
+    gain.rows.map((r) => r.id + '=' + r.lv).join(' '));
+  T(gBy.tuna.lv === 3 && gBy.juling.lv === 1 && gBy.emotionless.lv === 9,
+    'A11b 存档等级确实落到页面（前置：先证三态存在，否则下面的对表是空对空）',
+    'Lv ' + gBy.tuna.lv + '/' + gBy.juling.lv + '/' + gBy.emotionless.lv + ' hint=' + gBy.juling.hint.slice(0, 12));
+  T(gain.rows.every((r) => r.meta === r.exp),
+    'A11c 三张卡的增益行逐字段 === 引擎 detail（Lv1/Lv3 常规 ×lv、Lv9 固定字段不乘）',
+    gain.rows.filter((r) => r.meta !== r.exp).map((r) => r.id + ': ' + r.meta + ' vs ' + r.exp).join(' ‖ ') || 'all match');
+  T(gain.rows.every((r) => r.meta.indexOf('+-') < 0 && r.meta.indexOf('+−') < 0) &&
+    gBy.emotionless.meta.indexOf('渡劫失败损失 −8%') >= 0,
+    'A11d 符号口径跟随实值（旧模板把 `+` 写死 ⇒ 负字段曾渲染成 `+-8%`；现在负字段就是 `−8%`）',
+    gBy.emotionless.meta);
+  T(gBy.emotionless.meta.indexOf('−8%') >= 0 && gBy.emotionless.meta.indexOf('−72%') < 0,
+    'A11e effectsFixed 不随等级：Lv9 太上忘情篇卡面 = 引擎只吃的 −8pp（旧公式写 −72% ⇒ 本条即缺陷反证）',
+    gBy.emotionless.meta);
+  T(!gain.anyLv0 && gain.knownLv.length > 0 && gain.knownLv.every((v) => v >= 1),
+    'A11f 入门即 Lv1：已入门的每部等级 ≥1 且屏上不再出现「Lv0」（旧 Lv0 态随批消失）',
+    'knownLv=' + gain.knownLv.join('/') + ' 屏上有Lv0=' + gain.anyLv0);
+  T(gBy.emotionless.upgradeBtns === 0 && gBy.emotionless.txt.indexOf(gain.maxTxt) >= 0 &&
+    gBy.tuna.upgradeBtns === 1,
+    'A11g Lv9 即满级：满级卡无升级钮且显「满级」，未满级卡仍有升级钮（9 级再升 = max）',
+    'Lv9钮=' + gBy.emotionless.upgradeBtns + ' Lv3钮=' + gBy.tuna.upgradeBtns + ' 文本含满级=' + (gBy.emotionless.txt.indexOf(gain.maxTxt) >= 0));
 
   /* ── N6 点法器标签：只渲染法器段 + 滚动归零（先滚深再切，验「切段等价换页」）── */
   await page.evaluate(() => { const b = document.querySelector('.tabbody'); b.scrollTop = 600; });

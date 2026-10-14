@@ -14,7 +14,7 @@
     var now = Date.now();
     return {
       qi: 0, total: 0, stones: 100, realm: 0,
-      artsKnown: ['tuna', 'juling'], artsLevels: {}, artsSlots: [], shelf: [],
+      artsKnown: ['tuna', 'juling'], artsLevels: { tuna: 1, juling: 1 }, artsSlots: [], shelf: [],
       artsAutoInit: false, artsLearnClock: 0, artsSelfLearnN: 0, artsMain: null,
       /* 自动炼化开关（GitHub issue #2）：false = 换下的旧件 / 不如在件的新件先入库藏阁。
        * 认 ws 而不是 state.settings：autoEquip 的十一个调用点签名各异，只有 ws 一定在场。 */
@@ -111,7 +111,17 @@
       qi: num(raw.qi, 0), total: num(raw.total, 0),
       stones: num(raw.stones, d.stones), realm: num(raw.realm, 0),
       artsKnown: arr(raw.artsKnown, d.artsKnown),
-      artsLevels: obj(raw.artsLevels, {}),
+      /* 等级起点批（2026-10-14 · 用户令「功法等级改为从 1 起」）：入门即 Lv1。
+       * 这里是**旧档 Lv0 的唯一迁移落点** ⇒ `mods.js` / `attrs.js` / 视图那六处
+       * `artsLevels[id] || 0` 直读口不必各自兜底，也不会出现「档里 0、屏上 Lv0」。
+       * 幂等：补完再 normalize 结果不变（已入门者的值恒 ≥1）。 */
+      artsLevels: (function () {
+        var lv = obj(raw.artsLevels, {});
+        arr(raw.artsKnown, d.artsKnown).forEach(function (id) {
+          if (!(num(lv[id], 0) >= 1)) lv[id] = 1;
+        });
+        return lv;
+      })(),
       artsSlots: arr(raw.artsSlots, []).slice(0, D.ARTS_SLOTS),
       /* issue #3：玩家点定的主修（null = 未点定 ⇒ 回落槽内第 1 位，旧档零迁移）。
        * 是否在槽内 / 是否已入门由 SQ.Arts.mainArt 读时校验，脏值即回落。 */

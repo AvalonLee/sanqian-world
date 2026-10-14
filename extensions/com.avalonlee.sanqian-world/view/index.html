@@ -824,7 +824,7 @@
   .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--primary); font-size: 12px; font-weight: 650; }
 
   /* ── F2 奇遇页：叙事流 + 图鉴 ── */
-  .fcard { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 8px 0; background: var(--well); }
+  .fcard { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 8px 0; background: var(--well); cursor: pointer; }
   /* G17 江湖传闻卡：性质色调左边线 + 倒计时行（临期转红）；war 卡固定赭线 */
   .rumorcard { border: 1px solid var(--line); border-left: 3px solid var(--line); border-radius: 10px; padding: 8px 12px; margin: 6px 0; background: var(--well); }
   .rumorcard.good { border-left-color: var(--good); }
@@ -2939,13 +2939,14 @@
     h += '<div class="hint">Lv' + lv + (lv >= d.ARTS_MAX_LV ? ' · ' + esc(t('arts.max')) : '') +
       ' · ' + esc(t('special.' + a.special.pool + '.name')) +
       ' · ' + esc(t('skill.nurture.' + a.attr)) + '</div>';
-    /* 走查 v2.7 §3：功法带来的具体增益（当前等级实际生效值，多效果并列） */
+    /* 走查 v2.7 §3：功法带来的具体增益（当前等级实际生效值，多效果并列）。
+     * 缩放口径与消费端 `mods.js` 逐字同源：`effectsFixed` 列内字段 Lv1 即全效、**不随等级**
+     *（此前一律 ×lv ⇒ 太上忘情篇 Lv9 卡面写 −72%、引擎只吃 −8%）。
+     * 等级起点批（2026-10-14 · 入门即 Lv1）后 Lv0 不可达 ⇒ 原「尚未生效」预告分支与三枚词表键随批删。 */
+    var fx = a.effectsFixed || [];
     var effParts = Object.keys(a.effects || {}).map(function (k) {
-      if (lv > 0) {
-        var v = a.effects[k] * lv;
-        return t('talent.field.' + k) + ' ' + (v >= 0 ? '+' : '−') + pct(Math.abs(v));
-      }
-      return t('talent.field.' + k) + ' ' + t('arts.gain.perslot', { p: Math.round(a.effects[k] * 100) });
+      var v = a.effects[k] * (fx.indexOf(k) >= 0 ? 1 : lv);
+      return t('talent.field.' + k) + ' ' + (v >= 0 ? '+' : '−') + pct(Math.abs(v));
     });
     h += '<div class="meta">' + esc(effParts.join(' · ')) + '</div>';
     if (lv < d.ARTS_MAX_LV) {
@@ -4360,7 +4361,11 @@
       chk = f.pass ? ' <span style="color:var(--good)">' + esc(t('check.ok')) + '</span>'
         : ' <span style="color:var(--bad)">' + esc(t('check.fail')) + '</span>';
     }
-    var h = '<div class="fcard"><div class="fh"><span class="fn">' + esc(t('event.' + f.id + '.name')) +
+    /* 卡片整体可点 = 复用图鉴那套「奇遇回看」浮层（`openRecall`：story + 首遇 + 上次抉择 + 上次得失），
+     * 不再另造第二张详情卡（用户令「点击近来奇遇卡片应弹窗便于查阅」）。
+     * 卡内「未择之路」折叠区自带 `data-act="unwalked"`，委托走 `closest('[data-act]')` ⇒ 内层优先，不冲突。 */
+    var h = '<div class="fcard" data-act="recallEvent" data-v="' + esc(f.id) + '"><div class="fh">' +
+      '<span class="fn">' + esc(t('event.' + f.id + '.name')) +
       (f.via === 'rumor' ? '<span class="ebadge">' + esc(t('rumor.badge.via')) + '</span>' : '') +
       ' <span class="hint">[' + esc(grade) + ']</span></span><span class="ft">' + esc(ft) + '</span></div>';
     h += '<div class="fg">' + esc(t('event.' + f.id + '.branch.' + f.branch)) + chk + ' · ' + esc(k) + '</div>';
@@ -4483,11 +4488,13 @@
     h += renderRumors(Date.now());
     h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('event.feed.title')) + '</p>';
     if (!feed.length) h += '<p class="hint" style="padding:8px 0">' + esc(t('event.feed.empty')) + '</p>';
-    var shown = ui.feedExpand ? feed : feed.slice(0, 3);
+    /* 折叠 3 条 / 展开只到最近 10 条（用户令「展开的条数太多了」）；
+     * 存储上限仍是 `D.EVENT_FEED_CAP`（50），这条只管屏上给看多少 ⇒ 不改档、不裁流。 */
+    var shown = ui.feedExpand ? feed.slice(0, 10) : feed.slice(0, 3);
     shown.forEach(function (f) { h += feedCard(f); });
     if (feed.length > 3) {
       h += '<div class="row"><button style="flex:1" data-act="feedMore">' +
-        esc(ui.feedExpand ? t('event.feed.less') : t('event.feed.more', { n: feed.length })) + '</button></div>';
+        esc(ui.feedExpand ? t('event.feed.less') : t('event.feed.more', { n: Math.min(10, feed.length) })) + '</button></div>';
     }
     h += '<p class="hint" style="margin:14px 0 2px;font-weight:650">' + esc(t('event.codex.title')) + '</p>';
     ['tian', 'di', 'ren'].forEach(function (tier) {
@@ -6502,7 +6509,7 @@
     }
     h += '<p class="hint">' + esc(t('fuse.ui.parents')) + '</p><div class="chips">';
     (w.artsKnown || []).forEach(function (id) {
-      if ((w.artsLevels || {})[id] < 9) return;
+      if (SQ.Arts.levelOf(w, id) < 9) return;   /* 走 levelOf：原 `artsLevels[id] < 9` 在无键时是 undefined<9=false ⇒ 满级关形同不存在 */
       var def = SQ.Fusion.artDefOf(w, id);
       if (!def || (def.obtain || {}).type === 'event_locked') return;
       var cU = SQ.Fusion.customById(w, id);

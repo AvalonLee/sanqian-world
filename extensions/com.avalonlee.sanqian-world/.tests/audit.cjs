@@ -984,6 +984,34 @@ const SQ = sandbox.window.SQ;
     (bad.length ? ' ‖ ' + bad.slice(0, 8).join(' ‖ ') : ' ‖ 四判全合'));
 })();
 
+/* ── D5 内联脚本可解析（第卅七批立例 · 由一次真实漏网立证）──
+ * 快速预检此前只验 `assets/**.js` 的语法与挂载关系，`view/index.html` 里那一大块内联脚本没人替它把语法：
+ * 本批一处笔误（`)}))` 多写一个右括号）跑过了 `npm test` 全绿，直到起浏览器才炸成「一直卡在加载页」，
+ * 代价 = 一次界面走查（分钟级）而不是一次预检（秒级）。
+ * 本关用 vm 解析每个 HTML 的每段内联脚本，取块口与 A1 CJK 扫描**同一个**（`inlineScripts`，不会两关口径漂），
+ * 报错行号回加 `baseLine` ⇒ 指回真文件行。 */
+(function () {
+  const bad = [];
+  let n = 0;
+  htmlFiles.forEach((f) => {
+    inlineScripts(f).forEach((b) => {
+      n++;
+      try { new vm.Script(b.code, { filename: relOf(f) }); }
+      catch (e) {
+        /* vm 的编译错误首形如 `view/index.html:3086`（**不带列号**，Node 版本差异会补 `:57`），
+         * 且那个行号是**块内行** ⇒ 回加 `baseLine − 1` 才指回真文件行（本关的用处就在能直接跳过去） */
+        const frames = String(e.stack || '').split('\n');
+        const frame = frames.find((l) => l.indexOf(relOf(f)) >= 0) || '';
+        const m = /:(\d+)(?::\d+)?\s*$/.exec(frame);
+        bad.push(relOf(f) + ':' + (m ? b.baseLine + (+m[1]) - 1 : '?') + ' ' + e.message);
+      }
+    });
+  });
+  ok('D5', '内联脚本可解析（view/module 的 JS = 浏览器实际加载那一份 · 语法错不再只在真机炸）',
+    bad.length === 0, 'HTML ' + htmlFiles.length + ' 件 · 脚本块 ' + n + ' 段' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 4).join(' ‖ ') : ' ‖ 全部可解析'));
+})();
+
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）
  * 射程说明（批A 自发现的盲区，写在这里免得下次又按错口径造反证）：`view/index.html` 是装载顺序的
  * **唯一事实源**，所以「HTML 少挂一个标签」本身是有意卸载、不是漂移，本关绝不判 HTML 自比。判这四件
