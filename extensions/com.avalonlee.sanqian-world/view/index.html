@@ -2939,15 +2939,19 @@
     h += '<div class="hint">Lv' + lv + (lv >= d.ARTS_MAX_LV ? ' · ' + esc(t('arts.max')) : '') +
       ' · ' + esc(t('special.' + a.special.pool + '.name')) +
       ' · ' + esc(t('skill.nurture.' + a.attr)) + '</div>';
-    /* 走查 v2.7 §3：功法带来的具体增益（当前等级实际生效值，多效果并列） */
+    /* 走查 v2.7 §3：功法带来的具体增益（当前等级实际生效值，多效果并列）。
+     * 缩放口径与消费端 `mods.js` 逐字同源（Lv0 吃 0 / effectsFixed 列内字段 Lv1 全效不随等级）：
+     * 此前卡面对固定字段也乘 lv（太上忘情篇 Lv9 显 −72%、引擎只吃 −8%），Lv0 又只写 `+5%/级`
+     * 与 Lv1 的 `+5%` 同形——两处都是「屏上说的不是生效的」，本批一并收口。 */
+    var fx = a.effectsFixed || [];
+    function gainTxt(v) { return (v >= 0 ? '+' : '−') + pct(Math.abs(v)); }
     var effParts = Object.keys(a.effects || {}).map(function (k) {
-      if (lv > 0) {
-        var v = a.effects[k] * lv;
-        return t('talent.field.' + k) + ' ' + (v >= 0 ? '+' : '−') + pct(Math.abs(v));
-      }
-      return t('talent.field.' + k) + ' ' + t('arts.gain.perslot', { p: Math.round(a.effects[k] * 100) });
+      var per = a.effects[k], fix = fx.indexOf(k) >= 0;
+      if (lv > 0) return t('talent.field.' + k) + ' ' + gainTxt(per * (fix ? 1 : lv));
+      return t('talent.field.' + k) + ' ' + (fix ? t('arts.gain.fixed', { v: gainTxt(per) })
+        : t('arts.gain.perslot', { v: gainTxt(per) }));
     });
-    h += '<div class="meta">' + esc(effParts.join(' · ')) + '</div>';
+    h += '<div class="meta">' + esc((lv > 0 ? '' : t('arts.gain.zero') + ' ') + effParts.join(' · ')) + '</div>';
     if (lv < d.ARTS_MAX_LV) {
       h += '<div class="pbar"><i style="width:' + pr.toFixed(0) + '%"></i></div>' +
         '<div class="hint">' + esc(t('arts.practice', { p: Math.floor(pr) })) + '</div>';

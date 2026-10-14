@@ -34,7 +34,10 @@ async function buildSave() {
   const ws = pack.normalize({});
   const now = Date.now();
   ws.realm = 5; ws.stones = 5000; ws.qi = 100; ws.total = 100;
-  ws.artsKnown = ['tuna', 'juling']; ws.artsSlots = ['tuna', 'juling'];
+  /* A11 三态取样（增益行走查批）：Lv3 常规字段 / Lv0 未修持 / Lv9 带 effectsFixed 字段
+   * ——emotionless 只「学会」不「入槽」，避免动到 A4d 依赖的 setMainArt 按钮计数 */
+  ws.artsKnown = ['tuna', 'juling', 'emotionless']; ws.artsSlots = ['tuna', 'juling'];
+  ws.artsLevels = { tuna: 3, emotionless: 9 };
   ws.lastSave = now; ws.lastOffline = null; ws.pendingChoice = null;
   return {
     v: 1,
@@ -194,8 +197,10 @@ async function buildSave() {
   const mainPick = await page.evaluate(() => {
     const cards = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .cards > .tcard'));
     const btns = document.querySelectorAll('#tab-arts [data-act="setMainArt"]');
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
     return {
       btnN: btns.length,
+      slotN: (s.worlds[s.profile.worldId].artsSlots || []).length,
       mainIdxBefore: cards.findIndex((c) => !!c.querySelector('.maincorner'))
     };
   });
@@ -215,13 +220,80 @@ async function buildSave() {
       artsMain: w.artsMain
     };
   });
-  T(mainPick.btnN === 1 && mainPick.mainIdxBefore === 0 && mainAfter.mainIdx === 1 &&
+  T(mainPick.slotN >= 2 && mainPick.btnN === mainPick.slotN - 1 &&
+    mainPick.mainIdxBefore === 0 && mainAfter.mainIdx === 1 &&
     mainAfter.markerIdx === 1 && mainAfter.artsMain === 'juling' &&
     mainAfter.mainName !== '' && mainAfter.ovMain !== '' &&
     mainAfter.ovMain.indexOf(mainAfter.mainName) >= 0,
-    'A4d 主修点定（issue #3）：第 2 格挂按钮（在槽 2 部 − 主修 1 部）· 点后角标与 data-mainart 同移到第 2 格 · 概览条「主修」格随之改名 · ws.artsMain 落盘',
-    'btn=' + mainPick.btnN + ' idx ' + mainPick.mainIdxBefore + '→' + mainAfter.mainIdx +
+    'A4d 主修点定（issue #3）：按钮数 = 在槽数 − 1（主修那格不给）· 点后角标与 data-mainart 同移到第 2 格 · 概览条「主修」格随之改名 · ws.artsMain 落盘',
+    'btn=' + mainPick.btnN + '/在槽 ' + mainPick.slotN + ' idx ' + mainPick.mainIdxBefore + '→' + mainAfter.mainIdx +
     ' marker=' + mainAfter.markerIdx + ' 落盘=' + mainAfter.artsMain + ' 概览=' + mainAfter.ovMain);
+
+  /* ── A11 卡片增益行 = 引擎实际生效值（用户报「Lv0 显示得和 Lv1 一样」）──
+   * 取证时另抓出一条真缺陷：**effectsFixed** 字段卡面也乘了 lv——太上忘情篇「渡劫失败损失」
+   * 引擎只吃 −8pp（`mods.js:82` 的 `lv > 0 ? 1 : 0`），Lv9 卡面却写 −72%。
+   * 判据不写死数字、也不写死文案：整行文本逐字段与**消费端** `SQ.Mods.collect` 的
+   * `detail[字段].arts` 对表 ⇒ 改卡面公式或改 mods.js 的缩放口径，两侧不同步就红（消费关系判据）。 */
+  const gain = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const w = s.worlds.xiuxian;
+    const pack = SQ.Worlds.xiuxian.pack, D = pack.data, AM = pack.artsMap();
+    const wf = (k, o) => SQ.t(k, o || null, 'xiuxian');
+    const pctv = (v) => (Math.round(Math.abs(v) * 1000) / 10).toString().replace(/\.0$/, '') + '%';
+    const lvOf = (id) => (w.artsLevels || {})[id] || 0;
+    /* 单部入槽重算：detail[field].arts 就是「这一部在这一级实际吃进去的值」 */
+    const eng = (id, f, lv) => {
+      const w2 = JSON.parse(JSON.stringify(w));
+      w2.artsSlots = [id]; w2.artsKnown = [id];
+      w2.artsLevels = {}; w2.artsLevels[id] = lv;
+      const m = SQ.Mods.collect(s.profile, w2, pack, D);
+      const v = (m.detail[f] ? m.detail[f].arts : 0) || 0;
+      return (v >= 0 ? '+' : '−') + pctv(v);
+    };
+    const expect = (id, lv) => {
+      const a = AM[id], fx = a.effectsFixed || [];
+      const parts = Object.keys(a.effects).map((f) => {
+        if (lv > 0) return wf('talent.field.' + f) + ' ' + eng(id, f, lv);
+        const v = (a.effects[f] >= 0 ? '+' : '−') + pctv(a.effects[f]);
+        return wf('talent.field.' + f) + ' ' +
+          (fx.indexOf(f) >= 0 ? wf('arts.gain.fixed', { v: v }) : wf('arts.gain.perslot', { v: v }));
+      });
+      return (lv > 0 ? '' : wf('arts.gain.zero') + ' ') + parts.join(' · ');
+    };
+    const at = (i) => {
+      const c = document.querySelectorAll('#tab-arts .artgrid > .tcard')[i];
+      return c ? {
+        name: ((c.querySelector('.tname') || {}).textContent || '').trim(),
+        hint: ((c.querySelector('.hint') || {}).textContent || '').trim(),
+        meta: ((c.querySelector('.meta') || {}).textContent || '').trim()
+      } : { name: '', hint: '', meta: '' };
+    };
+    /* 顺序 = knownS 排序结果（在槽两部落在前，未入槽的 emotionless 落第 3） */
+    const ids = ['tuna', 'juling', 'emotionless'];
+    const rows = ids.map((id, i) => {
+      const c = at(i);
+      return { id, lv: lvOf(id), name: c.name, want: wf('skill.' + id + '.name'), hint: c.hint, meta: c.meta, exp: expect(id, lvOf(id)) };
+    });
+    return { rows, lv1juling: expect('juling', 1), zeroTxt: wf('arts.gain.zero') };
+  });
+  const gBy = {}; gain.rows.forEach((r) => { gBy[r.id] = r; });
+  T(gain.rows.length === 3 && gain.rows.every((r) => r.name.indexOf(r.want) >= 0),
+    'A11a 已学会卡三态取样在位（tuna Lv3 / juling Lv0 / emotionless Lv9，名称逐格对上）',
+    gain.rows.map((r) => r.id + '=' + r.lv).join(' '));
+  T(gBy.tuna.lv === 3 && gBy.juling.lv === 0 && gBy.emotionless.lv === 9,
+    'A11b 存档等级确实落到页面（前置：先证三态存在，否则下面的对表是空对空）',
+    'Lv ' + gBy.tuna.lv + '/' + gBy.juling.lv + '/' + gBy.emotionless.lv + ' hint=' + gBy.juling.hint.slice(0, 12));
+  T(gBy.tuna.meta === gBy.tuna.exp,
+    'A11c Lv3 常规字段：卡面整行 === 引擎 detail ×lv（逐字段对表，不是数字看着像）',
+    gBy.tuna.meta + ' vs ' + gBy.tuna.exp);
+  T(gBy.juling.meta === gBy.juling.exp && gBy.juling.meta.indexOf(gain.zeroTxt) === 0 &&
+    gBy.juling.meta.indexOf('/级') >= 0 && gBy.juling.meta !== gain.lv1juling,
+    'A11d Lv0：先说「入门未修持 · 尚无增益」再给每级预告，且与 Lv1 生效行不再同形（旧文案 `+5%/级` vs `+5%` 只差一个后缀）',
+    gBy.juling.meta);
+  T(gBy.emotionless.meta === gBy.emotionless.exp && gBy.emotionless.meta.indexOf('−8%') >= 0 &&
+    gBy.emotionless.meta.indexOf('−72%') < 0,
+    'A11e effectsFixed 不随等级：Lv9 太上忘情篇卡面 = 引擎只吃的 −8pp（旧公式写 −72% ⇒ 本条即缺陷反证）',
+    gBy.emotionless.meta);
 
   /* ── N6 点法器标签：只渲染法器段 + 滚动归零（先滚深再切，验「切段等价换页」）── */
   await page.evaluate(() => { const b = document.querySelector('.tabbody'); b.scrollTop = 600; });

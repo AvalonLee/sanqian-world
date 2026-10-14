@@ -215,8 +215,14 @@
     'arts.codex.title': '功 法 图 鉴',
     'arts.codex.known': '已学会 · Lv{lv}',
     'arts.codex.shelf': '待复检 · 要求未达',
-    /* 已学会卡增益行（走查 v2.7 §3） */
-    'arts.gain.perslot': '+{p}%/级',
+    /* 已学会卡增益行（走查 v2.7 §3 · Lv0/Lv1 同形修正批）：
+     * Lv0 引擎吃 0（`mods.js` 的 `note()` 见 0 即跳），卡面必须先把「尚无增益」说明白再给每级预告——
+     * 旧文案 `+{p}%/级` 与 Lv1 的 `+5%` 只差一个 `/级`，玩家读成「Lv0 已经生效」（GitHub issue 反馈）。
+     * `{v}` 由调用方带符号传入（旧写法把 `+` 写死 ⇒ 负字段会渲染成 `+-8%`）；
+     * `arts.gain.fixed` 服务 `effectsFixed` 字段（Lv1 即全效、不随等级缩放，数值详设 §4.5），别说「/级」。 */
+    'arts.gain.perslot': '{v}/级',
+    'arts.gain.zero': '入门未修持 · 尚无增益',
+    'arts.gain.fixed': '{v}（Lv1 起全效）',
     /* 功法升级（v2.3 日志「功法」分类）模板：升级成功即记，含消耗修为口径 */
     'arts.upgraded': '{name} 修习精进，升至 Lv{lv}（耗{res} {n}）',
 
