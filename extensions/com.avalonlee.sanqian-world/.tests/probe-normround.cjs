@@ -5,12 +5,14 @@
  *   携才投效全部退化成「同一会话不刷新才碰得到」的一次性内容（任务清单 N19）。同类缺陷不可能
  *   靠 grep 穷举 ⇒ 立一条**结构性**回归：拿真存档 fixture 过一遍 `SQ.normalize`，逐叶子路径对表，
  *   **非预期丢键必须为 0**；每条被允许的丢失都要写明成因，防日后把它当 bug 反复调查、也防新代码偷偷丢数据。
- * 已知且已证的四条豁免（本文件末尾断言里逐条点名，不做无名单放行）：
+ * 已知且已证的五条豁免（本文件末尾断言里逐条点名，不做无名单放行）：
  *   E1 `ws.rumorSeq` —— 全库 `assets/**` 零读零写（含 `view`），是历史遗留落盘字段，normalize 不认它属正常清理；
  *   E2 `ws.bonds.pr{n}` 值为 **0** 者 —— 0 = 缺省好感，`bonds` 白名单只收 ≥1 或负区间（值 0 不入档是既有正典，
  *      与 N19 修的是「值 ≥1 被整键剪掉」，两回事）；
  *   E3 `ws.tiandao.omenSeen` 空数组 / 长度不等于 `OMEN_NODES` 者 —— 按位掩码重建（`tiandao.js:804-805`），
  *      天象扩容批 v1.4 的既定语义（节点数变动即整局去重位归零）。
+ *   E5 `ws.factionQuest.`（值为 null 的旧单槽占位）—— 委托板面批 2026-10-15（第卅九批）：单槽 → `factionQuests`
+ *      数组，normalize 不再声明旧键。**非空**的旧单不许只靠这条豁免过关 ⇒ §5b 正面证它被迁进板面。
  *   E4 `ws.artsLevels..{}` 空对象占位 —— 等级起点批 2026-10-14（入门即 Lv1）：normalize 逐部补等级键，
  *      占位叶随之消失。§1 同时正面证「补完的每个已入门功法等级 ≥1」，不只认它消失了。
  * 用法：node .tests/probe-normround.cjs     末行 NORMROUND_ALL_GREEN n/n 或 NORMROUND_FAILED k
@@ -44,6 +46,8 @@ const isOmenSeenReset = (k) => k.indexOf('ws.tiandao.omenSeen') === 0 && k.endsW
 /* E4 `ws.artsLevels..{}` —— 等级起点批（入门即 Lv1）：normalize 把「已入门却没有等级键」的旧档逐部补成 Lv1，
  * 于是**空对象占位叶**消失。这是加键（迁移），不是丢数据；只认这一条路径，别把整张 artsLevels 放行。 */
 const isArtsLevelsBackfill = (k) => k === 'ws.artsLevels..{}';
+/* E5 旧委托单槽键（**只认 null 占位**）——板面批：非空旧单由 §5b 单独正面证迁移，不走豁免 */
+const isQuestSlotRetire = (k, v) => k === 'ws.factionQuest.' && v === null;
 
 function buildRichState() {
   const raw = JSON.parse(fs.readFileSync(path.join(ROOT, '.tests/fixture-save.json'), 'utf8'));
@@ -87,9 +91,9 @@ function lost(a, b) {
   return { drop, chg };
 }
 const dws = lost(snap.ws, after.ws), dme = lost(snap.meta, after.meta);
-const unexpected = dws.drop.filter(([k, v]) => !(k === 'ws.rumorSeq.' || isOmenSeenReset(k)|| isZeroBond(k, v) || isArtsLevelsBackfill(k)));
+const unexpected = dws.drop.filter(([k, v]) => !(k === 'ws.rumorSeq.' || isOmenSeenReset(k)|| isZeroBond(k, v) || isArtsLevelsBackfill(k) || isQuestSlotRetire(k, v)));
 
-ok('§1 四条豁免逐条存在（豁免清单不是空口白话：拿实测数据证明它们确实发生且成因如述）',
+ok('§1 五条豁免逐条存在（豁免清单不是空口白话：拿实测数据证明它们确实发生且成因如述）',
   dws.drop.some(([k]) => k === 'ws.rumorSeq.') &&
   dws.drop.some(([k, v]) => isZeroBond(k, v)) &&
   dws.drop.some(([k]) => isOmenSeenReset(k)) &&
@@ -98,7 +102,22 @@ ok('§1 四条豁免逐条存在（豁免清单不是空口白话：拿实测数
     return (nw.artsKnown || []).indexOf(id) < 0 || nw.artsLevels[id] >= 1;
   })) &&
   (nw.artsKnown || []).every(function (id) { return (nw.artsLevels || {})[id] >= 1; }),
+  dws.drop.some(([k, v]) => isQuestSlotRetire(k, v)) &&
   '丢键合计 ' + dws.drop.length + ' 条');
+ok('§5b E5 的正面证：非空的旧单槽委托过 normalize 必须**迁进板面**（不许只靠豁免把数据抹掉）',
+  (function () {
+    const legacy = JSON.parse(JSON.stringify(S1.w));
+    legacy.factionQuest = { type: 'gather', target: 1234, base: 0, rep: 30, stones: 0, bornAt: Date.now(), expireAt: Date.now() + 3600000 };
+    delete legacy.factionQuests;
+    const m = pack.normalize(legacy, D);
+    return m.factionQuests.length === 1 && m.factionQuests[0].type === 'gather' && m.factionQuests[0].target === 1234 &&
+      m.factionQuest === undefined;
+  })(),
+  '迁移后板面 = ' + JSON.stringify((pack.normalize((function () {
+    const legacy = JSON.parse(JSON.stringify(S1.w));
+    legacy.factionQuest = { type: 'gather', target: 1234, base: 0, rep: 30, stones: 0, bornAt: Date.now(), expireAt: Date.now() + 3600000 };
+    delete legacy.factionQuests; return legacy;
+  })(), D)).factionQuests));
 ok('§2 真档（含本批新字段）过 normalize：**非预期丢键 = 0**',
   unexpected.length === 0, unexpected.slice(0, 6).map(([k, v]) => k + '=' + JSON.stringify(v)).join(' '));
 ok('§3 值零改动（ws 与 meta 两层，任何一条 CHG 都属未经讨论的读档改写）',

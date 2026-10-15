@@ -8,18 +8,18 @@
 (function () {
   var SQ = window.SQ || (window.SQ = {});
   SQ.XARTS = {
-  "tuna": { tier: "huang", core: true, alignment: "neutral", attr: "qi", effects: {"qiRate":0.038}, special: {"pool":"mianxi","grade":1}, reqs: {}, obtain: {"type":"initial"} },
-  "juling": { tier: "huang", core: true, alignment: "neutral", attr: "qi", effects: {"qiCap":0.05}, special: {"pool":"jinling","grade":1}, reqs: {}, obtain: {"type":"initial"} },
+  "tuna": { tier: "huang", core: true, alignment: "neutral", attr: "qi", effects: {"qiRate":0.05}, special: {"pool":"mianxi","grade":1}, reqs: {}, obtain: {"type":"initial"} },
+  "juling": { tier: "huang", core: true, alignment: "neutral", attr: "qi", effects: {"qiCap":0.1}, special: {"pool":"jinling","grade":1}, reqs: {}, obtain: {"type":"initial"} },
   "yunzong": { tier: "huang", core: true, alignment: "neutral", attr: "jing", effects: {"combatSpeed":0.06}, special: {"pool":"yufeng","grade":1}, reqs: {"realm":1}, obtain: {"type":"shop","price":400} },
-  "qingxin": { tier: "huang", core: true, alignment: "right", attr: "shen", effects: {"offlineEff":0.05}, special: {"pool":"zhishui","grade":1}, reqs: {"realm":1}, obtain: {"type":"shop","price":500} },
+  "qingxin": { tier: "huang", core: true, alignment: "right", attr: "shen", effects: {"offlineEff":0.06}, special: {"pool":"zhishui","grade":1}, reqs: {"realm":1}, obtain: {"type":"shop","price":500} },
   "yinqi": { tier: "huang", core: false, alignment: "neutral", attr: "qi", effects: {"qiRate":0.03}, special: {"pool":"mianxi","grade":0}, reqs: {}, obtain: {"type":"shop","price":150} },
   "zhanju": { tier: "huang", core: false, alignment: "neutral", attr: "jing", effects: {"qiCap":0.04}, special: {"pool":"zhishui","grade":0}, reqs: {}, obtain: {"type":"shop","price":150} },
-  "qingmu": { tier: "huang", core: false, alignment: "right", attr: "qi", effects: {"qiRate":0.024,"artsSpeed":0.02}, special: {"pool":"fengchun","grade":0}, reqs: {"realm":1}, obtain: {"type":"shop","price":200} },
+  "qingmu": { tier: "huang", core: false, alignment: "right", attr: "qi", effects: {"qiRate":0.02,"artsSpeed":0.02}, special: {"pool":"fengchun","grade":0}, reqs: {"realm":1}, obtain: {"type":"shop","price":200} },
   "tiebi": { tier: "huang", core: false, alignment: "right", attr: "jing", effects: {"combatPower":0.04}, special: {"pool":"mingwang","grade":0}, reqs: {"realm":1}, obtain: {"type":"shop","price":200} },
   "liuying": { tier: "huang", core: false, alignment: "neutral", attr: "jing", effects: {"combatSpeed":0.04}, special: {"pool":"yufeng","grade":1}, reqs: {"realm":1}, obtain: {"type":"shop","price":250} },
   "nashu": { tier: "huang", core: false, alignment: "neutral", attr: "qi", effects: {"stonesRate":0.04}, special: {"pool":"jinling","grade":0}, reqs: {"realm":1}, obtain: {"type":"shop","price":200} },
   "anxiang": { tier: "huang", core: false, alignment: "right", attr: "shen", effects: {"offlineEff":0.04}, special: {"pool":"zhishui","grade":0}, reqs: {"realm":1}, obtain: {"type":"shop","price":200} },
-  "wenyang": { tier: "huang", core: false, alignment: "right", attr: "qi", effects: {"qiCap":0.04,"offlineEff":0.032}, special: {"pool":"huijin","grade":0}, reqs: {"realm":1}, obtain: {"type":"shop","price":250} },
+  "wenyang": { tier: "huang", core: false, alignment: "right", attr: "qi", effects: {"qiCap":0.04,"offlineEff":0.02}, special: {"pool":"huijin","grade":0}, reqs: {"realm":1}, obtain: {"type":"shop","price":250} },
   "xunfeng": { tier: "huang", core: false, alignment: "neutral", attr: "shen", effects: {"eventRate":0.04}, special: {"pool":"yaoyue","grade":0}, reqs: {"realm":1}, obtain: {"type":"shop","price":200} },
   "posha": { tier: "huang", core: false, alignment: "evil", attr: "jing", effects: {"combatPower":0.05}, special: {"pool":"shixue","grade":0}, reqs: {"karmaMax":-50}, obtain: {"type":"black","price":300} },
   "jinzhong": { tier: "xuan", core: true, alignment: "right", attr: "jing", effects: {"combatPower":0.083}, special: {"pool":"mingwang","grade":1}, reqs: {"realm":2}, obtain: {"type":"shop","price":600} },

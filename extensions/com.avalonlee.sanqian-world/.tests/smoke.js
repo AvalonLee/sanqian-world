@@ -330,12 +330,12 @@
     var p27 = mkProf([mkTalent({ qiRate: 0.15 })]);
     var m27 = M(p27, w27);
     var rate27 = SQ.Idle.rateOf(w27, pack, D, m27);
-    /* 吐纳法每级 qiRate 0.05 → **0.038**（第卅八批品阶重排：黄阶保持阶中位、把「高于中位的偏强值」压回带内 ⇒
-     * 本条 Lv2 的功法项从 0.10 变 0.076，其余四项不变 ⇒ 期望式跟着新表走，不写死小数） */
-    var exp27 = 9 * (1 + 0.15 + 0.076 + 0.05 + 0.2) * 0.75;
-    ok(27, '挂机产出逐项对表（9×1.476×0.75=9.963）',
+    /* 🔧 第卅八批返工（用户裁定「恢复黄阶原值」）：吐纳法 qiRate 回 dev 的 0.05/级 ⇒ 本条 Lv2 功法项 = 0.10
+     * 先前那版按「黄阶中位归一」把它压成 0.038，等于砍开局功法 24%——中位保住不等于单条保住 */
+    var exp27 = 9 * (1 + 0.15 + 0.05 * 2 + 0.05 + 0.2) * 0.75;
+    ok(27, '挂机产出逐项对表（9×1.5×0.75=10.125 · 黄阶保持 dev 原值）',
       Math.abs(rate27 - exp27) < 1e-9 && w27.karma === 300 &&
-      Math.abs(m27.detail.qiRate.talent - 0.15) < 1e-9 && Math.abs(m27.detail.qiRate.arts - 0.076) < 1e-9 &&
+      Math.abs(m27.detail.qiRate.talent - 0.15) < 1e-9 && Math.abs(m27.detail.qiRate.arts - 0.10) < 1e-9 &&
       Math.abs(m27.detail.qiRate.gear - 0.05) < 1e-9 && Math.abs(m27.detail.qiRate.buff - 0.2) < 1e-9,
       'rate=' + rate27);
     /* #27b 战力末端 × combatPowerMult（B6：魔道 1.25；精被动 18×0.1%=1.8%） */
@@ -617,21 +617,24 @@
     /* #44 同乘区加算/跨乘区乘算（总表 §八 抽查 3 条：qiRate/combatPower/qiCap）
      * 第卅八批品阶阶梯进了滋养与词条 ⇒ 两处期望随新表重导，且**这两条正是阶梯本身的对表**：
      *   金钟罩 = 玄阶 combatPower 每级 0.083 → Lv5 = 0.415（旧 0.06×5=0.3）
-     *   滋养：精 = 基础 6 + 5 级 × 正道 2 × **玄阶 2** = 26 ‖ 气 = 6 + 5 × 2 × **黄阶 1** = 16
-     *   ⇒ 同等级同阵营的两部功法，只因品阶差一档，属性差就从 10 变成 20（这条不再可能悄悄退回去） */
+     *   🔧 返工：**词条侧与滋养侧是两条阶梯**——词条侧 1/2/3.5/6，滋养侧 1 ∶ 1.5 ∶ 2 ∶ 2.5。
+     *     把天阶 ×6 直接乘进滋养会造出 6 槽 × Lv9 × 魔 3 × 天 6 = 972 点（境界基础值到顶才 60、dc = 基础×2 = 120
+     *     ⇒ 判定 p 整档顶到 0.95 饱和，高品阶「吃属性」反而失去区分度），故滋养单独设上限（用户裁定）。
+     *   滋养：精 = 基础 6 + 5 级 × 正道 2 × 玄阶 1.5 = 21 ‖ 气 = 6 + 5 × 2 × 黄阶 1 = 16
+     *   ⇒ 同等级同阵营的两部功法，只因品阶差一档，属性差就从 10 变成 15（这条仍不可悄悄退回去） */
     var w44 = mkWs({ realm: 0, artsKnown: ['tuna', 'juling', 'jinzhong'], artsSlots: ['jinzhong', 'juling'], artsLevels: { jinzhong: 5, juling: 5 } });
     w44.gear.weapon = mkGear('weapon', { tier: 2, atk: 100 });
     var p44 = mkProf([mkTalent({ combatPower: 0.1, qiCap: 0.25 })]);
     var m44 = M(p44, w44);
-    /* combatPower: 天赋0.1 + 金钟罩(玄)0.083×5=0.415 + 精被动(6+精滋养20=26 →2.6%) */
+    /* combatPower: 天赋0.1 + 金钟罩(玄)0.083×5=0.415 + 精被动(6+精滋养15=21 →2.1%) */
     var jing44 = w44.attrs.jing;
     var expPower = (20 + 100) * (1 + 0.1 + 0.415 + Math.min(jing44 * 0.001, 0.12));
-    /* qiCap: 天赋0.25 + 聚灵诀(黄)0.05×5=0.25 + 气被动(6+气滋养10=16 →8%) */
-    var expCap = Math.max(1 * 7200, 1000 * 1.15) * (1 + 0.25 + 0.05 * 5 + Math.min((w44.attrs.qi || 0) * 0.005, 0.3));
-    ok(44, '乘区叠加秩序（战力/上限抽查 · 含品阶滋养阶梯 玄2/黄1）',
+    /* qiCap: 天赋0.25 + 聚灵诀(黄)**0.10**×5=0.50（返工回 dev 原值，先前那版是 0.05）+ 气被动(16 →8%) */
+    var expCap = Math.max(1 * 7200, 1000 * 1.15) * (1 + 0.25 + 0.10 * 5 + Math.min((w44.attrs.qi || 0) * 0.005, 0.3));
+    ok(44, '乘区叠加秩序（战力/上限抽查 · 词条阶梯 玄2/黄1 ‖ 滋养阶梯 玄1.5/黄1 ‖ 聚灵诀 = dev 原值）',
       Math.abs(SQ.Mods.powerOf(w44, pack, D, m44) - expPower) < 1e-6 &&
       Math.abs(SQ.Idle.capOf(w44, pack, D, m44) - expCap) < 1e-6 &&
-      jing44 === 26 && w44.attrs.qi === 16,
+      jing44 === 21 && w44.attrs.qi === 16,
       'power=' + SQ.Mods.powerOf(w44, pack, D, m44).toFixed(2) + '/' + expPower.toFixed(2) + ' cap=' + SQ.Idle.capOf(w44, pack, D, m44).toFixed(0) + '/' + expCap.toFixed(0));
 
     /* ═══ P5 · 验收 4.5 修仙专属（#45~#58）═══ */
@@ -1346,8 +1349,10 @@
      *   ② 上限 = 新表 top6 每级合计 ×9 向上取整（**恰顶格、零余量** = 本仓惯例：任何一部功法词条再涨都会红）。
      * 口径（通用规范 §一 v2.3 澄清）：本上限 = **功法层六槽自身**极限；洞府签名/装备词条/道友助力
      * 是 §8.2 独立登记的小额加算来源，各有不叠加或合计封顶约束，不并入本合计。签名预算另见 #128。 */
-    var CAPS105 = { combatPower: 12.40, qiRate: 10.72, offlineEff: 10.00, combatSpeed: 10.35, qiCap: 10.45,
-      stonesRate: 7.20, artsSpeed: 1.20, eventLuck: 2.05, eventRate: 2.35, dropRate: 0.81, tribBonus: 0.59 };
+    /* 🔧 返工：上限档 = **top6 每级合计 ×9 向上取整到两位小数**（先前几处手调成 12.40/10.00/10.35/1.20/2.05/2.35
+     * 与自述推导式差 0.01~0.03 ⇒ 「恰顶格、零余量」那句话当时并不成立）。现在每个数都能从 #153 那行算出来。 */
+    var CAPS105 = { combatPower: 12.38, qiRate: 10.72, offlineEff: 9.99, combatSpeed: 10.33, qiCap: 10.45,
+      stonesRate: 7.20, artsSpeed: 1.17, eventLuck: 2.03, eventRate: 2.34, dropRate: 0.81, tribBonus: 0.59 };
     var per105 = {};
     for (var id105 in SQ.XARTS) {
       var ef = SQ.XARTS[id105].effects;
@@ -1358,7 +1363,7 @@
       var top = per105[f105].sort(function (a, b) { return b - a; }).slice(0, 6);
       var sum105 = top.reduce(function (s, v) { return s + v; }, 0);
       var capv = CAPS105[f105] != null ? CAPS105[f105] : (f105 === 'realmCost' ? 0 : Infinity);
-      if (f105 === 'realmCost') { if (sum105 < -0.20 - 1e-9) bad105.push(f105 + '=' + sum105); }
+      if (f105 === 'realmCost') { if (sum105 < -0.18 - 1e-9) bad105.push(f105 + '=' + sum105); }
       else if (sum105 > capv + 1e-9) bad105.push(f105 + '=' + (sum105 * 100).toFixed(0) + '%>' + (capv * 100) + '%');
     }
     ok(105, '功法层极限审计（六槽自身，逐字段上限）', bad105.length === 0, bad105.join(','));
@@ -2992,40 +2997,97 @@
       ' win=' + winConst158 + '/' + winExpire158 + '/' + winLive158 +
       ' amp=' + ampOk158 + ' grant=' + grantOwn158 + ' leave=' + leaveOk158);
 
-    /* #159 委托：三类基线/进度/交付（gather 足额扣）/过期作废/效力中才生成/刷新闸 */
+    /* #159 委托（第卅九批改形：单槽 → 板面最多 SLOTS=3 张、同类型至多一张、交付按 type 寻址）
+     * 判据八条：基线进度 / 交付摘除与记账 / gather 扣账 / 过期作废 / 刷新闸 / **一刷贴满三张且互不相同** /
+     * **交一张不动另两张** / **旧档单张迁移** / 叛离整板作废。*/
     var w159 = mkWs({ stones: 50000, kills: 100, total: 1000 });
     SQ.Factions.generate(w159, pack, D);
     w159.factionId = 'huangfeng'; w159.factionRep = { huangfeng: 0 };
     var now159 = Date.now();
-    w159.factionQuest = { type: 'slay', target: 10, base: 100, rep: 25, stones: 500, bornAt: now159, expireAt: now159 + 3600000 };
+    w159.factionQuests = [{ type: 'slay', target: 10, base: 100, rep: 25, stones: 500, bornAt: now159, expireAt: now159 + 3600000 }];
     w159.kills = 109;
-    var p159a = SQ.Factions.questProgress(w159, pack, D);
+    var p159a = SQ.Factions.questProgress(w159, pack, D, w159.factionQuests[0]);
     w159.kills = 110;
-    var p159b = SQ.Factions.questProgress(w159, pack, D);
+    var p159b = SQ.Factions.questProgress(w159, pack, D, w159.factionQuests[0]);
     var progOk159 = !p159a.done && p159b.done && p159b.cur === 10;
     var st159 = w159.stones;
-    var dq159 = SQ.Factions.questDeliver(w159, pack, D, now159, noopLog());
+    var dq159 = SQ.Factions.questDeliver(w159, pack, D, now159, noopLog(), 'slay');
     var deliverOk159 = dq159.ok && w159.stones === st159 + 500 && w159.factionRep.huangfeng === 25 &&
-      w159.factionQuest === null && (w159.factionQuestCd || 0) > now159;
+      w159.factionQuests.length === 0 && (w159.factionQuestCd || 0) > now159;
+    /* 交不存在的那张 ⇒ 拒且不动板面（type 就是地址，打错不能误摘别张） */
+    w159.factionQuests = [{ type: 'gather', target: 1000, base: 0, rep: 30, stones: 0, bornAt: now159, expireAt: now159 + 3600000 }];
+    var dq159x = SQ.Factions.questDeliver(w159, pack, D, now159, noopLog(), 'slay');
+    var wrongOk159 = !dq159x.ok && dq159x.reason === 'none' && w159.factionQuests.length === 1;
     /* gather：交付时足额扣 + out.donate 记账 */
-    w159.factionQuest = { type: 'gather', target: 1000, base: 0, rep: 30, stones: 0, bornAt: now159, expireAt: now159 + 3600000 };
     var st159b = w159.stones;
-    var dq159b = SQ.Factions.questDeliver(w159, pack, D, now159, noopLog());
+    var dq159b = SQ.Factions.questDeliver(w159, pack, D, now159, noopLog(), 'gather');
     var gatherOk159 = dq159b.ok && w159.stones === st159b - 1000 && w159.ledger.out.donate === 1000;
-    /* 过期作废 + 刷新闸：cd 内不生成、cd 过生成新单 */
-    w159.factionQuest = { type: 'slay', target: 10, base: 0, rep: 25, stones: 0, bornAt: now159 - 7200000, expireAt: now159 - 1000 };
+    /* 过期作废 + 刷新闸：cd 内不补、cd 过补单 */
+    w159.factionQuests = [{ type: 'slay', target: 10, base: 0, rep: 25, stones: 0, bornAt: now159 - 7200000, expireAt: now159 - 1000 }];
     var m159 = M(mkProf(), w159);
     SQ.Factions.questTick(w159, pack, D, m159, now159, { log: noopLog() });
-    var expOk159 = w159.factionQuest === null && w159.factionQuestCd > now159;
+    var expOk159 = w159.factionQuests.length === 0 && w159.factionQuestCd > now159;
     SQ.Factions.questTick(w159, pack, D, m159, now159 + 1000, { log: noopLog() });
-    var cdOk159 = w159.factionQuest === null;                              /* 闸内不生成 */
+    var cdOk159 = w159.factionQuests.length === 0;                              /* 闸内不补单 */
     SQ.Factions.questTick(w159, pack, D, m159, now159 + 1800001, { log: noopLog() });
-    var genOk159b = !!w159.factionQuest && ['slay', 'cultivate', 'gather'].indexOf(w159.factionQuest.type) >= 0 &&
-      w159.factionQuest.expireAt === now159 + 1800001 + D.FACTION_QUEST.TTL_MS;
-    ok('159', '委托：slay 基线进度/gather 足额扣记账/过期作废/刷新闸 30min',
-      progOk159 && deliverOk159 && gatherOk159 && expOk159 && cdOk159 && genOk159b,
-      'prog=' + progOk159 + ' deliver=' + deliverOk159 + ' gather=' + gatherOk159 +
-      ' exp=' + expOk159 + ' cd=' + cdOk159 + ' gen=' + genOk159b);
+    var q3 = w159.factionQuests, made3 = q3.length;   /* made3 = 补单当时的板面张数（q3 本身后面会被 splice 改动） */
+    var genOk159b = q3.length === (D.FACTION_QUEST.SLOTS || 1) &&
+      q3.every(function (q) { return ['slay', 'cultivate', 'gather'].indexOf(q.type) >= 0; }) &&
+      q3.map(function (q) { return q.type; }).sort().join() === 'cultivate,gather,slay' &&   /* 三张互不相同 */
+      q3.every(function (q) { return q.expireAt === now159 + 1800001 + D.FACTION_QUEST.TTL_MS; });
+    /* 交一张：另两张留在板面（本批要的就是这个） */
+    var rep0 = w159.factionRep.huangfeng;
+    /* 三张都是刚贴出来的新单，进度为零 ⇒ 先按类型把进度凑到达标（等同玩家真去打/修/攒） */
+    q3.forEach(function (q) {
+      if (q.type === "slay") w159.kills = (q.base || 0) + q.target;
+      else if (q.type === "cultivate") w159.total = (q.base || 0) + q.target;
+      else w159.stones = Math.max(w159.stones, q.target);
+    });
+    var notDone159 = (function () {
+      /* 复用 w159 已生成的势力池：没池的话 current() 为空，返回的是 none 而不是 progress */
+      var wX = mkWs({ stones: 10, kills: 0, total: 0 });
+      wX.factions = w159.factions; wX.factionId = "huangfeng"; wX.factionRep = { huangfeng: 0 };
+      wX.factionQuests = [{ type: "slay", target: 50, base: 0, rep: 25, stones: 0, bornAt: now159, expireAt: now159 + 7200000 }];
+      var rX = SQ.Factions.questDeliver(wX, pack, D, now159, noopLog(), "slay");
+      return !rX.ok && rX.reason === "progress" && wX.factionQuests.length === 1;
+    })();
+    /* q3 就是 w159.factionQuests 那个数组本身（splice 会原地改它）⇒ 交付前先把类型快照下来 */
+    var tFirst = q3[0].type;
+    var others = q3.filter(function (q) { return q.type !== tFirst; }).map(function (q) { return q.type; }).sort().join();
+    var dqOne = SQ.Factions.questDeliver(w159, pack, D, now159 + 1800001, noopLog(), tFirst);
+    var oneOk159 = dqOne.ok && w159.factionQuests.length === 2 &&
+      w159.factionQuests.every(function (q) { return q.type !== tFirst; }) &&
+      q3.map(function (q) { return q.type; }).sort().join() === others &&
+      w159.factionRep.huangfeng === rep0 + dqOne.rep;
+    /* 跨刷新补单的去重：板上还剩两张（一交一留之后），cd 再到期只补一张 ⇒ 补出来的那张不许与板上重复 */
+    w159.factionQuestCd = 0;
+    var before2 = w159.factionQuests.map(function (q) { return q.type; }).sort().join();
+    SQ.Factions.questTick(w159, pack, D, m159, now159 + 3600001, { log: noopLog() });
+    var after3 = w159.factionQuests.map(function (q) { return q.type; });
+    var dedupeOk159 = w159.factionQuests.length === 3 && new Set(after3).size === 3 &&
+      after3.filter(function (t) { return before2.split(',').indexOf(t) >= 0; }).length === before2.split(',').length;
+    /* 旧档单张 factionQuest → normalize 并入板面；脏类型剪除；二次 normalize 幂等 */
+    var mig159 = pack.normalize({ factionQuests: undefined, factionQuest: { type: 'slay', target: 12, base: 3, rep: 25, stones: 40, bornAt: now159, expireAt: now159 + 7200000 } }, D);
+    var migOk159 = Array.isArray(mig159.factionQuests) && mig159.factionQuests.length === 1 &&
+      mig159.factionQuests[0].type === 'slay' && mig159.factionQuest === undefined;
+    var migIdem159 = JSON.stringify(pack.normalize(mig159, D).factionQuests) === JSON.stringify(mig159.factionQuests);
+    /* 板面上限硬顶：塞四张（含重复类型）→ normalize 收到 3 张且同类型只留首张 */
+    var cap159 = pack.normalize({ factionQuests: [
+      { type: 'slay', target: 1, base: 0, rep: 1, stones: 0, bornAt: now159, expireAt: now159 + 7200000 },
+      { type: 'slay', target: 2, base: 0, rep: 1, stones: 0, bornAt: now159, expireAt: now159 + 7200000 },
+      { type: 'gather', target: 3, base: 0, rep: 1, stones: 0, bornAt: now159, expireAt: now159 + 7200000 },
+      { type: 'cultivate', target: 4, base: 0, rep: 1, stones: 0, bornAt: now159, expireAt: now159 + 7200000 },
+      { type: 'bogus', target: 5, base: 0, rep: 1, stones: 0, bornAt: now159, expireAt: now159 + 7200000 }
+    ] }, D);
+    var capOk159 = cap159.factionQuests.length === 3 &&
+      cap159.factionQuests.map(function (q) { return q.type; }).join() === 'slay,gather,cultivate' &&
+      cap159.factionQuests[0].target === 1;                                     /* 重复类型留首张、脏类型剪除 */
+    ok('159', '委托板面（第卅九批 3 张形）：slay 基线进度 / 交付按 type 摘除并记账 / 错类型整笔拒 / gather 足额扣 + out.donate / 过期作废 / 刷新闸内不补 / **一刷贴满 SLOTS 且三张类型互不相同** / **交一张不动另两张** / 旧档单张迁移 + 幂等 / 板面硬顶 3 张（重复留首、脏型剪）/ 未达标拒交且不动板面',
+      progOk159 && deliverOk159 && wrongOk159 && gatherOk159 && expOk159 && cdOk159 && notDone159 &&
+      genOk159b && oneOk159 && dedupeOk159 && migOk159 && migIdem159 && capOk159,
+      '未达标拒=' + notDone159 + ' prog=' + progOk159 + ' deliver=' + deliverOk159 + ' 错型拒=' + wrongOk159 + ' gather=' + gatherOk159 +
+      ' exp=' + expOk159 + ' cd=' + cdOk159 + ' 板满=' + made3 + '/差异=' + genOk159b +
+      ' 交一留二=' + oneOk159 + ' 迁移=' + migOk159 + '/' + migIdem159 + ' 硬顶=' + capOk159);
 
     /* #160 冲突（战功制改造 · 势力全录卷 §七）：入场无判定/每场一次/第三方观望/war 传闻卡/终局清场 */
     var w160 = mkWs({ realm: 0, stones: 1000 });
@@ -7654,7 +7716,7 @@
       var w = pack.normalize(pack.initialState());   /* normalize 播种 16 家势力池（initialState.factions=null 惰性） */
       w.realm = 4; w.everDefected = true; w.factionRepPeak = 2000;
       w.factionId = f0id; w.factionRep[f0id] = 2000; w.factionOffice = 'elder';
-      w.factionQuest = { id: 'q1' };
+      w.factionQuests = [{ id: 'q1' }];   /* 脏板面：非 normalize 产物，只为证「开宗时整板被清」 */
       w.karmaEventScore = 100;
       w.bonds[(pack.companions[0] || { id: 'c0' }).id] = 50;
       if (ov) Object.assign(w, ov);
@@ -7687,7 +7749,7 @@
       cf220p.reason === 'peak' && cf220u.reason === 'unlock' &&
       badName220.reason === 'name' && fd220.ok === true &&
       w220.karmaEventScore === karma220 && JSON.stringify(w220.bonds) === bond220 &&
-      w220.factionRep[f0id] == null && w220.factionOffice === null && w220.factionQuest === null &&
+      w220.factionRep[f0id] == null && w220.factionOffice === null && (w220.factionQuests || []).length === 0 &&
       w220.tribulation.officeGuard === false && w220.factionId === 'sect' &&
       facN220b === facN220a && w220.factions.length === facN220a + 1 &&   /* 宗门以唯一动态追加位入池（正典「第 17 位」计数勘误：商队动态位 f1~f3 随境界先占） */
       !!sectEntry220 && sectEntry220.perk.v === 0 && sectEntry220.name === fd220.name &&
@@ -9641,16 +9703,24 @@
       ' 覆盖=' + cover300 + ' ‖ 同池=' + poolSame300 + '(得 ' + pool1[0] + ') ‖ 顶档拒=' + topNo300 +
       ' ‖ 不入档=' + noField300);
 
-    /* #301 品阶强度阶梯对表（第卅八批 · 用户令「四品阶数值太接近，重排到高品阶要明显更强」；档位经询 = 1/2/3.5/6）
-     * 五面各钉一条，少钉一面都能悄悄退回去：
-     *  (a) 逐字段逐阶**阶中位 === 基准 × 阶梯**（±0.5%）——阶梯的绝对那一半（基准 = 该字段黄阶中位，黄阶无样时用该阶现值 ÷ 阶梯）；
-     *  (b) 逐字段**跨阶零重叠**（高一阶该字段最小值 > 低一阶最大值）——「不倒挂」那一半（本批开工前实测有 42 对倒挂）；
-     *  (c) **黄阶中位仍是原锚**（qiRate .03 / combatPower .045 / offlineEff .04 / qiCap .04）⇒ 「前期不通胀」是判据而不是口头承诺；
+    /* #301 品阶强度阶梯对表（第卅八批 · 用户令「四品阶数值太接近，重排到高品阶要明显更强」；词条档位经询 = 1/2/3.5/6）
+     * 八面各钉一条，少钉一面都能悄悄退回去（2026-10-15 返工把 (e) 改成压缩阶梯、新增 (f)(g)(h) 三面）：
+     *  (a) 逐字段逐阶**阶中位 === 基准 × 词条阶梯**（±0.5%）——阶梯的绝对那一半（基准 = 该字段黄阶中位，黄阶无样时用该阶现值 ÷ 阶梯）；
+     *  (b) 逐字段**跨阶不倒挂**，射程 = 玄→地→天 零重叠（本批开工前实测有 42 对倒挂）；黄→玄 另由 (g) 管；
+     *  (c) **黄阶中位仍是原锚**（qiRate .03 / combatPower .045 / offlineEff .04 / qiCap .04）⇒ 「黄阶保持现值、账由终局付」是判据而不是口头承诺；
      *  (d) `FUSE.FIELD_CAP` === 全录该字段每级最大值（导出口不许手调；红线四类另有 clamp 通道，不在此列）；
-     *  (e) **属性滋养也走阶梯**：同阵营同级的黄/玄/地/天四部，`SQ.Attrs.artsNurtureOf` 之比 === 1 : 2 : 3.5 : 6
-     *      （引擎与视图同读这一处算式，第卅六批那条「屏上说的必须等于生效的」在这里继续生效）。 */
+     *  (e) **属性滋养走另一条压缩阶梯**：同阵营同级的黄/玄/地/天四部，`SQ.Attrs.artsNurtureOf` 之比 === 1 : 1.5 : 2 : 2.5
+     *      （引擎与视图同读这一处算式，第卅六批那条「屏上说的必须等于生效的」在这里继续生效）；
+     *  (f) 开局两部 = dev 原值（吐纳法 qiRate 5% / 聚灵诀 qiCap 10%）——返工的正身，防「中位保住而单条被改」再犯；
+     *  (g) 黄→玄 带例外**集合相等** = {qiCap, qiRate}，多一条倒挂或例外被抹平都红；
+     *  (h) 滋养绝对上界 6 槽 × Lv9 × 魔 3 × 天 2.5 = 405（词条侧 ×6 若乘进属性会造出 972 点、判定 p 整档饱和）。 */
     (function () {
       var LAD = { huang: 1, xuan: 2, di: 3.5, tian: 6 }, TIERS301 = ['huang', 'xuan', 'di', 'tian'];
+      /* 滋养侧另有一条**压缩阶梯**（返工裁定）：词条 ×6 不再乘进属性，否则六槽满级魔道天阶 = 972 点滋养，
+       * 而境界基础值到顶才 60（dc = 基础×2）⇒ 三维判定 p 整档饱和在 0.95，「高品阶更吃属性」反而失去区分度 */
+      var NURLAD = { huang: 1, xuan: 1.5, di: 2, tian: 2.5 };
+      /* 黄→玄 允许重叠的**在册例外**（用户裁定「恢复黄阶原值」的必然产物）：多一条即红、少一条也红 */
+      var HX_EXC = ['qiCap', 'qiRate'].sort();
       var UN301 = ['tribBonus', 'tribFailLossMod', 'realmCost', 'shopCost'];
       function med301(a) {
         var s = a.slice().sort(function (x, y) { return x - y; });
@@ -9664,7 +9734,7 @@
           (g[SQ.XARTS[id].tier] || (g[SQ.XARTS[id].tier] = [])).push(ef[k]);
         });
       });
-      var bad301 = [], nField301 = 0, nPair301 = 0;
+      var bad301 = [], hxOver = [], nField301 = 0, nPair301 = 0;
       Object.keys(byF301).forEach(function (k) {
         if (UN301.indexOf(k) >= 0) return;
         var g = byF301[k];
@@ -9680,7 +9750,11 @@
           var lo = g[TIERS301[i - 1]], hi = g[TIERS301[i]];
           if (!lo || !lo.length || !hi || !hi.length) continue;
           nPair301++;
-          if (Math.min.apply(0, hi) <= Math.max.apply(0, lo)) bad301.push(k + ':' + TIERS301[i - 1] + '→' + TIERS301[i] + ' 重叠');
+          var ovl = Math.min.apply(0, hi) <= Math.max.apply(0, lo);
+          if (!ovl) continue;
+          /* 玄→地、地→天 一律零容忍；黄→玄 只认在册那两条例外 */
+          if (i === 1) hxOver.push(k);
+          else bad301.push(k + ':' + TIERS301[i - 1] + '→' + TIERS301[i] + ' 重叠');
         }
       });
       var ANCHOR301 = { qiRate: 0.03, combatPower: 0.045, offlineEff: 0.04, qiCap: 0.04 };
@@ -9713,16 +9787,34 @@
       });
       TIERS301.forEach(function (t) {
         if (n301[t] == null || !n301.huang) return;
-        if (Math.abs(n301[t] / n301.huang - LAD[t]) > 1e-9) badNur301.push(t + '=' + (n301[t] / n301.huang).toFixed(3));
+        if (Math.abs(n301[t] / n301.huang - NURLAD[t]) > 1e-9) badNur301.push(t + '=' + (n301[t] / n301.huang).toFixed(3));
       });
-      ok('301', '品阶强度阶梯对表（第卅八批）：(a) 逐字段阶中位 === 基准×阶梯(±0.5%) ' + nField301 + ' 字段' +
-        ' (b) 逐字段跨阶零重叠 ' + nPair301 + ' 对相邻阶 (c) 黄阶中位仍是原锚 0.03/0.045/0.04/0.04' +
-        ' (d) FIELD_CAP === 全录每级最大值（红线四类除外） (e) 滋养比 === 1:2:3.5:6（同阵营同级四部）',
+      /* (f) 开局两部钉回 dev 原值 = 本次返工的正身（「中位不动」不等于「单条不动」） */
+      var startOk301 = SQ.XARTS.tuna.effects.qiRate === 0.05 && SQ.XARTS.juling.effects.qiCap === 0.10;
+      /* (g) 黄→玄 例外集合必须逐字等于在册清单 */
+      var hxSorted = hxOver.slice().sort();
+      var excOk301 = hxSorted.length === HX_EXC.length && hxSorted.every(function (k, i) { return k === HX_EXC[i]; });
+      /* (h) 滋养绝对上界认**阶梯本身**：6 槽 × Lv9 × 最高阵营系数 × 最高品阶档 ≤ 405。
+       * 先前那版是拿六部样例量出来的（实测只有 108），把天档改回词条侧的 ×6 也照样过 ⇒ 无鉴别力的上界；
+       * 现在直接对上界求值，天档若回 6 = 972 当场红（与 (e) 的比值判据分列：(e) 管比例，(h) 管绝对量级）。 */
+      var nurFactor301 = Math.max.apply(0, Object.keys(D.ARTS_NURTURE).map(function (k) { return D.ARTS_NURTURE[k]; }));
+      var nurWorst301 = 6 * 9 * nurFactor301 * Math.max.apply(0, Object.keys(D.ARTS_NURTURE_TIER).map(function (k) { return D.ARTS_NURTURE_TIER[k]; }));
+      var nurCapOk301 = nurWorst301 <= 405 + 1e-9;
+      ok('301', '品阶强度阶梯对表（第卅八批返工版）：(a) 逐字段阶中位 === 基准×词条阶梯(±0.5%) ' + nField301 + ' 字段' +
+        ' (b) 玄→地→天 零重叠（黄→玄 只认在册例外）共 ' + nPair301 + ' 对相邻阶' +
+        ' (c) 黄阶中位仍是原锚 0.03/0.045/0.04/0.04' +
+        ' (d) FIELD_CAP === 全录每级最大值（红线四类除外）' +
+        ' (e) 滋养比 === 1:1.5:2:2.5（滋养侧单独设上限，与词条阶梯分列）' +
+        ' (f) 开局两部吐纳法 0.05 / 聚灵诀 0.10 钉回 dev 原值' +
+        ' (g) 黄→玄 带例外恰好 = qiCap + qiRate（多一条少一条都红）' +
+        ' (h) 滋养上界 = 6 槽 × Lv9 × 最高阵营系数 × 最高品阶档 ≤ 405（旧口径 ×6 会造出 972 把判定 p 顶饱和）',
         nField301 >= 8 && nPair301 >= 8 && bad301.length === 0 && badCap301.length === 0 && badNur301.length === 0 &&
-        TIERS301.every(function (t) { return !!pick301[t]; }),
+        startOk301 && excOk301 && nurCapOk301 && TIERS301.every(function (t) { return !!pick301[t]; }),
         '字段=' + nField301 + ' 对=' + nPair301 + ' ‖ ' + bad301.slice(0, 4).join(',') +
-        ' ‖ cap=' + badCap301.join(',') + ' ‖ 滋养=' + badNur301.join(',') +
-        ' (' + TIERS301.map(function (t) { return n301[t]; }).join('/') + ')');
+        ' ‖ cap=' + badCap301.join(',') + ' ‖ 滋养比=' + badNur301.join(',') +
+        ' (' + TIERS301.map(function (t) { return n301[t]; }).join('/') + ')' +
+        ' ‖ 开局=' + startOk301 + ' 例外=' + hxSorted.join('+') + '/在册=' + HX_EXC.join('+') +
+        ' ‖ 滋养上界=' + nurWorst301 + '/405=' + nurCapOk301);
     })();
 
     ok(72, '数字格式 <1万千分位/万/亿',

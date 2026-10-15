@@ -153,7 +153,8 @@
     if (e.exclusiveArt) parts.push(SQ.t('log.eff.exclusiveArt', { name: SQ.t('skill.' + e.exclusiveArt + '.name', null, wid) }, wid));
     if (e.treasure) parts.push(SQ.t('log.eff.treasure', { name: SQ.t('treasure.' + e.treasure + '.name', null, wid) }, wid));
     if (e.exclusiveLocked) parts.push(SQ.t('log.eff.exclusiveLocked', null, wid));
-    if (e.merchant) parts.push(SQ.t('log.eff.merchant', null, wid));
+    /* 分钟数取表值：原文案写死「一炷香」，与 MERCHANT_DURATION_MS（10 分钟）不符，改表不带动屏上文案 */
+    if (e.merchant) parts.push(SQ.t('log.eff.merchant', { n: Math.max(1, Math.round(((D.MERCHANT_DURATION_MS || 600000) / 60000))) }, wid));
     if (e.merchantScout) parts.push(SQ.t('log.eff.merchantScout', null, wid));
     if (e.primeGear) parts.push(SQ.t('log.eff.primeGear', null, wid));
     if (e.primeArt) parts.push(SQ.t('log.eff.primeArt', null, wid));

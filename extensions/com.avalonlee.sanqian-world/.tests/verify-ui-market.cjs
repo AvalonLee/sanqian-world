@@ -215,6 +215,17 @@ async function buildSave() {
   page3.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page3.goto(url);
   await page3.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+  /* M22（第卅九批 · 用户报「神秘商人触发的特席我从没见过」）：复盘 = 机制没坏（玩家真档里开过两次席，间隔与 12h 冷却吻合），
+   * 坏在没人告诉玩家——席期只有 MERCHANT_DURATION_MS(10 分钟)，而坊市红点签名原先只含补货时间戳、日志末行又是 event 类被 toast 跳过。
+   * 台次也要说清：商人席只摆在第三台（ctx3 / saveTags）的档里，toast 又只活 3 秒 ⇒ 必须紧跟这台载入去轮询。 */
+  const merchToast = await page3.evaluate(() => new Promise((res) => {
+    var t0 = Date.now(), txt = '';
+    var iv = setInterval(() => {
+      txt = Array.prototype.map.call(document.querySelectorAll('#toasts .toast'), (x) => x.textContent).join(' | ');
+      if (/神秘商人/.test(txt) || Date.now() - t0 > 4200) { clearInterval(iv); res(txt); }
+    }, 120);
+  }));
+  T(/神秘商人/.test(merchToast), 'M32 载入时席还开着就主动提示一次（坊市红点签名现已含开席时刻）', merchToast.slice(0, 64) || '（4 秒内无提示）');
   await page3.waitForTimeout(800);
   await page3.click('#m-tabbar button[data-v="shop"]');
   await page3.waitForTimeout(600);
@@ -233,8 +244,20 @@ async function buildSave() {
     });
     return { shelf: rows('#tab-shop .shopgrid .shopcard', true), merch: rows('#tab-shop .merchbox .shopcard', false) };
   });
+  const merchLeft = await page3.evaluate(() => {
+    const box = document.querySelector('.merchbox');
+    return ((box ? box.textContent : '').match(/离去[^0-9]{0,3}[0-9]+s*(分钟|分|秒|时)/) || [])[0] || '';
+  });
+  T(merchLeft !== '', 'M33 特席倒计时在位（玩家看得清还多久收摊 · 容器 = .merchbox）', merchLeft || '（读不到倒计时）');
+  const copyM = await page3.evaluate(() => {
+    const D = SQ.Worlds.xiuxian.pack.data;
+    return { txt: SQ.t('log.eff.merchant', { n: Math.round(D.MERCHANT_DURATION_MS / 60000) }), mins: Math.round(D.MERCHANT_DURATION_MS / 60000) };
+  });
+  T(copyM.txt.indexOf(copyM.mins + ' 分钟') >= 0 && copyM.txt.indexOf('{') < 0 && copyM.txt.indexOf('一炷香') < 0,
+    'M34 开席文案的分钟数取表值（旧写法写死「一炷香」，改表不带动屏上话）', copyM.txt.slice(0, 56) + ' ‖ n=' + copyM.mins);
   await ctx3.close();
   const sh = tagDump.shelf, mc = tagDump.merch;
+
   const at = (i) => sh[i] || {};
   T(sh.length === 10 && mc.length === 3, 'M15 非空观测：货架十格 + 特席三格全部渲染（六类货各就位，后面每条 chip 断言才有对象可量）',
     '货架=' + sh.length + ' 特席=' + mc.length);

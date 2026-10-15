@@ -758,10 +758,18 @@
   .ostat .ov .u { font-size: 12px; font-weight: 500; color: var(--ink-2); margin-left: 3px; }
   .ostat .os { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
   /* ── 天道系统（天道系统批 B1~B4）：问天行 / 焚表浮层 / 圣旨卷轴演出 / 天象卡 ── */
-  .tdrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+  .tdrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; margin: 8px 0; }
   .tdbtn { position: relative; min-height: 34px; padding: 5px 14px; border-radius: 999px; border: 1px solid var(--primary); color: var(--primary); background: var(--brand-soft); font-weight: 650; cursor: pointer; }
   .tdbtn.plain { border-color: var(--line); color: var(--ink-2); background: var(--well); font-weight: 400; }
   .tdbtn .pdot { position: absolute; top: 3px; right: 5px; }
+  /* 恶搞彩蛋：页游「充值大礼包」横幅（第卅九批）。刻意做得像页游贴片——虚线金边 + 红角标，
+   * 但配色全部走主题变量，深浅两套主题都不糊。零机制：点击不发资源、不写档、不入账。 */
+  .giftcard { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 8px;
+    border: 1px dashed var(--primary); background: var(--brand-soft); color: var(--ink-2); font-size: 11px; cursor: pointer; }
+  .giftcard .gtag { background: #d03030; color: #fff; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
+  .giftcard .gname { font-weight: 700; color: var(--ink); }
+  .giftcard .goffer { color: var(--ink-2); }
+  .giftcard .gbtn { border: 1px solid #d03030; color: #d03030; border-radius: 999px; padding: 1px 8px; font-weight: 650; }
   .tddefy { font-size: 12px; color: var(--ink-2); }
   .tdstage { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--bad); color: var(--bad); white-space: nowrap; }
   .tdstage.nijie { border-color: var(--primary); color: var(--primary); background: var(--brand-soft); }
@@ -1440,6 +1448,8 @@
     caveSnap: null,                         /* 地 chip 红点快照（B1）：新福地解锁变化检测 */
     achvSnap: null,                         /* 成就页红点快照：新成就达成变化检测（meta.achv 只增） */
     spouseLogSeen: 0,                       /* 双修解除叙事已消费标记（B4）：spouseLog.at 键控，会话一次 */
+    giftI: -1, giftUntil: 0,                /* 页游礼包彩蛋（第卅九批）：会话内轮换槽位与下次重掷时刻——纯呈现，不入存档 */
+    lastMerchUntil: 0,                      /* 神秘商人开席时刻（第卅九批）：席期只 MERCHANT_DURATION_MS，靠它把「到货」这件事提示出来 */
     karmaRank: ''                           /* 善恶名号段位基线（善恶名号批）：跨段即触发名号更迭演出 */
   };
 
@@ -4122,19 +4132,22 @@
       }
     }
     /* 冲突结果卡残留期（§7.4）：结算已出的 warResult 传闻卡在传闻栏展示，此处不重复 */
-    /* 门中委托（势力全录卷 §四） */
+    /* 门中委托（势力全录卷 §四）——第卅九批改形：单槽 → **板面最多 3 张不同类型**
+     * （`w.factionQuests` 数组，交付按 type 寻址；补单仍吃 factionQuestCd 30 分钟闸）。 */
     if (cur) {
       h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('faction.quest.title')) + '</p>';
-      var q = w.factionQuest;
-      if (q && q.expireAt > Date.now()) {
-        var pr = SQ.Factions.questProgress(w, pack(), d);
-        h += '<div class="faccard cur"><div class="fh"><span class="fn">' +
-          esc(t('faction.quest.' + q.type, { n: SQ.fmt(q.target) })) + '</span>' +
-          '<span class="fm">' + esc(t('faction.quest.left', { t: fmtLeft(q.expireAt - Date.now()) })) + '</span></div>' +
-          '<div class="fperk">' + esc(t('faction.quest.prog', { cur: SQ.fmt(pr.cur), target: SQ.fmt(pr.target) })) +
-          ' · ' + esc(t('faction.quest.reward', { rep: q.rep, stones: q.stones ? ' + ' + SQ.fmt(q.stones) + ' ' + t('resource.currency') : '' })) + '</div>' +
-          '<div class="acts"><button class="' + (pr.done ? 'primary' : '') + '" data-act="questClaim"' +
-          (pr.done ? '' : ' disabled') + '>' + esc(t('faction.quest.claim')) + '</button></div></div>';
+      var qlist = (w.factionQuests || []).filter(function (q) { return q && q.expireAt > Date.now(); });
+      if (qlist.length) {
+        qlist.forEach(function (q) {
+          var pr = SQ.Factions.questProgress(w, pack(), d, q);
+          h += '<div class="faccard cur"><div class="fh"><span class="fn">' +
+            esc(t('faction.quest.' + q.type, { n: SQ.fmt(q.target) })) + '</span>' +
+            '<span class="fm">' + esc(t('faction.quest.left', { t: fmtLeft(q.expireAt - Date.now()) })) + '</span></div>' +
+            '<div class="fperk">' + esc(t('faction.quest.prog', { cur: SQ.fmt(pr.cur), target: SQ.fmt(pr.target) })) +
+            ' · ' + esc(t('faction.quest.reward', { rep: q.rep, stones: q.stones ? ' + ' + SQ.fmt(q.stones) + ' ' + t('resource.currency') : '' })) + '</div>' +
+            '<div class="acts"><button class="' + (pr.done ? 'primary' : '') + '" data-act="questClaim" data-v="' + esc(q.type) + '"' +
+            (pr.done ? '' : ' disabled') + '>' + esc(t('faction.quest.claim')) + '</button></div></div>';
+        });
       } else {
         h += '<p class="hint" style="padding:6px 0">' + esc(t('faction.quest.none')) + '</p>';
       }
@@ -5348,6 +5361,23 @@
    * + 接旨粘贴解析；圣旨揭晓：卷轴展开 + 判词逐字 + 领旨/抗旨（抗旨 CONFIRM 明示逆天值收益与档位后果）；
    * 天象浮层：即开即消红点；逆天大劫入口在渡劫预估浮层（detailTrib 段）。 */
   var tdTypeTimer = null;
+  var GIFT_N = 6, GIFT_ROLL_MS = 600000;   /* 六款页游贴片 · 10 现实分钟换一张（会话态，不入存档） */
+
+  /* 恶搞彩蛋：修行页右侧那张贴在墙上的「充值大礼包」。
+   * 零机制是本条的底线——点击只出一句提示，不发资源、不写档、不入 Ledger、不碰 cooldown。 */
+  function renderGiftPack() {
+    var now = Date.now();
+    if (ui.giftI < 0 || now >= ui.giftUntil) {
+      ui.giftI = Math.floor(Math.random() * GIFT_N);
+      ui.giftUntil = now + GIFT_ROLL_MS;
+    }
+    var gk = 'eggs.gift.p' + ui.giftI + '.';   /* 前缀先落变量：内联在 t(' 里会被 A2 当成整键静态引用（本仓同款先例 = legacy.shop.qirate） */
+    return '<span class="giftcard" data-act="giftBuy">' +
+      '<span class="gtag">' + esc(t('eggs.gift.tag')) + '</span>' +
+      '<span class="gname">' + esc(t(gk + 'name')) + '</span>' +
+      '<span class="goffer">' + esc(t(gk + 'offer')) + '</span>' +
+      '<span class="gbtn">' + esc(t('eggs.gift.btn')) + '</span></span>';
+  }
 
   function renderTiandaoRow() {
     var w = ws(), d = D();
@@ -5356,7 +5386,11 @@
     var unseen = SQ.Tiandao.unseenOmens(w);
     var stage = SQ.Tiandao.stageOf(w, d);
     var h = '<div class="tdrow">';
-    h += '<button class="tdbtn" data-act="openTiandao">' + esc(t('tiandao.entry')) +
+    /* 问天入口（第卅九批 · 用户令「隐藏游戏问天功能」）：**用既有 .hide 工具类收掉，不删代码**——
+     * 引擎（Tiandao.ask / 奏疏 / 圣旨浮层）与词表键原样留着，恢复只需去掉这一个类名；
+     * 判据 = 走查 `verify-ui-tiandao` B1（在 DOM 但 `offsetParent === null` ⇒ 玩家看不见也点不着），
+     * 后续链路仍由该篇以 dispatchEvent 驱动（委托挂在 document 上，隐藏元素被合成点击照跑）。 */
+    h += '<button class="tdbtn hide" data-act="openTiandao">' + esc(t('tiandao.entry')) +
       (unseen ? '<i class="pdot"></i>' : '') + '</button>';
     h += '<button class="tdbtn plain" data-act="openOmens">' + esc(t('tiandao.omen.chip')) +
       (unseen ? '<i class="pdot"></i>' : '') + '</button>';
@@ -5369,6 +5403,7 @@
     if (w.realm >= ((d.LEGACY || {}).BINGJIE_MIN_REALM || 4) && SQ.Legacy) {
       h += '<button class="tdbtn plain" data-act="dissolve">' + esc(t('legacy.ui.bingjie.btn')) + '</button>';
     }
+    h += renderGiftPack();   /* 页游充值贴片彩蛋（恶搞，零机制） */
     h += '</div>';
     return h;
   }
@@ -6845,7 +6880,7 @@
       return;
     }
     if (act === 'questClaim') {
-      var rQ = await SQ.Actions.deliverQuest(state);
+      var rQ = await SQ.Actions.deliverQuest(state, v);   /* v = 委托类型（板面同类型至多一张 ⇒ type 就是地址） */
       if (rQ && rQ.ok) toast(t('faction.quest.claim.ok') + ' · ' + t('faction.quest.done', { n: rQ.rep }));
       else if (rQ) toast(t('faction.quest.fail.' + rQ.reason));
       renderAll();
@@ -6949,6 +6984,8 @@
     }
     /* ── 天道系统（天道系统批 B1~B4）：问天/天象浮层 + 卦位香火选择 + 逆天大劫挑战 ── */
     if (act === 'openTiandao') { openTiandao(); return; }
+    /* 页游充值贴片彩蛋：只回一句拒绝，零发放 / 零落档 / 零账（判据 = 走查 G 组「点完存档字节不变」） */
+    if (act === 'giftBuy') { toast(t('eggs.gift.deny')); ui.announcedLogKey = logKeyOf(ws().log); return; }
     if (act === 'openOmens') { openOmens(); return; }
     if (act === 'tdHex') { ui.tdHex = v; renderTdModal(); return; }
     if (act === 'tdIncense') { ui.tdIncense = parseInt(v, 10); renderTdModal(); return; }
@@ -7517,6 +7554,14 @@
       ui.newLogDot = true;
     }
     ui.lastLogKey = logKey;
+    /* 神秘商人开席提示（第卅九批 · 用户报「黑市/特席从没见过」）：席期只有 MERCHANT_DURATION_MS，
+     * 而 settle 侧先写 shop 类日志、resolveBranch 随后写 event 类尾行 ⇒ 上面那条「只 toast 末行且跳过 event」
+     * 的规则天然把开席吞掉。这里按开席时刻去重，一次开席只提示一次（含载入时仍在席期的补提示）。 */
+    var mu = ((w.shop || {}).merchant || {}).until || 0;
+    if (mu !== ui.lastMerchUntil) {
+      ui.lastMerchUntil = mu;
+      if (mu > Date.now()) toast(t('shop.merchant.open'));
+    }
     var feedKey = feedKeyOf(w.eventHistory.feed);
     if (feedKey && feedKey !== ui.lastFeedKey && ui.tab !== 'event') ui.newFeedDot = true;
     ui.lastFeedKey = feedKey;
@@ -7557,7 +7602,10 @@
       arts: (w.artsKnown || []).length,
       treasure: (w.treasures && w.treasures.owned ? w.treasures.owned.length : 0),
       bonds: bonded,
-      shop: w.shop && w.shop.nextRestock || 0
+      /* 坊市 = 补货时间戳 + **商人席的开席时刻**（第卅九批：特席只活 MERCHANT_DURATION_MS，
+       * 原签名不含它 ⇒ 12h 冷却换来的一次到货从不点亮 tab，玩家实测「从没见过」）。
+       * 只取 until 原值不做时间比较：席过期的那一 tick 若参与签名，会把红点在**收尾时**再点一次。 */
+      shop: (w.shop && w.shop.nextRestock || 0) + '#' + ((w.shop && w.shop.merchant || {}).until || 0)
     };
   }
 

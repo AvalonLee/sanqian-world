@@ -353,13 +353,13 @@
       });
       return out;
     },
-    deliverQuest: async function (ref) {
+    deliverQuest: async function (ref, qtype) {
       var out = null;
       await SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
         var pack = packOf(s), D = dataOf(s);
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
-        out = SQ.Factions.questDeliver(ws, pack, D, Date.now(), log);
+        out = SQ.Factions.questDeliver(ws, pack, D, Date.now(), log, qtype);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
       });
       return out;

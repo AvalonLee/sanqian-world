@@ -73,10 +73,20 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
     Array.prototype.map.call(document.querySelectorAll('#toasts .toast'), (x) => x.textContent));
 
   /* ── 浮层入口与选项 ── */
-  const openBtn = await page.$('[data-act="openTiandao"]');
-  T(!!openBtn, 'B1 问天入口按钮在位');
-  if (!openBtn) { await browser.close(); process.exit(1); }
-  await openBtn.click();
+  /* B1 问天入口（第卅九批 · 用户令「隐藏游戏问天功能」）：**在 DOM 里但对玩家不可见**——
+   * 隐藏 = 收掉入口而不是拆掉引擎，浮层与结算链路照旧由本篇以合成点击驱动验证。 */
+  const ask = await page.evaluate(() => {
+    const b = document.querySelector('[data-act="openTiandao"]');
+    return { inDom: !!b, visible: !!b && !!b.offsetParent };
+  });
+  T(ask.inDom && !ask.visible, 'B1 问天入口已对玩家隐藏（在 DOM · offsetParent 为空 = 不可见不可点）', JSON.stringify(ask));
+  if (!ask.inDom) { await browser.close(); process.exit(1); }
+  /* 委托挂在 document 上 ⇒ 对隐藏元素 dispatchEvent 仍然进 handler（这就是「只藏不删」的可验形态） */
+  const openAsk = (pg) => pg.evaluate(() => {
+    const b = document.querySelector('[data-act="openTiandao"]');
+    b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+  });
+  await openAsk(page);
   await page.waitForTimeout(300);
   const modal = await page.evaluate(() => {
     const m = document.getElementById('modal-tiandao');
@@ -168,7 +178,7 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   await page2.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
   await page2.waitForTimeout(700);
 
-  await page2.click('[data-act="openTiandao"]');
+  await openAsk(page2);
   await page2.waitForTimeout(250);
   await page2.click('#mtd-memo');                       /* 生成奏疏，作为「上一轮残留」基线 */
   await page2.waitForTimeout(400);
@@ -212,7 +222,7 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
 
   await page2.click('#mtd-close');
   await page2.waitForTimeout(200);
-  await page2.click('[data-act="openTiandao"]');
+  await openAsk(page2);
   await page2.waitForTimeout(250);
   const reopen2 = await page2.evaluate(() => ({
     memo: document.getElementById('mtd-memoout').value,
@@ -222,6 +232,62 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
 
   T(errors2.length === 0, 'C9 第二轮零页错误', errors2.slice(0, 3).join(' | '));
   await ctx2.close();
+
+  /* ── G 组（第卅九批）：修行页那行右对齐 + 天象/兵解同行 + 页游充值贴片彩蛋 ──
+   * 用户在第 2 条里同时要求「隐藏问天后，天象与兵解转世仍在同一行右对齐」与「随机刷几种页游大礼包作恶搞」。
+   * 彩蛋的底线是**零机制**：不写档、不发资源、不入账 ⇒ G5 直接比 localStorage 的字节。 */
+  /* G 组开跑前把第一台残留的浮层收掉（走查侧收层，不碰产品代码） */
+  await page.evaluate(() => { document.querySelectorAll('.mask,.trib-mask,.cave-stage,.spouse-stage,.excl-mask').forEach(function (x) { x.classList.add('hide'); }); });
+  await page.waitForTimeout(250);
+  const rowA = await page.evaluate(() => {
+    var r = document.querySelector('.tdrow');
+    if (!r) return { none: true };
+    var omen = r.querySelector('[data-act="openOmens"]');
+    var bj = r.querySelector('[data-act="dissolve"]');
+    var gift = r.querySelector('[data-act="giftBuy"]');
+    return {
+      justify: getComputedStyle(r).justifyContent,
+      sameRowOmen: !!omen, sameRowBingjie: !!bj,
+      gift: !!gift, giftText: gift ? gift.textContent.replace(/\s+/g, ' ').trim() : '',
+      residue: (r.textContent.match(/[{，}。]/g) || []).length ? (/\{\}/.test(r.textContent) ? 1 : 0) : 0
+    };
+  });
+  T(rowA.justify === 'flex-end', 'G1 修行页天道行改为右对齐', 'justify=' + rowA.justify);
+  T(rowA.sameRowOmen && rowA.sameRowBingjie, 'G2 天象与兵解转世在同一行（问天隐藏后两者同父 .tdrow）', JSON.stringify([rowA.sameRowOmen, rowA.sameRowBingjie]));
+  T(rowA.gift && /首充|648|屠龙|直通|霓裳|榜末/.test(rowA.giftText), 'G3 页游充值贴片在位且是当前六款之一', rowA.giftText.slice(0, 54));
+  T(rowA.residue === 0, 'G4 这一行无 {} 占位残留', 'residue=' + rowA.residue);
+  const keysG = await page.evaluate(() => {
+    var out = [];
+    for (var i = 0; i < 6; i++) out.push(SQ.t('eggs.gift.p' + i + '.name'), SQ.t('eggs.gift.p' + i + '.offer'));
+    out.push(SQ.t('eggs.gift.tag'), SQ.t('eggs.gift.btn'), SQ.t('eggs.gift.deny'));
+    return out;
+  });
+  T(keysG.length === 15 && keysG.every((x) => typeof x === 'string' && x.length > 0 && !/\{|undefined/.test(x)),
+    'G4b 礼包 15 枚词表键全部可解析（含 deny）', keysG.filter((x) => !x || /\{|undefined/.test(x)).slice(0, 2).join('|'));
+  const save0 = await page.evaluate(() => localStorage.getItem('sanqian-state-v1') || '');
+  await clearToasts();
+  await page.click('[data-act="giftBuy"]');
+  await page.waitForTimeout(400);
+  const afterG = await page.evaluate(() => ({
+    toasts: Array.prototype.map.call(document.querySelectorAll('#toasts .toast'), (x) => x.textContent),
+    save: localStorage.getItem('sanqian-state-v1') || '',
+    qi: (document.querySelector('.stathero') || {}).textContent || ''
+  }));
+  T(afterG.toasts.length === 1 && /不通金银|苦修|彩蛋/.test(afterG.toasts[0]), 'G5 点「立即充值」只出一句拒绝提示', afterG.toasts.join('|').slice(0, 60));
+  T(afterG.save === save0, 'G5b 点彩蛋**零落档**：localStorage 逐字节不变', 'len ' + save0.length + '→' + afterG.save.length);
+  const seen = new Set();
+  for (let i = 0; i < 12 && seen.size < 2; i++) {
+    await page.reload();
+    await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+    await page.waitForTimeout(420);
+    const t = await page.evaluate(() => {
+      var g = document.querySelector('[data-act="giftBuy"]');
+      return g ? g.textContent.replace(/\s+/g, ' ').trim() : '';
+    });
+    if (t) seen.add(t.slice(0, 10));
+  }
+  T(seen.size >= 2, 'G6 重进 12 次至少换出 2 款（随机轮换为真，不是写死一张）', 'seen=' + seen.size);
+  T(errors.length === 0, 'G7 第一台整轮零页错误', errors.slice(0, 3).join(' | '));
 
   await browser.close();
   console.log('');
