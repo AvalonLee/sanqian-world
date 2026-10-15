@@ -32,6 +32,14 @@ const { chromium } = require('playwright-core');
       w.factionDonate = { at: 0, used: 0 };
       w.factionCdUntil = 0;
       w.factionOffice = null;
+      /* Q 组（第卅九批）：委托板面三张不同类型 —— slay 已达标 / cultivate 未达标 / gather 已达标 */
+      w.factionQuests = [
+        { type: 'slay', target: 3, base: 0, rep: 25, stones: 300, bornAt: now, expireAt: now + 3600000 },
+        { type: 'cultivate', target: 999999, base: 0, rep: 20, stones: 200, bornAt: now, expireAt: now + 3600000 },
+        { type: 'gather', target: 100, base: 0, rep: 30, stones: 0, bornAt: now, expireAt: now + 3600000 }
+      ];
+      w.factionQuestCd = 0;
+      w.kills = 3;
     });
     return s;
   };
@@ -99,6 +107,35 @@ const { chromium } = require('playwright-core');
   T(confirmOpen && confirmTxt.indexOf('声望 +') >= 0, 'R4 供奉确认弹窗含声望预览', confirmTxt.slice(0, 60));
   await page.click('#cf-cancel');
   await page.waitForTimeout(200);
+
+  /* ── Q 组：门中委托一次贴三张、类型互不相同、各交各的 ── */
+  await page.click('#tab-faction');
+  await page.waitForTimeout(600);
+  const qread = () => page.evaluate(() => {
+    const btns = Array.prototype.slice.call(document.querySelectorAll('[data-act="questClaim"]'));
+    return { n: btns.length, types: btns.map((b) => b.dataset.v), dis: btns.map((b) => b.disabled) };
+  });
+  const q1 = await qread();
+  T(q1.n === 3, 'Q1 门中委托一次贴三张（第卅九批：原为一张）', 'n=' + q1.n);
+  T(new Set(q1.types).size === 3 && q1.types.slice().sort().join() === 'cultivate,gather,slay',
+    'Q2 三张类型互不相同（同类型板面至多一张）', q1.types.join('+'));
+  T(q1.dis.filter((x) => !x).length === 2 && q1.dis[q1.types.indexOf('cultivate')] === true,
+    'Q3 达标两张的交付钮可点、未达标那张禁用', q1.types.map((t, i) => t + '=' + (q1.dis[i] ? '禁' : '可')).join(' '));
+  const clickQ = (v) => page.evaluate((vv) => {
+    var b = Array.prototype.slice.call(document.querySelectorAll('[data-act="questClaim"]'))
+      .filter(function (x) { return x.dataset.v === vv && !x.disabled; })[0];
+    if (b) b.click();
+  }, v);
+  await clickQ('slay');
+  await page.waitForTimeout(900);
+  const q2 = await qread();
+  T(q2.n === 2 && q2.types.indexOf('slay') < 0 && q2.types.slice().sort().join() === 'cultivate,gather',
+    'Q4 交掉一张只摘那一张，另两张仍在屏上', 'n=' + q2.n + ' types=' + q2.types.join('+'));
+  await clickQ('gather');
+  await page.waitForTimeout(900);
+  const q3 = await qread();
+  T(q3.n === 1 && q3.types[0] === 'cultivate' && q3.dis[0] === true,
+    'Q5 两张达标的都交完：只剩那张未达标的，且 30 分钟闸内不补新单', 'n=' + q3.n + ' types=' + q3.types.join('+'));
 
   T(errors.length === 0, 'Z 无控制台错误', errors.join(' | ') || 'ok');
 

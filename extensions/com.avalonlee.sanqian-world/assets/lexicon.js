@@ -25,6 +25,23 @@
     'ui.error.save': '存档写入失败：{msg}（本次进度恐未记下）',
     'ui.error.sideflow': '历史日志与奇遇记事没能保存（修为进度已保存）',
     'ui.error.short': '读取失败',
+    /* ── 恶搞彩蛋 · 页游充值贴片（第卅九批 2026-10-15 · 用户令「修行页随机刷几种网页游戏常见的大礼包，
+     * 模拟页游充值获取资源的感觉」）：纯呈现，点击零发放、零落档、零 Ledger，六款走拼接前缀 eggs.gift.p{n}.── */
+    'eggs.gift.tag': '限时',
+    'eggs.gift.btn': '立即充值',
+    'eggs.gift.p0.name': '首充大礼包',
+    'eggs.gift.p0.offer': '6 元 · 绝品功法直接到手，七日登录再送神装',
+    'eggs.gift.p1.name': '至尊 648 礼盒',
+    'eggs.gift.p1.offer': '648 元 · 必出天品至宝（概率 0.0001%，出货以实际为准）',
+    'eggs.gift.p2.name': '屠龙宝刀',
+    'eggs.gift.p2.offer': '98 元 · 战力 +99999，一刀 999，跨服碾压不是梦',
+    'eggs.gift.p3.name': '仙君直通',
+    'eggs.gift.p3.offer': '198 元 · 连登七日即送飞升体验卡（三分钟后自动回落）',
+    'eggs.gift.p4.name': '霓裳道侣',
+    'eggs.gift.p4.offer': '30 元 · 她不会说话，但很好看',
+    'eggs.gift.p5.name': '榜末补偿礼包',
+    'eggs.gift.p5.offer': '6480 元 · 充完即可超越榜首那位（就是他，别问）',
+    'eggs.gift.deny': '仙商把袖子一摆：此界不通金银，只通苦修。（彩蛋，不收费也不发货）',
     /* ── 一世洗髓（天赋池设计 v1.8 §十 · 洗髓批 2026-10-12）：世界无关的机制文案 ── */
     'talent.swap.title': '洗髓 · 换骨',
     'talent.swap.sub': '本世可换 {n}/{cap} 枚 · 手中缘 {owed} 枚',

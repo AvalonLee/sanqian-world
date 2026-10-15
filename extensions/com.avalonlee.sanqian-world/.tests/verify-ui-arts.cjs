@@ -528,6 +528,63 @@ async function buildSave() {
     'wrote=' + lawChipLeak.wrote + ' leaked=' + lawChipLeak.leaked);
   await ctx2.close();
 
+  /* ── S 组（2026-10-15 · 用户报「当前存档下法与器页打不开」）──
+   * 融合自创部**允许没有签名词条**（`fusion.js:243` 起 `var special = null`、`:272` 原样入档、`:52` normalize 也只认
+   * 「对象且有 pool」）⇒ `special:null` 是合法存档态。旧视图三处裸读 `a.special.pool`（详情浮层 / 槽内小卡 / 已学会卡），
+   * 拿真档复现 = `TypeError: Cannot read properties of null (reading 'pool')`，**整页 innerText 归零**（不是少一张卡）。
+   * ⚠️ 在册走查原先测不出来的原因有两条：① 没有任何 fixture 带自创部；② **从不打开 `#modal-arts` 详情浮层**。S4 补第二段。 */
+  const saveCustom = JSON.parse(JSON.stringify(save));
+  const wfC = saveCustom.worlds.xiuxian;
+  wfC.fusion = { lastFuseAt: 0, lastReforgeAt: 0, meditate: null, seq: 1, customs: [{
+    id: 'c1', name: '无名残卷', gen: 1, tier: 1, attr: 'qi', align: 'neutral',
+    effects: { qiRate: 0.02 }, special: null,
+    parents: [{ id: 'tuna', name: '吐纳法', tier: 0 }, { id: 'juling', name: '聚灵诀', tier: 0 }],
+    createdAt: Date.now()
+  }] };
+  wfC.artsKnown = (wfC.artsKnown || []).concat(['c1']);
+  wfC.artsLevels = wfC.artsLevels || {}; wfC.artsLevels.c1 = 2;
+  wfC.artsSlots = (wfC.artsSlots || []).concat(['c1']);      /* 入槽才走得到「槽内小卡」那一处裸读 */
+  const ctx3 = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+  await ctx3.addInitScript((s) => { localStorage.setItem('sanqian-state-v1', JSON.stringify(s)); }, saveCustom);
+  const page3 = await ctx3.newPage();
+  const errors3 = [];
+  page3.on('pageerror', (e) => errors3.push(String(e.message || e)));
+  page3.on('console', (m) => { if (m.type() === 'error') errors3.push(m.text()); });
+  await page3.goto(url);
+  await page3.waitForSelector('#sc-main:not(.hide)', { timeout: 20000 });
+  await page3.click('#m-tabbar button:has-text("法与器")');
+  await page3.waitForTimeout(600);
+  const sRead = await page3.evaluate(() => {
+    const cards = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .tcard'));
+    const mine = cards.filter((x) => (x.innerText || '').indexOf('无名残卷') >= 0)[0];
+    const arts = document.getElementById('tab-arts');
+    return {
+      len: arts ? (arts.innerText || '').trim().length : -1, n: cards.length, found: !!mine,
+      text: mine ? (mine.innerText || '').replace(/\s+/g, ' ').trim() : '',
+      tdesc: mine ? (((mine.querySelector('.tdesc') || {}).textContent) || '') : ''
+    };
+  });
+  T(errors3.length === 0 && sRead.len > 200 && sRead.n >= 3,
+    'S1 档里有一部「无签名词条」的自创部时，法与器页照样渲染（旧形状 = 整页空白 + pageerror）',
+    'len=' + sRead.len + ' 卡=' + sRead.n + ' err=' + (errors3[0] || 'none'));
+  T(sRead.found && sRead.text.indexOf('Lv2') >= 0 && sRead.tdesc.trim().length > 0,
+    'S2 那张自创部的卡确实上屏：Lv 在位、副行退到功法描述而不是空着', 'found=' + sRead.found + ' tdesc=' + sRead.tdesc.slice(0, 18));
+  T(sRead.found && sRead.text.indexOf('签名') < 0 && !/undefined|\{|null/.test(sRead.text),
+    'S3 无词条的卡不许编造「签名 ·」，也不许露 undefined / null / { 占位', sRead.text.slice(0, 52));
+  await page3.evaluate(() => { const b = document.querySelector('[data-act="openArtsModal"]'); if (b) b.click(); });
+  await page3.waitForTimeout(500);
+  const sModal = await page3.evaluate(() => {
+    const m = document.getElementById('modal-arts');
+    const txt = m && !m.classList.contains('hide') ? (m.innerText || '') : '';
+    const rows = txt.split('\n').filter((l) => l.indexOf('无名残卷') >= 0);
+    return { open: txt.length > 0, has: txt.indexOf('无名残卷') >= 0, row: rows.join(' / ').replace(/\s+/g, ' ').slice(0, 60) };
+  });
+  T(sModal.open && sModal.has && errors3.length === 0,
+    'S4 功法详情浮层能列出这部自创部（在册走查原先从不打开这层 = 第二个裸读点无射程）',
+    'open=' + sModal.open + ' has=' + sModal.has + ' err=' + (errors3[1] || errors3[0] || 'none'));
+  T(sModal.row.indexOf('签名') < 0, 'S4b 浮层那行同样不编造签名（`arts.special` 标签只在有词条时出现）', sModal.row || '(无该行)');
+  await ctx3.close();
+
   T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 150) || 'clean');
 
   console.log(fail === 0 ? 'UI_ARTS_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_ARTS_FAILED ' + fail);

@@ -28,7 +28,8 @@
     'log.eff.exclusiveGear': '得独占法器「{name}」',
     'log.eff.exclusiveArt': '得独占功法《{name}》',
     'log.eff.exclusiveLocked': '独占之珍缘悭一线，宝物不曾认主',
-    'log.eff.merchant': '神秘商人已入坊市设席（一炷香之久）',
+    /* {n} 由 `MERCHANT_DURATION_MS` 换算（第卅九批：原文案写死「一炷香」，与实际 10 分钟不符且改表不带动） */
+    'log.eff.merchant': '神秘商人已入坊市设席，只留 {n} 分钟——去坊市看他（下次再来不知何日）',
     'log.eff.merchantScout': '记下了那张斗篷下的脸——下次他带的货会更好',
     'log.eff.primeGear': '夺得不世出的极品法器！',
     'log.eff.primeArt': '抢得商人怀中的一部极品功法！',

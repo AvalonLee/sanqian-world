@@ -98,7 +98,23 @@
     ARTS_COST_TIER: { huang: 1, xuan: 3, di: 10, tian: 36 },
     ARTS_COST_REALM: 0.5,                        /* ×(1 + 境界索引×0.5) */
     ARTS_SPEED_FLOOR: 0.5,                       /* 折扣下限 50% */
-    ARTS_NURTURE: { right: 2, neutral: 2, evil: 3 },  /* 滋养点/级 */
+    ARTS_NURTURE: { right: 2, neutral: 2, evil: 3 },  /* 滋养点/级 × ARTS_NURTURE_TIER[品阶] */
+    /* 品阶强度阶梯（第卅八批 · 用户令「四品阶数值太接近，高品阶要明显更强」）——**两条通道各有各的阶梯**：
+     *   · **词条侧 = 黄 1 / 玄 2 / 地 3.5 / 天 6**：数值直接重排进《功法全录》每级效果列
+     *     （正典 = 文档，改完 `node .tests/gen-arts.cjs` 再生成），**黄阶保持 dev 原值、一部都不动**
+     *     （返工裁定：先前写成「按黄阶中位归一」，实测把吐纳法 qiRate 0.05→0.038、聚灵诀 qiCap 0.10→0.05
+     *     一起改了，等于砍开局两部功法各 24% / 50% —— 中位保住了、单条没保住，已按「恢复黄阶原值」重做）。
+     *     代价落在地/天阶（6 槽满级同乘区 qiRate +540%→+1072% 等），极限审计表（#105 / #153 / 通用规范 §一）
+     *     与 `FUSE.FIELD_CAP` 同批重基线。
+     *   · **滋养侧 = 黄 1 / 玄 1.5 / 地 2 / 天 2.5（压缩过的阶梯）**：原口径滋养只看阵营、与品阶无关，
+     *     「高品阶更养人」在属性上根本看不出来；但把词条侧的 ×6 直接乘进滋养会造出
+     *     6 槽 × Lv9 × 魔 3 × 天 6 = **972 点**（境界基础值到最高境界才 60，dc = 基础×2 = 120），
+     *     三维判定 p 的公式上限 0.95 会整档饱和——高品阶「吃属性」这条线反而失去区分度。
+     *     ⇒ 滋养单独设上限，最坏态压到 6×9×3×2.5 = 405。判据 = 冒烟 **#301(e)** 滋养比 1:1.5:2:2.5。
+     * 「消费端再乘一遍词条」的旧方案已废（那会让 Lv9 天阶 qiRate 冲到 +479% 且与文档对不上号，
+     *   遗留见 sq-wip-tier-leftover.patch）。红线四类（tribBonus / tribFailLossMod / realmCost / shopCost）
+     *   两条通道都不吃：它们接 TRIB_P_CLAMP 与 ARTS_COST* 两条红线，本次一字未动。 */
+    ARTS_NURTURE_TIER: { huang: 1, xuan: 1.5, di: 2, tian: 2.5 },
 
     /* ── 修行状态（模式）与功法精通（本批新增）──
      * mode = 'seclude'（闭关领悟）| 'venture'（外出历练）；离线回归 = 潜心悟道，
@@ -605,6 +621,7 @@
     /* 势力委托（势力全录卷 §四）：三类、基线快照制、手动交付 */
     FACTION_QUEST: {
       REFRESH_MS: 1800000, TTL_MS: 7200000,   /* 上一单结束 ≥30 分钟刷出新单；有效期 2 现实小时 */
+      SLOTS: 3,                               /* 板面最多三张（第卅九批 · 用户令「每次刷新 3 个不同内容的，1 个太少」）；同类型至多一张 */
       TYPES: {
         slay:      { rep: 25, stoneK: 120, base: 60, perRealm: 30 },   /* 击杀 60+境界×30 */
         cultivate: { rep: 20, stoneK: 80,  secs: 2700 },               /* 修为增长 = 每秒产出×2700 */
@@ -1154,9 +1171,13 @@
       CHAOS_BY_ATTR: { qi: 'hundun', jing: 'zaohua', shen: 'taiyi' },
       REFORGE_COST: { huang: 200, xuan: 800, di: 2500, tian: 8000 },   /* ≈同阶坊市功法半价 */
       REFORGE_CD_MS: 86400000,
-      FIELD_CAP: { combatPower: 0.14, qiRate: 0.13, offlineEff: 0.12, combatSpeed: 0.09,
-        qiCap: 0.10, stonesRate: 0.10, artsSpeed: 0.08, eventRate: 0.06,
-        eventLuck: 0.05, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
+      /* ⚠️ 导出口，不独立调参：每格 = 全录该字段「每级值」的最大值（红线四类 = 其现行 clamp 值，不在此列）。
+       * 第卅八批品阶强度重排（阶梯 黄1/玄2/地3.5/天6）随之整表重导：qiRate 0.13→0.225、qiCap 0.10→0.30、
+       * combatPower 0.14→0.315 …… ⇒ **自创部的字段封顶同步抬高**。
+       * 谁改了《功法全录》的每级效果却忘了这里，冒烟 #301(d)（FIELD_CAP === 全录最大值）直接判红。 */
+      FIELD_CAP: { combatPower: 0.315, qiRate: 0.225, offlineEff: 0.288, combatSpeed: 0.219,
+        qiCap: 0.30, stonesRate: 0.267, artsSpeed: 0.07, eventRate: 0.14,
+        eventLuck: 0.09, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
       NEVER_FIELDS: ['checkBonus', 'attrBonusAmp', 'tribFailLossMod']   /* 非乘区字段永不进重组池（第二道闸） */
     },
 

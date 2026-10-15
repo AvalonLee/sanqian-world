@@ -4,7 +4,7 @@
  * 规则源：势力批需求 §2/§3/§6/§7 + 势力深化批正典《势力全录（16处）》§一~§六 + data.js FACTIONS* 常量表。
  * 契约：本系统只读世界包数据（companions / FACTIONS* 常量 / 名录与描述走词表），
  *       生成与养成结果全部落在 ws（factions / factionNpcs / factionId / factionCdUntil /
- *       factionRep / factionDonate / factionQuest / factionQuestCd / factionWar / factionSupply），
+ *       factionRep / factionDonate / factionQuests / factionQuestCd / factionWar / factionSupply），
  *       旧档 normalize 缺失时补生成/补默认。
  * 纪律：增益走 Mods 乘区（来源 'faction'，perk 原值 ≤10%、职级放大后 ≤13.5%，§8.2 v1.23）；
  *       好感调整走 clamp（下限 BOND_MIN=−20 厌恶），绝交锁（−99）与心结锁（scars）不受加入影响；
@@ -207,45 +207,57 @@
 
     /* ── 势力委托（势力全录卷 §四）────────────────────────────
      * questTick 在 claim 内调用（在线才刷新）；三类：slay（kills 增量）/ cultivate（total 增量）
-     * / gather（交付时足额扣灵石）；进度 = 当前值 − 生成瞬间基线快照 base。 */
-    questTick: function (ws, pack, D, mods, now, ctx) {
-      var cfg = D.FACTION_QUEST || {};
-      var q = ws.factionQuest;
-      if (q && q.expireAt <= now) {                       /* 过期作废 */
-        ws.factionQuest = null;
-        ws.factionQuestCd = now + (cfg.REFRESH_MS || 1800000);
-        if (ctx && ctx.log) ctx.log('sys', SQ.t('faction.quest.expired', null, pack.worldId));
-        return null;
-      }
-      if (q || !ws.factionId) return null;
-      if ((ws.factionQuestCd || 0) > now) return null;
-      var types = Object.keys(cfg.TYPES || {});
-      if (!types.length) return null;
-      var type = types[Math.floor(Math.random() * types.length)];
-      var tc = cfg.TYPES[type];
+     * / gather（交付时足额扣灵石）；进度 = 当前值 − 生成瞬间基线快照 base。
+     * 🔧 第卅九批（用户令「门中委托每次刷新 3 个不同内容的，目前只有 1 个太少了」）：单槽 →
+     * **板面 `ws.factionQuests`（数组，上限 SLOTS=3，同类型板面至多一张）**。类型天然唯一 ⇒
+     * **交付按 type 寻址，不另造 id**；补单仍吃既有 `factionQuestCd`（交付/作废后置 30 分钟），
+     * 所以「一次贴三张」不会变成无限刷。 */
+    newQuest: function (ws, pack, D, mods, now, type) {
+      var tc = ((D.FACTION_QUEST || {}).TYPES || {})[type] || {};
       var target;
       if (type === 'slay') target = (tc.base || 60) + (tc.perRealm || 30) * (ws.realm || 0);
       else if (type === 'cultivate') {
         var rate = SQ.Idle.rateOf(ws, pack, D, mods);
         target = Math.max(1, Math.round(rate * (tc.secs || 2700)));
       } else target = Math.round(stonesOf(D, ws) * (tc.stoneK || 400));   /* gather：上缴额 */
-      ws.factionQuest = {
+      return {
         type: type, target: target,
         base: type === 'slay' ? (ws.kills || 0) : (type === 'cultivate' ? (ws.total || 0) : 0),
         rep: tc.rep || 20,
         stones: type === 'gather' ? 0 : Math.round(stonesOf(D, ws) * (tc.stoneK || 100)),
-        bornAt: now, expireAt: now + (cfg.TTL_MS || 7200000)
+        bornAt: now, expireAt: now + ((D.FACTION_QUEST || {}).TTL_MS || 7200000)
       };
-      /* 委托类型名本身就是带 {n} 的模板（剿除妖邪：击杀 {n} 头 / 闭关进益：修为增长 {n} / 采买军资：上缴 {n} 灵石），
-       * 内层取词必须带上 target —— 原先传 null ⇒ 占位符原样烘进日志文本并随档永久保存（第十四批走查 AT14 抓到，
-       * 屏上读作「门中贴出新委托：采买军资：上缴 {n} 灵石」）。 */
-      if (ctx && ctx.log) ctx.log('sys', SQ.t('faction.quest.new', { type: SQ.t('faction.quest.' + type, { n: target }, pack.worldId) }, pack.worldId));
-      return ws.factionQuest;
     },
 
-    /* 委托进度（gather = 当前灵石是否足额；其余 = 快照增量 / 目标） */
-    questProgress: function (ws, pack, D) {
-      var q = ws.factionQuest;
+    questTick: function (ws, pack, D, mods, now, ctx) {
+      var cfg = D.FACTION_QUEST || {};
+      var kept = [], list = ws.factionQuests || [], i;
+      for (i = 0; i < list.length; i++) {
+        if (list[i] && list[i].expireAt > now) kept.push(list[i]);
+        else if (ctx && ctx.log) ctx.log('sys', SQ.t('faction.quest.expired', null, pack.worldId));
+      }
+      ws.factionQuests = kept;
+      if (!ws.factionId) return null;
+      if ((ws.factionQuestCd || 0) > now) return null;
+      var slots = Math.max(1, cfg.SLOTS || 1);
+      var free = Object.keys(cfg.TYPES || {}).filter(function (ty) {
+        return !kept.some(function (q) { return q.type === ty; });
+      });
+      var made = 0;
+      while (kept.length < slots && free.length) {
+        var type = free.splice(Math.floor(Math.random() * free.length), 1)[0];
+        var q = SQ.Factions.newQuest(ws, pack, D, mods, now, type);
+        kept.push(q); made++;
+        /* 委托类型名本身就是带 {n} 的模板（剿除妖邪：击杀 {n} 头 / 闭关进益：修为增长 {n} / 采买军资：上缴 {n} 灵石），
+         * 内层取词必须带上 target —— 原先传 null ⇒ 占位符原样烘进日志文本并随档永久保存（第十四批走查 AT14 抓到，
+         * 屏上读作「门中贴出新委托：采买军资：上缴 {n} 灵石」）。 */
+        if (ctx && ctx.log) ctx.log('sys', SQ.t('faction.quest.new', { type: SQ.t('faction.quest.' + type, { n: q.target }, pack.worldId) }, pack.worldId));
+      }
+      return made ? kept : null;
+    },
+
+    /* 委托进度（gather = 当前灵石是否足额；其余 = 快照增量 / 目标）——收**单张委托**，不收字段 */
+    questProgress: function (ws, pack, D, q) {
       if (!q) return { cur: 0, target: 0, done: false };
       var cur;
       if (q.type === 'slay') cur = Math.max(0, (ws.kills || 0) - (q.base || 0));
@@ -255,13 +267,17 @@
     },
 
     /* 交付（mutate 通道）：足额才成交；gather 扣灵石记 out.donate；赏金记 in.event
-     * （江湖事同源锚，与奇遇经济同通道——不新开分类） */
-    questDeliver: function (ws, pack, D, now, log) {
-      var q = ws.factionQuest;
+     * （江湖事同源锚，与奇遇经济同通道——不新开分类）。qtype = 板面上那张委托的类型（同类型至多一张）。 */
+    questDeliver: function (ws, pack, D, now, log, qtype) {
+      var list = ws.factionQuests || [];
+      var idx = -1;
+      for (var i3 = 0; i3 < list.length; i3++) if (list[i3] && list[i3].type === qtype) { idx = i3; break; }
+      if (idx < 0) return { ok: false, reason: 'none' };
+      var q = list[idx];
       var f = SQ.Factions.current(ws);
-      if (!q || !f) return { ok: false, reason: 'none' };
-      if (q.expireAt <= now) return { ok: false, reason: 'expired' };
-      var pr = SQ.Factions.questProgress(ws, pack, D);
+      if (!f) return { ok: false, reason: 'none' };
+      if (q.expireAt <= now) { list.splice(idx, 1); ws.factionQuestCd = now + ((D.FACTION_QUEST || {}).REFRESH_MS || 1800000); return { ok: false, reason: 'expired' }; }
+      var pr = SQ.Factions.questProgress(ws, pack, D, q);
       if (!pr.done) return { ok: false, reason: 'progress', cur: pr.cur, target: pr.target };
       if (q.type === 'gather') {
         if (ws.stones < q.target) return { ok: false, reason: 'stones', need: q.target, have: ws.stones };
@@ -274,7 +290,7 @@
       }
       if (!ws.factionRep) ws.factionRep = {};
       ws.factionRep[f.id] = SQ.Factions.repOf(ws, f.id) + (q.rep || 0);
-      ws.factionQuest = null;
+      list.splice(idx, 1);
       ws.factionQuestCd = now + ((D.FACTION_QUEST || {}).REFRESH_MS || 1800000);
       if (log) log('sys', SQ.t('faction.quest.done', { n: q.rep }, pack.worldId));
       return { ok: true, rep: q.rep, stones: q.stones, rank: SQ.Factions.rankOf(ws, D, f.id) };
@@ -532,8 +548,8 @@
       ws.factionCdUntil = now + (cfg.LEAVE_CD_MS || 360000);
       ws.factionId = null;
       if (ws.factionRep) delete ws.factionRep[f.id];       /* 声望清零（势力全录卷 §3.1） */
-      if (ws.factionQuest) {                               /* 进行中委托作废（不返还） */
-        ws.factionQuest = null;
+      if ((ws.factionQuests || []).length) {               /* 进行中委托整板作废（不返还） */
+        ws.factionQuests = [];
         ws.factionQuestCd = now + ((D.FACTION_QUEST || {}).REFRESH_MS || 1800000);
       }
       ws.factionOffice = null;
@@ -622,8 +638,8 @@
       var wid = pack.worldId;
       var oldFid = f.id;
       /* leave 清理骨架（不叠 LEAVE_KARMA——karma 走叛投档） */
-      if (ws.factionQuest) {
-        ws.factionQuest = null;
+      if ((ws.factionQuests || []).length) {
+        ws.factionQuests = [];
         ws.factionQuestCd = now + ((D.FACTION_QUEST || {}).REFRESH_MS || 1800000);
       }
       ws.factionOffice = null;

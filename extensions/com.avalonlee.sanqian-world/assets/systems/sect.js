@@ -252,7 +252,7 @@
       var oldF = SQ.Factions.byId(ws, ws.factionId);
       oldName = oldF ? oldF.name : null;
       if (ws.factionRep) delete ws.factionRep[ws.factionId];
-      ws.factionQuest = null;
+      ws.factionQuests = [];
       ws.factionOffice = null;
       if (ws.tribulation) ws.tribulation.officeGuard = false;
     }

@@ -43,7 +43,7 @@
        * 商人「无视」标记；factionRep~factionSupply = 职级贡献/捐献窗口/委托/冲突/供给五件套 */
       factions: null, factionNpcs: null, factionId: null, factionCdUntil: 0, merchantScout: false,
       factionRep: {}, factionDonate: { at: 0, used: 0 },
-      factionQuest: null, factionQuestCd: 0, factionWar: null, factionSupply: {},
+      factionQuests: [], factionQuestCd: 0, factionWar: null, factionSupply: {},
       /* 系统深化批（势力全录卷 §八/§九）：职位双技能 CD 时间戳（null = 从未使用）+
        * 功法情报白名单（永久随档，献秘与探宝残片两渠道共用） */
       factionOffice: null, intelArts: {},
@@ -373,12 +373,23 @@
     var don = obj(raw.factionDonate, {});
     out.factionDonate = { at: Math.max(0, num(don.at, 0)), used: Math.max(0, Math.floor(num(don.used, 0))) };
     var qTypes = Object.keys((D.FACTION_QUEST || {}).TYPES || {});
-    var rq = obj(raw.factionQuest, null);
-    out.factionQuest = (rq && qTypes.indexOf(rq.type) >= 0 && rq.target > 0 && rq.expireAt > nowN)
-      ? { type: rq.type, target: num(rq.target, 0), base: Math.max(0, num(rq.base, 0)),
-          rep: Math.max(0, Math.floor(num(rq.rep, 0))), stones: Math.max(0, Math.round(num(rq.stones, 0))),
-          bornAt: num(rq.bornAt, nowN), expireAt: num(rq.expireAt, nowN) }
-      : null;
+    /* 委托板面（第卅九批：单槽 → 最多 3 张不同类型）。旧档的 `factionQuest` 单张 = **唯一迁移落点**：
+     * 未过期则并入板面首格，过期则整格丢弃；两形同时存在时以新形为准、旧键直接丢（不留第二份事实源）。 */
+    var qNorm = function (rq) {
+      return (rq && qTypes.indexOf(rq.type) >= 0 && rq.target > 0 && rq.expireAt > nowN)
+        ? { type: rq.type, target: num(rq.target, 0), base: Math.max(0, num(rq.base, 0)),
+            rep: Math.max(0, Math.floor(num(rq.rep, 0))), stones: Math.max(0, Math.round(num(rq.stones, 0))),
+            bornAt: num(rq.bornAt, nowN), expireAt: num(rq.expireAt, nowN) }
+        : null;
+    };
+    var qSrc = Array.isArray(raw.factionQuests) ? raw.factionQuests.slice() : [];
+    if (!Array.isArray(raw.factionQuests) && raw.factionQuest && typeof raw.factionQuest === 'object') qSrc.push(raw.factionQuest);
+    var qOut = [], qSeen = {};
+    for (var qi = 0; qi < qSrc.length && qOut.length < Math.max(1, (D.FACTION_QUEST || {}).SLOTS || 1); qi++) {
+      var nq = qNorm(qSrc[qi]);
+      if (nq && !qSeen[nq.type]) { qSeen[nq.type] = 1; qOut.push(nq); }   /* 同类型只留一张（板面唯一性 = 交付按 type 寻址的前提） */
+    }
+    out.factionQuests = qOut;
     out.factionQuestCd = Math.max(0, num(raw.factionQuestCd, 0));
     var rw = obj(raw.factionWar, null);
     out.factionWar = (rw && facIdSet[rw.aId] && facIdSet[rw.bId] && rw.aId !== rw.bId && rw.until > nowN)
