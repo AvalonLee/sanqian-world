@@ -54,6 +54,8 @@
         ws.tribulation.lastResult = 'success';
         /* streak 清零 + 心魔层清零（心魔层数 = streak 派生值，无独立字段，§8.3.1） */
         ws.tribulation.streak = 0;
+        /* 破境涤伤（寿元批 §6.1A）：本世道伤 −cleanse（下限 0）。走世界包钩子，通用层不解释世界字段 */
+        if (sys.daoCleanse) sys.daoCleanse(ws);
         /* 法宝渡劫成功回调（X01 气运清零 / X03 塔威清零 / X09 续命复原 / 先天认主 +1 阶）：
          * 先于 recalcDerived，使认主阶跃即时进入乘区 */
         if (SQ.Treasures && pack.treasures) SQ.Treasures.tribOnSuccess(ws, pack, D, log);
@@ -156,6 +158,10 @@
         if (!skipped) ws.tribulation.streak = (ws.tribulation.streak || 0) + 1;
         var streak = ws.tribulation.streak || 0;
         var nowF = now || Date.now();
+        /* 道伤入体（寿元批 §6.1A）：连败越深、伤层越厚（加层 = min(连败, gainMax)），吃满
+         * DAO_SHANG.cap 即由世界包 lifeInfo 判「身死道消」⇒ 本世了结走强制转世。
+         * 与下面三层阶梯同点位、同 skipAttempt 口径：X09 续命生效的那一次不计伤（streak 也没 +1）。 */
+        if (!skipped && sys.daoHit) sys.daoHit(ws, streak, log);
         if (!skipped && ts.daoShang && streak >= (ts.daoShang.minStreak != null ? ts.daoShang.minStreak : 1) &&
             SQ.Events && SQ.Events.pushBuff) {
           /* 道伤：qiRate −15% × 12h（重犯刷新时长不叠层——pushBuff 同字段同向语义天然满足） */

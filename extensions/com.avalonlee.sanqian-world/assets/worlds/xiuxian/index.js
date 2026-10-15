@@ -52,6 +52,13 @@
       rumors: [], rumorClock: 0,
       mode: D.MODE_DEFAULT,
       artsPractice: {},
+      /* ── 寿元 / 道伤（寿元批 2026-10-15 · 数值详设 §6.1A）──────────────────
+       * lifeUsed = 本世已耗寿元（游戏年，浮点；时钟与修为同一条，见 claim 内流逝口）；
+       * daoShang = 道伤层数（浮点，界面按 ceil 显层）；
+       * lastDeath = 待呈报的死因快照 {at, cause, realm, age, dao, total}，与 lastOffline 同款
+       * 「引擎写一次、界面按 at 键控读一次」⇒ 不加已读旗标（第廿八批「刷屏」同族坑）。
+       * 旧档缺三字段 → normalize 补 0/0/null，零迁移、零改写。 */
+      lifeUsed: 0, daoShang: 0, lastDeath: null,
       eventHistory: { lastId: null, seen: {}, feed: [] },
       eventClock: 0,                 /* 在线奇遇时钟·秒（事件池 §三 v1.5：仅在线推进，触发归零，离线冻结） */
       lastOffline: null,             /* 离线结算汇总 {at,secs,qi,stones,trib}（数值详设 §1.3 v1.7） */
@@ -201,6 +208,11 @@
       })(),
       eventClock: Math.max(0, num(raw.eventClock, 0)),
       lastOffline: obj(raw.lastOffline, null),
+      /* 寿元 / 道伤（§6.1A）：非负数 + 道伤钳 cap（脏档穿透也只是「下次收功即判死」，不造负数假余量）；
+       * lastDeath 与 lastOffline 同口径 = 结构原样透传，视图自守缺省。幂等：补齐后再 normalize 不变。 */
+      lifeUsed: Math.max(0, num(raw.lifeUsed, 0)),
+      daoShang: Math.max(0, Math.min(D.DAO_SHANG.cap, num(raw.daoShang, 0))),
+      lastDeath: obj(raw.lastDeath, null),
       pendingChoice: obj(raw.pendingChoice, null),
       breakCostNext: num(raw.breakCostNext, 0),
       /* 洗髓缘两字段：非负整数（脏值/小数/负数一律归零，与 artsSelfLearnN 同口径） */
@@ -551,6 +563,17 @@
      * 离线 = 潜心悟道，两处都不触碰（按原有规则结算）。 */
     var idleRes = SQ.Idle.settle(ws, pack, D, dtMs, now, ctx);
 
+    /* G2A 寿元流逝 + 道伤疗养（寿元批 §6.1A）：**与修为同一条时钟**——取 settle 已封顶的结算时长
+     * （idleRes.hours），1 游戏年 = 360 s = 0.1 h ⇒ hours × 10。离线照 OFFLINE_CAP_H 封顶 ⇒
+     * 关掉页面既少产也少老，比值 1:1（在线）/ 2:1（离线），规避不了「卡境即耗寿」。
+     * 致死判定**不在这里**：转世是 state 级事务，由 core.claimInner 取 lifeInfo().cause
+     * 走既有 SQ.Legacy.rebirth 通道（与兵解同一条，折分 ×0.7）。 */
+    var lifeYrs = idleRes.hours * 10;
+    if (lifeYrs > 0) {
+      ws.lifeUsed = (ws.lifeUsed || 0) + lifeYrs;
+      if (ws.daoShang > 0) ws.daoShang = Math.max(0, ws.daoShang - lifeYrs * D.DAO_SHANG.healPerYear);
+    }
+
     /* G3：战斗只随在线 tick 推进（详设 §2.1 P4 登记），且**只有外出历练才进秘境**——
      * 闭关不产灵石、不出装备、不推进度（需求 §1.1/§2）；历练期角色位于 ws.zone 秘境。 */
     var mods = modsFor(ws, prof);
@@ -617,6 +640,45 @@
     return idleRes;
   }
 
+  /* ── 寿元 / 道伤（寿元批 2026-10-15 · 数值详设 §6.1A 唯一实现处）──────────────
+   * 三口一律经 pack.worldSystems 出：core 只取 cause 判死、realm 只打伤涤伤、视图只读派生数，
+   * 都不许回头自拼一套口径（第廿五批「同源」纪律沿用）。形参比同族钩子窄是本模块刻意：
+   * 表在闭包里的 D，调用方无须再传一遍（shortcut: 第二世界装载时若通用层要复用本族，
+   * 再把 D 提成形参并落进世界包契约，届时随 N 号一并处置）。 */
+  function lifeInfo(ws) {
+    var L = D.LIFESPAN, DS = D.DAO_SHANG;
+    var max = L[Math.min(ws.realm || 0, L.length - 1)] || 0;
+    var eternal = !(max > 0);                  /* 真仙档写 0 = 不受寿限；剩余绝不做 0−已耗 的减法 */
+    var used = Math.max(0, ws.lifeUsed || 0);
+    var dao = Math.max(0, ws.daoShang || 0);
+    var left = eternal ? Infinity : max - used;
+    /* 道伤一律按**屏上显示的层数**判（ceil）：疗养是连续量，15 层吃满后再结算 1 秒就变 14.997，
+     * 用原值判等于「伤重不治的人被一秒的疗养救活」——伤满即死的悬崖会被小数抹平（冒烟 #304 抓到）。 */
+    var daoLv = Math.ceil(dao);
+    return {
+      max: max, used: used, left: left, eternal: eternal,
+      near: !eternal && left <= max * D.LIFE_WARN_P,
+      dao: dao, daoLv: daoLv, daoMax: DS.cap, daoNear: daoLv >= DS.warn,
+      /* 双超线时先报寿尽：道伤是内伤、寿尽是天数，叙述取后者 */
+      cause: (!eternal && left <= 0) ? 'shoujin' : (daoLv >= DS.cap ? 'daoshang' : null)
+    };
+  }
+  /* 渡劫失败入伤（realm.js 挂点）：加层 = min(连败, gainMax) ⇒ 1+2+3+4+5 恰吃满 cap；
+   * 封顶在 cap ⇒ 越线即由 lifeInfo 判死，屏上不留「18/15」那种溢出数。
+   * 警示只在**跨过 warn 那一层**写一条（同层重复不写 ⇒ 离线批量渡劫不刷屏，第廿八批同族坑）。 */
+  function daoHit(ws, streak, log) {
+    var DS = D.DAO_SHANG;
+    var before = Math.max(0, ws.daoShang || 0);
+    ws.daoShang = Math.min(DS.cap, before + Math.max(1, Math.min(streak || 1, DS.gainMax)));
+    if (log && before < DS.warn && ws.daoShang >= DS.warn) {
+      log('trib', SQ.t('daoshang.log.warn', { n: Math.ceil(ws.daoShang), cap: DS.cap }, 'xiuxian'));
+    }
+  }
+  /* 破境涤伤（realm.js 成功挂点）：道伤 −cleanse、下限 0；不写日志（破境本身已播数行）。 */
+  function daoCleanse(ws) {
+    ws.daoShang = Math.max(0, (ws.daoShang || 0) - D.DAO_SHANG.cleanse);
+  }
+
   var pack = {
     worldId: 'xiuxian',
     data: D,                               /* 数据表引用（systems 只读 pack.data，不 import 世界模块） */
@@ -656,7 +718,10 @@
       alignMultOf: function (ws) { return SQ.XKarma.alignMultOf(ws, D); },
       effectsOf: function (ws) { return SQ.XKarma.effectsOf(ws, D); },   /* ALIGN_EFFECTS 整行（引擎消费入口） */
       tribInfo: function (ws, pk, DD, mods, opts) { return SQ.XTrib.info(ws, pk, DD, mods, opts); },
-      tribLoss: function (ws, pk, DD, mods) { return SQ.XTrib.loss(ws, pk, DD, mods); }
+      tribLoss: function (ws, pk, DD, mods) { return SQ.XTrib.loss(ws, pk, DD, mods); },
+      /* 寿元 / 道伤三口（寿元批 §6.1A）：core.claimInner 取 cause 判死并走既有转世事务，
+       * realm.js 渡劫成败两侧打伤/涤伤，视图只读 lifeInfo 的派生数——三处都不碰表 */
+      lifeInfo: lifeInfo, daoHit: daoHit, daoCleanse: daoCleanse
     }
   };
 

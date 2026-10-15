@@ -37,6 +37,9 @@
   K['legacy.ui.bingjie'] = '兵解';
   K['legacy.ui.bingjie.btn'] = '兵解转世';
   K['legacy.ui.bingjie.confirm'] = '兵解＝主动终结本世：结算折分项 ×0.7（已入账的成就与里程碑遗泽不折损不追回）。明细如下，确认后不可回头。';
+  /* 被动了结两通道（寿元批）：不是玩家点的「兵解转世」，日志与呈报都要各说各的因 */
+  K['legacy.ui.shoujin'] = '寿尽坐化';
+  K['legacy.ui.daoshang'] = '道伤崩碎';
   K['legacy.ui.preview.title'] = '本世结算';
   K['legacy.ui.preview.subtotal'] = '折分小计';
   K['legacy.ui.preview.mult'] = '通道系数';
@@ -63,7 +66,7 @@
   K['legacy.ui.legacyTalent.pick'] = '转世天赋（≤2，逐世可换）';
   K['legacy.ui.bondHeir.pick'] = '跨世之缘 · 赎回道友 1 人';
   K['legacy.ui.none'] = '无';
-  K['legacy.ui.stats'] = '跨世：{lives} 世 · 飞升 {asc} · 兵解 {dis} · 最高{realm}';
+  K['legacy.ui.stats'] = '跨世：{lives} 世 · 飞升 {asc} · 兵解 {dis} · 身死 {death} · 最高{realm}';
   /* 结算计分项名（§2.3 十一行） */
   K['legacy.score.realmMax'] = '最高境界档';
   K['legacy.score.ascend'] = '飞升';
@@ -322,6 +325,9 @@
   K['codex.bio.sect'] = '一世开宗，立「{sect}」，门下 {n5} 人——道之外，还留下一脉香火。';
   K['codex.bio.line.ascend'] = '是日霞光接引，飞升而去。';
   K['codex.bio.line.dissolve'] = '是日自散修为，兵解转世。';
+  /* 被动了结两行（寿元批）：传记终行原先非飞升即写「兵解转世」，死世用即说谎 */
+  K['codex.bio.line.shoujin'] = '是日寿尽，坐化于蒲团之上。';
+  K['codex.bio.line.daoshang'] = '是日道伤崩碎，伤重不治。';
 
   SQ.lexRegister('xiuxian', K);
 })();

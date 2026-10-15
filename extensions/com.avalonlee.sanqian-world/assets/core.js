@@ -916,6 +916,24 @@
       var entry = SQ.Worlds[id];
       if (entry && entry.pack && entry.pack.claim) entry.pack.claim(ws, dt, now, s.profile, s.settings);
       ws.lastSave = now;
+      /* ── 寿元耗尽 / 道伤崩碎 ⇒ 本世了结（寿元批 2026-10-15 · 数值详设 §6.1A）──
+       * 判势在世界包（worldSystems.lifeInfo 只回 cause，通用层不读世界字段含义），了结走**既有转世
+       * 事务** SQ.Legacy.rebirth ⇒ 与兵解同一条通道：折分 ×BINGJIE_MULT、传记落死因、stats.deaths 计数。
+       * 死因快照写进**转世后的新世 ws**（lastDeath，与 lastOffline 同款「界面按 at 键控读一次」），
+       * 玩家回来先看见「身死道消」呈报，确定后进创角——不是无声无息被扔回创角屏。
+       * 位置刻意在 Legacy.sync 之前：同一次 claim 的内嵌恢复/成就扫描须看到转世后的干净态。 */
+      var lifeSys = entry.pack.worldSystems;
+      if (lifeSys && lifeSys.lifeInfo && SQ.Legacy && SQ.Legacy.rebirth && s.profile.name) {
+        var lifeNow = lifeSys.lifeInfo(ws);
+        if (lifeNow && lifeNow.cause) {
+          var pvLife = SQ.Legacy.rebirth(s, lifeNow.cause, now);
+          s.worlds[id].lastDeath = {
+            at: now, cause: lifeNow.cause, realm: ws.realm || 0,
+            age: Math.floor(lifeNow.used), dao: lifeNow.daoLv,
+            total: (pvLife || {}).total || 0
+          };
+        }
+      }
       /* meta 层同步（轮回卷 §5.4 / 图鉴卷 §一）：脏档转世恢复 + 图鉴成就扫描 + qiRate 镜像回写——
        * 全部是状态派生的幂等后处理，无 per-tick 掷判（sim-pacing 稳态带零侵入） */
       if (SQ.Legacy && SQ.Legacy.sync) SQ.Legacy.sync(s, now);
