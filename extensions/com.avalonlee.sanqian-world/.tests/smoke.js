@@ -697,24 +697,25 @@
     restore48();
     ok(48, '渡劫触发：qi≥need 且 realm<9', trig48 && w48b.tribulation.attempts === 0);
 
-    /* #49 p 公式四项对表 + clamp [0.05,0.95]（含 resist 双封顶项） */
+    /* #49 p 公式四项对表 + clamp [0.05,0.95]（含 resist 双封顶项；resist 封顶第卌二批 0.20→0.12） */
     var w49 = mkWs({ realm: 8, karmaEventScore: 800 });
     w49.gear.weapon = mkGear('weapon', { tier: 4, atk: 200000, resist: 1200 });
     w49.gear.armor = mkGear('armor', { tier: 4, resist: 1200 });
-    var p49 = mkProf([mkTalent({ tribBonus: 0.15 })]);
+    var p49 = mkProf([mkTalent({ tribBonus: 0.21 })]);
     var i49 = SQ.XTrib.info(w49, pack, D, M(p49, w49));
     var w49b = mkWs({ realm: 8, karmaEventScore: -5000 });
     w49b.tribulation.next = -1;
     var i49b = SQ.XTrib.info(w49b, pack, D, M(mkProf(), w49b));
     ok(49, 'p 四项对表 + 正道档 alignFlat +0.05 + 双 clamp',
-      i49.parts.resist === 0.20 && i49.parts.power === 0.15 && Math.abs(i49.parts.talent - 0.15) < 1e-9 &&
+      i49.parts.resist === 0.12 && i49.parts.power === 0.15 && Math.abs(i49.parts.talent - 0.21) < 1e-9 &&
       i49.parts.karma === 0.20 && i49.parts.alignFlat === 0.05 && i49.p === 0.95 &&
       i49b.parts.alignFlat === 0 && i49b.p === 0.05,
       JSON.stringify(i49.parts) + ' p=' + i49.p + '/' + i49b.p);
 
-    /* #50 base 表 0.95→0.338（9 个突破点逐一核对；势力批 v2.4：第 3 境金丹起 ×0.75 已折算入表） */
-    var want50 = [0.95, 0.668, 0.623, 0.57, 0.525, 0.48, 0.435, 0.383, 0.338];
-    ok(50, '渡劫 base 表 9 点（金丹起 ×0.75）', want50.every(function (v, i) { return D.REALMS[i + 1].tribBase === v; }));
+    /* #50 base 表 0.95→0.22（9 个突破点逐一核对；势力批 v2.4 的「金丹起 ×0.75」已折算，
+     * 第卌二批在其上再压一档：中程起裸身不运营 <0.5、境界越高越难，尾段压平不吃 clamp 下界） */
+    var want50 = [0.95, 0.60, 0.50, 0.42, 0.36, 0.33, 0.30, 0.26, 0.22];
+    ok(50, '渡劫 base 表 9 点（第卌二批压陡后）', want50.every(function (v, i) { return D.REALMS[i + 1].tribBase === v; }));
 
     /* #51 成功：realm+1、qi=0、功法等级保留（第廿五批）、lastResult（#39 已覆盖，此处核 success 计数） */
     ok(51, '渡劫成功计数与状态', w39.tribulation.success === 1 && w39.tribulation.attempts === 1);
@@ -753,7 +754,7 @@
 
     /* #55 tribNext 掷判后清空 · 先加总后 clamp */
     var w55 = mkWs({ realm: 8, qi: 5e8 });
-    w55.tribulation.next = 0.9;   /* 势力批 v2.4：base 0.338 + 0.9 > 0.95 → clamp 仍生效 */
+    w55.tribulation.next = 0.9;   /* 势力批 v2.4 口径：一次性修正越过 clamp 上限即被截（第卌二批 base 0.22 同样成立） */
     w55.breakCostNext = -0.1;
     var i55 = SQ.XTrib.info(w55, pack, D, M(mkProf(), w55));
     var restore55 = stubRandom([0.9999]);
@@ -3526,7 +3527,7 @@
       'f1=' + f1_170 + ' f2=' + f2_170 + ' skip=' + skip170 + ' clr=' + clr170 + ' norm=' + norm170);
 
     /* #171 心魔（§8.3.2/§8.3.4）：层数 = min(streak−1, 3) 进 talent 加项同读点；
-     * 真仙裸身最坏 0.338−0.03 = 0.308（裸身口径 = 空 mods，无装备/功法/天赋/属性被动）；
+     * 真仙裸身最坏 0.22−0.03 = 0.19（裸身口径 = 空 mods，无装备/功法/天赋/属性被动；第卌二批 base 压陡前为 0.308）；
      * p 仍 clamp [0.05, 0.95]、TRIB_P_CLAMP/REALMS 零改动 */
     var bareMods171 = (function () {
       var m = { sum: {}, detail: {}, atk: 0, resist: 0, hooks: {}, flags: {}, bonds: {}, slotted: [] };
@@ -3536,7 +3537,7 @@
     var w171 = mkWs({ realm: 8 });
     w171.tribulation.streak = 4;
     var i171 = SQ.XTrib.info(w171, pack, D, bareMods171);
-    var p171 = Math.abs(i171.p - 0.308) < 1e-9;
+    var p171 = Math.abs(i171.p - 0.19) < 1e-9;
     var part171 = i171.parts.xinmoStacks === 3 && Math.abs(i171.parts.xinmo + 0.03) < 1e-9;
     w171.tribulation.streak = 10;
     var cap171 = SQ.XTrib.info(w171, pack, D, bareMods171).parts.xinmoStacks === 3;
@@ -3545,8 +3546,8 @@
     w171.tribulation.streak = 2;
     var one171 = SQ.XTrib.info(w171, pack, D, bareMods171).parts.xinmoStacks === 1;
     var clamp171 = D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 &&
-      i171.p >= 0.05 && i171.p <= 0.95 && D.REALMS[9].tribBase === 0.338;
-    ok('171', '心魔：min(streak−1,3) 进 talent 同读点 / 真仙裸身最坏 0.308 / clamp 与 REALMS 零改动',
+      i171.p >= 0.05 && i171.p <= 0.95 && D.REALMS[9].tribBase === 0.22;
+    ok('171', '心魔：min(streak−1,3) 进 talent 同读点 / 真仙裸身最坏 0.19 / clamp 与 REALMS 零改动',
       p171 && part171 && cap171 && zero171 && one171 && clamp171,
       'p=' + i171.p.toFixed(3) + ' stacks=' + i171.parts.xinmoStacks + ' cap=' + cap171 + ' zero=' + zero171);
 
@@ -3926,7 +3927,7 @@
      *   本表与 #105 上限、通用规范 §一 极限表、`FUSE.FIELD_CAP` 四处同动（改任一处必红其余三处）。 */
     var EXP153 = { combatPower: 1.375, qiRate: 1.191, offlineEff: 1.11, combatSpeed: 1.147, qiCap: 1.16,
       stonesRate: 0.80, artsSpeed: 0.13, eventLuck: 0.225, eventRate: 0.26, dropRate: 0.09,
-      tribBonus: 0.065, realmCost: -0.02 };
+      tribBonus: 0.0325, realmCost: -0.02 };
     var per153 = {};
     for (var id153 in SQ.XARTS) {
       var ef153 = SQ.XARTS[id153].effects;
@@ -4179,7 +4180,7 @@
     var n196b = SQ.Tiandao.normalize(n196a, D);
     var w196 = pack.normalize(Object.assign(pack.initialState(), { tiandao: dirty196 }));
     var w196old = pack.normalize(pack.initialState());   /* 旧档无 tiandao 字段 → 全默认 */
-    var zero196 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.338 &&
+    var zero196 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.22 &&
       D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 && SQ.Mods.FIELDS.length === 17;
     ok('196', '天道 normalize 幂等 + 脏档清理零崩溃 + p 公式/CLAMP/REALMS/FIELDS 零改动',
       JSON.stringify(n196a) === JSON.stringify(n196b) && n196a.defy === 0 && n196a.seenIds.join() === 'a' &&
@@ -4353,7 +4354,7 @@
       codices: { event: 'notarray', art: ['a', 1, null] }, achv: [1, 'achv_jichu'], titles: 'x',
       biographies: [{ text: 123 }, { text: 'ok', life: 1 }], unlocks: { alchemy: 'yes' }, stats: { lives: 'x' } });
     var n202c = SQ.Legacy.metaNormalize(n202b);
-    var zero202 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.338 &&
+    var zero202 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.22 &&
       D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 && SQ.Mods.FIELDS.length === 17 &&
       /* 等级起点批（入门即 Lv1）：ARTS_COST **有意改档**——删掉原 Lv0→1 那档 60，表长 9 → 8，
        * 其余八档价格一字未动；判据同时钉「表长 = ARTS_MAX_LV − 1」，防将来又漂出第九条。 */
@@ -8180,7 +8181,7 @@
     var size230 = JSON.stringify({ alchemy: w230.alchemy, materials: w230.materials }).length;
     /* 红线零改动（p 公式主体 / TRIB_P_CLAMP / REALMS / mods FIELDS）；
      * ARTS_COST 是**本批有意改的那一处**：等级起点批删 Lv0→1 档 ⇒ 八档，其余价格一字未动。 */
-    var zero230 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.338 &&
+    var zero230 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.22 &&
       D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 && SQ.Mods.FIELDS.length === 17 &&
       D.ARTS_COST.join() === '240,900,3200,11000,36000,120000,400000,1300000';
     ok('230', '经济参数与容量红线回归：六新参对表（tian 12000/精制 1500·12 料·0.70·45min/提炼 4:1）；既有经济锚**只动一处并如实报**：`PILL_DAILY_CAP` 3 → **4**（第十七批丹药两族合一）；其余（坊市权重全表 50/25/10/10/5——锚 9.12 复跑不变红线）零改动；normalize 上限数据驱动（脏档 16→11、12→9）；alchemy 独立最坏态 <2.5KB（50KB 红线分摊）；p 公式/CLAMP/REALMS/FIELDS 红线零改动 ‖ ARTS_COST 按等级起点批改八档并如实报',
@@ -9873,7 +9874,7 @@
     var DS303 = D302.DAO_SHANG;
     var w303 = pack302.initialState();
     var daoSeq303 = [];
-    for (var i303 = 1; i303 <= DS303.gainMax; i303++) {
+    for (var i303 = 1; i303 <= DS303.gainMax + (DS303.freeStreak || 0); i303++) {
       sys302.daoHit(w303, i303, null);
       daoSeq303.push(w303.daoShang);
     }
@@ -9882,7 +9883,10 @@
     w303b.realm = 0; w303b.qi = D302.REALMS[1].need;
     var mods303 = SQ.Mods.collect(prof302, w303b, pack302, D302);
     var rs303f = stubRandom(function () { return 0.99; });
-    SQ.Realm.tryBreakthrough(w303b, pack302, D302, mods303, Date.now(), { profile: prof302, log: null });
+    for (var j303 = 0; j303 < 3; j303++) {
+      w303b.qi = D302.REALMS[1].need;
+      SQ.Realm.tryBreakthrough(w303b, pack302, D302, mods303, Date.now(), { profile: prof302, log: null });
+    }
     rs303f();
     var daoFail303 = w303b.daoShang;
     w303b.qi = D302.REALMS[2].need;
@@ -9899,13 +9903,13 @@
     var w303d = pack302.initialState();
     w303d.daoShang = DS303.cap - 0.003;
     var li303d = sys302.lifeInfo(w303d);
-    ok('303', '道伤阶梯与疗养（§6.1A）：(a) 连败五层累计 === ' + daoSeq303.join('→') + ' === cap ' + DS303.cap +
+    ok('303', '道伤阶梯与疗养（§6.1A）：(a) 连败累计（**前二败皮外伤不入槽**）=== ' + daoSeq303.join('→') + ' === cap ' + DS303.cap +
       '（寿元一分未耗仍判死 ⇒ 第二条钟独立）' +
-      ' (b) realm.js 真挂点：渡劫一败 daoShang=' + daoFail303 + '（不是只写在表里的死数）' +
+      ' (b) realm.js 真挂点：三败才入槽 daoShang=' + daoFail303 + '（既证挂点被调、又证免伤层）' +
       ' (c) 破境涤伤 −cleanse（' + daoFail303 + '→' + daoClean303 + '，且该次确实破了境 realm→' + realm303 + '）' +
       ' (d) 岁月疗养 10 层经离线一日（120 年）→ ' + daoHeal303.toFixed(2) + '（= 10 − 120×healPerYear）' +
       ' (e) 判死认屏上层数（ceil）：伤 14.997 仍算满 ' + DS303.cap + ' 层即死，一秒疗养救不活',
-      daoSeq303.join(',') === [1, 3, 6, 10, 15].slice(0, DS303.gainMax).join(',') &&
+      daoSeq303.join(',') === [0, 0, 1, 3, 6, 10, 15].join(',') &&
       li303.daoLv >= DS303.cap && li303.eternal === false && li303.left > 0 && li303.cause === 'daoshang' &&
       daoFail303 === 1 && daoClean303 === Math.max(0, 1 - DS303.cleanse) && realm303 === 1 &&
       Math.abs(daoHeal303 - (10 - D302.OFFLINE_CAP_H * 10 * DS303.healPerYear)) < 1e-9 &&
@@ -9963,6 +9967,38 @@
       ' ‖ stats=' + [d304a.st.lives, d304a.st.deaths, d304a.st.dissolutions].join('/') +
       ' ‖ 遗泽=' + d304a.ref.meta.karma + '/期望' + d304a.exp + '/兵解' + d304a.expBing +
       ' ‖ achv=' + (d304a.ref.meta.achv || []).join(',') + ' ‖ 日志=' + log304a.slice(0, 46));
+
+    /* #305 随件缺陷：`SQ.Actions.alDrink` 的「丹毒日限」日志行误抄视图助手写法 `D().ALCHEMY`
+     * （本模块 D 是 dataOf(s) 取回的数据对象）⇒ 第 5 颗丹触 daily 分支必抛 TypeError，
+     * 而 mutate 抛异常整笔不落盘 = 玩家点「服用」毫无反应。躲过三批评测的原因：#297(h) 的 daily
+     * 判据**直调 `Alchemy.drinkPill`**，永远走不到 actions.js 这一行 ⇒ 本判据必须走真入口。 */
+    var pk305 = SQ.Worlds.xiuxian.pack, DT305 = pk305.data;
+    var w305 = pk305.initialState();
+    SQ.Alchemy.ensure(w305, DT305);                          /* alchemy 缺省是 null，须先起架构再塞丹 */
+    w305.alchemy.pills = { ap_juqi: 9 };
+    await SQ.save({
+      v: SQ.V,
+      profile: { name: '试丹者', talents: [], worldId: 'xiuxian', worldName: '测试界', createdAt: Date.now() },
+      worlds: { xiuxian: w305 }, meta: SQ.Legacy.metaBlank()
+    });
+    var ref305 = {};
+    await SQ.claim(ref305);
+    var CAP305 = DT305.ALCHEMY.PILL_DAILY_CAP;
+    await SQ.mutate(ref305, function (s) {   /* 先吃满日限（同一条真通道，不手写 pillDay 猜日键） */
+      var w = s.worlds[s.profile.worldId], p = SQ.Worlds[s.profile.worldId].pack;
+      for (var q305 = 0; q305 < CAP305; q305++) {
+        SQ.Alchemy.drinkPill(w, p, p.data, 'ap_juqi', Date.now(), null, s.profile);
+      }
+    });
+    var nDay305 = ref305.worlds.xiuxian.alchemy.pillDay.n;
+    var r305 = await SQ.Actions.alDrink(ref305, 'ap_juqi');
+    var sysLog305 = (ref305.worlds.xiuxian.log || []).filter(function (l) { return l.cat === 'sys'; });
+    var txt305 = String((sysLog305[sysLog305.length - 1] || {}).text || '');
+    ok('305', 'alDrink 日限分支：走真入口不抛 + 日志出行且**上限取表值**（随件修 D().ALCHEMY → D.ALCHEMY）',
+      nDay305 === CAP305 && r305 && r305.ok === false && r305.reason === 'daily' &&
+      txt305 === SQ.t('alchemy.log.pillcap', { n: CAP305 }, 'xiuxian') &&
+      txt305.indexOf(String(CAP305)) >= 0 && ref305.profile.name === '试丹者',
+      '日限 n=' + nDay305 + '/' + CAP305 + ' ‖ reason=' + (r305 || {}).reason + ' ‖ 行=' + txt305);
 
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');

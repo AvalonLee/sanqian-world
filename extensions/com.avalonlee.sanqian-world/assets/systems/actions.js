@@ -686,9 +686,12 @@
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
         out = SQ.Alchemy.drinkPill(ws, pack, D, pillKey, Date.now(), log, s.profile);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
-        /* 上限取表值不留魔数（M3）；兜底与 alchemy.js 服丹闸的 `|| 3` 同口径 */
+        /* 上限取表值不留魔数（M3）；兜底与 alchemy.js 服丹闸的 `|| 3` 同口径。
+         * ⚠️ 本行随第卅九批改口时误抄视图助手的写法 `D()`——本模块里 D 是数据对象（dataOf 取得），
+         * 于是第 5 颗丹触发 daily 分支必抛 TypeError、mutate 整笔不落盘（玩家点服用没反应）。
+         * 长跑模拟测出（乙·全修 二世 drink 八次崩溃），判据 = 冒烟 #305 走真入口。 */
         else if (out && out.reason === 'daily') SQ.Log.push(ws, 'sys', SQ.t('alchemy.log.pillcap',
-          { n: (D().ALCHEMY || {}).PILL_DAILY_CAP || 3 }, s.profile.worldId));
+          { n: (D.ALCHEMY || {}).PILL_DAILY_CAP || 3 }, s.profile.worldId));
       });
       return out;
     },

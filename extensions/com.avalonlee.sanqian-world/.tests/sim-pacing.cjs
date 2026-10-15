@@ -134,14 +134,14 @@ const byId = (id) => R.find((x) => x.pt.id === id);
 const ratioOf = (id) => byId(id).days / anchor.days;
 
 /* 1) 校准回归：裸身绝对天数 == 冻结基准 35.6（等价校验 need/baseQi 表未漂移） */
-chk('裸身绝对天数 38.7 ±2%（势力批 v2.4：金丹起 base ×0.75 重校准）', near(byId('bare').days, 38.7, 0.02), f2(byId('bare').days) + ' 天');
+chk('裸身绝对天数 42.53 ±2%（第卌二批 base 曲线压陡重校准；旧 38.7 = 势力批 v2.4 口径）', near(byId('bare').days, 42.53, 0.02), f2(byId('bare').days) + ' 天');
 /* 2) 锚回归：典型左道 14.4 ±2%（§6.4.1 校准口径） */
-chk('典型左道锚 15.5 ±2%（势力批 v2.4 重校准）', near(anchor.days, 15.5, 0.02), f2(anchor.days) + ' 天');
+chk('典型左道锚 16.86 ±2%（第卌二批重校准；旧 15.5 = 势力批 v2.4 口径 ⇒ 通关 +8.8%）', near(anchor.days, 16.86, 0.02), f2(anchor.days) + ' 天');
 /* 3) 画像乘区对表：build × ALIGN_EFFECTS.qiRateMult == 文档产出乘区 ±0.5% */
 let multBad = R.filter((x) => !near(x.mult, x.pt.docMult, 0.005)).map((x) => x.pt.id + '=' + f2(x.mult) + '/' + x.pt.docMult);
 chk('九画像产出乘区对表（±0.5%）', multBad.length === 0, multBad.join(','));
 /* 4) 终局 p 对表（文档表列）±0.01 */
-const PDOC = { bare: 0.338, anchor: 0.488, right_sh: 0.638, right_dp: 0.738, grad_right: 0.838, evil_sh: 0.368, evil_dp: 0.238, rush_sh: 0.368, rush_dp: 0.238 }; /* 势力批 v2.4：base ×0.75（金丹起）平移 −0.112 重校准 */
+const PDOC = { bare: 0.22, anchor: 0.37, right_sh: 0.52, right_dp: 0.62, grad_right: 0.64, evil_sh: 0.25, evil_dp: 0.12, rush_sh: 0.25, rush_dp: 0.12 }; /* 第卌二批：base 曲线压陡 + resist 封顶 0.20→0.12 + tribBonus 功法减半 + 渡劫词条同名取最强一份；karmaMod 一字未动 */ /* 势力批 v2.4：base ×0.75（金丹起）平移 −0.112 重校准 */
 let pBad = R.filter((x) => Math.abs(x.pEnd - PDOC[x.pt.id]) > 0.011).map((x) => x.pt.id + '=' + f2(x.pEnd) + '/' + PDOC[x.pt.id]);
 chk('九画像终局 p 对表（±0.01）', pBad.length === 0, pBad.join(','));
 /* 5) 比值对表：与 §6.4.1 表列比值 ±10% */
