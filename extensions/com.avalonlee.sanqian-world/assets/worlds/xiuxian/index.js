@@ -59,6 +59,12 @@
        * 「引擎写一次、界面按 at 键控读一次」⇒ 不加已读旗标（第廿八批「刷屏」同族坑）。
        * 旧档缺三字段 → normalize 补 0/0/null，零迁移、零改写。 */
       lifeUsed: 0, daoShang: 0, lastDeath: null,
+      /* ── 袭击 / 袭杀 / 族中寻仇（第卌四批 · 数值详设 §6.1B）───────────────────
+       * ambushClock = 在线掷判累计（毫秒，离线不推进，与 eventClock 同纪律）；
+       * ambushKillAt = 袭杀冷却锚（绝对墙钟，全局一枚——按人记会随名录线性增长，红线不让）；
+       * revenge = 寻仇链单槽 {n:连胜次数, nextAt:下一轮最早时刻, foe:被袭杀者名}，
+       *   链断即置 null。**不是容器**：一槽一仇家，新的袭杀覆盖旧链（同时只有一份仇，符合叙事）。 */
+      ambushClock: 0, ambushKillAt: 0, revenge: null,
       eventHistory: { lastId: null, seen: {}, feed: [] },
       eventClock: 0,                 /* 在线奇遇时钟·秒（事件池 §三 v1.5：仅在线推进，触发归零，离线冻结） */
       lastOffline: null,             /* 离线结算汇总 {at,secs,qi,stones,trib}（数值详设 §1.3 v1.7） */
@@ -213,6 +219,18 @@
       lifeUsed: Math.max(0, num(raw.lifeUsed, 0)),
       daoShang: Math.max(0, Math.min(D.DAO_SHANG.cap, num(raw.daoShang, 0))),
       lastDeath: obj(raw.lastDeath, null),
+      /* 袭击三字段（第卌四批）：两个非负数 + 寻仇单槽（结构不合规整槽丢弃 = 链断，
+       * 不留半截对象——脏档里 n=「abc」会让收益倍率吃 NaN 顶穿天花板）。旧档缺字段补 0/0/null，零迁移。 */
+      ambushClock: Math.max(0, num(raw.ambushClock, 0)),
+      ambushKillAt: Math.max(0, num(raw.ambushKillAt, 0)),
+      revenge: (function () {
+        var rv = obj(raw.revenge, null);
+        if (!rv) return null;
+        var n = Math.floor(num(rv.n, 0));
+        if (!(n >= 0)) return null;
+        return { n: n, nextAt: Math.max(0, num(rv.nextAt, 0)),
+          foe: typeof rv.foe === 'string' ? rv.foe.slice(0, 24) : '' };
+      })(),
       pendingChoice: obj(raw.pendingChoice, null),
       breakCostNext: num(raw.breakCostNext, 0),
       /* 洗髓缘两字段：非负整数（脏值/小数/负数一律归零，与 artsSelfLearnN 同口径） */
@@ -604,6 +622,9 @@
      * 离线零奇遇、时钟冻结；pendingChoice 挂起期间时钟暂停） */
     if (!idleRes.offline && dtMs > 0) {
       SQ.Events.tickOnline(ws, pack, D, mods2, dtMs / 1000, now, ctx);
+      /* G7A 阵营袭击 / 族中寻仇（第卌四批 · 数值详设 §6.1B）：与奇遇同一条「只随在线时钟」通道——
+       * 离线不掷不补算、pendingChoice 挂起期不叠加；限时倒计时归界面（弹窗开着时 claim 本就跳过） */
+      ambushTick(ws, pack, D, dtMs, now, ctx);
       /* G17：传闻在线刷新（rumorClock 与奇遇时钟同纪律——离线冻结不刷新；
        * pendingChoice 挂起期间照常刷新，传闻是货架不是弹窗） */
       if (SQ.Rumors) SQ.Rumors.tick(ws, pack, D, mods2, dtMs / 1000, now, ctx);
@@ -672,15 +693,127 @@
    * 警示只在**跨过 warn 那一层**写一条（同层重复不写 ⇒ 离线批量渡劫不刷屏，第廿八批同族坑）。 */
   function daoHit(ws, streak, log) {
     var DS = D.DAO_SHANG;
+    daoAdd(ws, Math.min((streak || 1) - (DS.freeStreak != null ? DS.freeStreak : 2), DS.gainMax), log, 'trib');
+  }
+  /* 道伤加层**唯一写口**（第卌四批从 daoHit 里抽出）：渡劫连败阶梯与袭击/寻仇的 failE 都走这里——
+   * 封顶与「只在跨过 warn 那一层写一条」的降噪纪律只有一份实现，第二条写口 = 第二个口径。 */
+  function daoAdd(ws, pts, log, cat) {
+    var DS = D.DAO_SHANG;
     var before = Math.max(0, ws.daoShang || 0);
-    ws.daoShang = Math.min(DS.cap, before + Math.max(0, Math.min((streak || 1) - (DS.freeStreak != null ? DS.freeStreak : 2), DS.gainMax)));
+    ws.daoShang = Math.min(DS.cap, before + Math.max(0, num(pts, 0)));
     if (log && before < DS.warn && ws.daoShang >= DS.warn) {
-      log('trib', SQ.t('daoshang.log.warn', { n: Math.ceil(ws.daoShang), cap: DS.cap }, 'xiuxian'));
+      log(cat || 'trib', SQ.t('daoshang.log.warn', { n: Math.ceil(ws.daoShang), cap: DS.cap }, 'xiuxian'));
     }
+    return ws.daoShang;
   }
   /* 破境涤伤（realm.js 成功挂点）：道伤 −cleanse、下限 0；不写日志（破境本身已播数行）。 */
   function daoCleanse(ws) {
     ws.daoShang = Math.max(0, (ws.daoShang || 0) - D.DAO_SHANG.cleanse);
+  }
+
+  /* ══ 袭击 / 袭杀 / 族中寻仇（第卌四批 · 数值详设 §6.1B · 设计稿 docs/设计稿/袭击与袭杀寻仇-设计稿.md 转正）══
+   * 敌手人选 = 在册相识（好感档 ≥1、未绝交锁、未裂疤——**道侣本就记在同一张 bonds 表里**，
+   * 故「道友 / 道侣 / 天骄」三池在代码里是两池）∪ 天骄名录。
+   * 强度**只两档**：来客 = 高一境基础战力 × FOE_K；寻仇 = 同基准 × REVENGE_K（境界一定压玩家一头，
+   * 顶到真仙即同境——屏上如实写「同境」，不做隐性削弱）。道友池不供境界（名录无此字段）⇒ 屏上只报
+   * 「何人 + 战力几何」，不编一个假境界出来（N33「兜底键复用会让文案说谎」的同型面）。
+   * 计时一律在线：掷判累计只吃在线时长（与 eventClock 同纪律）；**限时倒计时归界面**（抉择浮层开着时
+   * 引擎 claim 本就跳过结算）⇒ 关掉页面不会「睡一觉被仇家打死」，重新进线重新给满一段时间。 */
+  function foeGuest(ws, pack, D, k) {
+    var cands = [];
+    if (SQ.Bonds) SQ.Bonds.list(pack).forEach(function (c) {
+      if (SQ.Bonds.tierOf(ws, c.id, D) >= 1 && !SQ.Bonds.locked(ws, c.id) && !SQ.Bonds.scarred(ws, c.id)) {
+        cands.push({ src: 'bond', nm: SQ.t('bond.' + c.id + '.name', null, 'xiuxian') });
+      }
+    });
+    if (SQ.Prodigy) (ws.prodigies || []).forEach(function (p) {
+      cands.push({ src: 'prodigy', nm: SQ.Prodigy.nameOf(ws, p, pack) });
+    });
+    if (!cands.length) return null;
+    var c = cands[Math.floor(Math.random() * cands.length)];
+    var realm = Math.min((ws.realm || 0) + 1, D.REALMS.length - 1);
+    c.realm = realm;
+    c.power = Math.round(D.REALMS[realm].power * (k != null ? k : D.AMBUSH.FOE_K));
+    return c;
+  }
+  /* 挑一条限时抉择挂上 pendingChoice（与 fire / fireTagged 同口径的五件套：冷却 / lastId / seen） */
+  function foeFire(ws, pack, D, evId, foe, now, ctx, via) {
+    var ev = SQ.Events.findById(pack, evId);
+    if (!ev) return null;
+    if (ev.cooldownHours != null) ws.eventCooldowns[ev.id] = now;
+    ws.eventHistory.lastId = ev.id;
+    if (ws.eventHistory.seen[ev.id] == null) ws.eventHistory.seen[ev.id] = now;
+    ws.pendingChoice = { id: ev.id, at: now, tier: ev.tier, nature: ev.nature,
+      via: via, foe: { nm: foe.nm, src: foe.src, realm: foe.realm, power: foe.power } };
+    if (ctx && ctx.log) ctx.log('event', SQ.t(via === 'revenge' ? 'event.ambush.log.revenge' : 'event.ambush.log.ambush', { name: foe.nm }, 'xiuxian'));
+    return { id: ev.id, pending: true, via: via, foe: ws.pendingChoice.foe };
+  }
+  /* 独立通道（tags）不进 buildPool ⇒ 模板上的 cooldownHours 不会自动生效；这里按**读端同一条判据**
+   * 自查（照 events.buildPool 那个式子），否则就是「写了冷却没人接」——审计 A8 那一族的成因形态。 */
+  function foeReady(ws, pack, D, id, now) {
+    var ev = SQ.Events.findById(pack, id);
+    var cdH = ev && ev.cooldownHours != null ? ev.cooldownHours : null;
+    var cd = (ws.eventCooldowns || {})[id];
+    return !(cdH != null && cd != null && now < cd + cdH * 3600 * 1000);
+  }
+  function ambushTick(ws, pack, D, dtMs, now, ctx) {
+    var A = D.AMBUSH;
+    if (ws.pendingChoice || !(dtMs > 0)) return null;
+    /* 寻仇链优先（有仇必偿，压过随机袭击）：冷却未到就整段等下一次 tick。
+     * 敌手不从三池取——「族中高手」是被袭杀者的族人，屏上如实写来历，不拿旧相识冒充（同 N33 那一形）。 */
+    var rv = ws.revenge;
+    if (rv) {
+      if (now < (rv.nextAt || 0)) return null;
+      var realm = Math.min((ws.realm || 0) + 1, D.REALMS.length - 1);
+      var foe = { src: 'clan', nm: SQ.t('event.ambush.foe.clan', { foe: rv.foe || '' }, 'xiuxian'),
+        realm: realm, power: Math.round(D.REALMS[realm].power * A.REVENGE_K) };
+      return foeFire(ws, pack, D, 'ambush_revenge', foe, now, ctx, 'revenge');
+    }
+    ws.ambushClock = (ws.ambushClock || 0) + dtMs;
+    if (ws.ambushClock < A.ROLL_MS) return null;
+    ws.ambushClock = 0;                       /* 一格一掷：没中也把这一格的花掉（不欠概率） */
+    var karma = ws.karma || 0;               /* 现行善恶值（recalcDerived 已覆盖式重算，与名号/档位同一把尺） */
+    if (!karma) return null;                  /* 善恶未著 = 无人讨你 */
+    var p = A.P_BASE + (A.P_MAX - A.P_BASE) * Math.min(1, Math.abs(karma) / A.K_REF);
+    if (Math.random() >= p) return null;
+    /* 正道深 ⇒ 魔道来袭；魔道深 ⇒ 正道讨伐。左道（karma 恰 0）已在上面 return null。
+     * 冷却自查放在取人**之前**：独立通道不进 buildPool，模板上的 cooldownHours 若不在此读一次，
+     * 就只是写在档上的装饰（A8「写了没人接」那一族）。 */
+    var idA = karma > 0 ? 'ambush_by_evil' : 'ambush_by_right';
+    if (!foeReady(ws, pack, D, idA, now)) return null;
+    var g = foeGuest(ws, pack, D, A.FOE_K);
+    if (!g) return null;
+    return foeFire(ws, pack, D, idA, g, now, ctx, 'ambush');
+  }
+  /* 寻仇收益倍率（ev.escalate 的加成源，events.resolveBranch 经 worldSystems 读这一处） */
+  function escalationOf(ws) {
+    var A = D.AMBUSH;
+    var n = (ws.revenge && ws.revenge.n) || 0;
+    return Math.min(A.STREAK_CAP, 1 + n * A.STREAK_STEP);
+  }
+  /* 结算后的链条账（actions.resolveChoice 与 onEventResolved 同点位调用）：
+   * 胜 ⇒ 连胜 +1、进 10 分钟冷却（冷却后继续下一轮，奖励按上式递增）；
+   * 败 ⇒ 链断（道伤已由 failE 落账），**不进冷却**——用户定的「失败惩罚更重」在此。
+   * ⚠️ 调用时 pendingChoice 已被 resolveBranch 清掉 ⇒ 人名取链条自己那份（ws.revenge.foe），
+   *    别回头去读刚被清空的槽（读到 null 就是一条「{foe} 之仇」的空花括号）。 */
+  function ambushSettled(ws, pack, D, evId, pass, now, log) {
+    if (evId !== 'ambush_revenge' || !ws.revenge) return null;
+    if (!pass) {
+      var avenger = ws.revenge.foe || '';
+      ws.revenge = null;
+      if (log) log('event', SQ.t('event.ambush.log.chainend', { foe: avenger }, 'xiuxian'));
+      return { chain: 0, ended: true };
+    }
+    ws.revenge.n = (ws.revenge.n || 0) + 1;
+    ws.revenge.nextAt = now + D.AMBUSH.REVENGE_CD_MS;
+    if (log) log('event', SQ.t('event.ambush.log.chainwin', { n: ws.revenge.n, m: Math.round(D.AMBUSH.REVENGE_CD_MS / 60000) }, 'xiuxian'));
+    return { chain: ws.revenge.n, nextAt: ws.revenge.nextAt };
+  }
+  /* 袭杀满 KILL_MAX 次 ⇒ 该天骄身死 ⇒ 播种寻仇链（prodigy.js 的 killOff 出榜之后调用）。
+   * 已有链在场 = 覆盖（同时只有一份仇；做成容器就会随名录长档，本仓吃过两次）。 */
+  function revengeArm(ws, pack, D, foeName, now) {
+    ws.revenge = { n: 0, nextAt: now, foe: foeName || '' };
+    ws.ambushClock = 0;                     /* 有仇在先，随机袭击这一格作废（不双线程挤同一枚 pendingChoice） */
   }
 
   var pack = {
@@ -725,7 +858,12 @@
       tribLoss: function (ws, pk, DD, mods) { return SQ.XTrib.loss(ws, pk, DD, mods); },
       /* 寿元 / 道伤三口（寿元批 §6.1A）：core.claimInner 取 cause 判死并走既有转世事务，
        * realm.js 渡劫成败两侧打伤/涤伤，视图只读 lifeInfo 的派生数——三处都不碰表 */
-      lifeInfo: lifeInfo, daoHit: daoHit, daoCleanse: daoCleanse
+      lifeInfo: lifeInfo, daoHit: daoHit, daoCleanse: daoCleanse,
+      /* 袭击 / 寻仇四口（第卌四批 §6.1B）：daoAdd = 道伤加层唯一写口（渡劫阶梯与事件 failE 共用）；
+       * ambushTick 由本包 claim 的在线段调用；ambushSettled 由 actions.resolveChoice 调用；
+       * escalationOf 由 events.resolveBranch 在 ev.escalate 时读（收益递增的那一乘） */
+      daoAdd: daoAdd, ambushTick: ambushTick, ambushSettled: ambushSettled,
+      escalationOf: escalationOf, revengeArm: revengeArm
     }
   };
 

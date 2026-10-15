@@ -251,6 +251,13 @@
         ws.stones = Math.round(Math.max(0, ws.stones * (1 + spN)));
         noteStones(ws, sBefore2);
       }
+      if (e.dao != null) {
+        /* 道伤加层（第卌四批 · 袭击/寻仇的败绩代价）：一律走世界包 `daoAdd` 那唯一写口——
+         * 封顶与「只在跨过 warn 那一层写一条」的降噪纪律在渡劫阶梯那边已经有一份，不在此重写。 */
+        if (pack.worldSystems && pack.worldSystems.daoAdd) {
+          pack.worldSystems.daoAdd(ws, e.dao, ctx && ctx.log, 'event');
+        }
+      }
       if (e.qi != null) {
         var nq = rollRange(e.qi);
         if (nq < 0) nq = nq * negMul;
@@ -777,6 +784,16 @@
         var Q = SQ.Prodigy.powerOf(ws, pr, D) * (1 + (Math.random() * 2 - 1) * jit);
         return { type: type, pass: Pp > Q * 1.01, power: Pp, need: Q };
       }
+      if (type === 'ambushFoe') {
+        /* 敌手快照判定（第卌四批 · 数值详设 §6.1B）：与切磋同一把抖动（SPAR_JITTER 单源，不另立），
+         * 对手 = pendingChoice.foe 的**触发时刻快照**——名号/战力在挂起期间不随名录漂移，
+         * 所以这一族不需要「身份指纹回查」：判定对象就是那份快照本身，没有第二个可换的指针。 */
+        var foeA = ws.pendingChoice && ws.pendingChoice.foe;
+        if (!foeA || !(foeA.power > 0)) return { type: type, pass: false };
+        var jitA = ((D.PRODIGY || {}).SPAR_JITTER) || 0.10;
+        var Pa = SQ.Mods.powerOf(ws, pack, D, mods) * (1 + (Math.random() * 2 - 1) * jitA);
+        return { type: type, pass: Pa > foeA.power * 1.01, power: Pa, need: foeA.power };
+      }
       return { type: type, pass: true }; /* 未知类型宽松放行（内容 lint 在 audit 拦截） */
     },
 
@@ -813,6 +830,12 @@
           if (n > 0) n = Math.round(n * mult);
           applied.stones = (applied.stones || 0) + n;
           return { stones: n };
+        case 'stonesPct':
+          /* 按比例出血（第卌四批 · 认输买平安）：负值走 applyEffects 既有 stonesPct 通道（取整 + 下限 0
+           * + noteStones 真值入账，#113 恒等式自动续绿）；不乘 mult——它不是「收益」，没有减半一说 */
+          n = rollRange(g.pct);
+          applied.stonesPct = Math.round(((applied.stonesPct || 0) + n) * 1000) / 1000;
+          return { stonesPct: n };
         case 'qi':
           n = rollRange(g.n) * scales.qi;
           if (n > 0) n = n * mult;
@@ -940,6 +963,15 @@
       var prodigyPid = (ws.pendingChoice && ws.pendingChoice.id === evId && ws.pendingChoice.prodigy) || null;
       (br.gain || []).forEach(function (g) {
         if (g.type === 'bond' && g.npc === '$prodigy' && prodigyPid) g = Object.assign({}, g, { npc: prodigyPid });
+        /* 收益递增载体（第卌四批 · 族中寻仇链 `ev.escalate`）：倍率只乘灵石那一项，且**必须先复制对象**——
+         * `br.gain` 是模板里的共享字面量，就地改 n 会把下一次结算一起污染（applyEffects 写传入对象那次
+         * 同族缺陷的教训，第廿四批在册）。倍率由世界包给（连胜计数在它那儿），封顶 STREAK_CAP 也在那儿。 */
+        if (ev.escalate && g.type === 'stones' && pack.worldSystems && pack.worldSystems.escalationOf) {
+          var escG = pack.worldSystems.escalationOf(ws);
+          if (escG !== 1) {
+            g = Object.assign({}, g, { n: Array.isArray(g.n) ? [g.n[0] * escG, g.n[1] * escG] : g.n * escG });
+          }
+        }
         var e = SQ.Events.gainToEff(g, mult, scales, applied);
         if (!e) return;
         /* 独占授予条件 = 指定分支 + 判定链全过（专属事件池 v2.0.1 §一）；

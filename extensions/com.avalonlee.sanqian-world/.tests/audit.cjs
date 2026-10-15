@@ -248,15 +248,19 @@ const SQ = sandbox.window.SQ;
   ['huang', 'xuan', 'di', 'tian'].forEach((tt) => {
     if (lexAll['skill.tier.' + tt] == null) missing.push('skill.tier.' + tt);
   });
-  /* 事件族 v2（平铺池）：event.{id}.name/.story + 三分支 .branch.{right|evil|neutral} */
+  /* 事件族 v2（平铺池）：event.{id}.name/.story + 分支文案 = **模板自己声明的那几支**
+   * （第卌四批改口：原先一律要求 right/evil/neutral 三件齐全，而「族中寻仇」按设计只给迎战一条路——
+   *   照旧写法只能逼词表补两条永不消费的孤儿键，那是拿判据逼出假数据）；
+   *   无 choices 的旧形仍按三件兜底，覆盖面不缩。 */
   for (const w of ['common', 'xiuxian']) {
     const list = Array.isArray(SQ.EVENTS[w]) ? SQ.EVENTS[w] : [];
     for (const ev of list) {
       if (lexAll['event.' + ev.id + '.name'] == null) missing.push('event.' + ev.id + '.name');
       if (lexAll['event.' + ev.id + '.story'] == null) missing.push('event.' + ev.id + '.story');
-      for (const bk of ['right', 'evil', 'neutral']) {
+      const bks = Object.keys(ev.choices || {});
+      (bks.length ? bks : ['right', 'evil', 'neutral']).forEach((bk) => {
         if (lexAll['event.' + ev.id + '.branch.' + bk] == null) missing.push('event.' + ev.id + '.branch.' + bk);
-      }
+      });
     }
   }
   /* 事件等级/性质/分支标签族 + 独占法宝族（gear.ex.{id} 与定名 special） */

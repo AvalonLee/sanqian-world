@@ -1019,6 +1019,40 @@
         evil: { karma: -6, gain: [{ type: 'stones', n: [900, 1500] }],
           check: { type: 'attr', attr: 'shen', dc: 'medium', failE: { qiPct: [-0.10, -0.06] } } },
         neutral: { karma: 1, gain: [{ type: 'qi', n: [400, 800] }] }
+      } },
+    /* ── 袭击 / 族中寻仇（第卌四批 2026-10-16 · 数值详设 §6.1B · 设计稿转正）────────────
+     * 独立通道 tags:['ambush'] / tags:['revenge']：**不进常规抽取池**（buildPool 见 ev.tags 即跳），
+     * 由世界包 `ambushTick` 在在线时钟上按 |karma| 曲线掷判后定点触发（与 tiandao_* 的 fireTagged 同形）。
+     * 分支键与道德无关，只是三个动作：`right` 迎战 / `neutral` 避战 / `evil` 认输——
+     * 模板带 `tactical: true`，界面据此**不打**「正道/魔道/左道」前缀（打上了就是拿战术选项冒充善恶抉择）。
+     * karma 三支一律 0：这一族若给善恶定值，会把 §6.3 阵营主轴（魔 < 左 < 正）当成第四根加项柱子推歪，
+     *   而它本来的定位是「武力争斗的后果」而非「善恶判定」——主轴由 `sim-event-economy` 每批复跑守。 */
+    { id: 'ambush_by_evil', tier: 'di', nature: 'bad', tags: ['ambush'], tactical: true, cooldownHours: 12,
+      choices: {
+        /* 迎战：敌手 = 触发时刻的快照（名号来自旧相识 / 天骄名录，战力按高一境门槛定档） */
+        right: { karma: 0, gain: [{ type: 'stones', n: [600, 1200] }, { type: 'qi', n: [400, 900] }],
+          check: { type: 'ambushFoe', failE: { dao: 2, qiPct: [-0.10, -0.06] } } },
+        /* 认输：交出随身灵石的一成半买平安（无判定——愿意付就有结果），内伤一分不添 */
+        evil: { karma: 0, gain: [{ type: 'stonesPct', pct: [-0.15, -0.15] }] },
+        /* 避战：一走三不知，无收益也无惩罚 */
+        neutral: { karma: 0 }
+      } },
+    { id: 'ambush_by_right', tier: 'di', nature: 'bad', tags: ['ambush'], tactical: true, cooldownHours: 12,
+      choices: {
+        right: { karma: 0, gain: [{ type: 'stones', n: [600, 1200] }, { type: 'qi', n: [400, 900] }],
+          check: { type: 'ambushFoe', failE: { dao: 2, qiPct: [-0.10, -0.06] } } },
+        evil: { karma: 0, gain: [{ type: 'stonesPct', pct: [-0.15, -0.15] }] },
+        neutral: { karma: 0 }
+      } },
+    /* 族中高手寻仇（袭杀满 KILL_MAX 次 ⇒ 对方全族下场）：**只给迎战一条路**（choices 里只有 right ⇒
+     * 界面那一排按钮自然只剩一枚，不需要「置灰的避战」这种点了没用的东西）。
+     * escalate = 收益随本链连胜递增（倍率取世界包 escalationOf，硬顶 STREAK_CAP）；
+     * 败 = 较高道伤 +4 层且**链条判定结束**（ambushSettled 把 ws.revenge 清空，不进冷却）。 */
+    { id: 'ambush_revenge', tier: 'tian', nature: 'bad', tags: ['revenge'], tactical: true, escalate: true,
+      choices: {
+        right: { karma: 0, gain: [{ type: 'stones', n: [1500, 3000] }, { type: 'qi', n: [800, 1600] },
+            { type: 'dropGear', tierMin: 3 }],
+          check: { type: 'ambushFoe', failE: { dao: 4, qiPct: [-0.15, -0.10] } } }
       } }
   ];
 })();
