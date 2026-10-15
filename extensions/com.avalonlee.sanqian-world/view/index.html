@@ -2219,7 +2219,7 @@
         (isMain ? ' <span class="special-mark">' + esc(t('arts.main')) + '</span>' : '') +
         ' <span class="hint">Lv' + lv + '</span></div>';
       h += '<div class="meta">' + esc(t('skill.' + id + '.desc')) + (lv > 0 ? ' ×' + lv : '') + '</div>';
-      h += '<div class="meta"><span class="special-mark">' + esc(t('arts.special')) + ' · ' + t('special.' + a.special.pool + '.name') + '</span> · ' +
+      h += '<div class="meta">' + (a.special ? '<span class="special-mark">' + esc(t('arts.special')) + ' · ' + t('special.' + a.special.pool + '.name') + '</span> · ' : '') +
         esc(t('skill.nurture.' + a.attr)) + '</div>';
       h += '<div class="meta">' + esc(t('arts.practice', { p: Math.floor(SQ.Arts.practiceOf(w, id, d)) })) + '</div>';
       h += '</div>';
@@ -2859,7 +2859,7 @@
              (isMain ? '<span class="corner maincorner">' + esc(t('arts.main')) + '</span>' : '') +
              '<div class="tname">' + esc(t('skill.' + id + '.name')) + '</div>' +
              '<div class="teff">Lv' + lvS + '</div>' +
-             '<div class="tdesc">' + esc(t('special.' + a.special.pool + '.name')) + '</div>' +
+             '<div class="tdesc">' + esc(a.special ? t('special.' + a.special.pool + '.name') : t('skill.' + id + '.desc')) + '</div>' +
              /* 精通迷你条（修行状态批）：主修增速最高（issue #3 起看玩家点定的那一格） */
              '<div class="tpract"><span class="pbar"><i style="width:' +
                (lvS >= d.ARTS_MAX_LV ? 100 : prS).toFixed(0) + '%"></i></span><span class="hint">' +
@@ -2947,7 +2947,10 @@
       ' <span class="tierbadge ' + artTierCls(a) + '">' + esc(t('skill.tier.' + a.tier)) + '</span>' +
       (slotted ? '<span class="tierbadge t1">' + esc(t('zone.current')) + '</span>' : '') + '</div>';
     h += '<div class="hint">Lv' + lv + (lv >= d.ARTS_MAX_LV ? ' · ' + esc(t('arts.max')) : '') +
-      ' · ' + esc(t('special.' + a.special.pool + '.name')) +
+      /* 融合自创部**允许没有签名词条**（`fusion.js:243/272` 起 `special` 可为 null；真档实测：
+       * 一部没继承到词条的 c1 就让整页抛 `reading 'pool'` 空白）⇒ 三处屏上读数全部认 null，
+       * 判据 = 走查 `verify-ui-arts` S 组（S1 整页非空 ‖ S2 那张卡仍列 Lv/滋养 ‖ S3 不许出现「签名 ·」） */
+      (a.special ? ' · ' + esc(t('special.' + a.special.pool + '.name')) : '') +
       ' · ' + esc(t('skill.nurture.' + a.attr)) + '</div>';
     /* 走查 v2.7 §3：功法带来的具体增益（当前等级实际生效值，多效果并列）。
      * 缩放口径与消费端 `mods.js` 逐字同源：`effectsFixed` 列内字段 Lv1 即全效、**不随等级**

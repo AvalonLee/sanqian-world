@@ -27,6 +27,9 @@ dist-ssr
 # 运行时存档：玩家实时档由平台落在扩展目录，离线留底走 sanqian-ops/sq-snapshot.sh
 # （镜像目录 extensions/** 里的同名件同样排除）
 .storage.json
+# 宿主侧轮转/备份副本（2026-10-15 实测：玩家在线时扩展目录里长出 `.storage.json.0` = 78,735B 真档）
+# ——同样是玩家数据，不是源码；`.storage.json` 这条**不匹配带后缀的它**，故单独列一行
+.storage.json.*
 
 # DoD 逐件读数落盘（2026-10-14 结构整治批B）：运行时产物，现行读数以 docs/ledger.json 与各文件哨兵段为准
 # 不带路径前缀 = 任意层级都忽略（2026-10-14 GitHub 整理批：.tests 已随项目本体搬到
