@@ -17,6 +17,16 @@
    * 取拉丁哨兵词 = A1 源码零裸写纪律 + 与法宝 id 空间零碰撞（修仙包 46 件 id 恒 3 字符）。 */
   var HEIR_NONE = 'none';
 
+  /* 转世通道名键（词表 legacy.ui.*）——寿元批加「寿尽坐化 / 道伤崩碎」两档。
+   * 键名字面量写在表里 = A6 反向扫描认它已消费（动态 `t('legacy.ui.' + ch)` 不留字面量 ⇒ 判孤儿）。 */
+  var CH_NAME = {
+    feisheng: 'legacy.ui.feisheng', bingjie: 'legacy.ui.bingjie',
+    shoujin: 'legacy.ui.shoujin', daoshang: 'legacy.ui.daoshang'
+  };
+  /* 被动了结两通道（寿元耗尽 / 道伤崩碎）：**不是玩家主动兵解** ⇒ 不发「舍身证道」成就、
+   * 不进 stats.dissolutions，单记 stats.deaths（原式把非飞升一律折成 bingjie 会说谎，寿元批收口） */
+  var CH_DEATH = { shoujin: 1, daoshang: 1 };
+
   /* ── meta 层 schema（§8.1 唯一事实源）────────────────── */
   function metaBlank() {
     return {
@@ -27,7 +37,7 @@
       eternalProdigy: null, heirTreasure: null, heirSpirit: null, heirChoice: null, pendingRebirth: null,
       lastBonds: [],
       stats: {
-        lives: 0, ascensions: 0, dissolutions: 0,
+        lives: 0, ascensions: 0, dissolutions: 0, deaths: 0,
         realmMax: 0, tribWin: 0, tribFail: 0, tribAttempts: 0, zonesFirst: 0,
         officeMax: 0, rankMax: 0, rankScored: 0, bestLifeText: '',
         omensSeen: 0, defyTotal: 0, acceptTotal: 0, defyMax: 0, immThisLife: 0
@@ -399,10 +409,11 @@
     var D = pack.data;
     var L = D.LEGACY;
     var ws = s.worlds[wid];
-    var channel = pr.channel === 'feisheng' ? 'feisheng' : 'bingjie';
+    var channel = CH_NAME[pr.channel] ? pr.channel : 'bingjie';   /* 在册四通道取原值，脏值回落 bingjie（寿元批：原式非飞升即折成 bingjie ⇒ 死世谎报兵解） */
     /* 终局成就结算前补发（重放确定性 #201）：正常事务与脏档恢复两路径统一在此——
-     * 成就称号先进墙，本世 title 结算行才在首次与重放间稳定（幂等键防重发） */
-    var termIds201 = channel === 'feisheng' ? ['achv_feisheng'] : ['achv_bingjie'];
+     * 成就称号先进墙，本世 title 结算行才在首次与重放间稳定（幂等键防重发）。
+     * 被动了结两通道不发成就（舍身证道 = 玩家主动兵解的荣誉，死世不配） */
+    var termIds201 = channel === 'feisheng' ? ['achv_feisheng'] : CH_DEATH[channel] ? [] : ['achv_bingjie'];
     if (channel === 'feisheng' && ws.tribMarks && ws.tribMarks.yuanman) termIds201.push('achv_yuanman');
     grantTerminalAchvs(s, termIds201, pr.at || now);
     /* meta 入账（幂等：earnedKeys 键判重——重放零重复入账，#201） */
@@ -412,7 +423,7 @@
     var st = meta.stats;
     if (st.lives < (pr.expectLives || st.lives + 1)) {
       st.lives = pr.expectLives || (st.lives + 1);
-      if (channel === 'feisheng') st.ascensions += 1; else st.dissolutions += 1;
+      if (channel === 'feisheng') st.ascensions += 1; else if (CH_DEATH[channel]) st.deaths += 1; else st.dissolutions += 1;
       st.realmMax = Math.max(st.realmMax, ws.realm || 0);
       st.tribWin += (ws.tribulation ? ws.tribulation.success || 0 : 0) + (channel === 'feisheng' ? 1 : 0) + ((ws.tiandao || {}).nijieWins || 0);
       st.tribAttempts += (ws.tribulation ? ws.tribulation.attempts || 0 : 0);
@@ -472,7 +483,7 @@
       s.profile.createdAt = 0;
       s.profile.alignBias = 'neutral';
       SQ.Log.push(fresh, 'sys', SQ.t('legacy.log.rebirth', {
-        life: meta.stats.lives, ch: SQ.t(channel === 'feisheng' ? 'legacy.ui.feisheng' : 'legacy.ui.bingjie', null, wid)
+        life: meta.stats.lives, ch: SQ.t(CH_NAME[channel], null, wid)
       }, wid));
       /* ⑥ 转世天象入队（天道卷 v1.1 节点 7；事务外语义——失败不阻塞） */
       if (SQ.Tiandao && SQ.Tiandao.pushOmen) {

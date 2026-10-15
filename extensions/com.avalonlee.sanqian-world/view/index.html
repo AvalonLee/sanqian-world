@@ -1436,6 +1436,7 @@
     rumorSeenAt: null,                      /* G17 传闻红点基线（走查修复）：已读时点，其后出生的传闻才亮 */
     feedExpand: false, lastFeedKey: '',     /* 奇遇页叙事流折叠态（F2）+ 未读判定基线（最新条标识） */
     seenOfflineAt: 0,                       /* 出关呈报 at 键控 · 会话一次（F4） */
+    seenDeathAt: 0, deathPending: false,    /* 坐化呈报（寿元批）：同 at 键控 · 确定后进创角 */
     ioErrSeen: null,                        /* 存档 I/O 失败提示去重（平台关卡 #89） */
     caveStory: {},                          /* 洞府叙事展开态（B3；未达资格者本就不给展开） */
     tribSnap: null,                         /* 渡劫前 {p, loss} 快照（F7 复盘行） */
@@ -2261,7 +2262,10 @@
         '<span class="rrtag">' + esc(tag) + '</span></div>' +
         '<div class="rrsub">' + esc(t('realm.info.base', { n: R.baseQi })) + ' · ' +
         esc(t('realm.info.power', { n: SQ.fmt(R.power) })) + '</div>' +
-        '<div class="rrsub">' + esc(gate) + '</div></div>';
+        /* 寿元同行列出（寿元批 §6.1A）：「破境即得寿」这条因果要在境界一览里看得见，
+         * 否则玩家只在本世行见到一串数字、不知为何要抢岁月。表 0 = 无尽（真仙不受寿限）。 */
+        '<div class="rrsub">' + esc(gate) + ' · ' + esc((d.LIFESPAN[i] || 0) > 0
+          ? t('realm.info.life', { n: SQ.fmt(d.LIFESPAN[i]) }) : t('realm.info.life.eternal')) + '</div></div>';
     });
     $('mrm-list').innerHTML = h;
     $('mrm-close').textContent = t('ui.close');
@@ -2294,6 +2298,20 @@
       }).join('') + '</div></div>';
     h += '<div class="kv"><span class="hint">' + esc(t('realm.info.cur', { realm: t('realm.' + w.realm) })) + '</span>' +
       '<button class="linkbtn chip" data-act="openRealm">' + esc(t('realm.info.link')) + '</button></div>';
+    /* 寿元 / 道伤两行（寿元批 §6.1A）：一律取世界包 lifeInfo 的派生数，视图零自拼口径
+     * （第廿五批「同源」纪律沿用）。大限将至整行转红——引擎侧刻意**不写日志**：每秒 tick
+     * 重绘会刷屏（第廿八批「转世结算刷屏」同族坑），警示只在这一屏。道伤满 1 层才报，
+     * 岁月疗养中的零点几层不占行。 */
+    var li = p.worldSystems.lifeInfo(w);
+    h += '<div class="kv"><span' + (li.near ? ' class="bad"' : '') + '>' + esc(
+      li.eternal ? t('life.row.eternal', { used: SQ.fmt(Math.floor(li.used)) })
+        : t('life.row', { used: SQ.fmt(Math.floor(li.used)), max: SQ.fmt(li.max), left: SQ.fmt(Math.ceil(li.left)) })
+      ) + '</span>' + (li.near ? '<span class="bad">' + esc(t('life.near', { left: SQ.fmt(Math.ceil(li.left)) })) + '</span>' : '') + '</div>';
+    if (li.daoLv >= 1) {
+      h += '<div class="kv"><span' + (li.daoNear ? ' class="bad"' : '') + '>' +
+        esc(t('daoshang.row', { n: li.daoLv, cap: li.daoMax })) + '</span>' +
+        (li.daoNear ? '<span class="bad">' + esc(t('daoshang.near')) + '</span>' : '') + '</div>';
+    }
     /* 修为大数字（修行状态批 v2.1）：**全位数字逐秒跳动**——不带 万/亿 缩放（缩放会把
      * 低境界产出量化到 0.1万/步，数字长时间纹丝不动）、不带「修为」单位字，只留 / 上限；
      * 每秒 tick 由 renderAll 重绘，配合全位数字形成最直观的增长动效 */
@@ -4642,6 +4660,7 @@
     $('c1-err').classList.add('hide');
     ui.tab = 'idle'; ui.newLogDot = false; ui.newFeedDot = false;
     ui.lastLogKey = ''; ui.lastFeedKey = ''; ui.seenOfflineAt = 0; ui.spouseLogSeen = 0;
+    ui.seenDeathAt = 0; ui.deathPending = false;   /* 坐化呈报基线随清档复位（寿元批） */
     ui.announcedLogKey = ''; ui.karmaRank = '';   /* 名号段位基线复位（新档重新入世后由 enterMain 对齐） */
     /* 走查 v2.5 §6：重置后四类红点基线清零（新档从头计数） */
     ui.lastArtsSig = 0; ui.lastTreasureSig = 0; ui.lastBondSig = 0; ui.lastShopSig = 0;
@@ -5122,8 +5141,29 @@
     $('mo-ok').textContent = t('offline.report.ok');
     $('modal-offline').classList.remove('hide');
   }
+  /* 坐化呈报（寿元批 2026-10-15 · §6.1A）：引擎在 claim 内已经判死、结完遗泽、把 ws 换成新世，
+   * 这里只交代「为什么死 + 这一世带走了什么」，确定即进创角——绝不做「无声被扔回创角屏」。
+   * 与出关呈报同一浮层组件（不加新 DOM id ⇒ A3 零新增面），at 键控会话一次。 */
+  function showDeathReport() {
+    var ld = ws().lastDeath;
+    if (!ld) return;
+    ui.seenDeathAt = ld.at;
+    ui.deathPending = true;
+    $('mo-title').textContent = t('life.death.title');
+    $('mo-sub').textContent = t(ld.cause === 'daoshang' ? 'life.death.daoshang' : 'life.death.shoujin');
+    $('mo-stats').innerHTML = '';
+    $('mo-hint').textContent = t('life.death.stats', {
+      age: SQ.fmt(ld.age || 0),
+      realm: t('realm.' + Math.min(ld.realm || 0, D().REALMS.length - 1)),
+      dao: ld.dao || 0, n: SQ.fmt(ld.total || 0)
+    });
+    $('mo-ok').textContent = t('life.death.ok');
+    $('modal-offline').classList.remove('hide');
+  }
   $('mo-ok').addEventListener('click', function () {
     $('modal-offline').classList.add('hide');
+    /* 死后的「转世重生」= 进创角（与兵解/飞升收线同一条路）；出关呈报仍走原路重绘 */
+    if (ui.deathPending) { ui.deathPending = false; enterRebirthCreation(); return; }
     renderAll();
   });
 
@@ -5940,7 +5980,9 @@
     var h = '<div class="pagehead split"><div class="chips"><button class="on">' + esc(t('legacy.system')) + '</button></div>' +
       '<span class="tdtitle">' + esc(t('legacy.ui.balance', { n: SQ.fmt(meta.karma || 0) })) + '</span></div>';
     h += '<div class="kv"><span class="hint">' + esc(t('legacy.ui.stats', {
-      lives: st.lives || 0, asc: st.ascensions || 0, dis: st.dissolutions || 0, realm: t('realm.' + Math.min(st.realmMax || 0, d.REALMS.length - 1))
+      lives: st.lives || 0, asc: st.ascensions || 0, dis: st.dissolutions || 0,
+      death: st.deaths || 0,   /* 身死 = 被动了结（寿尽 / 道伤）计数，与玩家主动兵解分列（寿元批） */
+      realm: t('realm.' + Math.min(st.realmMax || 0, d.REALMS.length - 1))
     })) + '</span></div>';
     /* 飞升 / 兵解入口 */
     if (w.realm >= d.REALMS.length - 1 && SQ.Legacy) {
@@ -7535,7 +7577,9 @@
   function afterClaim(prevAttempts) {
     var w = ws();
     checkIo();
-    if (w.pendingChoice) {
+    /* 坐化呈报排在弹层栈首（寿元批）：人死在这一刻，抉择 / 出关 / 渡劫结果都属于上一世了 */
+    if (w.lastDeath && w.lastDeath.at !== ui.seenDeathAt) showDeathReport();
+    else if (w.pendingChoice) {
       /* 自动批：自动奇遇开启 → 不弹抉择模态，自动择分支结算；关闭 → 维持弹窗 */
       if (autoEventOn()) autoResolveChoice();
       else showChoice();
@@ -7690,6 +7734,10 @@
     show('loading');
     try {
       var s = await SQ.claim(state);
+      /* 死在门口（寿元批）：boot 那一次离线结算里就已完成强制转世 ⇒ 档案名已空、进不了主界面。
+       * 不能把人无声扔在创角屏——先演坐化呈报，确定后仍是创角流程。 */
+      var ld0 = ((s.worlds || {})[s.profile.worldId] || {}).lastDeath;
+      if (!hasProfile(s) && ld0 && ld0.at !== ui.seenDeathAt) { show('c1'); showDeathReport(); return; }
       if (hasProfile(s)) enterMain();
       else show('c1');
     } catch (e) {

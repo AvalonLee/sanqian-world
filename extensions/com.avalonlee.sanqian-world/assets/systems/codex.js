@@ -288,7 +288,11 @@
       var gd = SQ.gameDateStr(profile, ws, c.at, wid);
       lines.push(gd ? gd + ' · ' + txt : txt);
     });
-    var endTxt = SQ.t(channel === 'feisheng' ? 'codex.bio.line.ascend' : 'codex.bio.line.dissolve', null, wid);
+    /* 终行按通道取四行（寿元批加「寿尽 / 道伤」两行）：原式非飞升一律落「兵解转世」⇒ 死世的
+     * 传记会说谎（玩家没兵解，是熬死了）。脏通道仍回落 dissolve，与 legacy.js 的白名单同口径。 */
+    var BIO_LINE = { feisheng: 'codex.bio.line.ascend', bingjie: 'codex.bio.line.dissolve',
+      shoujin: 'codex.bio.line.shoujin', daoshang: 'codex.bio.line.daoshang' };
+    var endTxt = SQ.t(BIO_LINE[channel] || BIO_LINE.bingjie, null, wid);
     var endGd = SQ.gameDateStr(profile, ws, now, wid);
     lines.push(endGd ? endGd + ' · ' + endTxt : endTxt);
     /* ③ 统计摘要（≤60 字模板拼装） */
@@ -315,7 +319,10 @@
     else xing = 1 + Math.floor(Math.random() * 5);
     var zhong;
     if (channel === 'feisheng') zhong = ((ws.tribMarks || {}).yuanman ? 2 : 1);
-    else zhong = (ws.realm >= 5 ? 4 : 3);
+    else if (channel === 'bingjie') zhong = (ws.realm >= 5 ? 4 : 3);
+    /* 被动了结走五型（「未能登天，未能兵解」——三、四型都写自散修为，死世用即说谎）。
+     * 五型此前**写了却抽不到**（zhong 只有 1~4 四个出口），本批第一次真把它接上。 */
+    else zhong = 5;
     var officeTxt = (ws.factionId && SQ.Factions)
       ? SQ.t('faction.rank.' + SQ.Factions.rankOf(ws, D), null, wid) : '';
     var text =

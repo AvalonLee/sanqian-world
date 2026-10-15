@@ -43,6 +43,22 @@
     'mode.log.seclude': '潜心静修，谢客不出——修为全速，不问外物',
     'mode.log.venture': '整装出行，前往秘境历练——灵石与机缘，皆在险中求',
 
+    /* ── 寿元 / 道伤（寿元批 2026-10-15 · 数值详设 §6.1A）──
+     * 表与判据全在 data.js + 世界包 lifeInfo，这里只出话；数字一律由调用侧填占位符。 */
+    'life.row': '寿元 {used}/{max} 年 · 尚余 {left} 年',
+    'life.row.eternal': '寿元无尽 · 已历 {used} 年',
+    'life.near': '大限将至！尚余 {left} 年',
+    'daoshang.row': '道伤 {n}/{cap} 层',
+    'daoshang.near': '道伤深重，再败即此世了结',
+    'daoshang.log.warn': '道伤入体已 {n} 层（上限 {cap}）——再败即此世了结',
+    'realm.info.life': '寿元 {n} 年', 'realm.info.life.eternal': '寿元无尽',
+    /* 坐化呈报（引擎写 lastDeath，界面按 at 键控演一次；确定后进创角） */
+    'life.death.title': '身死道消',
+    'life.death.shoujin': '寿元耗尽，坐化于蒲团之上。此世了结，遗泽已入账。',
+    'life.death.daoshang': '道伤崩碎，伤重不治。此世了结，遗泽已入账。',
+    'life.death.stats': '享年 {age} 年 · 止于 {realm} · 道伤 {dao} 层 · 遗泽 +{n}',
+    'life.death.ok': '转世重生',
+
     /* ── 世界卡 ── */
     'world.xiuxian.name': '玄幻修仙',
     'world.tag.qi': '修为', 'world.tag.zone': '秘境', 'world.tag.trib': '渡劫',

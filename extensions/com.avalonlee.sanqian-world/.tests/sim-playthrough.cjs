@@ -907,7 +907,8 @@ async function playRoute(name, days, stepHours, opts) {
   const ONLINE_STEPS = 24, ONLINE_MS = 30000, OFFLINE_MS = 24 * 3600000 - ONLINE_STEPS * ONLINE_MS;
   let ascended = false, ascendedAtDay = -1, life1Snap = null;
   let maxRealm = 0;
-  const stats = { claims: 0, foundBlock: {}, rebirths: [] };
+  const stats = { claims: 0, foundBlock: {}, rebirths: [], deaths: [] };
+  let deathSeen = 0;   /* 寿元批：lastDeath.at 键控，一次死只记一笔（防同一帧重复计） */
   const targetLives = opts.lives || 1;
   let livesDone = 0, routeDone = false, daysUsed = 0;
   const goalIds = opts.goalAchv || null;
@@ -953,6 +954,16 @@ async function playRoute(name, days, stepHours, opts) {
       stats.claims++;
       const w = ref.worlds[ref.profile.worldId];
       if (!w) { violations.push(name + ': ws lost at step ' + i); break outer; }
+      /* 寿元批：引擎在同一次 claim 里就可能判死并强制转世（ws 已换成新世、档案名清空）。
+       * 剧本必须接着演：记一笔 forced 后就地重铸角色——**不占本路线规划的世数预算**
+       *（终局世仍按 chains 走飞升，通过判据「至少一次飞升」不因此弱化）。 */
+      if (w.lastDeath && w.lastDeath.at !== deathSeen) {
+        deathSeen = w.lastDeath.at;
+        stats.deaths.push({ day: day, step: i, cause: w.lastDeath.cause, realm: w.lastDeath.realm,
+          age: w.lastDeath.age, dao: w.lastDeath.dao });
+        await rebirthRecreate(((ref.meta.stats || {}).lives || 0) + 1);
+        continue;
+      }
       maxRealm = Math.max(maxRealm, w.realm || 0);
       if (k === ONLINE_STEPS) continue;               /* 离线大步后不操作 */
       const r = await playerStep(ref, name + '.' + i, opts);
@@ -1018,7 +1029,7 @@ async function playRoute(name, days, stepHours, opts) {
     sect: !!(ref.worlds[ref.profile.worldId] || {}).sect,
     customs: (((ref.worlds[ref.profile.worldId] || {}).fusion || {}).customs || []).length,
     prods: ((ref.worlds[ref.profile.worldId] || {}).prodigies || []).length,
-    rebirths: stats.rebirths, goalDoneAt: stats.goalDoneAt, goals: (goalIds || []).slice(),
+    rebirths: stats.rebirths, deaths: stats.deaths, goalDoneAt: stats.goalDoneAt, goals: (goalIds || []).slice(),
     tribAtt: (ref.meta.stats || {}).tribAttempts || 0, tribWin: (ref.meta.stats || {}).tribWin || 0,
     dissolutions: (ref.meta.stats || {}).dissolutions || 0,
     codexTre: (ref.meta.codices || {}).treasure ? ref.meta.codices.treasure.length : 0,
@@ -1260,6 +1271,14 @@ async function playFuzz(round) {
       ((r.goals || []).length ? (' 目标集:' + (missGoal.length ? ('缺' + missGoal.length + '[' + missGoal.join(' ') + ']') : ('全达@第' + r.goalDoneAt + '天'))) : '') +
       ': [' + allAchv.filter(id => ids.indexOf(id) >= 0).join(' ') + ']');
   });
+
+  /* 寿元批读数：强制转世到底发生了没有、死于哪条钟。判绿之外必须把这个数打出来——
+   * 「加了个从不出事的机制」与「机制把路线全冲垮了」两种坏情况，光看 PLAYTHROUGH_ALL_GREEN 分不出来。 */
+  const deathTally = {};
+  reports.forEach(r => (r.deaths || []).forEach(d => { deathTally[d.cause] = (deathTally[d.cause] || 0) + 1; }));
+  console.log('DEATHS 强制转世 ' + Object.keys(deathTally).reduce((n, k) => n + deathTally[k], 0) + ' 次（' +
+    (Object.keys(deathTally).map(k => k + '=' + deathTally[k]).join(' ') || '零') + '）· 逐路线 ' +
+    reports.map(r => r.name + ':' + (r.deaths || []).length).join(' '));
 
   const anyAscend = reports.some(r => r.ascended);
   const anyLife2 = reports.some(r => r.lives >= 1);

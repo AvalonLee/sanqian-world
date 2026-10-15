@@ -9817,6 +9817,153 @@
         ' ‖ 滋养上界=' + nurWorst301 + '/405=' + nurCapOk301);
     })();
 
+    /* ══ #302~#304 寿元 / 道伤批（2026-10-15 · 数值详设 §6.1A）══════════════════
+     * 立因：此前本世**永不终结**（除非玩家主动兵解或飞升），修炼卡住只是原地等待——岁月这条线
+     * 根本不存在。三条判据分别钉住：流逝口径与上界取表（302）、道伤阶梯与疗养（303）、
+     * 寿尽即走既有转世事务且**不谎报兵解**（304）。 */
+    var pack302 = SQ.Worlds.xiuxian.pack, D302 = pack302.data, sys302 = pack302.worldSystems;
+    var prof302 = { talents: [] };
+    /* (a) 流逝 = 与修为同一条时钟：360 秒已结算时长恰老 1 游戏年；离线一整日只按 OFFLINE_CAP_H
+     *     封顶计老（12h ⇒ 120 年，不是 240 年）⇒ 关掉页面既少产也少老，比值不越界 */
+    var w302a = pack302.initialState();
+    pack302.claim(w302a, 360000, Date.now(), prof302, { autoTrib: false });
+    var w302b = pack302.initialState();
+    pack302.claim(w302b, 24 * 3600000, Date.now(), prof302, { autoTrib: false });
+    /* (b) 上界随境界取表；真仙档写 0 = 无尽 ⇒ 剩余不做 0−已耗 的减法、寿元吃满也不判死 */
+    var w302c = pack302.initialState();
+    var li0302 = sys302.lifeInfo(w302c);
+    w302c.realm = 5;
+    var li5302 = sys302.lifeInfo(w302c);
+    w302c.realm = D302.REALMS.length - 1; w302c.lifeUsed = 1e9;
+    var liTop302 = sys302.lifeInfo(w302c);
+    /* (c) 预警阈与判死：剩余 ≤ 上界 × LIFE_WARN_P 即 near（含等号），耗尽即 cause='shoujin' */
+    var w302d = pack302.initialState();
+    w302d.lifeUsed = D302.LIFESPAN[0] * (1 - D302.LIFE_WARN_P);
+    var near302 = sys302.lifeInfo(w302d);
+    w302d.lifeUsed = D302.LIFESPAN[0];
+    var dead302 = sys302.lifeInfo(w302d);
+    /* (d) 旧档零迁移 + 脏值收口：缺字段补 0/0/null，负数归零，道伤越界钳 cap，lastDeath 非结构归 null */
+    var n302 = SQ.normalize({ v: 1, profile: { name: '旧档' }, worlds: { xiuxian: { qi: 5 } } });
+    var n302b = SQ.normalize({ v: 1, profile: { name: '脏' },
+      worlds: { xiuxian: { lifeUsed: -5, daoShang: 9e9, lastDeath: '坏值' } } });
+    var n302again = SQ.normalize(n302);
+    ok('302', '寿元流逝与上界（§6.1A）：(a) 360 秒已结算时长 = 老 1 游戏年，离线 24h 只按 OFFLINE_CAP_H 封顶老 ' +
+      '12×10 = ' + (D302.OFFLINE_CAP_H * 10) + ' 年（与修为同一条时钟，非现实墙钟）' +
+      ' (b) 上界 === LIFESPAN[境界] 逐档对表，真仙 0 = 无尽（剩余 Infinity、寿元吃满仍不判死）' +
+      ' (c) 剩余 ≤ 上界×LIFE_WARN_P 即 near（含等号），耗尽 cause=shoujin' +
+      ' (d) 旧档缺字段补 0/0/null（零迁移）+ 负数归零 + 道伤钳 cap + lastDeath 非结构归 null + 幂等',
+      w302a.lifeUsed === 1 && w302b.lifeUsed === D302.OFFLINE_CAP_H * 10 &&
+      li0302.max === D302.LIFESPAN[0] && li0302.cause === null && li0302.near === false &&
+      li5302.max === D302.LIFESPAN[5] &&
+      liTop302.eternal === true && liTop302.left === Infinity && liTop302.cause === null &&
+      near302.near === true && near302.cause === null &&
+      dead302.cause === 'shoujin' && dead302.left <= 0 &&
+      n302.worlds.xiuxian.lifeUsed === 0 && n302.worlds.xiuxian.daoShang === 0 && n302.worlds.xiuxian.lastDeath === null &&
+      n302b.worlds.xiuxian.lifeUsed === 0 && n302b.worlds.xiuxian.daoShang === D302.DAO_SHANG.cap &&
+      n302b.worlds.xiuxian.lastDeath === null &&
+      n302again.worlds.xiuxian.lifeUsed === 0 && n302again.worlds.xiuxian.daoShang === 0,
+      '一小时=' + w302a.lifeUsed + ' 一日=' + w302b.lifeUsed + '/' + (D302.OFFLINE_CAP_H * 10) +
+      ' ‖ 表=' + D302.LIFESPAN.join('/') + ' ‖ 真仙=' + liTop302.left + '/' + liTop302.cause +
+      ' ‖ 阈上 near=' + near302.near + ' 耗尽 cause=' + dead302.cause +
+      ' ‖ 旧档=' + [n302.worlds.xiuxian.lifeUsed, n302.worlds.xiuxian.daoShang, String(n302.worlds.xiuxian.lastDeath)].join(',') +
+      ' 脏档=' + [n302b.worlds.xiuxian.lifeUsed, n302b.worlds.xiuxian.daoShang, String(n302b.worlds.xiuxian.lastDeath)].join(','));
+
+    /* #303 道伤阶梯（§6.1A 第二支钟）：加层 = min(连败, gainMax) ⇒ 1+2+3+4+5 恰吃满 cap；
+     * 成功涤 −cleanse、岁月按 healPerYear/年 缓疗；三处都经 realm.js 挂点，不许是只写在表里的死数。 */
+    var DS303 = D302.DAO_SHANG;
+    var w303 = pack302.initialState();
+    var daoSeq303 = [];
+    for (var i303 = 1; i303 <= DS303.gainMax; i303++) {
+      sys302.daoHit(w303, i303, null);
+      daoSeq303.push(w303.daoShang);
+    }
+    var li303 = sys302.lifeInfo(w303);                       /* 寿元一分未耗，道伤吃满即判死 ⇒ 第二条钟独立 */
+    var w303b = pack302.initialState();                      /* 真挂点：渡劫一败即入伤（realm.js → worldSystems.daoHit） */
+    w303b.realm = 0; w303b.qi = D302.REALMS[1].need;
+    var mods303 = SQ.Mods.collect(prof302, w303b, pack302, D302);
+    var rs303f = stubRandom(function () { return 0.99; });
+    SQ.Realm.tryBreakthrough(w303b, pack302, D302, mods303, Date.now(), { profile: prof302, log: null });
+    rs303f();
+    var daoFail303 = w303b.daoShang;
+    w303b.qi = D302.REALMS[2].need;
+    var rs303s = stubRandom(function () { return 0.0; });
+    SQ.Realm.tryBreakthrough(w303b, pack302, D302, mods303, Date.now(), { profile: prof302, log: null });
+    rs303s();
+    var daoClean303 = w303b.daoShang, realm303 = w303b.realm;
+    var w303c = pack302.initialState();                      /* 疗养走同一条时钟：离线一日 120 年 → 120×healPerYear 层 */
+    w303c.daoShang = 10;
+    pack302.claim(w303c, 24 * 3600000, Date.now(), prof302, { autoTrib: false });
+    var daoHeal303 = w303c.daoShang;
+    /* (e) 悬崖不被小数抹平：伤满后经一秒疗养变 14.997，判死仍认**屏上层数**（ceil）——
+     * 原式直读原值 ⇒ 「伤重不治的人被一秒救活」，冒烟 #304 的道伤死因此整条走不通（本批改判据时抓到） */
+    var w303d = pack302.initialState();
+    w303d.daoShang = DS303.cap - 0.003;
+    var li303d = sys302.lifeInfo(w303d);
+    ok('303', '道伤阶梯与疗养（§6.1A）：(a) 连败五层累计 === ' + daoSeq303.join('→') + ' === cap ' + DS303.cap +
+      '（寿元一分未耗仍判死 ⇒ 第二条钟独立）' +
+      ' (b) realm.js 真挂点：渡劫一败 daoShang=' + daoFail303 + '（不是只写在表里的死数）' +
+      ' (c) 破境涤伤 −cleanse（' + daoFail303 + '→' + daoClean303 + '，且该次确实破了境 realm→' + realm303 + '）' +
+      ' (d) 岁月疗养 10 层经离线一日（120 年）→ ' + daoHeal303.toFixed(2) + '（= 10 − 120×healPerYear）' +
+      ' (e) 判死认屏上层数（ceil）：伤 14.997 仍算满 ' + DS303.cap + ' 层即死，一秒疗养救不活',
+      daoSeq303.join(',') === [1, 3, 6, 10, 15].slice(0, DS303.gainMax).join(',') &&
+      li303.daoLv >= DS303.cap && li303.eternal === false && li303.left > 0 && li303.cause === 'daoshang' &&
+      daoFail303 === 1 && daoClean303 === Math.max(0, 1 - DS303.cleanse) && realm303 === 1 &&
+      Math.abs(daoHeal303 - (10 - D302.OFFLINE_CAP_H * 10 * DS303.healPerYear)) < 1e-9 &&
+      li303d.daoLv === DS303.cap && li303d.cause === 'daoshang',
+      '阶梯=' + daoSeq303.join('/') + ' cap=' + DS303.cap + ' cause=' + li303.cause +
+      ' ‖ 败=' + daoFail303 + ' 涤=' + daoClean303 + '(realm' + realm303 + ') 疗=' + daoHeal303 +
+      ' ‖ 14.997→lv' + li303d.daoLv + '/' + li303d.cause);
+
+    /* #304 寿尽 / 道伤 ⇒ **强制转世走通**（core.claimInner → 既有 SQ.Legacy.rebirth 事务）：
+     * 判据取「玩家能感到差别」的四件事——新世被重置、遗泽按兵解口径折分、被动了结单计 deaths
+     * 且不发「舍身证道」、传记与日志各说各的死因（原式非飞升一律折成兵解 ⇒ 死世会说谎）。 */
+    var bioLineShou304 = SQ.t('codex.bio.line.shoujin', null, 'xiuxian');
+    var bioLineBing304 = SQ.t('codex.bio.line.dissolve', null, 'xiuxian');
+    async function deathSeed304(cause, mut) {
+      var w = pack302.initialState();
+      w.realm = 4; w.qi = 10; w.lastSave = Date.now() - 1000;
+      Object.keys(mut).forEach(function (k) { w[k] = mut[k]; });
+      /* 期望值取 preview 本身（预览与实结同一张脸），且与兵解口径逐分对表 ⇒ 零新增系数这条也钉住 */
+      var exp304 = SQ.Legacy.preview(w, SQ.Legacy.metaBlank(), pack302, D302, cause, Date.now()).total;
+      var expBing304 = SQ.Legacy.preview(w, SQ.Legacy.metaBlank(), pack302, D302, 'bingjie', Date.now()).total;
+      await SQ.save({
+        v: SQ.V,
+        profile: { name: '待死道人', talents: [], worldId: 'xiuxian', worldName: '测试界', createdAt: Date.now() - 1000 },
+        worlds: { xiuxian: w }, meta: SQ.Legacy.metaBlank()
+      });
+      var ref = {};
+      await SQ.claim(ref);
+      return { ref: ref, w: ref.worlds.xiuxian, st: ref.meta.stats, exp: exp304, expBing: expBing304 };
+    }
+    var d304a = await deathSeed304('shoujin', { lifeUsed: D302.LIFESPAN[4] });                 /* 寿尽 */
+    var d304b = await deathSeed304('daoshang', { daoShang: DS303.cap });                        /* 道伤崩碎 */
+    var log304a = (d304a.w.log || []).map(function (l) { return l.text; }).join('|');
+    var line304 = function (ch) {
+      return SQ.t('legacy.log.rebirth', { life: 1, ch: SQ.t(ch, null, 'xiuxian') }, 'xiuxian');
+    };
+    ok('304', '寿尽 / 道伤即强制转世（§6.1A 落点）：(a) 两条死因都走通——新世重置（realm 0 / lifeUsed 0 / ' +
+      '档案名空 ⇒ 界面进创角）+ lastDeath 呈报位带死因与享年' +
+      ' (b) 遗泽折分逐分等于 preview 产物且与兵解口径同值（' + d304a.exp + '，零新增系数）' +
+      ' (c) 被动了结计 stats.deaths 而**不**计 dissolutions、**不**发 achv_bingjie（舍身证道 = 主动兵解的荣誉）' +
+      ' (d) 传记与转世日志各说各的死因：寿尽行「' + bioLineShou304 + '」在、兵解行「' + bioLineBing304 + '」不在',
+      d304a.w.realm === 0 && d304a.w.lifeUsed === 0 && d304a.w.daoShang === 0 &&
+      d304a.ref.profile.name === '' && d304a.w.lastDeath && d304a.w.lastDeath.cause === 'shoujin' &&
+      d304a.w.lastDeath.realm === 4 && d304a.w.lastDeath.age >= Math.floor(D302.LIFESPAN[4]) &&
+      d304b.w.lastDeath && d304b.w.lastDeath.cause === 'daoshang' &&
+      d304a.exp > 0 && d304a.exp === d304a.expBing && d304a.w.lastDeath.total === d304a.exp &&
+      d304a.ref.meta.karma === d304a.exp &&
+      d304a.st.deaths === 1 && d304a.st.dissolutions === 0 && d304a.st.lives === 1 &&
+      d304b.st.deaths === 1 && d304b.st.dissolutions === 0 &&
+      (d304a.ref.meta.achv || []).indexOf('achv_bingjie') < 0 &&
+      ((d304a.ref.meta.biographies[0] || {}).text || '').indexOf(bioLineShou304) >= 0 &&
+      ((d304a.ref.meta.biographies[0] || {}).text || '').indexOf(bioLineBing304) < 0 &&
+      log304a.indexOf(line304('legacy.ui.shoujin')) >= 0 &&
+      log304a.indexOf(line304('legacy.ui.bingjie')) < 0,
+      '寿尽=' + JSON.stringify(d304a.w.lastDeath) + ' 道伤=' + JSON.stringify(d304b.w.lastDeath) +
+      ' ‖ stats=' + [d304a.st.lives, d304a.st.deaths, d304a.st.dissolutions].join('/') +
+      ' ‖ 遗泽=' + d304a.ref.meta.karma + '/期望' + d304a.exp + '/兵解' + d304a.expBing +
+      ' ‖ achv=' + (d304a.ref.meta.achv || []).join(',') + ' ‖ 日志=' + log304a.slice(0, 46));
+
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');
 
