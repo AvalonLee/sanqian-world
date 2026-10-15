@@ -669,7 +669,7 @@
   function daoHit(ws, streak, log) {
     var DS = D.DAO_SHANG;
     var before = Math.max(0, ws.daoShang || 0);
-    ws.daoShang = Math.min(DS.cap, before + Math.max(1, Math.min(streak || 1, DS.gainMax)));
+    ws.daoShang = Math.min(DS.cap, before + Math.max(0, Math.min((streak || 1) - (DS.freeStreak != null ? DS.freeStreak : 2), DS.gainMax)));
     if (log && before < DS.warn && ws.daoShang >= DS.warn) {
       log('trib', SQ.t('daoshang.log.warn', { n: Math.ceil(ws.daoShang), cap: DS.cap }, 'xiuxian'));
     }

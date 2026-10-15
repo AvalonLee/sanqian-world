@@ -94,7 +94,12 @@
         }
       });
 
-      /* 3) 装备（4 槽已佩戴）：qiBonus→qiRate 乘区；atk/resist 独立合计；特殊词条入乘区 */
+      /* 3) 装备（4 槽已佩戴）：qiBonus→qiRate 乘区；atk/resist 独立合计；特殊词条入乘区
+       *    ⚠️ 装备侧 tribBonus **只取最强一份**（第卌二批 · 渡劫难度批）：四件各带「雷纹」旧口径
+       *    = +0.05×4 = +0.20，与功法 / 善恶 / 护法同向叠加后足以把压陡的 base 曲线整个抹平
+       *    （探针实测：上品四件套 + 善名 300 + 道护④ 即顶满 P_CLAMP 0.95）。成算是**唯一
+       *    不给堆叠余量的轴**，其余字段（atk/resist/qiRate/shopCost…）逐件加算一字未动。 */
+      var gearTribBest = 0;
       for (var slot in ws.gear) {
         var it = ws.gear[slot];
         if (!it) continue;
@@ -103,9 +108,13 @@
         if (it.qiBonus) note('qiRate', 'gear', it.qiBonus);
         if (it.special === 'adamantine') resist += D.ADAMANTINE_RESIST;
         var se = it.special && D.GEAR_SPECIAL_EFFECTS[it.special];
-        if (se) for (var k2 in se) note(k2, 'gear', se[k2]);
+        if (se) for (var k2 in se) {
+          if (k2 === 'tribBonus') { if (se[k2] > gearTribBest) gearTribBest = se[k2]; continue; }
+          note(k2, 'gear', se[k2]);
+        }
         if (it.special === 'ignore_req') flags.ignore_req = true;
       }
+      if (gearTribBest) note('tribBonus', 'gear', gearTribBest);
 
       /* 4) buff（未过期；过期清理在 claim 内做，这里再过滤一道防御） */
       var now = Date.now();
