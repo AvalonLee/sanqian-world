@@ -127,5 +127,23 @@
   K['prodigy.spar.locked'] = '金丹之后，方闻同代之名';
   K['prodigy.log.spar.mat'] = '论道之后互赠所得：得材料「{mat}」';
 
+  /* ── 袭杀与族中寻仇（第卌四批 · 天骄卷 v1.11 §五B · 数值详设 §6.1B）──
+   * 与切磋同构：引擎写这一行日志，界面把**同一个 key** 拿去 toast（不另抄一份措辞）。
+   * 屏上只说引擎真算的几件事：门槛倍率 / 夺资额 / 败的道伤与善恶 / 已袭杀次数 / 链条状态。 */
+  K['prodigy.log.ambush'] = '你伏击{name}，夺 {cur} ×{loot}（此人已遭你袭杀 {n}/{max}）';
+  K['prodigy.log.ambushfail'] = '你伏击{name}不成，反受其伤（道伤 +{dao}）';
+  K['prodigy.log.revengearm'] = '{name} 一门已将你记入死账——族中高手不诛你不休';
+  K['prodigy.ambush.title'] = '袭杀';
+  K['prodigy.ambush.btn'] = '袭杀此人';
+  K['prodigy.ambush.why'] = '需战力 ≥ 对方 ×{r}；败 = 道伤 +{dao}、善恶 −{k}';
+  K['prodigy.ambush.count'] = '已遭袭杀 {n}/{max} 次';
+  K['prodigy.ambush.loot'] = '夺资约 {cur} ×{n}';
+  K['prodigy.ambush.cd'] = '伏击未复（{t} 后可再出手）';
+  K['prodigy.ambush.confirm'] = '伏击{name}：胜则夺 {cur} ×{loot} 并记袭杀 {n}/{max}，败则道伤 +{dao}、善恶 −{k}。'
+    + '双方战力 ±10% 浮动，须压过对方 ×{r} 才算成；满 {max} 次此人必死，其族高手必来寻仇。袭杀？';
+  K['prodigy.ambush.reject'] = '此刻下不了手';
+  K['prodigy.ambush.chain.n'] = '一族寻仇 · 已胜 {n} 场';
+  K['prodigy.ambush.chain.cd'] = '{t} 后再战';
+
   SQ.lexRegister('xiuxian', K);
 })();

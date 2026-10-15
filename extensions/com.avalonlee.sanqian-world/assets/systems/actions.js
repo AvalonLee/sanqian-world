@@ -183,6 +183,11 @@
           SQ.Prodigy.onEventResolved(ws, s, pack, D, pcId, branchKey, out.pass, Date.now(), prodigyPid);
           pack.recalcDerived(ws, s.profile);   /* 斩杀 karma / 释怀 bond 即刻覆盖式重算 */
         }
+        /* 族中寻仇的链条账（第卌四批 · 数值详设 §6.1B）：胜 ⇒ 连胜 +1 并进冷却；败 ⇒ 链断。
+         * 走 pack.worldSystems（通用层不直读世界模块，审计 D3 那条），点位与上面同源 = 判定之后。 */
+        if (out && pack.worldSystems && pack.worldSystems.ambushSettled) {
+          pack.worldSystems.ambushSettled(ws, pack, D, pcId, out.pass, Date.now(), log);
+        }
       });
       return out;
     },
@@ -728,6 +733,21 @@
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
         out = SQ.Prodigy.spar(ws, pack, D, mods, pid, Date.now(), log, kind);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
+      });
+      return out;
+    },
+
+    /* ── 袭杀（第卌四批 · 数值详设 §6.1B）：对天骄主动下手的「杀人夺宝」，即时对局不进 pendingChoice；
+     * 收益 in.event / 冷却与道伤见 prodigy.ambush，身死与寻仇播种也在那一处的注释里 ── */
+    prodigyAmbush: async function (ref, pid) {
+      var out = null;
+      await SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        var pack = packOf(s), D = dataOf(s);
+        var mods = SQ.Mods.collect(s.profile, ws, pack, D);
+        function log(cat, text) { SQ.Log.push(ws, cat, text); }
+        out = SQ.Prodigy.ambush(ws, pack, D, mods, pid, Date.now(), log);
+        if (out && out.ok) pack.recalcDerived(ws, s.profile);   /* 行凶的 karma 即时覆盖式重算 */
       });
       return out;
     },

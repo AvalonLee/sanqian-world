@@ -1766,10 +1766,12 @@
       merchant: 1, merchantScout: 1, primeGear: 1, primeArt: 1,
       fateShard: 1,   /* 探宝残片计数（事件池 v2.7 №117 ⏳ 键，系统深化批 A6 登记） */
       treasure: 1,
-      talentSwap: 1 };   /* 洗髓缘（天赋池设计 v1.8 §十 · 洗髓批）：计数型收益，无区间 */
+      talentSwap: 1,
+      stonesPct: 1 };   /* 按比例出血（第卌四批 · §6.1B 认输买平安）：走 applyEffects 既有 stonesPct 通道（取整 + 下限 0 + noteStones 真值） */
       /* 先天法宝联动授予（二批 A5 · 数值详设 §10.7；恢复批 A3b 引擎 case 已重加） */
     var CHECK_TYPES = { attr: 1, karma: 1, align: 1, stones: 1, qi: 1, art: 1, gear: 1, power: 1, companion: 1,
-      prodigySpar: 1 };   /* 天骄对局判定（天骄卷 §5.2/§7.3 同构 · 六向批 A4 新增第十类 DSL） */
+      prodigySpar: 1,
+      ambushFoe: 1 };   /* 敌手快照判定（第卌四批 · §6.1B）：与切磋同构的 ±10% 对局，对手取 pendingChoice.foe 快照 ⇒ 第十一类 DSL */
     var BAND118 = D.EVENT_KARMA_BAND;   /* 取表而不是手抄（第十四批审计 #18）。⚠️ 归因纠正（当晚复核）：A9 把这条记成零消费者死桩的理由是**生产侧无人读**（A9 的消费面刻意不含 `.tests/`），不是「因为手抄」⇒ 本改只让测试随表动，摘除在册登记要等生产侧真出现读者。 */
     all118.forEach(function (ev) {
       tiers118[ev.tier] = (tiers118[ev.tier] || 0) + 1;
@@ -1781,9 +1783,13 @@
       ids118[ev.id] = 1;
       /* 独立通道词条（天道垂青池）：weight/cooldownHours 不设（事件池 v2.7 词条口径） */
       if (!isTagged && (!ev.weight || (ev.cooldownHours == null && !ev.cdFailHours))) bad118.push(ev.id + ':w/cd');
-      ['right', 'evil', 'neutral'].forEach(function (bk) {
-        var br = (ev.choices || {})[bk];
-        if (!br) { bad118.push(ev.id + ':' + bk); return; }
+      /* 分支逐支对表：按模板**自己声明的 choices** 走（第卌四批改口，与 audit A2 同口径）——
+       * 「族中寻仇」按用户设定只有迎战一条路，硬要求三支齐全只会逼词表补两条永不消费的孤儿键。
+       * 三支齐全的既有条目覆盖面一字不减（取的是 Object.keys(choices)，与旧写法同集）。 */
+      var bks118 = Object.keys(ev.choices || {});
+      if (!bks118.length) bad118.push(ev.id + ':nochoice');
+      bks118.forEach(function (bk) {
+        var br = ev.choices[bk];
         if (Math.abs(br.karma) > BAND118[ev.tier]) bad118.push(ev.id + ':karma' + br.karma);
         (br.gain || []).forEach(function (g) { if (!GAIN_TYPES[g.type]) bad118.push(ev.id + ':gain.' + g.type); });
         var chks = br.check ? (Array.isArray(br.check) ? br.check : [br.check]) : [];
@@ -1793,14 +1799,14 @@
         var key = 'event.' + ev.id + '.' + suf;
         if (SQ.t(key, null, 'xiuxian') === key) bad118.push(ev.id + ':lex.' + suf);
       });
-      ['right', 'evil', 'neutral'].forEach(function (bk) {
+      bks118.forEach(function (bk) {
         var key = 'event.' + ev.id + '.branch.' + bk;
         if (SQ.t(key, null, 'xiuxian') === key) bad118.push(ev.id + ':lex.branch.' + bk);
       });
     });
-    ok(118, '125 条分布（天24/地42/人59 · 特殊12 · once12 · tags11=垂青6+天骄5）+ schema/词表对表（洗髓批 №125 入池 · GAIN_TYPES 登记 talentSwap）',
-      all118.length === 125 && tiers118.tian === 24 && tiers118.di === 42 && tiers118.ren === 59 &&
-      special118 === 12 && once118 === 12 && tagged118 === 11 && bad118.length === 0,
+    ok(118, '128 条分布（天25/地44/人59 · 特殊12 · once12 · tags14=垂青6+天骄5+袭击2+寻仇1）+ schema/词表对表（第卌四批 №126~128 入池 · GAIN_TYPES 登记 stonesPct / CHECK_TYPES 登记 ambushFoe）',
+      all118.length === 128 && tiers118.tian === 25 && tiers118.di === 44 && tiers118.ren === 59 &&
+      special118 === 12 && once118 === 12 && tagged118 === 14 && bad118.length === 0,
       'n=' + all118.length + ' ' + JSON.stringify(tiers118) + ' sp=' + special118 + ' once=' + once118 +
       ' tags=' + tagged118 + ' bad=' + bad118.slice(0, 5).join(','));
 
@@ -3786,9 +3792,12 @@
     /* SQ.t 全链路解析（通用池 key 注册在 common 词表，SQ.LEX.xiuxian 单表会漏——#118 同款口径） */
     function lex147(key) { if (SQ.t(key, null, 'xiuxian') === key) bad147.push(key); }
     all118.forEach(function (ev) {
-      ['name', 'story', 'branch.right', 'branch.evil', 'branch.neutral'].forEach(function (suf) {
-        lex147('event.' + ev.id + '.' + suf);
-      });
+      /* 分支键按模板**自己声明的 choices** 逐支对表（第卌四批改口，与 audit A2 同口径）：
+       * 「族中寻仇」按用户设定只有迎战一条路，硬要求三支齐全只会逼词表补两条永不消费的孤儿键 */
+      ['name', 'story'].concat(Object.keys(ev.choices || {}).map(function (bk) { return 'branch.' + bk; }))
+        .forEach(function (suf) {
+          lex147('event.' + ev.id + '.' + suf);
+        });
     });
     var BOND38_147 = ['hanli', 'yuxiao', 'xuaner', 'nangong', 'pingping', 'ningyao', 'aliang', 'jingchun',
       'lihuayuan', 'mojuren', 'zhangtie', 'yuzhitong', 'wuyan', 'wangchan', 'xiangzhili', 'chelaozu', 'zuoyou',
@@ -3892,7 +3901,7 @@
         });
       });
     });
-    ok('150', '114 条 lint 带（karma 人8/地15/天25 · failE ≥−15% · 负 buff ≤24h · 洗髓批 №125 入带）',
+    ok('150', '117 条 lint 带（karma 人8/地15/天25 · failE ≥−15% · 负 buff ≤24h · 洗髓批 №125 与第卌四批 №126~128 入带； ambushFoe / stonesPct 已入白名单）',
       pool150.length === 114 && bad150.length === 0, 'n=' + pool150.length + ' bad=' + bad150.slice(0, 5).join(','));
 
     /* #151 二批 30 人十三字段增量对表（道友池卷 §五 登记 · 满档口径；单人单字段 ≤8%/≤4pp 带随附） */
@@ -10091,6 +10100,195 @@
       inCd308.reason === 'cd' && inCd308.until === t308 + CD308 && afterCd308.ok === true,
       'cd=' + CD308 + ' 首战=' + first308.result + ' 冷却内=' + inCd308.reason +
       '/' + inCd308.until + ' 过点后=' + afterCd308.ok);
+
+    /* #309 阵营袭击触发面（第卌四批 · 数值详设 §6.1B）：概率曲线两侧各钉一脚 / 敌手快照取表（高一境基础战力 ×FOE_K）/
+     * 池子取人（道侣同记在 bonds ⇒ 三池在代码里是两池；锁与疤者排除）/ 独立通道的 cooldownHours 被读端接住
+     * （不接 = 「写了没人查」那一族形状）/ 时钟只随在线时长。 */
+    var A309 = D.AMBUSH, sys309 = pack.worldSystems;
+    var pCurve309 = function (k) { return A309.P_BASE + (A309.P_MAX - A309.P_BASE) * Math.min(1, Math.abs(k) / A309.K_REF); };
+    var fire309 = function (w, now, seq) {
+      var rs = stubRandom(seq || [0, 0]);
+      var r = sys309.ambushTick(w, pack, D, A309.ROLL_MS, now, { log: noopLog() });
+      rs(); return r;
+    };
+    var t309 = Date.now();
+    var w309 = mkWs({ realm: 3, karma: A309.K_REF });
+    w309.bonds = { hanli: 40 }; w309.prodigies = [];
+    var r309 = fire309(w309, t309);
+    var foe309 = (w309.pendingChoice || {}).foe || {};
+    var powExp309 = Math.round(D.REALMS[4].power * A309.FOE_K);          /* 探针实测 960 */
+    var half309 = pCurve309(A309.K_REF / 2);
+    /* 曲线两侧：rand 在 p 内 ⇒ 触发；刚过 p ⇒ 不触发（负档走另一枚模板） */
+    var w309h = mkWs({ realm: 3, karma: A309.K_REF / 2 });
+    w309h.bonds = { hanli: 40 }; w309h.prodigies = [];
+    var in309h = (fire309(w309h, t309, [half309 - 0.001, 0]) || {}).id === "ambush_by_evil";
+    var w309m = mkWs({ realm: 3, karma: -A309.K_REF / 2 });
+    w309m.bonds = { hanli: 40 }; w309m.prodigies = [];
+    var out309m = fire309(w309m, t309, [half309 + 0.001, 0]) === null && w309m.pendingChoice === null;
+    var neg309 = (function () {                                            /* 魔道深档 = 正道讨伐 */
+      var w = mkWs({ realm: 3, karma: -A309.K_REF }); w.bonds = { hanli: 40 }; w.prodigies = [];
+      return (fire309(w, t309) || {}).id === "ambush_by_right";
+    })();
+    /* 善恶未著 / 敌手池空 / 只剩绝交锁与裂疤者 ⇒ 一律静默（不留点不开的按钮、不编假人） */
+    var w309z = mkWs({ realm: 3, karma: 0 });
+    w309z.bonds = { hanli: 40 }; w309z.prodigies = [];
+    var zero309 = fire309(w309z, t309) === null && w309z.pendingChoice === null;
+    var w309e = mkWs({ realm: 3, karma: A309.K_REF });
+    w309e.bonds = {}; w309e.prodigies = [];
+    var empty309 = fire309(w309e, t309) === null && w309e.pendingChoice === null;
+    var w309x = mkWs({ realm: 3, karma: A309.K_REF });
+    w309x.bonds = { hanli: -99, pingping: 40 }; w309x.scars = { pingping: 1 }; w309x.prodigies = [];
+    var ex309 = fire309(w309x, t309) === null && w309x.pendingChoice === null;
+    /* 冷却读端：首触已写 eventCooldowns ⇒ 12h 内同型第二次必不挂起（模板在 tags 独立通道里，
+     *   buildPool 永不查它——只有 ambushTick 自己查才算数） */
+    var w309c = mkWs({ realm: 3, karma: A309.K_REF });
+    w309c.bonds = { hanli: 40 }; w309c.prodigies = [];
+    fire309(w309c, t309);
+    w309c.pendingChoice = null;
+    var cd309 = fire309(w309c, t309 + 3600000) === null && w309c.pendingChoice === null;
+    w309c.eventCooldowns = {};
+    var cd309b = (fire309(w309c, t309 + 3600000) || {}).id === "ambush_by_evil";
+    /* 时钟口径：离线 24h 一分不涨；在线 60s 只涨 60s 且不足一格不掷 */
+    var w309t = mkWs({ realm: 3, karmaEventScore: A309.K_REF });
+    w309t.bonds = { hanli: 40 }; w309t.prodigies = []; w309t.lastSave = t309 - 24 * 3600000;
+    pack.claim(w309t, 24 * 3600000, t309, mkProf(), { autoTrib: false });
+    var off309 = (w309t.ambushClock || 0) === 0;
+    var w309o = mkWs({ realm: 3, karmaEventScore: A309.K_REF });
+    w309o.bonds = { hanli: 40 }; w309o.prodigies = []; w309o.lastSave = t309 - 60000;
+    pack.claim(w309o, 60000, t309, mkProf(), { autoTrib: false });
+    var onl309 = (w309o.ambushClock || 0) === 60000;
+    ok("309", "阵营袭击触发面（第卌四批）：(a) 概率曲线两侧各钉一脚（半档 " + half309.toFixed(3) +" 内=触发 / 外=不触发，满档 = P_MAX " +
+      A309.P_MAX + "） (b) 敌手快照 realm = 玩家+1 = 4、power = REALMS[4].power × FOE_K = " + powExp309 +
+      "（读 pendingChoice.foe 真值） (c) karma>0 走 ambush_by_evil / <0 走 ambush_by_right (d) 善恶未著 / 池空 / 只剩绝交锁与裂疤者 ⇒ 静默不挂抉择 (e) cooldownHours 12h 被读端接住：清锚才恢复 (f) 时钟单源：离线 24h 不涨、在线 60s 只涨 60s",
+      r309 && r309.id === "ambush_by_evil" && r309.via === "ambush" &&
+      foe309.realm === 4 && foe309.power === powExp309 && foe309.src === "bond" && foe309.nm ===
+      SQ.t("bond.hanli.name", null, "xiuxian") && in309h && out309m && neg309 && zero309 && empty309 &&
+      ex309 && cd309 && cd309b && off309 && onl309 && A309.DECIDE_MS === 90000 && A309.ROLL_MS === 1800000,
+      "曲线=" + [pCurve309(0), half309, pCurve309(A309.K_REF)].join("/") + " ‖ foe=" + JSON.stringify(foe309) +
+      " ‖ 内/外/负=" + [in309h, out309m, neg309].join("/") + " ‖ 零/空/锁疤=" + [zero309, empty309, ex309].join("/") +
+      " ‖ 冷却内=" + cd309 + " 清锚=" + cd309b + " ‖ 离线钟=" + (w309t.ambushClock || 0) + " 在线钟=" + (w309o.ambushClock || 0));
+
+    /* #310 袭杀天骄（第卌四批 · 天骄卷 §五B）：未解锁不动档 / 碾压门槛与夺资走 in.event（#113 零新增分类）/
+     * 冷却精确 / 败局道伤走 daoAdd 唯一写口且 amb 不涨、善恶照记 / 满 KILL_MAX 次复用 killOff 出榜
+     * （槽位不复用 + 宿敌清位 + sudiWin）+ 播种寻仇链 */
+    var A310 = D.AMBUSH;
+    function mkAmb310(rlm, myRealm, ambN, eternal) {
+      var w = mkWs({ realm: myRealm, stones: 200000 });
+      w.prodigies = [{ id: "pr1", nm: [0, 0, 0], tl: [], al: 1, fc: -1, fid: null, apt: 0, rlm: rlm,
+        prg: 0, feud: false, feudBond: 0, lastSparAt: 0, rivAt: 0, amb: ambN || 0, boost: null,
+        eternal: eternal === true, wl: [0, 0, 0] }];
+      return w;
+    }
+    var w310l = mkAmb310(0, 0);
+    var shape310l = JSON.stringify([w310l.stones, w310l.prodigies[0].amb, w310l.karmaEventScore]);
+    var lock310 = SQ.Prodigy.ambush(w310l, pack, D, M(mkProf([]), w310l), "pr1", t309, noopLog(), null);
+    var lockKeep310 = JSON.stringify([w310l.stones, w310l.prodigies[0].amb, w310l.karmaEventScore]) === shape310l;
+    var w310 = mkAmb310(2, 5);                                        /* 我 4973 对 常人 realm2 = 171 ⇒ 碾压档 */
+    var m310 = M(mkProf([]), w310), t310 = Date.now();
+    var ev0 = { st: w310.stones, led: w310.ledger.in.event, karm: w310.karmaEventScore };
+    var rs310 = stubRandom([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+    var r310 = SQ.Prodigy.ambush(w310, pack, D, m310, "pr1", t310, noopLog(), null);
+    rs310();
+    var loot310 = SQ.Prodigy.sparStake(w310, D, "heavy");
+    var cd310 = SQ.Prodigy.ambush(w310, pack, D, m310, "pr1", t310 + A310.KILL_CD_MS - 1000, noopLog(), null);
+    var w310f = mkAmb310(9, 2);                                       /* realm2 对 realm9 天才 ⇒ 绝打下手不成 */
+    var dao0310f = w310f.daoShang, karm0310f = w310f.karmaEventScore;
+    var rs310f = stubRandom([0.01, 0.99, 0.5, 0.5, 0.5, 0.5]);
+    var r310f = SQ.Prodigy.ambush(w310f, pack, D, M(mkProf([]), w310f), "pr1", t310, noopLog(), null);
+    rs310f();
+    var w310k = mkAmb310(2, 5, A310.KILL_MAX - 1, true);
+    w310k.prodMarks = { slotMax: 1 };
+    var s310k = { meta: { eternalProdigy: "pr1", unlocks: {} } };
+    var rs310k = stubRandom([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+    var r310k = SQ.Prodigy.ambush(w310k, pack, D, M(mkProf([]), w310k), "pr1", t310, noopLog(), s310k);
+    rs310k();
+    var left310 = w310k.prodigies.length;                /* rollOne 会把名录又填回去，先取身死后的那一瞬 */
+    var slot310 = SQ.Prodigy.rollOne(w310k, pack, D, null, {}).id;
+    ok("310", "袭杀天骄（第卌四批）：(a) 未解锁 locked 拒且档案逐字不动（灵石/计数/善恶） (b) 碾压胜 ratio=" +
+      A310.KILL_RATIO + "：夺资 " + r310.loot + " = 切磋既有「重注」价目、in.event 增额 === 灵石增额（#113）、amb→" +
+      r310.count + "/" + A310.KILL_MAX + "、善恶 " + A310.KILL_KARMA + " 照记 (c) 冷却 cd−1s 拒且 until = t+" + A310.KILL_CD_MS +
+      " (d) 败 = win false、amb 不涨、道伤 +" + A310.KILL_DAO + "（走 daoAdd 唯一写口）、善恶照记（行凶未遂也是行凶） (e) 满 " +
+      A310.KILL_MAX + " 次身死：名录清空、新号取 slotMax+1 = " + slot310 + "（不复用死号）、跨世宿敌清位 + sudiWin 打标、ws.revenge 播种 n=0",
+      lock310.reason === "locked" && lockKeep310 && r310.ok && r310.win && r310.loot === loot310 && r310.count === 1 &&
+      w310.prodigies[0].amb === 1 && w310.stones - ev0.st === loot310 && w310.ledger.in.event - ev0.led === loot310 &&
+      w310.karmaEventScore - ev0.karm === A310.KILL_KARMA &&
+      cd310.reason === "cd" && cd310.until === t310 + A310.KILL_CD_MS &&
+      r310f.ok && r310f.win === false && r310f.count === 0 && w310f.daoShang === dao0310f + A310.KILL_DAO &&
+      w310f.prodigies[0].amb === 0 && w310f.karmaEventScore - karm0310f === A310.KILL_KARMA &&
+      r310k.dead === true && left310 === 0 && slot310 === "pr2" && s310k.meta.eternalProdigy === null &&
+      w310k.prodMarks.sudiWin === true && w310k.revenge && w310k.revenge.n === 0 && w310k.revenge.nextAt === t310 &&
+      w310k.revenge.foe.length > 0,
+      "胜=" + JSON.stringify([r310.win, r310.loot, r310.count, w310.stones - ev0.st, w310.ledger.in.event - ev0.led, w310.karmaEventScore - ev0.karm]) +
+      " ‖ 冷却=" + JSON.stringify([cd310.reason, cd310.until - t310]) +
+      " ‖ 败=" + JSON.stringify([r310f.win, r310f.count, w310f.daoShang - dao0310f, w310f.karmaEventScore - karm0310f]) +
+      " ‖ 身死=" + JSON.stringify([r310k.dead, left310, slot310, s310k.meta.eternalProdigy, w310k.revenge]));
+
+    /* #311 族中寻仇链（第卌四批 · 数值详设 §6.1B）：冷却未到不发 / 到点必发（顶档钳成同境，屏上如实写）/
+     * 模板只声明迎战一支 / 倍率逐值封顶 / escalate 只乘灵石且**不污染模板字面量**（同 seed 两局： stones 比 = 倍率比、
+     * qi 一分不动）/ 败 → failE 道伤全额 + 链断不进冷却 */
+    var sys311 = pack.worldSystems;
+    var t311 = Date.now();
+    function mkRv311(n, nextAt, realm) {
+      var w = mkWs({ realm: realm == null ? 5 : realm, stones: 200000 });
+      w.revenge = { n: n || 0, nextAt: nextAt != null ? nextAt : t311, foe: "沈孤云" };
+      w.bonds = { hanli: 40 }; w.prodigies = [];
+      return w;
+    }
+    var w311w = mkRv311(0, t311 + 60000);
+    var rs311w = stubRandom([0, 0]);
+    var wait311 = sys311.ambushTick(w311w, pack, D, A310.ROLL_MS, t311, { log: noopLog() });
+    rs311w();
+    var w311 = mkRv311(1, t311, 9);                                   /* 真仙顶档：高一境被钳成同境 */
+    var rs311f2 = stubRandom([0, 0]);
+    var fire311 = sys311.ambushTick(w311, pack, D, 1000, t311, { log: noopLog() });
+    rs311f2();
+    var foe311 = (w311.pendingChoice || {}).foe || {};
+    var evR311 = SQ.Events.findById(pack, "ambush_revenge");
+    var mults311 = [0, 1, 2, 3, 4, 9].map(function (n) { return sys311.escalationOf(mkRv311(n, 0)); });
+    function run311(n) {
+      var w = mkRv311(n, t311, 9);
+      var rs0 = stubRandom([0, 0]);
+      sys311.ambushTick(w, pack, D, 1000, t311, { log: noopLog() });
+      rs0();
+      var st0 = w.stones, qi0 = Math.floor(w.qi);
+      var rs = stubRandom([0.99, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+      var res = SQ.Events.resolveBranch(w, pack, D, M(mkProf([]), w), "ambush_revenge", "right", t311,
+        { log: noopLog(), profile: mkProf([]) });
+      rs();
+      var set = sys311.ambushSettled(w, pack, D, "ambush_revenge", res.pass, t311, noopLog());
+      return { w: w, res: res, set: set, stones: w.stones - st0, qi: Math.floor(w.qi) - qi0 };
+    }
+    var g0_311 = run311(0), g3_311 = run311(4);
+    var ratio311 = g0_311.stones > 0 ? g3_311.stones / g0_311.stones : 0;
+    /* 败局（realm2 打不过高一境）：道伤 = failE.dao 4 全额、链断且不写冷却 */
+    var w311b = mkRv311(3, t311, 2);
+    var rsb0 = stubRandom([0, 0]);
+    sys311.ambushTick(w311b, pack, D, 1000, t311, { log: noopLog() });
+    rsb0();
+    var rs311b = stubRandom([0.01, 0.99, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+    var res311b = SQ.Events.resolveBranch(w311b, pack, D, M(mkProf([]), w311b), "ambush_revenge", "right", t311,
+      { log: noopLog(), profile: mkProf([]) });
+    rs311b();
+    var set311b = sys311.ambushSettled(w311b, pack, D, "ambush_revenge", res311b.pass, t311, noopLog());
+    ok("311", "族中寻仇链（第卌四批）：(a) 冷却未到不发（null 且不挂抉择） (b) 到点必发：id=ambush_revenge、via=revenge、" +
+      " 顶档 realm 钳成同境 = " + foe311.realm + "、power = REALMS[9].power × REVENGE_K(" + A310.REVENGE_K + ") = " +
+      foe311.power + " (c) 模板只声明 right 一支 ⇒ 界面天然只剩一枚「迎战」钮 (d) 倍率逐值 n=0/1/2/3/4/9 → " +
+      mults311.join("/") + "（硬顶 " + A310.STREAK_CAP + "） (e) 同 seed 两局灵石比 = " + ratio311.toFixed(3) +
+      " ≈ 顶倍率 " + A310.STREAK_CAP + " 且**修为增额两局相同**（" + g0_311.qi + " === " + g3_311.qi +
+      "）⇒ escalate 只喂 stones、模板零污染 (f) 胜账 n→" + g0_311.set.chain + " / " + g3_311.set.chain +
+      " 且 nextAt = now+" + A310.REVENGE_CD_MS + " (g) 败账：道伤 +4（failE 全额）、revenge=null、链断不进冷却",
+      wait311 === null && w311w.pendingChoice === null &&
+      fire311 && fire311.id === "ambush_revenge" && fire311.via === "revenge" && foe311.realm === 9 &&
+      foe311.power === Math.round(D.REALMS[9].power * A310.REVENGE_K) && foe311.src === "clan" &&
+      Object.keys(evR311.choices).join(",") === "right" && mults311.join(",") === "1,1.5,2,2.5,3,3" &&
+      g0_311.res.pass && g3_311.res.pass && Math.abs(ratio311 - A310.STREAK_CAP) < 0.02 && g0_311.qi === g3_311.qi &&
+      g0_311.set.chain === 1 && g3_311.set.chain === 5 && g0_311.set.nextAt === t311 + A310.REVENGE_CD_MS &&
+      res311b.pass === false && w311b.daoShang === 4 && w311b.revenge === null &&
+      set311b.ended === true && set311b.chain === 0,
+      "不发=" + (wait311 === null) + " ‖ 到点=" + JSON.stringify([fire311 && fire311.id, fire311 && fire311.via, foe311]) +
+      " ‖ 倍率=" + mults311.join("/") + " ‖ 两局=" + JSON.stringify([[g0_311.stones, g0_311.qi], [g3_311.stones, g3_311.qi],
+      ratio311.toFixed(3)]) + " ‖ 账=" + JSON.stringify([g0_311.set, g3_311.set]) +
+      " ‖ 败=" + JSON.stringify([res311b.pass, w311b.daoShang, w311b.revenge, set311b]));
 
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');

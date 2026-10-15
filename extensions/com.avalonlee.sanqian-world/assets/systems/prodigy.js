@@ -88,6 +88,7 @@
         feud: p.feud === true,
         feudBond: Math.max(0, Math.floor(num(p.feudBond, 0))),
         lastSparAt: Math.max(0, num(p.lastSparAt, 0)),
+        amb: Math.max(0, Math.floor(num(p.amb, 0))),
         rivAt: Math.max(0, num(p.rivAt, 0)),
         boost: boost, eternal: p.eternal === true, wl: wl
       });
@@ -151,7 +152,7 @@
       al: opts.al != null ? opts.al : al, fc: fc, fid: fid,
       apt: apt, rlm: opts.rlm || 0, prg: 0,
       feud: opts.feud === true, feudBond: opts.feudBond || 0,
-      lastSparAt: 0, rivAt: 0, boost: null, eternal: opts.eternal === true, wl: [0, 0, 0]
+      lastSparAt: 0, rivAt: 0, amb: 0, boost: null, eternal: opts.eternal === true, wl: [0, 0, 0]
     };
     if (!Array.isArray(ws.prodigies)) ws.prodigies = [];
     ws.prodMarks = ws.prodMarks || {};
@@ -514,6 +515,71 @@
     }
   }
 
+  /* 天骄身死的**唯一出榜写口**（第卌四批自 onEventResolved 的斩杀分支原样抽出）：
+   * 心结除 + 出榜（槽位不复用）+ 跨世宿敌清位 + 成就标记 + 传闻——狭路相逢斩杀与袭杀满三次都走这里，
+   * 复制一份就是第二个「谁算死了」口径（本仓「唯一写口」纪律的同族）。karma 不在这里，由调用方照记。 */
+  function killOff(ws, s, pack, D, p, now) {
+    endFeud(ws, pack, D, p, now, null, true);
+    if (p.eternal && s && s.meta) s.meta.eternalProdigy = null;
+    if (p.eternal) { ws.prodMarks = ws.prodMarks || {}; ws.prodMarks.sudiWin = true; }
+    ws.prodigies = (ws.prodigies || []).filter(function (x) { return x.id !== p.id; });
+    rumor(ws, pack, D, now, 'prodigy.rumor.kill', { name: nameOf(ws, p, pack) });
+  }
+
+  /* ── 袭杀（第卌四批 · 数值详设 §6.1B）：主动下手的「杀人夺宝」，另一种意义的切磋。
+   * 与切磋共用抖动与让差口径但门槛硬得多：须 `我方 ×(1±10%) > 对方 ×(1±10%) × KILL_RATIO`（切磋只需 1.01）。
+   * karma **照记**（事件侧守则同一条：判定只影响物质收益，行凶未遂也是行凶）；败 = 道伤 +KILL_DAO。
+   * 冷却 = `ws.ambushKillAt` 全局一枚（按人记会随名录 30 线性长档 ⇒ 红线不让）。
+   * 满 KILL_MAX 次 ⇒ 走 killOff 出榜 + 播种族中寻仇链（世界包 revengeArm，本模块不碰那条链的账）。 */
+  function ambush(ws, pack, D, mods, pid, now, log, s) {
+    var A = D.AMBUSH || {};
+    if (!unlocked(ws, D)) return { ok: false, reason: 'locked' };
+    var p = byId(ws, pid);
+    if (!p) return { ok: false, reason: 'unknown' };
+    if ((ws.ambushKillAt || 0) > 0 && now < ws.ambushKillAt) {
+      return { ok: false, reason: 'cd', until: ws.ambushKillAt };
+    }
+    var myP = SQ.Mods.powerOf(ws, pack, D, mods);
+    var q0 = powerOf(ws, p, D);
+    var jit = (D.PRODIGY || {}).SPAR_JITTER || 0.10;
+    var ratio = (A.KILL_RATIO != null ? A.KILL_RATIO : 1.2);
+    ws.ambushKillAt = now + (A.KILL_CD_MS != null ? A.KILL_CD_MS : 1800000);
+    var kd = A.KILL_KARMA != null ? A.KILL_KARMA : -18;
+    ws.karmaEventScore = (ws.karmaEventScore || 0) + kd;
+    var Pp = myP * (1 + (Math.random() * 2 - 1) * jit);
+    var Qq = q0 * (1 + (Math.random() * 2 - 1) * jit);
+    var win = Pp > Qq * ratio;
+    var out = { ok: true, win: win, myP: Pp, q: Qq, karma: kd, ratio: ratio,
+      count: p.amb || 0, max: A.KILL_MAX != null ? A.KILL_MAX : 3 };
+    if (!win) {
+      if (pack.worldSystems && pack.worldSystems.daoAdd) pack.worldSystems.daoAdd(ws, A.KILL_DAO != null ? A.KILL_DAO : 1, log, 'sys');
+      if (log) log('sys', SQ.t('prodigy.log.ambushfail', { name: nameOf(ws, p, pack),
+        dao: A.KILL_DAO != null ? A.KILL_DAO : 1 }, pack.worldId));
+      return out;
+    }
+    /* 夺到手 = 一注「重注」等额的灵石（取切磋既有价目，不另立第二套数额表）*/
+    var loot = sparStake(ws, D, 'heavy');
+    var sBefore = ws.stones;
+    ws.stones += loot;
+    SQ.Ledger.note(ws, 'in', 'event', loot);
+    out.loot = loot; out.stonesDelta = ws.stones - sBefore;
+    p.amb = (p.amb || 0) + 1;
+    out.count = p.amb;                    /* 回填：out 建在自增之前，界面那枚「{n}/{max}」要的是这一击之后的数 */
+    if (log) log('sys', SQ.t('prodigy.log.ambush', { name: nameOf(ws, p, pack), n: p.amb,
+      max: A.KILL_MAX != null ? A.KILL_MAX : 3, cur: SQ.t('resource.currency', null, pack.worldId), loot: SQ.fmt(loot) }, pack.worldId));
+    out.dead = false;
+    if (p.amb >= (A.KILL_MAX != null ? A.KILL_MAX : 3)) {
+      var slain = nameOf(ws, p, pack);
+      killOff(ws, s, pack, D, p, now);
+      out.dead = true;
+      if (pack.worldSystems && pack.worldSystems.revengeArm) {
+        pack.worldSystems.revengeArm(ws, pack, D, slain, now);
+        if (log) log('sys', SQ.t('prodigy.log.revengearm', { name: slain }, pack.worldId));
+      }
+    }
+    return out;
+  }
+
   /* 心结渡劫加项（§7.1）：feud ≥1 即 −0.02，恒定单份不叠加（XTrib.info talent 同读点） */
   function tribModOf(ws, D) {
     var any = false;
@@ -532,16 +598,12 @@
         endFeud(ws, pack, D, p, now, null, false);
         out.cleared = true;
       } else if (branchKey === 'evil') {
-        /* 斩杀：心结除 + 出榜（槽位不复用）+ karma 按阵营 + 跨世宿敌清位 + 成就标记 */
-        endFeud(ws, pack, D, p, now, null, true);
+        /* 斩杀：出榜走 killOff（唯一写口，袭杀满三次同一条）+ karma 按天骄阵营照记 */
         var kd = (P(D).FEUD_KILL_KARMA || [-25, -10, 15])[p.al] || -10;
+        killOff(ws, s, pack, D, p, now);
         ws.karmaEventScore = (ws.karmaEventScore || 0) + kd;
         out.karma = kd;
         out.killed = true;
-        if (p.eternal && s && s.meta) s.meta.eternalProdigy = null;
-        if (p.eternal) { ws.prodMarks = ws.prodMarks || {}; ws.prodMarks.sudiWin = true; }
-        ws.prodigies = (ws.prodigies || []).filter(function (x) { return x.id !== p.id; });
-        rumor(ws, pack, D, now, 'prodigy.rumor.kill', { name: nameOf(ws, p, pack) });
       }
     }
     if (evId === 'prodigy_ev_forgive' && (branchKey === 'right' ? pass : branchKey === 'neutral')) {
@@ -584,6 +646,7 @@
     fireProdigyEvent: fireProdigyEvent,
     tryJoin: tryJoin,
     spar: spar,
+    ambush: ambush,
     sparStake: sparStake,
     startFeud: startFeud,
     tribModOf: tribModOf,

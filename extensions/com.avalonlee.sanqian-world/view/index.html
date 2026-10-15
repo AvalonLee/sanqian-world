@@ -4917,6 +4917,16 @@
       var nd = d.ZONES[w.zone].need * (chk.ratio != null ? chk.ratio : 1);
       return { kind: 'det', ok: pw >= nd, label: t('event.check.type.power') };
     }
+    if (type === 'ambushFoe') {
+      /* 敌手快照（第卌四批 · §6.1B）：只报「你多少 / 对方多少」，**不置灰**——
+       * 打得过打不过都是玩家的一念，这一族的「难」不该由 disabled 替他决定。
+       * 成算不显示：引擎是双方各 ±10% 浮动的对局，写一个百分比就是假精确（切磋那边同理只给让差档）。 */
+      var fo = (w.pendingChoice && w.pendingChoice.foe) || null;
+      var fpw = fo && fo.power > 0 ? fo.power : 0;
+      return { kind: 'odds', ok: true, label: t('event.check.type.ambushFoe'),
+        text: fpw ? t('event.ambush.ui.vs', { a: SQ.fmt(SQ.Mods.powerOf(w, p, d, m)), b: SQ.fmt(fpw) })
+          : t('event.check.type.ambushFoe') };
+    }
     return { kind: 'det', ok: true, label: '' };
   }
 
@@ -4925,7 +4935,17 @@
    * 倾向（体验批）：settings.eventPref 指定分支且可用 → 直接选它；否则可用分支中随机择一
    * （机缘本就无常）；全部不可用（理论不发生，防御）退化为全分支随机。
    * 结算走与手动抉择完全相同的 SQ.Actions.resolveChoice 单一通道，toast 告知抉择结果。 */
-  function autoEventOn() { return !!(state.settings && state.settings.autoEvent); }
+  function autoEventOn() {
+    /* 战术限时抉择（第卌四批 · §6.1B）不受自动奇遇代择：用户原话「必须手动选，限时，超时默认迎战」——
+     * 自动模式的语义是「机缘当前替玩家拿主意」，而这一族要保留的正是那一念之间。
+     * 判据 = 走查 verify-ui-ambush A1（开着 autoEvent 也不代择，浮层与挂起都还在）。 */
+    var wp = ws();
+    if (wp && wp.pendingChoice) {
+      var evp = findEvent(wp.pendingChoice.id);
+      if (evp && evp.tactical) return false;
+    }
+    return !!(state.settings && state.settings.autoEvent);
+  }
   function autoEventPref() {
     var p = state.settings && state.settings.eventPref;
     return (p === 'right' || p === 'evil' || p === 'neutral') ? p : 'none';
@@ -4985,8 +5005,12 @@
       (ev.special ? '<span class="mbadge sp">' + esc(t('event.badge.special')) + '</span>' : '') +
       (ev.once ? '<span class="mbadge sp">' + esc(t('event.badge.once')) + '</span>' : '');
     $('mc-title').textContent = t('event.' + ev.id + '.name');
-    $('mc-story').textContent = t('event.' + ev.id + '.story');
+    $('mc-story').textContent = t('event.' + ev.id + '.story') +
+      /* 敌手快照（第卌四批 · 袭击/寻仇）：名号与战力在触发时刻已定，屏上如实报——
+       * 名录里那人此刻可能已绝交/已出榜，但**那一刀是真的冲你来过**，不回填成别人 */
+      (pend.foe ? '\n' + t('event.ambush.ui.foe', { name: pend.foe.nm, p: SQ.fmt(pend.foe.power) }) : '');
     var bh = '';
+    var tac = ev.tactical === true;   /* 战术抉择（迎战 / 避战 / 认输）与善恶无关：不打「正道/魔道」前缀 */
     ['right', 'evil', 'neutral'].forEach(function (bk) {
       var br = ev.choices[bk];
       if (!br) return;
@@ -5001,7 +5025,7 @@
       /* 情谊生裂角标（缘尽收敛批）：轻中度背叛分支的预告——措辞比「绝缘」轻，明示不致缘尽 */
       var hasDrain = (br.gain || []).some(function (g) { return g.type === 'bondDrain'; });
       bh += '<button class="branch ' + bk + '-b" data-act="choose" data-v="' + bk + '"' + (disabled ? ' disabled' : '') + '>' +
-        '<span class="bk">' + esc(t('branch.' + bk)) + ' · ' + esc(t('event.' + ev.id + '.branch.' + bk)) +
+        '<span class="bk">' + (tac ? '' : esc(t('branch.' + bk)) + ' · ') + esc(t('event.' + ev.id + '.branch.' + bk)) +
         (hasLock ? ' <span class="ebadge gray">' + esc(t('event.badge.bondlock')) + '</span>' : '') +
         (!hasLock && hasDrain ? ' <span class="ebadge gray">' + esc(t('event.badge.bonddrain')) + '</span>' : '') + '</span>' +
         (infos.length ? '<span class="bi">' + esc(infos.join(' · ')) + '</span>' : '') +
@@ -5009,11 +5033,52 @@
     });
     $('mc-branches').innerHTML = bh;
     $('mc-branches').classList.remove('hide');
-    $('mc-foot').textContent = t('event.modal.foot');
-    $('mc-foot').classList.remove('hide');
+    if (tac) ambushCountdown();
+    else {
+      ambushHalt();
+      $('mc-foot').textContent = t('event.modal.foot');
+      $('mc-foot').classList.remove('hide');
+    }
     $('mc-judging').classList.add('hide');
     $('mc-result').classList.add('hide');
     $('modal-choice').classList.remove('hide');
+  }
+
+  /* ── 限时抉择（第卌四批 · 数值详设 §6.1B）：袭击 / 族中寻仇必须手动择，超时默认迎战。
+   * 计时器归浮层自己养：秒级 tick 在「抉择浮层开着」时整段让路（见 startTick 首行那句 return），
+   * 挂在 tick 上等于永远不倒数。**离线不倒数**——关掉页面就是把这抉择留到下次进线，
+   * 不会「睡一觉被仇家打死」（用户定的这条与「限时」并不冲突：限时限的是你盯着屏幕的那一刻）。
+   * 超时结算走与玩家手点**完全同一条** `SQ.Actions.resolveChoice`，不另开结算口——
+   * 否则「超时迎战胜」与「手点迎战胜」的账会分叉（本仓「单一通道」纪律）。
+   * shortcut: 重新载入页面会把这一轮的时限重新给满（刷新即可拖延）；要收紧就得把剩余量落盘、
+   * 按在线时长扣减，代价是每秒一次写档——不值。 */
+  var ambushTimer = null;
+  function ambushHalt() {
+    if (ambushTimer) { clearInterval(ambushTimer); ambushTimer = null; }
+  }
+  function ambushFoot(left) {
+    $('mc-foot').textContent = t('event.modal.foot') +
+      (left > 0 ? ' · ' + t('event.ambush.ui.remain', { t: timeLeftText(left) }) : '');
+    $('mc-foot').classList.remove('hide');
+  }
+  function ambushCountdown() {
+    ambushHalt();
+    var A = D().AMBUSH || {};
+    var left = A.DECIDE_MS || 0;
+    ambushFoot(left);
+    if (!(left > 0)) return;
+    ambushTimer = setInterval(async function () {
+      var w = ws();
+      if (!w || !w.pendingChoice || $('modal-choice').classList.contains('hide')) { ambushHalt(); return; }
+      left -= 1000;
+      if (left > 0) { ambushFoot(left); return; }
+      ambushHalt();
+      ambushFoot(0);
+      toast(t('event.ambush.ui.timeout'));
+      var res = await SQ.Actions.resolveChoice(state, 'right');
+      if (res && res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) showExclusive(res.eff);
+      renderAll();
+    }, 1000);
   }
 
   /* 独占奖励全屏演出（获得即演；点击或 2.8s 自动收起） */
@@ -6336,6 +6401,15 @@
     if (w.sect && w.sect.disciples) w.sect.disciples.forEach(function (x) { if (x.pr) srvSet[x.pr] = 1; });
     var h = '<div class="pagehead split"><div class="chips"><button class="on">' + esc(t('prodigy.board.title')) + '</button></div>' +
       '<span class="hint">' + esc(t('prodigy.board.hint')) + '</span></div>';
+    /* 寻仇链在案（第卌四批）：有仇挂着就常驻一行——玩家该知道自己欠着谁、下一轮什么时候到。
+     * 读数全取引擎那份单槽 ws.revenge（一槽一仇，不是容器 ⇒ 这行不会随名录变长） */
+    if (w.revenge) {
+      var rvLeft = (w.revenge.nextAt || 0) - Date.now();
+      h += '<div class="lrow"><div class="nm"><span class="bad">' +
+        esc(t('prodigy.ambush.chain.n', { n: w.revenge.n || 0 })) + '</span></div>' +
+        '<div class="meta">' + esc(w.revenge.foe || '') + (rvLeft > 0 ?
+          ' · ' + esc(t('prodigy.ambush.chain.cd', { t: timeLeftText(rvLeft) })) : '') + '</div></div>';
+    }
     if (!(w.prodigies || []).length) {
       h += '<p class="hint">' + esc(t('prodigy.board.empty')) + '</p>';
       $('tab-prodigy').innerHTML = h;
@@ -6421,6 +6495,25 @@
           ' · ' + esc(t('prodigy.spar.feudp', { p: Math.round((pdD.SPAR_FEUD_P || 0.30) * 100) })) +
           '/' + esc(t('prodigy.spar.kind.heavy')) + ' ' + Math.round((pdD.SPAR_FEUD_P_HEAVY || 0.40) * 100) + '%</div>';
         }
+        /* 袭杀（第卌四批 · 天骄卷 §五B · 数值详设 §6.1B）：与切磋并排的另一只手——
+         * 门槛硬得多（须压过对方 ×KILL_RATIO 才可能成）、代价写在明处（道伤 + 善恶 −），
+         * 满 KILL_MAX 次此人出榜并招其族寻仇。冷却 = 全局一枚 ws.ambushKillAt（按人记会随名录长档）。 */
+        var A44 = d.AMBUSH || {};
+        var ambCd = Math.max(0, (w.ambushKillAt || 0) - Date.now());
+        var ambN = pr.amb || 0;
+        var ambMax = A44.KILL_MAX != null ? A44.KILL_MAX : 3;
+        var ambRatio = A44.KILL_RATIO != null ? A44.KILL_RATIO : 1.2;
+        var ambDao = A44.KILL_DAO != null ? A44.KILL_DAO : 1;
+        var ambKd = Math.abs(A44.KILL_KARMA != null ? A44.KILL_KARMA : -18);
+        var ambLoot = SQ.Prodigy.sparStake(w, d, 'heavy');
+        h += '<div class="kv"><span>' + esc(t('prodigy.ambush.title')) + '</span><span>' +
+          esc(t('prodigy.ambush.why', { r: ambRatio, dao: ambDao, k: ambKd })) + '</span></div>' +
+          '<div class="kv"><span>' + esc(t('prodigy.ambush.count', { n: ambN, max: ambMax })) + '</span><span>' +
+          esc(t('prodigy.ambush.loot', { cur: t('resource.currency'), n: SQ.fmt(ambLoot) })) + '</span></div>';
+        h += ambCd > 0
+          ? '<button disabled style="width:100%;margin-top:6px">' + esc(t('prodigy.ambush.cd', { t: timeLeftText(ambCd) })) + '</button>'
+          : '<div class="acts" style="margin-top:6px"><button data-act="ambushProd" data-v="' + pr.id + '">' +
+            esc(t('prodigy.ambush.btn')) + '</button></div>';
         h += '</div>';
       }
     });
@@ -7212,6 +7305,38 @@
         else if (rSp && rSp.reason === 'cd') toast(t('prodigy.spar.cd', { t: timeLeftText(rSp.until - Date.now()) }));
         else if (rSp && rSp.reason === 'poor') toast(t('prodigy.spar.poor'));
         else if (rSp && rSp.reason === 'locked') toast(t('prodigy.spar.locked'));
+        renderAll();
+      });
+      return;
+    }
+    if (act === 'ambushProd') {
+      /* 袭杀确认（第卌四批 · 天骄卷 §五B）：五项要素全透明——门槛倍率 / 夺资额 / 败的道伤 / 损的善恶 /
+       * 满次数后必来的寻仇。引擎返回值只认 reason 白名单（N33 那条：兜底键复用会让文案说谎）。 */
+      var wA = ws(), dA = D(), AA = dA.AMBUSH || {};
+      var prA = SQ.Prodigy.byId(wA, v);
+      var nmA = prA ? SQ.Prodigy.nameOf(wA, prA, pack()) : '';
+      askConfirm(t('prodigy.ambush.title'), t('prodigy.ambush.confirm', {
+        name: nmA, r: (AA.KILL_RATIO != null ? AA.KILL_RATIO : 1.2),
+        dao: (AA.KILL_DAO != null ? AA.KILL_DAO : 1), k: Math.abs(AA.KILL_KARMA != null ? AA.KILL_KARMA : -18),
+        max: (AA.KILL_MAX != null ? AA.KILL_MAX : 3), n: prA ? (prA.amb || 0) : 0,
+        cur: t('resource.currency'), loot: SQ.fmt(SQ.Prodigy.sparStake(wA, dA, 'heavy'))
+      }), async function () {
+        var rA = await SQ.Actions.prodigyAmbush(state, v);
+        if (rA && rA.ok) {
+          /* 引擎刚把这一行写进日志，界面把**同一个 key** 拿去 toast（切磋同纪律，不另抄措辞） */
+          toast(t(rA.win ? 'prodigy.log.ambush' : 'prodigy.log.ambushfail', {
+            name: nmA, cur: t('resource.currency'), loot: SQ.fmt(rA.loot || 0), n: rA.count || 0,
+            max: rA.max || (AA.KILL_MAX != null ? AA.KILL_MAX : 3),
+            dao: (AA.KILL_DAO != null ? AA.KILL_DAO : 1)
+          }));
+          if (rA.dead) toast(t('prodigy.log.revengearm', { name: nmA }));
+        } else if (rA && rA.reason === 'cd') {
+          toast(t('prodigy.spar.cd', { t: timeLeftText(Math.max(0, (rA.until || 0) - Date.now())) }));
+        } else if (rA && rA.reason === 'locked') {
+          toast(t('prodigy.spar.locked'));
+        } else if (rA && rA.reason) {
+          toast(t('prodigy.ambush.reject'));
+        }
         renderAll();
       });
       return;
