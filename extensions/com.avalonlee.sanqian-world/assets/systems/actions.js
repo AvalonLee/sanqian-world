@@ -717,7 +717,7 @@
       return out;
     },
 
-    /* ── 同代天骄（天骄卷 v1.0 · 六向长线批 A4）：论道切磋（7 现实天/人 CD，即时对局
+    /* ── 同代天骄（天骄卷 v1.0 · 六向长线批 A4）：论道切磋（10 现实分钟/人 CD，即时对局
      * 不进 pendingChoice；赌注 out.event_loss / 胜返 in.event 既有分类）── */
     prodigySpar: async function (ref, pid, kind) {
       var out = null;

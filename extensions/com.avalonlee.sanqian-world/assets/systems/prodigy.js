@@ -395,7 +395,7 @@
     return { id: evId, prodigy: pid, pending: true };
   }
 
-  /* ── 论道切磋（§五 v2 · 切磋平衡批）：7 现实天/人 CD · ±10% 掷判 · 三档赌注 · 强弱差让 ·
+  /* ── 论道切磋（§五 v2 · 切磋平衡批）：10 现实分钟/人 CD · ±10% 掷判 · 三档赌注 · 强弱差让 ·
    * 胜方材料彩头（材料账零灵石流）· bond 与结仇（重注上浮）── */
   function normKind(kind) { return (kind === 'light' || kind === 'heavy') ? kind : 'std'; }
   function sparStake(ws, D, kind) {
@@ -410,7 +410,7 @@
     var p = byId(ws, pid);
     if (!p) return { ok: false, reason: 'unknown' };
     kind = normKind(kind);
-    var cdMs = (PD.SPAR_CD_DAYS || 7) * 86400000;
+    var cdMs = PD.SPAR_CD_MS || 600000;
     if (p.lastSparAt > 0 && now - p.lastSparAt < cdMs) {
       return { ok: false, reason: 'cd', until: p.lastSparAt + cdMs };
     }

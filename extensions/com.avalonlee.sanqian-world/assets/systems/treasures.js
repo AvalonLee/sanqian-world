@@ -39,7 +39,7 @@
   }
 
   function blank() {
-    return { owned: [], slots: [null, null, null], fate: { trib: 0, check: 0, drop: 0, event: 0 }, bondCount: 0 };
+    return { owned: [], slots: [null, null, null], fate: { trib: 0, check: 0, drop: 0, event: 0 }, bondCount: 0, bondHours: 0 };
   }
 
   var num = SQ.util.num;   /* C1：统一至 assets/util.js */
@@ -49,7 +49,8 @@
     var d = blank();
     if (!raw || typeof raw !== 'object') return d;
     var byId = (T(pack) && T(pack).byId) || {};
-    var out = { owned: [], slots: [null, null, null], fate: {}, bondCount: int(raw.bondCount, 0) };
+    var out = { owned: [], slots: [null, null, null], fate: {}, bondCount: int(raw.bondCount, 0),
+      bondHours: Math.max(0, num(raw.bondHours, 0)) };
     var seen = {};
     (Array.isArray(raw.owned) ? raw.owned : []).forEach(function (e) {
       if (!e || !byId[e.id] || seen[e.id]) return;
@@ -251,12 +252,14 @@
     return { ok: true, fail: false, lv: e.lv, cost: cost };
   }
 
-  /* ── 认主（先天）：每 BOND_COST 次渡劫成功 +1 阶 ──────────── */
-  function bondTick(ws, pack, D, log) {
+  /* ── 认主（先天）：每 BOND_COST 次计数 +1 阶；计数有两条来源（数值详设 §十 + 第卌三批计时通道）
+   * ① 渡劫成功 +1/次；② 每 BOND_HOURS 小时**已结算时长** +1/份。两条共用同一个 bondCount 与同一条
+   * 推进口（bondAdvance），不另立升级路——计时只是「卡境渡不了劫时不再整段停摆」的下限，
+   * 中期两次渡劫 ≈1~2h 仍远快于 8h/份。 */
+  function bondAdvance(ws, pack, D, log) {
     var t = T(pack);
     if (!t) return;
     var tr = ensure(ws);
-    tr.bondCount = (tr.bondCount || 0) + 1;
     if (tr.bondCount % t.BOND_COST !== 0) return;
     tr.owned.forEach(function (e) {
       var d = def(pack, e.id);
@@ -270,6 +273,35 @@
         }, pack.worldId));
       }
     });
+  }
+
+  function bondTick(ws, pack, D, log) {
+    var t = T(pack);
+    if (!t) return;
+    var tr = ensure(ws);
+    tr.bondCount = (tr.bondCount || 0) + 1;
+    bondAdvance(ws, pack, D, log);
+  }
+
+  /* 计时认主（体验批）：由世界包在 claim 结算后喂 idleRes.hours（与寿元同一条时钟、同一处口径）
+   * shortcut: 计时与计数都是 ws.treasures 顶层全局一枚（看不出按件进度、多件共享同一份），
+   * 要改成按件时先裁定按件 vs 全局，再把两键下沉 owned[].st 并同批改 ST_KEYS（A7 + 冒烟 #281 会抓）。 */
+  function bondTime(ws, pack, D, hours, log) {
+    var t = T(pack);
+    if (!t || !(t.BOND_HOURS > 0) || !(hours > 0) || !ws.treasures) return;
+    var tr = ensure(ws);
+    /* 全数满阶（含未得先天法宝）即停表：省得 bondCount 无意义地长，也让新得之件从零起算 */
+    var allMaxed = tr.owned.every(function (e) {
+      var d = def(pack, e.id);
+      return !d || d.kind !== 'xian' || (e.stage || 1) >= maxOf(pack, d);
+    });
+    if (allMaxed) return;
+    tr.bondHours = (tr.bondHours || 0) + hours;
+    while (tr.bondHours >= t.BOND_HOURS) {
+      tr.bondHours -= t.BOND_HOURS;
+      tr.bondCount = (tr.bondCount || 0) + 1;
+      bondAdvance(ws, pack, D, log);
+    }
   }
 
   /* ── 乘区收集（mods.js 消费）：同乘区加算 ──────────────── */
@@ -488,7 +520,7 @@
     fxList: fxList, fxText: fxText,
     slotUnlocked: slotUnlocked,
     gain: gain, equip: equip, unequip: unequip,
-    refineCost: refineCost, refine: refine, bondTick: bondTick,
+    refineCost: refineCost, refine: refine, bondTick: bondTick, bondTime: bondTime,
     collect: collect,
     fateBonus: fateBonus, fateNote: fateNote,
     tribOnFail: tribOnFail, tribOnSuccess: tribOnSuccess,

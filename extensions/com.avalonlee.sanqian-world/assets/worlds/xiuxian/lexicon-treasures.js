@@ -38,7 +38,7 @@
     'treasure.refine.confirm': '祭炼「{name}」至 {lv} 级？耗 {n} {cur}，有三成机率失败降级。',
     'treasure.refine.done': '{name} 祭炼至 {lv} 级',
     'treasure.refine.fail': '{name} 祭炼失败，火候散乱，跌落至 {lv} 级',
-    'treasure.bond.hint': '认主随渡劫成功而进（每 {n} 次渡劫 +1 阶）',
+    'treasure.bond.hint': '认主渐进：每 {n} 次渡劫成功，或每 {h} 小时修行积一份感应，满 {n} 份进一阶',
     'treasure.bond.done': '{name} 认主进境，感应更切（{n} 阶）',
     /* 造化（X11） */
     'treasure.convert.title': '造化鼎',

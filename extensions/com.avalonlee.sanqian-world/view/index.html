@@ -1440,7 +1440,7 @@
     ioErrSeen: null,                        /* 存档 I/O 失败提示去重（平台关卡 #89） */
     caveStory: {},                          /* 洞府叙事展开态（B3；未达资格者本就不给展开） */
     tribSnap: null,                         /* 渡劫前 {p, loss} 快照（F7 复盘行） */
-    artsGroup: 'tier', artsGroupVal: null,  /* 功法页双维分组（B4）：品阶|阵营 × 选中值（null=全节） */
+    artsGroup: 'tier', artsGroupVal: null,  /* 功法页双维筛选（B4 + 体验批）：品阶|阵营 × 选中值（null=不筛，已学会与图鉴同受） */
     lawChip: 'fa',                          /* 法与器页顶部标签（标签化批 2026-10-09）：'fa' 功法段 | 'qi' 法器段，两段互斥；纯 UI 态不入存档 */
     slotPickFor: null,                      /* 满槽替换选择模式（B4）：待入槽的功法 id */
     bondDetail: null,                       /* 名录浮层二级页（B3）：当前查看的 npcId */
@@ -2911,16 +2911,9 @@
            '<div class="hint">' + esc(t(cands ? 'arts.selflearn.hint' : 'arts.selflearn.none')) + '</div>' +
            '</div>';
     })();
-    /* ── 已学会（走查 v2.5 §4）：紧贴修习槽——装入/升级/精通一屏可达 ── */
-    var knownS = (w.artsKnown || []).slice().sort(function (x, y) {
-      return ((w.artsSlots || []).indexOf(y) >= 0 ? 1 : 0) - ((w.artsSlots || []).indexOf(x) >= 0 ? 1 : 0);
-    });
-    h += '<div class="sechead"><span class="t">' + esc(t('arts.sec.known')) +
-      ' · ' + knownS.length + '</span></div>';
-    if (!knownS.length) h += '<div class="lrow locked"><div class="meta">' + esc(t('arts.known.empty')) + '</div></div>';
-    /* 走查 v2.6 §2：卡片化——同行卡片数随窗口宽度自适应（auto-fill） */
-    h += '<div class="cards artgrid">' + knownS.map(function (x) { return artCard(x, w, m); }).join('') + '</div>';
-    /* ── 功法图鉴（走查 v2.5 §4 + v2.8 §1：待修习架功法回归各品阶/阵营小节，弃置在卡内）── */
+    /* ── 筛选条（体验批）：这排 chip 原先只管下方图鉴，现在**整段功法页**共用——已学会攒到三十余部后
+     * 找一部只能翻。复用 `ui.artsGroup`/`ui.artsGroupVal` 两枚内存态（零新状态、零新词表键），
+     * chip 位置随语义上移到「已学会」之前。选中值 null = 不筛（默认态整页不变）。 ── */
     var grp = ui.artsGroup;
     h += '<div class="grouper"><span class="gseg">' +
       '<span class="' + (grp === 'tier' ? 'on' : '') + '" data-act="artsGroup" data-v="tier">' + esc(t('arts.group.tier')) + '</span>' +
@@ -2930,6 +2923,22 @@
         esc(grp === 'tier' ? t('arts.tierchar.' + v) : t('align.' + v)) + '</span>';
     });
     h += '</div>';
+    /* ── 已学会（走查 v2.5 §4）：紧贴修习槽——装入/升级/精通一屏可达 ── */
+    var knownS = (w.artsKnown || []).slice().sort(function (x, y) {
+      return ((w.artsSlots || []).indexOf(y) >= 0 ? 1 : 0) - ((w.artsSlots || []).indexOf(x) >= 0 ? 1 : 0);
+    });
+    if (ui.artsGroupVal) {
+      knownS = knownS.filter(function (x) {
+        return (grp === 'tier' ? am[x].tier : am[x].alignment) === ui.artsGroupVal;
+      });
+    }
+    h += '<div class="sechead"><span class="t">' + esc(t('arts.sec.known')) +
+      ' · ' + knownS.length + '</span></div>';
+    /* 筛空了 ≠ 没学过：只有**真的一部都没学会**才说「尚未学会」，否则这段留白（段标计数已说明是 0）。 */
+    if (!knownS.length && !(w.artsKnown || []).length) h += '<div class="lrow locked"><div class="meta">' + esc(t('arts.known.empty')) + '</div></div>';
+    /* 走查 v2.6 §2：卡片化——同行卡片数随窗口宽度自适应（auto-fill） */
+    h += '<div class="cards artgrid">' + knownS.map(function (x) { return artCard(x, w, m); }).join('') + '</div>';
+    /* ── 功法图鉴（走查 v2.5 §4 + v2.8 §1：待修习架功法回归各品阶/阵营小节，弃置在卡内）── */
     h += '<div class="sechead"><span class="t">' + esc(t('arts.codex.title')) + '</span></div>';
     var groups = grp === 'tier' ? ['huang', 'xuan', 'di', 'tian'] : ['right', 'neutral', 'evil'];
     if (ui.artsGroupVal) groups = [ui.artsGroupVal];
@@ -3172,7 +3181,7 @@
     h += '<div class="teff">' + esc(t('treasure.lv.' + dd.kind, { n: lv, cap: max })) +
       ' · ' + esc(SQ.Treasures.fxText(w, p, dd, e)) + '</div>';
     h += '<div class="tdesc">' + esc(t('treasure.' + e.id + '.desc')) + '</div>';
-    if (dd.kind === 'xian') h += '<div class="tdesc">' + esc(t('treasure.bond.hint', { n: (p.treasures.BOND_COST || 3) })) + '</div>';
+    if (dd.kind === 'xian') h += '<div class="tdesc">' + esc(t('treasure.bond.hint', { n: (p.treasures.BOND_COST || 3), h: (p.treasures.BOND_HOURS || 8) })) + '</div>';
     if (!eq && lacks.length) h += '<div class="tdesc" style="color:var(--danger)">' + esc(lacks.join(' · ')) + '</div>';
     var acts = '';
     if (eq) {
@@ -6376,7 +6385,7 @@
         '<div class="meta">' + esc(t('realm.' + r.realm)) + ' · ' + esc(t('resource.power')) + ' ' + SQ.fmt(r.power) +
         (!isMe ? ' · ' + esc(SQ.Prodigy.factionNameOf(w, pr, p)) : '') + '</div></div>';
       if (!isMe && ui.prodOpen === r.id) {
-        var cdLeft = pr.lastSparAt + (d.PRODIGY.SPAR_CD_DAYS || 7) * 86400000 - Date.now();
+        var cdLeft = pr.lastSparAt + (d.PRODIGY.SPAR_CD_MS || 600000) - Date.now();
         /* 强弱差让展示（切磋平衡批 §5.3 v2）：ratio = 浮动前真战力比——信息全透明正典纪律 */
         var pdD = d.PRODIGY || {}, hcD = pdD.HANDICAP || {};
         var myPD = SQ.Mods.powerOf(w, p, d, m);
