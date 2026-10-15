@@ -574,6 +574,10 @@
       if (ws.daoShang > 0) ws.daoShang = Math.max(0, ws.daoShang - lifeYrs * D.DAO_SHANG.healPerYear);
     }
 
+    /* G2B 认主计时（体验批）：与寿元同一条**已结算**时钟（离线同计、照 OFFLINE_CAP_H 封顶）——
+     * 卡在境界线上渡不了劫时，先天法宝不再整段停摆；计时只是下限，渡劫仍是更快的一路。 */
+    if (SQ.Treasures) SQ.Treasures.bondTime(ws, pack, D, idleRes.hours, ctx && ctx.log);
+
     /* G3：战斗只随在线 tick 推进（详设 §2.1 P4 登记），且**只有外出历练才进秘境**——
      * 闭关不产灵石、不出装备、不推进度（需求 §1.1/§2）；历练期角色位于 ws.zone 秘境。 */
     var mods = modsFor(ws, prof);

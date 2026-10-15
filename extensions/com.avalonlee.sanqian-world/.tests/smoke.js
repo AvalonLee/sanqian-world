@@ -372,13 +372,14 @@
     var sum30 = logs30.filter(function (x) { return /^闭关 \d+ 小时 \d+ 分，得修为 .+，渡劫 \d+ 次（成 \d+ 败 \d+）$/.test(x); });
     ok(30, '离线汇总日志格式', sum30.length === 1 && w30.realm > 0, sum30[0] || logs30.join('|'));
 
-    /* #31 击杀节奏 60×速度/小时；prog+5/杀，20 杀通关（可重复刷）
+    /* #31 击杀节奏 60×速度/小时；prog+5/杀（富余=0 基准，第卌三批起有富余即按 PROG_SURGE_* 加速，
+     * 精确加速判据见 #306），20 杀通关（可重复刷）
      * （系统深化批 A4：词缀进入击杀间隔消费点 → 测试钉住灵潮〔仅 stonesMult〕保持节奏断言确定性） */
     var w31 = mkWs({ realm: 2 });
     w31.zoneAffix = { affixId: 'lingchao', until: Date.now() + 3600000 };
     var m31 = M(mkProf(), w31);
     var r31 = SQ.Combat.simulate(w31, pack, D, m31, 3600, { log: noopLog(), now: Date.now(), profile: mkProf() });
-    ok(31, '击杀 60/h · 20 杀通关 · 重复刷', r31.kills === 60 && r31.cleared.indexOf(0) >= 0 && (w31.prog[0] || 0) === 0 && w31.kills === 60,
+    ok(31, '击杀 60/h · 满进度即通关 · 通关后 prog 归零可重复刷', r31.kills === 60 && r31.cleared.indexOf(0) >= 0 && (w31.prog[0] || 0) === 0 && w31.kills === 60,
       'kills=' + r31.kills + ' prog=' + JSON.stringify(w31.prog));
 
     /* #32 瓶颈：间隔 ×3（20 杀/h）且 prog 封顶 90 无法通关（词缀同 #31 钉住） */
@@ -9999,6 +10000,97 @@
       txt305 === SQ.t('alchemy.log.pillcap', { n: CAP305 }, 'xiuxian') &&
       txt305.indexOf(String(CAP305)) >= 0 && ref305.profile.name === '试丹者',
       '日限 n=' + nDay305 + '/' + CAP305 + ' ‖ reason=' + (r305 || {}).reason + ' ‖ 行=' + txt305);
+
+    /* #306 秘境进度与战力富余挂钩（第卌三批 · 用户报「高战力刷低级秘境要更快，更符合直觉」）
+     * 判据取「同一区、同样杀数的通关与否」而不是重算一遍乘式：三档战力把加速的两端钉住——
+     * 富余中档 6 杀通（不加速要 20 杀）、吃顶档 5 杀通（= PROG_PER_KILL×PROG_SURGE_CAP）、
+     * 瓶颈态**恒不加速**且击杀间隔不变（kills 仍 5 = 300s÷60s，防「加速顺手改节奏」连带 sim-pacing）。 */
+    var w306a = mkWs({ realm: 2, zone: 0 });
+    w306a.zoneAffix = { affixId: 'lingchao', until: Date.now() + 3600000 };   /* 灵潮只动 stonesMult：钉死节奏与门槛 */
+    var r306a5 = SQ.Combat.simulate(w306a, pack, D, M(mkProf(), w306a), 60 * 5, { log: noopLog(), now: Date.now(), profile: mkProf() });
+    var prog5_306a = w306a.prog[0];
+    var r306a6 = SQ.Combat.simulate(w306a, pack, D, M(mkProf(), w306a), 60 * 1, { log: noopLog(), now: Date.now(), profile: mkProf() });
+    var w306b = mkWs({ realm: 3, zone: 0 });
+    w306b.zoneAffix = { affixId: 'lingchao', until: Date.now() + 3600000 };
+    var r306b = SQ.Combat.simulate(w306b, pack, D, M(mkProf(), w306b), 60 * 5, { log: noopLog(), now: Date.now(), profile: mkProf() });
+    var w306c = mkWs({ realm: 0, zone: 1 });
+    w306c.zoneAffix = { affixId: 'lingchao', until: Date.now() + 3600000 };
+    var r306c = SQ.Combat.simulate(w306c, pack, D, M(mkProf(), w306c), 300, { log: noopLog(), now: Date.now(), profile: mkProf() });
+    ok('306', '战力富余加速秘境进度（第卌三批）：(a) 富余中档（金丹刷首区）5 杀不通〔prog=' + prog5_306a +
+      '〕、第 6 杀通关——不加速时 5 杀只 25 进度 (b) 富余吃顶（元婴刷首区，比值 ≥ PROG_SURGE_CAP）5 杀即通、' +
+      '且 kills 恰 5 ⇒ **间隔未动**（加速只喂进度口） (c) 瓶颈态 prog 精确 === kills×PROG_PER_KILL（乘子恒 1）',
+      prog5_306a === 90 && r306a5.kills === 5 && r306a5.cleared.length === 0 &&
+      r306a6.kills === 1 && r306a6.cleared.indexOf(0) >= 0 &&
+      r306b.kills === 5 && r306b.cleared.indexOf(0) >= 0 &&
+      w306c.prog[1] === r306c.kills * D.PROG_PER_KILL && D.PROG_SURGE_COEF === 0.5 && D.PROG_SURGE_CAP === 4,
+      '中档 5 杀 prog=' + prog5_306a + '/6 杀通=' + (r306a6.cleared.indexOf(0) >= 0) +
+      ' ‖ 顶档 kills=' + r306b.kills + ' cleared=' + JSON.stringify(r306b.cleared) +
+      ' ‖ 瓶颈 kills=' + r306c.kills + ' prog=' + w306c.prog[1]);
+
+    /* #307 法宝认主计时通道（第卌三批 · 用户报「要渡劫才涨进度太慢」）：计时与渡劫**共用同一枚
+     * bondCount 与同一条 bondAdvance modulo**（不另立升级路），所以判据要同时证
+     * 「不满份不涨」「满份进一阶」「渡劫仍在同一计数上继续走」「全数满阶即停表」「旧档补 0」。 */
+    var BOND307 = SQ.XTREASURES;
+    var mkBond307 = function () {
+      var w = mkWs({ realm: 2 });
+      w.treasures = { owned: [{ id: 'x02', stage: 1, st: {} }], slots: ['x02', null, null],
+        fate: { trib: 0, check: 0, drop: 0, event: 0 }, bondCount: 0 };   /* 旧档形状：无 bondHours */
+      return w;
+    };
+    var w307 = mkBond307();
+    var lg307 = [];
+    var log307 = function (c, txt) { lg307.push(txt); };
+    SQ.Treasures.bondTime(w307, pack, D, BOND307.BOND_HOURS - 0.1, log307);
+    var under307 = w307.treasures.bondCount === 0 && w307.treasures.owned[0].stage === 1;
+    SQ.Treasures.bondTime(w307, pack, D, 0.2, log307);                       /* 满一份 → 计数 1，未到 BOND_COST */
+    var odd307 = w307.treasures.bondCount === 1 && w307.treasures.owned[0].stage === 1;
+    SQ.Treasures.bondTime(w307, pack, D, BOND307.BOND_HOURS, log307);         /* 再满一份 → 2 = BOND_COST → 进阶 */
+    var stage307 = w307.treasures.owned[0].stage === 2 && lg307.length === 1 &&
+      lg307[0] === SQ.t('treasure.bond.done', { name: SQ.t('treasure.x02.name', null, 'xiuxian'), n: 2 }, 'xiuxian');
+    SQ.Treasures.bondTick(w307, pack, D, log307);                             /* 渡劫 +1 → 3（奇数不进阶） */
+    SQ.Treasures.bondTick(w307, pack, D, log307);                             /* 再 +1 → 4 → 顶阶 3 */
+    var shared307 = w307.treasures.bondCount === 4 && w307.treasures.owned[0].stage === BOND307.MAX_STAGE &&
+      lg307.length === 2;
+    var bc307 = w307.treasures.bondCount, bh307 = w307.treasures.bondHours;
+    SQ.Treasures.bondTime(w307, pack, D, 999, log307);                        /* 全数满阶 → 停表 */
+    var stopped307 = w307.treasures.bondCount === bc307 && w307.treasures.bondHours === bh307 && lg307.length === 2;
+    var norm307 = SQ.Treasures.normalize({ owned: [{ id: 'x02', stage: 2 }], slots: [null, null, null],
+      fate: {}, bondCount: 3 }, pack);                                        /* 旧档（无该字段）读入补 0 */
+    /* (g) 真入口：挂点在世界包 claim 的已结算时长之后（与寿元同一条时钟），离线 24h 照 OFFLINE_CAP_H
+     * 封顶 12h ⇒ 12÷8 = 1 份计数、余 4h 留档。直调 bondTime 证不了这根线接上了，故必须走 claim。 */
+    var w307g = mkWs({ realm: 2 });
+    w307g.treasures = { owned: [{ id: 'x02', stage: 1, st: {} }], slots: ['x02', null, null],
+      fate: { trib: 0, check: 0, drop: 0, event: 0 }, bondCount: 0 };
+    pack.claim(w307g, 24 * 3600000, Date.now(), mkProf(), { autoTrib: false });
+    var wired307 = w307g.treasures.bondCount === 1 &&
+      Math.abs(w307g.treasures.bondHours - (D.OFFLINE_CAP_H % BOND307.BOND_HOURS)) < 1e-9 &&
+      w307g.treasures.owned[0].stage === 1;
+    ok('307', '法宝认主加计时通道（第卌三批）：(a) 差 0.1h 不满份不涨 (b) 满 BOND_HOURS(' + BOND307.BOND_HOURS +
+      'h) 一份 = 计数 +1，未满 BOND_COST(' + BOND307.BOND_COST + ') 不进阶 (c) 两份即到一阶且写一条 bond.done ' +
+      '(d) 渡劫与计时同吃一枚 bondCount（3/4 → 顶阶' + BOND307.MAX_STAGE + '） (e) 全数满阶停表、无谓计数不长 ' +
+      '(f) 旧档缺字段 normalize 补 0（零迁移面） (g) 真入口：claim 离线 24h 只按封顶 ' + D.OFFLINE_CAP_H +
+      'h 计 ⇒ +1 份、余 ' + (D.OFFLINE_CAP_H % BOND307.BOND_HOURS) + 'h 留档',
+      under307 && odd307 && stage307 && shared307 && stopped307 &&
+      norm307.bondHours === 0 && norm307.bondCount === 3 && BOND307.BOND_HOURS === 8 && wired307,
+      'under=' + under307 + ' odd=' + odd307 + ' stage=' + w307.treasures.owned[0].stage +
+      ' count=' + w307.treasures.bondCount + ' stopped=' + stopped307 + ' norm=' + norm307.bondHours +
+      ' 真入口=' + w307g.treasures.bondCount + '/' + w307g.treasures.bondHours.toFixed(2) + 'h');
+
+    /* #308 切磋冷却改 10 现实分钟（第卌三批 · 用户报「7 天太长，榜基本是摆设」）：
+     * 键名随单位一并改成 SPAR_CD_MS（旧 DAYS 键不许留第二份事实源，A9 死常量关会抓、这里也直判一次）。 */
+    var w308 = mkWs({ realm: 4, stones: 999999 });
+    w308.prodigies = [{ id: 'pr1', nm: [0, 0, 0], tl: [], al: 1, fc: -1, fid: null, apt: 1, rlm: 2,
+      prg: 0, feud: false, feudBond: 0, lastSparAt: 0, rivAt: 0, boost: null, eternal: false, wl: [0, 0, 0] }];
+    var t308 = 1700000000000, CD308 = D.PRODIGY.SPAR_CD_MS;
+    var first308 = SQ.Prodigy.spar(w308, pack, D, M(mkProf(), w308), 'pr1', t308, noopLog());
+    var inCd308 = SQ.Prodigy.spar(w308, pack, D, M(mkProf(), w308), 'pr1', t308 + CD308 - 1, noopLog());
+    var afterCd308 = SQ.Prodigy.spar(w308, pack, D, M(mkProf(), w308), 'pr1', t308 + CD308 + 1, noopLog());
+    ok('308', '天骄切磋冷却 = 10 现实分钟（第卌三批）：首战成 → 冷却内（cd−1ms）拒 reason=cd 且 until 精确' +
+      ' → 过点即放行；表值 === 10×60×1000 且旧 SPAR_CD_DAYS 键已消（单一事实源）',
+      CD308 === 600000 && D.PRODIGY.SPAR_CD_DAYS === undefined && first308.ok === true &&
+      inCd308.reason === 'cd' && inCd308.until === t308 + CD308 && afterCd308.ok === true,
+      'cd=' + CD308 + ' 首战=' + first308.result + ' 冷却内=' + inCd308.reason +
+      '/' + inCd308.until + ' 过点后=' + afterCd308.ok);
 
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');

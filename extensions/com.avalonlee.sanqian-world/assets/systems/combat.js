@@ -108,6 +108,11 @@
       var fengchun = (mods.hooks.fengchun || 0) + (mods.hooks.on_kill_drop || 0) + (mods.hooks.zaohua || 0) +
         ((mods.bonds && mods.bonds.dropExtra) || 0);   /* 造化余韵（自创签名）同线加算 */
       var progCap = bn.bottleneck ? D.BOTTLENECK_PROG_CAP : 100;
+      /* 战力富余加速（体验批）：bn.power/bn.need 就是瓶颈判定用的那一对读数，直接复用、不另立战力口径。
+       * 瓶颈态下富余 ≤0 ⇒ 乘子恒 1（进度封顶也还是 90），加速只属于「打得动」的状态。 */
+      var surge = !bn.bottleneck && bn.need > 0
+        ? Math.min(D.PROG_SURGE_CAP, 1 + Math.max(0, bn.power / bn.need - 1) * D.PROG_SURGE_COEF) : 1;
+      var progStep = Math.round(D.PROG_PER_KILL * surge);   /* 取整：prog 全程整数（界面直读、事件乘区、读档归一都按整数口径） */
 
       for (var i = 0; i < kills; i++) {
         /* 法宝单杀回调（锁灵 ×5 / 开天一击 +20 进度 / 杀伐掉落 / 每杀业力） */
@@ -144,7 +149,7 @@
         /* 进度（法宝·开天一击 progBonus 叠加，法宝全录 X05） */
         var z = ws.zone;
         var p0 = ws.prog[z] || 0;
-        var p1 = Math.min(progCap, p0 + D.PROG_PER_KILL + (kr ? kr.progBonus : 0));
+        var p1 = Math.min(progCap, p0 + progStep + (kr ? kr.progBonus : 0));
         ws.prog[z] = p1;
         if (p1 >= 100) {
           ws.prog[z] = 0;

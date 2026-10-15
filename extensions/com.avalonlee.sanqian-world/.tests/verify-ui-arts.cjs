@@ -585,6 +585,84 @@ async function buildSave() {
   T(sModal.row.indexOf('签名') < 0, 'S4b 浮层那行同样不编造签名（`arts.special` 标签只在有词条时出现）', sModal.row || '(无该行)');
   await ctx3.close();
 
+  /* ── F 组（2026-10-15 第卌三批 · 用户报「已学会的功法也要能按品阶筛选，方便快速查找」）──
+   * 实现口径 = 图鉴那排 chip **升格为整段筛选器**（已学会 + 图鉴共用同一枚 ui.artsGroupVal），
+   * 零新状态零新词表键。判据要证四件事：默认不筛（整页形状不变）‖ 筛后卡集恰等于该阶子集
+   * ‖ 筛空了不许说「尚未学会」（那是「一部都没学」的话，不是「这一阶没有」的话）
+   * ‖ chip 行 DOM 序已上移到「已学会」之前（否则筛选器在它管的列表下面）。 */
+  const ctx4 = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+  await ctx4.addInitScript((s) => { localStorage.setItem('sanqian-state-v1', JSON.stringify(s)); }, save);
+  const page4 = await ctx4.newPage();
+  const errors4 = [];
+  page4.on('pageerror', (e) => errors4.push(String(e.message || e)));
+  page4.on('console', (m) => { if (m.type() === 'error') errors4.push(m.text()); });
+  await page4.goto(url);
+  await page4.waitForSelector('#sc-main:not(.hide)', { timeout: 20000 });
+  await page4.click('#m-tabbar button:has-text("法与器")');
+  await page4.waitForTimeout(600);
+  const fRead = () => page4.evaluate(() => {
+    const grid = document.querySelector('#tab-arts .artgrid');
+    const cards = Array.prototype.slice.call(grid ? grid.querySelectorAll('.tcard') : []);
+    const heads = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .sechead .t'));
+    const knownEl = heads.filter((x) => x.textContent.replace(/\s+/g, '').indexOf('已学会') >= 0)[0];
+    const grp = document.querySelector('#tab-arts .grouper');
+    const onEl = document.querySelector('#tab-arts .gchip.on');
+    const txts = heads.map((x) => x.textContent.trim());
+    return {
+      n: cards.length,
+      names: cards.map((x) => {
+        const tn = x.querySelector('.tname');
+        return tn && tn.firstChild ? String(tn.firstChild.textContent).trim() : '';
+      }),
+      on: onEl ? (onEl.dataset.v || '') : '',
+      knownHead: knownEl ? knownEl.textContent.trim() : '',
+      /* 筛选条必须在「已学会」段标**之前**（它现在管两段）：用 DOM 位置关系判，不靠字符串顺序 */
+      before: !!(grp && knownEl && (grp.compareDocumentPosition(knownEl) & Node.DOCUMENT_POSITION_FOLLOWING) > 0),
+      heads: txts.join('|'),
+      tierHeads: txts.filter((x) => x.indexOf('字阶') >= 0).length,
+      emptyLine: (document.getElementById('tab-arts').innerText || '').indexOf('尚未学会') >= 0
+    };
+  });
+  const f0 = await fRead();
+  T(errors4.length === 0 && f0.n === 3 && f0.on === '' && f0.tierHeads === 4,
+    'F1 默认态不筛：已学会恰三张卡（fixture 3 部）+ 无选中 chip + 图鉴四阶小节齐',
+    'cards=' + f0.n + ' on=' + f0.on + ' 阶节=' + f0.tierHeads + ' err=' + (errors4[0] || 'none'));
+  T(f0.before, 'F2 筛选条 DOM 序在「已学会」段标之前（它现在管两段，不能沉在列表下面）', 'before=' + f0.before);
+  await page4.click('#tab-arts .gchip[data-v="huang"]');
+  await page4.waitForTimeout(400);
+  const fH = await fRead();
+  T(fH.n === 2 && fH.names.join(',') === '吐纳法,聚灵诀' && fH.knownHead.indexOf('· 2') >= 0,
+    'F3 点「黄」⇒ 已学会只剩两部黄阶（段标计数同步到 2、太上忘情篇被滤掉）',
+    'cards=' + fH.n + ' [' + fH.names.join('/') + '] head=' + fH.knownHead);
+  T(fH.tierHeads === 1 && fH.heads.indexOf('黄字阶') >= 0,
+    'F4 图鉴同步只剩黄阶一节（同一段筛选器，两段不许各筛各的）', '阶节=' + fH.tierHeads + ' ' + fH.heads.slice(0, 60));
+  await page4.click('#tab-arts .gchip[data-v="xuan"]');
+  await page4.waitForTimeout(400);
+  const fX = await fRead();
+  T(fX.n === 0 && !fX.emptyLine && fX.knownHead.indexOf('· 0') >= 0,
+    'F5 筛到空的一阶：零卡且**不说「尚未学会」**（那是「一部都没学」的话）；段标计数 0 即为交代',
+    'cards=' + fX.n + ' emptyLine=' + fX.emptyLine + ' head=' + fX.knownHead);
+  await page4.click('#tab-arts .gchip[data-v="xuan"]');
+  await page4.waitForTimeout(400);
+  const fBack = await fRead();
+  T(fBack.n === 3 && fBack.on === '', 'F6 再点同枚 chip 取消筛选 ⇒ 回到三张（toggle 语义与图鉴原口径一致）',
+    'cards=' + fBack.n + ' on=' + fBack.on);
+  await page4.click('#tab-arts .gseg [data-v="align"]');
+  await page4.waitForTimeout(300);
+  await page4.click('#tab-arts .gchip[data-v="evil"]');
+  await page4.waitForTimeout(400);
+  const fE = await fRead();
+  T(fE.n === 1 && fE.names[0] === '太上忘情篇', 'F7 换「阵营」维点魔 ⇒ 已学会只剩那部魔道功法（双维共用同一枚选中值）',
+    'cards=' + fE.n + ' [' + fE.names.join('/') + ']');
+  const fLeak = await page4.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1') || '{}');
+    return { wrote: !!(s.profile && s.worlds && s.worlds.xiuxian), leaked: JSON.stringify(s).indexOf('artsGroup') >= 0 };
+  });
+  T(fLeak.wrote && !fLeak.leaked, 'F8 筛过之后落盘存档搜不到 `artsGroup`（筛选是看态不是角色态，与 lawChip 同纪律）',
+    'wrote=' + fLeak.wrote + ' leaked=' + fLeak.leaked);
+  T(errors4.length === 0, 'F9 整组零页面报错', errors4.join('|').slice(0, 150) || 'clean');
+  await ctx4.close();
+
   T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 150) || 'clean');
 
   console.log(fail === 0 ? 'UI_ARTS_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_ARTS_FAILED ' + fail);

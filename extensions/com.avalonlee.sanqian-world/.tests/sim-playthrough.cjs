@@ -444,7 +444,7 @@ async function playerStep(ref, tag, opts) {
   /* 8. 天骄切磋（切磋平衡批：解锁 gate 过滤 + 三档赌注轮换 + 让差/材料统计） */
   const w5 = ref.worlds[ref.profile.worldId];
   if ((w5.prodigies || []).length && w5.realm >= SQ.Prodigy.unlockRealm(D) && Math.random() < 0.03) {
-    const cand = w5.prodigies.filter(p => !p.feud && Date.now() - (p.lastSparAt || 0) >= 7 * 86400000);
+    const cand = w5.prodigies.filter(p => !p.feud && Date.now() - (p.lastSparAt || 0) >= (D.PRODIGY.SPAR_CD_MS || 600000));
     if (cand.length) {
       const kd5 = ['light', 'std', 'heavy'][Math.floor(Math.random() * 3)];
       const sr = await asafe(tag + '.spar', () => SQ.Actions.prodigySpar(ref, randPick(cand).id, kd5));
@@ -463,7 +463,7 @@ async function playerStep(ref, tag, opts) {
    * 两者都不写 ws 字段，全是玩家点按钮。 */
   const w5f = ref.worlds[ref.profile.worldId];
   if (opts.setFeud && w5f.realm >= SQ.Prodigy.unlockRealm(D)) {
-    const nf = (w5f.prodigies || []).filter(p => !p.feud && Date.now() - (p.lastSparAt || 0) >= 7 * 86400000);
+    const nf = (w5f.prodigies || []).filter(p => !p.feud && Date.now() - (p.lastSparAt || 0) >= (D.PRODIGY.SPAR_CD_MS || 600000));
     if (nf.length) {
       const fr = await asafe(tag + '.sparFeud', () => SQ.Actions.prodigySpar(ref, randPick(nf).id, 'heavy'));
       if (fr && fr.ok) { sparStats.ok++; sparStats[fr.result]++; sparStats.k_heavy++; if (fr.feud) sparStats.feud++; }

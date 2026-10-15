@@ -552,7 +552,12 @@
     CAP_HOURS: 2,                // 上限公式的「2 小时产出」项
     CAP_NEED_FACTOR: 1.15,       // 上限恒 ≥ 下一阶 need × 1.15
     KILL_BASE_SEC: 60,           // 基准击杀间隔 60 秒（60 杀/小时，详设 §2.1 公式口径）
-    PROG_PER_KILL: 5,            // 单杀进度 +5（20 杀通关）
+    PROG_PER_KILL: 5,            // 单杀进度基准 +5（富余为 0 时 20 杀通关；有富余见下方 PROG_SURGE_*）
+    /* 战力富余加速（体验批）：本区单杀进度 ×(1 + 富余 × COEF)，富余 = 战力/need − 1，封顶 PROG_SURGE_CAP。
+     * 只喂**进度口**——击杀间隔/掉落/灵石一律不动，避免高战刷低区变成资源提款机（详设 §2.1 节奏正典）。
+     * 定标：need×2 → ×1.5（14 杀）；need×4 → ×2.5（8 杀）；×9 以上吃封顶 ×4（5 杀通关）。 */
+    PROG_SURGE_COEF: 0.5,
+    PROG_SURGE_CAP: 4,
     DROP_BASE: 0.08,             // 单次击杀掉落率 8%
     BOTTLENECK_INTERVAL: 3,      // 瓶颈击杀间隔 ×3
     BOTTLENECK_PROG_CAP: 90,     // 瓶颈 prog 封顶 90
@@ -1128,7 +1133,7 @@
       ALIGN_W: [35, 40, 25],                    /* 正/左/魔 */
       LONE_P: 0.15,
       SAME_ALIGN_FACTION_P: 0.80,
-      SPAR_CD_DAYS: 7,
+      SPAR_CD_MS: 10 * 60 * 1000,             /* 切磋冷却 10 现实分钟/人（体验批：7 天口径下榜基本是摆设） */
       SPAR_JITTER: 0.10,
       SPAR_DRAW_BAND: 0.01,
       SPAR_STAKE_K: 20,                         /* 赌注 = ZONES[min(realm,9)].stones × 20（std 档回退口径） */
