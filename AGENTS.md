@@ -23,7 +23,7 @@ VibeX 已退役：不再打 ZIP 回传、不再跑 `npm run dev` / `build` / `ts
 - **收口必跑** `npm test`（无头 18 件 / ~20 秒，含 `audit` 23 关 + `versions-check` + `gen-ledger` + `ledger-selftest`）；改到界面再 `npm run test:ui`（27 篇）；改玩法数值或节奏才需要 `npm run test:sim`。
 - **只有一份事实源**：不要为了「交付方便」再在仓库根复制 `assets/` 或 `manifest.json`——审计 **D4** 会直接判红。交付物就是 `extensions/com.avalonlee.sanqian-world/` 目录本身（宿主挂载它；`.storage.json` 实时存档在它里面且已 gitignore，永不入库）。
 - **现行读数不许手抄**：探针末行已打印的值（冒烟 / 审计关数 / 探针 / 走查 / 词表键 / 扩展版本 / 池规模）一律由 `docs/ledger.json` + `SQ:LEDGER:BEGIN/END` 哨兵段生成；`gen-ledger` 只判漂，要写文档才显式 `--fix`（或 `npm run ledger:fix`）。
-- **升扩展版本 = 改 `manifest.json` 一处** + `npm run ledger:fix`。旧「六处同动」与「同步镜像」两条口径都已作废。
+- **升扩展版本 = 改 `manifest.json` 一处** + `npm run ledger:fix`。旧「六处同动」与「同步镜像」两条口径都已作废。**档位口径（用户 2026-10-15 定档）= 每批只加 `0.0.1`**，不按「可见新功能跳次版本」那套分档，也不用每批去问。
 - **新增系统 `.js` 只挂进 `view/index.html`**：装载序列以它为唯一事实源（`.tests/sandbox.cjs` 直接解析 HTML）；`module/index.html` 分叉、引用不存在的件、`assets/` 里有未挂载件，都由审计 **D2** 拦。
 - **通用层与视图禁止直读世界专属全局**（`SQ.XDATA` 等）：新旁路由审计 **D3** 拦，在册例外按出现次数钉死、失效同判红。
 - **历史注逐字不改写**：只在新位置加勘正行；能自动对的账（版本总账、计数）交给 `versions-check --fix` 与 `gen-ledger --fix`，不靠人抄。
