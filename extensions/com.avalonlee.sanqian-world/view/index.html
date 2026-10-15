@@ -6984,8 +6984,10 @@
     }
     /* ── 天道系统（天道系统批 B1~B4）：问天/天象浮层 + 卦位香火选择 + 逆天大劫挑战 ── */
     if (act === 'openTiandao') { openTiandao(); return; }
-    /* 页游充值贴片彩蛋：只回一句拒绝，零发放 / 零落档 / 零账（判据 = 走查 G 组「点完存档字节不变」） */
-    if (act === 'giftBuy') { toast(t('eggs.gift.deny')); ui.announcedLogKey = logKeyOf(ws().log); return; }
+    /* 页游充值贴片彩蛋：只回一句拒绝，零发放 / 零落档 / 零账（判据 = 走查 G 组「点完存档字节不变」）。
+     * 刻意不碰 ui.announcedLogKey——那是「动作自己就同一条日志弹过提示」的去重位，本动作不写日志，
+     * 认领它会把当时恰好新增的那条日志呈报吞掉（红点仍亮、toast 却不弹）。 */
+    if (act === 'giftBuy') { toast(t('eggs.gift.deny')); return; }
     if (act === 'openOmens') { openOmens(); return; }
     if (act === 'tdHex') { ui.tdHex = v; renderTdModal(); return; }
     if (act === 'tdIncense') { ui.tdIncense = parseInt(v, 10); renderTdModal(); return; }
