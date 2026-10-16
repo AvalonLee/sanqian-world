@@ -127,6 +127,11 @@
         return 'overflow';
       }
       ws.shelf.push(id);
+      /* 第卌六批（用户反馈「坊市买功法后功法页看不见」）：入门与溢出两支都有日志，唯独这支沉默
+       * ⇒ 钱扣了、屏上无痕迹。补一条去向，与 `arts.shelffull` 同族同点位。 */
+      if (log) log('arts', SQ.t('arts.shelf.stow', {
+        name: SQ.t('skill.' + id + '.name', null, pack.worldId), n: ws.shelf.length, cap: D.SHELF_CAP
+      }, pack.worldId));
       return 'shelf';
     },
 
