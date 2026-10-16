@@ -331,9 +331,16 @@ async function buildSave() {
         const b0 = known.map((c) => c.querySelector('[data-v="' + id + '"]')).filter(Boolean)[0];
         const c = b0 ? b0.closest('.tcard') : null;
         return c ? { up: one(c), slot: !!c.querySelector('[data-act="slotArt"]'),
-          unslot: !!c.querySelector('[data-act="unslotArt"]'), salv: !!c.querySelector('[data-act="salvageArt"]') }
-          : { up: -1, slot: false, unslot: false, salv: false };
+          unslot: !!c.querySelector('[data-act="unslotArt"]'), salv: !!c.querySelector('[data-act="salvageArt"]'),
+          fx: ((c.querySelector('.meta') || {}).textContent || '').trim() }
+          : { up: -1, slot: false, unslot: false, salv: false, fx: '' };
       }),
+      /* 槽卡那一行按 id 带回（槽序会变：autoSlot 补位、卸下再装会挪到尾部 ⇒ 钉序必假红） */
+      slotFx: cells.reduce(function (o, c) {
+        const b = c.querySelector('[data-v]');
+        if (b && b.dataset.v) o[b.dataset.v] = ((c.querySelector('.meta') || {}).textContent || '').trim();
+        return o;
+      }, {}),
       qi: w.qi,
       costTuna: SQ.Arts.upgradeCost(w, P, P.data, 'tuna', SQ.Mods.collect(s.profile, w, P, P.data)),
       slots: (w.artsSlots || []).slice()
@@ -350,6 +357,14 @@ async function buildSave() {
   T(h1.dis[0] === (h1.qi < h1.costTuna),
     'H1b 槽卡升级钮的 disabled === 引擎 `upgradeCost` 与实有修为之比（写死 disabled 或写死不放都是假在跑）',
     'qi=' + Math.round(h1.qi) + ' cost=' + h1.costTuna + ' disabled=' + h1.dis[0]);
+  /* H4 属性加成行进槽卡（第卌九批 · 用户令「修习槽中的功法对应的属性加成效果，也要显示出来」）：
+   * 判的是**同源**而不是「有字」——槽卡那行必须与同 id 已学会卡逐字相同，而已学会那行由 A11c
+   * 已经对表过引擎 `SQ.Mods.collect` 的 detail ⇒ 等值传递到槽卡，公式改动漏改任一侧即红。
+   * 按 id 取数不按槽序（autoSlot 补位与「卸下再装会挪到尾部」都会换序）。 */
+  const hFx = IDS.map((id, i) => [id, h1.slotFx[id] || '', h1.cards[i].fx || '']);
+  T(Object.keys(h1.slotFx).length === 3 && hFx.every((x) => x[1] !== '' && x[1] === x[2]),
+    'H4 槽卡有属性加成行 ‖ 与同 id 已学会卡逐字相同（一条式子两处显示，不抄第二份）',
+    hFx.map((x) => x[0] + '[' + x[1].slice(0, 24) + ']').join(' ‖ '));
   /* H2 把吐纳法卸下 ⇒ 造出「已学会且槽外」那一侧（用户原话「下方已学会不需要升级功能」指的正是它），
    * 判完立即装回：autoSlot 只在载入时补空槽，不装回就一直缺这一格，后面的组会跟着换形。 */
   await page.evaluate(() => { const b = document.querySelector('#tab-arts [data-act="unslotArt"][data-v="tuna"]'); if (b) b.click(); });

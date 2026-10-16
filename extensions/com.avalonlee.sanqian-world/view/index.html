@@ -2886,12 +2886,18 @@
         /* 升级钮随「只有入槽的功法会长进」同口径留在槽卡上（第卌七批④c · 用户令）：
          * 满级时 upgradeCost 自返 null ⇒ 本行不渲染，不必再判一次等级。 */
         var costS = SQ.Arts.upgradeCost(w, p, d, id, m);
+        var fxS = artFxLine(a, lvS);   /* 增益行与已学会卡同一函数、同一条式子（见 artFxLine 那注） */
         h += '<div class="tcard ' + (a.alignment === 'evil' ? 'neg' : a.alignment === 'right' ? 'pos' : '') + '"' +
              (isMain ? ' data-mainart="1"' : '') + ' data-slot="' + i + '">' +
              (isMain ? '<span class="corner maincorner">' + esc(t('arts.main')) + '</span>' : '') +
              '<div class="tname">' + esc(t('skill.' + id + '.name')) + '</div>' +
              '<div class="teff">Lv' + lvS + '</div>' +
              '<div class="tdesc">' + esc(a.special ? t('special.' + a.special.pool + '.name') : t('skill.' + id + '.desc')) + '</div>' +
+             /* 属性加成行（第卌九批 · 用户令「修习槽中的功法对应的属性加成效果，也要显示出来」）：
+              * 槽是「正在生效」的那六部，玩家最该在这儿看见吃到了什么——所以读的是同一部功法
+              * 在**当前等级**的实际生效值，与已学会卡共用 `artFxLine`（两处显示、一条式子）。
+              * 无词条的自创部返回空串 ⇒ 整行不渲染，不留一个空壳占位。 */
+             (fxS ? '<div class="meta">' + esc(fxS) + '</div>' : '') +
              /* 精通迷你条（修行状态批）：主修增速最高（issue #3 起看玩家点定的那一格） */
              '<div class="tpract"><span class="pbar"><i style="width:' +
                (lvS >= d.ARTS_MAX_LV ? 100 : prS).toFixed(0) + '%"></i></span><span class="hint">' +
@@ -3005,6 +3011,17 @@
   }
 
   /* 已学会卡（走查 v2.6 §2）：详情卡——名号/品阶/Lv/签名/滋养/精通 + 装入/移出/升级/散功 */
+  /* 功法增益行（第卌九批起槽卡与已学会卡共用；此前只有 artCard 里那一份 = 两处要显示就得抄第二遍）。
+   * 缩放口径与消费端 `mods.js` 逐字同源：`effectsFixed` 列内字段 Lv1 即全效、**不随等级**
+   *（此前一律 ×lv ⇒ 太上忘情篇 Lv9 卡面写 −72%、引擎只吃 −8%）。
+   * 等级起点批（2026-10-14 · 入门即 Lv1）后 Lv0 不可达 ⇒ 原「尚未生效」预告分支与三枚词表键随批删。 */
+  function artFxLine(a, lv) {
+    var fx = a.effectsFixed || [];
+    return Object.keys(a.effects || {}).map(function (k) {
+      var v = a.effects[k] * (fx.indexOf(k) >= 0 ? 1 : lv);
+      return t('talent.field.' + k) + ' ' + (v >= 0 ? '+' : '−') + pct(Math.abs(v));
+    }).join(' · ');
+  }
   function artCard(id, w) {
     var d = D(), p = pack();
     var a = p.artsMap()[id];
@@ -3021,16 +3038,9 @@
        * 判据 = 走查 `verify-ui-arts` S 组（S1 整页非空 ‖ S2 那张卡仍列 Lv/滋养 ‖ S3 不许出现「签名 ·」） */
       (a.special ? ' · ' + esc(t('special.' + a.special.pool + '.name')) : '') +
       ' · ' + esc(t('skill.nurture.' + a.attr)) + '</div>';
-    /* 走查 v2.7 §3：功法带来的具体增益（当前等级实际生效值，多效果并列）。
-     * 缩放口径与消费端 `mods.js` 逐字同源：`effectsFixed` 列内字段 Lv1 即全效、**不随等级**
-     *（此前一律 ×lv ⇒ 太上忘情篇 Lv9 卡面写 −72%、引擎只吃 −8%）。
-     * 等级起点批（2026-10-14 · 入门即 Lv1）后 Lv0 不可达 ⇒ 原「尚未生效」预告分支与三枚词表键随批删。 */
-    var fx = a.effectsFixed || [];
-    var effParts = Object.keys(a.effects || {}).map(function (k) {
-      var v = a.effects[k] * (fx.indexOf(k) >= 0 ? 1 : lv);
-      return t('talent.field.' + k) + ' ' + (v >= 0 ? '+' : '−') + pct(Math.abs(v));
-    });
-    h += '<div class="meta">' + esc(effParts.join(' · ')) + '</div>';
+    /* 走查 v2.7 §3：功法带来的具体增益（当前等级实际生效值，多效果并列）——式子收在
+     * `artFxLine` 一处，槽卡与已学会卡同读它（第卌九批：槽卡也要看得见加成，见该批注）。 */
+    h += '<div class="meta">' + esc(artFxLine(a, lv)) + '</div>';
     if (lv < d.ARTS_MAX_LV) {
       h += '<div class="pbar"><i style="width:' + pr.toFixed(0) + '%"></i></div>' +
         '<div class="hint">' + esc(t('arts.practice', { p: Math.floor(pr) })) + '</div>';

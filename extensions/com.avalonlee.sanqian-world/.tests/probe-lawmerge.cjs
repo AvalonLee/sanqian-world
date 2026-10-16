@@ -106,6 +106,10 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
     t: (k, v) => SQ.t(k, v || null, 'xiuxian'),
     pct: (n) => (Math.round(n * 1000) / 10).toString().replace(/\.0$/, '') + '%',
     /* 段内子渲染器：本探针只验**拼接与段间互斥**，卡片内部由各 verify-ui-* 真机走查覆盖 */
+    /* 增益行桩（第卌九批）：`artFxLine` 是槽卡与已学会卡共用的那条式子，住在 view 的切片之外，
+     * 桩不给 = A0 整段抛 `artFxLine is not defined`（本批首跑即被抓到，正是「桩简化/桩漏项」那一族）。
+     * 桩只回非空串；「槽卡那行 === 已学会那行且等值传递到引擎」的真判据在走查 verify-ui-arts 的 A11c + H4。 */
+    artFxLine: () => '桩增益 +1%',
     artCard: (id) => '<div class="tcard artcard" data-art="' + id + '"></div>',
     artSilhouette: (id) => '<div class="sil" data-art="' + id + '"></div>',
     artCodexCard: (id) => '<div class="tcard codexcard" data-art="' + id + '"></div>',
