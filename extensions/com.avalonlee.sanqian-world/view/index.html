@@ -1331,6 +1331,21 @@
   </div>
 </div>
 
+<!-- 兵解 · 盖棺之传（第册批 · 用户令「点击兵解做一个效果演出，逐字出现，给当前角色一个类似传记总结」）：
+     卷轴观感与逐字节奏复用接旨那一族（.decree-scroll / .decree-type / .decree-verdict ⇒ 零新 CSS），
+     正文取引擎 doBingjie 刚写入的 `meta.biographies` 末条——视图不另生成文本，与前世书同源。
+     ⚠️ 挂点前缀取 `mrp-` 而非顺手的 `mrc-`：`mrc-title` 已被上面「奇遇回看」浮层占用（同 id 两个 ⇒
+     getElementById 只认文档里第一个，标题会写进一个 display:none 的 h2 里，屏上看不见——本批截图取证抓到）。 -->
+<div id="modal-recap" class="mask hide">
+  <div class="modal">
+    <div class="decree-scroll">
+      <div class="decree-type" id="mrp-title"></div>
+      <div class="decree-verdict" id="mrp-text" style="max-height:58vh;overflow-y:auto"></div>
+    </div>
+    <button id="mrp-go" class="primary" style="width:100%;margin-top:12px"></button>
+  </div>
+</div>
+
 <!-- 渡劫呈报（渡劫演出重做批：主题感知卡片 + 成算环 + 数据行） -->
 <div id="trib-stage" class="trib-mask hide">
   <div class="trib-card" id="trib-box">
@@ -5730,6 +5745,36 @@
     if (SQ.Tiandao.unseenOmens(w)) SQ.Actions.tdOmensSeen(state).then(renderAll);   /* 即开即消红点 */
   }
 
+  /* ── 兵解 · 盖棺之传（第册批）：逐字节奏抄接旨判词那一段（+3 字 / 24ms，500 字 ≈ 4 秒），
+   * reducedMotion 直出全文。定时器自查隐藏态自收 ⇒ 四条关法（入世钮 / 点遮罩 / ESC /
+   * enterRebirthCreation 的 MASKS 全关）都不会留下一个还在往暗处写字的 interval。
+   * shortcut: 中途按「入世」即离场，未写完的正文不在屏上补全——全文恒在轮回页「前世书」，无丢失。 ── */
+  var recapTimer = null;
+  function showRecap(title, text) {
+    var el = $('mrp-text');
+    $('mrp-title').textContent = title;
+    $('mrp-go').textContent = t('legacy.ui.recap.go');
+    el.textContent = '';
+    el.scrollTop = 0;
+    if (recapTimer) { clearInterval(recapTimer); recapTimer = null; }
+    if (reducedMotion()) el.textContent = text;
+    else {
+      var vi = 0;
+      recapTimer = setInterval(function () {
+        if ($('modal-recap').classList.contains('hide')) { clearInterval(recapTimer); recapTimer = null; return; }
+        vi += 3;
+        el.textContent = text.slice(0, vi);
+        el.scrollTop = el.scrollHeight;   /* 滚的是正文那一格：标题与「入世」钮都不跟着滚走 */
+        if (vi >= text.length) { clearInterval(recapTimer); recapTimer = null; }
+      }, 24);
+    }
+    $('modal-recap').classList.remove('hide');
+  }
+  $('mrp-go').addEventListener('click', function () {
+    if (recapTimer) { clearInterval(recapTimer); recapTimer = null; }
+    $('modal-recap').classList.add('hide');
+  });
+
   /* 复制奏疏：先走同步 execCommand（内嵌 webview 无剪贴板权限时唯一可用路径，
    * 且在全选态下必然复制全文），失败再试异步 clipboard；两条都失败则明示手动全选，
    * 不再无脑弹「已复制」——旧实现在 clipboard 存在但被拒时静默失败且谎报成功 */
@@ -5839,7 +5884,7 @@
   var MASKS = ['modal-role', 'modal-karma', 'modal-offline', 'modal-lock', 'modal-confirm',
     'modal-ledger', 'modal-arts', 'modal-realm', 'modal-gearcodex', 'modal-recall', 'modal-bonds', 'modal-propose',
     'modal-slotpick', 'modal-tiandao', 'modal-decree', 'modal-omens', 'rank-stage', 'modal-matwudao',
-    'modal-heirchoice', 'modal-talentwash'];
+    'modal-heirchoice', 'modal-talentwash', 'modal-recap'];
   document.addEventListener('click', function (e) {
     var el = e.target;
     if (!el.classList || !el.classList.contains('mask')) return;
@@ -6204,7 +6249,11 @@
     });
     h += '</div>';
     /* 图鉴九面 / 称号墙 / 成就图鉴入口已迁至独立「成就」页顶（图鉴与成就同页），轮回页只留转世机制 */
-    /* 前世书（≤9 世 · 展开全文 + 烧表请天道作传） */
+    /* 前世书（≤9 世 · 展开全文）
+     * ⚠️ 「烧表请天道作传」那一族入口已于第册批整族下线（按钮 / 粘贴框 / 采纳钮 + `Codex.bioMemo`
+     *    / `Codex.adoptBio` / `Actions.adoptBio` / `BIO_MEMO_LEN` / 五条词条 + 作传提示词一起删）：这条通道要玩家
+     *    自己粘回一段外部文本，实机上没人真用它，留着只让前世书看起来像个待办清单。
+     *    来源小标**保留**——老档里确有 `source:'tiandao'` 的条目，抹掉小标等于把它们的来路抹了。 */
     h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + esc(t('legacy.ui.bios')) + '</p>';
     var bios = meta.biographies || [];
     if (!bios.length) h += '<p class="hint">' + esc(t('legacy.ui.bios.empty')) + '</p>';
@@ -6214,10 +6263,7 @@
       h += '<div class="lrow"><div class="nm"><button class="linkbtn" data-act="bioOpen" data-v="' + idx + '">' +
         esc(t('codex.bio.head', { name: b.name, life: b.life })) + '</button> <span class="hint">' +
         esc(t('legacy.ui.bio.source.' + (b.source || 'local'))) + '</span></div>' +
-        (open ? '<div class="biobox"><div class="meta" style="white-space:pre-wrap">' + esc(b.text) + '</div>' +
-          '<div class="row" style="margin-top:6px"><button data-act="bioAsk" style="flex:1">' + esc(t('legacy.ui.bioAsk')) + '</button></div>' +
-          '<textarea class="tdta" rows="3" style="margin-top:6px;min-height:56px" placeholder="' + esc(t('legacy.ui.bioPaste')) + '"></textarea>' +
-          '<button data-act="bioAdopt" style="width:100%;margin-top:4px">' + esc(t('legacy.ui.bioAdopt')) + '</button></div>' : '') +
+        (open ? '<div class="biobox"><div class="meta" style="white-space:pre-wrap">' + esc(b.text) + '</div></div>' : '') +
         '</div>';
     });
     $('tab-legacy').innerHTML = h;
@@ -7248,7 +7294,13 @@
             var rB = await SQ.Actions.dissolve(state);
             if (rB && rB.ok) {
               toast(t('legacy.ui.settle.title') + ' · ' + t('legacy.ui.settle.gain', { n: SQ.fmt((rB.preview || {}).total || 0) }));
+              /* 盖棺之传（第册批）：正文 = doBingjie → Codex.pushBio 刚写入的末条，视图零生成。
+               * 先 enterRebirthCreation 再开演——它会把 MASKS 全关一遍，反序就把自己刚开的浮层关掉了；
+               * 且这样任何关法（钮 / 遮罩 / ESC）落回的都是创角屏，不会停在已了结的那一世。 */
+              var bsB = state.meta.biographies || [];
+              var bioB = bsB[bsB.length - 1];
               enterRebirthCreation();
+              if (bioB && bioB.text) showRecap(t('legacy.ui.recap.title'), bioB.text);
             }
             renderAll();
           });
@@ -7276,21 +7328,8 @@
     if (act === 'heirPick') { commitHeirChoice(v); return; }
     if (act === 'heirSwitch') { openHeirSwitch(); return; }
     if (act === 'bioOpen') { ui.bioOpen = (ui.bioOpen === parseInt(v, 10)) ? null : parseInt(v, 10); renderTab(); return; }
-    if (act === 'bioAsk') {
-      var memoB = SQ.Codex.bioMemo(state, Date.now());
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(memoB);
-      } catch (e) { /* 环境不支持剪贴板时静默 */ }
-      toast(t('tiandao.memo.copied'));
-      return;
-    }
-    if (act === 'bioAdopt') {
-      var taB = el.closest('.lrow') ? el.closest('.lrow').querySelector('textarea') : null;
-      var rAd = await SQ.Actions.adoptBio(state, taB ? taB.value : '');
-      toast(rAd && rAd.ok ? t('legacy.ui.bioAdopted') : t('legacy.ui.bioFail'));
-      renderAll();
-      return;
-    }
+    /* 第册批：`bioAsk` / `bioAdopt` 两个处理器随「烧表请天道作传」整族下线
+     * （`Codex.bioMemo` / `Codex.adoptBio` / `Actions.adoptBio` 同批删，不留死枝）。 */
     if (act === 'alStart') {
       var kindS = el.dataset.c || 'dan';
       var optsS = kindS === 'qi' ? { dir: (ui.forge || {}).dir, attr: (ui.forge || {}).attr } : {};

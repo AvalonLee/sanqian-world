@@ -59,11 +59,11 @@
   K['legacy.ui.bios.empty'] = '尚无前世传记。';
   K['legacy.ui.bio.source.local'] = '本地史笔';
   K['legacy.ui.bio.source.tiandao'] = '天道亲笔';
-  K['legacy.ui.bioAsk'] = '烧表请天道作传';
-  K['legacy.ui.bioPaste'] = '粘贴天道所作传记（失败自动保留本地史稿）';
-  K['legacy.ui.bioAdopt'] = '采纳史传';
-  K['legacy.ui.bioAdopted'] = '已采纳天道史传';
-  K['legacy.ui.bioFail'] = '天道搁笔——保留本地史稿';
+  /* 第册批：`legacy.ui.bioAsk / bioPaste / bioAdopt / bioAdopted / bioFail` 五条随
+   * 「烧表请天道作传」整族下线（见 codex.js 同批注）；两行 `bio.source.*` **留下**——
+   * 老档确有 source:'tiandao' 的条目，抹掉来源标记等于改史。 */
+  K['legacy.ui.recap.title'] = '盖棺之传';
+  K['legacy.ui.recap.go'] = '入世';
   K['legacy.ui.startRealm.pick'] = '起步境界（跳档不跳渡劫）';
   K['legacy.ui.legacyTalent.pick'] = '转世天赋（≤2，逐世可换）';
   K['legacy.ui.bondHeir.pick'] = '跨世之缘 · 赎回道友 1 人';

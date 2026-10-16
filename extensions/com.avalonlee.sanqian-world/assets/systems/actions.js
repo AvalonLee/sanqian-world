@@ -648,15 +648,7 @@
       });
       return out;
     },
-    /* 烧表请天道作传（图鉴卷 §5.3）：奏疏生成为纯读；采纳回复走 mutate（敏感词过滤+500 字截断，
-     * 异常回落本地稿——作传永不阻塞转世事务） */
-    adoptBio: async function (ref, rawText) {
-      var out = null;
-      await SQ.mutate(ref, function (s) {
-        out = SQ.Codex.adoptBio(s, rawText, Date.now());
-      });
-      return out;
-    },
+    /* 第册批：`adoptBio` 动作壳随「烧表请天道作传」整族下线（见 `codex.js` 同批注）。 */
 
     /* ── 炼丹炼器（炼丹卷 v1.1 · 六向长线批 A3）：开工 / 出炉 / 服丹 / 售材 ──
      * 全部显式动作（mutate 通道）；炼制倒计时 = 时间戳比较，无 per-tick 掷判。
