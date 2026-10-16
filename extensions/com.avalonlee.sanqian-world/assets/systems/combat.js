@@ -270,6 +270,8 @@
       var zName = SQ.t('combat.zone.' + zb.zone, null, pack.worldId);
       if (power < need) {
         zb.retryAt = now + (D.BOSS_RETRY_CD_MS != null ? D.BOSS_RETRY_CD_MS : 600000);
+        /* 被击伤折寿（第卌八批 · 与渡劫失败同一条 lifeHit 口，扣当境上界比例，无尽档不扣） */
+        if (pack.worldSystems && pack.worldSystems.lifeHit) pack.worldSystems.lifeHit(ws, 'wound', log);
         if (log) log('combat', SQ.t('zone.boss.lose', { zone: zName }, pack.worldId));
         return { ok: true, win: false, power: power, need: need };
       }

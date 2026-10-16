@@ -291,7 +291,7 @@
     /* 终行按通道取四行（寿元批加「寿尽 / 道伤」两行）：原式非飞升一律落「兵解转世」⇒ 死世的
      * 传记会说谎（玩家没兵解，是熬死了）。脏通道仍回落 dissolve，与 legacy.js 的白名单同口径。 */
     var BIO_LINE = { feisheng: 'codex.bio.line.ascend', bingjie: 'codex.bio.line.dissolve',
-      shoujin: 'codex.bio.line.shoujin', daoshang: 'codex.bio.line.daoshang' };
+      shoujin: 'codex.bio.line.shoujin', daoshang: 'codex.bio.line.daoshang', zhesou: 'codex.bio.line.zhesou' };
     var endTxt = SQ.t(BIO_LINE[channel] || BIO_LINE.bingjie, null, wid);
     var endGd = SQ.gameDateStr(profile, ws, now, wid);
     lines.push(endGd ? endGd + ' · ' + endTxt : endTxt);

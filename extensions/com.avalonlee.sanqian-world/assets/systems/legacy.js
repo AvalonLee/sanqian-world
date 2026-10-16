@@ -21,11 +21,13 @@
    * 键名字面量写在表里 = A6 反向扫描认它已消费（动态 `t('legacy.ui.' + ch)` 不留字面量 ⇒ 判孤儿）。 */
   var CH_NAME = {
     feisheng: 'legacy.ui.feisheng', bingjie: 'legacy.ui.bingjie',
-    shoujin: 'legacy.ui.shoujin', daoshang: 'legacy.ui.daoshang'
+    shoujin: 'legacy.ui.shoujin', daoshang: 'legacy.ui.daoshang', zhesou: 'legacy.ui.zhesou'
   };
   /* 被动了结两通道（寿元耗尽 / 道伤崩碎）：**不是玩家主动兵解** ⇒ 不发「舍身证道」成就、
-   * 不进 stats.dissolutions，单记 stats.deaths（原式把非飞升一律折成 bingjie 会说谎，寿元批收口） */
-  var CH_DEATH = { shoujin: 1, daoshang: 1 };
+   * 不进 stats.dissolutions，单记 stats.deaths（原式把非飞升一律折成 bingjie 会说谎，寿元批收口）。
+   * 第卌八批加第三条 zhesou（折寿而殒）：同死了结、同进 deaths，唯独不并进 shoujin——
+   * 「熬到大限」和「被人打折了命数」是两件事，传记与日志要分得开。 */
+  var CH_DEATH = { shoujin: 1, daoshang: 1, zhesou: 1 };
 
   /* ── meta 层 schema（§8.1 唯一事实源）────────────────── */
   function metaBlank() {

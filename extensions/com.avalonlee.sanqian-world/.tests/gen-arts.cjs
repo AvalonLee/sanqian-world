@@ -168,12 +168,18 @@ if (ids.length !== 70 || byTier.huang !== 14 || byTier.xuan !== 18 || byTier.di 
 
 /* ── 输出数据文件 ── */
 function js(v) { return JSON.stringify(v); }
+/* 寿元增减两部（第卌八批 · 数值详设 §6.1A 与《功法全录》§2.8 那张表是事实源，本处只是把表编码进生成器）：
+ * `life` = 入门那一次经 lifeAdd 入账的**绝对年数**（正 = 得寿、负 = 折寿）；写了 life 的两部一律
+ * 同时出 `noSalvage: true`——否则「购入 → 弃置 → 再购入」是条刷命回路，该不变式由冒烟 #314(丙) 逐条对表。
+ * 与上方 T.perId 同性质：**改了这张表必须同批改文档**，否则生成物与正典分叉（第卅八批那次返工的同一族）。 */
+const LIFE = { changsheng: 200, shixue: -40 };
 const lines = ids.map((id) => {
   const a = arts[id];
   return '  ' + js(id) + ': { tier: ' + js(a.tier) + ', core: ' + a.core + ', alignment: ' + js(a.alignment) +
     ', attr: ' + js(a.attr) + ', effects: ' + js(a.effects) +
     (a.effectsFixed ? ', effectsFixed: ' + js(a.effectsFixed) : '') + ', special: ' + js(a.special) +
-    ', reqs: ' + js(a.reqs) + ', obtain: ' + js(a.obtain) + ' }';
+    ', reqs: ' + js(a.reqs) + ', obtain: ' + js(a.obtain) +
+    (LIFE[id] != null ? ', life: ' + LIFE[id] + ', noSalvage: true' : '') + ' }';
 });
 fs.writeFileSync(path.join(ROOT, 'assets/worlds/xiuxian/arts.js'),
 `/* xiuxian/arts.js — 修仙功法全录（70 部）纯机制数据
@@ -182,6 +188,8 @@ fs.writeFileSync(path.join(ROOT, 'assets/worlds/xiuxian/arts.js'),
  * obtain.type: initial 初始 / shop 坊市 / black 黑市 / zone 秘境N首通 / event(_evil|_rare) 奇遇 /
  *   event_locked 天阶独占（§2.5：仅指定天级特殊奇遇「指定分支+判定链全过」授予，不入商店/掉落/首通池）。
  * effectsFixed: 列内字段 Lv1 全效、不随等级缩放（校对批裁定 · 数值详设 §4.5；mods.js 消费）。
+ * life: 入门那一次的寿元增减年数（绝对值，第卌八批 · 数值详设 §6.1A 与《功法全录》§2.8）；
+ *   凡带 life 者同时带 noSalvage（弃置再购入 = 刷命回路）。表在生成器 LIFE 那张 map，改它先改文档。
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});

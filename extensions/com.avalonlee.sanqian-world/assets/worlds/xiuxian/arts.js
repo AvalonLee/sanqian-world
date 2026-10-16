@@ -4,6 +4,8 @@
  * obtain.type: initial 初始 / shop 坊市 / black 黑市 / zone 秘境N首通 / event(_evil|_rare) 奇遇 /
  *   event_locked 天阶独占（§2.5：仅指定天级特殊奇遇「指定分支+判定链全过」授予，不入商店/掉落/首通池）。
  * effectsFixed: 列内字段 Lv1 全效、不随等级缩放（校对批裁定 · 数值详设 §4.5；mods.js 消费）。
+ * life: 入门那一次的寿元增减年数（绝对值，第卌八批 · 数值详设 §6.1A 与《功法全录》§2.8）；
+ *   凡带 life 者同时带 noSalvage（弃置再购入 = 刷命回路）。表在生成器 LIFE 那张 map，改它先改文档。
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
@@ -24,7 +26,7 @@
   "posha": { tier: "huang", core: false, alignment: "evil", attr: "jing", effects: {"combatPower":0.05}, special: {"pool":"shixue","grade":0}, reqs: {"karmaMax":-50}, obtain: {"type":"black","price":300} },
   "jinzhong": { tier: "xuan", core: true, alignment: "right", attr: "jing", effects: {"combatPower":0.083}, special: {"pool":"mingwang","grade":1}, reqs: {"realm":2}, obtain: {"type":"shop","price":600} },
   "fumao": { tier: "xuan", core: true, alignment: "right", attr: "qi", effects: {"dropRate":0.05}, special: {"pool":"fengchun","grade":1}, reqs: {"realm":2,"attr":{"id":"qi","min":18}}, obtain: {"type":"zone","zone":3} },
-  "shixue": { tier: "xuan", core: true, alignment: "evil", attr: "qi", effects: {"qiRate":0.075}, special: {"pool":"shixue","grade":1}, reqs: {"karmaMax":-100}, obtain: {"type":"black","price":900} },
+  "shixue": { tier: "xuan", core: true, alignment: "evil", attr: "qi", effects: {"qiRate":0.075}, special: {"pool":"shixue","grade":1}, reqs: {"karmaMax":-100}, obtain: {"type":"black","price":900}, life: -40, noSalvage: true },
   "liehuo": { tier: "xuan", core: false, alignment: "neutral", attr: "qi", effects: {"qiRate":0.055}, special: {"pool":"mianxi","grade":1}, reqs: {"realm":2}, obtain: {"type":"shop","price":800} },
   "xuangui": { tier: "xuan", core: false, alignment: "right", attr: "jing", effects: {"combatPower":0.07200000000000001,"qiCap":0.064}, special: {"pool":"mingwang","grade":1}, reqs: {"realm":1}, obtain: {"type":"shop","price":900} },
   "yunyou": { tier: "xuan", core: false, alignment: "neutral", attr: "shen", effects: {"combatSpeed":0.1,"eventLuck":0.03}, special: {"pool":"yufeng","grade":1}, reqs: {"realm":1}, obtain: {"type":"shop","price":800} },
@@ -42,7 +44,7 @@
   "zixiao": { tier: "di", core: false, alignment: "right", attr: "qi", effects: {"qiRate":0.11199999999999999}, special: {"pool":"mianxi","grade":2}, reqs: {"realm":4}, obtain: {"type":"zone","zone":4} },
   "jingang": { tier: "di", core: false, alignment: "right", attr: "jing", effects: {"combatPower":0.18}, special: {"pool":"mingwang","grade":2}, reqs: {"realm":3}, obtain: {"type":"shop","price":2500} },
   "taixu": { tier: "di", core: false, alignment: "neutral", attr: "shen", effects: {"combatSpeed":0.21899999999999997,"eventLuck":0.057999999999999996}, special: {"pool":"yufeng","grade":1}, reqs: {"realm":3}, obtain: {"type":"shop","price":2200} },
-  "changsheng": { tier: "di", core: false, alignment: "neutral", attr: "qi", effects: {"offlineEff":0.175,"qiCap":0.156}, special: {"pool":"changye","grade":1}, reqs: {"realm":4}, obtain: {"type":"zone","zone":5} },
+  "changsheng": { tier: "di", core: false, alignment: "neutral", attr: "qi", effects: {"offlineEff":0.175,"qiCap":0.156}, special: {"pool":"changye","grade":1}, reqs: {"realm":4}, obtain: {"type":"zone","zone":5}, life: 200, noSalvage: true },
   "dunjia": { tier: "di", core: false, alignment: "neutral", attr: "shen", effects: {"eventRate":0.14,"eventLuck":0.047}, special: {"pool":"shehun","grade":1}, reqs: {"realm":4}, obtain: {"type":"shop","price":2600} },
   "danyuan": { tier: "di", core: false, alignment: "right", attr: "qi", effects: {"artsSpeed":0.07,"stonesRate":0.11699999999999999}, special: {"pool":"huijin","grade":2}, reqs: {"realm":3}, obtain: {"type":"shop","price":2400} },
   "pofeng": { tier: "di", core: false, alignment: "neutral", attr: "jing", effects: {"combatPower":0.158,"combatSpeed":0.175}, special: {"pool":"shikui","grade":1}, reqs: {"realm":3}, obtain: {"type":"shop","price":2500} },

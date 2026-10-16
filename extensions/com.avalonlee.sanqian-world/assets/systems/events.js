@@ -48,6 +48,9 @@
     if (e.qi != null) o.qi = Math.round(rollRange(e.qi));
     if (e.qiPct != null) o.qiPct = Math.round(rollRange(e.qiPct) * 1000) / 1000;
     if (e.qiPctRaw != null) o.qiPctRaw = Math.round(rollRange(e.qiPctRaw) * 1000) / 1000;
+    /* 寿元区间同样**先掷后入账**（第卌八批）：不预掷的话结果页拿到的是数组、屏上写 NaN，
+     * 而入账走 applyEffects 里另一次掷点 ⇒ 「显示值 ≠ 实扣值」那一族缺陷的重演（第廿六批同型）。 */
+    if (e.life != null) o.life = Math.round(rollRange(e.life));
     if (e.buff) {
       o.buff = {
         field: e.buff.field, mult: e.buff.mult,
@@ -161,6 +164,7 @@
     if (e.gated) parts.push(SQ.t('log.eff.gated', null, wid));
     if (e.qiPctRaw != null) parts.push(SQ.t('log.eff.pct', { res: qi, sign: sign(e.qiPctRaw), p: pct(Math.abs(e.qiPctRaw * 100)) }, wid));
     if (e.artsProgress) parts.push(SQ.t('log.eff.artsProgress', { n: e.artsProgress }, wid));
+    if (e.life != null) parts.push(SQ.t('log.eff.life', { sign: sign(e.life), n: SQ.fmt(Math.abs(e.life)) }, wid));
     if (e.tribNext != null) parts.push(SQ.t('log.eff.tribNext', { sign: sign(e.tribNext), n: Math.abs(e.tribNext) }, wid));
     if (e.fateShard != null) parts.push(SQ.t('log.eff.fateShard', { n: e.fateShard }, wid));
     if (e.talentSwap != null) parts.push(SQ.t('log.eff.talentSwap', { n: e.talentSwap }, wid));
@@ -257,6 +261,21 @@
         if (pack.worldSystems && pack.worldSystems.daoAdd) {
           pack.worldSystems.daoAdd(ws, e.dao, ctx && ctx.log, 'event');
         }
+      }
+      if (e.life != null) {
+        /* 寿元增减（第卌八批）：一律走世界包 lifeAdd 那唯一写口 = **永久账**，写进 ws.lifeBonus，
+         * 不随卸下功法或法宝陨落回收（佩戴型加成是 mods 那一族，两族不混）。支持区间 [a,b]。 */
+        if (pack.worldSystems && pack.worldSystems.lifeAdd) {
+          /* 来处名：奇遇用事件名，服用丹药由 drinkPill 递 lifeSrc；两者都没有就**不出日志**
+           * （宁可屏上只看见数字动，也不写「：得寿 20 年」那种缺主语的半句话）。 */
+          var srcN = (ctx && ctx.lifeSrc) || ((ctx && ctx.eventId) ? SQ.t('event.' + ctx.eventId + '.name', null, wid) : '');
+          pack.worldSystems.lifeAdd(ws, Math.round(rollRange(e.life)), srcN ? ctx.log : null, 'event', srcN);
+        }
+      }
+      if (e.lifeWound) {
+        /* 被人击伤折寿（袭击 / 寻仇的败绩）：不给固定年数而给标记——同一件「挨一刀」在练气与
+         * 渡劫期该扣的量差三个数量级，比例口径收在 worldSystems.lifeHit 一处（域主战败、袭杀失手同一条）。 */
+        if (pack.worldSystems && pack.worldSystems.lifeHit) pack.worldSystems.lifeHit(ws, 'wound', ctx && ctx.log);
       }
       if (e.qi != null) {
         var nq = rollRange(e.qi);
@@ -858,6 +877,13 @@
         case 'exclusiveArt':
           applied.exclusiveArt = g.id;
           return { exclusiveArt: g.id, exclusiveNeedPass: true };
+        case 'life':
+          /* 寿元增减（第卌八批 · 奇遇供寿 / 损寿的那一条路）：**绝对年数**、不乘 mult——
+           * 得寿不叫「收益」（不随寻仇链的递增倍率涨），折寿更不叫收益（没有减半一说），
+           * 与 stonesPct 那条「它不是收益，所以不乘」的判据同口径。区间先掷定再入账。 */
+          n = Math.round(rollRange(g.n));
+          applied.life = (applied.life || 0) + n;
+          return { life: n };
         case 'artsProgress':
           n = Math.round(rollRange(g.n) * mult);
           applied.artsProgress = (applied.artsProgress || 0) + n;

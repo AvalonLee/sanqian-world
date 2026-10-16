@@ -111,6 +111,7 @@
         ws.artsKnown.push(id);
         ws.artsLevels[id] = Math.max(1, ws.artsLevels[id] || 0);   /* 入门即 Lv1：屏上不再有「学会了却是 Lv0」；有值则不覆写 */
         if (log) log('arts', SQ.t(logKey || 'arts.learned', { name: SQ.t('skill.' + id + '.name', null, pack.worldId) }, pack.worldId));
+        SQ.Arts.gainLife(ws, pack, D, id, log);   /* 入门那一次结算寿元（第卌八批，见下） */
         SQ.Arts.autoSlot(ws, pack, D, log); /* 体验手感批：有空槽即自动上槽（无槽则静默留在已学列表） */
         return 'known';
       }
@@ -146,10 +147,23 @@
           ws.artsLevels[id] = Math.max(1, ws.artsLevels[id] || 0);   /* 复检入门与直接入门同口径；已有等级绝不覆写（本批自检照出：直写 1 会把满级父本清成 Lv1） */
           moved.push(id);
           if (log) log('arts', SQ.t('arts.learned', { name: SQ.t('skill.' + id + '.name', null, pack.worldId) }, pack.worldId));
+          /* 复检入门与直接入门**同一条寿元结算**（第卌八批）：入门有两个出口，只挂一处 = 架上的功法
+           * 达标那一次不给寿，同一部功法因「何时达标」得到不同结果（本仓「同型面枚举」吃过的那一族）。 */
+          SQ.Arts.gainLife(ws, pack, D, id, log);
         }
       }
       if (moved.length) SQ.Arts.autoSlot(ws, pack, D, log); /* 体验手感批：复检入门后补空槽 */
       return moved;
+    },
+
+    /* 入门给寿 / 折寿（第卌八批 · 用户令「一些功法会给寿元带来增减效益」）：只认功法表里写了 `life`
+     * 的那几部，**入门那一次**经世界包 lifeAdd 入账（正 = 得寿，负 = 折寿），之后卸下、弃置、渡劫都不回收。
+     * ⚠️ 凡写 `life` 的功法**必须** `noSalvage`（或 obtain=initial）：否则「购入 → 弃置 → 再购入」
+     *    就是一条刷命的路——这条不变式由冒烟 #314 逐条对表，不靠人记。 */
+    gainLife: function (ws, pack, D, id, log) {
+      var a = pack.artsMap()[id];
+      if (!a || a.life == null || !pack.worldSystems || !pack.worldSystems.lifeAdd) return 0;
+      return pack.worldSystems.lifeAdd(ws, a.life, log, 'arts', SQ.t('skill.' + id + '.name', null, pack.worldId));
     },
 
     levelOf: function (ws, id) {

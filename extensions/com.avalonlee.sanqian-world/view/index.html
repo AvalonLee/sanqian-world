@@ -2269,9 +2269,12 @@
         '<div class="rrsub">' + esc(t('realm.info.base', { n: R.baseQi })) + ' · ' +
         esc(t('realm.info.power', { n: SQ.fmt(R.power) })) + '</div>' +
         /* 寿元同行列出（寿元批 §6.1A）：「破境即得寿」这条因果要在境界一览里看得见，
-         * 否则玩家只在本世行见到一串数字、不知为何要抢岁月。表 0 = 无尽（真仙不受寿限）。 */
-        '<div class="rrsub">' + esc(gate) + ' · ' + esc((d.LIFESPAN[i] || 0) > 0
-          ? t('realm.info.life', { n: SQ.fmt(d.LIFESPAN[i]) }) : t('realm.info.life.eternal')) + '</div></div>';
+         * 否则玩家只在本世行见到一串数字、不知为何要抢岁月。
+         * 第卌八批改累加阶梯 ⇒ 这一列读的是世界包 `lifeCapOf(i)`（凡寿 + 逐境增量前缀和），
+         * 不再直取表尾——`LIFESPAN` 这个键已随批删除，无尽改由 `LIFE_ETERNAL` 那一枚常数判。 */
+        '<div class="rrsub">' + esc(gate) + ' · ' + esc(i >= d.LIFE_ETERNAL
+          ? t('realm.info.life.eternal')
+          : t('realm.info.life', { n: SQ.fmt(pack().worldSystems.lifeCapOf(i)) })) + '</div></div>';
     });
     $('mrm-list').innerHTML = h;
     $('mrm-close').textContent = t('ui.close');
@@ -2304,14 +2307,16 @@
       }).join('') + '</div></div>';
     h += '<div class="kv"><span class="hint">' + esc(t('realm.info.cur', { realm: t('realm.' + w.realm) })) + '</span>' +
       '<button class="linkbtn chip" data-act="openRealm">' + esc(t('realm.info.link')) + '</button></div>';
-    /* 寿元 / 道伤两行（寿元批 §6.1A）：一律取世界包 lifeInfo 的派生数，视图零自拼口径
+    /* 寿元 / 道伤两行（寿元批 §6.1A · 第卌八批改显示口径）：一律取世界包 lifeInfo 的派生数，视图零自拼口径
      * （第廿五批「同源」纪律沿用）。大限将至整行转红——引擎侧刻意**不写日志**：每秒 tick
      * 重绘会刷屏（第廿八批「转世结算刷屏」同族坑），警示只在这一屏。道伤满 1 层才报，
-     * 岁月疗养中的零点几层不占行。 */
+     * 岁月疗养中的零点几层不占行。
+     * 用户令「寿元：111岁，尚余约1111年」⇒ `li.age`（= floor(lifeUsed)，含创角生年）报岁、
+     * 只报剩余，不再摆「X/Y」分数：上界会随累加阶梯与 lifeBonus 动，摆出来只诱导误算。 */
     var li = p.worldSystems.lifeInfo(w);
     h += '<div class="kv"><span' + (li.near ? ' class="bad"' : '') + '>' + esc(
-      li.eternal ? t('life.row.eternal', { used: SQ.fmt(Math.floor(li.used)) })
-        : t('life.row', { used: SQ.fmt(Math.floor(li.used)), max: SQ.fmt(li.max), left: SQ.fmt(Math.ceil(li.left)) })
+      li.eternal ? t('life.row.eternal', { age: SQ.fmt(li.age) })
+        : t('life.row', { age: SQ.fmt(li.age), left: SQ.fmt(Math.max(0, Math.ceil(li.left))) })
       ) + '</span>' + (li.near ? '<span class="bad">' + esc(t('life.near', { left: SQ.fmt(Math.ceil(li.left)) })) + '</span>' : '') + '</div>';
     if (li.daoLv >= 1) {
       h += '<div class="kv"><span' + (li.daoNear ? ' class="bad"' : '') + '>' +
@@ -5265,7 +5270,11 @@
     ui.seenDeathAt = ld.at;
     ui.deathPending = true;
     $('mo-title').textContent = t('life.death.title');
-    $('mo-sub').textContent = t(ld.cause === 'daoshang' ? 'life.death.daoshang' : 'life.death.shoujin');
+    /* 死因取话（第卌八批）：旧写法是 `cause === 'daoshang' ? 道伤 : 寿尽` 的二元 ternary，
+     * 新增的 zhesou 会被静默归成「寿元耗尽」——那句谎话正是本仓登记过的「兜底键复用」那一形。
+     * 三个键名都按字面量写全：A6 的反向扫描只认字面量，动态拼串会把它判成孤儿。 */
+    $('mo-sub').textContent = t(ld.cause === 'daoshang' ? 'life.death.daoshang'
+      : (ld.cause === 'zhesou' ? 'life.death.zhesou' : 'life.death.shoujin'));
     $('mo-stats').innerHTML = '';
     $('mo-hint').textContent = t('life.death.stats', {
       age: SQ.fmt(ld.age || 0),

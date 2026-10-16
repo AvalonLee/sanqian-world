@@ -59,7 +59,9 @@
     { id: 'x18', forma: 'yao', kind: 'xian', grade: 'xian_ji', MAX_STAGE: 5,   /* 昆吾镇魔链：№104 联动；满阶 −2.5pp（5 阶全效 · 主代理裁定口径） */
       reqs: { realm: 6 }, scaled: { 'mult:tribFailLossMod': [-0.005, -0.025] } },
     { id: 'x19', forma: 'shou', kind: 'xian', grade: 'xian_zhong',   /* 龙髓珠：老龙城联动 №91 */
-      reqs: { realm: 6 }, scaled: { 'mult:qiCap': [0.02, 0.06] } },
+      /* life = 认主每晋一阶授寿的年数（第卌八批 · 三阶共三次）：珠中龙髓养人，是本卷唯一一件
+       * 明写「给寿」的先天件，其余法宝的寿元一律经它自己的 special/hook 走，不给第二套数。 */
+      reqs: { realm: 6 }, scaled: { 'mult:qiCap': [0.02, 0.06] }, life: 150 },
 
     /* ── 后天法宝（27 件 · 修士炼制 · 祭炼 1→5 级；h19 例外 1→3 级）── */
     { id: 'h01', forma: 'shou', kind: 'hou', grade: 'ling', reqs: { realm: 2 }, scaled: { 'mult:qiRate': [0.15, 0.30] } },

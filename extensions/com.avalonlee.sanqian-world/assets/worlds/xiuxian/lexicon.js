@@ -43,19 +43,29 @@
     'mode.log.seclude': '潜心静修，谢客不出——修为全速，不问外物',
     'mode.log.venture': '整装出行，前往秘境历练——灵石与机缘，皆在险中求',
 
-    /* ── 寿元 / 道伤（寿元批 2026-10-15 · 数值详设 §6.1A）──
-     * 表与判据全在 data.js + 世界包 lifeInfo，这里只出话；数字一律由调用侧填占位符。 */
-    'life.row': '寿元 {used}/{max} 年 · 尚余 {left} 年',
-    'life.row.eternal': '寿元无尽 · 已历 {used} 年',
-    'life.near': '大限将至！尚余 {left} 年',
+    /* ── 寿元 / 道伤（寿元批 2026-10-15 · 数值详设 §6.1A · 第卌八批改显示口径）──
+     * 表与判据全在 data.js + 世界包 lifeInfo，这里只出话；数字一律由调用侧填占位符。
+     * 用户令「改成：寿元：111岁，尚余约1111年」⇒ 已历改称**岁**（= floor(lifeUsed)，含创角生年）、
+     *   不再摆「X/Y 年」那个分数（上界随累加阶梯与 lifeBonus 动，摆出来只会让人误算），只报剩余。 */
+    'life.row': '寿元：{age}岁，尚余约{left}年',
+    'life.row.eternal': '寿元：{age}岁，已臻无尽',
+    'life.near': '大限将至！尚余约{left}年',
+    /* 增减日志（lifeAdd 唯一写口的两条话）：`{src}` 由调用侧给来处名——功法 / 法宝 / 丹 / 奇遇 /
+     * 渡劫失败 / 身负创。得寿与折寿分开写，不靠 sign 复用一句：负数写成「得寿 -40 年」是要说谎的。 */
+    'life.log.gain': '{src}：得寿 {n} 年',
+    'life.log.loss': '{src}：折寿 {n} 年',
+    'life.hit.trib': '渡劫失败', 'life.hit.wound': '身负创',
     'daoshang.row': '道伤 {n}/{cap} 层',
     'daoshang.near': '道伤深重，再败即此世了结',
     'daoshang.log.warn': '道伤入体已 {n} 层（上限 {cap}）——再败即此世了结',
     'realm.info.life': '寿元 {n} 年', 'realm.info.life.eternal': '寿元无尽',
-    /* 坐化呈报（引擎写 lastDeath，界面按 at 键控演一次；确定后进创角） */
+    /* 坐化呈报（引擎写 lastDeath，界面按 at 键控演一次；确定后进创角）
+     * ⚠️ 第卌八批起**三条**死因：界面旧写法是 `cause === 'daoshang' ? … : 寿尽` 的二元 ternary，
+     *    新增死因走 ternary 会被静默归成「寿元耗尽」⇒ 改 key map（视图 renderDeath 与 legacy/codex 同批）。 */
     'life.death.title': '身死道消',
     'life.death.shoujin': '寿元耗尽，坐化于蒲团之上。此世了结，遗泽已入账。',
     'life.death.daoshang': '道伤崩碎，伤重不治。此世了结，遗泽已入账。',
+    'life.death.zhesou': '连番折寿，未及大限先见了底。此世了结，遗泽已入账。',
     'life.death.stats': '享年 {age} 年 · 止于 {realm} · 道伤 {dao} 层 · 遗泽 +{n}',
     'life.death.ok': '转世重生',
 

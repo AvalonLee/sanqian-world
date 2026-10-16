@@ -929,7 +929,7 @@
           var pvLife = SQ.Legacy.rebirth(s, lifeNow.cause, now);
           s.worlds[id].lastDeath = {
             at: now, cause: lifeNow.cause, realm: ws.realm || 0,
-            age: Math.floor(lifeNow.used), dao: lifeNow.daoLv,
+            age: lifeNow.age, dao: lifeNow.daoLv,
             total: (pvLife || {}).total || 0
           };
         }

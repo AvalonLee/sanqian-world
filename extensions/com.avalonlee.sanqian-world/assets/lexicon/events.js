@@ -22,6 +22,9 @@
     'toast.sanyan': '三尸宴坐：灵台忽明，判定重来',
     'log.eff.stones': '{res} {sign}{n}',
     'log.eff.qi': '{res} {sign}{n}',
+    /* 寿元增减的结果页一行（第卌八批 · 丹 / 奇遇 / failE 的 `life` 都折进这一条，不另起日志）：
+     * 单位写死「年」——它与修为、灵石不同名，借 `{res}` 那套资源词会把「岁/年」口径搅混。 */
+    'log.eff.life': '寿元 {sign}{n} 年',
     'log.eff.pct': '{res} {sign}{p}%',
     'log.eff.buff': '{field} {sign}{p}% · {h}小时',
     'log.eff.dropGear': '拾得{gear}',
