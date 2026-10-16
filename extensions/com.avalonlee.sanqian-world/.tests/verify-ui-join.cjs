@@ -111,18 +111,31 @@ async function buildSave() {
 
   await page.click('#m-tabbar button[data-v="prodigy"]');
   await until(() => { const el = document.getElementById('tab-prodigy'); return !!el && !el.classList.contains('hide'); });
-  const board = await page.evaluate(() => {
+  /* 四榜逐切合计（第册一批③）：一名天骄只出现在自己那条境界带的榜上，单看默认天榜会漏 ——
+   * 判据本身不变（角标全榜恰一枚、只挂在那人行上），只是将取数面从「一榜」扩到「四榜」。 */
+  const snap = () => page.evaluate(() => {
     const box = document.getElementById('tab-prodigy');
     const rows = Array.from(box.querySelectorAll('.lrow'));
     return {
       all: box.innerText.replace(/\s+/g, ''),
       badge: (box.innerText.match(/效力于你/g) || []).length,
       namedRows: rows.filter(r => /效力于你/.test(r.innerText)).length,
-      latin: (box.innerText.match(/[A-Za-z]{3,}/g) || []).filter(x => ['Lv', 'NPC', 'pp', 'AI', 'JSON'].indexOf(x) < 0)
+      chips: rows.length,
+      latin: (box.innerText.match(/[A-Za-z]{3,}/g) || [])
+        .filter(x => ['Lv', 'NPC', 'pp', 'AI', 'JSON'].indexOf(x) < 0)
     };
   });
-  T(board.badge === 1 && board.namedRows === 1, 'U4 同代榜「效力于你」角标只挂在那名天骄的行上', 'badge=' + board.badge + ' rows=' + board.namedRows + ' · ' + board.all.slice(0, 56));
-  T(board.latin.length === 0, 'U4b 角标零裸拉丁上屏', board.latin.slice(0, 3).join(','));
+  let board = await snap(), acc = { badge: 0, namedRows: 0, latin: [], all: board.all };
+  acc.badge += board.badge; acc.namedRows += board.namedRows; acc.latin = acc.latin.concat(board.latin);
+  for (const b of [1, 2, 3]) {
+    await page.click('#tab-prodigy .jbchips button[data-v="' + b + '"]');
+    await page.waitForTimeout(250);
+    board = await snap();
+    acc.badge += board.badge; acc.namedRows += board.namedRows; acc.latin = acc.latin.concat(board.latin);
+  }
+  T(acc.badge === 1 && acc.namedRows === 1, 'U4 「效力于你」角标四榜合计恰一枚、且只挂在那名天骄的行上',
+    'badge=' + acc.badge + ' rows=' + acc.namedRows);
+  T(acc.latin.length === 0, 'U4b 角标零裸拉丁上屏', acc.latin.slice(0, 3).join(','));
 
   await page.click('#m-tabbar button[data-v="journal"]');
   await until(() => { const el = document.getElementById('tab-journal'); return !!el && !el.classList.contains('hide'); });

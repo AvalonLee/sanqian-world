@@ -166,10 +166,10 @@ const pend = (id, realm, k) => ({ id: id, at: T0, tier: id === 'ambush_revenge' 
       'V3 胜后链条账上屏：连胜 2→3、nextAt = now + ' + (A.REVENGE_CD_MS / 60000) + ' 分钟',
       JSON.stringify(v1.revenge));
     await page.click('#mc-ok');                       /* 结算后浮层停在结果页，须先收起才能切页 */
-    await page.click('#m-tabbar button:has-text("天骄")');
+    await page.click('#m-tabbar button[data-v="prodigy"]')   /* 第册一批③：页签改名「江湖榜」⇒ 按 data-v 取，不再按文案（文案匹配是走查的头号脆性） */;
     await page.clock.runFor(1500);
     const pv = await page.$eval('#tab-prodigy', (el) => (el.textContent || '').replace(/\s+/g, ' '));
-    T(/一族寻仇 · 已胜 3 场/.test(pv), 'V4 天骄页顶部常驻链条读数', (pv.match(/一族寻仇[^·]*·[^‖]{0,12}/) || ['无该行'])[0]);
+    T(/一族寻仇 · 已胜 3 场/.test(pv), 'V4 江湖榜页顶部常驻链条读数', (pv.match(/一族寻仇[^·]*·[^‖]{0,12}/) || ['无该行'])[0]);
     T(errors.length === 0, 'V5 寻仇全程零页面报错', errors.slice(0, 2).join(' | ') || 'clean');
     await ctx.close();
   }
@@ -193,7 +193,7 @@ const pend = (id, realm, k) => ({ id: id, at: T0, tier: id === 'ambush_revenge' 
     ], daoShang: A.KILL_DAO * 4 - 1 });
     const { ctx, page, errors } = await openPage(w);
     await page.clock.runFor(1200);
-    await page.click('#m-tabbar button:has-text("天骄")');
+    await page.click('#m-tabbar button[data-v="prodigy"]')   /* 第册一批③：页签改名「江湖榜」⇒ 按 data-v 取，不再按文案（文案匹配是走查的头号脆性） */;
     await page.clock.runFor(1200);
     await page.click('#tab-prodigy button[data-act="prodDetail"][data-v="pr1"]');
     await page.clock.runFor(1200);

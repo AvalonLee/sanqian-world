@@ -800,7 +800,7 @@
         if (!pr) return { type: type, pass: false };
         var jit = ((D.PRODIGY || {}).SPAR_JITTER) || 0.10;
         var Pp = SQ.Mods.powerOf(ws, st.pack, D, mods) * (1 + (Math.random() * 2 - 1) * jit);
-        var Q = SQ.Prodigy.powerOf(ws, pr, D) * (1 + (Math.random() * 2 - 1) * jit);
+        var Q = SQ.Prodigy.powerOf(ws, pr, D, st.pack) * (1 + (Math.random() * 2 - 1) * jit);
         return { type: type, pass: Pp > Q * 1.01, power: Pp, need: Q };
       }
       if (type === 'ambushFoe') {

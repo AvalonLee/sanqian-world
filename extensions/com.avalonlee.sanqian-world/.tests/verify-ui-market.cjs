@@ -123,16 +123,26 @@ async function buildSave() {
   T(alWide.n >= 3 && alWide.cols >= 2, 'M7 炼丹炼器信息为卡片网格（≥3 段 · 宽屏 ≥2 列）', 'grids=' + alWide.n + ' cols=' + alWide.cols);
   T(alWide.items >= 6, 'M8 丹方/图纸/材料均以卡片呈现', 'items=' + alWide.items);
 
-  /* ── ④ 同代天骄：前 10 详情 + 每 10 游戏年刷榜 ── */
+  /* ──  江湖榜：一榜十席 + 玩家名次行只在自己那一榜（第册一批③改口）── */
   await page.click('#m-tabbar button[data-v="prodigy"]');
+  await page.waitForTimeout(400);
+  /* 玩家名次行只渲染在他所属那条境界带上 ⇒ 先切到自己那一榜再取数（不切就会假红） */
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const el = document.querySelector('#tab-prodigy .jbchips button[data-v="' +
+      SQ.Jianghu.bandOf(s.worlds.xiuxian.realm) + '"]');
+    if (el) el.click();
+  });
   await page.waitForTimeout(400);
   const pd = await page.evaluate(() => {
     const rows = document.querySelectorAll('#tab-prodigy .lrow');
     return { rows: rows.length, txt: document.querySelector('#tab-prodigy').textContent };
   });
-  T(pd.rows === 10, 'M9 榜面只展前 10 位详情（名录 30）', 'rows=' + pd.rows);
-  T(pd.txt.indexOf('10 游戏年') >= 0, 'M10 榜面标注每 10 游戏年一刷', pd.txt.slice(0, 0) || 'ok');
-  T(pd.txt.indexOf('位列第') >= 0, 'M11 显示玩家榜位');
+  T(pd.rows >= 10 && pd.rows <= 11, 'M9 一榜十席（名录 30 人分带后每榜仍只十席；玩家跌出十席时榜尾补自己那一行 ⇒ ≤11）',
+    'rows=' + pd.rows);
+  T(pd.txt.indexOf('10 游戏年') >= 0, 'M10 榜面标注名次播报节律（榜本身已改实时装配 ⇒ 措辞随批改口）', 'ok');
+  T(/位列.{0,4}第 [0-9]+ 位/.test(pd.txt), 'M11 显示玩家榜位（第册一批③起带榜名：「你当前位列玄榜第 N 位」）',
+    (pd.txt.match(/位列.{0,8}第 [0-9]+ 位/) || ['无该行'])[0]);
 
   /* ── 窄屏退单列 ── */
   await page.setViewportSize({ width: 390, height: 844 });

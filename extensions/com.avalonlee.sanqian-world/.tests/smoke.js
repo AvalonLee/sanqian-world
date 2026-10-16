@@ -7233,16 +7233,19 @@
     var cnt212b = w212b.prodigies.length;
     SQ.Prodigy.rollForNewLife(w212b, pack, D, m212b, Date.now());   /* 幂等：已生成不重复 */
     var idem212 = w212b.prodigies.length === cnt212b;
-    /* 同档重名去重 + apt 权重分布（3000 次统计 50/35/15 ±30% 相对） */
+    /* 同档重名去重 + apt 权重分布（3000 次统计 50/35/15 ±30% 相对）
+     * ⚠️ 第册一批①「名库替换出场者」改口：去重键从 `nm` 三段索引改成**名录号 rid**（具名者 nm 恒
+     *    [0,0,0]，再按 nm 比就是「人人重名」的假红）；未具名的兜底支路仍按 nm 比，两族各自成立。 */
     var nameDup212 = false, aptCnt = [0, 0, 0], tlBad212 = 0, maxBytes212 = 0;
+    var keyOf212 = function (x) { return x.rid ? 'R' + x.rid : 'N' + x.nm.join(','); };
     var posIds212 = {};
     ['common', 'xiuxian'].forEach(function (wd) { var tp = SQ.TALENTS[wd]; if (tp) tp.positive.forEach(function (x) { posIds212[x.id] = 1; }); });
     var w212c = pack.initialState();
     for (var ri212 = 0; ri212 < 3000; ri212++) {
       var seen212 = {};
-      w212c.prodigies.forEach(function (pp) { seen212[pp.nm.join(',')] = 1; });
+      w212c.prodigies.forEach(function (pp) { seen212[keyOf212(pp)] = 1; });
       var np = SQ.Prodigy.rollOne(w212c, pack, D, null, {});
-      if (seen212[np.nm.join(',')]) nameDup212 = true;
+      if (seen212[keyOf212(np)]) nameDup212 = true;
       aptCnt[np.apt]++;
       np.tl.forEach(function (tid) { if (!posIds212[tid]) tlBad212++; });
       var bl = byteLen(np);
@@ -7267,11 +7270,17 @@
       { id: 'pr9', nm: [99, -3, 2.7], tl: [1, 'ok_talent', 'b', 'c'], al: 5, fc: -9, apt: 8, rlm: 99, prg: -5, wl: [1, 2], feud: 'yes', boost: { add: 9, months: -2 } }
     ] }));
     var dp212 = dirty212.prodigies[0];
-    ok('212', '天骄生成与容量：默认 10 名/prodigySlot 30 名、幂等不重复；重名重掷；apt 50/35/15 统计；天赋全出正面池且 mods 零侵入；单人序列化 ' + maxBytes212 + 'B；normalize 旧档不补 roll 脏档清理',
+    /* 出场者人人带名录号且互不重复（30 人满代 · 名录 133 人池 ⇒ 恒应成立） */
+    var ridSeen212 = {}, ridOk212 = true;
+    w212b.prodigies.forEach(function (x) {
+      if (!x.rid || ridSeen212[x.rid]) ridOk212 = false;
+      ridSeen212[x.rid] = 1;
+    });
+    ok('212', '天骄生成与容量：默认 10 名/prodigySlot 30 名、幂等不重复；**出场者按名录号去重且满代 30 人 rid 不重**（第册一批①）；apt 50/35/15 统计；天赋全出正面池且 mods 零侵入；单人序列化 ' + maxBytes212 + 'B（上限 240 → **256** = 旧口径 + `rid` 一枚名录号，本批唯一新增落盘字段）；normalize 旧档不补 roll 脏档清理（无 rid ⇒ null）',
       cnt212a === 10 && cnt212b === 30 && idem212 && !nameDup212 && aptOk212 && tlBad212 === 0 &&
-      maxBytes212 <= 240 && modsNo212 === modsYes212 &&
+      maxBytes212 <= 256 && modsNo212 === modsYes212 && ridOk212 &&
       old212.prodigies.length === 0 && dirty212.prodigies.length === 1 &&
-      dp212.id === 'pr9' && dp212.nm.join() === '8,0,2' && dp212.tl.join() === 'ok_talent,b' &&
+      dp212.id === 'pr9' && dp212.rid === null && dp212.nm.join() === '8,0,2' && dp212.tl.join() === 'ok_talent,b' &&
       dp212.al === 2 && dp212.fc === -1 && dp212.apt === 2 && dp212.rlm === 9 && dp212.prg === 0 &&
       dp212.feud === false && dp212.wl.join() === '1,2,0' && dp212.boost.add === 0.5 && dp212.boost.months === 0,
       'apt=' + JSON.stringify(aptCnt) + ' bytes=' + maxBytes212);
@@ -7324,7 +7333,7 @@
     SQ.Prodigy.tick(w213b, pack, D, null, 12 * 3600000, Date.now(), { log: noopLog() });
     var guard213 = w213b.prodigies[0].rlm <= 9 && w213b.prodigyClock < 30000;
     /* power 对表 = REALMS[rlm].power × POWER_COEF[apt] */
-    var pw213 = SQ.Prodigy.powerOf(w213, w213.prodigies[0], D);
+    var pw213 = SQ.Prodigy.powerOf(w213, w213.prodigies[0], D, pack);
     var pwExp213 = D.REALMS[w213.prodigies[0].rlm].power * PDc.POWER_COEF[0];
     ok('213', '推进零玩家轴影响：月结 prg=baseQi×30×coef 确定性推进；玩家 qi/realm/stones/buffs/mods 零变化；真仙封顶停积；离线 catch-up 480 月护栏；power 对表',
       Math.abs(prog213a - bqi213 * 30 * 1.0) < 1e-6 && same213 && cap213 && guard213 && Math.abs(pw213 - pwExp213) < 1e-9,
@@ -10569,6 +10578,130 @@
       '认不到=' + JSON.stringify({ memo: typeof g315.memo, adopt: typeof g315.adopt, act: typeof g315.act, cap: g315.cap }) +
       ' 残键=' + (g315.k.join(',') || '无') + ' ‖ 保留=' + kept315 +
       ' ‖ 兵解=' + (rb315 && rb315.ok) + ' 传记=' + bs315.length + ' 篇/' + (bio315.text || '').length + '字/' + bio315.source);
+
+    /* ═══ #316 战力散布四档重标定（第册一批② · 用户令「同境界上下限相差超过两个大境界」）═══
+     * 立的是**口径**：不新立乘区，改偏移境界表 `REALMS[clamp(rlm + 际遇档)] × 资质微调`。
+     * 甲 = 逐档对表（四档各取一名真名录角色）‖ 乙 = 旧档零侵染（无 rid / 脏 rid ⇒ off 恒 0，
+     * 与改前逐字同值——这条是本批「不迁移旧档」承诺的直证）‖ 丙 = 上下限差与钳位 ‖
+     * 丁 = 幂等与 normalize（rid 留、脏 rid 归 null、超长截断）。 */
+    var PS316 = SQ.Jianghu.pool(pack).persons, byOff316 = {};
+    PS316.forEach(function (x) { if (!byOff316[x.off]) byOff316[x.off] = x; });
+    var four316 = [-1, 0, 1, 2].every(function (o) { return !!byOff316[o]; });   /* 四档齐备 = 数据说话 */
+    var w316 = pack.initialState(), R316 = D.REALMS, PC316 = D.PRODIGY.POWER_COEF;
+    var pow316 = [-1, 0, 1, 2].map(function (o) {
+      return SQ.Prodigy.powerOf(w316, { id: 'prA', rid: byOff316[o].id, rlm: 4, apt: 0 }, D, pack);
+    });
+    var tabOk316 = pow316.every(function (v, i) { return v === R316[4 + [-1, 0, 1, 2][i]].power * PC316[0]; });
+    var old316 = SQ.Prodigy.powerOf(w316, { id: 'prB', rlm: 4, apt: 0 }, D, pack);          /* 无 rid */
+    var dirty316 = SQ.Prodigy.powerOf(w316, { id: 'prC', rid: 'zz9', rlm: 4, apt: 0 }, D, pack); /* 名录认不出 */
+    var oldOk316 = old316 === R316[4].power * PC316[0] && dirty316 === old316;
+    var clamp316 = [
+      SQ.Prodigy.powerOf(w316, { rid: byOff316[2].id, rlm: 9, apt: 0 }, D, pack),
+      SQ.Prodigy.powerOf(w316, { rid: byOff316[-1].id, rlm: 0, apt: 0 }, D, pack)
+    ];
+    var spread316 = pow316[3] / pow316[0];                       /* 同境界（rlm 4）上下限之比 */
+    var idem316 = SQ.Prodigy.powerOf(w316, { rid: byOff316[1].id, rlm: 6, apt: 2 }, D, pack) ===
+      SQ.Prodigy.powerOf(w316, { rid: byOff316[1].id, rlm: 6, apt: 2 }, D, pack);
+    var nrm316 = pack.normalize(Object.assign(pack.initialState(), { prodigies: [
+      { id: 'pr1', rid: 's001', nm: [0, 0, 0], rlm: 3, apt: 1 },
+      { id: 'pr2', rid: 123, nm: [0, 0, 0], rlm: 1, apt: 0 },
+      { id: 'pr3', rid: 'abcdefghijkl', nm: [0, 0, 0], rlm: 2, apt: 0 }
+    ] })).prodigies;
+    ok(316, '战力散布四档重标定（第册一批②）：(甲) 际遇档四档齐备（−1×' + PS316.filter(function (x) { return x.off === -1; }).length +
+      '/0×' + PS316.filter(function (x) { return x.off === 0; }).length +
+      '/+1×' + PS316.filter(function (x) { return x.off === 1; }).length +
+      '/+2×' + PS316.filter(function (x) { return x.off === 2; }).length + '）且 rlm4 逐档 === REALMS[3..6].power × 资质档0 ' +
+      '(乙) 旧档零侵染：无 rid 与名录认不出的脏 rid 一律 off=0 ⇒ 与改前逐字同值 ' +
+      '(丙) 同境界上下限差 = ' + spread316.toFixed(1) + ' 倍（=== REALMS[6]/REALMS[3]，即 3 档 ≈ 27×，用户要的「超过两个大境界」）‖ 顶钳真仙 / 地板钳练气 ' +
+      '(丁) 同输入两次调用同值 ‖ normalize 保留 rid、脏 rid 归 null、超长截 8 字',
+      four316 && tabOk316 && oldOk316 &&
+      spread316 === R316[6].power / R316[3].power && spread316 > 9 &&
+      clamp316[0] === R316[9].power * PC316[0] && clamp316[1] === R316[0].power * PC316[0] &&
+      idem316 && nrm316[0].rid === 's001' && nrm316[1].rid === null && nrm316[2].rid === 'abcdefgh',
+      '四档=' + JSON.stringify(pow316.map(function (x) { return Math.round(x); })) + ' 旧档=' + old316 + '/' + dirty316 +
+      ' 钳位=' + JSON.stringify(clamp316) + ' 差=' + spread316.toFixed(2) + ' rid=' + JSON.stringify(nrm316.map(function (x) { return x.rid; })));
+
+    /* ═══ #317 江湖四榜装配（第册一批③ · 设计稿 §二 / §三）═══
+     * 判据取「形状 + 同源」不取文案：十席恒满、天榜前三恒为隐世、玩家恰一行且落在自己那一榜、
+     * 同榜不重影、可交互性只给相识者、双跑逐字全等（零随机零副作用）、三档徽标与 ratio 对表、
+     * 五项派生过境界门槛、死者不复生、跨带与递补各播一条。 */
+    var w317 = pack.initialState();
+    w317.realm = 5; w317.zone = 0;                          /* 玩家落玄榜（4~5），zone 错开月事件 */
+    SQ.Prodigy.rollForNewLife(w317, pack, D, mkMeta(), 1700000000000);
+    var m317 = M(mkProf([]), w317);
+    var B317 = SQ.Prodigy.board4(w317, pack, D, m317);
+    var B317b = SQ.Prodigy.board4(w317, pack, D, m317);
+    var shape317 = B317.length === 4 && B317.every(function (b) {
+      var vis = b.rows.filter(function (r) { return r !== null; });
+      return b.n >= 10 && vis.length <= 11 && vis.length >= 10;
+    });
+    var hid3 = SQ.Jianghu.hermits(pack).map(function (h) { return h.id; });
+    var top3 = B317[0].rows.slice(0, 3);
+    var hidOk317 = top3.length === 3 && top3.every(function (r, i) { return r.hid === true && r.rid === hid3[i]; });
+    var meN317 = 0, meBand317 = -1;
+    B317.forEach(function (b) { b.rows.forEach(function (r) { if (r && r.me) { meN317++; meBand317 = b.band; } }); });
+    var meOk317 = meN317 === 1 && meBand317 === SQ.Jianghu.bandOf(w317.realm);
+    var dup317 = false, interOk317 = true;
+    B317.forEach(function (b) {
+      var seen = {};
+      b.rows.forEach(function (r) {
+        if (!r || r.me) return;
+        if (r.rid && seen[r.rid]) dup317 = true;
+        seen[r.rid] = 1;
+        if (r.known && !r.pid) interOk317 = false;          /* 相识者必须有存档 id 才点得开 */
+        if (!r.known && r.pid) interOk317 = false;          /* 背景席位不许有入口 */
+      });
+    });
+    var HC317 = D.PRODIGY.HANDICAP, myP317 = SQ.Mods.powerOf(w317, pack, D, m317);
+    var lvBad317 = [];
+    B317.forEach(function (b) { b.rows.forEach(function (r) {
+      if (!r || r.me || r.hid) return;
+      var ratio = myP317 / r.power;
+      var want = ratio >= HC317.crush ? 0 : (ratio <= HC317.brave ? 2 : 1);
+      if (r.lv !== want) lvBad317.push([b.band, r.rid, r.lv, want]);
+    }); });
+    var gearBad317 = [], gearDup317 = false;
+    B317.forEach(function (b) { b.rows.forEach(function (r) {
+      if (!r || r.me || r.hid || !r.rid) return;
+      var g = SQ.Jianghu.gearOf(pack, D, r.rid, r.realm), g2 = SQ.Jianghu.gearOf(pack, D, r.rid, r.realm);
+      if (JSON.stringify(g) !== JSON.stringify(g2)) gearDup317 = true;
+      if (!g.wp) gearBad317.push(r.rid + ' 无兵刃');
+      var am = pack.artsMap();
+      if (g.tb && ((pack.treasures.byId[g.tb] || {}).reqs || {}).realm > r.realm) gearBad317.push(r.rid + ' 法宝越境');
+      if (g.art && ((am[g.art] || {}).reqs || {}).realm > r.realm) gearBad317.push(r.rid + ' 功法越境');
+    }); });
+    /* 死者不复生 + 递补播报：挑一名相识者走唯一出榜写口 */
+    var victim317 = w317.prodigies[0];
+    SQ.Prodigy.killOff(w317, { meta: {} }, pack, D, victim317, 1700000001000);
+    var deadOk317 = (w317.prodMarks.dead || []).indexOf(victim317.rid) >= 0;
+    var back317 = SQ.Prodigy.board4(w317, pack, D, m317);
+    var ghost317 = false;
+    back317.forEach(function (b) { b.rows.forEach(function (r) { if (r && r.rid === victim317.rid) ghost317 = true; }); });
+    var fillCard317 = (w317.rumors || []).filter(function (x) { return x.tpl === 'prodigy.rumor.bandfill'; })[0] || null;
+    /* 跨带播报：把一名相识者摆到带界下沿，一次月结破境即换榜（rivAt 置今 ⇒ 机缘竞争不掷，传闻不被挤掉） */
+    var climber317 = w317.prodigies[0];
+    climber317.rlm = 3; climber317.prg = D.REALMS[4].need - 1; climber317.rivAt = 1700000002000;
+    w317.realm = 3;                                          /* 玩家也回黄榜：避开 sameZone 狭路相逢支 */
+    w317.zone = 9;
+    SQ.Prodigy.tick(w317, pack, D, M(mkProf([]), w317), 30000, 1700000002000, { log: noopLog() });
+    var upCard317 = (w317.rumors || []).filter(function (x) { return x.tpl === 'prodigy.rumor.bandup'; })[0] || null;
+    ok(317, '江湖四榜装配（第册一批③）：(甲) 四榜各十席（候选 ≥10、可见 ≤11 = 十席 + 玩家尾行） ' +
+      '(乙) 天榜前三恒为隐世三席且 hid 标在位（裁定 2） ' +
+      '(丙) 玩家恰一行、落在 bandOf(自己境界) 那一榜（裁定 3：不另开「我方之势」行） ' +
+      '(丁) 同榜不重影（相识 / 补位 / 隐世 三族互斥）‖ 可交互性只给相识者（背景席位 pid 恒 null） ' +
+      '(戊) 三档徽标 === 切磋表值 HANDICAP.crush/brave 复算（违例 ' + (lvBad317.length || 0) + '） ' +
+      '(己) 五项派生：兵刃恒有、法宝与主修过境界门槛、两次派生逐字全等 ' +
+      '(庚) 双跑逐字全等（纯派生、零随机、零写档） ' +
+      '(辛) 死者不复生：出榜者不再以任何席位回榜 + 递补传闻一条 ' +
+      '(壬) 跨带播报一条（黄→玄，一次连破也只播落点）',
+      shape317 && hidOk317 && meOk317 && !dup317 && interOk317 && lvBad317.length === 0 &&
+      gearBad317.length === 0 && !gearDup317 && JSON.stringify(B317) === JSON.stringify(B317b) &&
+      deadOk317 && !ghost317 && !!fillCard317 && !!upCard317 && climber317.rlm === 4,
+      '席=' + JSON.stringify(B317.map(function (b) { return b.n + '/' + b.rows.length; })) +
+      ' 玩家=' + meN317 + '@' + meBand317 + ' 徽标违例=' + JSON.stringify(lvBad317.slice(0, 2)) +
+      ' 五项违例=' + JSON.stringify(gearBad317.slice(0, 2)) + ' 双跑=' + (JSON.stringify(B317) === JSON.stringify(B317b)) +
+      ' 死=' + deadOk317 + '/' + ghost317 + ' 播=' + !!fillCard317 + '/' + !!upCard317);
+
 
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');

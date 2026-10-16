@@ -1153,7 +1153,7 @@
       faction:  { r: 1, k: 'faction.system' },
       alchemy:  { r: 1, k: 'alchemy.system' },
       bonds:    { r: 1, k: 'ui.pillar.bond' },
-      prodigy:  { r: 2, k: 'prodigy.system' },
+      prodigy:  { r: 2, k: 'jianghu.system' },
       treasure: { r: 3, k: 'treasure.system' },
       sect:     { r: 4, k: 'sect.system' }
     },
