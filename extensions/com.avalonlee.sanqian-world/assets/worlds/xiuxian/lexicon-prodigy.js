@@ -33,7 +33,10 @@
   K['prodigy.rumor.rivalry.2'] = '{faction}的{name}连夜掘走了那株百年灵植，连土都没给你剩——捎话的人说，他挖完还哼着小曲。';
   K['prodigy.rumor.rivalry.3'] = '坊市传言：古修洞府的秘钥三日前被人开了，后来者只看到墙上一行剑刻的字，狂得像是故意留给人看的。';
   K['prodigy.rumor.feud'] = '{name}拂袖而去，放话下次见面剑下不留情——江湖都知道了。';
-  K['prodigy.rumor.kill'] = '{name}殒落。同代榜划去一行，无人递补。';
+  K['prodigy.rumor.kill'] = '{name}殒落。同代榜划去一行。';
+  /* 第册一批③：出榜即空一席 ⇒ 两条新传闻（跨榜带才播 bandup，一次连破两界也只播一条落点） */
+  K['prodigy.rumor.bandup'] = '{name} 连破同侪，自{from}升入{to}。';
+  K['prodigy.rumor.bandfill'] = '{name} 既出榜，{band}一席由 {by} 递补。';
   K['prodigy.rumor.eternal.1'] = '又是你。';
 
   /* ── 编年史短语（§4.2 数据源扩展五类 + 飞升叩门）── */
@@ -89,13 +92,26 @@
   K['event.prodigy_ev_forgive.branch.neutral'] = '提来一坛酒——恩怨都在杯子里';
 
   /* ── UI ── */
+  /* `prodigy.system` 一字未动：它还被「弟子档天骄角标」与渐次解锁提示两处读着（view:4543 / :6737），
+   * 那两处说的是「这人来自同代名录」，不是页签名 ⇒ 页签另起 `jianghu.system`，不拿改值当复用。 */
   K['prodigy.system'] = '同代天骄';
-  K['prodigy.board.title'] = '江湖榜 · 同代卷';
+  K['jianghu.system'] = '江湖榜';
+  K['jianghu.band.0'] = '天榜';
+  K['jianghu.band.1'] = '地榜';
+  K['jianghu.band.2'] = '玄榜';
+  K['jianghu.band.3'] = '黄榜';
+  K['jianghu.q'] = '？？？';                          /* 隐世三席的一切明细（裁定 2） */
+  K['jianghu.hid.tag'] = '隐世';
+  K['jianghu.stranger'] = '素不相识';                  /* 名录补位的背景席位：在榜、可见、不给战书入口 */
+  K['jianghu.lv.0'] = '可压';                          /* 三档徽标取代战力数字：阈值取切磋表值 */
+  K['jianghu.lv.1'] = '相当';
+  K['jianghu.lv.2'] = '悬殊';
   K['prodigy.board.me'] = '你';
-  K['prodigy.board.empty'] = '榜上无名——入世之后，同代自会现身';
-  K['prodigy.board.hint'] = '境界优先、同境界按战力；每代名录至多 30 人，榜面只录前 10 位的详细行迹，每 10 游戏年更新一次';
-  K['prodigy.board.myrank'] = '你当前位列第 {n} 位';
-  K['prodigy.board.refresh'] = '榜面每 {y} 游戏年一刷';
+  /* 第册一批③：`prodigy.board.empty`「榜上无名」随早退分支删除——四榜席位由名录实时补位，
+   * 新口径下这一态不存在（新建角色也看得见四十个名字），留着就是一枚永远取不到的孤儿键。 */
+  K['prodigy.board.hint'] = '一榜十席：相识者、名录补位与天榜前三的隐世高人同张榜；榜面不写战力，只给可压 / 相当 / 悬殊三档';
+  K['prodigy.board.myrank'] = '你当前位列{band}第 {n} 位';
+  K['prodigy.board.refresh'] = '名次播报每 {y} 游戏年一次';
   K['prodigy.detail.apt'] = '资质';
   K['prodigy.detail.faction'] = '归属';
   K['prodigy.detail.talent'] = '天赋（纯展示，不作用任何数值）';

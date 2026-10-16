@@ -33,10 +33,17 @@
     return out;
   }
 
-  /* 人名渲染（存档只存三段索引 nm:[s,m,l]，词表 prodigy.name.{s|m|l}.{n}） */
+  /* 人名渲染：具名出场者（第册一批①「名库替换天骄名录出场者」）恒取**名录名号**，
+   * 名录认不出（旧档 / 脏 rid）才回落三段式命名池 ⇒ 老档一个字都不会变。
+   * 存档仍留 `nm`（旧口径的兜底），不删字段、不迁移。 */
   function nameOf(ws, pid, pack) {
     var p = typeof pid === 'object' ? pid : byId(ws, pid);
-    if (!p || !p.nm) return '';
+    if (!p) return '';
+    if (p.rid && SQ.Jianghu) {
+      var jp = SQ.Jianghu.of(pack, p.rid);
+      if (jp) return jp.nm;
+    }
+    if (!p.nm) return '';
     return SQ.t('prodigy.name.s.' + (p.nm[0] + 1), null, pack.worldId) +
       SQ.t('prodigy.name.m.' + (p.nm[1] + 1), null, pack.worldId) +
       SQ.t('prodigy.name.l.' + (p.nm[2] + 1), null, pack.worldId);
@@ -48,8 +55,14 @@
     return out || SQ.t('prodigy.rel.loner', null, pack.worldId);
   }
 
-  function powerOf(ws, p, D) {
-    var r = D.REALMS[Math.min(p.rlm || 0, D.REALMS.length - 1)];
+  /* ── 战力口径（第册一批②重标定）：**不新立乘区，改偏移境界表** ──
+   * `REALMS[clamp(rlm + 际遇档, 0, 9)].power × 资质微调`，际遇档 off ∈ {−1,0,1,2} 取自名录（`rid`）。
+   * ⇒ 同境界上下限差 = 3 档 ≈ **27 倍**（REALMS 相邻档恒 ≈3×），正是用户要的「上下限相差超过两个大境界」。
+   * ⚠️ 第 4 个形参 `pack` 是名录取数口（审计 D3：通用层不许直读世界全局 ⇒ 经 pack 拿）。
+   *    旧档无 `rid` ⇒ off 恒 0 ⇒ 战力与本批之前**逐字相同**（不迁移、不回改，冒烟 #316 乙判钉这条）。 */
+  function powerOf(ws, p, D, pack) {
+    var off = (p.rid && SQ.Jianghu) ? SQ.Jianghu.offOf(pack, p.rid) : 0;
+    var r = D.REALMS[Math.max(0, Math.min(D.REALMS.length - 1, (p.rlm || 0) + off))];
     return (r ? r.power : 20) * ((P(D).POWER_COEF || [0.95, 1.05, 1.15])[p.apt || 0] || 1);
   }
   function coefOf(p, D) {
@@ -78,7 +91,7 @@
         boost = { add: Math.min(0.5, num(p.boost.add, 0)), months: Math.max(0, Math.floor(num(p.boost.months, 0))) };
       }
       out.push({
-        id: p.id, nm: nm, tl: tl,
+        id: p.id, nm: nm, rid: (typeof p.rid === 'string' && p.rid) ? p.rid.slice(0, 8) : null, tl: tl,
         al: Math.max(0, Math.min(2, Math.floor(num(p.al, 1)))),
         fc: Math.max(-1, Math.floor(num(p.fc, -1))),
         fid: (typeof p.fid === 'string' && p.fid) ? p.fid.slice(0, 24) : null,
@@ -107,19 +120,42 @@
     var hist = (ws.prodMarks && ws.prodMarks.slotMax) || 0;
     return 'pr' + (Math.max(maxN, hist) + 1);
   }
+  /* 名库出场者池（第册一批①裁定「名库替换天骄名录出场者」）：**只取散修与新秀那 133 人**。
+   * 各派太上 / 掌门 / 首座 / 长老有固定位次，把他们掷成「与你同代、从练气长起」会在屏上写出
+   * 「黄枫谷太上 · 练气」这种谎话；他们恒作榜面背景席位（`SQ.Jianghu.fillOf` 补位），
+   * 隐世三席另由 `hermits` 给。名录用尽（理论上不会：133 ≫ COUNT_MAX）才回落旧命名池。 */
+  function rosterPool(pack) {
+    if (!SQ.Jianghu) return [];
+    return SQ.Jianghu.pool(pack).persons.filter(function (p) { return !p.hid && !p.fc; });
+  }
   function rollOne(ws, pack, D, meta, opts) {
     var PD = P(D);
     opts = opts || {};
     var usedNames = {};
-    (ws.prodigies || []).forEach(function (p) { usedNames[p.nm.join(',')] = 1; });
-    var nm;
-    var guard = 0;
-    do {
-      nm = [Math.floor(Math.random() * (PD.NAME_POOL[0] || 9)),
-        Math.floor(Math.random() * (PD.NAME_POOL[1] || 7)),
-        Math.floor(Math.random() * (PD.NAME_POOL[2] || 5))];
-      guard++;
-    } while (usedNames[nm.join(',')] && guard < 30);      /* 同档重名去重（撞名重掷） */
+    var usedRid = deadSet(ws);   /* 死者不复生：本世出榜过的人不再被掷成出场者 */
+    (ws.prodigies || []).forEach(function (p) {
+      usedNames[p.nm.join(',')] = 1;
+      if (p.rid) usedRid[p.rid] = 1;
+    });
+    /* 本世出场者：池内不重名（rid 天然唯一）⇒ 与道友 58 名不撞由冒烟 #312 那条名录唯一性直证 */
+    /* `opts.rid` 三态：undefined = 本世新掷（走池）‖ null = 明说不具名（跨世宿敌来自旧档，
+     * 沿用存档里那三段命名索引）‖ 字符串 = 就是名录里那个人。默认参数走 undefined 分支。 */
+    var jp = opts.rid !== undefined ? (opts.rid ? (SQ.Jianghu ? SQ.Jianghu.of(pack, opts.rid) : null) : null)
+      : (function () {
+        var cand = rosterPool(pack).filter(function (x) { return !usedRid[x.id]; });
+        return cand.length ? pick(cand) : null;
+      })();
+    /* 具名者不占命名池（也不掷那几次随机）：nm 留 [0,0,0] 作旧口径兜底，nameOf 优先读名录 */
+    var nm = [0, 0, 0];
+    if (!jp) {
+      var guard = 0;
+      do {
+        nm = [Math.floor(Math.random() * (PD.NAME_POOL[0] || 9)),
+          Math.floor(Math.random() * (PD.NAME_POOL[1] || 7)),
+          Math.floor(Math.random() * (PD.NAME_POOL[2] || 5))];
+        guard++;
+      } while (usedNames[nm.join(',')] && guard < 30);      /* 同档重名去重（撞名重掷） */
+    }
     /* 天赋 2 条：既有正面池 weight 口径抽取（纯展示，不进 mods.collect） */
     var posPool = [];
     ['common', 'xiuxian'].forEach(function (w) {
@@ -133,9 +169,18 @@
       var el = posPool[rollWeighted(posPool.map(function (x) { return x.weight != null ? x.weight : 1; }))];
       if (el && tl.indexOf(el.id) < 0) tl.push(el.id);
     }
-    var al = rollWeighted(PD.ALIGN_W || [35, 40, 25]);
+    /* 阵营与势力归属：**具名者随人**（名录里写死），未具名者才掷池（旧口径原样保留）。
+     * 名录的 `fc` 是势力 id 串（与 `D.FACTIONS_FIXED` 同 id，第卌七批 #312 已对表），这里换成下标，
+     * 视图与 factionNameOf 那侧一字不动。 */
+    var ALIGN_IDX = { right: 0, neutral: 1, evil: 2 };
+    var al = jp ? (ALIGN_IDX[jp.al] != null ? ALIGN_IDX[jp.al] : 1) : rollWeighted(PD.ALIGN_W || [35, 40, 25]);
     var fc = -1, fid = null;
-    if (Math.random() >= (PD.LONE_P || 0.15)) {
+    if (jp) {
+      if (jp.fc) {
+        fid = jp.fc;
+        (D.FACTIONS_FIXED || []).forEach(function (f, i) { if (f.id === jp.fc) fc = i; });
+      }
+    } else if (Math.random() >= (PD.LONE_P || 0.15)) {
       /* 势力归属：80% 同阵营子池 / 20% 全 16 池（纯展示，不联动 factionRep） */
       var fixed = (D.FACTIONS_FIXED || []);
       var alignIds = { 0: 'right', 1: 'neutral', 2: 'evil' };
@@ -148,7 +193,7 @@
     }
     var apt = opts.apt != null ? opts.apt : rollWeighted(PD.APT_W || [50, 35, 15]);
     var p = {
-      id: opts.id || nextSlot(ws), nm: opts.nm || nm, tl: tl,
+      id: opts.id || nextSlot(ws), nm: opts.nm || nm, rid: jp ? jp.id : null, tl: tl,
       al: opts.al != null ? opts.al : al, fc: fc, fid: fid,
       apt: apt, rlm: opts.rlm || 0, prg: 0,
       feud: opts.feud === true, feudBond: opts.feudBond || 0,
@@ -170,7 +215,7 @@
     if (meta && meta.unlocks && meta.unlocks.nemesis && meta.eternalProdigy) {
       var ep = meta.eternalProdigy;
       var pe = rollOne(ws, pack, D, meta, {
-        nm: ep.nm, apt: ep.apt, al: ep.al, rlm: 0, feud: true, feudBond: 0, eternal: true
+        nm: ep.nm, rid: ep.rid || null, apt: ep.apt, al: ep.al, rlm: 0, feud: true, feudBond: 0, eternal: true
       });
       if (ep.fid != null) { pe.fc = ep.fc != null ? ep.fc : -1; pe.fid = ep.fid || null; }
       if (SQ.Rumors && SQ.Rumors.pushProdigy) {
@@ -189,7 +234,7 @@
     var playerPower = SQ.Mods.powerOf(ws, pack, D, mods);
     rows.push({ me: true, realm: ws.realm, power: playerPower });
     (ws.prodigies || []).forEach(function (p) {
-      rows.push({ me: false, p: p, id: p.id, realm: p.rlm, power: powerOf(ws, p, D) });
+      rows.push({ me: false, p: p, id: p.id, realm: p.rlm, power: powerOf(ws, p, D, pack) });
     });
     rows.sort(function (a, b) {
       if (b.realm !== a.realm) return b.realm - a.realm;
@@ -207,6 +252,65 @@
     return Array.isArray(r) && r.length ? r : null;
   }
   function boardShow(D) { return P(D).BOARD_SHOW || 10; }
+
+  /* ── 江湖四榜装配（第册一批③ · 设计稿《江湖榜与角色库》§二 / §三）───────────
+   * 一刀切在境界带上（天 ≥8 ‖ 地 6~7 ‖ 玄 4~5 ‖ 黄 ≤3），同一人恒在一榜。席位三族：
+   *   ① **相识者** = `ws.prodigies` 行（具名出场者，有存档 id ⇒ 给切磋 / 袭杀入口，会成长会死）；
+   *   ② **背景席位** = 名录同带者补位（`Jianghu.fillOf` 纯派生、**一个字节都不入档**、不给交互入口
+   *      ——素不相识的人不该一上来就能下战书，这正是既有天骄语义「相识才进得了切磋面」）；
+   *   ③ **隐世三席** = 恒钉天榜最前，一切显示「？？？」且零入口（用户裁定 2）。
+   * 玩家按当前战力插进自己那一榜并高亮（裁定 3：不另开「我方之势」行）；榜内人数不足十席时
+   * 由背景席位填满，出榜者空出的位子也即时被补上 ⇒ 「每榜十人」是恒等式，不是巧合。
+   * ⚠️ 本函数**只派生不写档、不掷随机**：同一份档读三次逐字全等（判据 = 冒烟 #317 双跑全等）。
+   * ⚠️ 榜面**不显示战力数字**（设计稿 §三，与 N54「故意不报成算百分比」同取向）：改给三档徽标，
+   *    阈值直接取切磋表值 `HANDICAP.crush` / `HANDICAP.brave` ⇒ 同一把尺子量两处，不新建判定口径。 */
+  function board4(ws, pack, D, mods) {
+    var PD = P(D), HC = PD.HANDICAP || {}, SHOW = boardShow(D);
+    var myP = SQ.Mods.powerOf(ws, pack, D, mods);
+    var J = SQ.Jianghu;
+    function mk(o) {
+      var ratio = o.power > 0 ? myP / o.power : 999;
+      return {
+        rid: o.rid || null, pid: o.pid || null, me: !!o.me, hid: !!o.hid, known: !!o.known,
+        realm: o.realm, power: o.power,
+        lv: ratio >= (HC.crush != null ? HC.crush : 1.5) ? 0
+          : (ratio <= (HC.brave != null ? HC.brave : 1) ? 2 : 1)
+      };
+    }
+    var knownRid = deadSet(ws), bands = [[], [], [], []], i;
+    (ws.prodigies || []).forEach(function (p) {
+      if (p.rid) knownRid[p.rid] = 1;
+      bands[J.bandOf(p.rlm)].push(mk({ rid: p.rid, pid: p.id, known: true, realm: p.rlm, power: powerOf(ws, p, D, pack) }));
+    });
+    for (i = 0; i < 4; i++) {
+      var want = SHOW - (i === 0 ? J.hermits(pack).length : 0);
+      var fill = J.fillOf(pack, D, i, knownRid);
+      for (var fi = 0; fi < fill.length && bands[i].length < want; fi++) {
+        bands[i].push(mk({ rid: fill[fi].id, hid: false, realm: fill[fi].rlm, power: J.powerOf(pack, D, fill[fi]) }));
+      }
+    }
+    var mine = mk({ me: true, realm: ws.realm || 0, power: myP });
+    bands[J.bandOf(ws.realm || 0)].push(mine);
+    var out = [];
+    for (i = 0; i < 4; i++) {
+      var her = i === 0 ? J.hermits(pack).map(function (h) {
+        return mk({ rid: h.id, hid: true, realm: h.rlm, power: J.powerOf(pack, D, h) });
+      }) : [];
+      var all = her.concat(bands[i].slice()).sort(function (a, b) {
+        if (b.realm !== a.realm) return b.realm - a.realm;
+        if (Math.abs(b.power - a.power) > 0.01) return b.power - a.power;
+        return a.me ? -1 : (b.me ? 1 : 0);                 /* 平局玩家列前（与 board() 同一条有利口径） */
+      });
+      /* 隐世恒列前三：他们战力 = REALMS[9] × 资质档，本就在顶端，但「前三」是裁定不是排序结果 ⇒ 写死 */
+      if (her.length) all = her.concat(all.filter(function (r) { return !r.hid; }));
+      var myRank = 0;
+      all.forEach(function (r, k) { if (r.me) myRank = k + 1; });
+      var top = all.slice(0, SHOW);
+      if (myRank > SHOW) { top.push(null); top.push(mine); }   /* null = 省略号分隔行（沿用旧榜面形状） */
+      out.push({ band: i, rows: top, myRank: myRank, n: all.length });
+    }
+    return out;
+  }
 
   /* ── 传闻展示卡（G17 联动 · war 卡先例：不占 RUMORS.MAX、独立上限 2、TTL ren 档 40min）── */
   function rumor(ws, pack, D, now, tplKey, vars) {
@@ -288,6 +392,7 @@
           var gained = (D.REALMS[p.rlm].baseQi || 1) * (PD.SETTLE_SEC || 30) * coefOf(p, D);
           p.prg += gained;
           var broke = false;
+          var band0 = SQ.Jianghu ? SQ.Jianghu.bandOf(p.rlm) : -1;
           var guard = 0;
           while (p.rlm < D.REALMS.length - 1 && guard < 10) {
             var need = D.REALMS[p.rlm + 1].need;
@@ -296,6 +401,15 @@
           }
           if (broke) {
             if (p.rlm >= D.REALMS.length - 1) p.prg = 0;   /* 真仙封顶停积（溢出丢弃） */
+            /* 换榜即时播报（第册一批③ · 设计稿 §二）：跨的是**榜带界**而不是境界界——
+             * 一次突破连跨两界也只播一条（取最终落点那一榜），否则屏上会连着刷同一个人。 */
+            if (un && SQ.Jianghu && band0 >= 0 && SQ.Jianghu.bandOf(p.rlm) < band0) {
+              rumor(ws, pack, D, now, 'prodigy.rumor.bandup', {
+                name: nameOf(ws, p, pack),
+                from: SQ.t('jianghu.band.' + band0, null, wid),
+                to: SQ.t('jianghu.band.' + SQ.Jianghu.bandOf(p.rlm), null, wid)
+              });
+            }
             if (un && p.apt === 2 && log) {                /* 天才档突破才播日志（防刷屏；解锁前静默） */
               log('sys', SQ.t('prodigy.log.break', { name: nameOf(ws, p, pack), realm: SQ.t('realm.' + p.rlm, null, wid) }, wid));
             }
@@ -419,7 +533,7 @@
     var stake = sparStake(ws, D, kind);
     if (ws.stones < stake) return { ok: false, reason: 'poor', stake: stake };   /* 开局押注门槛（不足不掷不耗 CD） */
     var myP = SQ.Mods.powerOf(ws, pack, D, mods);
-    var q0 = powerOf(ws, p, D);
+    var q0 = powerOf(ws, p, D, pack);
     /* 强弱差让（§5.3 v2）：ratio = 浮动前真战力比——碾压胜返 ×1.5/bond+1，以强胜返 ×3/bond+3/材料率上浮 */
     var HC = PD.HANDICAP || {};
     var ratio = q0 > 0 ? myP / q0 : 999;
@@ -515,6 +629,24 @@
     }
   }
 
+  /* 本世已死的名录号（第册一批③）：出榜者不许被榜面补位或再被掷成出场者——名录是**静态内容**，
+   * 人死了名录里还在，而 `ws.prodigies` 已经没有他这一行 ⇒ 这笔账必须单独记（设计稿 §一
+   * 出场位三元组里的「生死」就是它）。上界 20 条、超限挤最旧（一世袭杀数远小于此，纯护栏）。 */
+  function deadSet(ws) {
+    var o = {}, a = (ws.prodMarks && ws.prodMarks.dead) || [];
+    if (!Array.isArray(a)) return o;
+    a.forEach(function (x) { if (typeof x === 'string' && x) o[x] = 1; });
+    return o;
+  }
+  function markDead(ws, rid) {
+    if (!rid) return;
+    ws.prodMarks = ws.prodMarks || {};
+    if (!Array.isArray(ws.prodMarks.dead)) ws.prodMarks.dead = [];
+    if (ws.prodMarks.dead.indexOf(rid) >= 0) return;
+    ws.prodMarks.dead.push(rid);
+    while (ws.prodMarks.dead.length > 20) ws.prodMarks.dead.shift();
+  }
+
   /* 天骄身死的**唯一出榜写口**（第卌四批自 onEventResolved 的斩杀分支原样抽出）：
    * 心结除 + 出榜（槽位不复用）+ 跨世宿敌清位 + 成就标记 + 传闻——狭路相逢斩杀与袭杀满三次都走这里，
    * 复制一份就是第二个「谁算死了」口径（本仓「唯一写口」纪律的同族）。karma 不在这里，由调用方照记。 */
@@ -524,6 +656,17 @@
     if (p.eternal) { ws.prodMarks = ws.prodMarks || {}; ws.prodMarks.sudiWin = true; }
     ws.prodigies = (ws.prodigies || []).filter(function (x) { return x.id !== p.id; });
     rumor(ws, pack, D, now, 'prodigy.rumor.kill', { name: nameOf(ws, p, pack) });
+    markDead(ws, p.rid);
+    /* 空出来的一席由名库同带最高者**即时补位**并播报（设计稿 §二）：补位者是背景席位
+     * （不入档、不可交互），所以这条只说「谁顶上来了」，不给战书入口 */
+    if (p.rid && SQ.Jianghu) {
+      var bnd = SQ.Jianghu.bandOf(p.rlm), ex = deadSet(ws), i;
+      (ws.prodigies || []).forEach(function (x) { if (x.rid) ex[x.rid] = 1; });
+      var nxt = SQ.Jianghu.fillOf(pack, D, bnd, ex)[0];
+      if (nxt) rumor(ws, pack, D, now, 'prodigy.rumor.bandfill', {
+        name: nameOf(ws, p, pack), by: nxt.nm, band: SQ.t('jianghu.band.' + bnd, null, pack.worldId)
+      });
+    }
   }
 
   /* ── 袭杀（第卌四批 · 数值详设 §6.1B）：主动下手的「杀人夺宝」，另一种意义的切磋。
@@ -540,7 +683,7 @@
       return { ok: false, reason: 'cd', until: ws.ambushKillAt };
     }
     var myP = SQ.Mods.powerOf(ws, pack, D, mods);
-    var q0 = powerOf(ws, p, D);
+    var q0 = powerOf(ws, p, D, pack);
     var jit = (D.PRODIGY || {}).SPAR_JITTER || 0.10;
     var ratio = (A.KILL_RATIO != null ? A.KILL_RATIO : 1.2);
     ws.ambushKillAt = now + (A.KILL_CD_MS != null ? A.KILL_CD_MS : 1800000);
@@ -624,7 +767,7 @@
     (ws.prodigies || []).forEach(function (p) { if (!cand && p.feud && !p.eternal) cand = p; });
     if (!cand) return;
     meta.eternalProdigy = {
-      nm: cand.nm, apt: cand.apt, al: cand.al, fc: cand.fc, fid: cand.fid,
+      nm: cand.nm, rid: cand.rid || null, apt: cand.apt, al: cand.al, fc: cand.fc, fid: cand.fid,
       rlm: cand.rlm, wl: cand.wl, feud: true
     };
   }
@@ -642,6 +785,7 @@
     rollForNewLife: rollForNewLife,
     rollOne: rollOne,
     board: board,
+    board4: board4,
     rankRows: rankRows,
     boardShow: boardShow,
     tick: tick,
@@ -651,6 +795,7 @@
     ambush: ambush,
     sparStake: sparStake,
     startFeud: startFeud,
+    killOff: killOff,          /* 唯一出榜写口（第册一批③随判据外开，与 startFeud 同档） */
     tribModOf: tribModOf,
     onEventResolved: onEventResolved,
     saveEternal: saveEternal
