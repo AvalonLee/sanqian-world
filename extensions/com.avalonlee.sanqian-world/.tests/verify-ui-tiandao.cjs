@@ -249,10 +249,19 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
       justify: getComputedStyle(r).justifyContent,
       sameRowOmen: !!omen, sameRowBingjie: !!bj,
       gift: !!gift, giftText: gift ? gift.textContent.replace(/\s+/g, ' ').trim() : '',
+      /* `margin-left: auto` 在 flex 里会被解析成实际用值（px）——读到 >8px 才算真的把贴片推走了 */
+      giftML: gift ? getComputedStyle(gift).marginLeft : '',
+      giftLeftAuto: !!gift && parseFloat(getComputedStyle(gift).marginLeft) > 8,
       residue: (r.textContent.match(/[{，}。]/g) || []).length ? (/\{\}/.test(r.textContent) ? 1 : 0) : 0
     };
   });
-  T(rowA.justify === 'flex-end', 'G1 修行页天道行改为右对齐', 'justify=' + rowA.justify);
+  /* G1 判据随批改口（第卌七批 · 用户令「修行页天象兵解等功能左对齐，模拟礼包的提示框右对齐」）：
+   * 第卅九批的口径是**整行右对齐**（justify=flex-end），本批反过来——功能群贴左、贴片独自贴右。
+   * 两个层级各钉一刀：G1 看计算样式（justify-content + 贴片的 margin-left 是否真为 auto 生效），
+   * G8 看几何像素（谁贴左沿、谁贴右沿、中间有没有推开、有没有重叠）。只留一层都会被另一层放过。 */
+  T(rowA.justify === 'flex-start' && rowA.giftLeftAuto,
+    'G1 天道行改左对齐、礼包贴片以 margin-left:auto 贴右（第卌七批改口，旧口径为整行 flex-end）',
+    'justify=' + rowA.justify + ' 贴片marginLeft=' + rowA.giftML + ' auto生效=' + rowA.giftLeftAuto);
   T(rowA.sameRowOmen && rowA.sameRowBingjie, 'G2 天象与兵解转世在同一行（问天隐藏后两者同父 .tdrow）', JSON.stringify([rowA.sameRowOmen, rowA.sameRowBingjie]));
   T(rowA.gift && /首充|648|屠龙|直通|霓裳|榜末/.test(rowA.giftText), 'G3 页游充值贴片在位且是当前六款之一', rowA.giftText.slice(0, 54));
   T(rowA.residue === 0, 'G4 这一行无 {} 占位残留', 'residue=' + rowA.residue);
@@ -287,6 +296,32 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
     if (t) seen.add(t.slice(0, 10));
   }
   T(seen.size >= 2, 'G6 重进 12 次至少换出 2 款（随机轮换为真，不是写死一张）', 'seen=' + seen.size);
+  /* G8（第卌七批 · 用户令「修行页天象兵解等功能左对齐，模拟礼包提示框右对齐」）：
+   * 同一行两种角色靠对齐分开——功能群一律贴左，恶搞贴片用 margin-left:auto 独自推到行尾。
+   * 判据取的是**几何**（boundingRect 边界差），不是 class 名：改回 justify-content: flex-end 必红。 */
+  const al = await page.evaluate(() => {
+    /* 按「含贴片的那一行」取，不按第一个 `.tdrow`——修行页与轮回页都有 tdrow，靠位置选会挑错行 */
+    const row = document.querySelector('.tdrow:has(.giftcard)');
+    const gift = row && row.querySelector('.giftcard');
+    if (!row || !gift || !gift.offsetParent) return { found: false };
+    const gb = gift.getBoundingClientRect();
+    const vis = Array.prototype.slice.call(row.children)
+      .filter(x => x !== gift && x.offsetParent !== null);
+    if (!vis.length) return { found: true, empty: true };
+    const bb = vis.map(x => x.getBoundingClientRect());
+    const rb = row.getBoundingClientRect();
+    const sameLine = bb.filter(r => Math.abs(r.top - gb.top) < 4);
+    return {
+      found: true, n: vis.length,
+      leftGap: Math.round(Math.min.apply(null, bb.map(r => r.left)) - rb.left),
+      rightGap: Math.round(rb.right - gb.right),
+      pushGap: Math.round(gb.left - Math.max.apply(null, (sameLine.length ? sameLine : bb).map(r => r.right))),
+      overlap: bb.some(r => r.right > gb.left + 1 && r.left < gb.right - 1 && Math.abs(r.top - gb.top) < 4)
+    };
+  });
+  T(al.found && !al.empty && al.leftGap <= 2 && al.rightGap <= 2 && al.pushGap >= 8 && al.overlap === false,
+    'G8 功能群贴左（左边界差 ≤2px）· 礼包贴片贴右（右边界差 ≤2px）· 中间被推开 ≥8px 且互不重叠',
+    JSON.stringify(al));
   T(errors.length === 0, 'G7 第一台整轮零页错误', errors.slice(0, 3).join(' | '));
 
   await browser.close();

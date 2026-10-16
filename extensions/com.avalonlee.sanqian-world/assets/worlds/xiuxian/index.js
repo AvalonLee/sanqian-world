@@ -840,6 +840,8 @@
     capOf: capOf,
     powerOf: powerOf,
     artsMap: function () { return SQ.XARTS; },
+    /* 江湖名录池（第卌七批）：通用层 `SQ.Jianghu` 经此取数，不直读世界全局（审计 D3 同一纪律） */
+    jianghuPool: function () { return SQ.JIANGHU_POOL; },
     /* G13 洞天福地表（引擎卷 §2.2 数据契约；引擎 systems/cave.js 只读本表） */
     caves: D.CAVES,
     /* G14 道友名录表（引擎卷 §3.2 数据契约；引擎 systems/bonds.js 只读本表） */

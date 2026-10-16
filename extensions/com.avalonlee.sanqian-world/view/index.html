@@ -758,13 +758,17 @@
   .ostat .ov .u { font-size: 12px; font-weight: 500; color: var(--ink-2); margin-left: 3px; }
   .ostat .os { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
   /* ── 天道系统（天道系统批 B1~B4）：问天行 / 焚表浮层 / 圣旨卷轴演出 / 天象卡 ── */
-  .tdrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; margin: 8px 0; }
+  /* 第卌七批（用户令「修行页天象兵解等功能左对齐，模拟礼包提示框右对齐」）：功能群一律钉左，
+   * 页游充值贴片（零机制的恶搞彩蛋）用 `margin-left: auto` 独自推到行尾——同一行两种角色，
+   * 靠对齐分开而不是靠颜色，窄屏换行后贴片仍贴右。 */
+  .tdrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-start; margin: 8px 0; }
   .tdbtn { position: relative; min-height: 34px; padding: 5px 14px; border-radius: 999px; border: 1px solid var(--primary); color: var(--primary); background: var(--brand-soft); font-weight: 650; cursor: pointer; }
   .tdbtn.plain { border-color: var(--line); color: var(--ink-2); background: var(--well); font-weight: 400; }
   .tdbtn .pdot { position: absolute; top: 3px; right: 5px; }
   /* 恶搞彩蛋：页游「充值大礼包」横幅（第卅九批）。刻意做得像页游贴片——虚线金边 + 红角标，
    * 但配色全部走主题变量，深浅两套主题都不糊。零机制：点击不发资源、不写档、不入账。 */
   .giftcard { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 8px;
+    margin-left: auto;
     border: 1px dashed var(--primary); background: var(--brand-soft); color: var(--ink-2); font-size: 11px; cursor: pointer; }
   .giftcard .gtag { background: #d03030; color: #fff; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
   .giftcard .gname { font-weight: 700; color: var(--ink); }
@@ -1378,6 +1382,7 @@
 <script src="../assets/worlds/xiuxian/lexicon-meta.js"></script>
 <script src="../assets/worlds/xiuxian/lexicon-alchemy.js"></script>
 <script src="../assets/worlds/xiuxian/lexicon-prodigy.js"></script>
+<script src="../assets/worlds/xiuxian/lexicon-jianghu.js"></script>
 <script src="../assets/worlds/xiuxian/lexicon-spirit.js"></script>
 <script src="../assets/worlds/xiuxian/lexicon-sect.js"></script>
 <script src="../assets/lexicon/talents.js"></script>
@@ -1409,6 +1414,7 @@
 <script src="../assets/systems/codex.js"></script>
 <script src="../assets/systems/alchemy.js"></script>
 <script src="../assets/systems/prodigy.js"></script>
+<script src="../assets/systems/jianghu.js"></script>
 <script src="../assets/systems/fusion.js"></script>
 <script src="../assets/systems/sect.js"></script>
 <script src="../assets/systems/actions.js"></script>
@@ -2872,6 +2878,9 @@
         var a = am[id];
         var lvS = w.artsLevels[id] || 0;
         var prS = SQ.Arts.practiceOf(w, id, d);
+        /* 升级钮随「只有入槽的功法会长进」同口径留在槽卡上（第卌七批④c · 用户令）：
+         * 满级时 upgradeCost 自返 null ⇒ 本行不渲染，不必再判一次等级。 */
+        var costS = SQ.Arts.upgradeCost(w, p, d, id, m);
         h += '<div class="tcard ' + (a.alignment === 'evil' ? 'neg' : a.alignment === 'right' ? 'pos' : '') + '"' +
              (isMain ? ' data-mainart="1"' : '') + ' data-slot="' + i + '">' +
              (isMain ? '<span class="corner maincorner">' + esc(t('arts.main')) + '</span>' : '') +
@@ -2882,6 +2891,9 @@
              '<div class="tpract"><span class="pbar"><i style="width:' +
                (lvS >= d.ARTS_MAX_LV ? 100 : prS).toFixed(0) + '%"></i></span><span class="hint">' +
                esc(lvS >= d.ARTS_MAX_LV ? t('arts.max') : t('arts.practice', { p: Math.floor(prS) })) + '</span></div>' +
+             (costS == null ? '' : '<div class="tacts-src"><button data-act="upgradeArt" data-v="' + esc(id) + '"' +
+               (w.qi < costS ? ' disabled' : '') + '>' +
+               esc(t('arts.upgrade.qi', { n: SQ.fmt(costS), res: t('resource.primary') })) + '</button></div>') +
              /* 满槽「原位替换」（批 2·B4 引擎支路 + 本批补渲染点）：抉择态下每格挂「替换」——
               * data-v = 待入槽功法、data-r = 被顶下的在槽功法，handler 走 Arts.slot 的 replaceId 分支。
               * 缺这一段 = 整条替换链不可达（引擎 + handler + 文案三件齐全、只无渲染点）：玩家只能
@@ -2923,7 +2935,7 @@
         esc(grp === 'tier' ? t('arts.tierchar.' + v) : t('align.' + v)) + '</span>';
     });
     h += '</div>';
-    /* ── 已学会（走查 v2.5 §4）：紧贴修习槽——装入/升级/精通一屏可达 ── */
+    /* ── 已学会（走查 v2.5 §4）：紧贴修习槽——装入/精通一屏可达（升级钮在第卌七批④c 移到槽卡） ── */
     var knownS = (w.artsKnown || []).slice().sort(function (x, y) {
       return ((w.artsSlots || []).indexOf(y) >= 0 ? 1 : 0) - ((w.artsSlots || []).indexOf(x) >= 0 ? 1 : 0);
     });
@@ -2937,7 +2949,7 @@
     /* 筛空了 ≠ 没学过：只有**真的一部都没学会**才说「尚未学会」，否则这段留白（段标计数已说明是 0）。 */
     if (!knownS.length && !(w.artsKnown || []).length) h += '<div class="lrow locked"><div class="meta">' + esc(t('arts.known.empty')) + '</div></div>';
     /* 走查 v2.6 §2：卡片化——同行卡片数随窗口宽度自适应（auto-fill） */
-    h += '<div class="cards artgrid">' + knownS.map(function (x) { return artCard(x, w, m); }).join('') + '</div>';
+    h += '<div class="cards artgrid">' + knownS.map(function (x) { return artCard(x, w); }).join('') + '</div>';
     /* ── 待修习架（第卌六批 · 用户反馈「坊市买功法后功法页看不见」）：买得 / 拾得但要求未达者在此。
      * 原先整页只有头部「待修习架 N/24」一个计数，清单要靠图鉴逐部点开 ⇒ 玩家只当货丢了。
      * 同一把 chip 筛选（与已学会 / 图鉴一致，不另立一套状态）；缺项文案复用 `artLackTexts`，
@@ -2988,7 +3000,7 @@
   }
 
   /* 已学会卡（走查 v2.6 §2）：详情卡——名号/品阶/Lv/签名/滋养/精通 + 装入/移出/升级/散功 */
-  function artCard(id, w, m) {
+  function artCard(id, w) {
     var d = D(), p = pack();
     var a = p.artsMap()[id];
     var slotted = (w.artsSlots || []).indexOf(id) >= 0;
@@ -3022,11 +3034,9 @@
     h += slotted
       ? '<button data-act="unslotArt" data-v="' + id + '">' + esc(t('arts.unequip')) + '</button>'
       : '<button data-act="slotArt" data-v="' + id + '">' + esc(t('arts.equip')) + '</button>';
-    if (lv < d.ARTS_MAX_LV) {
-      var cost = SQ.Arts.upgradeCost(w, p, d, id, m);
-      h += '<button data-act="upgradeArt" data-v="' + id + '"' + (w.qi < cost ? ' disabled' : '') + '>' +
-        esc(t('arts.upgrade.qi', { n: SQ.fmt(cost), res: t('resource.primary') })) + '</button>';
-    }
+    /* 升级钮本批起**不在这里**（第卌七批④c · 用户令「槽里六张卡就该有升级，已学会不必再给」）：
+     * 引擎侧 SQ.Arts.tickPractice 只遍历 artsSlots ⇒ 未入槽的功法精通恒为 0，卡上的进度条与
+     * 升级钮是同一处假在跑；升级口因此只留槽卡。handler `upgradeArt` 不变。 */
     if (!slotted && SQ.Arts.canSalvage(w, p, d, id)) {
       h += '<button data-act="salvageArt" data-v="' + id + '">' + esc(t('arts.salvage')) + '</button>';
     } else if (!slotted) {
@@ -4263,6 +4273,12 @@
       (f.perk.field === 'tribBonus' ? perkV.toFixed(2) : Math.round(perkV * 100) + '%');
     var cdLeft = (w.factionCdUntil || 0) > Date.now();
     var rankC = isCur ? SQ.Factions.rankOf(w, D(), f.id) : -1;
+    /* 江湖名录取数（第卌七批）：固定势力在卡上写清「掌门 / 太上」是谁——名录认不出就不写这一行，
+     * 视图不编名字（同第卌四批「不编一个假境界出来」那条纪律）；行样式复用 `.fd`，不新增 CSS。 */
+    var mst = f.fixed && SQ.Jianghu ? SQ.Jianghu.masterOf(pack(), f.id) : null;
+    var eld = f.fixed && SQ.Jianghu ? SQ.Jianghu.elderOf(pack(), f.id) : null;
+    var mstLine = (mst && eld) ? '<div class="fd">' + esc(t('faction.master.line', {
+      name: mst.nm, realm: t('realm.' + mst.rlm), elder: eld.nm })) + '</div>' : '';
     var c = '<div class="faccard' + (isCur ? ' cur' : '') + '">' +
       '<div class="fh"><span class="fn">' + esc(f.name) +
       (f.fixed ? '<span class="tierbadge t1">' + esc(t('faction.fixed.tag')) + '</span>' : '') +
@@ -4270,7 +4286,7 @@
       (isCur && rankC > 0 ? '<span class="tierbadge t2">' + esc(t('faction.rank.' + rankC)) + '</span>' : '') +
       '</span>' +
       '<span class="fm">' + esc(t('faction.members', { n: factionMembers(w, f) })) + '</span></div>' +
-      '<div class="fd">' + esc(t(f.desc)) + '</div>' +
+      '<div class="fd">' + esc(t(f.desc)) + '</div>' + mstLine +
       '<div class="fperk">' + esc(t('faction.perk')) + ' · <b>' + esc(perkTxt) + '</b></div>' +
       '<div class="frel"><span class="lab">' + esc(t('faction.relations')) + '</span>' +
       '<span class="chipsx">' + factionRelChips(w, f) + '</span></div>';
