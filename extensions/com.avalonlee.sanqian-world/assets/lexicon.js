@@ -190,6 +190,9 @@
     'toast.gear.salvage': '炼化 {name}（{tier}）+{n} {cur}',
     /* 功法 */
     'arts.slots': '修习槽 {n}/{cap}', 'arts.shelf': '待修习架 {n}/{cap}',
+    /* 第卌六批（用户反馈「坊市买功法后功法页看不见」）：入架这一支原本一条日志都不写 */
+    'arts.shelf.stow': '{name} 要求未达，暂存待修习架（{n}/{cap}），达标即自行入门',
+    'arts.sec.shelf': '要 求 未 达',
     'arts.empty': '虚位以待', 'arts.equip': '装入', 'arts.unequip': '移出',
     'arts.max': '满级',
     'arts.learned': '{name} 修炼有成，已入门',
@@ -305,7 +308,9 @@
     /* 商店 */
     'shop.refresh': '刷新（{n}）', 'shop.restock': '{t}后补货', 'shop.fail.other': '这一单没有成交（货已卖出，或手头不足）', 'shop.sold': '已售罄', 'shop.fail.pillfull': '丹匣已满（每种上限 99），先服几颗再来',
     'shop.buy': '购入', 'shop.price': '{n}', 'shop.qiprice': '修为 {p}',
-    'shop.confirm': '确认购入「{name}」？价格 {price}', 
+    'shop.confirm': '确认购入「{name}」？价格 {price}',
+    /* 第卌六批：买的是要求未达的功法时，确认框要把去向说一句（原本只有成交后的日志，而日志里也没有这一条） */
+    'shop.confirm.shelf': '（此功要求未达，购入后先入待修习架，达标即自行入门）', 
     'shop.blackHint': '价高三成，慎入',
     'zone.unknown': '？？？',
     'gear.stat.atk': '攻击', 'gear.stat.resist': '渡劫抗性',

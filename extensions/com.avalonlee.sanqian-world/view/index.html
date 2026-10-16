@@ -2938,6 +2938,31 @@
     if (!knownS.length && !(w.artsKnown || []).length) h += '<div class="lrow locked"><div class="meta">' + esc(t('arts.known.empty')) + '</div></div>';
     /* 走查 v2.6 §2：卡片化——同行卡片数随窗口宽度自适应（auto-fill） */
     h += '<div class="cards artgrid">' + knownS.map(function (x) { return artCard(x, w, m); }).join('') + '</div>';
+    /* ── 待修习架（第卌六批 · 用户反馈「坊市买功法后功法页看不见」）：买得 / 拾得但要求未达者在此。
+     * 原先整页只有头部「待修习架 N/24」一个计数，清单要靠图鉴逐部点开 ⇒ 玩家只当货丢了。
+     * 同一把 chip 筛选（与已学会 / 图鉴一致，不另立一套状态）；缺项文案复用 `artLackTexts`，
+     * 弃置走既有 `salvageArt`（折算价与卡内同一取数口）。空集不渲染本段（不占版面、不说空话）。 ── */
+    var shelfS = (w.shelf || []).filter(function (x) { return !!am[x]; });
+    /* ⚠️ 先滤掉不在功法全录里的 id：旧档/退役功法会在 `shelf` 里留下认不出的 id，
+     *    而下面既读 `am[x].tier`（筛选）又读缺项与折算价 ⇒ 裸读会把整页炸空（第卌批那形事故）。 */
+    if (ui.artsGroupVal) {
+      shelfS = shelfS.filter(function (x) {
+        return (grp === 'tier' ? am[x].tier : am[x].alignment) === ui.artsGroupVal;
+      });
+    }
+    if (shelfS.length) {
+      /* 段标用「要求未达」而**不叫**「待修习架」：图鉴那几节的段标既有文案就是 `待修习架 · X字阶`
+       * （`arts.sec.tier`/`arts.sec.align`，第册 B4 起如此），同页两个同名段标只会更糊。
+       * 专名类 `shelfsec` / `shelfgrid` 供走查精确取数（裸 `.sechead` + 文案匹配会撞上图鉴那几节 = `.lawchips` 同型教训）。 */
+      h += '<div class="sechead shelfsec"><span class="t">' + esc(t('arts.sec.shelf')) + ' · ' + shelfS.length + '</span></div>';
+      h += '<div class="cards artgrid shelfgrid">' + shelfS.map(function (x) {
+        return '<div class="lrow locked"><div class="meta"><b>' + esc(t('skill.' + x + '.name')) + '</b>' +
+          '<span class="hint"> ' + esc(t('arts.tierchar.' + am[x].tier)) + ' · ' + esc(t('arts.codex.shelf')) + '</span>' +
+          '<div class="hint">' + esc(artLackTexts(x).join(' ‖ ')) + '</div></div>' +
+          '<div class="acts"><button data-act="salvageArt" data-v="' + x + '">' + esc(t('arts.discard')) + ' · +' +
+          esc(SQ.fmt(SQ.Arts.salvageValue(w, p, d, x))) + ' ' + esc(t('resource.currency')) + '</button></div></div>';
+      }).join('') + '</div>';
+    }
     /* ── 功法图鉴（走查 v2.5 §4 + v2.8 §1：待修习架功法回归各品阶/阵营小节，弃置在卡内）── */
     h += '<div class="sechead"><span class="t">' + esc(t('arts.codex.title')) + '</span></div>';
     var groups = grp === 'tier' ? ['huang', 'xuan', 'di', 'tian'] : ['right', 'neutral', 'evil'];
@@ -6947,7 +6972,12 @@
        * 「春风化雨篇 · 2,300 灵石」，点确认实扣 360 买走一件法器。故开弹窗时先记身份指纹，
        * 确认时复查「这一格还是不是它」，不是就不成交（与引擎先判后扣同一族）。 */
       var sig = SQ.Shop.goodSig(it);
-      askConfirm(t('shop.buy'), t('shop.confirm', { name: nm, price: priceTxt }), async function () {
+      /* 第卌六批：买的是要求未达的功法 ⇒ 成交后它会进待修习架（不是丢），确认框里先把去向说清；
+       * 判定与引擎同一把 `SQ.Arts.canLearn`（视图不自建一套门槛口径）。 */
+      var bodyBuy = t('shop.confirm', { name: nm, price: priceTxt }) +
+        (it.kind === 'arts' && !SQ.Arts.canLearn(ws(), pack(), D(), it.ref) ?
+          ' ' + t('shop.confirm.shelf') : '');
+      askConfirm(t('shop.buy'), bodyBuy, async function () {
         /* 指纹回给引擎复查（SQ.Shop.buy 里 reason:'stale' ⇒ 分文不动），视图不再自判一套 */
         var rBy = await SQ.Actions.buy(state, idx, black, sig);
         /* 丹匣满 / 已拥有 / 待修习架已满 ⇒ 引擎在扣钱之前整笔拒单（先判后扣），屏上必须说一句 ——

@@ -9571,6 +9571,24 @@
     var logTxt298 = (ref298.worlds.xiuxian.log || []).slice(logs298Before).map(function (l) { return String(l.text || l.txt || ''); }).join(' ');
     var log298 = (ref298.worlds.xiuxian.log || []).length > logs298Before && /春风化雨篇/.test(logTxt298);
 
+    /* (g2) 第卌六批（用户反馈「坊市买功法后功法页看不见」）：**未达标**那一支原本一条日志都不写
+       ⇒ 走真入口买一部 realm 要求未达的功法，日志必须写出「入待修习架」的去向（入门支与溢出支早有日志，只差这一支）。 */
+    var ref298s = {};
+    await SQ.mutate(ref298s, function (s) {
+      s.profile = mkProf();
+      s.worlds.xiuxian = pack.initialState();
+      var wS2 = s.worlds.xiuxian;
+      wS2.realm = 1; wS2.stones = 100000; wS2.artsKnown = ['tuna']; wS2.artsSlots = ['tuna']; wS2.shelf = [];
+      shelf298(wS2, [artItem298()]);
+    });
+    var logs298sBefore = (ref298s.worlds.xiuxian.log || []).length;
+    await SQ.Actions.buy(ref298s, 0, false, SQ.Shop.goodSig(ref298s.worlds.xiuxian.shop.items[0]));
+    var w298s = ref298s.worlds.xiuxian;
+    var logTxt298s = (w298s.log || []).slice(logs298sBefore).map(function (l) { return String(l.text || l.txt || ''); }).join(' ');
+    var stow298 = w298s.shelf.indexOf('chunyu') >= 0 && w298s.artsKnown.indexOf('chunyu') < 0 &&
+      w298s.stones === 97700 && (w298s.log || []).length > logs298sBefore &&
+      /待修习架/.test(logTxt298s) && /春风化雨篇/.test(logTxt298s);
+
     var w298g = shelf298(mkWs({ realm: 5, stones: 100000, artsKnown: ['tuna', 'chunyu'], artsSlots: ['tuna'] }), []);
     w298g.shop.merchant = { until: Date.now() + 600000, scout: false, items: [artItem298()] };
     var r298g = SQ.Shop.buyMerchant(w298g, pack, D, M(prof298, w298g), 0, noopLog());
@@ -9590,10 +9608,11 @@
     var stash298 = r298h.ok === false && r298h.reason === 'stale' && mid298h.n === 2 &&
       mid298h.st === 100000 && r298h2.ok === true && w298h.stash.length === 1 && w298h.stones > 100000;
 
-    ok('298', '坊市与特席的先判后扣（第廿六批 · "买到的东西必须落得下"整族）：(a) 功法已拥有拒 owned (b) 未达标且待修习架已满拒 shelffull（不再"扣全价退半、功法凭空消失"） (c) 丹方/普通图纸/丹炉图(已有炉)/丹炉成品/法宝 已拥有各拒 owned，材料包放行 (d) 未达标而架未满仍落架（#101 口径不回归） (e) expect 指纹与序号上的货不符 → 拒 stale（弹窗期间被补货换架的实测形状） (f) 成交写交付日志（旧传 null ⇒ 全程无痕） (g) 特席同判定 (h) 库藏炼化错位拒单、不销毁',
-      own298 && full298 && dup298 && shelfPath298 && stale298 && log298 && merch298 && stash298,
+    ok('298', '坊市与特席的先判后扣（第廿六批 · "买到的东西必须落得下"整族）：(a) 功法已拥有拒 owned (b) 未达标且待修习架已满拒 shelffull（不再"扣全价退半、功法凭空消失"） (c) 丹方/普通图纸/丹炉图(已有炉)/丹炉成品/法宝 已拥有各拒 owned，材料包放行 (d) 未达标而架未满仍落架（#101 口径不回归） (e) expect 指纹与序号上的货不符 → 拒 stale（弹窗期间被补货换架的实测形状） (f) 成交写交付日志（旧传 null ⇒ 全程无痕） (g) 特席同判定 (h) 库藏炼化错位拒单、不销毁 (i) 第卌六批：未达标落架也写**去向日志**（这一支原本零日志 ⇒ 玩家以为货丢了）',
+      own298 && full298 && dup298 && shelfPath298 && stale298 && log298 && merch298 && stash298 && stow298,
       '已拥有=' + own298 + ' 架满=' + full298 + ' 子货重复=' + dup298 + ' 落架=' + shelfPath298 +
-      ' 错位=' + stale298 + ' 日志=' + log298 + '(' + logTxt298.slice(0, 26) + ') 特席=' + merch298 + ' 炼化=' + stash298);
+      ' 错位=' + stale298 + ' 日志=' + log298 + '(' + logTxt298.slice(0, 26) + ') 特席=' + merch298 + ' 炼化=' + stash298 +
+      ' 落架日志=' + stow298 + '(' + logTxt298s.slice(0, 40) + ')');
 
 
     /* ═══ #299 前世书的游戏日期 + 历法单源（第廿八批 2026-10-13 · 用户报「前世书里的文本描述有问题，

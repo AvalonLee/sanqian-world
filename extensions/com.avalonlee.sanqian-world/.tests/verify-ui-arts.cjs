@@ -663,6 +663,88 @@ async function buildSave() {
   T(errors4.length === 0, 'F9 整组零页面报错', errors4.join('|').slice(0, 150) || 'clean');
   await ctx4.close();
 
+  /* ── G 组（2026-10-16 第卌六批 · 用户反馈「在坊市购买功法后，功法未出现在功法页面」）──
+   * 实况：那部《聚仙幡》要求 karma ≤ −300，玩家 karma 未达 ⇒ 引擎把它放进**待修习架**（货没丢），
+   * 但整页只有头部「待修习架 N/24」一个计数、清单要逐部点开图鉴 ⇒ 玩家只当丢了。
+   * 本组判据证四件事：架上有专属一段且写清缺哪项 ‖ 与已学会/图鉴共用同一枚 chip 筛选（不另立一套）
+   * ‖ 弃置按钮在这一段里点得动且点完这段消失（空集不渲染）‖ 坊市确认框先把去向说一句、取消不扣钱。 */
+  const saveShelf = JSON.parse(JSON.stringify(save));
+  /* 架上故意塞一枚**认不出的 id**（旧档 / 退役功法留下的脏位）：视图必须先滤，
+   * 否则 `am[x].tier` 裸读会把整页炸空——这正是第卌批「自创部 special:null」那一形。 */
+  saveShelf.worlds.xiuxian.shelf = ['juxian', 'zz_no_such_art'];
+  saveShelf.worlds.xiuxian.stones = 5000;
+  saveShelf.worlds.xiuxian.shop.items = [{ kind: 'arts', ref: 'juxian', price: 999, sold: false }];
+  saveShelf.worlds.xiuxian.shop.nextRestock = Date.now() + 4 * 3600 * 1000;   /* 别让秒级 tick 中途换架（第廿六批那族竞态） */
+  const ctx5 = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+  await ctx5.addInitScript((s) => { localStorage.setItem('sanqian-state-v1', JSON.stringify(s)); }, saveShelf);
+  const page5 = await ctx5.newPage();
+  const errors5 = [];
+  page5.on('pageerror', (e) => errors5.push(String(e.message || e)));
+  page5.on('console', (m) => { if (m.type() === 'error') errors5.push(m.text()); });
+  await page5.goto(url);
+  await page5.waitForSelector('#sc-main:not(.hide)', { timeout: 20000 });
+  await page5.click('#m-tabbar button:has-text("法与器")');
+  await page5.waitForTimeout(600);
+  const shelfRead = () => page5.evaluate(() => {
+    /* 按专名类取（`.sechead` + 文案匹配会撞上图鉴那几节的既有段标 `待修习架 · X字阶`） */
+    const head = document.querySelector('#tab-arts .shelfsec .t');
+    const grid = document.querySelector('#tab-arts .shelfgrid');
+    const rows = Array.prototype.slice.call(grid ? grid.querySelectorAll('.lrow') : []);
+    const txt = rows.map((r) => r.textContent.replace(/\s+/g, ' ').trim()).join(' § ');
+    const st = JSON.parse(localStorage.getItem('sanqian-state-v1') || '{}');
+    const w = (st.worlds || {}).xiuxian || {};
+    const onEl = document.querySelector('#tab-arts .gchip.on');
+    return {
+      head: !!head && rows.length > 0, headTxt: head ? head.textContent.trim() : '',
+      rows: rows.length, txt,
+      on: onEl ? String(onEl.dataset.v || '') : '', shelf: (w.shelf || []).join(','), stones: w.stones || 0
+    };
+  });
+  const g0 = await shelfRead();
+  T(errors5.length === 0 && g0.head && g0.rows === 1 && g0.txt.indexOf('聚仙幡') >= 0 &&
+    g0.txt.indexOf('待复检') >= 0 && g0.txt.indexOf('{') < 0 && g0.txt.indexOf('弃置') >= 0 &&
+    g0.headTxt.indexOf('· 1') >= 0,
+    'G1 架上段：段标计数 1（**脏位已滤**，fixture 塞了两枚只认得一枚）+ 名号 + 未达标徽标 + 缺项非空零花括号 + 弃置在位',
+    'head=' + g0.headTxt + ' rows=' + g0.rows + ' txt=' + g0.txt.slice(0, 120) + ' err=' + (errors5[0] || 'none'));
+  await page5.click('#tab-arts .gchip[data-v="huang"]');
+  await page5.waitForTimeout(400);
+  const gHuang = await shelfRead();
+  await page5.click('#tab-arts .gchip[data-v="tian"]');
+  await page5.waitForTimeout(400);
+  const gTian = await shelfRead();
+  T(!gHuang.head && gTian.head && gTian.rows === 1,
+    'G2 架上段跟着同一枚 chip 走（筛「黄」整段消失、筛「天」回来）——不许长出第二套筛选状态',
+    '黄=' + gHuang.head + ' 天=' + gTian.head + '/' + gTian.rows);
+  await page5.click('#tab-arts .gchip[data-v="tian"]');
+  await page5.waitForTimeout(300);
+  const stonesBefore = (await shelfRead()).stones;
+  await page5.click('#tab-arts .shelfgrid button[data-act="salvageArt"]');
+  await page5.waitForSelector('#modal-confirm:not(.hide)', { timeout: 8000 });
+  await page5.click('#cf-ok');
+  await page5.waitForTimeout(700);
+  const gAfter = await shelfRead();
+  T(gAfter.shelf.indexOf('juxian') < 0 && gAfter.stones > stonesBefore && !gAfter.head,
+    'G3 在这一段里点「弃置」→ 确认后那部离开架上、灵石回账，且**只剩脏位的架子不再渲染段标**（空段不留标）',
+    'shelf=' + (gAfter.shelf || '空') + ' stones ' + stonesBefore + '→' + gAfter.stones + ' head=' + gAfter.head);
+  await page5.click('#m-tabbar button:has-text("坊市")');
+  await page5.waitForTimeout(600);
+  const buyBtn = page5.locator('#tab-shop button[data-act="buy"][data-v="0"][data-b="0"]');
+  const hasBuy = (await buyBtn.count()) > 0;
+  const stPreBuy = (await shelfRead()).stones;   /* 基线取当下值（G3 的弃置已回账），不是最初的 5000 */
+  if (hasBuy) await buyBtn.first().click();
+  await page5.waitForTimeout(500);
+  const cfTxt = hasBuy ? await page5.evaluate(() => document.getElementById('cf-text').textContent) : '';
+  T(hasBuy && cfTxt.indexOf('聚仙幡') >= 0 && cfTxt.indexOf('待修习架') >= 0,
+    'G4 坊市买**要求未达**的功法，确认框就把去向说一句（原话只写价格，成交后屏上无痕）',
+    'hasBuy=' + hasBuy + ' cf=' + cfTxt.replace(/\s+/g, ' ').slice(0, 150));
+  if (hasBuy) { await page5.click('#cf-cancel'); await page5.waitForTimeout(400); }
+  const gCancel = await shelfRead();
+  T(gCancel.stones === stPreBuy,
+    'G5 取消这单分文不动（提示语不许变成新的扣钱路径）',
+    'stones=' + gCancel.stones + ' 期望=' + stPreBuy);
+  T(errors5.length === 0, 'G6 整组零页面报错', errors5.join('|').slice(0, 150) || 'clean');
+  await ctx5.close();
+
   T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 150) || 'clean');
 
   console.log(fail === 0 ? 'UI_ARTS_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_ARTS_FAILED ' + fail);
