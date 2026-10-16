@@ -341,7 +341,54 @@ const { chromium } = require('playwright-core');
       'heir=' + mB.heirTreasure + ' auto=' + AUTO_FIRST + ' hc=' + j(mB.heirChoice));
     const c1 = !!(await page.$('#sc-c1:not(.hide)'));
     T(c1, 'A21 转世后落创角屏（流程未卡死在无主界面）', 'c1=' + c1);
-    T(C.errors.length === 0, 'A22 全程零 pageerror / 零 console error',
+
+    /* ── A22~A24 盖棺之传（第册批 · 用户令「点兵解做一个逐字出现的传记总结演出」）──
+     * 判据只立三件事：演出在位且取的是**存档里那条传记**（视图不许自己生成文本）、正文恒为该条的前缀
+     *（逐字阶段的定义性判据：既不许多写也不许写串）、关掉之后确实落回创角屏。
+     * 不钉「第 N 毫秒时有几个字」——那是拿墙钟当判据，本机一次 GC 就能把它咬红。
+     * ⚠️ 标题那一判**必须量几何**（rect 高 > 0）：本批第一版把挂点写成 `mrc-title`，与「奇遇回看」
+     * 浮层同 id，`getElementById` 取到文档里第一个（在 display:none 的子树里）⇒ textContent 照样设得上、
+     * 断言照样绿，屏上却一个字都没有。只读文本值的判据放过这个错，几何判据不放。
+     * ⚠️ 阈值只判 `> 0` 不判字号：卷轴入场是 `transform: scaleY(0→1)`，rect 吃变换，
+     * 首帧读到 2px 是正常值（display:none 的子树读到的是精确 0）——写成 ≥12 就是一枚偶发红。 */
+    const readRecap = () => page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+      const bs = (s.meta.biographies || []);
+      const full = ((bs[bs.length - 1] || {}).text) || '';
+      const el = document.getElementById('mrp-text');
+      const tt = document.getElementById('mrp-title');
+      const got = el ? (el.textContent || '') : '';
+      return {
+        visible: !document.getElementById('modal-recap').classList.contains('hide'),
+        title: (tt.textContent || '').trim(),
+        titleH: Math.round(tt.getBoundingClientRect().height),
+        titleDup: document.querySelectorAll('#mrp-title').length,
+        titleLex: SQ.t('legacy.ui.recap.title', null, s.profile.worldId),
+        goLex: (document.getElementById('mrp-go').textContent || '').trim(),
+        goKey: SQ.t('legacy.ui.recap.go', null, s.profile.worldId),
+        n: got.length, full: full.length,
+        prefix: full.slice(0, got.length) === got,
+        /* 前世书入口下线取证（同批）：这一族钮一个都不许再出现 */
+        bioBtns: Array.prototype.slice.call(document.querySelectorAll('[data-act]'))
+          .filter(b => /^bio(Ask|Adopt)$/.test(b.getAttribute('data-act'))).length
+      };
+    });
+    const rc1 = await readRecap();
+    T(rc1.visible && rc1.title === rc1.titleLex && rc1.titleH > 0 && rc1.titleDup === 1 &&
+      rc1.goLex === rc1.goKey && rc1.n > 0 && rc1.prefix && rc1.bioBtns === 0,
+      'A22 兵解即开盖棺之传：浮层在位 ‖ 标题取到词表值**且真的量得出高度、挂点全库唯一**（同 id 撞车会写进暗处那一个）‖ 钮名取到词表值 ‖ 屏上正文恒为存档末条传记的前缀（视图零自造文本）‖ 前世书 bioAsk/bioAdopt 两钮全库 0 颗',
+      'vis=' + rc1.visible + ' 标题=' + rc1.title + '@' + rc1.titleH + 'px/同族 id=' + rc1.titleDup +
+      ' 钮=' + rc1.goLex + ' 字数=' + rc1.n + '/' + rc1.full + ' 前缀=' + rc1.prefix + ' 残留钮=' + rc1.bioBtns);
+    await page.waitForTimeout(400);
+    const rc2 = await readRecap();
+    T(rc2.n >= rc1.n && (rc2.n > rc1.n || rc2.n === rc2.full) && rc2.prefix,
+      'A23 逐字在推进：400ms 后要么变长、要么已写满（整段恒为零 = 演出根本没跑，判红）',
+      rc1.n + ' → ' + rc2.n + '（全文 ' + rc2.full + '）');
+    await page.click('#mrp-go');
+    T(await C.poll(() => C.hidden('modal-recap'), 3000) && !!(await page.$('#sc-c1:not(.hide)')),
+      'A24 点「入世」收起演出并停在创角屏（关法只此一条也不留遮罩拦后续点击）',
+      'recapHidden=' + (await C.hidden('modal-recap')));
+    T(C.errors.length === 0, 'A25 全程零 pageerror / 零 console error',
       C.errors.join(' | ').slice(0, 200) || 'clean');
     await C.ctx.close();
   }

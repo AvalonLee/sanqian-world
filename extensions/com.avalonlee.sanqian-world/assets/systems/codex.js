@@ -359,53 +359,12 @@
     while (meta.biographies.length > capBio2) meta.biographies.shift();   /* 超限挤最旧 */
   }
 
-  /* ── ⏳→✅ 烧表请天道作传（图鉴卷 §5.3 · 天道批已实施）：作传奏疏（≤1500 字，不占问天 CD）
-   * + 回复采纳（自由文本非圣旨：敏感词过滤 → 500 字硬截 → 异常回落本地稿，永不阻塞转世）── */
-  function bioMemo(s, now) {
-    var wid = s.profile.worldId;
-    var pack = SQ.Worlds[wid].pack;
-    var D = pack.data;
-    var ws = s.worlds[wid];
-    var meta = s.meta;
-    var st = meta.stats || {};
-    var td = ws.tiandao || {};
-    var tri = ws.tribulation || {};
-    var parts = [SQ.t('tiandao.prompt.bio', null, wid)];
-    (td.chron || []).forEach(function (c) {
-      var txt = SQ.Tiandao ? SQ.Tiandao.chronText(ws, pack, D, c) : '';
-      /* 同 §传记那一条（第廿八批）：奏疏也是「是日」族模板的读者，带上那天的游戏日期，
-       * 请天道作传时才有一条时间线可依附；旧档缺 createdAt ⇒ 不补、不写假日期。 */
-      if (!txt) return;
-      var gdM = SQ.gameDateStr(s.profile, ws, c.at, wid);
-      parts.push(gdM ? gdM + ' · ' + txt : txt);
-    });
-    var bondsN = 0;
-    for (var b in (ws.bonds || {})) if ((ws.bonds[b] || 0) >= 1) bondsN++;
-    parts.push(SQ.t('codex.bio.stats', {
-      life: (st.lives || 0) + 1, realm: SQ.t('realm.' + (ws.realm || 0), null, wid),
-      win: tri.success || 0, lose: Math.max(0, (tri.attempts || 0) - (tri.success || 0)),
-      bonds: bondsN, karma: SQ.t('karma.tier.' + (pack.worldSystems.tierOf(ws) || 'neutral'), null, wid)
-    }, wid));
-    var text = parts.join('\n');
-    var cap = D.LEGACY.BIO_MEMO_LEN || 1500;
-    return text.length > cap ? text.slice(0, cap) : text;
-  }
-  function adoptBio(s, rawText, now) {
-    var wid = s.profile.worldId;
-    var pack = SQ.Worlds[wid].pack;
-    var meta = s.meta;
-    if (!meta.biographies.length) return { ok: false, reason: 'nobio' };
-    var text = typeof rawText === 'string' ? rawText.trim() : '';
-    if (!text) return { ok: false, reason: 'empty' };
-    if (SQ.Tiandao && SQ.Tiandao.filterText && SQ.Tiandao.filterText(text, pack).hit) {
-      return { ok: false, reason: 'sensitive' };   /* 越线回落：保留本地稿 */
-    }
-    if (text.length > 500) text = text.slice(0, 500);
-    var bio = meta.biographies[meta.biographies.length - 1];
-    bio.text = text;
-    bio.source = 'tiandao';
-    return { ok: true };
-  }
+  /* ── 「烧表请天道作传」整族下线（第册批 · 用户令「前世书有个天道做传的，这块功能去掉」）──
+   * 删的是 `bioMemo`（奏疏生成）与 `adoptBio`（粘贴采纳：敏感词过滤 → 500 字硬截 → 回落本地稿）
+   * 两函数 + `Actions.adoptBio` + `D.LEGACY.BIO_MEMO_LEN` + 五条词条 + 提示词键。
+   * 保留的部分有意划清：`b.source` 字段与「本地史笔 / 天道亲笔」小标留着——老档里确有
+   * `source:'tiandao'` 的条目，抹掉来源标记等于改史；`Tiandao.filterText` 也留着（问天谪星同读它）。
+   * 反向取证 = 冒烟 #315（四个出口全部认不到 + 词表键整族不在 ⇒ A6 不会报孤儿）。 */
 
   SQ.Codex = {
     mergeFace: mergeFace,
@@ -417,8 +376,6 @@
     achvMet: achvMet,
     scan: scan,
     generateBio: generateBio,
-    pushBio: pushBio,
-    bioMemo: bioMemo,
-    adoptBio: adoptBio
+    pushBio: pushBio
   };
 })();

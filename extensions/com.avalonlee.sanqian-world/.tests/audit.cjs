@@ -1016,6 +1016,28 @@ const SQ = sandbox.window.SQ;
     (bad.length ? ' ‖ ' + bad.slice(0, 4).join(' ‖ ') : ' ‖ 全部可解析'));
 })();
 
+/* ── D6 挂点 id 全库唯一（第册批立例 · 由本批一次真实撞车立证）──
+ * 本批给「盖棺之传」浮层顺手取前缀 `mrc-`，而 `mrc-title` 已被上面的「奇遇回看」浮层占用：
+ * `getElementById` 只认文档里第一个 ⇒ 标题写进一个 display:none 的 h2，屏上看不见，
+ * 而**只读文本值的走查断言照样绿**（它读到的正是那个暗处的元素）。最后是人眼截图抓到的。
+ * 同 id 在 HTML 里本来就非法，且这里没有「模板内重复 id」的正当用法（列表行一律 class，不用 id），
+ * 所以直接按文件判重，零例外。射程 = 所有 .html 原文（含内联脚本里的字符串），与 D5 同一文件集。 */
+(function () {
+  const bad = [];
+  let n = 0;
+  htmlFiles.forEach((f) => {
+    const seen = Object.create(null);
+    (fs.readFileSync(f, 'utf8').match(/\sid="[^"]+"/g) || []).forEach((m) => {
+      const id = m.slice(5, -1);
+      seen[id] = (seen[id] || 0) + 1;
+      if (seen[id] === 2) { n++; bad.push(relOf(f) + ' #' + id); }
+      if (seen[id] === 1) n++;
+    });
+  });
+  ok('D6', '挂点 id 全库唯一（同 id ⇒ getElementById 只认文档第一个，写进暗处那一枚没人看得见）',
+    bad.length === 0, '挂点 ' + n + ' 枚' + (bad.length ? ' ‖ 重复：' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 零重复'));
+})();
+
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）
  * 射程说明（批A 自发现的盲区，写在这里免得下次又按错口径造反证）：`view/index.html` 是装载顺序的
  * **唯一事实源**，所以「HTML 少挂一个标签」本身是有意卸载、不是漂移，本关绝不判 HTML 自比。判这四件

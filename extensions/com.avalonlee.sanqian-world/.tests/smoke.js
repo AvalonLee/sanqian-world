@@ -4438,31 +4438,16 @@
     ok('204', '里程碑/成就幂等：同面同档跨世只发一次（15/30/50）；qiRate codex 来源 2.7%≤cap3% 静态行；60 条成就每条只发一次重复触发零效果；恒等式联动不破',
       idem204 && Math.abs(q204 - 0.027) < 1e-9 && achv204.indexOf('achv_zhenxian') >= 0 && same204 && identOk(ref204.meta));
 
-    /* #205 传记限长限数与回落（本地稿永不丢） */
+    /* #205 传记限长限数〔第册批改口：原「烧表奏疏 ≤1500 / 敏感词与空文本回落本地稿 / 超长截断
+     * source 转 tiandao」三判随 `Codex.adoptBio` 整族下线，下线取证改立 #315〕 */
     var w205 = pack.initialState();
     for (var ci205 = 0; ci205 < 10; ci205++) SQ.Tiandao.chronPush(w205, 'tribwin', { realm: 5 }, 1000 + ci205);
     var bio205 = SQ.Codex.generateBio(w205, mkMeta(), pack, D, { name: '测试道号', worldName: 'w' }, 'feisheng', Date.now());
     var m205 = mkMeta();
     for (var bsi = 1; bsi <= 10; bsi++) SQ.Codex.pushBio(m205, { life: bsi, name: 'n' + bsi, text: 't', stats: {}, source: 'local', ts: bsi }, bsi, 'n' + bsi, 'bingjie', bsi);
     var push205 = m205.biographies.length === 6 && m205.biographies[0].life === 5;   /* 写口限数 9→6（正典①，与 core.js 读档裁剪同口径 · 玩法闭环批 2026-10-07）：10 次 push 留最后 6 世 ⇒ 首条 life=5 */
-    localStorage.removeItem(SQ.KEY);
-    var ref205 = {};
-    await SQ.mutate(ref205, function (s205) {
-      s205.profile = mkProf([]);
-      s205.worlds.xiuxian = pack.initialState();
-    });
-    SQ.Codex.pushBio(ref205.meta, { life: 1, name: 'x', text: '本地史稿', stats: {}, source: 'local', ts: 1 }, 1, 'x', 'bingjie', 1);
-    var memo205 = SQ.Codex.bioMemo(ref205, Date.now());
-    var ad205a = SQ.Codex.adoptBio(ref205, '', Date.now());
-    var ad205b = SQ.Codex.adoptBio(ref205, '一段含赌博字眼的传记', Date.now());
-    var localKept205 = ref205.meta.biographies[0].text === '本地史稿' && ref205.meta.biographies[0].source === 'local';
-    var long205 = '';
-    for (var lxi = 0; lxi < 600; lxi++) long205 += '长';
-    var ad205c = SQ.Codex.adoptBio(ref205, long205, Date.now());
-    ok('205', '传记限长限数与回落：单篇 ≤500 硬截；pushBio >6 世挤最旧（正典① · 原 >9）；烧表奏疏 ≤1500；敏感词/空文本回落本地稿；超长截断 source 转 tiandao',
-      bio205.text.length <= 500 && push205 && memo205.length <= 1500 &&
-      ad205a.reason === 'empty' && ad205b.reason === 'sensitive' && localKept205 &&
-      ad205c.ok === true && ref205.meta.biographies[0].text.length === 500 && ref205.meta.biographies[0].source === 'tiandao');
+    ok('205', '传记限长限数：单篇 ≤500 硬截；pushBio >6 世挤最旧（正典① · 原 >9）——10 次 push 留最后 6 世 ⇒ 首条 life=5',
+      bio205.text.length <= 500 && push205);
 
     /* #206 容量红线：最坏态实测 → 压缩预案阶梯 → ≤ SQ.SAVE_RED 且恒等式不破（红线单一事实源） */
     localStorage.removeItem(SQ.KEY);
@@ -9665,13 +9650,11 @@
     var maxOk299 = t299f.length <= (D.LEGACY.BIO_MAX || 500) && t299f.indexOf('计：') >= 0;
     /* (f) 单源：core 导出两枚函数（视图那两份算式已改成委托，文件级 grep 由 sq-wip-dbg-cal.cjs 出数） */
     var src299 = typeof SQ.gameDateOf === 'function' && typeof SQ.gameDateStr === 'function';
-    /* (g) 同型面：烧表请天道作传的**奏疏**读的是同一族「是日」模板 ⇒ 同批补日期，两个读点不分叉 */
-    var memo299 = String(SQ.Codex.bioMemo(
-      { profile: prof299, worlds: { xiuxian: w299e }, meta: mkMeta() }, NOW299) || '');
-    var memoOk299 = memo299.indexOf(d299a + ' · 是日首通青云试炼地。') >= 0 &&
-      memo299.indexOf('{') < 0 && memo299.length <= (D.LEGACY.BIO_MEMO_LEN || 1500);
-    ok('299', '前世书写得出游戏时间 + 历法算式收成单源（第廿八批 · 用户报「轮回页面的前世书，文本描述有问题，写着是日但是没有写具体游戏时间」）：(a) 历法逐值对表（入世当日 / 第 359 日 / 第 360 日翻年 / ts 早于入世钳零） (b) 世界名去尾字 + createdAt 缺失返空串，不写假日期 (c) 传记时间轴每条大事与终行各带**那天**的日期，「是日」族模板一字未动 (d) 旧档无 createdAt ⇒ 原样不补、零花括号 (e) BIO_MAX 硬截不破且尾行「计：」不被挤掉 (f) core 导出 gameDateOf / gameDateStr 成唯一实现 (g) 同型面：烧表奏疏同口径带日期、不破 BIO_MEMO_LEN',
-      cal299 && strOk299 && bioOk299 && oldOk299 && maxOk299 && src299 && memoOk299,
+    /* 第册批勘正：原 (g)「同型面：烧表奏疏同口径带日期、不破 BIO_MEMO_LEN」整条删除——
+     * 那条判据立的是 `Codex.bioMemo` 这个**第二读点**，随「烧表请天道作传」下线后「是日」族模板
+     * 在传记这一侧只剩 generateBio 一个读者，同型面判据自动失去对象（下线取证归 #315，别在这儿补）。 */
+    ok('299', '前世书写得出游戏时间 + 历法算式收成单源（第廿八批 · 用户报「轮回页面的前世书，文本描述有问题，写着是日但是没有写具体游戏时间」）：(a) 历法逐值对表（入世当日 / 第 359 日 / 第 360 日翻年 / ts 早于入世钳零） (b) 世界名去尾字 + createdAt 缺失返空串，不写假日期 (c) 传记时间轴每条大事与终行各带**那天**的日期，「是日」族模板一字未动 (d) 旧档无 createdAt ⇒ 原样不补、零花括号 (e) BIO_MAX 硬截不破且尾行「计：」不被挤掉 (f) core 导出 gameDateOf / gameDateStr 成唯一实现〔第册批勘正：原 (g) 烧表奏疏同型面随该通道下线删除〕',
+      cal299 && strOk299 && bioOk299 && oldOk299 && maxOk299 && src299,
       '历法=' + [g299a.m + '/' + g299a.d, g299b.m + '/' + g299b.d, g299c.y + '/' + g299c.m + '/' + g299c.d, g299d.m + '/' + g299d.d].join(' ') +
       ' 正文=' + str299 + ' 缺createdAt=' + (str299no === '') + ' ‖ 传记三条=' + bioOk299 +
       ' ‖ 旧档=' + oldOk299 + ' ‖ 上限=' + maxOk299 + '(' + t299f.length + '/' + (D.LEGACY.BIO_MAX || 500) + ') ‖ 单源=' + src299);
@@ -10550,6 +10533,42 @@
       ' ‖ 模板=' + amb314.join(',') + '/' + hasLifeGain314 + '/' + hasLifeFail314 +
       ' ‖ 丹日志=' + lg314.join('¦').slice(0, 200));
     })();
+
+    /* ═══ #315 下线取证（第册批 · 用户令「前世书有个天道做传的，这块功能去掉」）═══
+     * 删除类批次立的是「认不到」——这类断言天然容易假绿（名字拼错也算认不到、整条传记链跑不通也算认不到），
+     * 所以同一条里必须**同时**正判一件事：兵解仍然写传记。两个方向咬在一起才叫取证。 */
+    var g315 = {
+      memo: SQ.Codex.bioMemo, adopt: SQ.Codex.adoptBio, act: SQ.Actions.adoptBio, cap: D.LEGACY.BIO_MEMO_LEN,
+      k: ['legacy.ui.bioAsk', 'legacy.ui.bioPaste', 'legacy.ui.bioAdopt', 'legacy.ui.bioAdopted',
+        'legacy.ui.bioFail', 'tiandao.prompt.bio'].filter(function (x) { return SQ.t(x, null, 'xiuxian') !== x; })
+    };
+    var gone315 = g315.memo === undefined && g315.adopt === undefined &&
+      g315.act === undefined && g315.cap === undefined && g315.k.length === 0;
+    /* 有意保留的两样：来源小标（老档确有 source:'tiandao' 的条目，抹掉等于改史）+ 敏感词口（问天谪星同读） */
+    var kept315 = SQ.t('legacy.ui.bio.source.tiandao', null, 'xiuxian') !== 'legacy.ui.bio.source.tiandao' &&
+      typeof SQ.Tiandao.filterText === 'function' &&
+      SQ.t('legacy.ui.recap.title', null, 'xiuxian') !== 'legacy.ui.recap.title';
+    localStorage.removeItem(SQ.KEY);
+    var ref315 = {};
+    await SQ.mutate(ref315, function (s315) {
+      s315.profile = mkProf([]);
+      s315.worlds.xiuxian = pack.initialState();
+      s315.worlds.xiuxian.realm = 4;               /* BINGJIE_MIN_REALM 门槛上 */
+    });
+    var rb315 = SQ.Legacy.doBingjie(ref315, Date.now());
+    var bs315 = (ref315.meta || {}).biographies || [];
+    var bio315 = bs315[bs315.length - 1] || {};
+    ok(315, '「烧表请天道作传」整族下线 + 兵解仍写传记（第册批）：(甲) 四个出口一律认不到 = Codex.bioMemo / Codex.adoptBio / ' +
+      'Actions.adoptBio / D.LEGACY.BIO_MEMO_LEN ‖ 六枚键（五条词条 + 作传提示词）在词表里全部回显 key ' +
+      '(乙) 有意保留 = bio.source.* 小标在册（老档 source:tiandao 的条目仍要说清来路）+ Tiandao.filterText 仍是函数（问天同读）' +
+      ' + 新键 legacy.ui.recap.title 取到值 ' +
+      '(丙) 正判据同咬：兵解事务 ok 且 meta.biographies 末条有正文（≤BIO_MAX、source=local）——下线的是「请天道改写」不是「史官不写」',
+      gone315 && kept315 && rb315 && rb315.ok === true && bs315.length === 1 &&
+      typeof bio315.text === 'string' && bio315.text.length > 0 &&
+      bio315.text.length <= (D.LEGACY.BIO_MAX || 500) && bio315.source === 'local',
+      '认不到=' + JSON.stringify({ memo: typeof g315.memo, adopt: typeof g315.adopt, act: typeof g315.act, cap: g315.cap }) +
+      ' 残键=' + (g315.k.join(',') || '无') + ' ‖ 保留=' + kept315 +
+      ' ‖ 兵解=' + (rb315 && rb315.ok) + ' 传记=' + bs315.length + ' 篇/' + (bio315.text || '').length + '字/' + bio315.source);
 
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');
