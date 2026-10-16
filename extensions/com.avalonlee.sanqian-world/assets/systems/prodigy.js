@@ -553,6 +553,8 @@
       count: p.amb || 0, max: A.KILL_MAX != null ? A.KILL_MAX : 3 };
     if (!win) {
       if (pack.worldSystems && pack.worldSystems.daoAdd) pack.worldSystems.daoAdd(ws, A.KILL_DAO != null ? A.KILL_DAO : 1, log, 'sys');
+      /* 袭杀失手 = 被人击伤 ⇒ 同一条折寿口（第卌八批；与道伤并行，一个咬连败、一个咬岁月） */
+      if (pack.worldSystems && pack.worldSystems.lifeHit) pack.worldSystems.lifeHit(ws, 'wound', log);
       if (log) log('sys', SQ.t('prodigy.log.ambushfail', { name: nameOf(ws, p, pack),
         dao: A.KILL_DAO != null ? A.KILL_DAO : 1 }, pack.worldId));
       return out;

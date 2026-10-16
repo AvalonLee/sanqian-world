@@ -37,9 +37,11 @@
   K['legacy.ui.bingjie'] = '兵解';
   K['legacy.ui.bingjie.btn'] = '兵解转世';
   K['legacy.ui.bingjie.confirm'] = '兵解＝主动终结本世：结算折分项 ×0.7（已入账的成就与里程碑遗泽不折损不追回）。明细如下，确认后不可回头。';
-  /* 被动了结两通道（寿元批）：不是玩家点的「兵解转世」，日志与呈报都要各说各的因 */
+  /* 被动了结两通道（寿元批）：不是玩家点的「兵解转世」，日志与呈报都要各说各的因
+     〔第卌八批勘正：折寿单列 ⇒ 现在是**三条**，三条各有一句，不许再借「寿尽」那句话糊过去〕 */
   K['legacy.ui.shoujin'] = '寿尽坐化';
   K['legacy.ui.daoshang'] = '道伤崩碎';
+  K['legacy.ui.zhesou'] = '折寿而殒';
   K['legacy.ui.preview.title'] = '本世结算';
   K['legacy.ui.preview.subtotal'] = '折分小计';
   K['legacy.ui.preview.mult'] = '通道系数';
@@ -328,6 +330,7 @@
   /* 被动了结两行（寿元批）：传记终行原先非飞升即写「兵解转世」，死世用即说谎 */
   K['codex.bio.line.shoujin'] = '是日寿尽，坐化于蒲团之上。';
   K['codex.bio.line.daoshang'] = '是日道伤崩碎，伤重不治。';
+  K['codex.bio.line.zhesou'] = '是日折寿已尽，未及大限而殒。';
 
   SQ.lexRegister('xiuxian', K);
 })();

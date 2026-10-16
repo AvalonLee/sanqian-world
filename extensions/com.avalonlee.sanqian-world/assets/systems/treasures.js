@@ -267,6 +267,11 @@
       var cur = e.stage || 1;
       if (cur >= maxOf(pack, d)) return;
       e.stage = cur + 1;
+      /* 认主晋阶给寿（第卌八批 · 用户令「法宝会给寿元带来效益」）：只认表里写了 `life` 的那几件，
+       * 一阶一次入账（三阶共三次），走的仍是 lifeAdd 那唯一写口——法宝不在身上也认了主，寿就收下了。 */
+      if (d.life && pack.worldSystems && pack.worldSystems.lifeAdd) {
+        pack.worldSystems.lifeAdd(ws, d.life, log, 'sys', SQ.t('treasure.' + e.id + '.name', null, pack.worldId));
+      }
       if (log) {
         log('sys', SQ.t('treasure.bond.done', {
           name: SQ.t('treasure.' + e.id + '.name', null, pack.worldId), n: e.stage

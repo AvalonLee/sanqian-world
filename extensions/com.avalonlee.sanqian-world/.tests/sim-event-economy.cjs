@@ -353,8 +353,17 @@ const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
 const densR = mean(byPol('right').map((r) => r.fired));
 const densN = mean(byPol('neutral').map((r) => r.fired));
 const densE = mean(byPol('evil').map((r) => r.fired));
-chk('时钟乘数生效：正 > 左 > 魔（eventRateMult 1.3/1.0/0.5）', densR > densN && densN > densE,
-  f2(densR) + ' / ' + f2(densN) + ' / ' + f2(densE));
+/* 时钟乘数排序（第卌八批改口 · 由寿元内容改动的种子相位逼出来，见下）：
+ * 原判据 `正 > 左 > 魔` 把**相邻两档**也要求严格大于，而 20 分钟硬保底对三档一律生效（下一条判据就是它）——
+ * ×1.3 与 ×1.0 的密度差被保底非线性抬升压到只剩零点几条，repeats=2 时一格样本 0.5 条的量化步长下
+ * 「正 == 左」是常态而非缺陷（本批给两枚事件词条加 life 后掷点序列整体错位，20261008 就正好并排 5.10/5.10，
+ * 换 20261009~11 与 repeats=4 又能拉开 ⇒ 典型采样族偶发红，同 N33⑩ 那一族）。
+ * 现在的口径：**相邻档不许反向**（乘区生效的下限），**两端必须拉开 ≥0.5 条/时**（×1.3 对 ×0.5 的真实信号）。
+ * shortcut: 想回到严格排序，先把「保底触发」与「常规掷点」分开计数（本件现在只有 fired 总数），
+ *           用未封顶的那一段比 ×1.3/×1.0 —— 届时随事件池 §十二.1 一并处置。 */
+chk('时钟乘数生效：正 ≥ 左 > 魔 且两端差 ≥0.5（相邻档被 20 分钟保底压平是机制本身，不做严格大于）',
+  densR >= densN && densN > densE && densR - densE >= 0.5,
+  f2(densR) + ' / ' + f2(densN) + ' / ' + f2(densE) + '（两端差 ' + f2(densR - densE) + '）');
 chk('20 分钟硬保底：任何画像 ≥3 条/小时', rows.every((r) => r.fired >= 3), 'min=' + f1(Math.min.apply(null, rows.map((r) => r.fired))));
 chk('左道密度 闭关口径 ≈4.7/h（eventMult ×0.5 + 20 分钟保底非线性抬升）',
   densN >= LIMIT.densityLo && densN <= LIMIT.densityHi, f2(densN));

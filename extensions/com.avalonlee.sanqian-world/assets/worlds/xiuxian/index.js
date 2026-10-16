@@ -52,13 +52,18 @@
       rumors: [], rumorClock: 0,
       mode: D.MODE_DEFAULT,
       artsPractice: {},
-      /* ── 寿元 / 道伤（寿元批 2026-10-15 · 数值详设 §6.1A）──────────────────
-       * lifeUsed = 本世已耗寿元（游戏年，浮点；时钟与修为同一条，见 claim 内流逝口）；
+      /* ── 寿元 / 道伤（寿元批 2026-10-15 · 第卌八批改累加口径 · 数值详设 §6.1A）─────────
+       * lifeUsed = 本世**已历岁月**（游戏年，浮点）：初值即创角生年（LIFE_SEED 随机 16~30），
+       *   之后与修为同一条时钟流逝（见 claim 内流逝口）⇒ 屏上的「N 岁」= floor(lifeUsed)，
+       *   「享年」也读同一个数；晋升境界绝不重算、只有转世才重掷生年。
+       * lifeBonus = 本世寿元上界的**累计增减**（延寿丹 / 长生功 / 奇遇为正，渡劫失败与战败折寿为负），
+       *   唯一写口 lifeAdd；它是永久账，不随卸下或遗忘回收（与 mods 那套佩戴型加成划清界限）。
        * daoShang = 道伤层数（浮点，界面按 ceil 显层）；
        * lastDeath = 待呈报的死因快照 {at, cause, realm, age, dao, total}，与 lastOffline 同款
        * 「引擎写一次、界面按 at 键控读一次」⇒ 不加已读旗标（第廿八批「刷屏」同族坑）。
-       * 旧档缺三字段 → normalize 补 0/0/null，零迁移、零改写。 */
-      lifeUsed: 0, daoShang: 0, lastDeath: null,
+       * 旧档缺 lifeBonus → normalize 走一次性保底迁移（见下），其余三字段缺省补 0/0/null 不变。 */
+      lifeUsed: D.LIFE_SEED[0] + Math.floor(Math.random() * (D.LIFE_SEED[1] - D.LIFE_SEED[0] + 1)),
+      lifeBonus: 0, daoShang: 0, lastDeath: null,
       /* ── 袭击 / 袭杀 / 族中寻仇（第卌四批 · 数值详设 §6.1B）───────────────────
        * ambushClock = 在线掷判累计（毫秒，离线不推进，与 eventClock 同纪律）；
        * ambushKillAt = 袭杀冷却锚（绝对墙钟，全局一枚——按人记会随名录线性增长，红线不让）；
@@ -215,8 +220,18 @@
       eventClock: Math.max(0, num(raw.eventClock, 0)),
       lastOffline: obj(raw.lastOffline, null),
       /* 寿元 / 道伤（§6.1A）：非负数 + 道伤钳 cap（脏档穿透也只是「下次收功即判死」，不造负数假余量）；
-       * lastDeath 与 lastOffline 同口径 = 结构原样透传，视图自守缺省。幂等：补齐后再 normalize 不变。 */
+       * lastDeath 与 lastOffline 同口径 = 结构原样透传，视图自守缺省。幂等：补齐后再 normalize 不变。
+       * ⚠️ lifeBonus 带**一次性旧档保底**：第卌八批把上界从 400~16000 砍到 62~5167，老档的已历岁月
+       *   可能早已越过新界 ⇒ 读档当场就坐化（本仓「改判据不许销毁玩家数据」那条）。判据 = 字段在不在：
+       *   缺 = 旧档 ⇒ 补「超出量 + LIFE_GRACE 年」；有 = 已迁过 ⇒ 原样透传，故二次 normalize 键值都不变。 */
       lifeUsed: Math.max(0, num(raw.lifeUsed, 0)),
+      lifeBonus: (function () {
+        if (raw.lifeBonus !== undefined) return num(raw.lifeBonus, 0);
+        var rl = Math.max(0, Math.min(D.REALMS.length - 1, num(raw.realm, 0)));
+        if (rl >= D.LIFE_ETERNAL) return 0;
+        var over = Math.max(0, num(raw.lifeUsed, 0)) - lifeCapOf(rl);
+        return over > 0 ? over + D.LIFE_GRACE : 0;
+      })(),
       daoShang: Math.max(0, Math.min(D.DAO_SHANG.cap, num(raw.daoShang, 0))),
       lastDeath: obj(raw.lastDeath, null),
       /* 袭击三字段（第卌四批）：两个非负数 + 寻仇单槽（结构不合规整槽丢弃 = 链断，
@@ -581,16 +596,19 @@
      * 离线 = 潜心悟道，两处都不触碰（按原有规则结算）。 */
     var idleRes = SQ.Idle.settle(ws, pack, D, dtMs, now, ctx);
 
-    /* G2A 寿元流逝 + 道伤疗养（寿元批 §6.1A）：**与修为同一条时钟**——取 settle 已封顶的结算时长
-     * （idleRes.hours），1 游戏年 = 360 s = 0.1 h ⇒ hours × 10。离线照 OFFLINE_CAP_H 封顶 ⇒
-     * 关掉页面既少产也少老，比值 1:1（在线）/ 2:1（离线），规避不了「卡境即耗寿」。
+    /* G2A 寿元流逝 + 道伤疗养（寿元批 §6.1A · 第卌八批改封顶口径）：与修为**同一条时钟**取 settle
+     * 已结算时长，1 游戏年 = 360 s = 0.1 h ⇒ hours × 10；但衰老另吃一枚 LIFE_OFFLINE_MIN=30 分钟的
+     * 离线上限（经济侧照旧按 OFFLINE_CAP_H 结 12 小时）。两把尺子是刻意的：新累加界练气只有 62 年，
+     * 若照旧 120 年/次回归，**隔夜一次就老死**——离线少产可以接受，少命不行。在线仍 1:1，
+     * 关掉页面规避不了流逝，只是不再被离线一次性咬掉一辈子的寿。
      * 致死判定**不在这里**：转世是 state 级事务，由 core.claimInner 取 lifeInfo().cause
      * 走既有 SQ.Legacy.rebirth 通道（与兵解同一条，折分 ×0.7）。 */
-    var lifeYrs = idleRes.hours * 10;
-    if (lifeYrs > 0) {
-      ws.lifeUsed = (ws.lifeUsed || 0) + lifeYrs;
-      if (ws.daoShang > 0) ws.daoShang = Math.max(0, ws.daoShang - lifeYrs * D.DAO_SHANG.healPerYear);
-    }
+    var settledYrs = idleRes.hours * 10;
+    var lifeYrs = idleRes.offline ? Math.min(settledYrs, D.LIFE_OFFLINE_MIN / 60 * 10) : settledYrs;
+    if (lifeYrs > 0) ws.lifeUsed = (ws.lifeUsed || 0) + lifeYrs;
+    /* 道伤疗养吃的是**未封顶**的结算时长：那枚 30 分钟的尺子只管「老多少」，顺手用它疗伤会把
+     * 离线自愈一起砍掉 24 倍——那是附带伤害，不是本批裁定（冒烟 #303(d) 钉住这条分界）。 */
+    if (ws.daoShang > 0) ws.daoShang = Math.max(0, ws.daoShang - settledYrs * D.DAO_SHANG.healPerYear);
 
     /* G2B 认主计时（体验批）：与寿元同一条**已结算**时钟（离线同计、照 OFFLINE_CAP_H 封顶）——
      * 卡在境界线上渡不了劫时，先天法宝不再整段停摆；计时只是下限，渡劫仍是更快的一路。 */
@@ -665,28 +683,64 @@
     return idleRes;
   }
 
-  /* ── 寿元 / 道伤（寿元批 2026-10-15 · 数值详设 §6.1A 唯一实现处）──────────────
-   * 三口一律经 pack.worldSystems 出：core 只取 cause 判死、realm 只打伤涤伤、视图只读派生数，
-   * 都不许回头自拼一套口径（第廿五批「同源」纪律沿用）。形参比同族钩子窄是本模块刻意：
-   * 表在闭包里的 D，调用方无须再传一遍（shortcut: 第二世界装载时若通用层要复用本族，
+  /* ── 寿元 / 道伤（寿元批 2026-10-15 · 数值详设 §6.1A 唯一实现处 · 第卌八批改累加界 + 增减写口）──
+   * 一律经 pack.worldSystems 出：core 只取 cause 判死、realm/combat 只打伤涤伤折寿、丹与功法与奇遇
+   * 只经 lifeAdd 记账、视图只读派生数，都不许回头自拼一套口径（第廿五批「同源」纪律沿用）。
+   * 形参比同族钩子窄是本模块刻意：表在闭包里的 D，调用方无须再传一遍（shortcut: 第二世界装载时若通用层要复用本族，
    * 再把 D 提成形参并落进世界包契约，届时随 N 号一并处置）。 */
+  /* 上界 = 凡人寿元 + 逐境增量 LIFE_STEP 的**前缀和**（第卌八批改累加口径 · 用户令「晋升后不从 0 重新计算」）：
+   * 破境只把上界抬高、已历岁月一字不动 ⇒ 「活到多少岁」是一条连续线，界面上「N 岁 / 尚余约 M 年」同源。 */
+  function lifeCapOf(realm) {
+    var t = D.LIFE_MORTAL, st = D.LIFE_STEP;
+    for (var i = 0; i <= Math.min(realm | 0, st.length - 1); i++) t += st[i];
+    return t;
+  }
   function lifeInfo(ws) {
-    var L = D.LIFESPAN, DS = D.DAO_SHANG;
-    var max = L[Math.min(ws.realm || 0, L.length - 1)] || 0;
-    var eternal = !(max > 0);                  /* 真仙档写 0 = 不受寿限；剩余绝不做 0−已耗 的减法 */
+    var DS = D.DAO_SHANG;
+    var realm = Math.max(0, Math.min(ws.realm || 0, D.REALMS.length - 1));
+    var eternal = realm >= D.LIFE_ETERNAL;      /* 真仙不受寿限：剩余与上界一律 Infinity，绝不做减法 */
     var used = Math.max(0, ws.lifeUsed || 0);
+    var bonus = num(ws.lifeBonus, 0);           /* 本世累计得寿 / 折寿（lifeAdd 唯一写口） */
     var dao = Math.max(0, ws.daoShang || 0);
+    var max = eternal ? Infinity : lifeCapOf(realm) + bonus;
     var left = eternal ? Infinity : max - used;
     /* 道伤一律按**屏上显示的层数**判（ceil）：疗养是连续量，15 层吃满后再结算 1 秒就变 14.997，
      * 用原值判等于「伤重不治的人被一秒的疗养救活」——伤满即死的悬崖会被小数抹平（冒烟 #304 抓到）。 */
     var daoLv = Math.ceil(dao);
+    /* 死因三条（第卌八批加折寿）：折寿只在「把加成拿掉本来还活着」时报——同一条越线到底是天数到
+     * 了还是被人打折的，叙述得说实话。双超线仍先报寿系（道伤是内伤、寿尽是天数，取后者）。 */
+    var cause = null;
+    if (!eternal && left <= 0) cause = (bonus < 0 && lifeCapOf(realm) - used > 0) ? 'zhesou' : 'shoujin';
+    if (!cause && daoLv >= DS.cap) cause = 'daoshang';
     return {
-      max: max, used: used, left: left, eternal: eternal,
+      max: max, used: used, age: Math.floor(used), bonus: bonus, left: left, eternal: eternal,
       near: !eternal && left <= max * D.LIFE_WARN_P,
       dao: dao, daoLv: daoLv, daoMax: DS.cap, daoNear: daoLv >= DS.warn,
-      /* 双超线时先报寿尽：道伤是内伤、寿尽是天数，叙述取后者 */
-      cause: (!eternal && left <= 0) ? 'shoujin' : (daoLv >= DS.cap ? 'daoshang' : null)
+      cause: cause
     };
+  }
+  /* 寿元增减**唯一写口**（第卌八批 · 与 daoAdd 同纪律：一条通道、一份口径）：
+   * 正 = 得寿（延寿丹 / 长生功 / 奇遇），负 = 折寿（渡劫失败 / 战败 / 损人寿的邪途）。
+   * 记进 `ws.lifeBonus` 是**永久账**，不随卸下功法或法宝陨落回收——佩戴型加成走 mods，两族不混。
+   * 不钳上下界：加多少算多少，死亡判定交给 lifeInfo；界被打穿就是死，不做「保底一年」那种暗改。 */
+  function lifeAdd(ws, yrs, log, cat, src) {
+    var pts = num(yrs, 0);
+    if (!pts) return num(ws.lifeBonus, 0);
+    ws.lifeBonus = num(ws.lifeBonus, 0) + pts;
+    if (log) log(cat || 'sys', SQ.t(pts > 0 ? 'life.log.gain' : 'life.log.loss',
+      { n: SQ.fmt(Math.abs(pts)), src: src || '' }, 'xiuxian'));
+    return ws.lifeBonus;
+  }
+  /* 折寿口（渡劫失败 / 战败共用）：按**当境上界的比例**扣，不是固定年数——固定数在练气是致命的、
+   * 在渡劫期连零头都算不上（新表跨三个数量级，只有比例扛得住）。无尽档不扣（真仙不受寿限）。 */
+  function lifeHit(ws, kind, log) {
+    var r = D.LIFE_HIT[kind];
+    if (!r) return 0;
+    var realm = Math.max(0, Math.min(ws.realm || 0, D.REALMS.length - 1));
+    if (realm >= D.LIFE_ETERNAL) return 0;
+    var yrs = Math.max(1, Math.round(lifeCapOf(realm) * r));
+    return lifeAdd(ws, -yrs, log, kind === 'trib' ? 'trib' : 'combat',
+      SQ.t('life.hit.' + kind, null, 'xiuxian'));
   }
   /* 渡劫失败入伤（realm.js 挂点）：加层 = min(连败, gainMax) ⇒ 1+2+3+4+5 恰吃满 cap；
    * 封顶在 cap ⇒ 越线即由 lifeInfo 判死，屏上不留「18/15」那种溢出数。
@@ -869,9 +923,12 @@
       effectsOf: function (ws) { return SQ.XKarma.effectsOf(ws, D); },   /* ALIGN_EFFECTS 整行（引擎消费入口） */
       tribInfo: function (ws, pk, DD, mods, opts) { return SQ.XTrib.info(ws, pk, DD, mods, opts); },
       tribLoss: function (ws, pk, DD, mods) { return SQ.XTrib.loss(ws, pk, DD, mods); },
-      /* 寿元 / 道伤三口（寿元批 §6.1A）：core.claimInner 取 cause 判死并走既有转世事务，
-       * realm.js 渡劫成败两侧打伤/涤伤，视图只读 lifeInfo 的派生数——三处都不碰表 */
+      /* 寿元 / 道伤（寿元批 §6.1A）：core.claimInner 取 cause 判死并走既有转世事务，
+       * realm.js 渡劫成败两侧打伤涤伤，视图只读 lifeInfo 的派生数——三处都不碰表。
+       * 第卌八批另出三口：lifeCapOf = 累加上界（境界一览与全部判据的唯一取数口）、
+       * lifeAdd = 寿元增减唯一写口（丹 / 功法 / 法宝 / 奇遇共用）、lifeHit = 折寿（渡劫失败 / 战败）。 */
       lifeInfo: lifeInfo, daoHit: daoHit, daoCleanse: daoCleanse,
+      lifeCapOf: lifeCapOf, lifeAdd: lifeAdd, lifeHit: lifeHit,
       /* 袭击 / 寻仇四口（第卌四批 §6.1B）：daoAdd = 道伤加层唯一写口（渡劫阶梯与事件 failE 共用）；
        * ambushTick 由本包 claim 的在线段调用；ambushSettled 由 actions.resolveChoice 调用；
        * escalationOf 由 events.resolveBranch 在 ev.escalate 时读（收益递增的那一乘） */

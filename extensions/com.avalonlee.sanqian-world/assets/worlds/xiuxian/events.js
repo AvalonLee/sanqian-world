@@ -259,7 +259,7 @@
         right: { karma: 5, gain: [B('combatSpeed', 0.15, 6)],
           check: { type: 'attr', attr: 'jing', dc: 'easy' } },
         evil: { karma: -7, gain: [{ type: 'stones', n: [120, 190] }] },
-        neutral: { karma: 0, gain: [{ type: 'qi', n: [20, 40] }] }
+        neutral: { karma: 0, gain: [{ type: 'qi', n: [20, 40] }, { type: 'life', n: [8, 18] }] }
       } },
     { id: 'beggar_immortal', tier: 'ren', nature: 'good', weight: 6, cooldownHours: 48,
       cond: { realmMin: 1 },
@@ -665,7 +665,9 @@
         evil: { karma: -13, gain: [{ type: 'stones', n: [400, 600] }, { type: 'bondDrain', npc: 'yuzhitong' }],
           check: [   /* v2.6：hard→medium、failE.qiPct 移除 */
             { type: 'attr', attr: 'shen', dc: 'medium' },
-            { type: 'qi', pct: 0.10 }
+            /* 折寿反噬（第卌八批）：借体这事成了损阴德、败了丢命数——failE 走 `life` 的绝对年数，
+             * 与「被人击伤」那条比例口（LIFE_HIT）分得很清：这是因果账，不是外伤账。 */
+            { type: 'qi', pct: 0.10, failE: { life: [-50, -20] } }
           ] },
         neutral: { karma: 3, gain: [{ type: 'qi', n: [80, 150] }, { type: 'bond', npc: 'yuzhitong', n: 5 }] }
       } },
@@ -1031,7 +1033,7 @@
       choices: {
         /* 迎战：敌手 = 触发时刻的快照（名号来自旧相识 / 天骄名录，战力按高一境门槛定档） */
         right: { karma: 0, gain: [{ type: 'stones', n: [600, 1200] }, { type: 'qi', n: [400, 900] }],
-          check: { type: 'ambushFoe', failE: { dao: 2, qiPct: [-0.10, -0.06] } } },
+          check: { type: 'ambushFoe', failE: { dao: 2, qiPct: [-0.10, -0.06], lifeWound: 1 } } },
         /* 认输：交出随身灵石的一成半买平安（无判定——愿意付就有结果），内伤一分不添 */
         evil: { karma: 0, gain: [{ type: 'stonesPct', pct: [-0.15, -0.15] }] },
         /* 避战：一走三不知，无收益也无惩罚 */
@@ -1040,7 +1042,7 @@
     { id: 'ambush_by_right', tier: 'di', nature: 'bad', tags: ['ambush'], tactical: true, cooldownHours: 12,
       choices: {
         right: { karma: 0, gain: [{ type: 'stones', n: [600, 1200] }, { type: 'qi', n: [400, 900] }],
-          check: { type: 'ambushFoe', failE: { dao: 2, qiPct: [-0.10, -0.06] } } },
+          check: { type: 'ambushFoe', failE: { dao: 2, qiPct: [-0.10, -0.06], lifeWound: 1 } } },
         evil: { karma: 0, gain: [{ type: 'stonesPct', pct: [-0.15, -0.15] }] },
         neutral: { karma: 0 }
       } },
@@ -1052,7 +1054,7 @@
       choices: {
         right: { karma: 0, gain: [{ type: 'stones', n: [1500, 3000] }, { type: 'qi', n: [800, 1600] },
             { type: 'dropGear', tierMin: 3 }],
-          check: { type: 'ambushFoe', failE: { dao: 4, qiPct: [-0.15, -0.10] } } }
+          check: { type: 'ambushFoe', failE: { dao: 4, qiPct: [-0.15, -0.10], lifeWound: 1 } } }
       } }
   ];
 })();

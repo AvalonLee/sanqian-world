@@ -593,7 +593,10 @@
       /* 成品丹（第十七批入匣）：效果字典与旧「购买即生效」逐字同一份，只是**由玩家决定何时落**。
        * 传副本 = 纪律（见 events.js applyEffects 头注）：直传 `tp.effect` 会让一次服用改坏表。 */
       SQ.Events.applyEffects(ws, pack, D, SQ.Mods.collect(profile, ws, pack, D),
-        Object.assign({}, pd.def.effect), { log: log, now: now, silent: false, buffSource: 'alchemy' });
+        Object.assign({}, pd.def.effect),
+        { log: log, now: now, silent: false, buffSource: 'alchemy',
+          /* 丹名递给寿元日志（第卌八批）：applyEffects 侧没有丹药这个名字，不传就写成缺主语的半句 */
+          lifeSrc: SQ.t(pd.nameKey, null, pack.worldId) });
       /* 时长口径与改前**逐字相同**：`applyEffects` 的 resolveEff 直接用 effect 里的 `hours` 原值
        * （`rollBuffHours` 只作用于奇遇掷点现生成的 buff，见 events.js:54 / :826），本处不另算一套 */
     }

@@ -1767,7 +1767,8 @@
       fateShard: 1,   /* 探宝残片计数（事件池 v2.7 №117 ⏳ 键，系统深化批 A6 登记） */
       treasure: 1,
       talentSwap: 1,
-      stonesPct: 1 };   /* 按比例出血（第卌四批 · §6.1B 认输买平安）：走 applyEffects 既有 stonesPct 通道（取整 + 下限 0 + noteStones 真值） */
+      stonesPct: 1,   /* 按比例出血（第卌四批 · §6.1B 认输买平安）：走 applyEffects 既有 stonesPct 通道（取整 + 下限 0 + noteStones 真值） */
+      life: 1 };   /* 寿元增减（第卌八批 §6.1A 改口）：绝对年数，走 lifeAdd 唯一写口；failE 侧另认 lifeWound 标记 */
       /* 先天法宝联动授予（二批 A5 · 数值详设 §10.7；恢复批 A3b 引擎 case 已重加） */
     var CHECK_TYPES = { attr: 1, karma: 1, align: 1, stones: 1, qi: 1, art: 1, gear: 1, power: 1, companion: 1,
       prodigySpar: 1,
@@ -9853,50 +9854,88 @@
      * 寿尽即走既有转世事务且**不谎报兵解**（304）。 */
     var pack302 = SQ.Worlds.xiuxian.pack, D302 = pack302.data, sys302 = pack302.worldSystems;
     var prof302 = { talents: [] };
-    /* (a) 流逝 = 与修为同一条时钟：360 秒已结算时长恰老 1 游戏年；离线一整日只按 OFFLINE_CAP_H
-     *     封顶计老（12h ⇒ 120 年，不是 240 年）⇒ 关掉页面既少产也少老，比值不越界 */
-    var w302a = pack302.initialState();
+    /* (a0) 创角生年落 LIFE_SEED 闭区间（stub 随机两端各验一次，两端不同值 = 真在掷） */
+    var rst302 = stubRandom(function () { return 0; });
+    var seedLo302 = pack302.initialState().lifeUsed;
+    rst302();
+    var rst302b = stubRandom(function () { return 0.999999; });
+    var seedHi302 = pack302.initialState().lifeUsed;
+    rst302b();
+    /* (a) 流逝 = 与修为同一条时钟：360 秒已结算时长恰老 1 游戏年。离线一整日**只老 30 分钟那一份**
+     *     （LIFE_OFFLINE_MIN ⇒ 5 年，不是旧口径的 120 年），而修为仍按 OFFLINE_CAP_H 结满 ⇒
+     *     两条读数之差就是「经济不砍、衰老另封顶」这条裁定的直证（lifeUsed 起点抹平生年随机）。 */
+    var w302a = pack302.normalize(pack302.initialState()); w302a.lifeUsed = 0;
     pack302.claim(w302a, 360000, Date.now(), prof302, { autoTrib: false });
-    var w302b = pack302.initialState();
+    var w302b = pack302.normalize(pack302.initialState()); w302b.lifeUsed = 0;
     pack302.claim(w302b, 24 * 3600000, Date.now(), prof302, { autoTrib: false });
-    /* (b) 上界随境界取表；真仙档写 0 = 无尽 ⇒ 剩余不做 0−已耗 的减法、寿元吃满也不判死 */
-    var w302c = pack302.initialState();
+    var lifeCapOffline = D302.LIFE_OFFLINE_MIN / 60 * 10;
+    /* (b) 上界 = 凡人寿元 + LIFE_STEP **前缀和**（第卌八批：晋升不从 0 重算，只把界抬高）；
+     *     阶梯逐档与解析式闭关年对表 ⇒ 改了 REALMS.need / baseQi / 闭关乘区而未同批改寿元表即红。
+     *     shortcut: 下界用「无重试解析式」而非 300 局实测中位（跑不起），带宽 [1.3×, 3×]；
+     *               表值出处 = sq-wip-life38d 定标件（300 局 · 真实渡劫骰 · 逐境中位 0.83~2582 年）。 */
+    var w302c = pack302.normalize(pack302.initialState()); w302c.lifeUsed = 0;
     var li0302 = sys302.lifeInfo(w302c);
     w302c.realm = 5;
     var li5302 = sys302.lifeInfo(w302c);
     w302c.realm = D302.REALMS.length - 1; w302c.lifeUsed = 1e9;
     var liTop302 = sys302.lifeInfo(w302c);
-    /* (c) 预警阈与判死：剩余 ≤ 上界 × LIFE_WARN_P 即 near（含等号），耗尽即 cause='shoujin' */
-    var w302d = pack302.initialState();
-    w302d.lifeUsed = D302.LIFESPAN[0] * (1 - D302.LIFE_WARN_P);
+    var stepBad302 = [];
+    for (var r302 = 0; r302 < D302.LIFE_STEP.length; r302++) {
+      var ramp302 = r302 <= (D302.NEWBIE_RAMP.realms != null ? D302.NEWBIE_RAMP.realms : 0) ? D302.NEWBIE_RAMP.qiMult : 1;
+      var a302 = D302.REALMS[r302 + 1].need / (D302.REALMS[r302].baseQi * 360 * D302.MODES.seclude.qiMult * ramp302);
+      if (!(D302.LIFE_STEP[r302] >= 1.3 * a302 && D302.LIFE_STEP[r302] <= 3 * a302)) {
+        stepBad302.push(r302 + '(' + D302.LIFE_STEP[r302] + '/' + a302.toFixed(2) + ')');
+      }
+    }
+    /* (c) 预警阈 / 判死 / **lifeBonus 参与上界**（同一境界，+40 年就该把这一判撤回活） */
+    var cap0302 = sys302.lifeCapOf(0);
+    var w302d = pack302.normalize(pack302.initialState()); w302d.lifeUsed = 0; w302d.lifeBonus = 0;
+    w302d.lifeUsed = cap0302 * (1 - D302.LIFE_WARN_P);
     var near302 = sys302.lifeInfo(w302d);
-    w302d.lifeUsed = D302.LIFESPAN[0];
+    w302d.lifeUsed = cap0302;
     var dead302 = sys302.lifeInfo(w302d);
-    /* (d) 旧档零迁移 + 脏值收口：缺字段补 0/0/null，负数归零，道伤越界钳 cap，lastDeath 非结构归 null */
+    w302d.lifeBonus = 40;
+    var saved302 = sys302.lifeInfo(w302d);
+    /* (d) 旧档零迁移 + 脏值收口：缺字段补 0/0/null，负数归零，道伤越界钳 cap，lastDeath 非结构归 null；
+     *     越界老档走**一次性**保底（复 normalize 不再抬，否则每次读档送 60 年 = 永生假保底） */
     var n302 = SQ.normalize({ v: 1, profile: { name: '旧档' }, worlds: { xiuxian: { qi: 5 } } });
     var n302b = SQ.normalize({ v: 1, profile: { name: '脏' },
       worlds: { xiuxian: { lifeUsed: -5, daoShang: 9e9, lastDeath: '坏值' } } });
     var n302again = SQ.normalize(n302);
-    ok('302', '寿元流逝与上界（§6.1A）：(a) 360 秒已结算时长 = 老 1 游戏年，离线 24h 只按 OFFLINE_CAP_H 封顶老 ' +
-      '12×10 = ' + (D302.OFFLINE_CAP_H * 10) + ' 年（与修为同一条时钟，非现实墙钟）' +
-      ' (b) 上界 === LIFESPAN[境界] 逐档对表，真仙 0 = 无尽（剩余 Infinity、寿元吃满仍不判死）' +
-      ' (c) 剩余 ≤ 上界×LIFE_WARN_P 即 near（含等号），耗尽 cause=shoujin' +
-      ' (d) 旧档缺字段补 0/0/null（零迁移）+ 负数归零 + 道伤钳 cap + lastDeath 非结构归 null + 幂等',
-      w302a.lifeUsed === 1 && w302b.lifeUsed === D302.OFFLINE_CAP_H * 10 &&
-      li0302.max === D302.LIFESPAN[0] && li0302.cause === null && li0302.near === false &&
-      li5302.max === D302.LIFESPAN[5] &&
+    var oldOver302 = SQ.normalize({ v: 1, profile: { name: '老档越界' },
+      worlds: { xiuxian: { realm: 4, lifeUsed: 3000 } } });
+    var oldOverAgain302 = SQ.normalize(oldOver302);
+    ok('302', '寿元流逝与累加上界（§6.1A · 第卌八批改口）：(a0) 创角生年落 LIFE_SEED=[' + D302.LIFE_SEED.join(',') + ']（stub 两端不同值）' +
+      '(a) 在线 360 秒 = 老 1 游戏年；离线 24h **只老 ' + lifeCapOffline + ' 年**（LIFE_OFFLINE_MIN）而修为仍按 OFFLINE_CAP_H=' + D302.OFFLINE_CAP_H + 'h 结满 ⇒ 衰老与经济两把尺子各归各' +
+      '(b) 上界 = 凡寿 ' + D302.LIFE_MORTAL + ' + LIFE_STEP 前缀和（逐境对表 realm5 = ' + sys302.lifeCapOf(5) + '），阶梯每档 ∈ [1.3×, 3×] 解析闭关年（动了 need/产出而未改表即红）；真仙 = 无尽（剩余 Infinity、吃满不判死、lifeHit 返 0 不扣）' +
+      '(c) 剩余 ≤ 上界×LIFE_WARN_P 即 near（含等号）、耗尽 cause=shoujin，**lifeBonus 抬上界即撤回这一判**' +
+      '(d) 旧档缺字段补 0/0/null + 负数归零 + 道伤钳 cap + lastDeath 非结构归 null + 幂等 + 越界老档一次性保底（复 normalize 值不变，不送永生）',
+      w302a.lifeUsed === 1 && w302b.lifeUsed === lifeCapOffline && w302b.qi > w302a.qi &&
+      seedLo302 >= D302.LIFE_SEED[0] && seedHi302 <= D302.LIFE_SEED[1] && seedLo302 !== seedHi302 &&
+      li0302.max === cap0302 && li0302.cause === null && li0302.near === false &&
+      li5302.max === sys302.lifeCapOf(5) &&
+      li5302.max === D302.LIFE_MORTAL + D302.LIFE_STEP.slice(0, 6).reduce(function (a, x) { return a + x; }, 0) &&
+      stepBad302.length === 0 &&
       liTop302.eternal === true && liTop302.left === Infinity && liTop302.cause === null &&
+      sys302.lifeHit({ realm: D302.REALMS.length - 1, lifeUsed: 0 }, 'trib') === 0 &&
       near302.near === true && near302.cause === null &&
       dead302.cause === 'shoujin' && dead302.left <= 0 &&
+      saved302.cause === null && saved302.left === 40 &&
       n302.worlds.xiuxian.lifeUsed === 0 && n302.worlds.xiuxian.daoShang === 0 && n302.worlds.xiuxian.lastDeath === null &&
       n302b.worlds.xiuxian.lifeUsed === 0 && n302b.worlds.xiuxian.daoShang === D302.DAO_SHANG.cap &&
       n302b.worlds.xiuxian.lastDeath === null &&
-      n302again.worlds.xiuxian.lifeUsed === 0 && n302again.worlds.xiuxian.daoShang === 0,
-      '一小时=' + w302a.lifeUsed + ' 一日=' + w302b.lifeUsed + '/' + (D302.OFFLINE_CAP_H * 10) +
-      ' ‖ 表=' + D302.LIFESPAN.join('/') + ' ‖ 真仙=' + liTop302.left + '/' + liTop302.cause +
-      ' ‖ 阈上 near=' + near302.near + ' 耗尽 cause=' + dead302.cause +
+      n302again.worlds.xiuxian.lifeUsed === 0 && n302again.worlds.xiuxian.daoShang === 0 &&
+      oldOver302.worlds.xiuxian.lifeBonus === 3000 - sys302.lifeCapOf(4) + D302.LIFE_GRACE &&
+      sys302.lifeInfo(oldOver302.worlds.xiuxian).cause === null &&
+      oldOverAgain302.worlds.xiuxian.lifeBonus === oldOver302.worlds.xiuxian.lifeBonus,
+      '在线=' + w302a.lifeUsed + ' 离线=' + w302b.lifeUsed + '/' + lifeCapOffline + ' 离线修为=' + Math.round(w302b.qi) +
+      ' ‖ 生年=' + seedLo302 + '~' + seedHi302 +
+      ' ‖ 界=' + D302.LIFE_STEP.join('+') + '+' + D302.LIFE_MORTAL + ' 违例=' + (stepBad302.join(',') || '无') +
+      ' ‖ 真仙=' + liTop302.left + '/' + String(liTop302.cause) +
+      ' ‖ 阈上 near=' + near302.near + ' 耗尽 cause=' + dead302.cause + ' 补 40 年=' + String(saved302.cause) + '/' + saved302.left +
       ' ‖ 旧档=' + [n302.worlds.xiuxian.lifeUsed, n302.worlds.xiuxian.daoShang, String(n302.worlds.xiuxian.lastDeath)].join(',') +
-      ' 脏档=' + [n302b.worlds.xiuxian.lifeUsed, n302b.worlds.xiuxian.daoShang, String(n302b.worlds.xiuxian.lastDeath)].join(','));
+      ' 脏档=' + [n302b.worlds.xiuxian.lifeUsed, n302b.worlds.xiuxian.daoShang, String(n302b.worlds.xiuxian.lastDeath)].join(',') +
+      ' 越界档 bonus=' + oldOver302.worlds.xiuxian.lifeBonus + '/' + oldOverAgain302.worlds.xiuxian.lifeBonus);
 
     /* #303 道伤阶梯（§6.1A 第二支钟）：加层 = min(连败, gainMax) ⇒ 1+2+3+4+5 恰吃满 cap；
      * 成功涤 −cleanse、岁月按 healPerYear/年 缓疗；三处都经 realm.js 挂点，不许是只写在表里的死数。 */
@@ -9968,31 +10007,42 @@
       await SQ.claim(ref);
       return { ref: ref, w: ref.worlds.xiuxian, st: ref.meta.stats, exp: exp304, expBing: expBing304 };
     }
-    var d304a = await deathSeed304('shoujin', { lifeUsed: D302.LIFESPAN[4] });                 /* 寿尽 */
+    var d304a = await deathSeed304('shoujin', { lifeUsed: sys302.lifeCapOf(4) });              /* 寿尽 */
     var d304b = await deathSeed304('daoshang', { daoShang: DS303.cap });                        /* 道伤崩碎 */
+    /* 折寿而殒（第卌八批第三条死因）：used 还没到大限、是被 lifeBonus 的负账打穿的 ⇒ cause 必须
+     * 报 zhesou 而不是 shoujin（「熬到大限」与「被人打折了命数」是两件事，混报就是说谎）。 */
+    var d304d = await deathSeed304('zhesou', { lifeUsed: sys302.lifeCapOf(4) - 20, lifeBonus: -60 });
     var log304a = (d304a.w.log || []).map(function (l) { return l.text; }).join('|');
+    var log304d = (d304d.w.log || []).map(function (l) { return l.text; }).join('|');
     var line304 = function (ch) {
       return SQ.t('legacy.log.rebirth', { life: 1, ch: SQ.t(ch, null, 'xiuxian') }, 'xiuxian');
     };
-    ok('304', '寿尽 / 道伤即强制转世（§6.1A 落点）：(a) 两条死因都走通——新世重置（realm 0 / lifeUsed 0 / ' +
-      '档案名空 ⇒ 界面进创角）+ lastDeath 呈报位带死因与享年' +
+    ok('304', '寿尽 / 道伤 / **折寿**即强制转世（§6.1A 落点）：(a) 三条死因都走通——新世重置（realm 0 / ' +
+      'lifeUsed 重掷生年 / 档案名空 ⇒ 界面进创角）+ lastDeath 呈报位带死因与享年' +
       ' (b) 遗泽折分逐分等于 preview 产物且与兵解口径同值（' + d304a.exp + '，零新增系数）' +
       ' (c) 被动了结计 stats.deaths 而**不**计 dissolutions、**不**发 achv_bingjie（舍身证道 = 主动兵解的荣誉）' +
-      ' (d) 传记与转世日志各说各的死因：寿尽行「' + bioLineShou304 + '」在、兵解行「' + bioLineBing304 + '」不在',
-      d304a.w.realm === 0 && d304a.w.lifeUsed === 0 && d304a.w.daoShang === 0 &&
+      ' (d) 传记与转世日志各说各的死因：寿尽行「' + bioLineShou304 + '」在、兵解行「' + bioLineBing304 + '」不在' +
+      ' (e) 第卌八批新死因 zhesou：未到本境大限而被负账打穿 ⇒ cause/享年/传记行三线一致，不复用「寿尽」那句话',
+      d304a.w.realm === 0 && d304a.w.lifeUsed >= D302.LIFE_SEED[0] && d304a.w.lifeUsed <= D302.LIFE_SEED[1] &&
+      d304a.w.lifeBonus === 0 && d304a.w.daoShang === 0 &&
       d304a.ref.profile.name === '' && d304a.w.lastDeath && d304a.w.lastDeath.cause === 'shoujin' &&
-      d304a.w.lastDeath.realm === 4 && d304a.w.lastDeath.age >= Math.floor(D302.LIFESPAN[4]) &&
+      d304a.w.lastDeath.realm === 4 && d304a.w.lastDeath.age >= Math.floor(sys302.lifeCapOf(4)) &&
       d304b.w.lastDeath && d304b.w.lastDeath.cause === 'daoshang' &&
+      d304d.w.lastDeath && d304d.w.lastDeath.cause === 'zhesou' &&
+      ((d304d.ref.meta.biographies[0] || {}).text || '').indexOf(SQ.t('codex.bio.line.zhesou', null, 'xiuxian')) >= 0 &&
       d304a.exp > 0 && d304a.exp === d304a.expBing && d304a.w.lastDeath.total === d304a.exp &&
       d304a.ref.meta.karma === d304a.exp &&
       d304a.st.deaths === 1 && d304a.st.dissolutions === 0 && d304a.st.lives === 1 &&
       d304b.st.deaths === 1 && d304b.st.dissolutions === 0 &&
+      d304d.st.deaths === 1 && d304d.st.dissolutions === 0 &&
       (d304a.ref.meta.achv || []).indexOf('achv_bingjie') < 0 &&
       ((d304a.ref.meta.biographies[0] || {}).text || '').indexOf(bioLineShou304) >= 0 &&
       ((d304a.ref.meta.biographies[0] || {}).text || '').indexOf(bioLineBing304) < 0 &&
       log304a.indexOf(line304('legacy.ui.shoujin')) >= 0 &&
-      log304a.indexOf(line304('legacy.ui.bingjie')) < 0,
+      log304a.indexOf(line304('legacy.ui.bingjie')) < 0 &&
+      log304d.indexOf(line304('legacy.ui.zhesou')) >= 0,
       '寿尽=' + JSON.stringify(d304a.w.lastDeath) + ' 道伤=' + JSON.stringify(d304b.w.lastDeath) +
+      ' 折寿=' + JSON.stringify(d304d.w.lastDeath) +
       ' ‖ stats=' + [d304a.st.lives, d304a.st.deaths, d304a.st.dissolutions].join('/') +
       ' ‖ 遗泽=' + d304a.ref.meta.karma + '/期望' + d304a.exp + '/兵解' + d304a.expBing +
       ' ‖ achv=' + (d304a.ref.meta.achv || []).join(',') + ' ‖ 日志=' + log304a.slice(0, 46));
@@ -10381,6 +10431,125 @@
       keys313.length === 0 && !norm313.jianghu && !init313.jianghu &&
       JSON.stringify(Object.keys(pack.normalize(norm313)).sort()) === JSON.stringify(Object.keys(norm313).sort()),
       '多余键=' + keys313.join(',') + ' ‖ 键数 ' + Object.keys(init313).length + ' → ' + Object.keys(norm313).length);
+
+    /* ══ #314 寿元增减通道（第卌八批③ · 用户令「丹药 / 功法 / 法宝 / 奇遇给寿元增减，
+     * 渡劫失败与被人击伤损耗寿元」）══════════════════════════════════════════════
+     * 判据两面都要：**(甲) 引擎口**（lifeAdd 唯一写口 + lifeHit 比例 + 无尽档不扣）与
+     * **(乙) 内容真有写入方**（四族各跑一次真函数，不是只在测试里调 lifeAdd）。
+     * 本仓吃过太多次「引擎对、屏上错」与「只有测试在调」的假在跑，所以 (乙) 一律走消费者的真入口：
+     * 丹 = Alchemy.drinkPill、功法 = Arts.gainArt/recheckShelf、法宝 = Treasures.gain+bondAdvance、
+     * 奇遇 = Events.resolveBranch（neutral 支无判定 ⇒ 可复现）。 */
+    (function () {
+      var p314 = SQ.Worlds.xiuxian.pack, D314 = p314.data, s314 = p314.worldSystems;
+      var pr314 = mkProf([]);
+      /* (甲1) 唯一写口：正负入账、脏值不写、返回累计 */
+      var wa = p314.normalize(p314.initialState()); wa.lifeUsed = 0; wa.lifeBonus = 0;
+      s314.lifeAdd(wa, 30); s314.lifeAdd(wa, -10);
+      var before314 = wa.lifeBonus;
+      s314.lifeAdd(wa, '脏值'); s314.lifeAdd(wa, NaN); s314.lifeAdd(wa, null);
+      /* (甲2) lifeHit = 当境上界 × 表率、下限 1 年；真仙（无尽）一分不扣。
+       * 取的是**单口扣量**（每次另起一份档、只扣一口）——lifeHit 返的是累计 bonus，两口连扣会糊在一起对不上表。 */
+      var hitSeq314 = [0, 4, 8].map(function (r) {
+        var mk = function () { var h = p314.normalize(p314.initialState()); h.realm = r; h.lifeUsed = 0; h.lifeBonus = 0; return h; };
+        return [-s314.lifeHit(mk(), 'trib'), -s314.lifeHit(mk(), 'wound'), s314.lifeCapOf(r)];
+      });
+      var hitBad314 = hitSeq314.filter(function (x) {
+        return !(x[0] === Math.max(1, Math.round(x[2] * D314.LIFE_HIT.trib)) && x[1] === Math.max(1, Math.round(x[2] * D314.LIFE_HIT.wound)));
+      });
+      var wEtern314 = p314.normalize(p314.initialState()); wEtern314.realm = D314.LIFE_ETERNAL;
+      /* (乙1) 丹：坊市两颗改过效果的各走一次真入口（凝神 +20 / 破障 −30） */
+      /* 丹匣走 Alchemy.normalize 造（与 #257 同法）：initialState 的 alchemy 是 null，直挂 pills 会踩空 */
+      var wp314 = p314.normalize(p314.initialState()); wp314.lifeUsed = 0; wp314.lifeBonus = 0;
+      wp314.alchemy = SQ.Alchemy.normalize({ pills: { ningshen: 1, pozhang: 1 } }, D314);
+      var lg314 = [];
+      var logs314 = function (cat, txt) { lg314.push(cat + '|' + txt); };
+      SQ.Alchemy.drinkPill(wp314, p314, D314, 'ningshen', Date.now(), logs314, pr314);
+      var afterNing314 = wp314.lifeBonus;
+      SQ.Alchemy.drinkPill(wp314, p314, D314, 'pozhang', Date.now(), logs314, pr314);
+      var afterPo314 = wp314.lifeBonus;
+      /* 日志要写「谁给的寿」（第卌六批「钱扣了屏上无痕」那一族的同型处置）：
+       * 丹名由 drinkPill 经 ctx.lifeSrc 递进 applyEffects，模板 = life.log.gain/loss */
+      var gainTxt314 = SQ.t('life.log.gain', { src: SQ.t('pill.ningshen.name', null, 'xiuxian'), n: SQ.fmt(20) }, 'xiuxian');
+      var effTxt314 = SQ.Events.effText(wp314, p314, D314, { life: 20 });
+      /* (乙2) 功法：入门那一次给寿；**重复入门不重给**；架上复检入门同一条口 */
+      var we314 = p314.normalize(p314.initialState()); we314.realm = 6; we314.lifeBonus = 0;
+      SQ.Arts.gainArt(we314, p314, D314, 'changsheng', null);
+      var csFirst314 = we314.lifeBonus;
+      SQ.Arts.gainArt(we314, p314, D314, 'changsheng', null);
+      var csTwice314 = we314.lifeBonus;
+      var wsx314 = p314.normalize(p314.initialState()); wsx314.karma = -300; wsx314.lifeBonus = 0;
+      SQ.Arts.gainArt(wsx314, p314, D314, 'shixue', null);
+      /* 复检支路：把长生诀先塞进架上（低境界 gainArt 走 shelf），提到 realm 4 后 recheckShelf 入门 */
+      var wr314 = p314.normalize(p314.initialState()); wr314.realm = 1; wr314.lifeBonus = 0; wr314.shelf = ['changsheng'];
+      SQ.Arts.recheckShelf(wr314, p314, D314, null);
+      var rBefore314 = wr314.lifeBonus;
+      wr314.realm = 5;
+      SQ.Arts.recheckShelf(wr314, p314, D314, null);
+      /* (乙3) 法宝：龙髓珠认主晋阶授寿，非寿件不给 */
+      var wt314 = p314.normalize(p314.initialState()); wt314.realm = 7; wt314.lifeBonus = 0;
+      SQ.Treasures.gain(wt314, p314, D314, 'x19', null);
+      /* bondAdvance 是内部件，对外只出 bondTick（+1 计数后调它）⇒ 先把计数摆到差一跳，再 tick 一次 */
+      wt314.treasures.bondCount = p314.treasures.BOND_COST - 1;
+      SQ.Treasures.bondTick(wt314, p314, D314, null);
+      var x19Gain314 = wt314.lifeBonus;
+      /* (乙4) 奇遇：山间甘泉「饮泉」支路（无判定 ⇒ 可复现），区间两端各 stub 一次 */
+      var wv314 = p314.normalize(p314.initialState()); wv314.lifeBonus = 0;
+      var rs1 = stubRandom(function () { return 0; });
+      SQ.Events.resolveBranch(wv314, p314, D314, M(pr314, wv314), 'spirit_spring', 'neutral', Date.now(), { log: noopLog(), profile: pr314 });
+      var evLo314 = wv314.lifeBonus;
+      var rs2 = stubRandom(function () { return 0.9999; });
+      wv314.lifeBonus = 0;
+      SQ.Events.resolveBranch(wv314, p314, D314, M(pr314, wv314), 'spirit_spring', 'neutral', Date.now(), { log: noopLog(), profile: pr314 });
+      var evHi314 = wv314.lifeBonus;
+      rs1(); rs2();
+      /* (乙5) 数据面：声明了 life 的功法必须 noSalvage（否则「购入→弃置→再购入」= 刷命回路）；
+       *      袭击 / 寻仇三张模板的 failE 都挂 lifeWound，残魂借体的 failE 挂负 life */
+      var lifeArts314 = Object.keys(p314.artsMap()).filter(function (k) { return p314.artsMap()[k].life != null; });
+      var badArt314 = lifeArts314.filter(function (k) {
+        var a = p314.artsMap()[k];
+        return !a.noSalvage && (a.obtain || {}).type !== 'initial';
+      });
+      var findEv314 = function (id) { return SQ.Events.findById(p314, id); };   /* allIds 返的是 id 串，模板要经 findById */
+      var amb314 = ['ambush_by_evil', 'ambush_by_right', 'ambush_revenge'].map(function (id) {
+        var ev = findEv314(id);
+        if (!ev) return false;
+        /* 逐支扫（袭击只声明一支、寻仇也只一支，写死 choices.right 会随模板改口而假失败） */
+        return Object.keys(ev.choices).some(function (k) {
+          var c = (ev.choices[k] || {}).check;
+          return !!(c && c.failE && c.failE.lifeWound);
+        });
+      });
+      var spr314 = findEv314('spirit_spring');
+      var hasLifeGain314 = !!(spr314 && (spr314.choices.neutral.gain || []).some(function (g) { return g.type === 'life'; }));
+      var chj314 = findEv314('canhun_jieti');
+      var hasLifeFail314 = !!(chj314 && chj314.choices.evil && chj314.choices.evil.check &&
+        chj314.choices.evil.check.some(function (c) { return c.failE && c.failE.life != null; }));
+      ok(314, '寿元增减通道（第卌八批③）：(甲) lifeAdd 唯一写口 = 正负入账 + 脏值不写（' + before314 + ' 后再三次调用不动）‖ ' +
+        'lifeHit 逐档 === max(1, round(当界 × LIFE_HIT.' + Object.keys(D314.LIFE_HIT).join('/') + '))（违例=' + (hitBad314.length ? JSON.stringify(hitBad314[0]) : '无') + '）‖ 真仙无尽一分不扣 ' +
+        '(乙) 四族各走真入口：丹 +20/−30（' + [afterNing314, afterPo314].join('→') + '，日志写「' + gainTxt314 + '」、结果页有 effText 那一行「' + effTxt314 + '」）‖ ' +
+        '功法入门 +200/−40 且**重复入门不重给**（' + csFirst314 + '→' + csTwice314 + '）‖ 架上复检入门同样给（' + rBefore314 + '→' + wr314.lifeBonus + '）‖ ' +
+        '法宝龙髓珠认主晋阶 +150（实得 ' + x19Gain314 + '）‖ 奇遇「山间甘泉·饮泉」按区间入账（' + evLo314 + '~' + evHi314 + '） ' +
+        '(丙) 不变式：写了 life 的功法全部 noSalvage（违例=' + (badArt314.join(',') || '无') + '）‖ 袭击/寻仇三张 failE 都挂 lifeWound ‖ 甘泉有 life 词条 ‖ 借体 failE 有负 life',
+      wa.lifeBonus === 20 && before314 === 20 &&
+      hitBad314.length === 0 && s314.lifeHit(wEtern314, 'trib') === 0 &&
+      afterNing314 === 20 && afterPo314 === -10 &&
+      lg314.some(function (l) { return l.indexOf(gainTxt314) >= 0; }) &&
+      effTxt314.indexOf(SQ.t('log.eff.life', { sign: '+', n: SQ.fmt(20) }, 'xiuxian')) >= 0 &&
+      csFirst314 === p314.artsMap().changsheng.life && csTwice314 === csFirst314 &&
+      wsx314.lifeBonus === p314.artsMap().shixue.life &&
+      rBefore314 === 0 && wr314.lifeBonus === p314.artsMap().changsheng.life &&
+      x19Gain314 === p314.treasures.LIST.filter(function (t) { return t.id === 'x19'; })[0].life &&
+      evLo314 === 8 && evHi314 === 18 &&
+      badArt314.length === 0 && lifeArts314.length >= 2 &&
+      amb314.every(function (x) { return x === true; }) && hasLifeGain314 && hasLifeFail314,
+      'bonus=' + wa.lifeBonus + ' 丹=' + [afterNing314, afterPo314].join('/') +
+      ' 功法=' + [csFirst314, csTwice314, wsx314.lifeBonus, rBefore314, wr314.lifeBonus].join('/') +
+      ' 法宝=' + x19Gain314 + ' 奇遇=' + evLo314 + '~' + evHi314 +
+      ' ‖ hit=' + JSON.stringify(hitSeq314) + ' 真仙扣=' + s314.lifeHit(wEtern314, 'trib') +
+      ' ‖ life功法=' + lifeArts314.join(',') + ' 违例=' + (badArt314.join(',') || '无') +
+      ' ‖ 模板=' + amb314.join(',') + '/' + hasLifeGain314 + '/' + hasLifeFail314 +
+      ' ‖ 丹日志=' + lg314.join('¦').slice(0, 200));
+    })();
 
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');

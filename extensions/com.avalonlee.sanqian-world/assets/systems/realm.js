@@ -162,6 +162,9 @@
          * DAO_SHANG.cap 即由世界包 lifeInfo 判「身死道消」⇒ 本世了结走强制转世。
          * 与下面三层阶梯同点位、同 skipAttempt 口径：X09 续命生效的那一次不计伤（streak 也没 +1）。 */
         if (!skipped && sys.daoHit) sys.daoHit(ws, streak, log);
+        /* 折寿（第卌八批 · 用户令「渡劫失败…都会损耗寿元」）：与入伤同点位、同 skipAttempt 口径，
+         * 扣的是**当境上界的比例**（lifeHit 内取数），X09 续命那一掷既不入伤也不折寿。 */
+        if (!skipped && sys.lifeHit) sys.lifeHit(ws, 'trib', log);
         if (!skipped && ts.daoShang && streak >= (ts.daoShang.minStreak != null ? ts.daoShang.minStreak : 1) &&
             SQ.Events && SQ.Events.pushBuff) {
           /* 道伤：qiRate −15% × 12h（重犯刷新时长不叠层——pushBuff 同字段同向语义天然满足） */
