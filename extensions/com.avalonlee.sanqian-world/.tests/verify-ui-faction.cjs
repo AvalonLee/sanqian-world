@@ -137,6 +137,36 @@ const { chromium } = require('playwright-core');
   T(q3.n === 1 && q3.types[0] === 'cultivate' && q3.dis[0] === true,
     'Q5 两张达标的都交完：只剩那张未达标的，且 30 分钟闸内不补新单', 'n=' + q3.n + ' types=' + q3.types.join('+'));
 
+  /* ── M 组（第卌七批① · 江湖名录取数口）：势力卡必须写清「掌门是谁」──
+   * 名录是静态内容，认不出就不写这行 ⇒ 这组同时钉两侧：固定势力卡全都有名字，
+   * 且屏上不许出现花括号残留或空位（视图不编名字，同第卌四批「不编一个假境界」那条纪律）。 */
+  const m1 = await page.evaluate(() => {
+    const cards = Array.prototype.slice.call(document.querySelectorAll('.faccard'));
+    const fixedTag = window.SQ.t('faction.fixed.tag', null, 'xiuxian');
+    const txt = c => Array.prototype.slice.call(c.querySelectorAll('.fd'))
+      .map(d => d.textContent.replace(/\s+/g, ' ').trim()).join(' § ');
+    const isFixed = c => Array.prototype.slice.call(c.querySelectorAll('.tierbadge'))
+      .some(b => b.textContent.trim() === fixedTag);
+    const lines = cards.map(txt);
+    const withMaster = lines.filter(x => x.indexOf('掌门') >= 0);
+    const fixedN = cards.filter(isFixed).length;
+    return {
+      cards: cards.length, hit: withMaster.length, fixedN: fixedN,
+      /* 固定席一律有名、非固定席（随机补足与玩家自立宗门）一律不写这行——两侧都判，才叫「不编名字」 */
+      miss: cards.filter((c, i) => isFixed(c) && lines[i].indexOf('掌门') < 0).length,
+      extra: cards.filter((c, i) => !isFixed(c) && lines[i].indexOf('掌门') >= 0).length,
+      sample: withMaster[0] || '', brace: lines.join('|').indexOf('{'),
+      empty: lines.filter(x => x.indexOf('掌门') >= 0 && /（\s*）|掌门\s*（/.test(x)).length
+    };
+  });
+  T(m1.cards > 0 && m1.fixedN === 16 && m1.miss === 0 && m1.extra === 0 && m1.brace < 0 &&
+    m1.empty === 0 && /掌门 \S+（\S+）· 太上 \S+/.test(m1.sample),
+    'M1 16 处固定势力卡全都有「掌门 X（境界）· 太上 Y」，非固定席（随机势力与自立宗门）一律不写这行，' +
+    '且无花括号残留、无空名位',
+    'cards=' + m1.cards + ' 固定=' + m1.fixedN + ' 缺=' + m1.miss + ' 多写=' + m1.extra +
+    ' brace=' + m1.brace + ' empty=' + m1.empty +
+    ' sample=' + m1.sample.replace(/.*?(掌门[^§]*)/, '$1').slice(0, 60));
+
   T(errors.length === 0, 'Z 无控制台错误', errors.join(' | ') || 'ok');
 
   await browser.close();

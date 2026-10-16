@@ -10332,6 +10332,56 @@
       " ‖ 败=" + JSON.stringify([res311b.pass, w311b.daoShang, w311b.revenge, set311b]) +
       " ‖ 两档=" + JSON.stringify([[soft311.realm, soft311.power, soft311.nm], [hard311.realm, hard311.power, hard311.nm]]));
 
+    /* #312 江湖名录池与取数口（第卌七批 ① · 设计稿《江湖榜与角色库》）：
+     * 规模/唯一性/值域/势力覆盖/幂等 一次钉死——名录是**静态内容**，认不出就什么都不写，
+     * 所以这里既是内容对表也是「视图不编名字」那条纪律的后盾。 */
+    var JH312 = SQ.Jianghu, P312 = pack.jianghuPool(), PS312 = P312.persons;
+    var seenId312 = {}, seenNm312 = {}, bad312 = [];
+    var bondNm312 = {};
+    (D.COMPANIONS || []).forEach(function (c) { bondNm312[SQ.t('bond.' + c.id + '.name', null, 'xiuxian')] = 1; });
+    var FC312 = {}, HID312 = 0;
+    PS312.forEach(function (p) {
+      if (seenId312[p.id]) bad312.push('id 重复 ' + p.id); seenId312[p.id] = 1;
+      if (seenNm312[p.nm]) bad312.push('名号重复 ' + p.nm); seenNm312[p.nm] = 1;
+      if (bondNm312[p.nm]) bad312.push('与道友撞名 ' + p.nm);
+      if (!['right', 'neutral', 'evil'].includes(p.al)) bad312.push('阵营非法 ' + p.id);
+      if (!(p.rlm >= 0 && p.rlm <= 9)) bad312.push('境界越界 ' + p.id);
+      if (![-1, 0, 1, 2].includes(p.off)) bad312.push('际遇档越界 ' + p.id);
+      if (!(p.wp >= 0 && p.wp < P312.wp.length)) bad312.push('兵刃索引越界 ' + p.id);
+      if (!p.nm || !p.ti || !p.bio) bad312.push('三缺其一 ' + p.id);
+      if (/[A-Za-z]/.test(p.nm + p.ti + p.bio)) bad312.push('文本含拉丁 ' + p.id);
+      if (p.hid) HID312++;
+      if (p.fc) (FC312[p.fc] = FC312[p.fc] || []).push(p);
+    });
+    D.FACTIONS_FIXED.forEach(function (f) {
+      var s = FC312[f.id] || [];
+      if (s.length !== 4) bad312.push('势力席数 ' + f.id + ' = ' + s.length);
+      for (var i = 1; i < s.length; i++) if (s[i - 1].rlm < s[i].rlm) bad312.push('席位境界倒挂 ' + f.id);
+      if (JH312.masterOf(pack, f.id) !== s[1] || JH312.elderOf(pack, f.id) !== s[0]) bad312.push('掌门/太上取数错 ' + f.id);
+    });
+    var hidList312 = PS312.filter(function (p) { return p.hid; });
+    var once312 = JH312.count(pack) + '|' + PS312.map(function (p) { return p.id + ':' + p.rlm + ':' + p.off; }).join(',');
+    var twice312 = JH312.count(pack) + '|' + pack.jianghuPool().persons.map(function (p) { return p.id + ':' + p.rlm + ':' + p.off; }).join(',');
+    ok(312, '江湖名录 200 条与取数口（第卌七批①）：规模 200 = 16 势力 × 4 + 隐世 3 + 散修与新秀 133 ‖ ' +
+      'id 与名号全库唯一且不与道友 58 名撞 ‖ 值域（阵营/境界 0~9/际遇档 −1~+2/兵刃池索引）逐项合 ‖ ' +
+      '文本零拉丁零空（名号/称号/小传三缺即判红）‖ 每派恰四席且席位境界不倒挂、掌门=第二席、太上=第一席 ‖ ' +
+      '隐世恰三席（榜面交互屏蔽随第卌九批落）‖ 认不出的 id / 势力一律 null ‖ 取数口幂等（两次逐条同值）',
+      PS312.length === 200 && JH312.count(pack) === 200 && bad312.length === 0 && HID312 === 3 &&
+      hidList312.length === 3 && Object.keys(FC312).length === 16 &&
+      once312 === twice312 && P312.wp.length >= 24 &&
+      JH312.masterOf(pack, 'nope') === null && JH312.of(pack, 'nope') === null,
+      '规模=' + PS312.length + ' 隐世=' + HID312 + ' 势力=' + Object.keys(FC312).length + ' 违例=' + bad312.slice(0, 5).join(' | '));
+
+    /* #313 名录**零侵染**：静态表不入存档、不进世界状态 ⇒ 容量读数与旧档迁移都不该动（第卌七批①的收口凭据） */
+    var init313 = pack.initialState();
+    var norm313 = pack.normalize(pack.normalize(init313));
+    var keys313 = Object.keys(init313).filter(function (k) { return /jh|jianghu/i.test(k); });
+    ok(313, '名录零侵染（第卌七批①）：initialState 与 normalize 产物里没有任何 jianghu 字段（名录是代码侧静态内容，不是角色态）‖ ' +
+      '双次 normalize 键集不变（幂等，不会因为挂上名录就长字段）‖ 取数口全为纯读，跑一遍不新增世界键',
+      keys313.length === 0 && !norm313.jianghu && !init313.jianghu &&
+      JSON.stringify(Object.keys(pack.normalize(norm313)).sort()) === JSON.stringify(Object.keys(norm313).sort()),
+      '多余键=' + keys313.join(',') + ' ‖ 键数 ' + Object.keys(init313).length + ' → ' + Object.keys(norm313).length);
+
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');
 

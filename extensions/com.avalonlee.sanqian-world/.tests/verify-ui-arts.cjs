@@ -297,9 +297,74 @@ async function buildSave() {
     'A11f 入门即 Lv1：已入门的每部等级 ≥1 且屏上不再出现「Lv0」（旧 Lv0 态随批消失）',
     'knownLv=' + gain.knownLv.join('/') + ' 屏上有Lv0=' + gain.anyLv0);
   T(gBy.emotionless.upgradeBtns === 0 && gBy.emotionless.txt.indexOf(gain.maxTxt) >= 0 &&
-    gBy.tuna.upgradeBtns === 1,
-    'A11g Lv9 即满级：满级卡无升级钮且显「满级」，未满级卡仍有升级钮（9 级再升 = max）',
-    'Lv9钮=' + gBy.emotionless.upgradeBtns + ' Lv3钮=' + gBy.tuna.upgradeBtns + ' 文本含满级=' + (gBy.emotionless.txt.indexOf(gain.maxTxt) >= 0));
+    gBy.tuna.upgradeBtns === 0 && gBy.juling.upgradeBtns === 0,
+    'A11g **判据改口**（第卌七批④c）：已学会网格一张都不许有升级钮（未满级的 tuna/juling 也 0 颗），' +
+    '满级卡另须仍显「满级」——升级口本批起只留槽卡，缺席面在这一条判、正面由 H 组判',
+    'Lv9钮=' + gBy.emotionless.upgradeBtns + ' Lv3钮=' + gBy.tuna.upgradeBtns +
+    ' Lv1钮=' + gBy.juling.upgradeBtns + ' 文本含满级=' + (gBy.emotionless.txt.indexOf(gain.maxTxt) >= 0));
+
+  /* ── H 组（第卌七批④c · 用户令「修习槽那六张卡里就该有升级功法的按钮，下方已学会不必再给升级」）：
+   * 口径依据 = 引擎 `Arts.tickPractice` 只遍历 `ws.artsSlots` ⇒ 未入槽的功法精通恒 0、永不会顿悟，
+   * 升级口因此跟着「会长进的那一侧」走。两侧各判一刀，缺一不可：
+   * 只判「槽上有」会放过满级槽卡多留一颗死钮；只判「列表没有」会放过整页一个都不出。
+   * ⚠️ fixture 三部（tuna Lv3 / juling Lv1 / emotionless Lv9）**全部在槽**——`Arts.autoSlot`
+   *   在载入时按 artsKnown 补空槽（数值详设 §4.4 v1.26），头注那句「emotionless 只学会不入槽」
+   *   说的是旧行为。好处是 H1 一次读数就同屏拿到「未满级两张 + 满级一张」；槽外那一侧由 H2 卸下真造。 ── */
+  const slotRead = (ids) => page.evaluate((ids) => {
+    const wf = (k, o) => SQ.t(k, o || null, 'xiuxian');
+    const cells = Array.prototype.slice.call(document.querySelectorAll('#tab-arts [data-slot]'));
+    const known = Array.prototype.slice.call(document.querySelectorAll('#tab-arts .artgrid > .tcard'));
+    const one = (c) => c.querySelectorAll('[data-act="upgradeArt"]').length;
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const w = s.worlds.xiuxian, P = SQ.Worlds.xiuxian.pack;
+    return {
+      n: cells.length,
+      ids: cells.map((c) => ((c.querySelector('.tname') || {}).textContent || '').trim().slice(0, 5)),
+      btn: cells.map(one),
+      dis: cells.map((c) => { const b = c.querySelector('[data-act="upgradeArt"]'); return b ? !!b.disabled : null; }),
+      max: cells.map((c) => (c.textContent || '').indexOf(wf('arts.max')) >= 0),
+      knownBtn: known.reduce((a, c) => a + one(c), 0),
+      knownN: known.length,
+      /* 槽外那一侧**按 id 取卡**（卡内那颗 装入/卸下/弃置 钮的 data-v 就是功法 id）——
+       * 不拿名号文本比，词表改字不该让走查跟着红。evaluate 只能回传可序列化值，故此处出数组不出函数。 */
+      cards: ids.map((id) => {
+        const b0 = known.map((c) => c.querySelector('[data-v="' + id + '"]')).filter(Boolean)[0];
+        const c = b0 ? b0.closest('.tcard') : null;
+        return c ? { up: one(c), slot: !!c.querySelector('[data-act="slotArt"]'),
+          unslot: !!c.querySelector('[data-act="unslotArt"]'), salv: !!c.querySelector('[data-act="salvageArt"]') }
+          : { up: -1, slot: false, unslot: false, salv: false };
+      }),
+      qi: w.qi,
+      costTuna: SQ.Arts.upgradeCost(w, P, P.data, 'tuna', SQ.Mods.collect(s.profile, w, P, P.data)),
+      slots: (w.artsSlots || []).slice()
+    };
+  }, ids);
+  const IDS = ['tuna', 'juling', 'emotionless'];
+  const h1 = await slotRead(IDS);
+  T(h1.n === 3 && h1.max.filter((x) => x).length === 1 &&
+    h1.btn.every((b, i) => b === (h1.max[i] ? 0 : 1)) &&
+    h1.knownBtn === 0 && h1.knownN === 3,
+    'H1 同一屏两侧：未满级槽卡恰 1 颗升级钮 ‖ Lv9 那张 0 颗且显「满级」 ‖ 已学会三张合计 0 颗（按满级位判、不钉槽序）',
+    '槽=' + h1.n + ' 名=' + h1.ids.join('/') + ' 钮=' + h1.btn.join(',') + ' 满级格=' + h1.max.join(',') +
+    ' 已学会钮=' + h1.knownBtn + '/' + h1.knownN);
+  T(h1.dis[0] === (h1.qi < h1.costTuna),
+    'H1b 槽卡升级钮的 disabled === 引擎 `upgradeCost` 与实有修为之比（写死 disabled 或写死不放都是假在跑）',
+    'qi=' + Math.round(h1.qi) + ' cost=' + h1.costTuna + ' disabled=' + h1.dis[0]);
+  /* H2 把吐纳法卸下 ⇒ 造出「已学会且槽外」那一侧（用户原话「下方已学会不需要升级功能」指的正是它），
+   * 判完立即装回：autoSlot 只在载入时补空槽，不装回就一直缺这一格，后面的组会跟着换形。 */
+  await page.evaluate(() => { const b = document.querySelector('#tab-arts [data-act="unslotArt"][data-v="tuna"]'); if (b) b.click(); });
+  await page.waitForTimeout(300);
+  const h2 = await slotRead(IDS);
+  const ht = h2.cards[0];
+  T(h2.n === 2 && ht.up === 0 && ht.slot === true && ht.unslot === false && h2.knownBtn === 0,
+    'H2 槽外那一侧：卸下吐纳法后它的已学会卡**不给升级钮**（只留装入 + 弃置），槽里少一格',
+    '槽=' + h2.n + ' 该卡升级钮=' + ht.up + ' 装入=' + ht.slot + ' 卸下=' + ht.unslot + ' 全文钮=' + h2.knownBtn);
+  await page.evaluate(() => { const b = document.querySelector('#tab-arts .artgrid [data-act="slotArt"][data-v="tuna"]'); if (b) b.click(); });
+  await page.waitForTimeout(250);
+  const h3 = await slotRead(IDS);
+  T(h3.n === 3 && h3.slots.indexOf('tuna') >= 0 && h3.knownN === 3,
+    'H3 装回复原（H2 是点击改态、不是判据本身：不还原则后面几组看到的槽形与本批 fixture 不同）',
+    '槽=' + h3.n + ' slots=' + h3.slots.join('/') + ' 已学会=' + h3.knownN);
 
   /* ── N6 点法器标签：只渲染法器段 + 滚动归零（先滚深再切，验「切段等价换页」）── */
   await page.evaluate(() => { const b = document.querySelector('.tabbody'); b.scrollTop = 600; });
