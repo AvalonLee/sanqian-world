@@ -764,9 +764,20 @@
     var rv = ws.revenge;
     if (rv) {
       if (now < (rv.nextAt || 0)) return null;
-      var realm = Math.min((ws.realm || 0) + 1, D.REALMS.length - 1);
-      var foe = { src: 'clan', nm: SQ.t('event.ambush.foe.clan', { foe: rv.foe || '' }, 'xiuxian'),
-        realm: realm, power: Math.round(D.REALMS[realm].power * A.REVENGE_K) };
+      /* 第卌五批（用户改口径 · N56 收口）：偿清满 REVENGE_FINAL 场 ⇒ 上门的是高**两**境的族中老祖。
+       * 战力取两者之大：`REALMS[玩家+2].power`（境界表量级，一境 ≈3 倍）与「玩家实付 ×REVENGE_FINAL_MIN」的下界——
+       * 只按境界表立不起这道墙：① 顶到真仙两档都钳成同境；② 玩家实付含法器/功法乘区，高一境基值常年被越过
+       * （第卌四批全量读数 寻仇 2393 场零链断就是这条证据）。这条判定只掷**我方**一侧 ±10% 且仍要 ≥ 快照 ×1.01（最高只翻 1.1÷1.01≈1.089）
+       * ⇒ ×1.2 挂出时当场掷不赢，只有在这一链期间把战力长过它才翻盘 = 「几乎必败」而非档上写死必败；败即链断（failE 道伤全额），
+       * 玩家要往下走只能另寻他法（疗道伤 / 变强 / 收手不再袭杀）。
+       * 屏上不报敌手境界、只报名号与战力 ⇒ 顶档钳同境时这句注释也不撒谎。 */
+      var hard = (rv.n || 0) >= A.REVENGE_FINAL;
+      var realm = Math.min((ws.realm || 0) + (hard ? 2 : 1), D.REALMS.length - 1);
+      var foeP = hard ? Math.max(D.REALMS[realm].power,
+        Math.round(powerOf(ws, (ctx && ctx.profile) || { talents: [] }) * A.REVENGE_FINAL_MIN))
+        : Math.round(D.REALMS[realm].power * A.REVENGE_K);
+      var foe = { src: 'clan', nm: SQ.t(hard ? 'event.ambush.foe.elder' : 'event.ambush.foe.clan',
+        { foe: rv.foe || '' }, 'xiuxian'), realm: realm, power: foeP };
       return foeFire(ws, pack, D, 'ambush_revenge', foe, now, ctx, 'revenge');
     }
     ws.ambushClock = (ws.ambushClock || 0) + dtMs;

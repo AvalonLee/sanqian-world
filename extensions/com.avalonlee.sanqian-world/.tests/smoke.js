@@ -10250,15 +10250,17 @@
       var rs0 = stubRandom([0, 0]);
       sys311.ambushTick(w, pack, D, 1000, t311, { log: noopLog() });
       rs0();
+      var foe0 = (w.pendingChoice || {}).foe || {};
       var st0 = w.stones, qi0 = Math.floor(w.qi);
       var rs = stubRandom([0.99, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
       var res = SQ.Events.resolveBranch(w, pack, D, M(mkProf([]), w), "ambush_revenge", "right", t311,
         { log: noopLog(), profile: mkProf([]) });
       rs();
       var set = sys311.ambushSettled(w, pack, D, "ambush_revenge", res.pass, t311, noopLog());
-      return { w: w, res: res, set: set, stones: w.stones - st0, qi: Math.floor(w.qi) - qi0 };
+      return { w: w, res: res, set: set, foe: foe0, stones: w.stones - st0, qi: Math.floor(w.qi) - qi0 };
     }
-    var g0_311 = run311(0), g3_311 = run311(4);
+    /* 递增比用**未满档**两局（n=0 与 n=2，倍率 1 → 2）；n≥REVENGE_FINAL 是老祖那一档，掷不赢、拿来比倍率没有意义 */
+    var g0_311 = run311(0), g3_311 = run311(2), wall311 = run311(A310.REVENGE_FINAL);
     var ratio311 = g0_311.stones > 0 ? g3_311.stones / g0_311.stones : 0;
     /* 败局（realm2 打不过高一境）：道伤 = failE.dao 4 全额、链断且不写冷却 */
     var w311b = mkRv311(3, t311, 2);
@@ -10270,25 +10272,46 @@
       { log: noopLog(), profile: mkProf([]) });
     rs311b();
     var set311b = sys311.ambushSettled(w311b, pack, D, "ambush_revenge", res311b.pass, t311, noopLog());
+    /* 第卌五批（用户改口径 · N56 收口）：偿清满 REVENGE_FINAL 场 ⇒ 上门的是高**两**境的族中老祖，未满仍高一境 */
+    function foeOf311(n, realm) {
+      var w = mkRv311(n, t311, realm);
+      var rs = stubRandom([0, 0]);
+      sys311.ambushTick(w, pack, D, 1000, t311, { log: noopLog() });
+      rs();
+      return (w.pendingChoice || {}).foe || {};
+    }
+    var soft311 = foeOf311(A310.REVENGE_FINAL - 1, 3), hard311 = foeOf311(A310.REVENGE_FINAL, 3);
     ok("311", "族中寻仇链（第卌四批）：(a) 冷却未到不发（null 且不挂抉择） (b) 到点必发：id=ambush_revenge、via=revenge、" +
       " 顶档 realm 钳成同境 = " + foe311.realm + "、power = REALMS[9].power × REVENGE_K(" + A310.REVENGE_K + ") = " +
       foe311.power + " (c) 模板只声明 right 一支 ⇒ 界面天然只剩一枚「迎战」钮 (d) 倍率逐值 n=0/1/2/3/4/9 → " +
-      mults311.join("/") + "（硬顶 " + A310.STREAK_CAP + "） (e) 同 seed 两局灵石比 = " + ratio311.toFixed(3) +
-      " ≈ 顶倍率 " + A310.STREAK_CAP + " 且**修为增额两局相同**（" + g0_311.qi + " === " + g3_311.qi +
+      mults311.join("/") + "（硬顶 " + A310.STREAK_CAP + "） (e) 同 seed 两局（n=0 与 n=2，都在未满档）灵石比 = " + ratio311.toFixed(3) +
+      " = 倍率比 " + sys311.escalationOf(mkRv311(2, 0)) + " 且**修为增额两局相同**（" + g0_311.qi + " === " + g3_311.qi +
       "）⇒ escalate 只喂 stones、模板零污染 (f) 胜账 n→" + g0_311.set.chain + " / " + g3_311.set.chain +
-      " 且 nextAt = now+" + A310.REVENGE_CD_MS + " (g) 败账：道伤 +4（failE 全额）、revenge=null、链断不进冷却",
+      " 且 nextAt = now+" + A310.REVENGE_CD_MS + " (g) 败账：道伤 +4（failE 全额）、revenge=null、链断不进冷却" +
+      " (h) 第卌五批改口：满 " + A310.REVENGE_FINAL + " 场前 realm 3 → 来者 " + soft311.realm + "（高一境）、power " + soft311.power +
+      "；满 " + A310.REVENGE_FINAL + " 场 → 来者 " + hard311.realm + "（高两境）、power " + hard311.power + "（= 前者 ×3）且名号挂「老祖」" +
+      " (i) 老祖当关：真仙顶档满 " + A310.REVENGE_FINAL + " 场来者 power = " + wall311.foe.power +
+      "（钳同境也仍取「实付 ×" + A310.REVENGE_FINAL_MIN + "」下界 > 高一境基值 " + foe311.power + "），" +
+      "同一把最有利掷点 n=" + A310.REVENGE_FINAL + " ⇒ pass=false、道伤 +4、链断不进冷却",
       wait311 === null && w311w.pendingChoice === null &&
       fire311 && fire311.id === "ambush_revenge" && fire311.via === "revenge" && foe311.realm === 9 &&
       foe311.power === Math.round(D.REALMS[9].power * A310.REVENGE_K) && foe311.src === "clan" &&
       Object.keys(evR311.choices).join(",") === "right" && mults311.join(",") === "1,1.5,2,2.5,3,3" &&
-      g0_311.res.pass && g3_311.res.pass && Math.abs(ratio311 - A310.STREAK_CAP) < 0.02 && g0_311.qi === g3_311.qi &&
-      g0_311.set.chain === 1 && g3_311.set.chain === 5 && g0_311.set.nextAt === t311 + A310.REVENGE_CD_MS &&
+      g0_311.res.pass && g3_311.res.pass &&
+      Math.abs(ratio311 - sys311.escalationOf(mkRv311(2, 0))) < 0.02 && g0_311.qi === g3_311.qi &&
+      g0_311.set.chain === 1 && g3_311.set.chain === 3 && g0_311.set.nextAt === t311 + A310.REVENGE_CD_MS &&
       res311b.pass === false && w311b.daoShang === 4 && w311b.revenge === null &&
-      set311b.ended === true && set311b.chain === 0,
+      set311b.ended === true && set311b.chain === 0 &&
+      soft311.realm === 4 && soft311.power === Math.round(D.REALMS[4].power * A310.REVENGE_K) &&
+      hard311.realm === 5 && hard311.power === Math.round(D.REALMS[5].power * A310.REVENGE_K) &&
+      hard311.power === soft311.power * 3 && /老祖$/.test(hard311.nm) && !/老祖$/.test(soft311.nm) &&
+      wall311.res.pass === false && wall311.set.ended === true && wall311.foe.power > foe311.power &&
+      wall311.w.daoShang === 4,
       "不发=" + (wait311 === null) + " ‖ 到点=" + JSON.stringify([fire311 && fire311.id, fire311 && fire311.via, foe311]) +
       " ‖ 倍率=" + mults311.join("/") + " ‖ 两局=" + JSON.stringify([[g0_311.stones, g0_311.qi], [g3_311.stones, g3_311.qi],
       ratio311.toFixed(3)]) + " ‖ 账=" + JSON.stringify([g0_311.set, g3_311.set]) +
-      " ‖ 败=" + JSON.stringify([res311b.pass, w311b.daoShang, w311b.revenge, set311b]));
+      " ‖ 败=" + JSON.stringify([res311b.pass, w311b.daoShang, w311b.revenge, set311b]) +
+      " ‖ 两档=" + JSON.stringify([[soft311.realm, soft311.power, soft311.nm], [hard311.realm, hard311.power, hard311.nm]]));
 
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');
