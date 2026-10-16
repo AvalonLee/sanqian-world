@@ -750,7 +750,7 @@
     'event.ambush_by_right.branch.evil': '认输：交出随身灵石的一成半，买一条通路',
     'event.ambush_by_right.branch.neutral': '避战：绕道而行，无得失',
     'event.ambush_revenge.name': '族中寻仇',
-    'event.ambush_revenge.story': '你袭杀的那人，族里终究还是查到了你头上。来者不递话、不讲价、不给你绕道的余地——他要的只是把这一笔抹平。境界压你一头，战力写在明处。此战只能迎战。',
+    'event.ambush_revenge.story': '你袭杀的那人，族里终究还是查到了你头上。来者不递话、不讲价、不给你绕道的余地——他要的只是把这一笔抹平。境界压你在上（连偿三场之后上门的，是高两境的族中老祖），战力写在明处。此战只能迎战。',
     'event.ambush_revenge.branch.right': '迎战：胜则缴下这份仇、并取走他们的赔偿；败则重伤，此仇暂止',
     'event.check.type.ambushFoe': '敌手战力',
     'event.ambush.ui.foe': '来者 {name} · 战力 {p}',
@@ -761,6 +761,7 @@
     'event.ambush.log.revenge': '{name} 寻上门来，此战避不开',
     'event.ambush.log.chainwin': '你连胜 {n} 场，对方一族越发动真格（{m} 分钟后再来）',
     'event.ambush.log.chainend': '{foe} 之仇到此为止——对方见你已受创，收手而去',
-    'event.ambush.foe.clan': '{foe} 的族中高手'
+    'event.ambush.foe.clan': '{foe} 的族中高手',
+    'event.ambush.foe.elder': '{foe} 的族中老祖'
   });
 })();
