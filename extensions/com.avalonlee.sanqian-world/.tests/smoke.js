@@ -10908,7 +10908,7 @@
     var s320 = SQ.defaultState();
     var prof320 = function (p) { return SQ.normalize({ v: s320.v, profile: p, worlds: {}, meta: {} }).profile; };
     var a320 = s320.profile.seenNote === null;
-    var b320 = prof320({ name: '甲', seenNote: '2026-10-17-1' }).seenNote === '2026-10-17-1';
+    var b320 = prof320({ name: '甲', seenNote: '2026-10-17-2' }).seenNote === '2026-10-17-2';
     var c320 = prof320({ seenNote: { a: 1 } }).seenNote === null && prof320({ seenNote: 7 }).seenNote === null &&
       prof320({ seenNote: '' }).seenNote === null;
     var d320 = prof320({ name: '甲' }).seenNote === null;                       /* 旧档无此键 ⇒ 补 null（不是 undefined） */
