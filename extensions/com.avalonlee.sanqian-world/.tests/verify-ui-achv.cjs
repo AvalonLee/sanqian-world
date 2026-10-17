@@ -20,7 +20,7 @@ async function buildSave() {
   ws.lastSave = now; ws.lastOffline = null; ws.pendingChoice = null;
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-2' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-3' },
     meta: { unlockedWorlds: ['xiuxian'], achv: [] },
     settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
     worlds: { xiuxian: ws }
@@ -173,6 +173,26 @@ function hintTotal() {
     };
   });
   T(narrow.cols === 1 && narrow.ccols === 1, 'A15 窄屏成就与图鉴网格退单列', 'achv=' + narrow.cols + ' codex=' + narrow.ccols);
+
+  /* A16 屏上同动（第册二批 · 与冒烟 #321 配成一对）：成就页原先自己写死 [50,80,100] 与三点，
+   * 改表只动引擎 ⇒ 屏上说旧话且零红。判据 = 当场改 MS_PCT，等一帧 tick 重绘，数每卡的里程碑点枚数。 */
+  const msDyn = await page.evaluate(async () => {
+    const D = SQ.Worlds.xiuxian.pack.data;
+    const dots = () => Array.prototype.slice.call(document.querySelectorAll('#tab-achv .facecard .msdots'))
+      .map(e => e.querySelectorAll('i').length);
+    const frame = () => new Promise(r => setTimeout(r, 1400));      /* tick 每秒 renderAll ⇒ 重绘一帧 */
+    const before = dots();
+    const keep = D.CODEX.MS_PCT.slice();
+    D.CODEX.MS_PCT = [0.2, 0.6];                                    /* 合成表：两档（不落盘）*/
+    await frame();
+    const after = dots();
+    D.CODEX.MS_PCT = keep;
+    await frame();
+    return { before: before, after: after, restored: dots(), n: before.length };
+  });
+  T(msDyn.n >= 10 && msDyn.before.every(x => x === 3) && msDyn.after.length === msDyn.n && msDyn.after.every(x => x === 2) && msDyn.restored.every(x => x === 3),
+    'A16 当场改 MS_PCT ⇒ 每张图鉴卡里程碑点从 3 枚变 2 枚、改回复原（证成就页读引擎单源，不是自己写死三档）',
+    '卡=' + msDyn.n + ' 改前=' + msDyn.before.join(',') + ' 改后=' + msDyn.after.join(',') + ' 复原=' + msDyn.restored.join(','));
 
   T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 150) || 'clean');
 

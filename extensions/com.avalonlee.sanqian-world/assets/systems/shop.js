@@ -235,7 +235,7 @@
       if (ws.stones < it.price) return { ok: false, reason: 'poor' };
       var st2 = ws.stones;
       /* 丹药两族合一（第十七批）：坊市 / 黑市 / 特席买到的成品丹**入丹匣**，何时服用由玩家定
-       * （旧行为是购买瞬间 applyEffects，玩家没有选择权，且绕过丹毒日限）。**先判后扣**：匣满即拒单，
+       * （旧行为是购买瞬间 applyEffects，玩家没有选择权）。**先判后扣**：匣满即拒单，
        * 灵石分文不动 —— 扣了钱却丢一颗丹 = 静默零收益那一族。 */
       if (it.kind === 'pill' && !SQ.Alchemy.pillRoom(ws, D, it.ref, 1)) return { ok: false, reason: 'pillfull' };
       ws.stones -= it.price;
@@ -323,7 +323,7 @@
       if (ws.stones < it.price) return { ok: false, reason: 'poor' };
       var st2 = ws.stones;
       /* 丹药两族合一（第十七批）：坊市 / 黑市 / 特席买到的成品丹**入丹匣**，何时服用由玩家定
-       * （旧行为是购买瞬间 applyEffects，玩家没有选择权，且绕过丹毒日限）。**先判后扣**：匣满即拒单，
+       * （旧行为是购买瞬间 applyEffects，玩家没有选择权）。**先判后扣**：匣满即拒单，
        * 灵石分文不动 —— 扣了钱却丢一颗丹 = 静默零收益那一族。 */
       if (it.kind === 'pill' && !SQ.Alchemy.pillRoom(ws, D, it.ref, 1)) return { ok: false, reason: 'pillfull' };
       ws.stones -= it.price;

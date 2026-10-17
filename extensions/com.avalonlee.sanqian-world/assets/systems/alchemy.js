@@ -67,7 +67,6 @@
       prof: { dan: Math.max(0, Math.floor(num((obj(raw.prof, {})).dan, 0))),
         qi: Math.max(0, Math.floor(num((obj(raw.prof, {})).qi, 0))) },
       pills: {},
-      pillDay: { day: Math.floor(num((obj(raw.pillDay, {})).day, -1)), n: Math.max(0, Math.floor(num((obj(raw.pillDay, {})).n, 0))) },
       pillOnce: { pozhang: Math.floor(num((obj(raw.pillOnce, {})).pozhang, -1)), zhenjie: Math.floor(num((obj(raw.pillOnce, {})).zhenjie, -1)) },
       craft: null,
       farmAt: Math.max(0, num(raw.farmAt, 0)),
@@ -95,7 +94,7 @@
   function ensure(ws, D) {
     if (!ws.alchemy || typeof ws.alchemy !== 'object') {
       ws.alchemy = { furnace: false, recipes: [], blueprints: [], prof: { dan: 0, qi: 0 },
-        pills: {}, pillDay: { day: -1, n: 0 }, pillOnce: { pozhang: -1, zhenjie: -1 },
+        pills: {}, pillOnce: { pozhang: -1, zhenjie: -1 },
         craft: null, farmAt: 0, fires: 0, jiuzhuan: 0, forgeMade: 0 };
     }
     if (!ws.materials || typeof ws.materials !== 'object') ws.materials = {};
@@ -496,13 +495,13 @@
     return { ok: true, success: true, p: pQ, item: item, res: res };
   }
 
-  /* ── 服用丹药（§3.6 校验链：持有 → 双特例每境界限 → 丹毒日限 → 效果落地）── */
+  /* ── 服用丹药（§3.6 校验链：持有 → 双特例每境界限 → 洗髓预算 → 效果落地；🔧 N43 起原第三道「丹毒日限」已退役）── */
   function gameDayOf(ws, profile, now) {
     var born = (profile && profile.createdAt) || 0;
     return born > 0 ? Math.floor((now - born) / 1000) : 0;   /* 1 游戏日 = 1 现实秒（§1.6 同源） */
   }
   /* 丹药两族合一（第十七批）：自产 APILLS（ap_*，可带 _rw 丹纹版）与成品丹 D.PILLS 在**这一处**统一描述，
-   * 进匣 / 服用 / 丹毒 / 赠礼四件事同轨；两族只在「效果怎么落」上不同。 */
+   * 进匣 / 服用 / 赠礼三件事同轨（🔧 N43：原来的第四件「丹毒计数」随日限退役）；两族只在「效果怎么落」上不同。 */
   function pillDefOf(D, key) {
     var AL = A(D);
     var k = String(key || '');
@@ -554,7 +553,7 @@
     var def = pd && pd.kind === 'self' ? pd.def : null;
     if (!pd || (al.pills[pillKey] || 0) < 1) return { ok: false, reason: 'stock' };
     var rune = /_rw$/.test(pillKey);
-    /* 双特例每境界限 1（独立于丹毒计数；被拒时不消耗当日计数——串行校验，§3.3） */
+    /* 双特例每境界限 1（🔧 N43：原句「独立于丹毒计数、被拒不消耗当日计数」随 §3.3 退役——现行只判「被拒不吞丹」= 库存守恒，#210 钉） */
     if (def && def.once) {
       if ((al.pillOnce[def.once] != null ? al.pillOnce[def.once] : -1) === ws.realm) {
         return { ok: false, reason: 'once' };
@@ -563,13 +562,13 @@
     /* 洗髓丹刻意**不套**每境界一服闸（本世上限已由 D.TALENT_SWAP.PER_LIFE 卡住，同境连服是设计意图）；
      * 但预算已满必须在扣丹之前拒 —— 先扣后赐就是「吃一颗丹、零收益、还报成功」 */
     if (def && def.swap && !SQ.Talents.swapRoom(ws, D)) return { ok: false, reason: 'swapfull' };
-    /* 丹毒：每游戏日 4 颗（第十七批 3 → 4）——**自产丹与成品丹同池同计数**（跨日自动清零重计） */
-    var day = gameDayOf(ws, profile, now);
-    if (al.pillDay.day !== day) al.pillDay = { day: day, n: 0 };
-    if (al.pillDay.n >= (AL.PILL_DAILY_CAP || 3)) return { ok: false, reason: 'daily' };
+    /* N43 定案（第册四批点头 · 第册十二批落地）：**丹毒日限整族退役**。
+     * `PILL_DAILY_CAP` 走的是 `gameDayOf`，而 **1 游戏日 = 1 现实秒** ⇒ 每次点击都已跨日清零，
+     * 这道闸从来没有牙齿（与 GitHub issue #4 撤掉的赠丹日限同一形状），留着只会让屏上那句
+     * 「丹毒已满（每游戏日 N 颗）」说谎。防连点叠 buff 本来就由冒烟 #119「同字段同向不叠加」守着，
+     * 撤闸不开新口子。`ws.alchemy.pillDay` 同批退役（normalize 不再搬运 ⇒ 旧档读进来即丢弃该键）。 */
     al.pills[pillKey] -= 1;
     if (al.pills[pillKey] <= 0) delete al.pills[pillKey];
-    al.pillDay.n += 1;
     var wid = pack.worldId;
     if (def && def.buff) {
       var mult = def.buff.mult * (rune ? 2 : 1);   /* 丹纹版数值 ×2、时长不变（§4.5） */

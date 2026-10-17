@@ -218,7 +218,7 @@
       sil.forEach(function (x) { h += artSilhouette(c, x, am[x]); });
       h += '<div class="cards">' + ownedS.concat(unownedS).map(function (x) { return artCodexCard(c, x, w); }).join('') + '</div>';
     });
-    h += c.fuseAltar();
+    h += renderFuseAltar(c);
     return h;
   }
 
@@ -351,9 +351,139 @@
         return;
   }
 
+  /* ── 融合坛与悟道石（第册十批随「器段」这一刀从内核并进本件：融合坛渲染在「法」段里、
+   * 悟道石那一颗按钮就在融合坛上，三者是一套，留在内核只会让桥多养一枚 `fuseAltar`）── */
+  function renderFuseAltar(c) {
+    var w = c.w, d = c.d, p = c.p;
+    if (!SQ.Fusion || w.realm < 4) return '';
+    var fu = w.fusion || { customs: [], meditate: 0, lastFuseAt: 0, seq: 0 };
+    c.ui.fuseSel = c.ui.fuseSel || [];
+    var h = '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + c.esc(c.t('fuse.system')) + '</p>';
+    var chk = SQ.Fusion.canFuse(w, p, d, c.ui.fuseSel[0] || '', c.ui.fuseSel[1] || '', Date.now());
+    var needH = (d.FUSE || {}).MEDITATE_NEED_H || 12;
+    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('fuse.ui.wudao')) + '</p>';
+    h += '<div class="kv"><span>' + c.esc(c.t('fuse.ui.wudao.med', { h: Math.floor(fu.meditate || 0), need: needH })) + ' · ' +
+      '<button class="linkbtn" data-act="matWudao" style="padding:0;vertical-align:baseline">' +
+      c.esc(c.t('fuse.ui.wudao.stone', { n: (w.materials || {})['mat_wudao'] || 0 })) + '</button></span>' +
+      '<span>' + c.esc(c.t('fuse.ui.p', { p: Math.round(SQ.Fusion.fuseP(w, d) * 100) })) + '</span></div>';
+    if (fu.lastFuseAt > 0 && Date.now() - fu.lastFuseAt < (d.FUSE.CD_MS)) {
+      h += '<div class="kv hint"><span>' + c.esc(c.t('fuse.ui.cd', { t: c.timeLeft(fu.lastFuseAt + d.FUSE.CD_MS - Date.now()) })) + '</span></div>';
+    }
+    h += '<p class="hint">' + c.esc(c.t('fuse.ui.parents')) + '</p><div class="chips">';
+    (w.artsKnown || []).forEach(function (id) {
+      if (SQ.Arts.levelOf(w, id) < 9) return;   /* 走 levelOf：原 `artsLevels[id] < 9` 在无键时是 undefined<9=false ⇒ 满级关形同不存在 */
+      var def = SQ.Fusion.artDefOf(w, id);
+      if (!def || (def.obtain || {}).type === 'event_locked') return;
+      var cU = SQ.Fusion.customById(w, id);
+      if (cU && cU.gen >= (d.FUSE.GEN_MAX || 3)) return;
+      var on = c.ui.fuseSel.indexOf(id) >= 0;
+      h += '<button class="' + (on ? 'on' : '') + '" data-act="fusePick" data-v="' + id + '">' + c.esc(c.t('skill.' + id + '.name')) + '</button>';
+    });
+    h += '</div>';
+    if (c.ui.fuseSel.length === 2) {
+      h += '<div class="sectnamebox"><input class="tdta fusename" style="min-height:38px" maxlength="8" placeholder="' + c.esc(c.t('fuse.ui.name.ph')) + '" value="' + c.esc(c.ui.fuseName || '') + '"></div>';
+      h += '<button class="primary" data-act="fuseStart" style="width:100%;margin-top:6px">' + c.esc(c.t('fuse.ui.btn')) + '</button>';
+    } else if (chk.ok) {
+      h += '<p class="hint">' + c.esc(c.t('fuse.ui.pick2')) + '</p>';
+    } else if (c.ui.fuseSel.length < 2) {
+      h += '<p class="hint">' + c.esc(c.t('fuse.ui.pick2')) + '</p>';
+    }
+    /* 自创部一览（融合扩容批：混沌签名徽标 + 淬炼按钮） */
+    if ((fu.customs || []).length) {
+      h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + c.esc(c.t('fuse.ui.customs')) + '</p>';
+      h += '<div class="meta hint" style="margin-top:8px">' + c.esc(c.t('fuse.chaos.hint')) + '</div>';
+    }
+    var fuR0 = (fu.lastReforgeAt || 0) + ((d.FUSE || {}).REFORGE_CD_MS);
+    (fu.customs || []).forEach(function (cu) {
+      var cdR = fuR0 - Date.now();
+      var costR = SQ.Fusion.reforgeCostOf(cu, d);   /* 与引擎同一个取数口（审计 #9：原先视图兜底 800 = 玄阶价，引擎兜底 huang = 200） */
+      var hasStoneR = ((w.materials || {})['mat_wudao'] || 0) >= 1;
+      var canR = cdR <= 0 && w.stones >= costR && hasStoneR;
+      var rBtnTxt = cdR > 0 ? c.t('fuse.reforge.cd', { t: c.timeLeft(cdR) })
+        : c.t('fuse.reforge.btn') + ' · ' + c.t('fuse.reforge.cost', { n: SQ.fmt(costR) });
+      h += '<div class="lrow"><div class="nm">' + c.esc(cu.name) + ' <span class="tierbadge t' + cu.tier + '">' + c.esc(c.t('skill.tier.' + ['huang', 'xuan', 'di', 'tian'][cu.tier])) + '</span>' +
+        ' <span class="hint">' + c.esc(c.t('fuse.ui.gen', { n: cu.gen })) + '</span>' +
+        (cu.special ? ' <span class="special-mark">' + c.esc(c.t('special.' + cu.special.pool + '.name') + '·' + c.t('special.grade.' + cu.special.grade)) + '</span>' : '') + '</div>' +
+        '<div class="meta">' + c.esc(SQ.effectsToText(cu.effects, 'xiuxian')) + '</div>' +
+        '<div class="meta hint">' + c.esc(cu.parents.map(function (pp) { return pp.name; }).join(' + ')) + '</div>' +
+        '<div class="acts"><button data-act="customReforge" data-v="' + cu.id + '"' + (canR ? '' : ' disabled') + '>' + c.esc(rBtnTxt) + '</button></div></div>';
+    });
+    return h;
+  }
+  function renderMatWudao(c) {
+    c.$('mwd-title').textContent = c.t('alchemy.mat.mat_wudao.name');
+    c.$('mwd-desc').textContent = c.t('alchemy.mat.mat_wudao.desc');
+    c.$('mwd-srct').textContent = c.t('alchemy.mat.mat_wudao.src.title');
+    c.$('mwd-src').textContent = c.t('alchemy.mat.mat_wudao.src');
+    c.$('mwd-close').textContent = c.t('ui.close');
+  }
+  function openMatWudao(c) { renderMatWudao(c); c.$('modal-matwudao').classList.remove('hide'); }
+
+  /* act「matWudao」分支体（第册十批随片搬出，分派处留一行调用）*/
+  function actMatWudao(c) {
+      openMatWudao(c); return;
+  }
+
+  /* act「fusePick」分支体（第册十批随片搬出，分派处留一行调用）*/
+  function actFusePick(c, v) {
+      c.ui.fuseSel = c.ui.fuseSel || [];
+      var ixF = c.ui.fuseSel.indexOf(v);
+      if (ixF >= 0) c.ui.fuseSel.splice(ixF, 1);
+      else if (c.ui.fuseSel.length < 2) c.ui.fuseSel.push(v);
+      else c.ui.fuseSel = [c.ui.fuseSel[1], v];
+      c.renderTab();
+      return;
+  }
+
+  /* act「fuseStart」分支体（第册十批随片搬出，分派处留一行调用）*/
+  async function actFuseStart(c) {
+      var nameIn = document.querySelector('.fusename');
+      c.ask(c.t('fuse.ui.btn'), c.t('fuse.ui.confirm', { p: Math.round(SQ.Fusion.fuseP(c.w, c.d) * 100) }), async function () {
+        var rF = await SQ.Actions.fuseStart(c.s, c.ui.fuseSel[0], c.ui.fuseSel[1], nameIn ? nameIn.value : '');
+        if (rF && rF.ok && rF.success) {
+          c.ui.fuseSel = [];
+          c.ui.fuseName = '';                 /* 成交即清：下一对父母不该继承上一部的自定义名 */
+          c.toast(c.t('fuse.log.win', { name: rF.art.name, gen: rF.art.gen, tier: c.t('skill.tier.' + ['huang', 'xuan', 'di', 'tian'][rF.art.tier]) }));
+        } else if (rF && rF.ok) {
+          c.toast(c.t('fuse.log.fail', { p: Math.round(rF.p * 100) }));
+        } else if (rF && rF.reason === 'cd') {
+          c.toast(c.t('fuse.ui.cd', { t: c.timeLeft(rF.until - Date.now()) }));
+        } else if (rF) {
+          var fk = 'fuse.ui.fail.' + rF.reason;
+          var fv = c.t(fk, { need: (c.d.FUSE || {}).MEDITATE_NEED_H || 12 });
+          c.toast(fv !== fk ? fv : c.t('fuse.ui.fail.other'));
+        }
+        c.renderAll();
+      });
+      return;
+  }
+
+  /* act「customReforge」分支体（第册十批随片搬出，分派处留一行调用）*/
+  async function actCustomReforge(c, v) {
+      /* 混沌淬炼（融合扩容批 §4.4）：悟道石 ×1 + 灵石随尝试消耗，掷 CHAOS_P 淬出混沌签名 */
+      var cR0 = SQ.Fusion.customById(c.w, v);
+      var costR0 = SQ.Fusion.reforgeCostOf(cR0, c.d);
+      c.ask(c.t('fuse.reforge.btn'), c.t('fuse.reforge.confirm', {
+        n: SQ.fmt(costR0), p: Math.round(((c.d.FUSE || {}).CHAOS_P || 0.30) * 100)
+      }), async function () {
+        var rR = await SQ.Actions.customReforge(c.s, v);
+        if (rR && rR.ok && rR.hit) c.toast(c.t('fuse.reforge.hit', { name: (cR0 || {}).name || '', sig: c.t('special.' + rR.pool + '.name') }));
+        else if (rR && rR.ok) c.toast(c.t('fuse.reforge.miss', { name: (cR0 || {}).name || '' }));
+        else if (rR && rR.reason === 'cd') c.toast(c.t('fuse.reforge.cd', { t: c.timeLeft(rR.until - Date.now()) }));
+        else if (rR && rR.reason === 'poor') c.toast(c.t('fuse.reforge.poor'));
+        else if (rR && rR.reason === 'wudao') c.toast(c.t('fuse.reforge.wudao'));
+        /* 'unknown'（自创部已不在档）原为**静默无提示** ⇒ 点了没反应，与购买支同形缺陷 */
+        else if (rR) c.toast(c.t('fuse.reforge.unknown'));
+        c.renderAll();
+      });
+      return;
+  }
+
+
   SQ.UI = SQ.UI || {};
   SQ.UI.arts = {
-    body: artsBody, lack: artLackTexts, fxLine: artFxLine,
+    body: artsBody, fuse: renderFuseAltar,
+    actMatWudao: actMatWudao, actFusePick: actFusePick, actFuseStart: actFuseStart, actCustomReforge: actCustomReforge, lack: artLackTexts, fxLine: artFxLine,
     actSlot: actSlot, actReplace: actReplace, actSetMain: actSetMain, actSalvage: actSalvage
   };
 })();

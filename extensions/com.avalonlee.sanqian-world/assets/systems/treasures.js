@@ -7,8 +7,9 @@
  * 只带 1 条签名效果；效果按 scaled 挂点并入 mods（同乘区加算），脚本型走 special。
  *
  * 存档字段 worlds.<id>.treasures：
- *   { owned: [{id, lv?, stage?, st:{}}], slots: [id|null ×3], fate: {trib,check,drop,event}, bondCount }
- *   - 后天法宝 lv 1~5（祭炼）；先天法宝 stage 1~3（认主）；st = 脚本运行态（按件）——
+ *   { owned: [{id, lv?, stage?, st:{}}], slots: [id|null ×3], fate: {trib,check,drop,event} }
+ *   - 后天法宝 lv 1~5（祭炼）；先天法宝 stage 1~3（认主，进度按件住 `st.bondN` / `st.bondH`，
+ *     🔧 N52 起顶层不再有 bondCount / bondHours 那两枚全局数）；st = 脚本运行态（按件）——
  *     顶层键是**登记表管控**的透传面，见文末 `SQ.Treasures.ST_KEYS` 的口径注。
  */
 (function () {
@@ -39,7 +40,8 @@
   }
 
   function blank() {
-    return { owned: [], slots: [null, null, null], fate: { trib: 0, check: 0, drop: 0, event: 0 }, bondCount: 0, bondHours: 0 };
+    /* 🔧 N52（第册十二批）：顶层 bondCount / bondHours 两键退役 ⇒ 认主进度按件住 owned[].st */
+    return { owned: [], slots: [null, null, null], fate: { trib: 0, check: 0, drop: 0, event: 0 } };
   }
 
   var num = SQ.util.num;   /* C1：统一至 assets/util.js */
@@ -49,8 +51,7 @@
     var d = blank();
     if (!raw || typeof raw !== 'object') return d;
     var byId = (T(pack) && T(pack).byId) || {};
-    var out = { owned: [], slots: [null, null, null], fate: {}, bondCount: int(raw.bondCount, 0),
-      bondHours: Math.max(0, num(raw.bondHours, 0)) };
+    var out = { owned: [], slots: [null, null, null], fate: {} };   /* 🔧 N52：旧档顶层 bondCount / bondHours 不再搬运 ⇒ 读档即剪，各件从 0 起计（不摊派） */
     var seen = {};
     (Array.isArray(raw.owned) ? raw.owned : []).forEach(function (e) {
       if (!e || !byId[e.id] || seen[e.id]) return;
@@ -252,61 +253,77 @@
     return { ok: true, fail: false, lv: e.lv, cost: cost };
   }
 
-  /* ── 认主（先天）：每 BOND_COST 次计数 +1 阶；计数有两条来源（数值详设 §十 + 第卌三批计时通道）
-   * ① 渡劫成功 +1/次；② 每 BOND_HOURS 小时**已结算时长** +1/份。两条共用同一个 bondCount 与同一条
-   * 推进口（bondAdvance），不另立升级路——计时只是「卡境渡不了劫时不再整段停摆」的下限，
-   * 中期两次渡劫 ≈1~2h 仍远快于 8h/份。 */
-  function bondAdvance(ws, pack, D, log) {
-    var t = T(pack);
-    if (!t) return;
-    var tr = ensure(ws);
-    if (tr.bondCount % t.BOND_COST !== 0) return;
-    tr.owned.forEach(function (e) {
+  /* ── 认主（先天）：每 BOND_COST 份计数 +1 阶；计数有两条来源（数值详设 §十 + 第卌三批计时通道）
+   * ① 渡劫成功 +1/次；② 每 BOND_HOURS 小时**已结算时长** +1/份。
+   * 🔧 **N52（第册十二批）= 按件计时**：两枚进度从 `ws.treasures` 顶层下沉到 `owned[].st`
+   *（`bondN` 计数 / `bondH` 计时余数，同批改 `ST_KEYS`，由审计 A7 + 冒烟 #281 对表）。
+   * 旧形状是「认主与渡劫共吃一枚全局 bondCount」⇒ 卡上看不出「这件还差几小时」、多件共享同一份；
+   * **旧全局值不摊派**（用户裁定）：顶层两键读档即剪，每件从 0 起计——摊给各件等于凭空送进度。
+   * 计时只是「卡境渡不了劫时不再整段停摆」的下限，中期两次渡劫 ≈1~2h 仍远快于 8h/份。 */
+  function bondItems(ws, pack) {
+    var out = [];
+    ensure(ws).owned.forEach(function (e) {
       var d = def(pack, e.id);
-      if (!d || d.kind !== 'xian') return;
-      var cur = e.stage || 1;
-      if (cur >= maxOf(pack, d)) return;
-      e.stage = cur + 1;
-      /* 认主晋阶给寿（第卌八批 · 用户令「法宝会给寿元带来效益」）：只认表里写了 `life` 的那几件，
-       * 一阶一次入账（三阶共三次），走的仍是 lifeAdd 那唯一写口——法宝不在身上也认了主，寿就收下了。 */
-      if (d.life && pack.worldSystems && pack.worldSystems.lifeAdd) {
-        pack.worldSystems.lifeAdd(ws, d.life, log, 'sys', SQ.t('treasure.' + e.id + '.name', null, pack.worldId));
-      }
-      if (log) {
-        log('sys', SQ.t('treasure.bond.done', {
-          name: SQ.t('treasure.' + e.id + '.name', null, pack.worldId), n: e.stage
-        }, pack.worldId));
-      }
+      if (!d || d.kind !== 'xian' || (e.stage || 1) >= maxOf(pack, d)) return;   /* 满阶件不停在此处涨计数 */
+      if (!e.st || typeof e.st !== 'object') e.st = {};   /* 写点唯一收口：脏档里 st 可能不是对象 */
+      out.push(e);
     });
+    return out;
+  }
+  function bondStageIfDue(ws, pack, D, e, log) {
+    var t = T(pack);
+    var d = def(pack, e.id);
+    if (!t || !d || d.kind !== 'xian') return;
+    if ((e.st.bondN || 0) % (t.BOND_COST || 1) !== 0) return;
+    var cur = e.stage || 1;
+    if (cur >= maxOf(pack, d)) return;
+    e.stage = cur + 1;
+    /* 认主晋阶给寿（第卌八批 · 用户令「法宝会给寿元带来效益」）：只认表里写了 `life` 的那几件，
+     * 一阶一次入账（三阶共三次），走的仍是 lifeAdd 那唯一写口——法宝不在身上也认了主，寿就收下了。 */
+    if (d.life && pack.worldSystems && pack.worldSystems.lifeAdd) {
+      pack.worldSystems.lifeAdd(ws, d.life, log, 'sys', SQ.t('treasure.' + e.id + '.name', null, pack.worldId));
+    }
+    if (log) {
+      log('sys', SQ.t('treasure.bond.done', {
+        name: SQ.t('treasure.' + e.id + '.name', null, pack.worldId), n: e.stage
+      }, pack.worldId));
+    }
   }
 
   function bondTick(ws, pack, D, log) {
-    var t = T(pack);
-    if (!t) return;
-    var tr = ensure(ws);
-    tr.bondCount = (tr.bondCount || 0) + 1;
-    bondAdvance(ws, pack, D, log);
+    if (!T(pack) || !ws.treasures) return;
+    bondItems(ws, pack).forEach(function (e) {
+      e.st.bondN = (e.st.bondN || 0) + 1;
+      bondStageIfDue(ws, pack, D, e, log);
+    });
   }
 
-  /* 计时认主（体验批）：由世界包在 claim 结算后喂 idleRes.hours（与寿元同一条时钟、同一处口径）
-   * shortcut: 计时与计数都是 ws.treasures 顶层全局一枚（看不出按件进度、多件共享同一份），
-   * 要改成按件时先裁定按件 vs 全局，再把两键下沉 owned[].st 并同批改 ST_KEYS（A7 + 冒烟 #281 会抓）。 */
+  /* 计时认主（体验批 · N52 起按件）：由世界包在 claim 结算后喂 idleRes.hours（与寿元同一条时钟、同一处口径）*/
   function bondTime(ws, pack, D, hours, log) {
     var t = T(pack);
     if (!t || !(t.BOND_HOURS > 0) || !(hours > 0) || !ws.treasures) return;
-    var tr = ensure(ws);
-    /* 全数满阶（含未得先天法宝）即停表：省得 bondCount 无意义地长，也让新得之件从零起算 */
-    var allMaxed = tr.owned.every(function (e) {
-      var d = def(pack, e.id);
-      return !d || d.kind !== 'xian' || (e.stage || 1) >= maxOf(pack, d);
+    bondItems(ws, pack).forEach(function (e) {
+      e.st.bondH = (e.st.bondH || 0) + hours;
+      while (e.st.bondH >= t.BOND_HOURS) {
+        e.st.bondH -= t.BOND_HOURS;
+        e.st.bondN = (e.st.bondN || 0) + 1;
+        bondStageIfDue(ws, pack, D, e, log);
+        var d = def(pack, e.id);
+        if (!d || (e.stage || 1) >= maxOf(pack, d)) break;   /* 满阶即停表：余数再无意义，新得之件从零起算 */
+      }
     });
-    if (allMaxed) return;
-    tr.bondHours = (tr.bondHours || 0) + hours;
-    while (tr.bondHours >= t.BOND_HOURS) {
-      tr.bondHours -= t.BOND_HOURS;
-      tr.bondCount = (tr.bondCount || 0) + 1;
-      bondAdvance(ws, pack, D, log);
-    }
+  }
+
+  /* 屏上「这件还差几小时」的唯一取数口（N52）：视图不许再抄一份公式（第二事实源）。
+   * 满阶件与非常态一律回 0 ⇒ 视图 0 就不渲染这一句。 */
+  function bondHoursLeft(pack, e) {
+    var t = T(pack);
+    if (!t || !(t.BOND_HOURS > 0) || !e) return 0;
+    var d = def(pack, e.id);
+    if (!d || d.kind !== 'xian' || (e.stage || 1) >= maxOf(pack, d)) return 0;
+    var cost = t.BOND_COST || 1;
+    var need = cost - ((e.st && e.st.bondN || 0) % cost);
+    return Math.max(0, Math.ceil(need * t.BOND_HOURS - ((e.st && e.st.bondH) || 0)));
   }
 
   /* ── 乘区收集（mods.js 消费）：同乘区加算 ──────────────── */
@@ -526,6 +543,7 @@
     slotUnlocked: slotUnlocked,
     gain: gain, equip: equip, unequip: unequip,
     refineCost: refineCost, refine: refine, bondTick: bondTick, bondTime: bondTime,
+    bondHoursLeft: bondHoursLeft,
     collect: collect,
     fateBonus: fateBonus, fateNote: fateNote,
     tribOnFail: tribOnFail, tribOnSuccess: tribOnSuccess,
@@ -541,6 +559,7 @@
      *   双向对表，多一个少一个都红）+ 冒烟 **#281**（真跑一遍取观测键集，表外键即红，并配
      *   「塞假键必红」的反向对照）。新增条目时同批改本表与出处注释，否则闸门拦住。
      * 二级结构不在此表内：`st.spirit` 的形状归器灵卷 §schema 与其它既有断言守（本批不重复建表）。 */
-    ST_KEYS: ['hours', 'karmaH', 'kills', 'cdUntil', 'tower', 'usedRealm', 'spirit']
+    ST_KEYS: ['hours', 'karmaH', 'kills', 'cdUntil', 'tower', 'usedRealm', 'spirit',
+      'bondN', 'bondH']   /* 🔧 N52（第册十二批）：认主进度按件下沉 ⇒ bondN = 该件自己的计数、bondH = 计时余数 */
   };
 })();

@@ -58,6 +58,18 @@
    * 100% 档追加永久 qiRate +0.3%（'codex' 静态来源，合计 cap +3%——九面全满 2.7%）；
    * 称号墙 = 绝对数阶梯 10/25/50（顶档 50 枚视同 100% 档参与 qiRate 计数，§三 核算口径）；
    * 转世天赋子区只发遗泽不发 qiRate（cap 余量留给第 9 面）。 */
+  /* 里程碑阈值与转世天赋分母的单源出口（第册二批 · 收第二事实源）：
+   * 改 MS_PCT 必须同时改「引擎发哪些档」与「成就页画哪三枚点」——原先 view/achv.js 自己写死
+   * [50,80,100]、talentLegacy 这一支自己写死 [0.5,0.8,1.0] 与分母 8，改表只动九面那支 ⇒ 零红。
+   * 判据 = 冒烟 #321（差分法）+ 走查 verify-ui-achv 的屏上同动条。 */
+  function msPcts(D) { return (((D || {}).CODEX || {}).MS_PCT) || [0.5, 0.8, 1.0]; }
+  function msMarks(D) { return msPcts(D).map(function (p) { return Math.round(p * 100); }); }
+  /* 转世天赋子区的分母 = 轮回卷 §3.3 独占转世天赋池**表**的条数（`D.LEGACY.TALENTS`，现 8 枚）。
+   * ⚠️ 别拿天赋池的 `tier === 'epic'` 条数当分母：那是 10 枚（专属池卷 §5.4「epic 档 10 条：正 8 / 负 2」），
+   * 与「可跨世买断的 8 枚 legacy_talent_*」是两回事——`data.js:929` 那句「epic 档 8 条」的混写就是这处
+   * 分歧的来源，判据 #321(b) 钉的是表条数，不是池计数。 */
+  function legacyCap(D) { return (((D || {}).LEGACY || {}).TALENTS || []).length; }
+
   function checkMilestones(meta, pack, D, now) {
     var C = D.CODEX || {};
     (C.FACES || []).forEach(function (face) {
@@ -71,16 +83,17 @@
       var den = faceDenom(face, pack, D);
       if (!den) return;
       var pct = faceCount(meta, face) / den;
-      (C.MS_PCT || [0.5, 0.8, 1.0]).forEach(function (p, i) {
+      msPcts(D).forEach(function (p, i) {
         if (pct >= p - 1e-9) {
           SQ.Legacy.earnImmediate(meta, 'codex.ms.' + face + '.' + Math.round(p * 100), (C.MS_KARMA || [15, 30, 50])[i], 'milestone', now);
         }
       });
     });
-    /* 转世天赋子区（§2.3：epic 专属池 8 格，只发遗泽） */
+    /* 转世天赋子区（§2.3：epic 专属池，只发遗泽）——阈值与分母同读上面两枚出口 */
     var nL = faceCount(meta, 'talentLegacy');
-    [0.5, 0.8, 1.0].forEach(function (p, i) {
-      if (nL / 8 >= p - 1e-9) SQ.Legacy.earnImmediate(meta, 'codex.ms.talentLegacy.' + Math.round(p * 100), (C.MS_KARMA || [15, 30, 50])[i], 'milestone', now);
+    var capL = Math.max(1, legacyCap(D));                /* 表空时按 1 收着，别让除零把三档全放行 */
+    msPcts(D).forEach(function (p, i) {
+      if (nL / capL >= p - 1e-9) SQ.Legacy.earnImmediate(meta, 'codex.ms.talentLegacy.' + Math.round(p * 100), (C.MS_KARMA || [15, 30, 50])[i], 'milestone', now);
     });
   }
 
@@ -370,6 +383,7 @@
     mergeFace: mergeFace,
     faceCount: faceCount,
     faceDenom: faceDenom,
+    msPcts: msPcts, msMarks: msMarks, legacyCap: legacyCap,
     addTitle: addTitle,
     checkMilestones: checkMilestones,
     qiRateOf: qiRateOf,

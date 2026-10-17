@@ -19,7 +19,7 @@
  *   B7 壁纸透底态规则（#86 静态半区）  B8 桥容错（#89，单一桥模块 + try/catch + 失败出口）
  *   B9 交付镜像一致性（七项逐字节零差异）〔**2026-10-14 GitHub 整理批退役**：根侧副本删除后没有第二份可比 ⇒ 由 D4 接管〕
  * D 组 · 账本与装载（2026-10-14 结构整治批B 立）：
- *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 的引擎段与 view 的 assets 段全等 ‖ 视图专属件必须在 view 下 ‖ smoke.html 保序子集 ‖ assets 无未挂载件）
+ *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 的引擎段与 view 的 assets 段全等 ‖ 视图专属件必须在 view 下 ‖ smoke.html 与 view 的 assets 段全等 ‖ assets 无未挂载件）
  *   D3 世界专属别名封闭（通用层与视图直读 SQ.XDATA 必须挂册，例外失效同判；2026-10-14 批C 立）
  *   D7 视图外置件与内核桥 ctx() 的键集对账（第册五批 · N34 拆视图立：外置件用了 ctx 没给的键即判红）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
@@ -1095,7 +1095,8 @@ const SQ = sandbox.window.SQ;
       if (keys.indexOf(k) < 0) bad.push('view/' + f + ' 用了 c.' + k + '，ctx 没给');
     });
     priv.forEach((nm) => {
-      const hits = src.match(new RegExp('(^|[^.\\w$])' + nm.replace(/[$]/g, '\\$') + '(?![\\w$])', 'g'));
+      /* 对象键位（`{ state: … }`）不是「读」，别把它算成裸读 —— 本批 gear.js 的 toast 插值键就叫 state */
+      const hits = src.match(new RegExp('(^|[^.\\w$])' + nm.replace(/[$]/g, '\\$') + '(?!\\s*[\\w$:])', 'g'));
       if (hits) bad.push('view/' + f + ' 裸读了闭包私名 ' + nm + '（' + hits.length + ' 处 ⇒ 只能走 ctx 给过的键）');
     });
   });
@@ -1109,7 +1110,8 @@ const SQ = sandbox.window.SQ;
  * **唯一事实源**，所以「HTML 少挂一个标签」本身是有意卸载、不是漂移，本关绝不判 HTML 自比。判这四件
  * 真会静默失效的：① HTML 引用的件不存在（改名 / 漏提交 ⇒ 真机 404、沙箱装载缺件）；
  * ② `module/index.html` 的序列与 view 不同（卡片与主界面加载两套引擎顺序 = 双份事实源复活）；
- * ③ `.tests/smoke.html` 的 assets 序列必须是 view 的**保序子集**（无头页与真机不同序就没有对照价值）；
+ * ③ `.tests/smoke.html` 的 assets 序列必须与 view 的 assets 段**全等**（第册二批由「保序子集」收紧——
+ *    子集对漏挂免疫，实测该页长期只挂 27/53 件而本关从不报警，无头页失去对照价值却零红）；
  * ④ `assets/**.js` 存在却没挂进 view（新写一个系统忘了挂上 ⇒ 引擎里有、屏上没有，零报错）。 */
 (function () {
   const srcs = (rel) => {
@@ -1146,8 +1148,16 @@ const SQ = sandbox.window.SQ;
   const smoke = srcs('.tests/smoke.html');
   if (smoke) {
     const only = smoke.filter((f) => f.startsWith('assets/'));
-    let i = 0;
-    only.forEach((f) => { i = view.indexOf(f, i); if (i < 0) bad.push('smoke.html 有件不在 view 序内/乱序：' + f); else i++; });
+    const eng = view.filter((x) => x.startsWith('assets/'));
+    /* ③ 改口（第册二批 · smoke.js 切片同批）：由「保序子集」收紧为「与 view 的 assets 段全等」。
+     * 立据 = 本关上线后从没红过，而实测这页只挂了 27/53 件（缺 util / ledger / bonds / treasures /
+     * legacy / codex / tiandao 与十枚词表分卷）⇒ 浏览器直开当场 TypeError、停在「运行中…」，
+     * 「子集」判据对漏挂天然免疫 = 覆盖面早就缩了却零红。切片要动这份标签清单，同批把这条补严。 */
+    if (JSON.stringify(only) !== JSON.stringify(eng)) {
+      const miss = eng.filter((x) => only.indexOf(x) < 0), extra = only.filter((x) => eng.indexOf(x) < 0);
+      bad.push('smoke.html 的 assets 序列 ≠ view（' + only.length + ' vs ' + eng.length + ' 项' +
+        (miss.length ? ' ‖ 缺 ' + miss.slice(0, 4).join(', ') : '') + (extra.length ? ' ‖ 多 ' + extra.slice(0, 2).join(', ') : '') + '）');
+    }
   }
   const js = [];
   (function walk(d) {
@@ -1157,7 +1167,7 @@ const SQ = sandbox.window.SQ;
     }
   })(path.join(ROOT, 'assets'));
   js.forEach((f) => { if (view.indexOf(f) < 0) bad.push('assets 件未挂进 view/index.html：' + f); });
-  ok('D2', '加载顺序单源（view 事实源 ⇔ 引用件存在 ⇔ module 引擎段全等 ⇔ 视图件落在 view ‖ smoke.html 保序子集 ⇔ assets 无未挂载件）',
+  ok('D2', '加载顺序单源（view 事实源 ⇔ 引用件存在 ⇔ module 引擎段全等 ⇔ 视图件落在 view ‖ smoke.html 的 assets 段与 view 全等 ⇔ assets 无未挂载件）',
     bad.length === 0, '序列 ' + view.length + ' 项 · assets ' + js.length + ' 件' + (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 四判全合'));
 })();
 

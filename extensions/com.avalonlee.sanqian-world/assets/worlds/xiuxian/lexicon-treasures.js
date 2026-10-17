@@ -39,6 +39,8 @@
     'treasure.refine.done': '{name} 祭炼至 {lv} 级',
     'treasure.refine.fail': '{name} 祭炼失败，火候散乱，跌落至 {lv} 级',
     'treasure.bond.hint': '认主渐进：每 {n} 次渡劫成功，或每 {h} 小时修行积一份感应，满 {n} 份进一阶',
+    /* N52（第册十二批）：按件计时 ⇒ 卡上给「这件」自己的剩余（取数口 SQ.Treasures.bondHoursLeft） */
+    'treasure.bond.left': '这件还差约 {n} 小时进一阶',
     'treasure.bond.done': '{name} 认主进境，感应更切（{n} 阶）',
     /* 造化（X11） */
     'treasure.convert.title': '造化鼎',

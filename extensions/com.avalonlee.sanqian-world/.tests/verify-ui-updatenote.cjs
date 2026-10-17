@@ -76,6 +76,32 @@ function buildSave() {
     'U9 七行文案零英文字母、零版本号形状（玩家界面不许出现工程名词与版号）',
     bad9.length ? '违规行=' + bad9.map(o => o.i).join(',') : 'clean');
 
+  /* U10（第册十三批 · 用户令「弹窗宽一点，文本要更接近游戏更新公告」）：宽度**只能量几何**——
+   * 样式写没写、写在哪一层，读文本值是看不见的（本仓 mrc-title 那次同型）。
+   * 两头都要判：加宽要真生效（≥640），又不许顶满视口把内边距挤没，正文还不许横向裁字。 */
+  const geom = () => page.evaluate(() => {
+    const c = document.querySelector('#modal-updatenote .modal');
+    const box = document.getElementById('mun-text');
+    if (!c || !box) return { w: 0, vw: 0, clipped: true };
+    return { w: Math.round(c.getBoundingClientRect().width), vw: window.innerWidth,
+      clipped: box.scrollWidth > box.clientWidth + 1 };
+  });
+  const g0 = await geom();
+  T(g0.w >= 640 && g0.w <= g0.vw - 16 && !g0.clipped,
+    'U10 公告卡在宽屏下确实加宽（≥640）‖ 不顶满视口 ‖ 正文横向零裁字', 'w=' + g0.w + ' vw=' + g0.vw + ' 裁字=' + g0.clipped);
+  await page.setViewportSize({ width: 390, height: 720 });
+  await page.waitForTimeout(300);
+  const g1 = await geom();
+  T(g1.w > 0 && g1.w <= g1.vw - 16 && !g1.clipped,
+    'U10b 窄屏 390 下按视口收、零溢出（加宽只在大屏生效，通用 .modal 没被跟着改）', 'w=' + g1.w + ' vw=' + g1.vw);
+  await page.setViewportSize({ width: 1440, height: 950 });
+  await page.waitForTimeout(200);
+  /* U10c 标题正名：玩家可见的那一句不再用世界雅称。**只判负面**（正面文案由词表出，
+   * 断言里硬钉中文字面 = 第册二批那类「改文案即假红」的第二事实源）。 */
+  T(r0.title.length > 0 && r0.title.indexOf('江湖') < 0 && r0.title.indexOf('新讯') < 0,
+    'U10c 公告标题零世界雅称（屏上是一句大白话的「更新公告」，不是江湖黑话）', 'title=' + r0.title);
+
+
   /* 点遮罩不关（刻意不进 MASKS）：左上角一定是遮罩而非卡片 */
   await page.mouse.click(24, 24);
   await page.waitForTimeout(400);

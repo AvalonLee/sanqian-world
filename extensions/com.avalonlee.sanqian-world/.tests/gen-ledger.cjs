@@ -162,7 +162,7 @@ function applyFix(v, drift) {
 
 /* ── 失败归因映射（run-dod 红件时打印；正典在本表，改判据面就改这里）── */
 const ATTRIB = {
-  smoke: { src: '.tests/smoke.js（300 案顺序共享沙箱态，不可单跑）', touches: ['assets/core.js', 'assets/systems/**', 'assets/worlds/xiuxian/**'], repro: 'node .tests/run-smoke.cjs' },
+  smoke: { src: '.tests/smoke.js（壳）+ .tests/smoke/NN-*.js 十片（320 案顺序共享沙箱态，单片不可独立跑）', touches: ['assets/core.js', 'assets/systems/**', 'assets/worlds/xiuxian/**'], repro: 'node .tests/run-smoke.cjs' },
   audit: { src: '.tests/audit.cjs（A/B/C 各组静态关）', touches: ['view/index.html', 'module/index.html', 'assets/**', '仓库根 docs/（账本段宿主）'], repro: 'node .tests/audit.cjs' },
   'versions-check': { src: '各卷卷头 = 事实源，docs/VERSIONS.md = 视图', touches: ['docs/*.md 卷头', 'docs/VERSIONS.md'], repro: 'node .tests/versions-check.cjs（先 --fix 再看）' },
   'sim-pacing': { src: '.tests/sim-pacing.cjs（画像 × 口径矩阵）', touches: ['assets/systems/idle.js', 'assets/systems/realm.js', 'assets/worlds/xiuxian/data.js'], repro: 'node .tests/sim-pacing.cjs' },

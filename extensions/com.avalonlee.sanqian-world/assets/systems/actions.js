@@ -683,12 +683,9 @@
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
         out = SQ.Alchemy.drinkPill(ws, pack, D, pillKey, Date.now(), log, s.profile);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
-        /* 上限取表值不留魔数（M3）；兜底与 alchemy.js 服丹闸的 `|| 3` 同口径。
-         * ⚠️ 本行随第卅九批改口时误抄视图助手的写法 `D()`——本模块里 D 是数据对象（dataOf 取得），
-         * 于是第 5 颗丹触发 daily 分支必抛 TypeError、mutate 整笔不落盘（玩家点服用没反应）。
-         * 长跑模拟测出（乙·全修 二世 drink 八次崩溃），判据 = 冒烟 #305 走真入口。 */
-        else if (out && out.reason === 'daily') SQ.Log.push(ws, 'sys', SQ.t('alchemy.log.pillcap',
-          { n: (D.ALCHEMY || {}).PILL_DAILY_CAP || 3 }, s.profile.worldId));
+        /* N43（第册十二批）：`daily` 分支随丹毒日限整族退役——1 游戏日 = 1 现实秒，这道闸永不触发，
+         * 这句日志也就永远不会写。原第卅九批在此误抄 `D()` 导致必抛、整笔不落盘（判据 = 冒烟 #305），
+         * 那条 bug 形状本身不随退役消失 ⇒ #305 同批改走 `once` 支路重判，不是删掉了事。 */
       });
       return out;
     },

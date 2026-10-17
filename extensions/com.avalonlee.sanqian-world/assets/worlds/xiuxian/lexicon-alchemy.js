@@ -147,7 +147,8 @@
   K['alchemy.ui.sell'] = '出售';
   K['alchemy.ui.sellall'] = '全售';
   K['alchemy.ui.drink'] = '服用';
-  K['alchemy.ui.pillcap'] = '丹毒已满（每游戏日 {n} 颗），再服无效';
+  /* 🔧 N43（第册十二批）：`alchemy.ui.pillcap`「丹毒已满（每游戏日 {n} 颗）」随日限整族删除——
+   * 1 游戏日 = 1 现实秒 ⇒ 这句永不出现，留着就是说谎的在册文案。 */
   K['alchemy.ui.once'] = '此境界已服过（每境界限 1）';
   K['alchemy.ui.swapfull'] = '本世洗髓之数已尽，此丹服下也无益处（且留着）';
   K['alchemy.ui.stronger'] = '已有更强同源效力在身——此时服用只延长时长';
@@ -219,7 +220,7 @@
   K['alchemy.shard.bp'] = '残片兑图：得「{name}」';
   K['alchemy.log.sell'] = '售出{name} ×{n}，得 {v} {cur}';
   K['alchemy.log.matpack'] = '购得材料包 ×3';
-  K['alchemy.log.pillcap'] = '丹毒警示：今日已服满 {n} 颗，这颗吃了也是白吃';
+  /* 🔧 N43（第册十二批）：`alchemy.log.pillcap` 随日限退役（actions.js 那条 daily 分支已删）。 */
 
   /* ── buff 来源溯源 ── */
   K['buff.src.alchemy'] = '自炼丹';
