@@ -739,6 +739,9 @@
   /* 角色浮层单独加宽（2026-10-12）：360px 内宽只有 324px，天赋卡（minmax 130px）排不下三列 ⇒ 第三枚掉到次行；
    * 取创角「观天赋」屏同一档 480px（= .wrap 上限），三列卡阵与创角一致；窄屏仍按视口收拢，其它浮层不受影响 */
   #modal-role .modal { width: min(480px, calc(100vw - 32px)); }
+  /* 更新公告单独加宽（第册十三批 · 用户令「弹窗宽一点，文本要像游戏更新公告」）：条目化七行在 360px 里换行成糊，
+   * 公告要一眼扫完 ⇒ 取 720px；窄屏仍按视口收（calc(100vw - 32px)），通用 .modal 一律不动。 */
+  #modal-updatenote .modal { width: min(720px, calc(100vw - 32px)); }
   .modal h2 { margin: 0 0 8px; font-size: 15px; }
   .modal p { margin: 0 0 14px; color: var(--ink-2); }
   .modal .branch { display: block; width: 100%; text-align: left; margin: 8px 0; }

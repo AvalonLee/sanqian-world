@@ -5,11 +5,12 @@
  *    而且同一版想重发一次公告，只改这里的号即可。文案全在词表，本件只出结构与判定（视图零自造文本）。 */
 (function () {
   var SQ = (window.SQ = window.SQ || {});
-  /* shortcut: 改这一行公告号 ⇒ 旧号在测试侧还有 **13 处字面**（`.tests/fixture-save.json` 1 ‖
-   * `.tests/smoke/10-life-heir-jianghu.js` 2（第册二批起冒烟正文已切片，#320 在这一片）‖
-   * 11 篇 `verify-ui-*.cjs` 各 1~2），那些串的意思是「这档已读过公告」，不改就整页被浮层盖住、点击类走查各红 30s。
-   * 一条命令：`grep -rl 旧号 .tests view | xargs sed -i 's/旧号/新号/g'`，改完必须再 grep 一次残留（本批实测 14 个文件、零残留）。 */
-  var ID = '2026-10-17-2';
+  /* shortcut: 改这一行公告号 ⇒ 测试侧还有 **15 处字面 / 13 个文件**（`.tests/fixture-save.json` 1 ‖
+   * `.tests/smoke/10-life-heir-jianghu.js` 2（第册二批起冒烟正文已切片，#320 在这一片，两个实参各一）‖
+   * 11 篇 `verify-ui-*.cjs` 共 12（journal 那篇 2），那些串的意思是「这档已读过公告」，不改就整页被浮层盖住、
+   * 点击类走查各红 30s。第册十三批实测口径：`grep -rlo 旧号 .tests view assets` = 16 处 / 14 个文件（含本件一枚）。
+   * 一条命令：`grep -rl 旧号 .tests view | xargs sed -i 's/旧号/新号/g'`，改完必须再 grep 一次残留。 */
+  var ID = '2026-10-17-3';
   /* 七行逐条字面取词（**不走数组拼键**）：A2 的静态引用对账与 A6 的孤儿键反向扫描都按字面 key 查，
    * 拼出来的键名它们照不到 ⇒ 一旦有人改数组，词表里就会留下没人读的键而无人报警。 */
   function lineTexts(wid) {

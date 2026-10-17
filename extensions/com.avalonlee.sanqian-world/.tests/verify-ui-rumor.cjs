@@ -38,7 +38,7 @@ async function buildSave() {
   return {
     save: {
       v: 1,
-      profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-2' },
+      profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-3' },
       meta: { unlockedWorlds: ['xiuxian'] },
       settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
       worlds: { xiuxian: ws }
