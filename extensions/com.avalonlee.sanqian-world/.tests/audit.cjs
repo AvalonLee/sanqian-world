@@ -21,6 +21,7 @@
  * D 组 · 账本与装载（2026-10-14 结构整治批B 立）：
  *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 的引擎段与 view 的 assets 段全等 ‖ 视图专属件必须在 view 下 ‖ smoke.html 保序子集 ‖ assets 无未挂载件）
  *   D3 世界专属别名封闭（通用层与视图直读 SQ.XDATA 必须挂册，例外失效同判；2026-10-14 批C 立）
+ *   D7 视图外置件与内核桥 ctx() 的键集对账（第册五批 · N34 拆视图立：外置件用了 ctx 没给的键即判红）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
@@ -1056,6 +1057,34 @@ const SQ = sandbox.window.SQ;
   });
   ok('D6', '挂点 id 全库唯一（同 id ⇒ getElementById 只认文档第一个，写进暗处那一枚没人看得见）',
     bad.length === 0, '挂点 ' + n + ' 枚' + (bad.length ? ' ‖ 重复：' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 零重复'));
+})();
+
+/* ── D7 视图外置件只用 ctx() 给过的键（第册五批 2026-10-17 · N34 第二刀立）──
+ * 搬家把「闭包私有量」换成「显式参数 c」，好处是可静态对账；风险也在这条路上：
+ * 桥少给一枚键 ⇒ 运行时是 undefined，而那一页只是渲染成空——本仓最贵的那族缺陷正是「引擎对、屏上错」。
+ * 判据 = 从内核抓 `function ctx()` 返回的字面量键集，逐件扫 `view/*.js` 里的 `c.xxx`；
+ * 用了没给的键判红，整枚桥被删（取不到键集）同样判红。反向取证 = 把 ctx 里一枚键改名 ⇒ 本关必红。 */
+(function () {
+  const dir = path.join(ROOT, 'view');
+  const viewJs = fs.readdirSync(dir).filter((f) => f.endsWith('.js'));
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  const m = html.match(/function ctx\(\)[\s\S]{0,400}?return \{([\s\S]{0,400}?)\};/);
+  const keys = m ? (m[1].match(/(^|[,{\s])([A-Za-z0-9_$]+)\s*:/g) || [])
+    .map((x) => x.replace(/[^A-Za-z0-9_$]/g, '')) : [];
+  const bad = [];
+  if (!m) bad.push('view/index.html 里找不到 ctx() 工厂（桥没了 ⇒ 外置件无从取数）');
+  let used = 0;
+  viewJs.forEach((f) => {
+    const src = fs.readFileSync(path.join(dir, f), 'utf8');
+    (src.match(/\bc\.[A-Za-z0-9_$]+/g) || []).forEach((x) => {
+      const k = x.slice(2);
+      used++;
+      if (keys.indexOf(k) < 0) bad.push('view/' + f + ' 用了 c.' + k + '，ctx 没给');
+    });
+  });
+  ok('D7', '视图外置件只用 ctx() 给过的键（少给一枚 = 运行时 undefined，别留给走查去撞）',
+    bad.length === 0, 'ctx 键 ' + keys.length + ' 枚 · 外置件 ' + viewJs.length + ' 件 · 引用点 ' + used + ' 处' +
+    (bad.length ? ' ‖ ' + [...new Set(bad)].slice(0, 6).join(' ‖ ') : ' ‖ 全部有源'));
 })();
 
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）
