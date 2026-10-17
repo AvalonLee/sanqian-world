@@ -507,6 +507,8 @@
 <script src="../assets/talents/engine.js"></script>
 <script src="../assets/core.js"></script>
 <script src="updatenote.js"></script>
+<script src="journal.js"></script>
+<script src="achv.js"></script>
 <script>
 (function () {
   var SQ = window.SQ;
@@ -552,6 +554,13 @@
   function pack() { return SQ.Worlds[wid()].pack; }
   function D() { return pack().data; }
   function mods() { return SQ.Mods.collect(state.profile, ws(), pack(), D()); }
+
+  /* 视图外置件的桥（第册五批 · N34 第二刀）：内联闭包里的私有量不许被外置件自取，一律走这一枚 ctx。
+   * ⚠️ 键集由审计 **D7** 逐键对账：`view/*.js` 里用到的 c.xxx 必须在这里给过 ⇒ 少给一枚键当场判红，不留到运行时。
+   * shortcut: 只放**已被外置件需要**的键；下一片要用新服务（toast / renderAll / mutate 之类）时在这里加一行、D7 自动跟。 */
+  function ctx() {
+    return { s: state, w: ws(), p: pack(), d: D(), ui: ui, $: $, t: t, esc: esc, date: gameDateStr };
+  }
 
   function show(name) {
     ['loading', 'c1', 'c2', 'c3', 'main'].forEach(function (s) {
@@ -3452,27 +3461,7 @@
     $('tab-shop').innerHTML = h;
   }
 
-  /* ── Tab 6 奇遇（F2：叙事流 + 图鉴三节 + 系统日志弹层）──
-   * 分类（v2.3）：+「功法」（gainArt/顿悟/升级/散功全路由至此）；−「突破」——
-   * 死分类删除：无任何代码写 break 类日志，渡劫/晋升全走 trib（历史遗留）。 */
-  var LOG_CATS = [
-    { id: 'all', key: 'log.cat.all' }, { id: 'event', key: 'event.tag' },
-    /* 历练（秘境 / 域主 / 残片兑换 / 法宝战斗日志）：写口在 combat.js + treasures.js
-     * （cat 'combat' 15 处），此前本表无项 ⇒ 只能混在「全部」里、任何筛选都取不到，
-     * 标签键 combat.tag 也一直躺孤儿表。本批补分类并同时消费该键。 */
-    { id: 'combat', sys: 'combat.tag' },
-    { id: 'trib', sys: 'tribulation.tag' },
-    { id: 'karma', sys: 'karma.system' },   /* 名号更迭（善恶名号批）：跨段日志独立成类，可单独筛选 */
-    { id: 'gear', sys: 'gear.tag' }, { id: 'arts', sys: 'skill.system' },
-    /* 道友分类（好感三渠道批）：拜访 / 赠丹 / 同贺 + 既有的同道相吸 / 缘尽赎回 / 结缘 / 冥佑。
-     * ⚠️ 收口批 A 遗留——cat 'bond' 早已在写（xiuxian/index.js 同道相吸、actions.js 缘尽赎回），
-     * 但本表此前无此分类，那些日志只能在「全部」里看到、任何分类筛选都取不到。 */
-    { id: 'bond', sys: 'bond.system' },
-    /* 洞府 / 坊市（同类补口）：cave.js 记 cat 'cave' 3 处、shop.js + alchemy.js 记 'shop' 2 处。
-     * 标签复用既有系统名键 cave.system / shop.system（零新键、零新孤儿）。 */
-    { id: 'cave', sys: 'cave.system' }, { id: 'shop', sys: 'shop.system' },
-    { id: 'sys', key: 'sys.tag' }
-  ];
+  /* ── Tab 6 奇遇（F2：叙事流 + 图鉴三节 + 系统日志弹层）── */
   function allEventList() {
     return (Array.isArray(SQ.EVENTS.common) ? SQ.EVENTS.common : [])
       .concat(Array.isArray(SQ.EVENTS[wid()]) ? SQ.EVENTS[wid()] : []);
@@ -3713,53 +3702,8 @@
     $('tab-event').innerHTML = h;
   }
 
-  /* ── Tab 7 日志（原「奇遇页 → 系统日志弹层」升级为左侧导航的独立页）──
-   * 分类含「奇遇」：奇遇日志内嵌该条事件的具体叙事（log.event.resolve 带 {story}） */
-  /* 展示取数（日志存档批）：存储留全量（独立日志档），界面**每分类只显示最新
-   * LOG_CAT_CAP(200) 条**——具体分类取其最新 200；「全部」为各分类各取最新 200 后按时间倒序合并。 */
-  function journalLines(w) {
-    var cap = (SQ.Log && SQ.Log.CAT_CAP) || 200;
-    var list = (w && w.log) || [];
-    if (ui.logFilter !== 'all') {
-      return list.filter(function (l) { return l.cat === ui.logFilter; }).slice(-cap).reverse();
-    }
-    var per = {}, out = [];
-    for (var i = list.length - 1; i >= 0; i--) {
-      var c = list[i].cat;
-      per[c] = (per[c] || 0) + 1;
-      if (per[c] <= cap) out.push(list[i]);
-    }
-    return out;
-  }
-  function renderJournal() {
-    var w = ws();
-    var ch = '';
-    LOG_CATS.forEach(function (c) {
-      var label = c.key ? t(c.key) : t(c.sys);
-      ch += '<button class="' + (ui.logFilter === c.id ? 'on' : '') + '" data-act="logFilter" data-v="' + c.id + '">' + esc(label) + '</button>';
-    });
-    var lines = journalLines(w);
-    var h = '<div class="chips">' + ch + '</div>';
-    if (!lines.length) {
-      h += '<p class="hint" style="padding:12px 0">' + esc(t('log.empty')) + '</p>';
-    } else {
-      h += '<div class="loglist">';
-      lines.forEach(function (l) {
-        /* 时间列（v2.3）：游戏历「罗云历X年X月X日」；createdAt 缺失的旧档兜底回真实时刻 */
-        var gt = gameDateStr(l.ts);
-        if (!gt) {
-          var dt0 = new Date(l.ts);
-          gt = ('0' + dt0.getHours()).slice(-2) + ':' + ('0' + dt0.getMinutes()).slice(-2);
-        }
-        /* N20 接线：「全部」筛选下行内不显分类（11 个分类标签键都在用，只是没进日志行）⇒ 仅在该筛选下加 `[分类]` 前缀，         * 其余筛选由选中态自身表达，不重复 */
-        var catC = ((ui.logFilter || 'all') === 'all') ? LOG_CATS.filter(function (cc) { return cc.id === l.cat; })[0] : null;
-        h += '<div class="logline' + (l.cat === 'event' ? ' ev' : '') + '"><span class="ts">' + esc(gt) + '</span>' +
-          esc(catC ? t('log.catted', { cat: catC.key ? t(catC.key) : t(catC.sys), text: l.text }) : l.text) + '</div>';
-      });
-      h += '</div>';
-    }
-    $('tab-journal').innerHTML = h;
-  }
+
+  /* 日志页整段（LOG_CATS / journalLines / renderJournal）已外置成 view/journal.js（第册五批） */
 
   /* ── Tab 8 设置（重置存档：覆盖为新档 → 回填引用 → 停 tick → 关浮层 → 回创角）── */
   /* 菜单顺序：仅游戏页可调；「日志」「设置」固定在导航最底部 */
@@ -3865,9 +3809,9 @@
     else if (ui.tab === 'alchemy') renderAlchemy();
     else if (ui.tab === 'prodigy') renderProdigy();
     else if (ui.tab === 'sect') renderSect();
-    else if (ui.tab === 'achv') renderAchv();
+    else if (ui.tab === 'achv') SQ.UI.achv.render(ctx());
     else if (ui.tab === 'legacy') renderLegacy();
-    else if (ui.tab === 'journal') renderJournal();
+    else if (ui.tab === 'journal') SQ.UI.journal.render(ctx());
     else if (ui.tab === 'settings') renderSettings();
   }
 
@@ -5135,93 +5079,8 @@
     return t(k) !== k ? t(k) : t('legacy.ui.fail.other');
   }
 
-  /* ── 成就页（成就图鉴批 · 自轮回页迁出）：60 条行为成就按六组卡片化——
-   * 已解锁显名/条件/遗泽 + 已达成标；未解锁遮为问号；data 标 hint 的特殊成就提示达成条件 ── */
-  function achvCard(a, has) {
-    var h = '<div class="achvcard ' + (has ? 'got' : 'lock') + '">' +
-      '<div class="ah"><span class="an">' +
-      esc(has ? t('codex.achv.' + a.id + '.name') : t('codex.ui.silhouette')) +
-      '</span><span class="ak">' + esc(t('codex.ui.achv.reward', { k: a.karma })) + '</span></div>';
-    if (has) {
-      h += '<div class="ad">' + esc(t('codex.achv.' + a.id + '.desc')) + '</div>' +
-        '<div class="amark">' + esc(t('achv.ui.got')) + '</div>';
-    } else if (a.hint) {
-      h += '<div class="aq">' + esc(t('achv.ui.q')) + '</div>' +
-        '<div class="ahint">' + esc(t('codex.ui.achv.hint', { t: t('codex.achv.' + a.id + '.desc') })) + '</div>';
-    } else {
-      h += '<div class="aq">' + esc(t('achv.ui.q')) + '</div>';
-    }
-    return h + '</div>';
-  }
-  /* 图鉴九面卡（收集率进度条 + 里程碑点）——自轮回页迁入成就页顶，与行为成就同页成「图鉴 + 成就」双区 */
-  function codexFaceCard(face, meta, p, d) {
-    var den = SQ.Codex.faceDenom(face, p, d);
-    var got = SQ.Codex.faceCount(meta, face);
-    var msDone = 0;
-    if (face === 'title') {
-      (d.CODEX.TITLE_MS || []).forEach(function (th) { if (got >= th) msDone++; });
-    } else {
-      [50, 80, 100].forEach(function (pc) { if ((meta.earnedKeys || {})['codex.ms.' + face + '.' + pc] != null) msDone++; });
-    }
-    /* 称号面无百分比分母（绝对数阶梯）：只报枚数，杜绝「22/—」 */
-    var cnt = face === 'title' ? t('codex.ui.collected.n', { n: got }) : t('codex.ui.collected', { n: got, total: den });
-    var pct = face === 'title' || !den ? 0 : Math.min(100, got / den * 100);
-    var h = '<div class="facecard"><div class="ch"><span class="cn">' + esc(t('codex.face.' + face)) + '</span>' +
-      '<span class="cc">' + esc(cnt) + '</span></div>';
-    if (face !== 'title') h += '<div class="bar slim"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
-    h += '<div class="cfoot"><span class="cms">' + esc(msDone >= 3 ? t('codex.ui.ms.all') : t('codex.ui.ms', { done: msDone })) + '</span>' +
-      '<span class="msdots">' + [0, 1, 2].map(function (i) { return '<i' + (i < msDone ? ' class="on"' : '') + '></i>'; }).join('') + '</span></div>';
-    /* N20 接线：下一档阈值（正典 = UI 卷 v2.26 §3.7「取 [50,80,100] 中第一个未达者」；称号面无分母、三档齐、den 缺失都不出） */
-    var nextMsD = (face === 'title' || !den || pct >= 100) ? 0 : ([50, 80, 100].filter(function (pc) { return pct < pc; })[0] || 0);
-    if (nextMsD) h += '<div class="csub">' + esc(t('codex.ui.ms.next', { pct: nextMsD })) + '</div>';
-    if (face === 'zone') {
-      h += '<div class="csub">' + esc(t('codex.ui.zone.layer', {
-        a: SQ.Codex.faceCount(meta, 'zone', 'z'), b: SQ.Codex.faceCount(meta, 'zone', 'b'), c: SQ.Codex.faceCount(meta, 'zone', 'a')
-      })) + '</div>';
-    }
-    return h + '</div>';
-  }
-  function renderAchv() {
-    var d = D(), meta = state.meta || {}, p = pack();
-    var got = {};
-    (meta.achv || []).forEach(function (id) { got[id] = 1; });
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + esc(t('achv.system')) + '</button></div>' +
-      '<span class="tdtitle">' + esc(t('codex.ui.achv.done', { n: (meta.achv || []).length })) + '</span></div>';
-    /* 图鉴九面（自轮回页迁入）：收集率 + 里程碑，卡片网格置顶 */
-    h += '<div class="secbar"><span>' + esc(t('codex.system')) + '</span>' +
-      '<span class="secnote">' + esc(t('codex.ui.codexnote')) + '</span></div>';
-    h += '<div class="facegrid">';
-    (d.CODEX.FACES || []).forEach(function (face) { h += codexFaceCard(face, meta, p, d); });
-    /* 转世天赋子区（epic 专属池 8 格 · 只发遗泽不发 qiRate） */
-    var nL = SQ.Codex.faceCount(meta, 'talentLegacy');
-    var msL = 0;
-    [50, 80, 100].forEach(function (pc) { if ((meta.earnedKeys || {})['codex.ms.talentLegacy.' + pc] != null) msL++; });
-    h += '<div class="facecard"><div class="ch"><span class="cn">' + esc(t('codex.ui.face.talentLegacy')) + '</span>' +
-      '<span class="cc">' + esc(t('codex.ui.collected', { n: nL, total: 8 })) + '</span></div>' +
-      '<div class="bar slim"><i style="width:' + (nL / 8 * 100).toFixed(1) + '%"></i></div>' +
-      '<div class="cfoot"><span class="cms">' + esc(t('codex.ui.ms', { done: msL })) + '</span>' +
-      '<span class="msdots">' + [0, 1, 2].map(function (i) { return '<i' + (i < msL ? ' class="on"' : '') + '></i>'; }).join('') + '</span></div></div>';
-    h += '</div>';
-    /* 称号墙（自轮回页迁入）：已录称号 chips */
-    if ((meta.titles || []).length) {
-      h += '<div class="secbar"><span>' + esc(t('codex.ui.titles')) + ' · ' + (meta.titles || []).length + '</span></div>';
-      h += '<div class="chips">' + (meta.titles || []).map(function (id) {
-        return '<span class="tdtitle">' + esc(t('codex.title.' + id)) + '</span>';
-      }).join('') + '</div>';
-    }
-    /* 行为成就六组 */
-    var byG = {};
-    (d.CODEX.ACHV || []).forEach(function (a) { (byG[a.g] = byG[a.g] || []).push(a); });
-    ['xiu', 'jie', 'chen', 'men', 'mi', 'ni'].forEach(function (g) {
-      var list = byG[g] || [];
-      if (!list.length) return;
-      var n = list.filter(function (a) { return got[a.id]; }).length;
-      h += '<div class="secbar"><span>' + esc(t('codex.achv.group.' + g)) + '</span>' +
-        '<span class="secnote">' + esc(t('achv.ui.gcount', { n: n, total: list.length })) + '</span></div>' +
-        '<div class="achvgrid">' + list.map(function (a) { return achvCard(a, !!got[a.id]); }).join('') + '</div>';
-    });
-    $('tab-achv').innerHTML = h;
-  }
+
+  /* 成就页整段（achvCard / codexFaceCard / renderAchv）已外置成 view/achv.js（第册五批 · N34 第二刀） */
 
   /* ── 轮回页（SYS · 轮回卷 B1 + 图鉴卷 B2：余额/商店/九面图鉴/称号墙/前世书/飞升兵解）── */
   function renderLegacy() {
@@ -6895,7 +6754,7 @@
       renderAll();
       return;
     }
-    if (act === 'logFilter') { ui.logFilter = v; renderJournal(); return; }
+    if (act === 'logFilter') { ui.logFilter = v; SQ.UI.journal.render(ctx()); return; }
     if (act === 'resetSave') { askConfirm(t('settings.reset'), t('settings.reset.confirm'), resetSave); return; }
     if (act === 'clearBuffs') {
       askConfirm(t('settings.clearbuffs'), t('settings.clearbuffs.confirm'), async function () {
