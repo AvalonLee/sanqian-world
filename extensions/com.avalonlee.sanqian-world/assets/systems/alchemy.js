@@ -68,8 +68,6 @@
         qi: Math.max(0, Math.floor(num((obj(raw.prof, {})).qi, 0))) },
       pills: {},
       pillDay: { day: Math.floor(num((obj(raw.pillDay, {})).day, -1)), n: Math.max(0, Math.floor(num((obj(raw.pillDay, {})).n, 0))) },
-      /* 赠丹日限（好感三渠道批 · 引擎卷 v1.11 §3.2a 渠道 B）：与 pillDay 同形同口径（gameDayOf）*/
-      giftDay: { day: Math.floor(num((obj(raw.giftDay, {})).day, -1)), n: Math.max(0, Math.floor(num((obj(raw.giftDay, {})).n, 0))) },
       pillOnce: { pozhang: Math.floor(num((obj(raw.pillOnce, {})).pozhang, -1)), zhenjie: Math.floor(num((obj(raw.pillOnce, {})).zhenjie, -1)) },
       craft: null,
       farmAt: Math.max(0, num(raw.farmAt, 0)),
@@ -97,7 +95,7 @@
   function ensure(ws, D) {
     if (!ws.alchemy || typeof ws.alchemy !== 'object') {
       ws.alchemy = { furnace: false, recipes: [], blueprints: [], prof: { dan: 0, qi: 0 },
-        pills: {}, pillDay: { day: -1, n: 0 }, giftDay: { day: -1, n: 0 }, pillOnce: { pozhang: -1, zhenjie: -1 },
+        pills: {}, pillDay: { day: -1, n: 0 }, pillOnce: { pozhang: -1, zhenjie: -1 },
         craft: null, farmAt: 0, fires: 0, jiuzhuan: 0, forgeMade: 0 };
     }
     if (!ws.materials || typeof ws.materials !== 'object') ws.materials = {};
@@ -595,7 +593,10 @@
       /* 成品丹（第十七批入匣）：效果字典与旧「购买即生效」逐字同一份，只是**由玩家决定何时落**。
        * 传副本 = 纪律（见 events.js applyEffects 头注）：直传 `tp.effect` 会让一次服用改坏表。 */
       SQ.Events.applyEffects(ws, pack, D, SQ.Mods.collect(profile, ws, pack, D),
-        Object.assign({}, pd.def.effect), { log: log, now: now, silent: false, buffSource: 'alchemy' });
+        Object.assign({}, pd.def.effect),
+        { log: log, now: now, silent: false, buffSource: 'alchemy',
+          /* 丹名递给寿元日志（第卌八批）：applyEffects 侧没有丹药这个名字，不传就写成缺主语的半句 */
+          lifeSrc: SQ.t(pd.nameKey, null, pack.worldId) });
       /* 时长口径与改前**逐字相同**：`applyEffects` 的 resolveEff 直接用 effect 里的 `hours` 原值
        * （`rollBuffHours` 只作用于奇遇掷点现生成的 buff，见 events.js:54 / :826），本处不另算一套 */
     }

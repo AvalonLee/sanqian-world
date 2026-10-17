@@ -21,6 +21,10 @@ const { chromium } = require('playwright-core');
     w.lastSave = now0; w.lastOffline = null; w.pendingChoice = null;
     w.realm = 5;                                   /* 融合坛门槛 realm ≥ 4 */
     w.materials = Object.assign({}, w.materials || {}, { mat_wudao: 3 });
+    if (w.artsKnown) {   /* 父母候选 = 槽内 Lv≥9 者（issue #5 的打字用例要真有两名候选，不是空过）*/
+      w.artsSlots = ['tuna', 'juling'];
+      w.artsLevels = { tuna: 9, juling: 9 };
+    }
   });
   const url = 'file:///' + path.join(ROOT, 'view/index.html').replace(/\\/g, '/');
 
@@ -94,6 +98,35 @@ const { chromium } = require('playwright-core');
   await page.waitForTimeout(200);
   const closedByMask = await page.$eval('#modal-matwudao', el => el.classList.contains('hide'));
   T(closedByMask, '点遮罩收起浮层', 'closed=' + closedByMask);
+
+  /* ⑦ 自定义名输入框打得进字（GitHub issue #5 · 用户报「点击后很快丢失焦点、无法输入文字」）
+   * 病灶 = 秒级 tick 的 renderAll 把 #tab-arts 整块重建 ⇒ 正在打字的 <input> 换新节点。
+   * 反证口径：不打闸时这两条必红（焦点被抢 + 字被抹），跨两个 tick 才测得出来。 */
+  const parents = await page.$$eval('#tab-arts [data-act="fusePick"]', els => els.map(e => e.dataset.v));
+  T(parents.length >= 2, '融合坛父母候选 ≥2（下面两条的前置，防空过护栏）', 'n=' + parents.length);
+  await page.click('#tab-arts [data-act="fusePick"][data-v="' + parents[0] + '"]');
+  await page.click('#tab-arts [data-act="fusePick"][data-v="' + parents[1] + '"]');
+  await page.waitForTimeout(300);
+  await page.focus('.fusename');
+  await page.type('.fusename', '测试剑意');
+  await page.waitForTimeout(2600);                     /* 跨过至少两个秒级 tick */
+  const typed = await page.evaluate(() => {
+    const el = document.querySelector('.fusename');
+    return { has: !!el, focused: !!el && document.activeElement === el, val: el ? el.value : null };
+  });
+  T(typed.has && typed.focused === true, '打完字跨两个 tick 后焦点仍在自定义名框内（issue #5）', JSON.stringify(typed));
+  T(typed.val === '测试剑意', '自定义名不被 tick 抹掉（值同时进 ui.fuseName 单源）', 'val=' + typed.val);
+  /* ⑧ 切标签把整段重渲染一遍（动作类重建，不是 tick）⇒ 打的字必须从 ui.fuseName 回填。
+   * 去掉 input 监听 / value 回填任一半，这条就红（⑦ 只证焦点那半）。 */
+  await page.click('#tab-arts > .lawchips button[data-v="qi"]');
+  await page.waitForTimeout(300);
+  await page.click('#tab-arts > .lawchips button[data-v="fa"]');
+  await page.waitForTimeout(300);
+  const backAgain = await page.evaluate(() => {
+    const el = document.querySelector('.fusename');
+    return el ? el.value : null;
+  });
+  T(backAgain === '测试剑意', '切走再切回（整段重建）后自定义名照旧回填', 'val=' + backAgain);
 
   T(errors.length === 0, '零页面报错', errors.join(' | ').slice(0, 200) || 'clean');
   console.log(fail === 0 ? 'UI_FUSE_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_FUSE_FAILED ' + fail);

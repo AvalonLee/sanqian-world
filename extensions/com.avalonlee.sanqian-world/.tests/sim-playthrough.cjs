@@ -207,11 +207,16 @@ async function playerStep(ref, tag, opts) {
       opts._tribOn = wantOn;
     }
   }
-  /* 1. 奇遇选择（默认随机分支——模拟玩家凭喜好选；带 opts.branch 时按倾向表点同一个按钮） */
+  /* 1. 奇遇选择（默认随机分支——模拟玩家凭喜好选；带 opts.branch 时按倾向表点同一个按钮）
+   *    ⚠️ 战术三支（袭击 / 寻仇）**必须在这一处结清**：本段是每步唯一的 pendingChoice 消费点，
+   *    第卌四批曾把战术计数另起一段放在 8.6，结果那段永远抢不到 ⇒ 打印面恒零的假读数。 */
   if (w.pendingChoice) {
-    const ev = SQ.Events.findById(pack, w.pendingChoice.id);
+    const pc1 = w.pendingChoice, ev = SQ.Events.findById(pack, pc1.id);
     if (ev && ev.choices) {
-      await asafe(tag + '.choice', () => SQ.Actions.resolveChoice(ref, branchOf(ev, opts, simDay)));
+      const key1 = branchOf(ev, opts, simDay);
+      const rvB1 = (w.revenge || {}).n;
+      await asafe(tag + '.choice', () => SQ.Actions.resolveChoice(ref, key1));
+      if (ev.tactical) noteTactical(pc1, key1, rvB1, ref.worlds[ref.profile.worldId]);
     }
   }
   /* 1.5 域主现世即回该区应战（opts.bossFirst · achv_yuzhu/achv_shizhu 的唯一正当路径）：
@@ -444,7 +449,7 @@ async function playerStep(ref, tag, opts) {
   /* 8. 天骄切磋（切磋平衡批：解锁 gate 过滤 + 三档赌注轮换 + 让差/材料统计） */
   const w5 = ref.worlds[ref.profile.worldId];
   if ((w5.prodigies || []).length && w5.realm >= SQ.Prodigy.unlockRealm(D) && Math.random() < 0.03) {
-    const cand = w5.prodigies.filter(p => !p.feud && Date.now() - (p.lastSparAt || 0) >= 7 * 86400000);
+    const cand = w5.prodigies.filter(p => !p.feud && Date.now() - (p.lastSparAt || 0) >= (D.PRODIGY.SPAR_CD_MS || 600000));
     if (cand.length) {
       const kd5 = ['light', 'std', 'heavy'][Math.floor(Math.random() * 3)];
       const sr = await asafe(tag + '.spar', () => SQ.Actions.prodigySpar(ref, randPick(cand).id, kd5));
@@ -457,13 +462,23 @@ async function playerStep(ref, tag, opts) {
       } else if (sr) sparStats.fail[sr.reason || 'null'] = (sparStats.fail[sr.reason || 'null'] || 0) + 1;
     }
   }
+  /* 8.6 袭杀出手（第卌四批 · 数值详设 §6.1B）：这一臂只管主动下手；来者与寻仇的**结算与计数都在上面第 1 段**
+   *     （那是每步唯一的 pendingChoice 消费点），超时默认迎战那条只在界面走查里演——模拟器不开弹窗故永不超时。 */
+  const w5b = ref.worlds[ref.profile.worldId];
+  if ((w5b.prodigies || []).length && w5b.realm >= SQ.Prodigy.unlockRealm(D) && Math.random() < 0.02) {
+    const ab = await asafe(tag + '.ambush', () => SQ.Actions.prodigyAmbush(ref, randPick(w5b.prodigies).id));
+    if (ab && ab.ok) {
+      ambushStats.try++; ambushStats[ab.win ? 'win' : 'lose']++;
+      if (ab.dead) ambushStats.kill++;
+    } else if (ab) ambushStats.fail[ab.reason || 'null'] = (ambushStats.fail[ab.reason || 'null'] || 0) + 1;
+  }
   /* 8.5 宿敌恩怨（opts.setFeud / opts.killFeud · achv_sudi「宿敌」/ achv_zhandi「斩宿敌」）：
    * 结仇通道 = prodigy.spar(kind='heavy') 惨败（FEUD_P_HEAVY .10）；杀仇通道 = 狭路相逢事件
    * （prodigy_ev_feud，claim 内按 rivAt 月掷自动进 pendingChoice）走 evil 分支且判定过。
    * 两者都不写 ws 字段，全是玩家点按钮。 */
   const w5f = ref.worlds[ref.profile.worldId];
   if (opts.setFeud && w5f.realm >= SQ.Prodigy.unlockRealm(D)) {
-    const nf = (w5f.prodigies || []).filter(p => !p.feud && Date.now() - (p.lastSparAt || 0) >= 7 * 86400000);
+    const nf = (w5f.prodigies || []).filter(p => !p.feud && Date.now() - (p.lastSparAt || 0) >= (D.PRODIGY.SPAR_CD_MS || 600000));
     if (nf.length) {
       const fr = await asafe(tag + '.sparFeud', () => SQ.Actions.prodigySpar(ref, randPick(nf).id, 'heavy'));
       if (fr && fr.ok) { sparStats.ok++; sparStats[fr.result]++; sparStats.k_heavy++; if (fr.feud) sparStats.feud++; }
@@ -642,8 +657,9 @@ async function playerStep(ref, tag, opts) {
       if (aff === SQ.Bonds.LOCK) continue;                      /* 缘尽：由 opts.redeem 通道处理 */
       const goal = bt.goal != null ? bt.goal : (D.BOND_MAX || 100);
       if (aff < goal) {
-        /* 两条主动渠道并列点满（真玩家就是这么刷好感）：渠道 B 赠丹无 CD（日限锚 gameDayOf
-         * = 1 游戏日 1 现实秒 ⇒ 每步都算新一天，真节流是丹产），渠道 A 拜访按 CD 纯读放行 */
+        /* 两条主动渠道并列点满（真玩家就是这么刷好感）：渠道 B 赠丹**无 CD 也无日限**（GitHub issue #4
+         * 撤销原 3 次日限；1 游戏日 = 1 现实秒 ⇒ 那种计数永不生效），真节流是丹产；
+         * 渠道 A 拜访按 CD 纯读放行 */
         let acted = false;
         const alB = (wB2.alchemy || {}).pills || {};
         const pk = Object.keys(alB).find(k => alB[k] > 0 && !/^ap_(pozhang|zhenjie)$/.test(k));
@@ -886,6 +902,22 @@ const craftStats = { danOk: 0, danFail: {}, qiOk: 0, qiFail: {}, qiSkip: {}, alD
   reforgeTry: 0, reforgeOk: 0, reforgeFail: {} };
 const sparStats = { ok: 0, win: 0, lose: 0, draw: 0, crush: 0, brave: 0, mat: 0, feud: 0,
   k_light: 0, k_std: 0, k_heavy: 0, fail: {} };
+/* 袭击 / 袭杀 / 族中寻仇计数（第卌四批）：路线与 fuzz 共写，末行打印成一条读数 */
+const ambushStats = { try: 0, win: 0, lose: 0, kill: 0, revengeWin: 0, revengeEnd: 0,
+  foeTry: 0, revTry: 0, fight: 0, flee: 0, yield: 0, fail: {} };
+/* 战术三支的账（袭击 / 寻仇）：路线第 1 段与 fuzz 两个消费点共用这一处，别各写一遍。
+ * 迎/避/输只记来客那一支（寻仇按模板只有「迎战」一钮，计数没有信息量）；
+ * rvBefore / wAfter 用来分「偿清（链继续、n 涨）」与「链断（败 ⇒ revenge 清空）」两种终局。 */
+function noteTactical(pc, key, rvBefore, wAfter) {
+  if (pc.via === 'revenge') {
+    ambushStats.revTry++;
+    if (!wAfter.revenge) ambushStats.revengeEnd++;
+    else if (rvBefore != null && wAfter.revenge.n > rvBefore) ambushStats.revengeWin++;
+    return;
+  }
+  ambushStats.foeTry++;
+  ambushStats[key === 'right' ? 'fight' : (key === 'evil' ? 'yield' : 'flee')]++;
+}
 /* ── 路线驱动器 ──
  * 2026-10-08 成就路线覆盖批追加的可选参数位（**缺省行为与旧版逐字节一致**，老三条路线读数不变）：
  *   opts.bias           创角「问道初心」alignBias —— 魔道 karma 的 drift 分量供数源（DRIFT_CAP ±260）
@@ -906,7 +938,8 @@ async function playRoute(name, days, stepHours, opts) {
   const ONLINE_STEPS = 24, ONLINE_MS = 30000, OFFLINE_MS = 24 * 3600000 - ONLINE_STEPS * ONLINE_MS;
   let ascended = false, ascendedAtDay = -1, life1Snap = null;
   let maxRealm = 0;
-  const stats = { claims: 0, foundBlock: {}, rebirths: [] };
+  const stats = { claims: 0, foundBlock: {}, rebirths: [], deaths: [] };
+  let deathSeen = 0;   /* 寿元批：lastDeath.at 键控，一次死只记一笔（防同一帧重复计） */
   const targetLives = opts.lives || 1;
   let livesDone = 0, routeDone = false, daysUsed = 0;
   const goalIds = opts.goalAchv || null;
@@ -952,6 +985,16 @@ async function playRoute(name, days, stepHours, opts) {
       stats.claims++;
       const w = ref.worlds[ref.profile.worldId];
       if (!w) { violations.push(name + ': ws lost at step ' + i); break outer; }
+      /* 寿元批：引擎在同一次 claim 里就可能判死并强制转世（ws 已换成新世、档案名清空）。
+       * 剧本必须接着演：记一笔 forced 后就地重铸角色——**不占本路线规划的世数预算**
+       *（终局世仍按 chains 走飞升，通过判据「至少一次飞升」不因此弱化）。 */
+      if (w.lastDeath && w.lastDeath.at !== deathSeen) {
+        deathSeen = w.lastDeath.at;
+        stats.deaths.push({ day: day, step: i, cause: w.lastDeath.cause, realm: w.lastDeath.realm,
+          age: w.lastDeath.age, dao: w.lastDeath.dao });
+        await rebirthRecreate(((ref.meta.stats || {}).lives || 0) + 1);
+        continue;
+      }
       maxRealm = Math.max(maxRealm, w.realm || 0);
       if (k === ONLINE_STEPS) continue;               /* 离线大步后不操作 */
       const r = await playerStep(ref, name + '.' + i, opts);
@@ -1017,7 +1060,7 @@ async function playRoute(name, days, stepHours, opts) {
     sect: !!(ref.worlds[ref.profile.worldId] || {}).sect,
     customs: (((ref.worlds[ref.profile.worldId] || {}).fusion || {}).customs || []).length,
     prods: ((ref.worlds[ref.profile.worldId] || {}).prodigies || []).length,
-    rebirths: stats.rebirths, goalDoneAt: stats.goalDoneAt, goals: (goalIds || []).slice(),
+    rebirths: stats.rebirths, deaths: stats.deaths, goalDoneAt: stats.goalDoneAt, goals: (goalIds || []).slice(),
     tribAtt: (ref.meta.stats || {}).tribAttempts || 0, tribWin: (ref.meta.stats || {}).tribWin || 0,
     dissolutions: (ref.meta.stats || {}).dissolutions || 0,
     codexTre: (ref.meta.codices || {}).treasure ? ref.meta.codices.treasure.length : 0,
@@ -1038,6 +1081,7 @@ async function playFuzz(round) {
   const OPS = ['setMode', 'setZone', 'refreshShop', 'buy', 'upgradeArt', 'slotArt', 'enterCave',
     'alSell', 'alDrink', 'challengeBoss', 'donateFaction', 'tryTrib', 'prodigySpar',
     'sectRecruit', 'sectAccept', 'sectReject', 'legacyBuy', 'fuseStart', 'spiritSkill', 'tdOmensSeen',
+    'ambushProd',
     'exchangeShard', 'buildFacility', 'joinFaction', 'leaveFaction', 'sectBuild', 'sectDispatch', 'sectInvest'];
   let okOps = 0;
   for (let i = 0; i < 20000; i++) {
@@ -1047,7 +1091,11 @@ async function playFuzz(round) {
     const w = ref.worlds[ref.profile.worldId];
     if (w.pendingChoice) {
       const ev = SQ.Events.findById(pack, w.pendingChoice.id);
-      if (ev) await asafe(tag + '.choice', () => SQ.Actions.resolveChoice(ref, randPick(Object.keys(ev.choices))));
+      if (ev) {
+        const pcF = w.pendingChoice, keyF = randPick(Object.keys(ev.choices)), rvBF = (w.revenge || {}).n;
+        await asafe(tag + '.choice', () => SQ.Actions.resolveChoice(ref, keyF));
+        if (ev.tactical) noteTactical(pcF, keyF, rvBF, ref.worlds[ref.profile.worldId]);
+      }
     }
     const r = await asafe(tag + '.' + op, async () => {
       switch (op) {
@@ -1064,6 +1112,8 @@ async function playFuzz(round) {
         case 'donateFaction': return (w.factionId && w.factionId !== 'sect') ? SQ.Actions.donateFaction(ref, randPick(D.FACTION_DONATE.TIERS)) : null;
         case 'tryTrib': return SQ.Actions.tryTrib(ref);
         case 'prodigySpar': return (w.prodigies || []).length ? SQ.Actions.prodigySpar(ref, randPick(w.prodigies).id, ['light', 'std', 'heavy'][Math.floor(Math.random() * 3)]) : null;
+        /* 袭杀（第卌四批）：随机挑一名天骄出手——让「三次身死 → 寻仇链」这条路在 fuzz 里也真走一遍 */
+        case 'ambushProd': return (w.prodigies || []).length ? SQ.Actions.prodigyAmbush(ref, randPick(w.prodigies).id) : null;
         case 'sectRecruit': return SQ.Actions.sectRecruit(ref);
         case 'sectAccept': return SQ.Actions.sectAccept(ref);
         case 'sectReject': return SQ.Actions.sectReject(ref);
@@ -1193,6 +1243,10 @@ async function playFuzz(round) {
         (Object.keys(craftStats.danFail).length ? (' 丹败:' + JSON.stringify(craftStats.danFail)) : '') +
         (Object.keys(craftStats.qiFail).length ? (' 器败:' + JSON.stringify(craftStats.qiFail)) : '') +
         (Object.keys(craftStats.reforgeFail).length ? (' 淬拒:' + JSON.stringify(craftStats.reforgeFail)) : ''),
+      '袭杀:' + ambushStats.try + '(胜' + ambushStats.win + '/负' + ambushStats.lose + '/身死' + ambushStats.kill + ')' +
+        ' 来客' + ambushStats.foeTry + '(迎' + ambushStats.fight + '/避' + ambushStats.flee + '/输' + ambushStats.yield + ')' +
+        ' 寻仇' + ambushStats.revTry + '(偿清' + ambushStats.revengeWin + '/链断' + ambushStats.revengeEnd + ')' +
+        (Object.keys(ambushStats.fail).length ? (' 拒:' + JSON.stringify(ambushStats.fail)) : ''),
       '切磋:' + sparStats.ok + '(胜' + sparStats.win + '/负' + sparStats.lose + '/平' + sparStats.draw +
         ' 碾' + sparStats.crush + '/强' + sparStats.brave + ' 材' + sparStats.mat + ' 仇' + sparStats.feud +
         ' 档' + sparStats.k_light + '/' + sparStats.k_std + '/' + sparStats.k_heavy + ')' +
@@ -1259,6 +1313,14 @@ async function playFuzz(round) {
       ((r.goals || []).length ? (' 目标集:' + (missGoal.length ? ('缺' + missGoal.length + '[' + missGoal.join(' ') + ']') : ('全达@第' + r.goalDoneAt + '天'))) : '') +
       ': [' + allAchv.filter(id => ids.indexOf(id) >= 0).join(' ') + ']');
   });
+
+  /* 寿元批读数：强制转世到底发生了没有、死于哪条钟。判绿之外必须把这个数打出来——
+   * 「加了个从不出事的机制」与「机制把路线全冲垮了」两种坏情况，光看 PLAYTHROUGH_ALL_GREEN 分不出来。 */
+  const deathTally = {};
+  reports.forEach(r => (r.deaths || []).forEach(d => { deathTally[d.cause] = (deathTally[d.cause] || 0) + 1; }));
+  console.log('DEATHS 强制转世 ' + Object.keys(deathTally).reduce((n, k) => n + deathTally[k], 0) + ' 次（' +
+    (Object.keys(deathTally).map(k => k + '=' + deathTally[k]).join(' ') || '零') + '）· 逐路线 ' +
+    reports.map(r => r.name + ':' + (r.deaths || []).length).join(' '));
 
   const anyAscend = reports.some(r => r.ascended);
   const anyLife2 = reports.some(r => r.lives >= 1);

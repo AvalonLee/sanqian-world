@@ -330,8 +330,11 @@
     var p27 = mkProf([mkTalent({ qiRate: 0.15 })]);
     var m27 = M(p27, w27);
     var rate27 = SQ.Idle.rateOf(w27, pack, D, m27);
-    ok(27, '挂机产出逐项对表（9×1.5×0.75=10.125）',
-      Math.abs(rate27 - 10.125) < 1e-9 && w27.karma === 300 &&
+    /* 🔧 第卅八批返工（用户裁定「恢复黄阶原值」）：吐纳法 qiRate 回 dev 的 0.05/级 ⇒ 本条 Lv2 功法项 = 0.10
+     * 先前那版按「黄阶中位归一」把它压成 0.038，等于砍开局功法 24%——中位保住不等于单条保住 */
+    var exp27 = 9 * (1 + 0.15 + 0.05 * 2 + 0.05 + 0.2) * 0.75;
+    ok(27, '挂机产出逐项对表（9×1.5×0.75=10.125 · 黄阶保持 dev 原值）',
+      Math.abs(rate27 - exp27) < 1e-9 && w27.karma === 300 &&
       Math.abs(m27.detail.qiRate.talent - 0.15) < 1e-9 && Math.abs(m27.detail.qiRate.arts - 0.10) < 1e-9 &&
       Math.abs(m27.detail.qiRate.gear - 0.05) < 1e-9 && Math.abs(m27.detail.qiRate.buff - 0.2) < 1e-9,
       'rate=' + rate27);
@@ -369,13 +372,14 @@
     var sum30 = logs30.filter(function (x) { return /^闭关 \d+ 小时 \d+ 分，得修为 .+，渡劫 \d+ 次（成 \d+ 败 \d+）$/.test(x); });
     ok(30, '离线汇总日志格式', sum30.length === 1 && w30.realm > 0, sum30[0] || logs30.join('|'));
 
-    /* #31 击杀节奏 60×速度/小时；prog+5/杀，20 杀通关（可重复刷）
+    /* #31 击杀节奏 60×速度/小时；prog+5/杀（富余=0 基准，第卌三批起有富余即按 PROG_SURGE_* 加速，
+     * 精确加速判据见 #306），20 杀通关（可重复刷）
      * （系统深化批 A4：词缀进入击杀间隔消费点 → 测试钉住灵潮〔仅 stonesMult〕保持节奏断言确定性） */
     var w31 = mkWs({ realm: 2 });
     w31.zoneAffix = { affixId: 'lingchao', until: Date.now() + 3600000 };
     var m31 = M(mkProf(), w31);
     var r31 = SQ.Combat.simulate(w31, pack, D, m31, 3600, { log: noopLog(), now: Date.now(), profile: mkProf() });
-    ok(31, '击杀 60/h · 20 杀通关 · 重复刷', r31.kills === 60 && r31.cleared.indexOf(0) >= 0 && (w31.prog[0] || 0) === 0 && w31.kills === 60,
+    ok(31, '击杀 60/h · 满进度即通关 · 通关后 prog 归零可重复刷', r31.kills === 60 && r31.cleared.indexOf(0) >= 0 && (w31.prog[0] || 0) === 0 && w31.kills === 60,
       'kills=' + r31.kills + ' prog=' + JSON.stringify(w31.prog));
 
     /* #32 瓶颈：间隔 ×3（20 杀/h）且 prog 封顶 90 无法通关（词缀同 #31 钉住） */
@@ -391,7 +395,17 @@
     var w33 = mkWs({ realm: 5, zone: 4 });
     w33.zoneAffix = { affixId: 'lingchao', until: Date.now() + 86400000 };
     var m33 = M(mkProf(), w33);
+    /* 固定种子抽样（同 #125 治理批先例）：±5pp 品阶权重带在真随机下约 26 跑 1 红（实测 tier1 偏差 5.2pp），
+     * 是统计噪声不是数值漂——种子化后判据恒定，阈值一字不上调。 */
+    var seed33 = 3320261015, origRand33 = Math.random;
+    Math.random = function () {
+      seed33 |= 0; seed33 = (seed33 + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed33 ^ (seed33 >>> 15), 1 | seed33);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
     var r33 = SQ.Combat.simulate(w33, pack, D, m33, 10000 * 60, { log: noopLog(), now: Date.now(), profile: mkProf() });
+    Math.random = origRand33;   /* 种子化窗口结束 */
     var tierCnt33 = [0, 0, 0, 0, 0];
     r33.drops.forEach(function (d) { if (!d.clear) tierCnt33[d.item.tier]++; });
     var tot33 = r33.drops.filter(function (d) { return !d.clear; }).length;
@@ -425,10 +439,59 @@
     var a2 = SQ.Gear.autoEquip(w35, pack, D, m35, mkGear('weapon', { tier: 0, atk: 1 }), null);
     var held35 = w35.gear.weapon.atk === 10; /* 低分件被炼化、原件保住（在 a3 之前取证） */
     var a3 = SQ.Gear.autoEquip(w35, pack, D, m35, mkGear('weapon', { tier: 2, atk: 99 }), null);
-    ok(35, '评分公式 + 择优只在更高时',
+    /* GitHub issue #2 自动炼化开关（关 ⇒ 先入库藏阁，库满才回落炼化）。
+     * 与 a1/a2/a3 同件同序做对照：空槽照穿、低分件不再被练、被换下的旧件留档、灵石与总账零流动。 */
+    var w35b = mkWs({ realm: 9 });
+    w35b.gearAutoRefine = false;
+    var m35b = M(mkProf(), w35b);
+    var lg35 = [];
+    var log35 = function (c, tx) { lg35.push(c + '|' + tx); };
+    var b1 = SQ.Gear.autoEquip(w35b, pack, D, m35b, mkGear('weapon', { tier: 2, atk: 10, qiBonus: 0.1, resist: 40, attrValue: { attr: 'jing', value: 5 } }), null);
+    var b2 = SQ.Gear.autoEquip(w35b, pack, D, m35b, mkGear('weapon', { tier: 0, atk: 1 }), log35);
+    var b3 = SQ.Gear.autoEquip(w35b, pack, D, m35b, mkGear('weapon', { tier: 2, atk: 99 }), log35);
+    /* 词表盲区自证：这两条形文案**不经 `t('…')` 字面量**（只作 itemLog 的第三形参传入），A2 静态扫描照不到
+     * ⇒ 键缺失时 `SQ.t` 原样回传键名、直接上屏（复核抓到的真实形状，本条是它的常驻反证）。 */
+    var tx35 = lg35.join(' § ');
+    var copy35 = tx35.indexOf('未炼化，已收入库藏阁') >= 0 && tx35.indexOf('toast.gear') < 0 && lg35.length === 2;
+    var st35b = w35b.stash.length;                       /* 低分件 + 换下的旧件 = 2，一件都没炼 */
+    var led35b = JSON.stringify(w35b.ledger);
+    var bLedger = SQ.Gear.autoEquip(w35b, pack, D, m35b, mkGear('weapon', { tier: 0, atk: 2 }), null);
+    var w35c = mkWs({ realm: 9 });
+    w35c.gearAutoRefine = false;
+    w35c.gear.weapon = mkGear('weapon', { tier: 2, atk: 50 });
+    for (var si35 = 0; si35 < D.STASH_CAP; si35++) w35c.stash.push(mkGear('armor', { tier: 0, atk: 1 }));
+    var c35 = SQ.Gear.autoEquip(w35c, pack, D, M(mkProf(), w35c), mkGear('weapon', { tier: 0, atk: 1 }), null);
+    /* 独占授予那条口也在开关射程内（复核抓到的漏面：旧实现只改了 autoEquip）*/
+    var w35d = mkWs({ realm: 6, cleared: [0, 1, 2, 3] });
+    w35d.gearAutoRefine = false;
+    pack.recalcDerived(w35d, mkProf());
+    var md35d = M(mkProf(), w35d);
+    SQ.Gear.autoEquip(w35d, pack, D, md35d, mkGear('weapon', { tier: 2, atk: 20 }), null);
+    var stones35d = w35d.stones;
+    var lg35d = [];
+    var exOff = SQ.Gear.grantExclusive(w35d, pack, D, md35d, 'evil_sword', { type: 'event', ref: 'x' },
+      function (c, tx) { lg35d.push(c + '|' + tx); });
+    var d35 = !!exOff && exOff.exclusive === 'evil_sword' && w35d.gear.weapon === exOff &&
+      w35d.stash.length === 1 && w35d.stash[0].atk === 20 && w35d.stones === stones35d &&
+      lg35d.join(' ').indexOf('未炼化，已收入库藏阁') >= 0;
+    var n35d = pack.normalize({}, {}).gearAutoRefine;
+    var n35f = pack.normalize({ gearAutoRefine: false }, {}).gearAutoRefine;
+    var n35x = pack.normalize({ gearAutoRefine: 'yes' }, {}).gearAutoRefine;
+    ok(35, '评分公式 + 择优只在更高时 + 自动炼化开关（issue #2：关 ⇒ 低分新件与被换旧件都入库藏阁（含**独占授予**那条口），' +
+      '库满才回落炼化，灵石与总账零流动；两条新文案真解析、屏上不落裸键名——A2 静态扫描对 itemLog 第三形参是盲区，本条补上；' +
+      'normalize 三态 缺省 true / false 保留 / 脏值归 true）',
       SQ.Gear.scoreOf(it35) === 55 && SQ.Gear.scoreOf(it35s) === Math.round(55 * 1.15 * 100) / 100 &&
-      a1.action === 'equip' && a2.action === 'refine' && held35 && a3.action === 'replace' && w35.gear.weapon.atk === 99,
-      'score=' + SQ.Gear.scoreOf(it35) + '/' + SQ.Gear.scoreOf(it35s) + ' acts=' + [a1.action, a2.action, a3.action].join(',') + ' held=' + held35);
+      a1.action === 'equip' && a2.action === 'refine' && held35 && a3.action === 'replace' && w35.gear.weapon.atk === 99 &&
+      b1.action === 'equip' && b2.action === 'stash' && b3.action === 'replace' && b3.gained === 0 &&
+      !!b3.kept && b3.kept.atk === 10 && copy35 &&
+      st35b === 2 && w35b.stash.length === 3 && w35b.gear.weapon.atk === 99 &&
+      w35b.stones === mkWs({ realm: 9 }).stones &&
+      bLedger.action === 'stash' && JSON.stringify(w35b.ledger) === led35b &&
+      c35.action === 'refine' && d35 && n35d === true && n35f === false && n35x === true,
+      'score=' + SQ.Gear.scoreOf(it35) + '/' + SQ.Gear.scoreOf(it35s) + ' acts=' + [a1.action, a2.action, a3.action].join(',') + ' held=' + held35 +
+      ' ‖ 开关关 acts=' + [b1.action, b2.action, b3.action, bLedger.action].join(',') + ' 库=' + w35b.stash.length +
+      ' 灵石=' + w35b.stones + ' Ledger同=' + (JSON.stringify(w35b.ledger) === led35b) +
+      ' ‖ 库满回落=' + c35.action + ' 独占授予=' + (d35 ? '旧件入阁未炼' : '红') + ' normalize=' + n35d + '/' + n35f + '/' + n35x);
 
     /* #36 炼化返还 = 品阶固定表 ×(1+境界×0.5) */
     var ok36 = SQ.Gear.refineValue({ tier: 0 }, { realm: 0 }, D, { hooks: {} }) === 5 &&
@@ -451,17 +514,18 @@
     ok(37, '魔道 ×1.10 且 alignment=evil', ratio37 > 1.03 && ratio37 < 1.18 && evilAlign, 'ratio=' + ratio37.toFixed(3));
 
     /* #38 功法升级消耗对表（修行状态批：改耗修为 + 品阶系数）+ artsSpeed 折扣下限 50%
-     * tuna=黄阶：cost = 60 × 1 × (1+realm×0.5) × max(0.5, 1−ΣartsSpeed) */
+     * tuna=黄阶：cost = ARTS_COST[lv−1] × 1 × (1+realm×0.5) × max(0.5, 1−ΣartsSpeed)。
+     * 等级起点批（入门即 Lv1）：原 Lv0→1 那档 60 取消，**Lv1 起价 = 240**（其余档位价格一字未动）。 */
     var w38 = mkWs({ realm: 0 });
     var w38b = mkWs({ realm: 2 });
     var p38c = mkProf([mkTalent({ artsSpeed: 0.9 })]);
-    var c0 = SQ.Arts.upgradeCost(w38, pack, D, 'tuna', M(mkProf(), w38));
-    var c2 = SQ.Arts.upgradeCost(w38b, pack, D, 'tuna', M(mkProf(), w38b));
-    w38b.artsLevels = { tuna: 1 };
-    var c2b = SQ.Arts.upgradeCost(w38b, pack, D, 'tuna', M(mkProf(), w38b));
-    var cFloor = SQ.Arts.upgradeCost(w38, pack, D, 'tuna', M(p38c, w38));
-    ok(38, '升级消耗 60/240×(1+r×0.5)（黄阶）· 折扣下限 50%',
-      c0 === 60 && c2 === 120 && c2b === 480 && cFloor === 30,
+    var c0 = SQ.Arts.upgradeCost(w38, pack, D, 'tuna', M(mkProf(), w38));        /* Lv1 realm0 = 240 */
+    var c2 = SQ.Arts.upgradeCost(w38b, pack, D, 'tuna', M(mkProf(), w38b));      /* ×(1+2×0.5) = 480 */
+    w38b.artsLevels = { tuna: 8 };
+    var c2b = SQ.Arts.upgradeCost(w38b, pack, D, 'tuna', M(mkProf(), w38b));     /* 1300000 × 2 */
+    var cFloor = SQ.Arts.upgradeCost(w38, pack, D, 'tuna', M(p38c, w38));        /* 240 × 0.5（折扣下限） */
+    ok(38, '升级消耗 240/480×(1+r×0.5)（黄阶 · 入门即 Lv1 起价）· 折扣下限 50%',
+      c0 === 240 && c2 === 480 && c2b === 2600000 && cFloor === 120,
       [c0, c2, c2b, cFloor].join('/'));
 
     /* #39 渡劫成功 → **功法等级保留**（第廿五批改口：原口径为 artsLevels 清零）、artsKnown 与槽位保留 */
@@ -546,23 +610,32 @@
     var prof43 = mkProf();
     pack.claim(w43, 5000, Date.now(), prof43);
     var m43 = SQ.Mods.collect(prof43, w43, pack, D);
-    ok(43, 'buff 过期清理且不进乘区',
-      w43.buffs.length === 1 && Math.abs(m43.sum.qiRate - 0.2) < 1e-9);
+    /* 等级起点批（入门即 Lv1）后**在槽功法自带 qiRate** ⇒ 判据改认 buff 来源，
+     * 不再拿乘区总和当 buff 值（旧写法只是恰好因为那时首发功法是 Lv0、贡献为 0）。 */
+    ok(43, 'buff 过期清理且不进乘区（过期条不进 buff 来源）',
+      w43.buffs.length === 1 && Math.abs(((m43.detail.qiRate || {}).buff || 0) - 0.2) < 1e-9);
 
-    /* #44 同乘区加算/跨乘区乘算（总表 §八 抽查 3 条：qiRate/combatPower/qiCap） */
+    /* #44 同乘区加算/跨乘区乘算（总表 §八 抽查 3 条：qiRate/combatPower/qiCap）
+     * 第卅八批品阶阶梯进了滋养与词条 ⇒ 两处期望随新表重导，且**这两条正是阶梯本身的对表**：
+     *   金钟罩 = 玄阶 combatPower 每级 0.083 → Lv5 = 0.415（旧 0.06×5=0.3）
+     *   🔧 返工：**词条侧与滋养侧是两条阶梯**——词条侧 1/2/3.5/6，滋养侧 1 ∶ 1.5 ∶ 2 ∶ 2.5。
+     *     把天阶 ×6 直接乘进滋养会造出 6 槽 × Lv9 × 魔 3 × 天 6 = 972 点（境界基础值到顶才 60、dc = 基础×2 = 120
+     *     ⇒ 判定 p 整档顶到 0.95 饱和，高品阶「吃属性」反而失去区分度），故滋养单独设上限（用户裁定）。
+     *   滋养：精 = 基础 6 + 5 级 × 正道 2 × 玄阶 1.5 = 21 ‖ 气 = 6 + 5 × 2 × 黄阶 1 = 16
+     *   ⇒ 同等级同阵营的两部功法，只因品阶差一档，属性差就从 10 变成 15（这条仍不可悄悄退回去） */
     var w44 = mkWs({ realm: 0, artsKnown: ['tuna', 'juling', 'jinzhong'], artsSlots: ['jinzhong', 'juling'], artsLevels: { jinzhong: 5, juling: 5 } });
     w44.gear.weapon = mkGear('weapon', { tier: 2, atk: 100 });
     var p44 = mkProf([mkTalent({ combatPower: 0.1, qiCap: 0.25 })]);
     var m44 = M(p44, w44);
-    /* combatPower: 天赋0.1 + 金钟罩0.06×5=0.3 + 精被动(6+精滋养10=16 →1.6%) */
+    /* combatPower: 天赋0.1 + 金钟罩(玄)0.083×5=0.415 + 精被动(6+精滋养15=21 →2.1%) */
     var jing44 = w44.attrs.jing;
-    var expPower = (20 + 100) * (1 + 0.1 + 0.3 + Math.min(jing44 * 0.001, 0.12));
-    /* qiCap: 天赋0.25 + 聚灵诀0.1×5=0.5 + 气被动(6+气滋养10=16 →8%) */
-    var expCap = Math.max(1 * 7200, 1000 * 1.15) * (1 + 0.25 + 0.1 * 5 + Math.min((w44.attrs.qi || 0) * 0.005, 0.3));
-    ok(44, '乘区叠加秩序（战力/上限抽查）',
+    var expPower = (20 + 100) * (1 + 0.1 + 0.415 + Math.min(jing44 * 0.001, 0.12));
+    /* qiCap: 天赋0.25 + 聚灵诀(黄)**0.10**×5=0.50（返工回 dev 原值，先前那版是 0.05）+ 气被动(16 →8%) */
+    var expCap = Math.max(1 * 7200, 1000 * 1.15) * (1 + 0.25 + 0.10 * 5 + Math.min((w44.attrs.qi || 0) * 0.005, 0.3));
+    ok(44, '乘区叠加秩序（战力/上限抽查 · 词条阶梯 玄2/黄1 ‖ 滋养阶梯 玄1.5/黄1 ‖ 聚灵诀 = dev 原值）',
       Math.abs(SQ.Mods.powerOf(w44, pack, D, m44) - expPower) < 1e-6 &&
       Math.abs(SQ.Idle.capOf(w44, pack, D, m44) - expCap) < 1e-6 &&
-      jing44 === 16 && w44.attrs.qi === 16,
+      jing44 === 21 && w44.attrs.qi === 16,
       'power=' + SQ.Mods.powerOf(w44, pack, D, m44).toFixed(2) + '/' + expPower.toFixed(2) + ' cap=' + SQ.Idle.capOf(w44, pack, D, m44).toFixed(0) + '/' + expCap.toFixed(0));
 
     /* ═══ P5 · 验收 4.5 修仙专属（#45~#58）═══ */
@@ -625,24 +698,25 @@
     restore48();
     ok(48, '渡劫触发：qi≥need 且 realm<9', trig48 && w48b.tribulation.attempts === 0);
 
-    /* #49 p 公式四项对表 + clamp [0.05,0.95]（含 resist 双封顶项） */
+    /* #49 p 公式四项对表 + clamp [0.05,0.95]（含 resist 双封顶项；resist 封顶第卌二批 0.20→0.12） */
     var w49 = mkWs({ realm: 8, karmaEventScore: 800 });
     w49.gear.weapon = mkGear('weapon', { tier: 4, atk: 200000, resist: 1200 });
     w49.gear.armor = mkGear('armor', { tier: 4, resist: 1200 });
-    var p49 = mkProf([mkTalent({ tribBonus: 0.15 })]);
+    var p49 = mkProf([mkTalent({ tribBonus: 0.21 })]);
     var i49 = SQ.XTrib.info(w49, pack, D, M(p49, w49));
     var w49b = mkWs({ realm: 8, karmaEventScore: -5000 });
     w49b.tribulation.next = -1;
     var i49b = SQ.XTrib.info(w49b, pack, D, M(mkProf(), w49b));
     ok(49, 'p 四项对表 + 正道档 alignFlat +0.05 + 双 clamp',
-      i49.parts.resist === 0.20 && i49.parts.power === 0.15 && Math.abs(i49.parts.talent - 0.15) < 1e-9 &&
+      i49.parts.resist === 0.12 && i49.parts.power === 0.15 && Math.abs(i49.parts.talent - 0.21) < 1e-9 &&
       i49.parts.karma === 0.20 && i49.parts.alignFlat === 0.05 && i49.p === 0.95 &&
       i49b.parts.alignFlat === 0 && i49b.p === 0.05,
       JSON.stringify(i49.parts) + ' p=' + i49.p + '/' + i49b.p);
 
-    /* #50 base 表 0.95→0.338（9 个突破点逐一核对；势力批 v2.4：第 3 境金丹起 ×0.75 已折算入表） */
-    var want50 = [0.95, 0.668, 0.623, 0.57, 0.525, 0.48, 0.435, 0.383, 0.338];
-    ok(50, '渡劫 base 表 9 点（金丹起 ×0.75）', want50.every(function (v, i) { return D.REALMS[i + 1].tribBase === v; }));
+    /* #50 base 表 0.95→0.22（9 个突破点逐一核对；势力批 v2.4 的「金丹起 ×0.75」已折算，
+     * 第卌二批在其上再压一档：中程起裸身不运营 <0.5、境界越高越难，尾段压平不吃 clamp 下界） */
+    var want50 = [0.95, 0.60, 0.50, 0.42, 0.36, 0.33, 0.30, 0.26, 0.22];
+    ok(50, '渡劫 base 表 9 点（第卌二批压陡后）', want50.every(function (v, i) { return D.REALMS[i + 1].tribBase === v; }));
 
     /* #51 成功：realm+1、qi=0、功法等级保留（第廿五批）、lastResult（#39 已覆盖，此处核 success 计数） */
     ok(51, '渡劫成功计数与状态', w39.tribulation.success === 1 && w39.tribulation.attempts === 1);
@@ -681,7 +755,7 @@
 
     /* #55 tribNext 掷判后清空 · 先加总后 clamp */
     var w55 = mkWs({ realm: 8, qi: 5e8 });
-    w55.tribulation.next = 0.9;   /* 势力批 v2.4：base 0.338 + 0.9 > 0.95 → clamp 仍生效 */
+    w55.tribulation.next = 0.9;   /* 势力批 v2.4 口径：一次性修正越过 clamp 上限即被截（第卌二批 base 0.22 同样成立） */
     w55.breakCostNext = -0.1;
     var i55 = SQ.XTrib.info(w55, pack, D, M(mkProf(), w55));
     var restore55 = stubRandom([0.9999]);
@@ -1271,22 +1345,27 @@
     }
     ok(103, '品阶要求带 + 属性门槛（70 部 · 独占 +6~12）', bad103.length === 0, bad103.join(','));
 
-    /* #105 同乘区功法层极限审计（通用规范 §一 P5 修订上限 · v2.2 独占重基线：qiRate 300% / offlineEff 250%）
+    /* #105 同乘区功法层极限审计（通用规范 §一 · 第卅八批品阶重排换基线）
+     * 口径两处一起改：① 缩放从「×5」纠正为**×9**（Lv9 满级 = 每级 ×9，与 §一 现行表的推导式一致——
+     *   旧写法留着 Lv5 时代的 ×5 与 300% 一档，是「判据口径落后于机制」的又一形）；
+     *   ② 上限 = 新表 top6 每级合计 ×9 向上取整（**恰顶格、零余量** = 本仓惯例：任何一部功法词条再涨都会红）。
      * 口径（通用规范 §一 v2.3 澄清）：本上限 = **功法层六槽自身**极限；洞府签名/装备词条/道友助力
-     * 是 §8.2 独立登记的小额加算来源，各有不叠加或合计封顶约束，不并入本合计（否则 offlineEff
-     * 功法层恰好 250% 顶格 ⇒ 任何追加来源天生破线，与 §8.2 登记表自相矛盾）。签名预算另见 #128。 */
-    var CAPS105 = { combatPower: 3.00, qiRate: 3.00, offlineEff: 2.50, combatSpeed: 1.95, qiCap: 1.75, stonesRate: 1.70, artsSpeed: 0.80, eventLuck: 0.85, eventRate: 0.65, dropRate: 0.45, tribBonus: 0.33 };
+     * 是 §8.2 独立登记的小额加算来源，各有不叠加或合计封顶约束，不并入本合计。签名预算另见 #128。 */
+    /* 🔧 返工：上限档 = **top6 每级合计 ×9 向上取整到两位小数**（先前几处手调成 12.40/10.00/10.35/1.20/2.05/2.35
+     * 与自述推导式差 0.01~0.03 ⇒ 「恰顶格、零余量」那句话当时并不成立）。现在每个数都能从 #153 那行算出来。 */
+    var CAPS105 = { combatPower: 12.38, qiRate: 10.72, offlineEff: 9.99, combatSpeed: 10.33, qiCap: 10.45,
+      stonesRate: 7.20, artsSpeed: 1.17, eventLuck: 2.03, eventRate: 2.34, dropRate: 0.81, tribBonus: 0.59 };
     var per105 = {};
     for (var id105 in SQ.XARTS) {
       var ef = SQ.XARTS[id105].effects;
-      for (var k105 in ef) (per105[k105] = per105[k105] || []).push(ef[k105] * 5);
+      for (var k105 in ef) (per105[k105] = per105[k105] || []).push(ef[k105] * 9);
     }
     var bad105 = [];
     for (var f105 in per105) {
       var top = per105[f105].sort(function (a, b) { return b - a; }).slice(0, 6);
       var sum105 = top.reduce(function (s, v) { return s + v; }, 0);
       var capv = CAPS105[f105] != null ? CAPS105[f105] : (f105 === 'realmCost' ? 0 : Infinity);
-      if (f105 === 'realmCost') { if (sum105 < -0.10 - 1e-9) bad105.push(f105 + '=' + sum105); }
+      if (f105 === 'realmCost') { if (sum105 < -0.18 - 1e-9) bad105.push(f105 + '=' + sum105); }
       else if (sum105 > capv + 1e-9) bad105.push(f105 + '=' + (sum105 * 100).toFixed(0) + '%>' + (capv * 100) + '%');
     }
     ok(105, '功法层极限审计（六槽自身，逐字段上限）', bad105.length === 0, bad105.join(','));
@@ -1477,9 +1556,13 @@
     /* 在线/离线同口径：离线结算倍率 = caveMult ×（离线效率含签名 offlineEff） */
     var nowA = Date.now();
     var wOn108 = caveWs(null, 5), wCv108 = caveWs('star_fall', 5), wSw108 = caveWs('sword_cliff', 5);
+    /* 绵长内息（tuna 签名）在 settle 内每段掷双倍——不桩则三档离线比是随机比（2026-10-14 实测 20 跑 1 红，
+     * dev 同现）；恒高值 = 双倍恒不中，比数回到纯乘区差。 */
+    var restore108 = stubRandom(function () { return 0.99999; });
     SQ.Idle.settle(wOn108, pack, D, 2 * 3600000, nowA, { log: noopLog(), profile: mkProf() });
     SQ.Idle.settle(wCv108, pack, D, 2 * 3600000, nowA, { log: noopLog(), profile: mkProf() });
     SQ.Idle.settle(wSw108, pack, D, 2 * 3600000, nowA, { log: noopLog(), profile: mkProf() });
+    restore108();
     var offSf108 = wCv108.qi / wOn108.qi;      /* 1.25 × (0.5+0.15)/0.5 = 1.625 */
     var offSw108 = wSw108.qi / wOn108.qi;      /* 1.12（剑崖签名不涉离线） */
     /* 引擎硬顶：表值超 CAVE_MULT_CAP 即被截断（世界包不得超） */
@@ -1492,7 +1575,8 @@
       sigOk && leftOk && capOk &&
       Math.abs(offSf108 - 1.625) < 1e-6 && Math.abs(offSw108 - 1.12) < 1e-6,
       'rate比=' + (rateSf108 / ratePl108).toFixed(4) + ' qiRate同=' + qiRateSame +
-      ' 签名=' + sigOk + ' 搬离=' + leftOk + ' 离线=' + offSf108.toFixed(4) + '/' + offSw108.toFixed(4));
+      ' 签名=' + sigOk + ' 搬离=' + leftOk + ' 离线=' + offSf108.toFixed(4) + '/' + offSw108.toFixed(4) +
+      ' qi=' + [wOn108.qi, wCv108.qi, wSw108.qi].join('/') + ' realm=' + [wOn108.realm, wSw108.realm].join('/'));
 
     /* #113 ledger 对账：随机操作序列后 100 + Σin − Σout === stones（零漂移）；只增不清、跨渡劫不清零 */
     localStorage.removeItem(SQ.KEY);
@@ -1581,8 +1665,9 @@
       'first=' + first105b + ' after=' + after105b + ' ex=' + exSeen105b +
       ' rate=' + rateWith105b + '/' + rateNo105b);
 
-    /* #123 主修形式化（引擎卷 §4.2）：主修 = 修习槽第 1 位（不顺延）；空槽 = 无；
-     * artsProgress 类收益指向主修，主修满级时顺延「随机槽内未满级功法」 */
+    /* #123 主修形式化（引擎卷 §4.2 · issue #3 起可由玩家点定）：`ws.artsMain` 优先，未点定 / 点定的
+     * 已不在槽内 ⇒ 回落「修习槽第 1 位」（旧档口径逐字不变，下面 a~d 全部按未点定跑）；
+     * 空槽 = 无主修（不顺延）；artsProgress 类收益指向主修，主修满级时顺延「随机槽内未满级功法」 */
     var w123 = mkWs({ realm: 3 });
     w123.artsKnown = ['tuna', 'juling', 'yunzong'];
     w123.artsSlots = ['tuna', 'juling'];
@@ -1607,14 +1692,52 @@
     /* 全空槽 → 主修 null、progressTarget null（无处可加，不报错） */
     var w123d = mkWs({ realm: 3 });
     w123d.artsSlots = [];
-    ok(123, '主修 = 槽第 1 位 · 满级顺延槽内 · 全空不报错',
+    /* (e) issue #3 点定主修：setMain 认槽内已入门者 ⇒ mainArt 跟着点定的走；
+     *     点定的那部被移出槽后回落第 1 位；槽外 / 未入门一律拒且**不改档**；同值重复点幂等；
+     *     artsMain 过 normalize（字符串保值、脏值归 null）*/
+    var w123e = mkWs({ realm: 3 });
+    w123e.artsKnown = ['tuna', 'juling', 'yunzong'];
+    w123e.artsSlots = ['tuna', 'juling'];
+    var sm123 = SQ.Arts.setMain(w123e, 'juling');
+    var main123e = SQ.Arts.mainArt(w123e);
+    var sm123out = SQ.Arts.setMain(w123e, 'yunzong');            /* 已入门、不在槽 ⇒ 拒 */
+    var main123out = SQ.Arts.mainArt(w123e);
+    w123e.artsSlots = ['tuna'];                                   /* 点定的那部被移出槽 ⇒ 回落第 1 位 */
+    var main123f = SQ.Arts.mainArt(w123e);
+    var w123g = mkWs({ realm: 3 });
+    w123g.artsSlots = ['tuna'];
+    SQ.Arts.setMain(w123g, 'tuna');
+    var sm123dup = SQ.Arts.setMain(w123g, 'tuna');        /* 同值重复点 ⇒ same，不二次写档 */
+    var n123k = pack.normalize({ artsMain: 'juling' }).artsMain;
+    var n123bad = pack.normalize({ artsMain: 42 }).artsMain;
+    /* (f) 散功散掉**点定的那部** ⇒ 同批清掉 artsMain（档里不留永久悬空 id）；
+     *     只是移出槽外则**不清**（记忆式语义，登记 = 任务清单 N44）*/
+    var w123h = mkWs({ realm: 3 });
+    w123h.artsKnown = ['tuna', 'juling', 'yunzong'];
+    w123h.artsSlots = ['tuna', 'yunzong'];
+    w123h.artsLevels = { tuna: 1, yunzong: 1 };
+    SQ.Arts.setMain(w123h, 'yunzong');
+    SQ.Arts.unslot(w123h, 'yunzong');
+    var keptPin123 = w123h.artsMain === 'yunzong' && SQ.Arts.mainArt(w123h) === 'tuna';
+    var sv123h = SQ.Arts.salvage(w123h, pack, D, 'yunzong');
+    var main123h = SQ.Arts.mainArt(w123h);
+    ok(123, '主修指向（引擎卷 §4.2 · GitHub issue #3）：未点定 = 槽第 1 位（旧档逐字不变）· 点定 = 跟随 ws.artsMain · ' +
+      '移出槽外的记忆式回落 · 散功散掉点定者则清空 artsMain · 满级顺延槽内 · 全空不报错 · setMain 拒槽外且不脏写 · artsMain 过 normalize',
       main123 === 'tuna' && lvAfter123[0] === 2 && lvAfter123[1] === 1 &&
       SQ.Arts.mainArt(w123b) === 'tuna' && w123b.artsLevels.juling === 3 &&
       w123b.artsLevels.tuna === D.ARTS_MAX_LV &&
       main123c === 'juling' &&
-      SQ.Arts.mainArt(w123d) === null && SQ.Arts.progressTarget(w123d, D.ARTS_MAX_LV) === null,
+      SQ.Arts.mainArt(w123d) === null && SQ.Arts.progressTarget(w123d, D.ARTS_MAX_LV) === null &&
+      sm123.ok === true && main123e === 'juling' &&
+      sm123out.ok === false && sm123out.reason === 'inslot' && main123out === 'juling' &&
+      main123f === 'tuna' && sm123dup.ok === true && sm123dup.same === true &&
+      keptPin123 && sv123h && w123h.artsMain === null && main123h === 'tuna' &&
+      n123k === 'juling' && n123bad === null,
       'main=' + main123 + ' lv=' + lvAfter123.join('/') + ' 满级顺延→juling=' + w123b.artsLevels.juling +
-      ' 首位=' + main123c + ' 全空=' + SQ.Arts.mainArt(w123d));
+      ' 首位=' + main123c + ' 全空=' + SQ.Arts.mainArt(w123d) +
+      ' ‖ (e) 点定=' + main123e + ' 槽外拒=' + sm123out.reason + ' 移出后回落=' + main123f +
+      ' 幂等=' + sm123dup.same + ' normalize=' + n123k + '/' + n123bad +
+      ' ‖ (f) 移出槽外仍记忆=' + keptPin123 + ' 散功后清空=' + (w123h.artsMain === null) + '/' + main123h);
 
     /* #117 normalize：事件新字段 + seenOnce→seen 迁移 + drift 钳位 + profile 三字段 */
     var n117 = SQ.normalize({ v: SQ.V, profile: { name: '旧档', alignBias: 'weird' }, worlds: { xiuxian: {
@@ -1643,10 +1766,13 @@
       merchant: 1, merchantScout: 1, primeGear: 1, primeArt: 1,
       fateShard: 1,   /* 探宝残片计数（事件池 v2.7 №117 ⏳ 键，系统深化批 A6 登记） */
       treasure: 1,
-      talentSwap: 1 };   /* 洗髓缘（天赋池设计 v1.8 §十 · 洗髓批）：计数型收益，无区间 */
+      talentSwap: 1,
+      stonesPct: 1,   /* 按比例出血（第卌四批 · §6.1B 认输买平安）：走 applyEffects 既有 stonesPct 通道（取整 + 下限 0 + noteStones 真值） */
+      life: 1 };   /* 寿元增减（第卌八批 §6.1A 改口）：绝对年数，走 lifeAdd 唯一写口；failE 侧另认 lifeWound 标记 */
       /* 先天法宝联动授予（二批 A5 · 数值详设 §10.7；恢复批 A3b 引擎 case 已重加） */
     var CHECK_TYPES = { attr: 1, karma: 1, align: 1, stones: 1, qi: 1, art: 1, gear: 1, power: 1, companion: 1,
-      prodigySpar: 1 };   /* 天骄对局判定（天骄卷 §5.2/§7.3 同构 · 六向批 A4 新增第十类 DSL） */
+      prodigySpar: 1,
+      ambushFoe: 1 };   /* 敌手快照判定（第卌四批 · §6.1B）：与切磋同构的 ±10% 对局，对手取 pendingChoice.foe 快照 ⇒ 第十一类 DSL */
     var BAND118 = D.EVENT_KARMA_BAND;   /* 取表而不是手抄（第十四批审计 #18）。⚠️ 归因纠正（当晚复核）：A9 把这条记成零消费者死桩的理由是**生产侧无人读**（A9 的消费面刻意不含 `.tests/`），不是「因为手抄」⇒ 本改只让测试随表动，摘除在册登记要等生产侧真出现读者。 */
     all118.forEach(function (ev) {
       tiers118[ev.tier] = (tiers118[ev.tier] || 0) + 1;
@@ -1658,9 +1784,13 @@
       ids118[ev.id] = 1;
       /* 独立通道词条（天道垂青池）：weight/cooldownHours 不设（事件池 v2.7 词条口径） */
       if (!isTagged && (!ev.weight || (ev.cooldownHours == null && !ev.cdFailHours))) bad118.push(ev.id + ':w/cd');
-      ['right', 'evil', 'neutral'].forEach(function (bk) {
-        var br = (ev.choices || {})[bk];
-        if (!br) { bad118.push(ev.id + ':' + bk); return; }
+      /* 分支逐支对表：按模板**自己声明的 choices** 走（第卌四批改口，与 audit A2 同口径）——
+       * 「族中寻仇」按用户设定只有迎战一条路，硬要求三支齐全只会逼词表补两条永不消费的孤儿键。
+       * 三支齐全的既有条目覆盖面一字不减（取的是 Object.keys(choices)，与旧写法同集）。 */
+      var bks118 = Object.keys(ev.choices || {});
+      if (!bks118.length) bad118.push(ev.id + ':nochoice');
+      bks118.forEach(function (bk) {
+        var br = ev.choices[bk];
         if (Math.abs(br.karma) > BAND118[ev.tier]) bad118.push(ev.id + ':karma' + br.karma);
         (br.gain || []).forEach(function (g) { if (!GAIN_TYPES[g.type]) bad118.push(ev.id + ':gain.' + g.type); });
         var chks = br.check ? (Array.isArray(br.check) ? br.check : [br.check]) : [];
@@ -1670,14 +1800,14 @@
         var key = 'event.' + ev.id + '.' + suf;
         if (SQ.t(key, null, 'xiuxian') === key) bad118.push(ev.id + ':lex.' + suf);
       });
-      ['right', 'evil', 'neutral'].forEach(function (bk) {
+      bks118.forEach(function (bk) {
         var key = 'event.' + ev.id + '.branch.' + bk;
         if (SQ.t(key, null, 'xiuxian') === key) bad118.push(ev.id + ':lex.branch.' + bk);
       });
     });
-    ok(118, '125 条分布（天24/地42/人59 · 特殊12 · once12 · tags11=垂青6+天骄5）+ schema/词表对表（洗髓批 №125 入池 · GAIN_TYPES 登记 talentSwap）',
-      all118.length === 125 && tiers118.tian === 24 && tiers118.di === 42 && tiers118.ren === 59 &&
-      special118 === 12 && once118 === 12 && tagged118 === 11 && bad118.length === 0,
+    ok(118, '131 条分布（天26/地45/人60 · 特殊12 · once12 · tags17=垂青6+天骄5+袭击2+寻仇1+机缘2+隐世1）+ schema/词表对表（第册三批 №129~131 入池 · GAIN_TYPES 登记 stonesPct / CHECK_TYPES 登记 ambushFoe）',
+      all118.length === 131 && tiers118.tian === 26 && tiers118.di === 45 && tiers118.ren === 60 &&
+      special118 === 12 && once118 === 12 && tagged118 === 17 && bad118.length === 0,
       'n=' + all118.length + ' ' + JSON.stringify(tiers118) + ' sp=' + special118 + ' once=' + once118 +
       ' tags=' + tagged118 + ' bad=' + bad118.slice(0, 5).join(','));
 
@@ -1995,7 +2125,10 @@
       /* 天骄专属事件（№120~124 · 六向批 A4）：bond 槽位占位符 '$prodigy'（resolveBranch 运行时
        * 替换为触发槽位实际 id pr{n}——天骄 bonds 键空间与道友名录隔离，天骄卷 §10.1） */
       prodigy_ev_drink:    { right: { '$prodigy': 8 }, neutral: { '$prodigy': 4 }, evil: {} },
-      prodigy_ev_gift:     { right: { '$prodigy': 10 }, neutral: { '$prodigy': 5 }, evil: {} }
+      prodigy_ev_gift:     { right: { '$prodigy': 10 }, neutral: { '$prodigy': 5 }, evil: {} },
+      /* 江湖榜④ №129~130（第册三批）：机缘竞争挂的两支词条，bond 目标同样是运行时占位符 */
+      jianghu_ev_rival_ling:  { right: { '$prodigy': 4 }, neutral: {}, evil: {} },
+      jianghu_ev_rival_trial: { right: { '$prodigy': 6 }, neutral: {}, evil: {} }
     };
     var bad109 = [];
     var all109 = SQ.EVENTS.common.concat(SQ.EVENTS.xiuxian);
@@ -2052,7 +2185,7 @@
     normOk = normOk && JSON.stringify(m109.bonds) === '{}' && m109.spouse === null &&
       m109.guardLog.count === 0 && m109.chuBlessAt === 0 && JSON.stringify(m109.scars) === '{}' &&
       m109.spouseCdUntil === 0 && m109.spouseLog === null;
-    ok('109', 'bond 映射表对表（60 行 = 正典 57 事件 + 垂青 pei 1 + 天骄占位 2 · companion 链）+ 四态（bond/lock/drain/互斥）+ 好感模型 + normalize + 旧档迁移',
+    ok('109', 'bond 映射表对表（62 行 = 正典 57 事件 + 垂青 pei 1 + 天骄占位 2 + 机缘占位 2 · companion 链）+ 四态（bond/lock/drain/互斥）+ 好感模型 + normalize + 旧档迁移',
       bad109.length === 0 && tierOk && gainOk && normOk,
       'bad=' + bad109.slice(0, 4).join(',') + ' tier=' + tierOk + ' gain=' + gainOk + ' norm=' + normOk);
 
@@ -2455,7 +2588,9 @@
       w135c.treasures.fate.trib === 0.2;
     ok('135', '法宝引擎：获得/装备/乘区并入/祭炼成长/栏位解锁/脏档归一',
       g135.ok && dup135.ok === false && dup135.reason === 'dup' && eq135.ok && eq135.slot === 0 &&
-      Math.abs(scaled1 - 0.15) < 1e-9 && Math.abs((m135.sum.qiRate || 0) - 0.15) < 1e-9 &&
+      Math.abs(scaled1 - 0.15) < 1e-9 &&
+      /* 同 #43：等级起点批后首发功法自带 qiRate，判「法宝并入乘区」要认 treasure 来源而不是总和 */
+      Math.abs(((m135.detail.qiRate || {}).treasure || 0) - 0.15) < 1e-9 &&
       cost135 === 1040 && r135.ok && r135.fail === false && r135.lv === 2 &&
       w135.stones === st135 - 1040 && Math.abs(scaled2 - 0.1875) < 1e-9 &&
       unlock135 && norm135,
@@ -2518,10 +2653,12 @@
     /* #139 潜心悟道（离线）：按原有规则结算，模式不进离线口径；lastOffline 记 mode 叙事口径 */
     var w139 = mkWs({ realm: 8, mode: 'venture' });
     pack.recalcDerived(w139, mkProf());
+    var restore139 = stubRandom(function () { return 0.99999; });   /* 同 #108：绵长内息双倍掷必须桩掉，否则两边收益比是掷点比 */
     var r139 = SQ.Idle.settle(w139, pack, D, 48 * 3600 * 1000, Date.now(), { log: noopLog(), profile: mkProf() });
     var w139b = mkWs({ realm: 8, mode: 'seclude' });
     pack.recalcDerived(w139b, mkProf());
     var r139b = SQ.Idle.settle(w139b, pack, D, 48 * 3600 * 1000, Date.now(), { log: noopLog(), profile: mkProf() });
+    restore139();
     ok('139', '离线 = 潜心悟道：模式不影响离线收益 · lastOffline 记录叙事口径',
       r139.offline && r139b.offline && Math.abs(r139.gain - r139b.gain) < 1 &&
       w139.lastOffline.mode === 'venture' && w139b.lastOffline.mode === 'seclude',
@@ -2529,10 +2666,12 @@
 
     /* #140 在线修为模式乘区（体验批 v2.4）：闭关 ×1.3 增益 / 历练 ×0.55 放缓 →
      * 收益比值 = venture.qiMult / seclude.qiMult（由引擎常量驱动，模式乘区漂移即暴露）。 */
-    var w140 = mkWs({ realm: 5, mode: 'seclude', qi: 0 });
+    /* 两件都清空功法：等级起点批（入门即 Lv1）后首发两部从第一天就带词条与签名，
+     * 历练支的战斗/掉落结果会被它们推动 ⇒ 本条只测「模式乘区」，不留别的变量。 */
+    var w140 = mkWs({ realm: 5, mode: 'seclude', qi: 0, artsKnown: [], artsSlots: [] });
     pack.recalcDerived(w140, mkProf());
     var r140 = SQ.Idle.settle(w140, pack, D, 30000, Date.now(), { log: noopLog(), profile: mkProf() });
-    var w140b = mkWs({ realm: 5, mode: 'venture', qi: 0 });
+    var w140b = mkWs({ realm: 5, mode: 'venture', qi: 0, artsKnown: [], artsSlots: [] });
     pack.recalcDerived(w140b, mkProf());
     var r140b = SQ.Idle.settle(w140b, pack, D, 30000, Date.now(), { log: noopLog(), profile: mkProf() });
     var ratio140 = r140b.gain / r140.gain;
@@ -2548,47 +2687,59 @@
     pack.recalcDerived(w141, mkProf());
     var m141 = SQ.Mods.collect(mkProf(), w141, pack, D);
     SQ.Arts.tickPractice(w141, pack, D, m141, 3600, { log: noopLog() });
-    var pMain = w141.artsPractice.tuna, pSub = w141.artsPractice.juling;   /* 30×1.6×1.5=72 / 12×1.6×1.5=28.8 */
+    var pMain = w141.artsPractice.tuna, pSub = w141.artsPractice.juling;   /* 30×1.45×1.5=65.25 / 12×1.45×1.5=26.1（Lv1 起表头） */
     var guard141 = 0;
-    while ((w141.artsLevels.tuna || 0) < 1 && guard141++ < 10) {
+    /* 等级起点批：入门即 Lv1 ⇒ 首次顿悟升到 **Lv2**（旧判据是从 Lv0 悟到 Lv1） */
+    while ((w141.artsLevels.tuna || 0) < 2 && guard141++ < 10) {
       SQ.Arts.tickPractice(w141, pack, D, m141, 3600, { log: noopLog() });
     }
-    /* 低阶快、高阶慢：速率表 Lv0 > Lv8 且单调不增 */
-    var lvRate0 = D.PRACTICE_LV_RATE[0], lvRate8 = D.PRACTICE_LV_RATE[8];
-    var dec141 = lvRate0 > lvRate8 && D.PRACTICE_LV_RATE.every(function (v, i, a) {
-      return i === 0 || v <= a[i - 1];
-    });
+    /* 低阶快、高阶慢：速率表 Lv1 > Lv8 且单调不增（表长 8，索引 = lv−1） */
+    var lvRate1 = D.PRACTICE_LV_RATE[0], lvRate8 = D.PRACTICE_LV_RATE[7];
+    var dec141 = lvRate1 > lvRate8 && D.PRACTICE_LV_RATE.length === D.ARTS_MAX_LV - 1 &&
+      D.PRACTICE_LV_RATE.every(function (v, i, a) {
+        return i === 0 || v <= a[i - 1];
+      });
     var w141b = mkWs({ mode: 'venture' });
     w141b.artsKnown = ['tuna']; w141b.artsSlots = ['tuna'];
     var m141b = SQ.Mods.collect(mkProf(), w141b, pack, D);
     SQ.Arts.tickPractice(w141b, pack, D, m141b, 3600, { log: noopLog() });
-    ok('141', '精通：主修快于副槽 · 满值顿悟清零重来 · 闭关易悟历练难悟 · 低阶快高阶慢',
-      Math.abs(pMain - 72) < 1e-6 && Math.abs(pSub - 28.8) < 1e-6 &&
-      w141.artsLevels.tuna === 1 && w141.artsPractice.tuna < D.PRACTICE_MAX &&
-      Math.abs(w141b.artsPractice.tuna - 24) < 1e-6 && dec141,
+    /* issue #3：主修点在**第 2 格**时增速跟着第 2 格走（旧实现按 `i === 0` 分配 ⇒ 这一格必红，
+     * 也证明本条判据认的是「主修指向」而不是「槽序」）*/
+    var w141c = mkWs({ mode: 'seclude' });
+    w141c.artsKnown = ['tuna', 'juling']; w141c.artsSlots = ['tuna', 'juling'];
+    SQ.Arts.setMain(w141c, 'juling');
+    pack.recalcDerived(w141c, mkProf());
+    var m141c = SQ.Mods.collect(mkProf(), w141c, pack, D);
+    SQ.Arts.tickPractice(w141c, pack, D, m141c, 3600, { log: noopLog() });
+    var c141 = w141c.artsPractice.juling === pMain && w141c.artsPractice.tuna === pSub;
+    ok('141', '精通：主修快于副槽（增速认主修指向，issue #3 起不认槽序）· 满值顿悟清零重来 · 闭关易悟历练难悟 · 低阶快高阶慢',
+      Math.abs(pMain - 65.25) < 1e-6 && Math.abs(pSub - 26.1) < 1e-6 &&
+      w141.artsLevels.tuna === 2 && w141.artsPractice.tuna < D.PRACTICE_MAX &&
+      Math.abs(w141b.artsPractice.tuna - 21.75) < 1e-6 && dec141 && c141,
       'main=' + pMain.toFixed(1) + ' sub=' + pSub.toFixed(1) +
       ' insight lv=' + w141.artsLevels.tuna + ' venture=' + w141b.artsPractice.tuna.toFixed(1) +
-      ' lvRate=' + lvRate0 + '>' + lvRate8);
+      ' lvRate=' + lvRate1 + '>' + lvRate8 +
+      ' ‖ 点定第2格: juling=' + w141c.artsPractice.juling.toFixed(1) + ' tuna=' + w141c.artsPractice.tuna.toFixed(1));
 
     /* #142 升级改耗修为（不入灵石账）· 品阶/等级成本递增 · Lv9 封顶 */
     var w142 = mkWs({ realm: 0, qi: 1e9, stones: 100 });
     w142.artsKnown = ['tuna']; w142.artsSlots = ['tuna'];
     pack.recalcDerived(w142, mkProf());
     var m142 = SQ.Mods.collect(mkProf(), w142, pack, D);
-    var c142a = SQ.Arts.upgradeCost(w142, pack, D, 'tuna', m142);      /* 60×黄1 = 60 */
+    var c142a = SQ.Arts.upgradeCost(w142, pack, D, 'tuna', m142);      /* Lv1 黄：240×1 = 240 */
     var up142 = SQ.Arts.upgrade(w142, pack, D, 'tuna', m142);
     var tianId142 = null;
     for (var id142 in SQ.XARTS) if (SQ.XARTS[id142].tier === 'tian') { tianId142 = id142; break; }
     w142.artsKnown.push(tianId142);
-    var c142t0 = SQ.Arts.upgradeCost(w142, pack, D, tianId142, m142);  /* 60×天36 = 2160 */
+    var c142t0 = SQ.Arts.upgradeCost(w142, pack, D, tianId142, m142);  /* Lv1 天：240×36 = 8640 */
     w142.artsLevels[tianId142] = 8;
-    var c142t8 = SQ.Arts.upgradeCost(w142, pack, D, tianId142, m142);  /* 1300000×36 */
+    var c142t8 = SQ.Arts.upgradeCost(w142, pack, D, tianId142, m142);  /* 1300000×36（末档，索引 lv−1） */
     w142.artsLevels[tianId142] = 9;
     var c142t9 = SQ.Arts.upgradeCost(w142, pack, D, tianId142, m142);  /* 满级 = null */
-    ok('142', '升级耗修为不动灵石 · 品阶/等级成本递增 · Lv9 封顶',
-      up142 && c142a === 60 && w142.qi === 1e9 - 60 && w142.stones === 100 &&
-      c142t0 === 60 * D.ARTS_COST_TIER.tian && c142t8 === D.ARTS_COST[8] * D.ARTS_COST_TIER.tian &&
-      c142t9 === null,
+    ok('142', '升级耗修为不动灵石 · 品阶/等级成本递增 · Lv9 封顶（升到 Lv9 即满，无价目可扣）',
+      up142 && c142a === 240 && w142.qi === 1e9 - 240 && w142.stones === 100 &&
+      c142t0 === 240 * D.ARTS_COST_TIER.tian && c142t8 === D.ARTS_COST[D.ARTS_COST.length - 1] * D.ARTS_COST_TIER.tian &&
+      c142t9 === null && w142.artsLevels.tuna === 2,
       'cost0=' + c142a + ' costT0=' + c142t0 + ' costT8=' + c142t8 + ' costT9=' + c142t9);
 
     /* #143 日志「功法」分类路由（v2.3）：入门/顿悟/升级全记 arts（渡劫/晋升仍走 trib） */
@@ -2612,12 +2763,13 @@
       s.worlds.xiuxian.artsSlots = ['tuna'];
     });
     await SQ.Actions.upgradeArt(ref143, 'tuna');
+    /* 入门即 Lv1 ⇒ 这次升级日志写「升至 Lv2」（旧口径 Lv0→1 记 Lv1） */
     var hasArtsLog143 = ref143.worlds.xiuxian.log.some(function (l) {
-      return l.cat === 'arts' && l.text.indexOf('Lv1') >= 0;
+      return l.cat === 'arts' && l.text.indexOf('Lv2') >= 0;
     });
     ok('143', '日志「功法」分类：入门/顿悟/升级全记 arts',
       cats143.length === 3 && cats143.every(function (c) { return c === 'arts'; }) &&   /* 入门 + 自动入槽（体验手感批）+ 顿悟 */
-      w143.artsLevels.yinqi === 1 && w143.artsPractice.yinqi < D.PRACTICE_MAX && hasArtsLog143,
+      w143.artsLevels.yinqi === 2 && w143.artsPractice.yinqi < D.PRACTICE_MAX && hasArtsLog143,
       'cats=' + cats143.join(',') + ' upgradeLog=' + hasArtsLog143);
 
     /* ═══ 势力批（G16 势力 + 神秘商人 + 渡劫 nerf · v2.4）═══ */
@@ -2857,40 +3009,97 @@
       ' win=' + winConst158 + '/' + winExpire158 + '/' + winLive158 +
       ' amp=' + ampOk158 + ' grant=' + grantOwn158 + ' leave=' + leaveOk158);
 
-    /* #159 委托：三类基线/进度/交付（gather 足额扣）/过期作废/效力中才生成/刷新闸 */
+    /* #159 委托（第卅九批改形：单槽 → 板面最多 SLOTS=3 张、同类型至多一张、交付按 type 寻址）
+     * 判据八条：基线进度 / 交付摘除与记账 / gather 扣账 / 过期作废 / 刷新闸 / **一刷贴满三张且互不相同** /
+     * **交一张不动另两张** / **旧档单张迁移** / 叛离整板作废。*/
     var w159 = mkWs({ stones: 50000, kills: 100, total: 1000 });
     SQ.Factions.generate(w159, pack, D);
     w159.factionId = 'huangfeng'; w159.factionRep = { huangfeng: 0 };
     var now159 = Date.now();
-    w159.factionQuest = { type: 'slay', target: 10, base: 100, rep: 25, stones: 500, bornAt: now159, expireAt: now159 + 3600000 };
+    w159.factionQuests = [{ type: 'slay', target: 10, base: 100, rep: 25, stones: 500, bornAt: now159, expireAt: now159 + 3600000 }];
     w159.kills = 109;
-    var p159a = SQ.Factions.questProgress(w159, pack, D);
+    var p159a = SQ.Factions.questProgress(w159, pack, D, w159.factionQuests[0]);
     w159.kills = 110;
-    var p159b = SQ.Factions.questProgress(w159, pack, D);
+    var p159b = SQ.Factions.questProgress(w159, pack, D, w159.factionQuests[0]);
     var progOk159 = !p159a.done && p159b.done && p159b.cur === 10;
     var st159 = w159.stones;
-    var dq159 = SQ.Factions.questDeliver(w159, pack, D, now159, noopLog());
+    var dq159 = SQ.Factions.questDeliver(w159, pack, D, now159, noopLog(), 'slay');
     var deliverOk159 = dq159.ok && w159.stones === st159 + 500 && w159.factionRep.huangfeng === 25 &&
-      w159.factionQuest === null && (w159.factionQuestCd || 0) > now159;
+      w159.factionQuests.length === 0 && (w159.factionQuestCd || 0) > now159;
+    /* 交不存在的那张 ⇒ 拒且不动板面（type 就是地址，打错不能误摘别张） */
+    w159.factionQuests = [{ type: 'gather', target: 1000, base: 0, rep: 30, stones: 0, bornAt: now159, expireAt: now159 + 3600000 }];
+    var dq159x = SQ.Factions.questDeliver(w159, pack, D, now159, noopLog(), 'slay');
+    var wrongOk159 = !dq159x.ok && dq159x.reason === 'none' && w159.factionQuests.length === 1;
     /* gather：交付时足额扣 + out.donate 记账 */
-    w159.factionQuest = { type: 'gather', target: 1000, base: 0, rep: 30, stones: 0, bornAt: now159, expireAt: now159 + 3600000 };
     var st159b = w159.stones;
-    var dq159b = SQ.Factions.questDeliver(w159, pack, D, now159, noopLog());
+    var dq159b = SQ.Factions.questDeliver(w159, pack, D, now159, noopLog(), 'gather');
     var gatherOk159 = dq159b.ok && w159.stones === st159b - 1000 && w159.ledger.out.donate === 1000;
-    /* 过期作废 + 刷新闸：cd 内不生成、cd 过生成新单 */
-    w159.factionQuest = { type: 'slay', target: 10, base: 0, rep: 25, stones: 0, bornAt: now159 - 7200000, expireAt: now159 - 1000 };
+    /* 过期作废 + 刷新闸：cd 内不补、cd 过补单 */
+    w159.factionQuests = [{ type: 'slay', target: 10, base: 0, rep: 25, stones: 0, bornAt: now159 - 7200000, expireAt: now159 - 1000 }];
     var m159 = M(mkProf(), w159);
     SQ.Factions.questTick(w159, pack, D, m159, now159, { log: noopLog() });
-    var expOk159 = w159.factionQuest === null && w159.factionQuestCd > now159;
+    var expOk159 = w159.factionQuests.length === 0 && w159.factionQuestCd > now159;
     SQ.Factions.questTick(w159, pack, D, m159, now159 + 1000, { log: noopLog() });
-    var cdOk159 = w159.factionQuest === null;                              /* 闸内不生成 */
+    var cdOk159 = w159.factionQuests.length === 0;                              /* 闸内不补单 */
     SQ.Factions.questTick(w159, pack, D, m159, now159 + 1800001, { log: noopLog() });
-    var genOk159b = !!w159.factionQuest && ['slay', 'cultivate', 'gather'].indexOf(w159.factionQuest.type) >= 0 &&
-      w159.factionQuest.expireAt === now159 + 1800001 + D.FACTION_QUEST.TTL_MS;
-    ok('159', '委托：slay 基线进度/gather 足额扣记账/过期作废/刷新闸 30min',
-      progOk159 && deliverOk159 && gatherOk159 && expOk159 && cdOk159 && genOk159b,
-      'prog=' + progOk159 + ' deliver=' + deliverOk159 + ' gather=' + gatherOk159 +
-      ' exp=' + expOk159 + ' cd=' + cdOk159 + ' gen=' + genOk159b);
+    var q3 = w159.factionQuests, made3 = q3.length;   /* made3 = 补单当时的板面张数（q3 本身后面会被 splice 改动） */
+    var genOk159b = q3.length === (D.FACTION_QUEST.SLOTS || 1) &&
+      q3.every(function (q) { return ['slay', 'cultivate', 'gather'].indexOf(q.type) >= 0; }) &&
+      q3.map(function (q) { return q.type; }).sort().join() === 'cultivate,gather,slay' &&   /* 三张互不相同 */
+      q3.every(function (q) { return q.expireAt === now159 + 1800001 + D.FACTION_QUEST.TTL_MS; });
+    /* 交一张：另两张留在板面（本批要的就是这个） */
+    var rep0 = w159.factionRep.huangfeng;
+    /* 三张都是刚贴出来的新单，进度为零 ⇒ 先按类型把进度凑到达标（等同玩家真去打/修/攒） */
+    q3.forEach(function (q) {
+      if (q.type === "slay") w159.kills = (q.base || 0) + q.target;
+      else if (q.type === "cultivate") w159.total = (q.base || 0) + q.target;
+      else w159.stones = Math.max(w159.stones, q.target);
+    });
+    var notDone159 = (function () {
+      /* 复用 w159 已生成的势力池：没池的话 current() 为空，返回的是 none 而不是 progress */
+      var wX = mkWs({ stones: 10, kills: 0, total: 0 });
+      wX.factions = w159.factions; wX.factionId = "huangfeng"; wX.factionRep = { huangfeng: 0 };
+      wX.factionQuests = [{ type: "slay", target: 50, base: 0, rep: 25, stones: 0, bornAt: now159, expireAt: now159 + 7200000 }];
+      var rX = SQ.Factions.questDeliver(wX, pack, D, now159, noopLog(), "slay");
+      return !rX.ok && rX.reason === "progress" && wX.factionQuests.length === 1;
+    })();
+    /* q3 就是 w159.factionQuests 那个数组本身（splice 会原地改它）⇒ 交付前先把类型快照下来 */
+    var tFirst = q3[0].type;
+    var others = q3.filter(function (q) { return q.type !== tFirst; }).map(function (q) { return q.type; }).sort().join();
+    var dqOne = SQ.Factions.questDeliver(w159, pack, D, now159 + 1800001, noopLog(), tFirst);
+    var oneOk159 = dqOne.ok && w159.factionQuests.length === 2 &&
+      w159.factionQuests.every(function (q) { return q.type !== tFirst; }) &&
+      q3.map(function (q) { return q.type; }).sort().join() === others &&
+      w159.factionRep.huangfeng === rep0 + dqOne.rep;
+    /* 跨刷新补单的去重：板上还剩两张（一交一留之后），cd 再到期只补一张 ⇒ 补出来的那张不许与板上重复 */
+    w159.factionQuestCd = 0;
+    var before2 = w159.factionQuests.map(function (q) { return q.type; }).sort().join();
+    SQ.Factions.questTick(w159, pack, D, m159, now159 + 3600001, { log: noopLog() });
+    var after3 = w159.factionQuests.map(function (q) { return q.type; });
+    var dedupeOk159 = w159.factionQuests.length === 3 && new Set(after3).size === 3 &&
+      after3.filter(function (t) { return before2.split(',').indexOf(t) >= 0; }).length === before2.split(',').length;
+    /* 旧档单张 factionQuest → normalize 并入板面；脏类型剪除；二次 normalize 幂等 */
+    var mig159 = pack.normalize({ factionQuests: undefined, factionQuest: { type: 'slay', target: 12, base: 3, rep: 25, stones: 40, bornAt: now159, expireAt: now159 + 7200000 } }, D);
+    var migOk159 = Array.isArray(mig159.factionQuests) && mig159.factionQuests.length === 1 &&
+      mig159.factionQuests[0].type === 'slay' && mig159.factionQuest === undefined;
+    var migIdem159 = JSON.stringify(pack.normalize(mig159, D).factionQuests) === JSON.stringify(mig159.factionQuests);
+    /* 板面上限硬顶：塞四张（含重复类型）→ normalize 收到 3 张且同类型只留首张 */
+    var cap159 = pack.normalize({ factionQuests: [
+      { type: 'slay', target: 1, base: 0, rep: 1, stones: 0, bornAt: now159, expireAt: now159 + 7200000 },
+      { type: 'slay', target: 2, base: 0, rep: 1, stones: 0, bornAt: now159, expireAt: now159 + 7200000 },
+      { type: 'gather', target: 3, base: 0, rep: 1, stones: 0, bornAt: now159, expireAt: now159 + 7200000 },
+      { type: 'cultivate', target: 4, base: 0, rep: 1, stones: 0, bornAt: now159, expireAt: now159 + 7200000 },
+      { type: 'bogus', target: 5, base: 0, rep: 1, stones: 0, bornAt: now159, expireAt: now159 + 7200000 }
+    ] }, D);
+    var capOk159 = cap159.factionQuests.length === 3 &&
+      cap159.factionQuests.map(function (q) { return q.type; }).join() === 'slay,gather,cultivate' &&
+      cap159.factionQuests[0].target === 1;                                     /* 重复类型留首张、脏类型剪除 */
+    ok('159', '委托板面（第卅九批 3 张形）：slay 基线进度 / 交付按 type 摘除并记账 / 错类型整笔拒 / gather 足额扣 + out.donate / 过期作废 / 刷新闸内不补 / **一刷贴满 SLOTS 且三张类型互不相同** / **交一张不动另两张** / 旧档单张迁移 + 幂等 / 板面硬顶 3 张（重复留首、脏型剪）/ 未达标拒交且不动板面',
+      progOk159 && deliverOk159 && wrongOk159 && gatherOk159 && expOk159 && cdOk159 && notDone159 &&
+      genOk159b && oneOk159 && dedupeOk159 && migOk159 && migIdem159 && capOk159,
+      '未达标拒=' + notDone159 + ' prog=' + progOk159 + ' deliver=' + deliverOk159 + ' 错型拒=' + wrongOk159 + ' gather=' + gatherOk159 +
+      ' exp=' + expOk159 + ' cd=' + cdOk159 + ' 板满=' + made3 + '/差异=' + genOk159b +
+      ' 交一留二=' + oneOk159 + ' 迁移=' + migOk159 + '/' + migIdem159 + ' 硬顶=' + capOk159);
 
     /* #160 冲突（战功制改造 · 势力全录卷 §七）：入场无判定/每场一次/第三方观望/war 传闻卡/终局清场 */
     var w160 = mkWs({ realm: 0, stones: 1000 });
@@ -3329,7 +3538,7 @@
       'f1=' + f1_170 + ' f2=' + f2_170 + ' skip=' + skip170 + ' clr=' + clr170 + ' norm=' + norm170);
 
     /* #171 心魔（§8.3.2/§8.3.4）：层数 = min(streak−1, 3) 进 talent 加项同读点；
-     * 真仙裸身最坏 0.338−0.03 = 0.308（裸身口径 = 空 mods，无装备/功法/天赋/属性被动）；
+     * 真仙裸身最坏 0.22−0.03 = 0.19（裸身口径 = 空 mods，无装备/功法/天赋/属性被动；第卌二批 base 压陡前为 0.308）；
      * p 仍 clamp [0.05, 0.95]、TRIB_P_CLAMP/REALMS 零改动 */
     var bareMods171 = (function () {
       var m = { sum: {}, detail: {}, atk: 0, resist: 0, hooks: {}, flags: {}, bonds: {}, slotted: [] };
@@ -3339,7 +3548,7 @@
     var w171 = mkWs({ realm: 8 });
     w171.tribulation.streak = 4;
     var i171 = SQ.XTrib.info(w171, pack, D, bareMods171);
-    var p171 = Math.abs(i171.p - 0.308) < 1e-9;
+    var p171 = Math.abs(i171.p - 0.19) < 1e-9;
     var part171 = i171.parts.xinmoStacks === 3 && Math.abs(i171.parts.xinmo + 0.03) < 1e-9;
     w171.tribulation.streak = 10;
     var cap171 = SQ.XTrib.info(w171, pack, D, bareMods171).parts.xinmoStacks === 3;
@@ -3348,8 +3557,8 @@
     w171.tribulation.streak = 2;
     var one171 = SQ.XTrib.info(w171, pack, D, bareMods171).parts.xinmoStacks === 1;
     var clamp171 = D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 &&
-      i171.p >= 0.05 && i171.p <= 0.95 && D.REALMS[9].tribBase === 0.338;
-    ok('171', '心魔：min(streak−1,3) 进 talent 同读点 / 真仙裸身最坏 0.308 / clamp 与 REALMS 零改动',
+      i171.p >= 0.05 && i171.p <= 0.95 && D.REALMS[9].tribBase === 0.22;
+    ok('171', '心魔：min(streak−1,3) 进 talent 同读点 / 真仙裸身最坏 0.19 / clamp 与 REALMS 零改动',
       p171 && part171 && cap171 && zero171 && one171 && clamp171,
       'p=' + i171.p.toFixed(3) + ' stacks=' + i171.parts.xinmoStacks + ' cap=' + cap171 + ' zero=' + zero171);
 
@@ -3587,9 +3796,12 @@
     /* SQ.t 全链路解析（通用池 key 注册在 common 词表，SQ.LEX.xiuxian 单表会漏——#118 同款口径） */
     function lex147(key) { if (SQ.t(key, null, 'xiuxian') === key) bad147.push(key); }
     all118.forEach(function (ev) {
-      ['name', 'story', 'branch.right', 'branch.evil', 'branch.neutral'].forEach(function (suf) {
-        lex147('event.' + ev.id + '.' + suf);
-      });
+      /* 分支键按模板**自己声明的 choices** 逐支对表（第卌四批改口，与 audit A2 同口径）：
+       * 「族中寻仇」按用户设定只有迎战一条路，硬要求三支齐全只会逼词表补两条永不消费的孤儿键 */
+      ['name', 'story'].concat(Object.keys(ev.choices || {}).map(function (bk) { return 'branch.' + bk; }))
+        .forEach(function (suf) {
+          lex147('event.' + ev.id + '.' + suf);
+        });
     });
     var BOND38_147 = ['hanli', 'yuxiao', 'xuaner', 'nangong', 'pingping', 'ningyao', 'aliang', 'jingchun',
       'lihuayuan', 'mojuren', 'zhangtie', 'yuzhitong', 'wuyan', 'wangchan', 'xiangzhili', 'chelaozu', 'zuoyou',
@@ -3693,7 +3905,7 @@
         });
       });
     });
-    ok('150', '114 条 lint 带（karma 人8/地15/天25 · failE ≥−15% · 负 buff ≤24h · 洗髓批 №125 入带）',
+    ok('150', '117 条 lint 带（karma 人8/地15/天25 · failE ≥−15% · 负 buff ≤24h · 洗髓批 №125 与第卌四批 №126~128 入带； ambushFoe / stonesPct 已入白名单）',
       pool150.length === 114 && bad150.length === 0, 'n=' + pool150.length + ' bad=' + bad150.slice(0, 5).join(','));
 
     /* #151 二批 30 人十三字段增量对表（道友池卷 §五 登记 · 满档口径；单人单字段 ≤8%/≤4pp 带随附） */
@@ -3723,10 +3935,13 @@
       bad151.length === 0 && solo151.length === 0, bad151.concat(solo151).join(','));
 
     /* #153 功法 70 部 #105 乘区零漂移对表（功法全录 v1.4 §2.7 联合验算表 = 对账基线）：
-     * top6 每级合计十二字段 60/60/50/39/35/34/16/17/13/9/0.065/−2 全部不变 */
-    var EXP153 = { combatPower: 0.60, qiRate: 0.60, offlineEff: 0.50, combatSpeed: 0.39, qiCap: 0.35,
-      stonesRate: 0.34, artsSpeed: 0.16, eventLuck: 0.17, eventRate: 0.13, dropRate: 0.09,
-      tribBonus: 0.065, realmCost: -0.02 };
+     * 🔧 第卅八批品阶强度重排换基线（阶梯 黄1/玄2/地3.5/天6，黄阶保持现值 ⇒ 终局通胀 2~3.3 倍）：
+     *   top6 每级合计十二字段 60/60/50/39/35/34/16/17/13/9/0.065/−2 → **137.5/119.1/111/114.7/116/80/13/22.5/26/9/0.065/−2**；
+     *   红线两类（tribBonus / realmCost）与 dropRate 一字未动 ⇒ 这三条仍是旧值，正是「重排没碰到红线」的证据。
+     *   本表与 #105 上限、通用规范 §一 极限表、`FUSE.FIELD_CAP` 四处同动（改任一处必红其余三处）。 */
+    var EXP153 = { combatPower: 1.375, qiRate: 1.191, offlineEff: 1.11, combatSpeed: 1.147, qiCap: 1.16,
+      stonesRate: 0.80, artsSpeed: 0.13, eventLuck: 0.225, eventRate: 0.26, dropRate: 0.09,
+      tribBonus: 0.0325, realmCost: -0.02 };
     var per153 = {};
     for (var id153 in SQ.XARTS) {
       var ef153 = SQ.XARTS[id153].effects;
@@ -3979,7 +4194,7 @@
     var n196b = SQ.Tiandao.normalize(n196a, D);
     var w196 = pack.normalize(Object.assign(pack.initialState(), { tiandao: dirty196 }));
     var w196old = pack.normalize(pack.initialState());   /* 旧档无 tiandao 字段 → 全默认 */
-    var zero196 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.338 &&
+    var zero196 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.22 &&
       D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 && SQ.Mods.FIELDS.length === 17;
     ok('196', '天道 normalize 幂等 + 脏档清理零崩溃 + p 公式/CLAMP/REALMS/FIELDS 零改动',
       JSON.stringify(n196a) === JSON.stringify(n196b) && n196a.defy === 0 && n196a.seenIds.join() === 'a' &&
@@ -4153,11 +4368,14 @@
       codices: { event: 'notarray', art: ['a', 1, null] }, achv: [1, 'achv_jichu'], titles: 'x',
       biographies: [{ text: 123 }, { text: 'ok', life: 1 }], unlocks: { alchemy: 'yes' }, stats: { lives: 'x' } });
     var n202c = SQ.Legacy.metaNormalize(n202b);
-    var zero202 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.338 &&
+    var zero202 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.22 &&
       D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 && SQ.Mods.FIELDS.length === 17 &&
-      D.ARTS_COST.join() === '60,240,900,3200,11000,36000,120000,400000,1300000' &&
+      /* 等级起点批（入门即 Lv1）：ARTS_COST **有意改档**——删掉原 Lv0→1 那档 60，表长 9 → 8，
+       * 其余八档价格一字未动；判据同时钉「表长 = ARTS_MAX_LV − 1」，防将来又漂出第九条。 */
+      D.ARTS_COST.join() === '240,900,3200,11000,36000,120000,400000,1300000' &&
+      D.ARTS_COST.length === D.ARTS_MAX_LV - 1 &&
       LGc.FEISHENG_BASE_P === 0.25 && LGc.BINGJIE_MULT === 0.7;
-    ok('202', 'meta normalize 幂等（旧档补默认/脏档逐项清理/恒等式自检修复）+ p 公式/CLAMP/REALMS/FIELDS/ARTS_COST 零改动回归',
+    ok('202', 'meta normalize 幂等（旧档补默认/脏档逐项清理/恒等式自检修复）+ p 公式/CLAMP/REALMS/FIELDS 零改动回归 ‖ ARTS_COST 按等级起点批对表（八档）',
       old202 && n202b.karma === 5 && n202b.earnedKeys.bad == null && n202b.codices.event == null &&
       n202b.codices.art.join() === 'a' && n202b.achv.join() === 'achv_jichu' && n202b.titles.length === 0 &&
       n202b.biographies.length === 1 && n202b.unlocks.alchemy === false && n202b.stats.lives === 0 &&
@@ -4223,31 +4441,16 @@
     ok('204', '里程碑/成就幂等：同面同档跨世只发一次（15/30/50）；qiRate codex 来源 2.7%≤cap3% 静态行；60 条成就每条只发一次重复触发零效果；恒等式联动不破',
       idem204 && Math.abs(q204 - 0.027) < 1e-9 && achv204.indexOf('achv_zhenxian') >= 0 && same204 && identOk(ref204.meta));
 
-    /* #205 传记限长限数与回落（本地稿永不丢） */
+    /* #205 传记限长限数〔第册批改口：原「烧表奏疏 ≤1500 / 敏感词与空文本回落本地稿 / 超长截断
+     * source 转 tiandao」三判随 `Codex.adoptBio` 整族下线，下线取证改立 #315〕 */
     var w205 = pack.initialState();
     for (var ci205 = 0; ci205 < 10; ci205++) SQ.Tiandao.chronPush(w205, 'tribwin', { realm: 5 }, 1000 + ci205);
     var bio205 = SQ.Codex.generateBio(w205, mkMeta(), pack, D, { name: '测试道号', worldName: 'w' }, 'feisheng', Date.now());
     var m205 = mkMeta();
     for (var bsi = 1; bsi <= 10; bsi++) SQ.Codex.pushBio(m205, { life: bsi, name: 'n' + bsi, text: 't', stats: {}, source: 'local', ts: bsi }, bsi, 'n' + bsi, 'bingjie', bsi);
     var push205 = m205.biographies.length === 6 && m205.biographies[0].life === 5;   /* 写口限数 9→6（正典①，与 core.js 读档裁剪同口径 · 玩法闭环批 2026-10-07）：10 次 push 留最后 6 世 ⇒ 首条 life=5 */
-    localStorage.removeItem(SQ.KEY);
-    var ref205 = {};
-    await SQ.mutate(ref205, function (s205) {
-      s205.profile = mkProf([]);
-      s205.worlds.xiuxian = pack.initialState();
-    });
-    SQ.Codex.pushBio(ref205.meta, { life: 1, name: 'x', text: '本地史稿', stats: {}, source: 'local', ts: 1 }, 1, 'x', 'bingjie', 1);
-    var memo205 = SQ.Codex.bioMemo(ref205, Date.now());
-    var ad205a = SQ.Codex.adoptBio(ref205, '', Date.now());
-    var ad205b = SQ.Codex.adoptBio(ref205, '一段含赌博字眼的传记', Date.now());
-    var localKept205 = ref205.meta.biographies[0].text === '本地史稿' && ref205.meta.biographies[0].source === 'local';
-    var long205 = '';
-    for (var lxi = 0; lxi < 600; lxi++) long205 += '长';
-    var ad205c = SQ.Codex.adoptBio(ref205, long205, Date.now());
-    ok('205', '传记限长限数与回落：单篇 ≤500 硬截；pushBio >6 世挤最旧（正典① · 原 >9）；烧表奏疏 ≤1500；敏感词/空文本回落本地稿；超长截断 source 转 tiandao',
-      bio205.text.length <= 500 && push205 && memo205.length <= 1500 &&
-      ad205a.reason === 'empty' && ad205b.reason === 'sensitive' && localKept205 &&
-      ad205c.ok === true && ref205.meta.biographies[0].text.length === 500 && ref205.meta.biographies[0].source === 'tiandao');
+    ok('205', '传记限长限数：单篇 ≤500 硬截；pushBio >6 世挤最旧（正典① · 原 >9）——10 次 push 留最后 6 世 ⇒ 首条 life=5',
+      bio205.text.length <= 500 && push205);
 
     /* #206 容量红线：最坏态实测 → 压缩预案阶梯 → ≤ SQ.SAVE_RED 且恒等式不破（红线单一事实源） */
     localStorage.removeItem(SQ.KEY);
@@ -4272,7 +4475,7 @@
       w.shelf = Object.keys(pack.artsMap()).slice(0, 30);
       w.fusion = { lastFuseAt: 1, meditate: 100, seq: 4, customs: [] };
       for (var cu = 1; cu <= 4; cu++) w.fusion.customs.push({ id: 'c' + cu, name: '测试自创名', gen: 3, tier: 3, attr: 'shen', align: 'neutral',
-        effects: { combatPower: 0.14, qiRate: 0.13, offlineEff: 0.12, combatSpeed: 0.09, qiCap: 0.10, stonesRate: 0.10, artsSpeed: 0.08, eventRate: 0.06, eventLuck: 0.05, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
+        effects: { combatPower: 0.315, qiRate: 0.225, offlineEff: 0.288, combatSpeed: 0.219, qiCap: 0.30, stonesRate: 0.267, artsSpeed: 0.07, eventRate: 0.14, eventLuck: 0.09, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
         special: { pool: 'some_special_pool', grade: 2 }, parents: [{ id: 'art_a', name: '父本一', tier: 3 }, { id: 'art_b', name: '父本二', tier: 2 }], createdAt: 1 });
       SQ.Events.allIds(pack).forEach(function (eid, ei) { w.eventHistory.seen[eid] = 1700000000000 + ei; w.eventCooldowns[eid] = 1700000000000; });
       /* eventHistory.feed 满档（2026-10-05 存档容量防线批补造）：叙事流上限 D.EVENT_FEED_CAP 条、
@@ -5438,8 +5641,9 @@
      * (c) 渠道 A 同向加成**只对已相识生效**——未识者阵营未揭，给加成会经「+4 而非 +3」把 align 泄漏出去；
      * (d) 渠道 A 全局单冷却：**入账成功才推进** `ws.bondVisitAt`，被拒（满档 / 绝交锁 / 心结锁 / 名录外）一律不推进；
      * (e) 渠道 B 丹方 tier 对表（黄 4 / 玄 6 / 地 9 / 天 14）+ 丹纹版 ×1.5 取整（黄 6）；
-     * (f) 渠道 B 三类拒绝**均不扣丹、不占日限**：双特例（once: pozhang/zhenjie）/ 满档 / 无库存；
-     * (g) 渠道 B 日限 3 次 + 跨日自动重置；`alchemy.giftDay` normalize 三态（缺省 / 脏值 / 保留）；
+     * (f) 渠道 B 三类拒绝**均不扣丹**：双特例（once: pozhang/zhenjie）/ 满档 / 无库存；
+     * (g) 渠道 B **无日限**（GitHub issue #4 · 2026-10-14 撤销原 3 次日限与 `alchemy.giftDay` 字段，
+     *     理由见 bonds.js giftPill 段注）：同刻连赠全成功、库存见底即拒、字段退役后 normalize 不再产出；
      * (h) 渠道 B 溢出 clamp 后返回值 `gain` = **实际增量**（aff 99 赠天阶：名义 14、实际 1）——视图据此标数，不虚标；
      * (i) 渠道 B 未识可赠（「以丹会友」）→ 0 → 4 结识；
      * (j) 渠道 C 同贺遍历范围六类逐人：已相识 +n / 满档 +0 / 未识不入账 / 厌恶不入账 / 绝交锁拒 / 心结锁拒 /
@@ -5448,12 +5652,12 @@
      *     早已写 cat 'bond'，但分类表无此项，那些日志此前只能在「全部」里看到、任何筛选都取不到）；
      * (l) 「侣不可交易」底线：三条渠道**均不扣灵石**（ws.stones 前后逐字节相同），也不动 Ledger；
      * (m) 落盘增量收口：本批仅新增 `ws.bondVisitAt` 与 `ws.alchemy.giftDay` 两字段（bondVisitAt normalize 三态），
-     *     渠道 C **零新增字段**——合约束「只在现有对象上加标记位、不新开随内容池线性增长的容器」。 */
+     *     渠道 C **零新增字段**——合约束「只在现有对象上加标记位、不新开随内容池线性增长的容器」。
+     *     🔧 勘正（GitHub issue #4 · 2026-10-14）：`ws.alchemy.giftDay` 已随该批退役，现行判据见上 (g)。 */
     var W257 = 'xiuxian', cs257 = SQ.Bonds.list(pack), T257 = 1700000000000;
     var lg257 = [];
     var log257 = function (c, tx) { lg257.push(c + '|' + tx); };
     var mk257 = function (ov) { var w257 = pack.initialState(); if (ov) Object.assign(w257, ov); return w257; };
-    var prof257 = { createdAt: T257 };
     /* (a) 档位递减对表 + 满档拒 */
     var tbl257 = D.BOND_VISIT_BY_TIER, affs257 = [0, 5, 40, 80, 100], bad257a = [];
     for (var i257 = 0; i257 < affs257.length; i257++) {
@@ -5534,51 +5738,53 @@
     var got257e = {};
     ['huang', 'xuan', 'di', 'tian'].forEach(function (tr) {
       var wg = mkG257((function () { var o = {}; o[pick257[tr]] = 2; return o; })(), 5);
-      var r = SQ.Bonds.giftPill(wg, pack, D, cs257[0].id, pick257[tr], T257, log257, prof257);
+      var r = SQ.Bonds.giftPill(wg, pack, D, cs257[0].id, pick257[tr], T257, log257);
       got257e[tr] = r.ok ? r.gain : r.reason;
     });
     var e257 = bad257e.length === 0 && got257e.huang === 4 && got257e.xuan === 6 && got257e.di === 9 && got257e.tian === 14;
     /* 丹纹 ×1.5 取整 */
     var wRw257 = mkG257({ ap_juqi_rw: 1 }, 5);
-    var rRw257 = SQ.Bonds.giftPill(wRw257, pack, D, cs257[0].id, 'ap_juqi_rw', T257, log257, prof257);
+    var rRw257 = SQ.Bonds.giftPill(wRw257, pack, D, cs257[0].id, 'ap_juqi_rw', T257, log257);
     var e257b = rRw257.ok && rRw257.rune === true && rRw257.gain === Math.round(4 * (D.BOND_GIFT_RUNE_MULT || 1.5));
-    /* (f) 四类拒绝均不扣丹不占日限（once ×2 / stock / nogift = 洗髓丹） */
+    /* (f) 四类拒绝均不扣丹（once ×2 / stock / nogift = 洗髓丹） */
     var wF1 = mkG257({ ap_pozhang: 2, ap_zhenjie: 2, ap_juqi: 2, ap_xisui: 2 }, 5);
-    var rF1a = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_pozhang', T257, log257, prof257);
-    var rF1b = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_zhenjie', T257, log257, prof257);
-    /* 洗髓丹（第三类底牌）禁赠：拒因单立 'nogift'（不复用 'once' 那句「每境界限 1」的文案）且不扣丹不占日限 */
-    var rF1d = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_xisui', T257, log257, prof257);
-    var rF1c = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_daohe', T257, log257, prof257);
+    var rF1a = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_pozhang', T257, log257);
+    var rF1b = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_zhenjie', T257, log257);
+    /* 洗髓丹（第三类底牌）禁赠：拒因单立 'nogift'（不复用 'once' 那句「每境界限 1」的文案）且不扣丹 */
+    var rF1d = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_xisui', T257, log257);
+    var rF1c = SQ.Bonds.giftPill(wF1, pack, D, cs257[0].id, 'ap_daohe', T257, log257);
     var wF2 = mkG257({ ap_juqi: 5 }, 100);
-    var rF2 = SQ.Bonds.giftPill(wF2, pack, D, cs257[0].id, 'ap_juqi', T257, log257, prof257);
+    var rF2 = SQ.Bonds.giftPill(wF2, pack, D, cs257[0].id, 'ap_juqi', T257, log257);
     var f257 = rF1a.reason === 'once' && rF1b.reason === 'once' && rF1c.reason === 'stock' &&
       rF1d.reason === 'nogift' && wF1.alchemy.pills.ap_xisui === 2 &&
       SQ.t('bond.gift.fail.nogift', null, 'xiuxian') !== 'bond.gift.fail.nogift' &&
       wF1.alchemy.pills.ap_pozhang === 2 && wF1.alchemy.pills.ap_zhenjie === 2 && wF1.alchemy.pills.ap_juqi === 2 &&
-      wF1.alchemy.giftDay.n === 0 &&
-      rF2.reason === 'max' && wF2.alchemy.pills.ap_juqi === 5 && wF2.alchemy.giftDay.n === 0;
-    /* (g) 日限 3 + 跨日重置 + normalize 三态 */
+      wF1.alchemy.giftDay === undefined &&
+      rF2.reason === 'max' && wF2.alchemy.pills.ap_juqi === 5;
+    /* (g) GitHub issue #4（2026-10-14）：赠丹**无日限**——同刻连赠 4 次全成功，节流只在库存；
+     *     库存见底即拒 'stock'，且 `alchemy.giftDay` 字段已从 normalize / initialState 退役 */
     var wG257 = mkG257({ ap_juqi: 9 }, 5), okN257 = 0, lastR257 = null;
     for (var gi = 0; gi < 4; gi++) {
-      lastR257 = SQ.Bonds.giftPill(wG257, pack, D, cs257[0].id, 'ap_juqi', T257, log257, prof257);
+      lastR257 = SQ.Bonds.giftPill(wG257, pack, D, cs257[0].id, 'ap_juqi', T257, log257);
       if (lastR257.ok) okN257++;
     }
-    var rCross257 = SQ.Bonds.giftPill(wG257, pack, D, cs257[0].id, 'ap_juqi', T257 + 1000, log257, prof257);
-    var nDef257 = SQ.Alchemy.normalize({}, D).giftDay;
-    var nBad257 = SQ.Alchemy.normalize({ giftDay: { day: 'x', n: -3 } }, D).giftDay;
-    var nKeep257 = SQ.Alchemy.normalize({ giftDay: { day: 77, n: 2 } }, D).giftDay;
-    var g257 = okN257 === (D.BOND_GIFT_DAILY || 3) && lastR257.reason === 'daily' &&
-      /* 跨日那次是第 4 次**成功**赠丹，同样扣丹——库存 = 9 − 日限内 3 次 − 跨日 1 次 */
-      wG257.alchemy.pills.ap_juqi === 9 - okN257 - (rCross257.ok ? 1 : 0) && rCross257.ok === true &&
-      nDef257.day === -1 && nDef257.n === 0 && nBad257.day === -1 && nBad257.n === 0 &&
-      nKeep257.day === 77 && nKeep257.n === 2;
+    var midPills257 = wG257.alchemy.pills.ap_juqi;   /* 四颗出手后的余量，先取再抽干 */
+    var rDry257 = null;
+    for (var dj = 0; dj < 9; dj++) {
+      rDry257 = SQ.Bonds.giftPill(wG257, pack, D, cs257[0].id, 'ap_juqi', T257, log257);
+      if (!rDry257.ok) break;
+    }
+    var g257 = okN257 === 4 && lastR257.ok === true && midPills257 === 5 &&
+      rDry257.reason === 'stock' && !wG257.alchemy.pills.ap_juqi &&
+      wG257.alchemy.giftDay === undefined &&
+      SQ.Alchemy.normalize({ giftDay: { day: 77, n: 2 } }, D).giftDay === undefined;   /* 旧档带这字段 ⇒ 读档即剪 */
     /* (h) 溢出 clamp 后 gain = 实际增量 */
     var wH257 = mkG257({ ap_haina: 1 }, 99);
-    var rH257 = SQ.Bonds.giftPill(wH257, pack, D, cs257[0].id, 'ap_haina', T257, log257, prof257);
+    var rH257 = SQ.Bonds.giftPill(wH257, pack, D, cs257[0].id, 'ap_haina', T257, log257);
     var h257 = rH257.ok && rH257.nominal === 14 && rH257.gain === 1 && rH257.aff === (D.BOND_MAX || 100) && rH257.tier === 4;
     /* (i) 未识可赠（以丹会友）*/
     var wI257 = mkG257({ ap_juqi: 1 });
-    var rI257 = SQ.Bonds.giftPill(wI257, pack, D, cs257[0].id, 'ap_juqi', T257, log257, prof257);
+    var rI257 = SQ.Bonds.giftPill(wI257, pack, D, cs257[0].id, 'ap_juqi', T257, log257);
     var i257 = rI257.ok && wI257.bonds[cs257[0].id] === 4 && rI257.tier === 1 && rI257.tierUp === true;
     /* (j) 渠道 C 同贺遍历范围六类 + total 实算 */
     var wC257 = mk257({ bonds: {}, scars: {} });
@@ -5606,7 +5812,7 @@
     wL257.stones = 12345;
     var led257 = JSON.stringify(wL257.ledger);
     SQ.Bonds.visit(wL257, pack, D, cs257[1].id, T257, log257);
-    SQ.Bonds.giftPill(wL257, pack, D, cs257[0].id, 'ap_juqi', T257, log257, prof257);
+    SQ.Bonds.giftPill(wL257, pack, D, cs257[0].id, 'ap_juqi', T257, log257);
     SQ.Bonds.cheer(wL257, pack, D, 2, T257, log257);
     var l257 = wL257.stones === 12345 && JSON.stringify(wL257.ledger) === led257;
     /* (m) 落盘增量：仅两新字段 + bondVisitAt normalize 三态 */
@@ -5614,15 +5820,16 @@
     var nVk = pack.normalize(Object.assign(pack.initialState(), { bondVisitAt: 424242 })).bondVisitAt;
     var nVb = pack.normalize(Object.assign(pack.initialState(), { bondVisitAt: 'garbage' })).bondVisitAt;
     var m257 = nV0 === 0 && nVk === 424242 && nVb === 0;
-    ok('257', '好感三渠道（引擎卷 v1.11 §3.2a · 诉求⑤）：(a) 渠道 A 拜访档位递减对表 [3,3,2,1,0] + 满档拒 reason max；(b) `met` = **真跨进相识**——未识 0→3 true / 厌恶 −2→1 true / 厌恶 −5→−2 仍 tier0 **false**（防「由此结识 X」假反馈）；(c) 同向加成**仅对已相识**生效（未识者阵营未揭，给加成会经「+4 而非 +3」泄漏 align）；(d) 全局单冷却 `ws.bondVisitAt` **入账才推进**，满档 / 绝交锁 / 心结锁 / 名录外四类被拒一律不推进、冷却中返回 waitMs；(e) 渠道 B 丹方 tier 对表 黄4/玄6/地9/天14 + 丹纹 ×1.5 取整；(f) 双特例丹（once）/ 满档 / 无库存三类拒绝**均不扣丹、不占日限**；(g) 日限 3 次 + 跨日自动重置 + `alchemy.giftDay` normalize 三态；(h) 溢出 clamp 后返回 `gain` = **实际增量**（aff99 赠天阶：名义 14 实际 1，视图不虚标）；(i) 未识可赠（以丹会友）0→4 结识；(j) 渠道 C 同贺六类遍历逐人验证（已相识 +n / 近满 clamp / 满档 +0 / 未识不入账 / 厌恶不入账 / 绝交锁拒 / 心结锁拒 / **在任道侣排除**）+ `total` 实算不虚报；(k) 三条日志一律 cat **bond**（同批 view LOG_CATS 新增该分类，收口批 A 遗留的「写了 cat 却无筛选项」）；(l)「侣不可交易」底线——三渠道**均不扣灵石、不动 Ledger**；(m) 落盘增量仅 `ws.bondVisitAt` + `ws.alchemy.giftDay` 两字段（normalize 三态），渠道 C 零新增',
+    ok('257', '好感三渠道（引擎卷 v1.11 §3.2a · 诉求⑤）：(a) 渠道 A 拜访档位递减对表 [3,3,2,1,0] + 满档拒 reason max；(b) `met` = **真跨进相识**——未识 0→3 true / 厌恶 −2→1 true / 厌恶 −5→−2 仍 tier0 **false**（防「由此结识 X」假反馈）；(c) 同向加成**仅对已相识**生效（未识者阵营未揭，给加成会经「+4 而非 +3」泄漏 align）；(d) 全局单冷却 `ws.bondVisitAt` **入账才推进**，满档 / 绝交锁 / 心结锁 / 名录外四类被拒一律不推进、冷却中返回 waitMs；(e) 渠道 B 丹方 tier 对表 黄4/玄6/地9/天14 + 丹纹 ×1.5 取整；(f) 双特例丹（once）/ 满档 / 无库存三类拒绝**均不扣丹**；(g) **无日限**（GitHub issue #4 · 2026-10-14 撤销 `BOND_GIFT_DAILY` 与 `alchemy.giftDay`）——同刻连赠 4 次全成功、库存见底即拒 stock、normalize 不再产出该字段；(h) 溢出 clamp 后返回 `gain` = **实际增量**（aff99 赠天阶：名义 14 实际 1，视图不虚标）；(i) 未识可赠（以丹会友）0→4 结识；(j) 渠道 C 同贺六类遍历逐人验证（已相识 +n / 近满 clamp / 满档 +0 / 未识不入账 / 厌恶不入账 / 绝交锁拒 / 心结锁拒 / **在任道侣排除**）+ `total` 实算不虚报；(k) 三条日志一律 cat **bond**（同批 view LOG_CATS 新增该分类，收口批 A 遗留的「写了 cat 却无筛选项」）；(l)「侣不可交易」底线——三渠道**均不扣灵石、不动 Ledger**；(m) 落盘增量仅 `ws.bondVisitAt` 一字段（normalize 三态），渠道 B（issue #4 起）与渠道 C 零新增',
       a257 && b257 && c257 && d257 && e257 && e257b && f257 && g257 && h257 && i257 && j257 && k257 && l257 && m257,
       '(a) 越界=' + (bad257a.length ? bad257a.join(',') : '无') + ' 表=' + String(tbl257) +
       ' ‖ (b) met三例=' + r257b1.met + '/' + r257b2.met + '/' + r257b3.met +
       ' ‖ (c) 未识=' + r257c1.gain + '(align ' + r257c1.align + ') 已识同向=' + r257c2.gain + ' 异向=' + r257c3.gain +
       ' ‖ (d) 推进=' + at257 + ' 冷却拒=' + r257d2.reason + '/' + r257d2.waitMs + ' 满档后锚=' + wMax257.bondVisitAt +
       ' ‖ (e) 实测=' + JSON.stringify(got257e) + ' 丹纹=' + rRw257.gain +
-      ' ‖ (f) once=' + rF1a.reason + ' 丹未扣=' + wF1.alchemy.pills.ap_pozhang + ' 满档=' + rF2.reason + ' 日限未占=' + wF2.alchemy.giftDay.n +
-      ' ‖ (g) 连赠成功=' + okN257 + ' 第4次=' + lastR257.reason + ' 跨日=' + rCross257.ok +
+      ' ‖ (f) once=' + rF1a.reason + ' 丹未扣=' + wF1.alchemy.pills.ap_pozhang + ' 满档=' + rF2.reason +
+        ' 丹匣无日限计数=' + (wF2.alchemy.giftDay === undefined) +
+      ' ‖ (g) 同刻连赠成功=' + okN257 + '/4 余量=' + midPills257 + ' 见底拒=' + rDry257.reason +
       ' ‖ (h) 名义=' + rH257.nominal + ' 实际=' + rH257.gain + ' aff=' + rH257.aff +
       ' ‖ (i) 未识赠=' + rI257.ok + ' bond=' + wI257.bonds[cs257[0].id] +
       ' ‖ (j) hit=' + rC257.hit + ' total=' + rC257.total + ' 道侣=' + wC257.bonds[cs257[7].id] +
@@ -5630,7 +5837,8 @@
       ' ‖ (l) 灵石=' + wL257.stones + ' Ledger同=' + (JSON.stringify(wL257.ledger) === led257) +
       ' ‖ (m) bondVisitAt=' + nV0 + '/' + nVk + '/' + nVb +
       ' ‖ (d2) 冷却拒后锚=' + atAfterD2 + ' 锁类拒后锚=' + wLk257.bondVisitAt + '/' + wSc257.bondVisitAt + '/' + rUn257.reason +
-      ' ‖ (g2) 库存=' + wG257.alchemy.pills.ap_juqi + '(9−3−1) giftDay三态=' + JSON.stringify(nDef257) + '/' + JSON.stringify(nBad257) + '/' + JSON.stringify(nKeep257));
+      ' ‖ (g2) 见底后库存键已删=' + (wG257.alchemy.pills.ap_juqi === undefined) +
+      ' 旧档 giftDay 读入即剪=' + (SQ.Alchemy.normalize({ giftDay: { day: 77, n: 2 } }, D).giftDay === undefined));
 
     /* #284 拜访冷却 = 5 分钟（2026-10-09 用户裁定 `BOND_VISIT_CD_MS` 1h → 5min · 引擎卷 v1.12 §3.2a）：
      * #257(d) 全程读表（`D.BOND_VISIT_CD_MS`），它证的是「引擎按表值算」，**证不了表值本身是多少**——
@@ -7028,16 +7236,19 @@
     var cnt212b = w212b.prodigies.length;
     SQ.Prodigy.rollForNewLife(w212b, pack, D, m212b, Date.now());   /* 幂等：已生成不重复 */
     var idem212 = w212b.prodigies.length === cnt212b;
-    /* 同档重名去重 + apt 权重分布（3000 次统计 50/35/15 ±30% 相对） */
+    /* 同档重名去重 + apt 权重分布（3000 次统计 50/35/15 ±30% 相对）
+     * ⚠️ 第册一批①「名库替换出场者」改口：去重键从 `nm` 三段索引改成**名录号 rid**（具名者 nm 恒
+     *    [0,0,0]，再按 nm 比就是「人人重名」的假红）；未具名的兜底支路仍按 nm 比，两族各自成立。 */
     var nameDup212 = false, aptCnt = [0, 0, 0], tlBad212 = 0, maxBytes212 = 0;
+    var keyOf212 = function (x) { return x.rid ? 'R' + x.rid : 'N' + x.nm.join(','); };
     var posIds212 = {};
     ['common', 'xiuxian'].forEach(function (wd) { var tp = SQ.TALENTS[wd]; if (tp) tp.positive.forEach(function (x) { posIds212[x.id] = 1; }); });
     var w212c = pack.initialState();
     for (var ri212 = 0; ri212 < 3000; ri212++) {
       var seen212 = {};
-      w212c.prodigies.forEach(function (pp) { seen212[pp.nm.join(',')] = 1; });
+      w212c.prodigies.forEach(function (pp) { seen212[keyOf212(pp)] = 1; });
       var np = SQ.Prodigy.rollOne(w212c, pack, D, null, {});
-      if (seen212[np.nm.join(',')]) nameDup212 = true;
+      if (seen212[keyOf212(np)]) nameDup212 = true;
       aptCnt[np.apt]++;
       np.tl.forEach(function (tid) { if (!posIds212[tid]) tlBad212++; });
       var bl = byteLen(np);
@@ -7046,9 +7257,12 @@
     }
     var aptOk212 = Math.abs(aptCnt[0] / 3000 - 0.50) <= 0.05 && Math.abs(aptCnt[1] / 3000 - 0.35) <= 0.05 &&
       Math.abs(aptCnt[2] / 3000 - 0.15) <= 0.04;
-    /* 玩家数值轴零影响：有无天骄 mods 全等 */
+    /* 玩家数值轴零影响：有无天骄 mods 全等。
+     * 等级起点批注：先跑一次 M() 把「首次入槽回填」（artsAutoInit 一次性）吃掉再做对照——
+     * 首发功法现在是 Lv1，回填后自带乘区贡献，若拿回填前后比就会把这条一次性动作误判成天骄侵入。 */
     var w212d = pack.initialState(); w212d.realm = 3;
     var prof212 = mkProf([]);
+    M(prof212, w212d);
     var modsNo212 = JSON.stringify(M(prof212, w212d));
     SQ.Prodigy.rollForNewLife(w212d, pack, D, mkMeta(), Date.now());
     var modsYes212 = JSON.stringify(M(prof212, w212d));
@@ -7059,11 +7273,17 @@
       { id: 'pr9', nm: [99, -3, 2.7], tl: [1, 'ok_talent', 'b', 'c'], al: 5, fc: -9, apt: 8, rlm: 99, prg: -5, wl: [1, 2], feud: 'yes', boost: { add: 9, months: -2 } }
     ] }));
     var dp212 = dirty212.prodigies[0];
-    ok('212', '天骄生成与容量：默认 10 名/prodigySlot 30 名、幂等不重复；重名重掷；apt 50/35/15 统计；天赋全出正面池且 mods 零侵入；单人序列化 ' + maxBytes212 + 'B；normalize 旧档不补 roll 脏档清理',
+    /* 出场者人人带名录号且互不重复（30 人满代 · 名录 133 人池 ⇒ 恒应成立） */
+    var ridSeen212 = {}, ridOk212 = true;
+    w212b.prodigies.forEach(function (x) {
+      if (!x.rid || ridSeen212[x.rid]) ridOk212 = false;
+      ridSeen212[x.rid] = 1;
+    });
+    ok('212', '天骄生成与容量：默认 10 名/prodigySlot 30 名、幂等不重复；**出场者按名录号去重且满代 30 人 rid 不重**（第册一批①）；apt 50/35/15 统计；天赋全出正面池且 mods 零侵入；单人序列化 ' + maxBytes212 + 'B（上限 240 → **256** = 旧口径 + `rid` 一枚名录号，本批唯一新增落盘字段）；normalize 旧档不补 roll 脏档清理（无 rid ⇒ null）',
       cnt212a === 10 && cnt212b === 30 && idem212 && !nameDup212 && aptOk212 && tlBad212 === 0 &&
-      maxBytes212 <= 240 && modsNo212 === modsYes212 &&
+      maxBytes212 <= 256 && modsNo212 === modsYes212 && ridOk212 &&
       old212.prodigies.length === 0 && dirty212.prodigies.length === 1 &&
-      dp212.id === 'pr9' && dp212.nm.join() === '8,0,2' && dp212.tl.join() === 'ok_talent,b' &&
+      dp212.id === 'pr9' && dp212.rid === null && dp212.nm.join() === '8,0,2' && dp212.tl.join() === 'ok_talent,b' &&
       dp212.al === 2 && dp212.fc === -1 && dp212.apt === 2 && dp212.rlm === 9 && dp212.prg === 0 &&
       dp212.feud === false && dp212.wl.join() === '1,2,0' && dp212.boost.add === 0.5 && dp212.boost.months === 0,
       'apt=' + JSON.stringify(aptCnt) + ' bytes=' + maxBytes212);
@@ -7099,6 +7319,7 @@
       { id: 'pr2', nm: [1, 1, 1], tl: [], al: 1, fc: -1, fid: null, apt: 2, rlm: 9, prg: 0, feud: false, feudBond: 0, lastSparAt: 0, rivAt: 0, boost: null, eternal: false, wl: [0, 0, 0] }
     ];
     var prof213 = mkProf([]);
+    M(prof213, w213);   /* 同 #212：先吃掉「首次入槽回填」的一次性差异，再比「天骄推进零玩家轴影响」 */
     var snap213 = JSON.stringify([w213.qi, w213.realm, w213.stones, w213.buffs, M(prof213, w213)]);
     var bqi213 = D.REALMS[0].baseQi;
     SQ.Prodigy.tick(w213, pack, D, M(prof213, w213), 30000, Date.now(), { log: noopLog() });
@@ -7115,7 +7336,7 @@
     SQ.Prodigy.tick(w213b, pack, D, null, 12 * 3600000, Date.now(), { log: noopLog() });
     var guard213 = w213b.prodigies[0].rlm <= 9 && w213b.prodigyClock < 30000;
     /* power 对表 = REALMS[rlm].power × POWER_COEF[apt] */
-    var pw213 = SQ.Prodigy.powerOf(w213, w213.prodigies[0], D);
+    var pw213 = SQ.Prodigy.powerOf(w213, w213.prodigies[0], D, pack);
     var pwExp213 = D.REALMS[w213.prodigies[0].rlm].power * PDc.POWER_COEF[0];
     ok('213', '推进零玩家轴影响：月结 prg=baseQi×30×coef 确定性推进；玩家 qi/realm/stones/buffs/mods 零变化；真仙封顶停积；离线 catch-up 480 月护栏；power 对表',
       Math.abs(prog213a - bqi213 * 30 * 1.0) < 1e-6 && same213 && cap213 && guard213 && Math.abs(pw213 - pwExp213) < 1e-9,
@@ -7210,16 +7431,16 @@
     w215b.karmaEventScore = 100;
     w215b.prodigies = [{ id: 'pr7', nm: [1, 1, 1], tl: [], al: 2, fc: -1, fid: null, apt: 1, rlm: 4, prg: 0, feud: true, feudBond: 40, lastSparAt: 0, rivAt: 0, boost: null, eternal: true, wl: [0, 0, 0] }];
     var s215 = { meta: mkMeta() }; s215.meta.eternalProdigy = { nm: [1, 1, 1] };
-    var kill215 = SQ.Prodigy.onEventResolved(w215b, s215, pack, D, 'prodigy_ev_feud', 'evil', true, Date.now(), 'pr7');
+    var kill215 = SQ.Prodigy.onEventResolved(w215b, s215, pack, D, 'prodigy_ev_feud', 'evil', true, Date.now(), 'pr7', noopLog());
     var killOk215 = kill215.killed === true && w215b.prodigies.length === 0 &&
       w215b.karmaEventScore === 115 &&                               /* 魔天骄被斩 +15 */
       s215.meta.eternalProdigy === null && w215b.prodMarks.sudiWin === true;
     var w215c = pack.initialState();
     w215c.prodigies = [{ id: 'pr8', nm: [1, 1, 1], tl: [], al: 0, fc: -1, fid: null, apt: 1, rlm: 4, prg: 0, feud: true, feudBond: 80, lastSparAt: 0, rivAt: 0, boost: null, eternal: false, wl: [0, 0, 0] }];
-    var clear215 = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_feud', 'right', true, Date.now(), 'pr8');
-    var lose215b = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_feud', 'right', false, Date.now(), 'pr8');
+    var clear215 = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_feud', 'right', true, Date.now(), 'pr8', noopLog());
+    var lose215b = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_feud', 'right', false, Date.now(), 'pr8', noopLog());
     w215c.prodigies[0].feud = true;
-    var fg215 = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_forgive', 'right', true, Date.now(), 'pr8');
+    var fg215 = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_forgive', 'right', true, Date.now(), 'pr8', noopLog());
     var forgive215 = clear215.cleared === true && w215c.prodigies[0].feud === false &&
       (w215c.bonds.pr8 || 0) === 5 && fg215.cleared === true;
     /* 跨世宿敌：saveEternal ≤300B + 转世开场「又是你。」+ eternal +0.2 */
@@ -7304,14 +7525,17 @@
       c217.effects.offlineEff === 0.04 &&                               /* 副字段原值保一 */
       c217.special && c217.special.pool === 'sp_test' && c217.special.grade === 2 &&
       c217.align === 'neutral' && c217.attr === 'qi' &&
-      w217.artsLevels.tz_a == null && w217.artsLevels.tz_b == null &&   /* 双亲消耗 */
+      w217.artsLevels.tz_a === 1 && w217.artsLevels.tz_b === 1 &&   /* 双亲消耗 = 回落 Lv1（等级起点批：已知态不留无键 0） */
       w217.artsSlots.indexOf('tz_a') < 0 && w217.shelf.indexOf('tz_b') < 0 &&
       w217.artsKnown.indexOf('tz_a') >= 0 && w217.artsKnown.indexOf('tz_b') >= 0 &&   /* 已知态保留 */
-      w217.artsLevels.c1 === 0 && w217.artsKnown.indexOf('c1') >= 0 &&  /* 子部 Lv0 */
+      w217.artsLevels.c1 === 1 && w217.artsKnown.indexOf('c1') >= 0 &&  /* 子部入门即 Lv1（等级起点批） */
       SQ.t('skill.c1.name', null, 'xiuxian') === '测试名';               /* 运行时注入 LEX 非静态词表 */
-    /* FIELD_CAP clamp + NEVER_FIELDS + gen≥3 拒 + 名长/敏感词 */
-    SQ.XARTS.tz_c = { id: 'tz_c', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.12 }, special: null, obtain: { type: 'shop' } };
-    SQ.XARTS.tz_d = { id: 'tz_d', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.12 }, special: null, obtain: { type: 'shop' } };
+    /* FIELD_CAP clamp + NEVER_FIELDS + gen≥3 拒 + 名长/敏感词
+     * 🔧 第卅八批：FIELD_CAP 是「全录该字段每级最大值」的导出口，品阶重排后 qiRate 封顶 0.13 → **0.225** ⇒
+     *   父本注入值必须跟着抬高，否则 clamp 根本不触发、这条判据就退化成「均值原样通过」（假绿）。
+     *   0.22 双亲均值 ×1.1×GEN_MULT(1.05) = 0.2541 > 0.225 ⇒ 仍被闸在封顶。 */
+    SQ.XARTS.tz_c = { id: 'tz_c', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.22 }, special: null, obtain: { type: 'shop' } };
+    SQ.XARTS.tz_d = { id: 'tz_d', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.22 }, special: null, obtain: { type: 'shop' } };
     SQ.XARTS.tz_e = { id: 'tz_e', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { combatPower: 0.10, checkBonus: 0.5, tribBonus: 0.09 }, special: null, obtain: { type: 'shop' } };
     SQ.XARTS.tz_f = { id: 'tz_f', tier: 'huang', alignment: 'neutral', attr: 'qi', effects: { qiRate: 0.05 }, special: null, obtain: { type: 'shop' } };
     var w217b = pack.initialState();
@@ -7321,7 +7545,7 @@
     ['tz_c', 'tz_d', 'tz_e', 'tz_f'].forEach(function (aid) { w217b.artsLevels[aid] = 9; });
     w217b.fusion.lastFuseAt = 0;
     var f217b = (function () { var rs = stubRandom([0.0]); var r = SQ.Fusion.fuse(w217b, pack, D, M(mkProf([]), w217b), '', 'tz_c', 'tz_d', Date.now(), noopLog()); rs(); return r; })();
-    var cap217b = f217b.success === true && f217b.art.effects.qiRate === FUc.FIELD_CAP.qiRate;   /* 0.1386 → clamp 0.13 */
+    var cap217b = f217b.success === true && f217b.art.effects.qiRate === FUc.FIELD_CAP.qiRate;   /* 0.2541 → clamp 0.225（第卅八批新封顶） */
     w217b.fusion.lastFuseAt = 0;
     var f217c = (function () { var rs = stubRandom([0.0, 0.0]); var r = SQ.Fusion.fuse(w217b, pack, D, M(mkProf([]), w217b), '一二三四五六七八九十', 'tz_e', 'tz_f', Date.now(), noopLog()); rs(); return r; })();
     var never217 = f217c.success === true && f217c.art.name.length === 8 &&
@@ -7333,11 +7557,15 @@
       w.fusion.lastFuseAt = 0;
       w.fusion.customs.push({ id: 'c9', name: '三代部', gen: 3, tier: 3, attr: 'qi', align: 'neutral', effects: { qiRate: 0.1 }, special: null, parents: [], createdAt: 1 });
       w.artsKnown.push('c9'); w.artsLevels.c9 = 9;
+      w.artsLevels.tz_f = 9;   /* 同 sens217：上一笔融合已把 tz_f 消耗回 Lv1，先重新练满才测得到 gen 这一因 */
       SQ.Fusion.registerCustoms(w.fusion, D);
       return SQ.Fusion.canFuse(w, pack, D, 'c9', 'tz_f', Date.now());
     })();
     var sens217 = (function () {
       w217b.fusion.lastFuseAt = 0;
+      /* 上一笔融合已把 tz_e/tz_f 消耗回 Lv1（满级关现在真的生效）⇒ 本笔要验的是「敏感词回落」，
+       * 先把两位父本重新练满，别让门槛关替它作结论。 */
+      ['tz_e', 'tz_f'].forEach(function (aid) { w217b.artsLevels[aid] = 9; });
       var rs = stubRandom(function (i) { return i === 0 ? 0.0 : 0.5; });
       var r = SQ.Fusion.fuse(w217b, pack, D, M(mkProf([]), w217b), '赌博邪功', 'tz_e', 'tz_f', Date.now(), noopLog());
       rs();
@@ -7346,8 +7574,10 @@
     var sensOk217 = sens217.success === true && sens217.art.name !== '赌博邪功' && sens217.art.name.length > 0;
     /* 清理注入（防 #153 计数与后续断言污染） */
     delete SQ.XARTS.tz_a; delete SQ.XARTS.tz_b; delete SQ.XARTS.tz_c; delete SQ.XARTS.tz_d; delete SQ.XARTS.tz_e; delete SQ.XARTS.tz_f;
-    ok('217', '词条重组与封顶：主修同名均值 ×1.1×GEN_MULT→0.104；FIELD_CAP clamp 0.13/tribBonus 0.025；NEVER 字段永不产出；副字段原值保一；special 保留表；tier=min(⌊均值+0.5⌋,天)；双亲消耗已知态保留子部 Lv0；gen≥3 拒；名 ≤8 敏感词回落；名称运行时注入非静态词表',
-      recon217 && cap217b && never217 && gen217.reason === 'gen' && sensOk217);
+    ok('217', '词条重组与封顶：主修同名均值 ×1.1×GEN_MULT→0.104；FIELD_CAP clamp 0.225/tribBonus 0.025；NEVER 字段永不产出；副字段原值保一；special 保留表；tier=min(⌊均值+0.5⌋,天)；双亲消耗已知态保留子部 Lv1；gen≥3 拒；名 ≤8 敏感词回落；名称运行时注入非静态词表',
+      recon217 && cap217b && never217 && gen217.reason === 'gen' && sensOk217,
+      'recon=' + recon217 + ' cap=' + cap217b + ' never=' + never217 + ' gen=' + gen217.reason +
+      ' sens=' + sensOk217 + '/' + sens217.reason);
 
     /* #218 器灵全链路（温养三源 / 六档满值 / 觉醒人格加权 / 五技通道 / CD 三件套 / 判词限流） */
     var T218 = pack.treasures.LIST[0];
@@ -7460,7 +7690,7 @@
     /* 最坏 fusion+spirit 存档增量（正典理论 ≈4.7KB） */
     var worst219 = { fusion: { lastFuseAt: 1, meditate: 100, seq: 4, customs: [] }, treasures: { owned: [], slots: [] } };
     for (var cw = 1; cw <= 4; cw++) worst219.fusion.customs.push({ id: 'c' + cw, name: '八字自定义名', gen: 3, tier: 3, attr: 'shen', align: 'neutral',
-      effects: { combatPower: 0.14, qiRate: 0.13, offlineEff: 0.12, combatSpeed: 0.09, qiCap: 0.10, stonesRate: 0.10, artsSpeed: 0.08, eventRate: 0.06, eventLuck: 0.05, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
+      effects: { combatPower: 0.315, qiRate: 0.225, offlineEff: 0.288, combatSpeed: 0.219, qiCap: 0.30, stonesRate: 0.267, artsSpeed: 0.07, eventRate: 0.14, eventLuck: 0.09, dropRate: 0.05, tribBonus: 0.025, realmCost: -0.02 },
       special: { pool: 'some_special_pool', grade: 2 }, parents: [{ id: 'art_parent_a', name: '父本一', tier: 3 }, { id: 'art_parent_b', name: '父本二', tier: 2 }], createdAt: 1 });
     pack.treasures.LIST.slice(0, 6).forEach(function (tt) { worst219.treasures.owned.push({ id: tt.id, st: { spirit: { w: 1200, a: 1, p: 'xian', cd: 1, mk: 1, hun: 1, vt: { trib: 1, omen: 1, skill: 1, pickup: 1 }, awakenAt: 1 } } }); });
     var inc219 = byteLen(worst219.fusion) + byteLen(worst219.treasures.owned);
@@ -7480,7 +7710,7 @@
     SQ.Fusion.normalize({ customs: [{ id: 'c1', gen: 9, tier: 9, attr: 'bad', align: 'bad', effects: { qiRate: 0.5, realmCost: -0.9 }, special: 'nope', parents: 'nope', name: '超长自定义名超八字' }] }, D);
     var fn219c = SQ.Fusion.normalize({ customs: [{ id: 'c1', gen: 9, tier: 9, attr: 'bad', align: 'bad', effects: { qiRate: 0.5, realmCost: -0.9 }, special: 'nope', parents: 'nope', name: '超长自定义名超八字' }] }, D).customs[0];
     var clamp219 = fn219c.gen === 3 && fn219c.tier === 3 && fn219c.attr === 'qi' && fn219c.align === 'neutral' &&
-      fn219c.effects.qiRate === 0.13 && fn219c.effects.realmCost === -0.02 && fn219c.special === null &&
+      fn219c.effects.qiRate === 0.225 && fn219c.effects.realmCost === -0.02 && fn219c.special === null &&
       fn219c.parents.length === 0 && fn219c.name.length <= 8;
     ok('219b', 'fusion normalize 字段级钳位：gen/tier clamp、attr/align 回落、effects FIELD_CAP 双闸（realmCost 负向 clamp）、name ≤8、special/parents 结构校验 + 幂等二次 normalize 全等',
       clamp219 && matLed219 && inc219 <= 5 * 1024 &&
@@ -7495,7 +7725,7 @@
       var w = pack.normalize(pack.initialState());   /* normalize 播种 16 家势力池（initialState.factions=null 惰性） */
       w.realm = 4; w.everDefected = true; w.factionRepPeak = 2000;
       w.factionId = f0id; w.factionRep[f0id] = 2000; w.factionOffice = 'elder';
-      w.factionQuest = { id: 'q1' };
+      w.factionQuests = [{ id: 'q1' }];   /* 脏板面：非 normalize 产物，只为证「开宗时整板被清」 */
       w.karmaEventScore = 100;
       w.bonds[(pack.companions[0] || { id: 'c0' }).id] = 50;
       if (ov) Object.assign(w, ov);
@@ -7528,7 +7758,7 @@
       cf220p.reason === 'peak' && cf220u.reason === 'unlock' &&
       badName220.reason === 'name' && fd220.ok === true &&
       w220.karmaEventScore === karma220 && JSON.stringify(w220.bonds) === bond220 &&
-      w220.factionRep[f0id] == null && w220.factionOffice === null && w220.factionQuest === null &&
+      w220.factionRep[f0id] == null && w220.factionOffice === null && (w220.factionQuests || []).length === 0 &&
       w220.tribulation.officeGuard === false && w220.factionId === 'sect' &&
       facN220b === facN220a && w220.factions.length === facN220a + 1 &&   /* 宗门以唯一动态追加位入池（正典「第 17 位」计数勘误：商队动态位 f1~f3 随境界先占） */
       !!sectEntry220 && sectEntry220.perk.v === 0 && sectEntry220.name === fd220.name &&
@@ -7957,11 +8187,12 @@
     (D.PILLS || []).forEach(function (pp) { w230.alchemy.pills[pp.id] = 99; });   /* 成品丹四枚同属最坏态（同 #206）*/
     w230.alchemy.prof = { dan: 999, qi: 999 };
     var size230 = JSON.stringify({ alchemy: w230.alchemy, materials: w230.materials }).length;
-    /* 红线零改动（p 公式主体 / TRIB_P_CLAMP / REALMS / mods FIELDS / ARTS_COST） */
-    var zero230 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.338 &&
+    /* 红线零改动（p 公式主体 / TRIB_P_CLAMP / REALMS / mods FIELDS）；
+     * ARTS_COST 是**本批有意改的那一处**：等级起点批删 Lv0→1 档 ⇒ 八档，其余价格一字未动。 */
+    var zero230 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.22 &&
       D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 && SQ.Mods.FIELDS.length === 17 &&
-      D.ARTS_COST.join() === '60,240,900,3200,11000,36000,120000,400000,1300000';
-    ok('230', '经济参数与容量红线回归：六新参对表（tian 12000/精制 1500·12 料·0.70·45min/提炼 4:1）；既有经济锚**只动一处并如实报**：`PILL_DAILY_CAP` 3 → **4**（第十七批丹药两族合一）；其余（坊市权重全表 50/25/10/10/5——锚 9.12 复跑不变红线）零改动；normalize 上限数据驱动（脏档 16→11、12→9）；alchemy 独立最坏态 <2.5KB（50KB 红线分摊）；p 公式/CLAMP/REALMS/FIELDS/ARTS_COST 红线零改动',
+      D.ARTS_COST.join() === '240,900,3200,11000,36000,120000,400000,1300000';
+    ok('230', '经济参数与容量红线回归：六新参对表（tian 12000/精制 1500·12 料·0.70·45min/提炼 4:1）；既有经济锚**只动一处并如实报**：`PILL_DAILY_CAP` 3 → **4**（第十七批丹药两族合一）；其余（坊市权重全表 50/25/10/10/5——锚 9.12 复跑不变红线）零改动；normalize 上限数据驱动（脏档 16→11、12→9）；alchemy 独立最坏态 <2.5KB（50KB 红线分摊）；p 公式/CLAMP/REALMS/FIELDS 红线零改动 ‖ ARTS_COST 按等级起点批改八档并如实报',
       par230 && keep230 && capOk230 && size230 < 2500 && zero230,
       'size=' + size230 + 'B cap=' + capOk230);
 
@@ -8933,6 +9164,11 @@
     }) };
     var lats274 = [];
     for (var la274 in (pack270.artsMap ? pack270.artsMap() : {})) { lats274.push(la274); if (lats274.length >= 2) break; }
+    /* 等级起点批顺带接通的一条**潜在真缺陷**：`canFuse` 的满级门槛原写
+     * `(ws.artsLevels || {})[idA] < 9`——档里无值时是 `undefined < 9` = false ⇒ 门槛被整体跳过，
+     * 未修满的功法本来能进融合坛。入门即 Lv1 后每部都有值，这道关第一次真的生效，
+     * 于是本 fixture 必须先把两位父本摆到 Lv9，才测得到它声称的那一因 `full`（不是放宽判据）。 */
+    lats274.forEach(function (id) { x274.artsLevels[id] = 9; });
     var rFull274 = SQ.Fusion.canFuse(x274, pack270, D270, lats274[0], lats274[1], 1700000000000);
     var rUnk274 = SQ.Fusion.reforgeCustom(x274, pack270, D270, 'cu_not_exist', 1700000000000, function () {});
     var k274 = function (k) { var v = SQ.t(k, null, 'xiuxian');
@@ -9188,7 +9424,7 @@
     var gotKey297 = rS297b.ok === true && rS297b.reward.type === 'pill' && rS297b.reward.id;
     var shardOk297 = rS297b.ok === true && w297s.shards[1] === 0 && w297s.alchemy.pills[gotKey297] === 1;
     var shard297 = shardFull297 && shardOk297;
-    /* (f) 赠丹两族：成品丹按 D.PILLS 自带 tier 计好感；成品破障丹拒因 nogift 且不扣丹不占日限 */
+    /* (f) 赠丹两族：成品丹按 D.PILLS 自带 tier 计好感；成品破障丹拒因 nogift 且不扣丹 */
     var cs297 = SQ.Bonds.list(pack).filter(function (c) { return c.category !== 'spouse'; });
     var w297g = mkWs({ realm: 5, stones: 99999 });
     SQ.Alchemy.ensure(w297g, D);
@@ -9196,8 +9432,8 @@
     var gTier = null;
     (D.PILLS || []).forEach(function (p) { if (p.id === 'cuiti') gTier = p.tier; });
     var expGift = (D.BOND_GIFT_BY_TIER || {})[gTier];
-    var rG297a = SQ.Bonds.giftPill(w297g, pack, D, cs297[0].id, 'cuiti', 1000007, null, prof297);
-    var rG297b = SQ.Bonds.giftPill(w297g, pack, D, cs297[0].id, 'pozhang', 1000008, null, prof297);
+    var rG297a = SQ.Bonds.giftPill(w297g, pack, D, cs297[0].id, 'cuiti', 1000007, null);
+    var rG297b = SQ.Bonds.giftPill(w297g, pack, D, cs297[0].id, 'pozhang', 1000008, null);
     var gift297 = rG297a.ok === true && rG297a.gain === expGift && w297g.alchemy.pills.cuiti === 1 &&
       rG297b.ok === false && rG297b.reason === 'nogift' && w297g.alchemy.pills.pozhang === 2 &&
       SQ.t('bond.gift.fail.nogift', null, 'xiuxian') !== 'bond.gift.fail.nogift';
@@ -9239,7 +9475,7 @@
     var capCopy297 = capTpl297 &&
       SQ.t('alchemy.ui.pillcap', { n: D.ALCHEMY.PILL_DAILY_CAP }, 'xiuxian')
         .indexOf(String(D.ALCHEMY.PILL_DAILY_CAP)) >= 0;
-    ok('297', '丹药两族合一（第十七批 · 坊市 / 特席 / 门中供给 / 残片兑丹四口所得一律入丹匣（黑市 buy 体与坊市同码但货架从不掷丹），何时服用玩家定）：(a) 坊市买丹入匣且**不当场生效**（qi / buffs 纹丝不动、灵石与 out.shop 照旧） (b) 匣满 ⇒ 整笔拒单、**灵石分文不动**、货架项不标 sold（先判后扣） (c) 服用成品丹：效果照落 + **占丹毒日限**（与自产同池） (d) 门中供给拒单时灵石 / 声望 / 24h 锚三者不动，成功时入匣不生效 (e) 残片兑丹匣满拒兑且**片不扣**，成功时扣 20 片入匣 (f) 赠丹两族同轨：成品丹按 D.PILLS 自带 tier 计好感、成品破障丹拒因 `nogift` 且不扣丹不占日限 (g) normalize 白名单认四个成品丹键、伪键滤除、旧档（只有自产丹）零受影响 (h) 两族混吃计同一计数（第 5 颗即拒） (i) 🆕 当晚复核补：特席买丹匣满拒单**回传 reason**、灵石分文不动（视图若不接返回值就是静默无反馈；屏上面由 probe-bondact 两条 + 走查 B4 锚） (j) 🆕 丹毒上限文案取表值不写死数（模板零裸数字，改 `PILL_DAILY_CAP` 屏上跟着动）',
+    ok('297', '丹药两族合一（第十七批 · 坊市 / 特席 / 门中供给 / 残片兑丹四口所得一律入丹匣（黑市 buy 体与坊市同码但货架从不掷丹），何时服用玩家定）：(a) 坊市买丹入匣且**不当场生效**（qi / buffs 纹丝不动、灵石与 out.shop 照旧） (b) 匣满 ⇒ 整笔拒单、**灵石分文不动**、货架项不标 sold（先判后扣） (c) 服用成品丹：效果照落 + **占丹毒日限**（与自产同池） (d) 门中供给拒单时灵石 / 声望 / 24h 锚三者不动，成功时入匣不生效 (e) 残片兑丹匣满拒兑且**片不扣**，成功时扣 20 片入匣 (f) 赠丹两族同轨：成品丹按 D.PILLS 自带 tier 计好感、成品破障丹拒因 `nogift` 且不扣丹（issue #4 起赠丹无日限） (g) normalize 白名单认四个成品丹键、伪键滤除、旧档（只有自产丹）零受影响 (h) 两族混吃计同一计数（第 5 颗即拒） (i) 🆕 当晚复核补：特席买丹匣满拒单**回传 reason**、灵石分文不动（视图若不接返回值就是静默无反馈；屏上面由 probe-bondact 两条 + 走查 B4 锚） (j) 🆕 丹毒上限文案取表值不写死数（模板零裸数字，改 `PILL_DAILY_CAP` 屏上跟着动）',
       inBox297 && fullRefuse297 && drinkTrade297 && supply297 && shard297 && gift297 && norm297 &&
       samePool297 && merchant297 && capCopy297,
       '入匣=' + inBox297 + ' 拒单不扣钱=' + fullRefuse297 + ' 服用=' + drinkTrade297 +
@@ -9333,6 +9569,24 @@
     var logTxt298 = (ref298.worlds.xiuxian.log || []).slice(logs298Before).map(function (l) { return String(l.text || l.txt || ''); }).join(' ');
     var log298 = (ref298.worlds.xiuxian.log || []).length > logs298Before && /春风化雨篇/.test(logTxt298);
 
+    /* (g2) 第卌六批（用户反馈「坊市买功法后功法页看不见」）：**未达标**那一支原本一条日志都不写
+       ⇒ 走真入口买一部 realm 要求未达的功法，日志必须写出「入待修习架」的去向（入门支与溢出支早有日志，只差这一支）。 */
+    var ref298s = {};
+    await SQ.mutate(ref298s, function (s) {
+      s.profile = mkProf();
+      s.worlds.xiuxian = pack.initialState();
+      var wS2 = s.worlds.xiuxian;
+      wS2.realm = 1; wS2.stones = 100000; wS2.artsKnown = ['tuna']; wS2.artsSlots = ['tuna']; wS2.shelf = [];
+      shelf298(wS2, [artItem298()]);
+    });
+    var logs298sBefore = (ref298s.worlds.xiuxian.log || []).length;
+    await SQ.Actions.buy(ref298s, 0, false, SQ.Shop.goodSig(ref298s.worlds.xiuxian.shop.items[0]));
+    var w298s = ref298s.worlds.xiuxian;
+    var logTxt298s = (w298s.log || []).slice(logs298sBefore).map(function (l) { return String(l.text || l.txt || ''); }).join(' ');
+    var stow298 = w298s.shelf.indexOf('chunyu') >= 0 && w298s.artsKnown.indexOf('chunyu') < 0 &&
+      w298s.stones === 97700 && (w298s.log || []).length > logs298sBefore &&
+      /待修习架/.test(logTxt298s) && /春风化雨篇/.test(logTxt298s);
+
     var w298g = shelf298(mkWs({ realm: 5, stones: 100000, artsKnown: ['tuna', 'chunyu'], artsSlots: ['tuna'] }), []);
     w298g.shop.merchant = { until: Date.now() + 600000, scout: false, items: [artItem298()] };
     var r298g = SQ.Shop.buyMerchant(w298g, pack, D, M(prof298, w298g), 0, noopLog());
@@ -9352,10 +9606,11 @@
     var stash298 = r298h.ok === false && r298h.reason === 'stale' && mid298h.n === 2 &&
       mid298h.st === 100000 && r298h2.ok === true && w298h.stash.length === 1 && w298h.stones > 100000;
 
-    ok('298', '坊市与特席的先判后扣（第廿六批 · "买到的东西必须落得下"整族）：(a) 功法已拥有拒 owned (b) 未达标且待修习架已满拒 shelffull（不再"扣全价退半、功法凭空消失"） (c) 丹方/普通图纸/丹炉图(已有炉)/丹炉成品/法宝 已拥有各拒 owned，材料包放行 (d) 未达标而架未满仍落架（#101 口径不回归） (e) expect 指纹与序号上的货不符 → 拒 stale（弹窗期间被补货换架的实测形状） (f) 成交写交付日志（旧传 null ⇒ 全程无痕） (g) 特席同判定 (h) 库藏炼化错位拒单、不销毁',
-      own298 && full298 && dup298 && shelfPath298 && stale298 && log298 && merch298 && stash298,
+    ok('298', '坊市与特席的先判后扣（第廿六批 · "买到的东西必须落得下"整族）：(a) 功法已拥有拒 owned (b) 未达标且待修习架已满拒 shelffull（不再"扣全价退半、功法凭空消失"） (c) 丹方/普通图纸/丹炉图(已有炉)/丹炉成品/法宝 已拥有各拒 owned，材料包放行 (d) 未达标而架未满仍落架（#101 口径不回归） (e) expect 指纹与序号上的货不符 → 拒 stale（弹窗期间被补货换架的实测形状） (f) 成交写交付日志（旧传 null ⇒ 全程无痕） (g) 特席同判定 (h) 库藏炼化错位拒单、不销毁 (i) 第卌六批：未达标落架也写**去向日志**（这一支原本零日志 ⇒ 玩家以为货丢了）',
+      own298 && full298 && dup298 && shelfPath298 && stale298 && log298 && merch298 && stash298 && stow298,
       '已拥有=' + own298 + ' 架满=' + full298 + ' 子货重复=' + dup298 + ' 落架=' + shelfPath298 +
-      ' 错位=' + stale298 + ' 日志=' + log298 + '(' + logTxt298.slice(0, 26) + ') 特席=' + merch298 + ' 炼化=' + stash298);
+      ' 错位=' + stale298 + ' 日志=' + log298 + '(' + logTxt298.slice(0, 26) + ') 特席=' + merch298 + ' 炼化=' + stash298 +
+      ' 落架日志=' + stow298 + '(' + logTxt298s.slice(0, 40) + ')');
 
 
     /* ═══ #299 前世书的游戏日期 + 历法单源（第廿八批 2026-10-13 · 用户报「前世书里的文本描述有问题，
@@ -9407,13 +9662,11 @@
     var maxOk299 = t299f.length <= (D.LEGACY.BIO_MAX || 500) && t299f.indexOf('计：') >= 0;
     /* (f) 单源：core 导出两枚函数（视图那两份算式已改成委托，文件级 grep 由 sq-wip-dbg-cal.cjs 出数） */
     var src299 = typeof SQ.gameDateOf === 'function' && typeof SQ.gameDateStr === 'function';
-    /* (g) 同型面：烧表请天道作传的**奏疏**读的是同一族「是日」模板 ⇒ 同批补日期，两个读点不分叉 */
-    var memo299 = String(SQ.Codex.bioMemo(
-      { profile: prof299, worlds: { xiuxian: w299e }, meta: mkMeta() }, NOW299) || '');
-    var memoOk299 = memo299.indexOf(d299a + ' · 是日首通青云试炼地。') >= 0 &&
-      memo299.indexOf('{') < 0 && memo299.length <= (D.LEGACY.BIO_MEMO_LEN || 1500);
-    ok('299', '前世书写得出游戏时间 + 历法算式收成单源（第廿八批 · 用户报「轮回页面的前世书，文本描述有问题，写着是日但是没有写具体游戏时间」）：(a) 历法逐值对表（入世当日 / 第 359 日 / 第 360 日翻年 / ts 早于入世钳零） (b) 世界名去尾字 + createdAt 缺失返空串，不写假日期 (c) 传记时间轴每条大事与终行各带**那天**的日期，「是日」族模板一字未动 (d) 旧档无 createdAt ⇒ 原样不补、零花括号 (e) BIO_MAX 硬截不破且尾行「计：」不被挤掉 (f) core 导出 gameDateOf / gameDateStr 成唯一实现 (g) 同型面：烧表奏疏同口径带日期、不破 BIO_MEMO_LEN',
-      cal299 && strOk299 && bioOk299 && oldOk299 && maxOk299 && src299 && memoOk299,
+    /* 第册批勘正：原 (g)「同型面：烧表奏疏同口径带日期、不破 BIO_MEMO_LEN」整条删除——
+     * 那条判据立的是 `Codex.bioMemo` 这个**第二读点**，随「烧表请天道作传」下线后「是日」族模板
+     * 在传记这一侧只剩 generateBio 一个读者，同型面判据自动失去对象（下线取证归 #315，别在这儿补）。 */
+    ok('299', '前世书写得出游戏时间 + 历法算式收成单源（第廿八批 · 用户报「轮回页面的前世书，文本描述有问题，写着是日但是没有写具体游戏时间」）：(a) 历法逐值对表（入世当日 / 第 359 日 / 第 360 日翻年 / ts 早于入世钳零） (b) 世界名去尾字 + createdAt 缺失返空串，不写假日期 (c) 传记时间轴每条大事与终行各带**那天**的日期，「是日」族模板一字未动 (d) 旧档无 createdAt ⇒ 原样不补、零花括号 (e) BIO_MAX 硬截不破且尾行「计：」不被挤掉 (f) core 导出 gameDateOf / gameDateStr 成唯一实现〔第册批勘正：原 (g) 烧表奏疏同型面随该通道下线删除〕',
+      cal299 && strOk299 && bioOk299 && oldOk299 && maxOk299 && src299,
       '历法=' + [g299a.m + '/' + g299a.d, g299b.m + '/' + g299b.d, g299c.y + '/' + g299c.m + '/' + g299c.d, g299d.m + '/' + g299d.d].join(' ') +
       ' 正文=' + str299 + ' 缺createdAt=' + (str299no === '') + ' ‖ 传记三条=' + bioOk299 +
       ' ‖ 旧档=' + oldOk299 + ' ‖ 上限=' + maxOk299 + '(' + t299f.length + '/' + (D.LEGACY.BIO_MAX || 500) + ') ‖ 单源=' + src299);
@@ -9475,6 +9728,1201 @@
       '界=' + rankEdge300 + ' ‖ 池=' + [gid300(0).length, gid300(1).length, gid300(2).length, gid300(3).length].join('/') +
       ' 覆盖=' + cover300 + ' ‖ 同池=' + poolSame300 + '(得 ' + pool1[0] + ') ‖ 顶档拒=' + topNo300 +
       ' ‖ 不入档=' + noField300);
+
+    /* #301 品阶强度阶梯对表（第卅八批 · 用户令「四品阶数值太接近，重排到高品阶要明显更强」；词条档位经询 = 1/2/3.5/6）
+     * 八面各钉一条，少钉一面都能悄悄退回去（2026-10-15 返工把 (e) 改成压缩阶梯、新增 (f)(g)(h) 三面）：
+     *  (a) 逐字段逐阶**阶中位 === 基准 × 词条阶梯**（±0.5%）——阶梯的绝对那一半（基准 = 该字段黄阶中位，黄阶无样时用该阶现值 ÷ 阶梯）；
+     *  (b) 逐字段**跨阶不倒挂**，射程 = 玄→地→天 零重叠（本批开工前实测有 42 对倒挂）；黄→玄 另由 (g) 管；
+     *  (c) **黄阶中位仍是原锚**（qiRate .03 / combatPower .045 / offlineEff .04 / qiCap .04）⇒ 「黄阶保持现值、账由终局付」是判据而不是口头承诺；
+     *  (d) `FUSE.FIELD_CAP` === 全录该字段每级最大值（导出口不许手调；红线四类另有 clamp 通道，不在此列）；
+     *  (e) **属性滋养走另一条压缩阶梯**：同阵营同级的黄/玄/地/天四部，`SQ.Attrs.artsNurtureOf` 之比 === 1 : 1.5 : 2 : 2.5
+     *      （引擎与视图同读这一处算式，第卅六批那条「屏上说的必须等于生效的」在这里继续生效）；
+     *  (f) 开局两部 = dev 原值（吐纳法 qiRate 5% / 聚灵诀 qiCap 10%）——返工的正身，防「中位保住而单条被改」再犯；
+     *  (g) 黄→玄 带例外**集合相等** = {qiCap, qiRate}，多一条倒挂或例外被抹平都红；
+     *  (h) 滋养绝对上界 6 槽 × Lv9 × 魔 3 × 天 2.5 = 405（词条侧 ×6 若乘进属性会造出 972 点、判定 p 整档饱和）。 */
+    (function () {
+      var LAD = { huang: 1, xuan: 2, di: 3.5, tian: 6 }, TIERS301 = ['huang', 'xuan', 'di', 'tian'];
+      /* 滋养侧另有一条**压缩阶梯**（返工裁定）：词条 ×6 不再乘进属性，否则六槽满级魔道天阶 = 972 点滋养，
+       * 而境界基础值到顶才 60（dc = 基础×2）⇒ 三维判定 p 整档饱和在 0.95，「高品阶更吃属性」反而失去区分度 */
+      var NURLAD = { huang: 1, xuan: 1.5, di: 2, tian: 2.5 };
+      /* 黄→玄 允许重叠的**在册例外**（用户裁定「恢复黄阶原值」的必然产物）：多一条即红、少一条也红 */
+      var HX_EXC = ['qiCap', 'qiRate'].sort();
+      var UN301 = ['tribBonus', 'tribFailLossMod', 'realmCost', 'shopCost'];
+      function med301(a) {
+        var s = a.slice().sort(function (x, y) { return x - y; });
+        return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+      }
+      var byF301 = {};
+      Object.keys(SQ.XARTS).forEach(function (id) {
+        var ef = SQ.XARTS[id].effects || {};
+        Object.keys(ef).forEach(function (k) {
+          var g = byF301[k] || (byF301[k] = {});
+          (g[SQ.XARTS[id].tier] || (g[SQ.XARTS[id].tier] = [])).push(ef[k]);
+        });
+      });
+      var bad301 = [], hxOver = [], nField301 = 0, nPair301 = 0;
+      Object.keys(byF301).forEach(function (k) {
+        if (UN301.indexOf(k) >= 0) return;
+        var g = byF301[k];
+        if (!g.huang || !g.huang.length) return;
+        nField301++;
+        var base = med301(g.huang);
+        TIERS301.forEach(function (t) {
+          if (!g[t] || !g[t].length) return;
+          var want = base * LAD[t], got = med301(g[t]);
+          if (Math.abs(got - want) > Math.abs(want) * 0.005) bad301.push(k + '.' + t + '=' + got.toFixed(4) + '≠' + want.toFixed(4));
+        });
+        for (var i = 1; i < TIERS301.length; i++) {
+          var lo = g[TIERS301[i - 1]], hi = g[TIERS301[i]];
+          if (!lo || !lo.length || !hi || !hi.length) continue;
+          nPair301++;
+          var ovl = Math.min.apply(0, hi) <= Math.max.apply(0, lo);
+          if (!ovl) continue;
+          /* 玄→地、地→天 一律零容忍；黄→玄 只认在册那两条例外 */
+          if (i === 1) hxOver.push(k);
+          else bad301.push(k + ':' + TIERS301[i - 1] + '→' + TIERS301[i] + ' 重叠');
+        }
+      });
+      var ANCHOR301 = { qiRate: 0.03, combatPower: 0.045, offlineEff: 0.04, qiCap: 0.04 };
+      Object.keys(ANCHOR301).forEach(function (k) {
+        if (Math.abs(med301(byF301[k].huang) - ANCHOR301[k]) > 1e-9) bad301.push('黄锚漂 ' + k + '=' + med301(byF301[k].huang));
+      });
+      var CAPS301 = D.FUSE.FIELD_CAP, badCap301 = [];
+      Object.keys(CAPS301).forEach(function (k) {
+        if (UN301.indexOf(k) >= 0 || !byF301[k]) return;
+        var all = [];
+        TIERS301.forEach(function (t) { all = all.concat(byF301[k][t] || []); });
+        if (!all.length) return;
+        var mx = Math.max.apply(0, all);
+        if (Math.abs(mx - CAPS301[k]) > 1e-9) badCap301.push(k + ' cap=' + CAPS301[k] + ' 全录最大=' + mx);
+      });
+      var pick301 = {}, badNur301 = [];
+      TIERS301.forEach(function (t) {
+        var hit = Object.keys(SQ.XARTS).filter(function (id) {
+          return SQ.XARTS[id].tier === t && SQ.XARTS[id].alignment === 'neutral';
+        })[0];
+        if (hit) pick301[t] = hit;
+      });
+      var n301 = {};
+      TIERS301.forEach(function (t) {
+        if (!pick301[t]) return;
+        var wq = pack.initialState();
+        wq.artsKnown = [pick301[t]]; wq.artsSlots = [pick301[t]];
+        wq.artsLevels = {}; wq.artsLevels[pick301[t]] = 4;
+        n301[t] = SQ.Attrs.artsNurtureOf(wq, pack, D, SQ.XARTS[pick301[t]].attr);
+      });
+      TIERS301.forEach(function (t) {
+        if (n301[t] == null || !n301.huang) return;
+        if (Math.abs(n301[t] / n301.huang - NURLAD[t]) > 1e-9) badNur301.push(t + '=' + (n301[t] / n301.huang).toFixed(3));
+      });
+      /* (f) 开局两部钉回 dev 原值 = 本次返工的正身（「中位不动」不等于「单条不动」） */
+      var startOk301 = SQ.XARTS.tuna.effects.qiRate === 0.05 && SQ.XARTS.juling.effects.qiCap === 0.10;
+      /* (g) 黄→玄 例外集合必须逐字等于在册清单 */
+      var hxSorted = hxOver.slice().sort();
+      var excOk301 = hxSorted.length === HX_EXC.length && hxSorted.every(function (k, i) { return k === HX_EXC[i]; });
+      /* (h) 滋养绝对上界认**阶梯本身**：6 槽 × Lv9 × 最高阵营系数 × 最高品阶档 ≤ 405。
+       * 先前那版是拿六部样例量出来的（实测只有 108），把天档改回词条侧的 ×6 也照样过 ⇒ 无鉴别力的上界；
+       * 现在直接对上界求值，天档若回 6 = 972 当场红（与 (e) 的比值判据分列：(e) 管比例，(h) 管绝对量级）。 */
+      var nurFactor301 = Math.max.apply(0, Object.keys(D.ARTS_NURTURE).map(function (k) { return D.ARTS_NURTURE[k]; }));
+      var nurWorst301 = 6 * 9 * nurFactor301 * Math.max.apply(0, Object.keys(D.ARTS_NURTURE_TIER).map(function (k) { return D.ARTS_NURTURE_TIER[k]; }));
+      var nurCapOk301 = nurWorst301 <= 405 + 1e-9;
+      ok('301', '品阶强度阶梯对表（第卅八批返工版）：(a) 逐字段阶中位 === 基准×词条阶梯(±0.5%) ' + nField301 + ' 字段' +
+        ' (b) 玄→地→天 零重叠（黄→玄 只认在册例外）共 ' + nPair301 + ' 对相邻阶' +
+        ' (c) 黄阶中位仍是原锚 0.03/0.045/0.04/0.04' +
+        ' (d) FIELD_CAP === 全录每级最大值（红线四类除外）' +
+        ' (e) 滋养比 === 1:1.5:2:2.5（滋养侧单独设上限，与词条阶梯分列）' +
+        ' (f) 开局两部吐纳法 0.05 / 聚灵诀 0.10 钉回 dev 原值' +
+        ' (g) 黄→玄 带例外恰好 = qiCap + qiRate（多一条少一条都红）' +
+        ' (h) 滋养上界 = 6 槽 × Lv9 × 最高阵营系数 × 最高品阶档 ≤ 405（旧口径 ×6 会造出 972 把判定 p 顶饱和）',
+        nField301 >= 8 && nPair301 >= 8 && bad301.length === 0 && badCap301.length === 0 && badNur301.length === 0 &&
+        startOk301 && excOk301 && nurCapOk301 && TIERS301.every(function (t) { return !!pick301[t]; }),
+        '字段=' + nField301 + ' 对=' + nPair301 + ' ‖ ' + bad301.slice(0, 4).join(',') +
+        ' ‖ cap=' + badCap301.join(',') + ' ‖ 滋养比=' + badNur301.join(',') +
+        ' (' + TIERS301.map(function (t) { return n301[t]; }).join('/') + ')' +
+        ' ‖ 开局=' + startOk301 + ' 例外=' + hxSorted.join('+') + '/在册=' + HX_EXC.join('+') +
+        ' ‖ 滋养上界=' + nurWorst301 + '/405=' + nurCapOk301);
+    })();
+
+    /* ══ #302~#304 寿元 / 道伤批（2026-10-15 · 数值详设 §6.1A）══════════════════
+     * 立因：此前本世**永不终结**（除非玩家主动兵解或飞升），修炼卡住只是原地等待——岁月这条线
+     * 根本不存在。三条判据分别钉住：流逝口径与上界取表（302）、道伤阶梯与疗养（303）、
+     * 寿尽即走既有转世事务且**不谎报兵解**（304）。 */
+    var pack302 = SQ.Worlds.xiuxian.pack, D302 = pack302.data, sys302 = pack302.worldSystems;
+    var prof302 = { talents: [] };
+    /* (a0) 创角生年落 LIFE_SEED 闭区间（stub 随机两端各验一次，两端不同值 = 真在掷） */
+    var rst302 = stubRandom(function () { return 0; });
+    var seedLo302 = pack302.initialState().lifeUsed;
+    rst302();
+    var rst302b = stubRandom(function () { return 0.999999; });
+    var seedHi302 = pack302.initialState().lifeUsed;
+    rst302b();
+    /* (a) 流逝 = 与修为同一条时钟：360 秒已结算时长恰老 1 游戏年。离线一整日**只老 30 分钟那一份**
+     *     （LIFE_OFFLINE_MIN ⇒ 5 年，不是旧口径的 120 年），而修为仍按 OFFLINE_CAP_H 结满 ⇒
+     *     两条读数之差就是「经济不砍、衰老另封顶」这条裁定的直证（lifeUsed 起点抹平生年随机）。 */
+    var w302a = pack302.normalize(pack302.initialState()); w302a.lifeUsed = 0;
+    pack302.claim(w302a, 360000, Date.now(), prof302, { autoTrib: false });
+    var w302b = pack302.normalize(pack302.initialState()); w302b.lifeUsed = 0;
+    pack302.claim(w302b, 24 * 3600000, Date.now(), prof302, { autoTrib: false });
+    var lifeCapOffline = D302.LIFE_OFFLINE_MIN / 60 * 10;
+    /* (b) 上界 = 凡人寿元 + LIFE_STEP **前缀和**（第卌八批：晋升不从 0 重算，只把界抬高）；
+     *     阶梯逐档与解析式闭关年对表 ⇒ 改了 REALMS.need / baseQi / 闭关乘区而未同批改寿元表即红。
+     *     shortcut: 下界用「无重试解析式」而非 300 局实测中位（跑不起），带宽 [1.3×, 3×]；
+     *               表值出处 = sq-wip-life38d 定标件（300 局 · 真实渡劫骰 · 逐境中位 0.83~2582 年）。 */
+    var w302c = pack302.normalize(pack302.initialState()); w302c.lifeUsed = 0;
+    var li0302 = sys302.lifeInfo(w302c);
+    w302c.realm = 5;
+    var li5302 = sys302.lifeInfo(w302c);
+    w302c.realm = D302.REALMS.length - 1; w302c.lifeUsed = 1e9;
+    var liTop302 = sys302.lifeInfo(w302c);
+    var stepBad302 = [];
+    for (var r302 = 0; r302 < D302.LIFE_STEP.length; r302++) {
+      var ramp302 = r302 <= (D302.NEWBIE_RAMP.realms != null ? D302.NEWBIE_RAMP.realms : 0) ? D302.NEWBIE_RAMP.qiMult : 1;
+      var a302 = D302.REALMS[r302 + 1].need / (D302.REALMS[r302].baseQi * 360 * D302.MODES.seclude.qiMult * ramp302);
+      if (!(D302.LIFE_STEP[r302] >= 1.3 * a302 && D302.LIFE_STEP[r302] <= 3 * a302)) {
+        stepBad302.push(r302 + '(' + D302.LIFE_STEP[r302] + '/' + a302.toFixed(2) + ')');
+      }
+    }
+    /* (c) 预警阈 / 判死 / **lifeBonus 参与上界**（同一境界，+40 年就该把这一判撤回活） */
+    var cap0302 = sys302.lifeCapOf(0);
+    var w302d = pack302.normalize(pack302.initialState()); w302d.lifeUsed = 0; w302d.lifeBonus = 0;
+    w302d.lifeUsed = cap0302 * (1 - D302.LIFE_WARN_P);
+    var near302 = sys302.lifeInfo(w302d);
+    w302d.lifeUsed = cap0302;
+    var dead302 = sys302.lifeInfo(w302d);
+    w302d.lifeBonus = 40;
+    var saved302 = sys302.lifeInfo(w302d);
+    /* (d) 旧档零迁移 + 脏值收口：缺字段补 0/0/null，负数归零，道伤越界钳 cap，lastDeath 非结构归 null；
+     *     越界老档走**一次性**保底（复 normalize 不再抬，否则每次读档送 60 年 = 永生假保底） */
+    var n302 = SQ.normalize({ v: 1, profile: { name: '旧档' }, worlds: { xiuxian: { qi: 5 } } });
+    var n302b = SQ.normalize({ v: 1, profile: { name: '脏' },
+      worlds: { xiuxian: { lifeUsed: -5, daoShang: 9e9, lastDeath: '坏值' } } });
+    var n302again = SQ.normalize(n302);
+    var oldOver302 = SQ.normalize({ v: 1, profile: { name: '老档越界' },
+      worlds: { xiuxian: { realm: 4, lifeUsed: 3000 } } });
+    var oldOverAgain302 = SQ.normalize(oldOver302);
+    ok('302', '寿元流逝与累加上界（§6.1A · 第卌八批改口）：(a0) 创角生年落 LIFE_SEED=[' + D302.LIFE_SEED.join(',') + ']（stub 两端不同值）' +
+      '(a) 在线 360 秒 = 老 1 游戏年；离线 24h **只老 ' + lifeCapOffline + ' 年**（LIFE_OFFLINE_MIN）而修为仍按 OFFLINE_CAP_H=' + D302.OFFLINE_CAP_H + 'h 结满 ⇒ 衰老与经济两把尺子各归各' +
+      '(b) 上界 = 凡寿 ' + D302.LIFE_MORTAL + ' + LIFE_STEP 前缀和（逐境对表 realm5 = ' + sys302.lifeCapOf(5) + '），阶梯每档 ∈ [1.3×, 3×] 解析闭关年（动了 need/产出而未改表即红）；真仙 = 无尽（剩余 Infinity、吃满不判死、lifeHit 返 0 不扣）' +
+      '(c) 剩余 ≤ 上界×LIFE_WARN_P 即 near（含等号）、耗尽 cause=shoujin，**lifeBonus 抬上界即撤回这一判**' +
+      '(d) 旧档缺字段补 0/0/null + 负数归零 + 道伤钳 cap + lastDeath 非结构归 null + 幂等 + 越界老档一次性保底（复 normalize 值不变，不送永生）',
+      w302a.lifeUsed === 1 && w302b.lifeUsed === lifeCapOffline && w302b.qi > w302a.qi &&
+      seedLo302 >= D302.LIFE_SEED[0] && seedHi302 <= D302.LIFE_SEED[1] && seedLo302 !== seedHi302 &&
+      li0302.max === cap0302 && li0302.cause === null && li0302.near === false &&
+      li5302.max === sys302.lifeCapOf(5) &&
+      li5302.max === D302.LIFE_MORTAL + D302.LIFE_STEP.slice(0, 6).reduce(function (a, x) { return a + x; }, 0) &&
+      stepBad302.length === 0 &&
+      liTop302.eternal === true && liTop302.left === Infinity && liTop302.cause === null &&
+      sys302.lifeHit({ realm: D302.REALMS.length - 1, lifeUsed: 0 }, 'trib') === 0 &&
+      near302.near === true && near302.cause === null &&
+      dead302.cause === 'shoujin' && dead302.left <= 0 &&
+      saved302.cause === null && saved302.left === 40 &&
+      n302.worlds.xiuxian.lifeUsed === 0 && n302.worlds.xiuxian.daoShang === 0 && n302.worlds.xiuxian.lastDeath === null &&
+      n302b.worlds.xiuxian.lifeUsed === 0 && n302b.worlds.xiuxian.daoShang === D302.DAO_SHANG.cap &&
+      n302b.worlds.xiuxian.lastDeath === null &&
+      n302again.worlds.xiuxian.lifeUsed === 0 && n302again.worlds.xiuxian.daoShang === 0 &&
+      oldOver302.worlds.xiuxian.lifeBonus === 3000 - sys302.lifeCapOf(4) + D302.LIFE_GRACE &&
+      sys302.lifeInfo(oldOver302.worlds.xiuxian).cause === null &&
+      oldOverAgain302.worlds.xiuxian.lifeBonus === oldOver302.worlds.xiuxian.lifeBonus,
+      '在线=' + w302a.lifeUsed + ' 离线=' + w302b.lifeUsed + '/' + lifeCapOffline + ' 离线修为=' + Math.round(w302b.qi) +
+      ' ‖ 生年=' + seedLo302 + '~' + seedHi302 +
+      ' ‖ 界=' + D302.LIFE_STEP.join('+') + '+' + D302.LIFE_MORTAL + ' 违例=' + (stepBad302.join(',') || '无') +
+      ' ‖ 真仙=' + liTop302.left + '/' + String(liTop302.cause) +
+      ' ‖ 阈上 near=' + near302.near + ' 耗尽 cause=' + dead302.cause + ' 补 40 年=' + String(saved302.cause) + '/' + saved302.left +
+      ' ‖ 旧档=' + [n302.worlds.xiuxian.lifeUsed, n302.worlds.xiuxian.daoShang, String(n302.worlds.xiuxian.lastDeath)].join(',') +
+      ' 脏档=' + [n302b.worlds.xiuxian.lifeUsed, n302b.worlds.xiuxian.daoShang, String(n302b.worlds.xiuxian.lastDeath)].join(',') +
+      ' 越界档 bonus=' + oldOver302.worlds.xiuxian.lifeBonus + '/' + oldOverAgain302.worlds.xiuxian.lifeBonus);
+
+    /* #303 道伤阶梯（§6.1A 第二支钟）：加层 = min(连败, gainMax) ⇒ 1+2+3+4+5 恰吃满 cap；
+     * 成功涤 −cleanse、岁月按 healPerYear/年 缓疗；三处都经 realm.js 挂点，不许是只写在表里的死数。 */
+    var DS303 = D302.DAO_SHANG;
+    var w303 = pack302.initialState();
+    var daoSeq303 = [];
+    for (var i303 = 1; i303 <= DS303.gainMax + (DS303.freeStreak || 0); i303++) {
+      sys302.daoHit(w303, i303, null);
+      daoSeq303.push(w303.daoShang);
+    }
+    var li303 = sys302.lifeInfo(w303);                       /* 寿元一分未耗，道伤吃满即判死 ⇒ 第二条钟独立 */
+    var w303b = pack302.initialState();                      /* 真挂点：渡劫一败即入伤（realm.js → worldSystems.daoHit） */
+    w303b.realm = 0; w303b.qi = D302.REALMS[1].need;
+    var mods303 = SQ.Mods.collect(prof302, w303b, pack302, D302);
+    var rs303f = stubRandom(function () { return 0.99; });
+    for (var j303 = 0; j303 < 3; j303++) {
+      w303b.qi = D302.REALMS[1].need;
+      SQ.Realm.tryBreakthrough(w303b, pack302, D302, mods303, Date.now(), { profile: prof302, log: null });
+    }
+    rs303f();
+    var daoFail303 = w303b.daoShang;
+    w303b.qi = D302.REALMS[2].need;
+    var rs303s = stubRandom(function () { return 0.0; });
+    SQ.Realm.tryBreakthrough(w303b, pack302, D302, mods303, Date.now(), { profile: prof302, log: null });
+    rs303s();
+    var daoClean303 = w303b.daoShang, realm303 = w303b.realm;
+    var w303c = pack302.initialState();                      /* 疗养走同一条时钟：离线一日 120 年 → 120×healPerYear 层 */
+    w303c.daoShang = 10;
+    pack302.claim(w303c, 24 * 3600000, Date.now(), prof302, { autoTrib: false });
+    var daoHeal303 = w303c.daoShang;
+    /* (e) 悬崖不被小数抹平：伤满后经一秒疗养变 14.997，判死仍认**屏上层数**（ceil）——
+     * 原式直读原值 ⇒ 「伤重不治的人被一秒救活」，冒烟 #304 的道伤死因此整条走不通（本批改判据时抓到） */
+    var w303d = pack302.initialState();
+    w303d.daoShang = DS303.cap - 0.003;
+    var li303d = sys302.lifeInfo(w303d);
+    ok('303', '道伤阶梯与疗养（§6.1A）：(a) 连败累计（**前二败皮外伤不入槽**）=== ' + daoSeq303.join('→') + ' === cap ' + DS303.cap +
+      '（寿元一分未耗仍判死 ⇒ 第二条钟独立）' +
+      ' (b) realm.js 真挂点：三败才入槽 daoShang=' + daoFail303 + '（既证挂点被调、又证免伤层）' +
+      ' (c) 破境涤伤 −cleanse（' + daoFail303 + '→' + daoClean303 + '，且该次确实破了境 realm→' + realm303 + '）' +
+      ' (d) 岁月疗养 10 层经离线一日（120 年）→ ' + daoHeal303.toFixed(2) + '（= 10 − 120×healPerYear）' +
+      ' (e) 判死认屏上层数（ceil）：伤 14.997 仍算满 ' + DS303.cap + ' 层即死，一秒疗养救不活',
+      daoSeq303.join(',') === [0, 0, 1, 3, 6, 10, 15].join(',') &&
+      li303.daoLv >= DS303.cap && li303.eternal === false && li303.left > 0 && li303.cause === 'daoshang' &&
+      daoFail303 === 1 && daoClean303 === Math.max(0, 1 - DS303.cleanse) && realm303 === 1 &&
+      Math.abs(daoHeal303 - (10 - D302.OFFLINE_CAP_H * 10 * DS303.healPerYear)) < 1e-9 &&
+      li303d.daoLv === DS303.cap && li303d.cause === 'daoshang',
+      '阶梯=' + daoSeq303.join('/') + ' cap=' + DS303.cap + ' cause=' + li303.cause +
+      ' ‖ 败=' + daoFail303 + ' 涤=' + daoClean303 + '(realm' + realm303 + ') 疗=' + daoHeal303 +
+      ' ‖ 14.997→lv' + li303d.daoLv + '/' + li303d.cause);
+
+    /* #304 寿尽 / 道伤 ⇒ **强制转世走通**（core.claimInner → 既有 SQ.Legacy.rebirth 事务）：
+     * 判据取「玩家能感到差别」的四件事——新世被重置、遗泽按兵解口径折分、被动了结单计 deaths
+     * 且不发「舍身证道」、传记与日志各说各的死因（原式非飞升一律折成兵解 ⇒ 死世会说谎）。 */
+    var bioLineShou304 = SQ.t('codex.bio.line.shoujin', null, 'xiuxian');
+    var bioLineBing304 = SQ.t('codex.bio.line.dissolve', null, 'xiuxian');
+    async function deathSeed304(cause, mut) {
+      var w = pack302.initialState();
+      w.realm = 4; w.qi = 10; w.lastSave = Date.now() - 1000;
+      Object.keys(mut).forEach(function (k) { w[k] = mut[k]; });
+      /* 期望值取 preview 本身（预览与实结同一张脸），且与兵解口径逐分对表 ⇒ 零新增系数这条也钉住 */
+      var exp304 = SQ.Legacy.preview(w, SQ.Legacy.metaBlank(), pack302, D302, cause, Date.now()).total;
+      var expBing304 = SQ.Legacy.preview(w, SQ.Legacy.metaBlank(), pack302, D302, 'bingjie', Date.now()).total;
+      await SQ.save({
+        v: SQ.V,
+        profile: { name: '待死道人', talents: [], worldId: 'xiuxian', worldName: '测试界', createdAt: Date.now() - 1000 },
+        worlds: { xiuxian: w }, meta: SQ.Legacy.metaBlank()
+      });
+      var ref = {};
+      await SQ.claim(ref);
+      return { ref: ref, w: ref.worlds.xiuxian, st: ref.meta.stats, exp: exp304, expBing: expBing304 };
+    }
+    var d304a = await deathSeed304('shoujin', { lifeUsed: sys302.lifeCapOf(4) });              /* 寿尽 */
+    var d304b = await deathSeed304('daoshang', { daoShang: DS303.cap });                        /* 道伤崩碎 */
+    /* 折寿而殒（第卌八批第三条死因）：used 还没到大限、是被 lifeBonus 的负账打穿的 ⇒ cause 必须
+     * 报 zhesou 而不是 shoujin（「熬到大限」与「被人打折了命数」是两件事，混报就是说谎）。 */
+    var d304d = await deathSeed304('zhesou', { lifeUsed: sys302.lifeCapOf(4) - 20, lifeBonus: -60 });
+    var log304a = (d304a.w.log || []).map(function (l) { return l.text; }).join('|');
+    var log304d = (d304d.w.log || []).map(function (l) { return l.text; }).join('|');
+    var line304 = function (ch) {
+      return SQ.t('legacy.log.rebirth', { life: 1, ch: SQ.t(ch, null, 'xiuxian') }, 'xiuxian');
+    };
+    ok('304', '寿尽 / 道伤 / **折寿**即强制转世（§6.1A 落点）：(a) 三条死因都走通——新世重置（realm 0 / ' +
+      'lifeUsed 重掷生年 / 档案名空 ⇒ 界面进创角）+ lastDeath 呈报位带死因与享年' +
+      ' (b) 遗泽折分逐分等于 preview 产物且与兵解口径同值（' + d304a.exp + '，零新增系数）' +
+      ' (c) 被动了结计 stats.deaths 而**不**计 dissolutions、**不**发 achv_bingjie（舍身证道 = 主动兵解的荣誉）' +
+      ' (d) 传记与转世日志各说各的死因：寿尽行「' + bioLineShou304 + '」在、兵解行「' + bioLineBing304 + '」不在' +
+      ' (e) 第卌八批新死因 zhesou：未到本境大限而被负账打穿 ⇒ cause/享年/传记行三线一致，不复用「寿尽」那句话',
+      d304a.w.realm === 0 && d304a.w.lifeUsed >= D302.LIFE_SEED[0] && d304a.w.lifeUsed <= D302.LIFE_SEED[1] &&
+      d304a.w.lifeBonus === 0 && d304a.w.daoShang === 0 &&
+      d304a.ref.profile.name === '' && d304a.w.lastDeath && d304a.w.lastDeath.cause === 'shoujin' &&
+      d304a.w.lastDeath.realm === 4 && d304a.w.lastDeath.age >= Math.floor(sys302.lifeCapOf(4)) &&
+      d304b.w.lastDeath && d304b.w.lastDeath.cause === 'daoshang' &&
+      d304d.w.lastDeath && d304d.w.lastDeath.cause === 'zhesou' &&
+      ((d304d.ref.meta.biographies[0] || {}).text || '').indexOf(SQ.t('codex.bio.line.zhesou', null, 'xiuxian')) >= 0 &&
+      d304a.exp > 0 && d304a.exp === d304a.expBing && d304a.w.lastDeath.total === d304a.exp &&
+      d304a.ref.meta.karma === d304a.exp &&
+      d304a.st.deaths === 1 && d304a.st.dissolutions === 0 && d304a.st.lives === 1 &&
+      d304b.st.deaths === 1 && d304b.st.dissolutions === 0 &&
+      d304d.st.deaths === 1 && d304d.st.dissolutions === 0 &&
+      (d304a.ref.meta.achv || []).indexOf('achv_bingjie') < 0 &&
+      ((d304a.ref.meta.biographies[0] || {}).text || '').indexOf(bioLineShou304) >= 0 &&
+      ((d304a.ref.meta.biographies[0] || {}).text || '').indexOf(bioLineBing304) < 0 &&
+      log304a.indexOf(line304('legacy.ui.shoujin')) >= 0 &&
+      log304a.indexOf(line304('legacy.ui.bingjie')) < 0 &&
+      log304d.indexOf(line304('legacy.ui.zhesou')) >= 0,
+      '寿尽=' + JSON.stringify(d304a.w.lastDeath) + ' 道伤=' + JSON.stringify(d304b.w.lastDeath) +
+      ' 折寿=' + JSON.stringify(d304d.w.lastDeath) +
+      ' ‖ stats=' + [d304a.st.lives, d304a.st.deaths, d304a.st.dissolutions].join('/') +
+      ' ‖ 遗泽=' + d304a.ref.meta.karma + '/期望' + d304a.exp + '/兵解' + d304a.expBing +
+      ' ‖ achv=' + (d304a.ref.meta.achv || []).join(',') + ' ‖ 日志=' + log304a.slice(0, 46));
+
+    /* #305 随件缺陷：`SQ.Actions.alDrink` 的「丹毒日限」日志行误抄视图助手写法 `D().ALCHEMY`
+     * （本模块 D 是 dataOf(s) 取回的数据对象）⇒ 第 5 颗丹触 daily 分支必抛 TypeError，
+     * 而 mutate 抛异常整笔不落盘 = 玩家点「服用」毫无反应。躲过三批评测的原因：#297(h) 的 daily
+     * 判据**直调 `Alchemy.drinkPill`**，永远走不到 actions.js 这一行 ⇒ 本判据必须走真入口。 */
+    var pk305 = SQ.Worlds.xiuxian.pack, DT305 = pk305.data;
+    var w305 = pk305.initialState();
+    SQ.Alchemy.ensure(w305, DT305);                          /* alchemy 缺省是 null，须先起架构再塞丹 */
+    w305.alchemy.pills = { ap_juqi: 9 };
+    await SQ.save({
+      v: SQ.V,
+      profile: { name: '试丹者', talents: [], worldId: 'xiuxian', worldName: '测试界', createdAt: Date.now() },
+      worlds: { xiuxian: w305 }, meta: SQ.Legacy.metaBlank()
+    });
+    var ref305 = {};
+    await SQ.claim(ref305);
+    var CAP305 = DT305.ALCHEMY.PILL_DAILY_CAP;
+    await SQ.mutate(ref305, function (s) {   /* 先吃满日限（同一条真通道，不手写 pillDay 猜日键） */
+      var w = s.worlds[s.profile.worldId], p = SQ.Worlds[s.profile.worldId].pack;
+      for (var q305 = 0; q305 < CAP305; q305++) {
+        SQ.Alchemy.drinkPill(w, p, p.data, 'ap_juqi', Date.now(), null, s.profile);
+      }
+    });
+    var nDay305 = ref305.worlds.xiuxian.alchemy.pillDay.n;
+    var r305 = await SQ.Actions.alDrink(ref305, 'ap_juqi');
+    var sysLog305 = (ref305.worlds.xiuxian.log || []).filter(function (l) { return l.cat === 'sys'; });
+    var txt305 = String((sysLog305[sysLog305.length - 1] || {}).text || '');
+    ok('305', 'alDrink 日限分支：走真入口不抛 + 日志出行且**上限取表值**（随件修 D().ALCHEMY → D.ALCHEMY）',
+      nDay305 === CAP305 && r305 && r305.ok === false && r305.reason === 'daily' &&
+      txt305 === SQ.t('alchemy.log.pillcap', { n: CAP305 }, 'xiuxian') &&
+      txt305.indexOf(String(CAP305)) >= 0 && ref305.profile.name === '试丹者',
+      '日限 n=' + nDay305 + '/' + CAP305 + ' ‖ reason=' + (r305 || {}).reason + ' ‖ 行=' + txt305);
+
+    /* #306 秘境进度与战力富余挂钩（第卌三批 · 用户报「高战力刷低级秘境要更快，更符合直觉」）
+     * 判据取「同一区、同样杀数的通关与否」而不是重算一遍乘式：三档战力把加速的两端钉住——
+     * 富余中档 6 杀通（不加速要 20 杀）、吃顶档 5 杀通（= PROG_PER_KILL×PROG_SURGE_CAP）、
+     * 瓶颈态**恒不加速**且击杀间隔不变（kills 仍 5 = 300s÷60s，防「加速顺手改节奏」连带 sim-pacing）。 */
+    var w306a = mkWs({ realm: 2, zone: 0 });
+    w306a.zoneAffix = { affixId: 'lingchao', until: Date.now() + 3600000 };   /* 灵潮只动 stonesMult：钉死节奏与门槛 */
+    var r306a5 = SQ.Combat.simulate(w306a, pack, D, M(mkProf(), w306a), 60 * 5, { log: noopLog(), now: Date.now(), profile: mkProf() });
+    var prog5_306a = w306a.prog[0];
+    var r306a6 = SQ.Combat.simulate(w306a, pack, D, M(mkProf(), w306a), 60 * 1, { log: noopLog(), now: Date.now(), profile: mkProf() });
+    var w306b = mkWs({ realm: 3, zone: 0 });
+    w306b.zoneAffix = { affixId: 'lingchao', until: Date.now() + 3600000 };
+    var r306b = SQ.Combat.simulate(w306b, pack, D, M(mkProf(), w306b), 60 * 5, { log: noopLog(), now: Date.now(), profile: mkProf() });
+    var w306c = mkWs({ realm: 0, zone: 1 });
+    w306c.zoneAffix = { affixId: 'lingchao', until: Date.now() + 3600000 };
+    var r306c = SQ.Combat.simulate(w306c, pack, D, M(mkProf(), w306c), 300, { log: noopLog(), now: Date.now(), profile: mkProf() });
+    ok('306', '战力富余加速秘境进度（第卌三批）：(a) 富余中档（金丹刷首区）5 杀不通〔prog=' + prog5_306a +
+      '〕、第 6 杀通关——不加速时 5 杀只 25 进度 (b) 富余吃顶（元婴刷首区，比值 ≥ PROG_SURGE_CAP）5 杀即通、' +
+      '且 kills 恰 5 ⇒ **间隔未动**（加速只喂进度口） (c) 瓶颈态 prog 精确 === kills×PROG_PER_KILL（乘子恒 1）',
+      prog5_306a === 90 && r306a5.kills === 5 && r306a5.cleared.length === 0 &&
+      r306a6.kills === 1 && r306a6.cleared.indexOf(0) >= 0 &&
+      r306b.kills === 5 && r306b.cleared.indexOf(0) >= 0 &&
+      w306c.prog[1] === r306c.kills * D.PROG_PER_KILL && D.PROG_SURGE_COEF === 0.5 && D.PROG_SURGE_CAP === 4,
+      '中档 5 杀 prog=' + prog5_306a + '/6 杀通=' + (r306a6.cleared.indexOf(0) >= 0) +
+      ' ‖ 顶档 kills=' + r306b.kills + ' cleared=' + JSON.stringify(r306b.cleared) +
+      ' ‖ 瓶颈 kills=' + r306c.kills + ' prog=' + w306c.prog[1]);
+
+    /* #307 法宝认主计时通道（第卌三批 · 用户报「要渡劫才涨进度太慢」）：计时与渡劫**共用同一枚
+     * bondCount 与同一条 bondAdvance modulo**（不另立升级路），所以判据要同时证
+     * 「不满份不涨」「满份进一阶」「渡劫仍在同一计数上继续走」「全数满阶即停表」「旧档补 0」。 */
+    var BOND307 = SQ.XTREASURES;
+    var mkBond307 = function () {
+      var w = mkWs({ realm: 2 });
+      w.treasures = { owned: [{ id: 'x02', stage: 1, st: {} }], slots: ['x02', null, null],
+        fate: { trib: 0, check: 0, drop: 0, event: 0 }, bondCount: 0 };   /* 旧档形状：无 bondHours */
+      return w;
+    };
+    var w307 = mkBond307();
+    var lg307 = [];
+    var log307 = function (c, txt) { lg307.push(txt); };
+    SQ.Treasures.bondTime(w307, pack, D, BOND307.BOND_HOURS - 0.1, log307);
+    var under307 = w307.treasures.bondCount === 0 && w307.treasures.owned[0].stage === 1;
+    SQ.Treasures.bondTime(w307, pack, D, 0.2, log307);                       /* 满一份 → 计数 1，未到 BOND_COST */
+    var odd307 = w307.treasures.bondCount === 1 && w307.treasures.owned[0].stage === 1;
+    SQ.Treasures.bondTime(w307, pack, D, BOND307.BOND_HOURS, log307);         /* 再满一份 → 2 = BOND_COST → 进阶 */
+    var stage307 = w307.treasures.owned[0].stage === 2 && lg307.length === 1 &&
+      lg307[0] === SQ.t('treasure.bond.done', { name: SQ.t('treasure.x02.name', null, 'xiuxian'), n: 2 }, 'xiuxian');
+    SQ.Treasures.bondTick(w307, pack, D, log307);                             /* 渡劫 +1 → 3（奇数不进阶） */
+    SQ.Treasures.bondTick(w307, pack, D, log307);                             /* 再 +1 → 4 → 顶阶 3 */
+    var shared307 = w307.treasures.bondCount === 4 && w307.treasures.owned[0].stage === BOND307.MAX_STAGE &&
+      lg307.length === 2;
+    var bc307 = w307.treasures.bondCount, bh307 = w307.treasures.bondHours;
+    SQ.Treasures.bondTime(w307, pack, D, 999, log307);                        /* 全数满阶 → 停表 */
+    var stopped307 = w307.treasures.bondCount === bc307 && w307.treasures.bondHours === bh307 && lg307.length === 2;
+    var norm307 = SQ.Treasures.normalize({ owned: [{ id: 'x02', stage: 2 }], slots: [null, null, null],
+      fate: {}, bondCount: 3 }, pack);                                        /* 旧档（无该字段）读入补 0 */
+    /* (g) 真入口：挂点在世界包 claim 的已结算时长之后（与寿元同一条时钟），离线 24h 照 OFFLINE_CAP_H
+     * 封顶 12h ⇒ 12÷8 = 1 份计数、余 4h 留档。直调 bondTime 证不了这根线接上了，故必须走 claim。 */
+    var w307g = mkWs({ realm: 2 });
+    w307g.treasures = { owned: [{ id: 'x02', stage: 1, st: {} }], slots: ['x02', null, null],
+      fate: { trib: 0, check: 0, drop: 0, event: 0 }, bondCount: 0 };
+    pack.claim(w307g, 24 * 3600000, Date.now(), mkProf(), { autoTrib: false });
+    var wired307 = w307g.treasures.bondCount === 1 &&
+      Math.abs(w307g.treasures.bondHours - (D.OFFLINE_CAP_H % BOND307.BOND_HOURS)) < 1e-9 &&
+      w307g.treasures.owned[0].stage === 1;
+    ok('307', '法宝认主加计时通道（第卌三批）：(a) 差 0.1h 不满份不涨 (b) 满 BOND_HOURS(' + BOND307.BOND_HOURS +
+      'h) 一份 = 计数 +1，未满 BOND_COST(' + BOND307.BOND_COST + ') 不进阶 (c) 两份即到一阶且写一条 bond.done ' +
+      '(d) 渡劫与计时同吃一枚 bondCount（3/4 → 顶阶' + BOND307.MAX_STAGE + '） (e) 全数满阶停表、无谓计数不长 ' +
+      '(f) 旧档缺字段 normalize 补 0（零迁移面） (g) 真入口：claim 离线 24h 只按封顶 ' + D.OFFLINE_CAP_H +
+      'h 计 ⇒ +1 份、余 ' + (D.OFFLINE_CAP_H % BOND307.BOND_HOURS) + 'h 留档',
+      under307 && odd307 && stage307 && shared307 && stopped307 &&
+      norm307.bondHours === 0 && norm307.bondCount === 3 && BOND307.BOND_HOURS === 8 && wired307,
+      'under=' + under307 + ' odd=' + odd307 + ' stage=' + w307.treasures.owned[0].stage +
+      ' count=' + w307.treasures.bondCount + ' stopped=' + stopped307 + ' norm=' + norm307.bondHours +
+      ' 真入口=' + w307g.treasures.bondCount + '/' + w307g.treasures.bondHours.toFixed(2) + 'h');
+
+    /* #308 切磋冷却改 10 现实分钟（第卌三批 · 用户报「7 天太长，榜基本是摆设」）：
+     * 键名随单位一并改成 SPAR_CD_MS（旧 DAYS 键不许留第二份事实源，A9 死常量关会抓、这里也直判一次）。 */
+    var w308 = mkWs({ realm: 4, stones: 999999 });
+    w308.prodigies = [{ id: 'pr1', nm: [0, 0, 0], tl: [], al: 1, fc: -1, fid: null, apt: 1, rlm: 2,
+      prg: 0, feud: false, feudBond: 0, lastSparAt: 0, rivAt: 0, boost: null, eternal: false, wl: [0, 0, 0] }];
+    var t308 = 1700000000000, CD308 = D.PRODIGY.SPAR_CD_MS;
+    var first308 = SQ.Prodigy.spar(w308, pack, D, M(mkProf(), w308), 'pr1', t308, noopLog());
+    var inCd308 = SQ.Prodigy.spar(w308, pack, D, M(mkProf(), w308), 'pr1', t308 + CD308 - 1, noopLog());
+    var afterCd308 = SQ.Prodigy.spar(w308, pack, D, M(mkProf(), w308), 'pr1', t308 + CD308 + 1, noopLog());
+    ok('308', '天骄切磋冷却 = 10 现实分钟（第卌三批）：首战成 → 冷却内（cd−1ms）拒 reason=cd 且 until 精确' +
+      ' → 过点即放行；表值 === 10×60×1000 且旧 SPAR_CD_DAYS 键已消（单一事实源）',
+      CD308 === 600000 && D.PRODIGY.SPAR_CD_DAYS === undefined && first308.ok === true &&
+      inCd308.reason === 'cd' && inCd308.until === t308 + CD308 && afterCd308.ok === true,
+      'cd=' + CD308 + ' 首战=' + first308.result + ' 冷却内=' + inCd308.reason +
+      '/' + inCd308.until + ' 过点后=' + afterCd308.ok);
+
+    /* #309 阵营袭击触发面（第卌四批 · 数值详设 §6.1B）：概率曲线两侧各钉一脚 / 敌手快照取表（高一境基础战力 ×FOE_K）/
+     * 池子取人（道侣同记在 bonds ⇒ 三池在代码里是两池；锁与疤者排除）/ 独立通道的 cooldownHours 被读端接住
+     * （不接 = 「写了没人查」那一族形状）/ 时钟只随在线时长。 */
+    var A309 = D.AMBUSH, sys309 = pack.worldSystems;
+    var pCurve309 = function (k) { return A309.P_BASE + (A309.P_MAX - A309.P_BASE) * Math.min(1, Math.abs(k) / A309.K_REF); };
+    var fire309 = function (w, now, seq) {
+      var rs = stubRandom(seq || [0, 0]);
+      var r = sys309.ambushTick(w, pack, D, A309.ROLL_MS, now, { log: noopLog() });
+      rs(); return r;
+    };
+    var t309 = Date.now();
+    var w309 = mkWs({ realm: 3, karma: A309.K_REF });
+    w309.bonds = { hanli: 40 }; w309.prodigies = [];
+    var r309 = fire309(w309, t309);
+    var foe309 = (w309.pendingChoice || {}).foe || {};
+    var powExp309 = Math.round(D.REALMS[4].power * A309.FOE_K);          /* 探针实测 960 */
+    var half309 = pCurve309(A309.K_REF / 2);
+    /* 曲线两侧：rand 在 p 内 ⇒ 触发；刚过 p ⇒ 不触发（负档走另一枚模板） */
+    var w309h = mkWs({ realm: 3, karma: A309.K_REF / 2 });
+    w309h.bonds = { hanli: 40 }; w309h.prodigies = [];
+    var in309h = (fire309(w309h, t309, [half309 - 0.001, 0]) || {}).id === "ambush_by_evil";
+    var w309m = mkWs({ realm: 3, karma: -A309.K_REF / 2 });
+    w309m.bonds = { hanli: 40 }; w309m.prodigies = [];
+    var out309m = fire309(w309m, t309, [half309 + 0.001, 0]) === null && w309m.pendingChoice === null;
+    var neg309 = (function () {                                            /* 魔道深档 = 正道讨伐 */
+      var w = mkWs({ realm: 3, karma: -A309.K_REF }); w.bonds = { hanli: 40 }; w.prodigies = [];
+      return (fire309(w, t309) || {}).id === "ambush_by_right";
+    })();
+    /* 善恶未著 / 敌手池空 / 只剩绝交锁与裂疤者 ⇒ 一律静默（不留点不开的按钮、不编假人） */
+    var w309z = mkWs({ realm: 3, karma: 0 });
+    w309z.bonds = { hanli: 40 }; w309z.prodigies = [];
+    var zero309 = fire309(w309z, t309) === null && w309z.pendingChoice === null;
+    var w309e = mkWs({ realm: 3, karma: A309.K_REF });
+    w309e.bonds = {}; w309e.prodigies = [];
+    var empty309 = fire309(w309e, t309) === null && w309e.pendingChoice === null;
+    var w309x = mkWs({ realm: 3, karma: A309.K_REF });
+    w309x.bonds = { hanli: -99, pingping: 40 }; w309x.scars = { pingping: 1 }; w309x.prodigies = [];
+    var ex309 = fire309(w309x, t309) === null && w309x.pendingChoice === null;
+    /* 冷却读端：首触已写 eventCooldowns ⇒ 12h 内同型第二次必不挂起（模板在 tags 独立通道里，
+     *   buildPool 永不查它——只有 ambushTick 自己查才算数） */
+    var w309c = mkWs({ realm: 3, karma: A309.K_REF });
+    w309c.bonds = { hanli: 40 }; w309c.prodigies = [];
+    fire309(w309c, t309);
+    w309c.pendingChoice = null;
+    var cd309 = fire309(w309c, t309 + 3600000) === null && w309c.pendingChoice === null;
+    w309c.eventCooldowns = {};
+    var cd309b = (fire309(w309c, t309 + 3600000) || {}).id === "ambush_by_evil";
+    /* 时钟口径：离线 24h 一分不涨；在线 60s 只涨 60s 且不足一格不掷 */
+    var w309t = mkWs({ realm: 3, karmaEventScore: A309.K_REF });
+    w309t.bonds = { hanli: 40 }; w309t.prodigies = []; w309t.lastSave = t309 - 24 * 3600000;
+    pack.claim(w309t, 24 * 3600000, t309, mkProf(), { autoTrib: false });
+    var off309 = (w309t.ambushClock || 0) === 0;
+    var w309o = mkWs({ realm: 3, karmaEventScore: A309.K_REF });
+    w309o.bonds = { hanli: 40 }; w309o.prodigies = []; w309o.lastSave = t309 - 60000;
+    pack.claim(w309o, 60000, t309, mkProf(), { autoTrib: false });
+    var onl309 = (w309o.ambushClock || 0) === 60000;
+    ok("309", "阵营袭击触发面（第卌四批）：(a) 概率曲线两侧各钉一脚（半档 " + half309.toFixed(3) +" 内=触发 / 外=不触发，满档 = P_MAX " +
+      A309.P_MAX + "） (b) 敌手快照 realm = 玩家+1 = 4、power = REALMS[4].power × FOE_K = " + powExp309 +
+      "（读 pendingChoice.foe 真值） (c) karma>0 走 ambush_by_evil / <0 走 ambush_by_right (d) 善恶未著 / 池空 / 只剩绝交锁与裂疤者 ⇒ 静默不挂抉择 (e) cooldownHours 12h 被读端接住：清锚才恢复 (f) 时钟单源：离线 24h 不涨、在线 60s 只涨 60s",
+      r309 && r309.id === "ambush_by_evil" && r309.via === "ambush" &&
+      foe309.realm === 4 && foe309.power === powExp309 && foe309.src === "bond" && foe309.nm ===
+      SQ.t("bond.hanli.name", null, "xiuxian") && in309h && out309m && neg309 && zero309 && empty309 &&
+      ex309 && cd309 && cd309b && off309 && onl309 && A309.DECIDE_MS === 90000 && A309.ROLL_MS === 1800000,
+      "曲线=" + [pCurve309(0), half309, pCurve309(A309.K_REF)].join("/") + " ‖ foe=" + JSON.stringify(foe309) +
+      " ‖ 内/外/负=" + [in309h, out309m, neg309].join("/") + " ‖ 零/空/锁疤=" + [zero309, empty309, ex309].join("/") +
+      " ‖ 冷却内=" + cd309 + " 清锚=" + cd309b + " ‖ 离线钟=" + (w309t.ambushClock || 0) + " 在线钟=" + (w309o.ambushClock || 0));
+
+    /* #310 袭杀天骄（第卌四批 · 天骄卷 §五B）：未解锁不动档 / 碾压门槛与夺资走 in.event（#113 零新增分类）/
+     * 冷却精确 / 败局道伤走 daoAdd 唯一写口且 amb 不涨、善恶照记 / 满 KILL_MAX 次复用 killOff 出榜
+     * （槽位不复用 + 宿敌清位 + sudiWin）+ 播种寻仇链 */
+    var A310 = D.AMBUSH;
+    function mkAmb310(rlm, myRealm, ambN, eternal) {
+      var w = mkWs({ realm: myRealm, stones: 200000 });
+      w.prodigies = [{ id: "pr1", nm: [0, 0, 0], tl: [], al: 1, fc: -1, fid: null, apt: 0, rlm: rlm,
+        prg: 0, feud: false, feudBond: 0, lastSparAt: 0, rivAt: 0, amb: ambN || 0, boost: null,
+        eternal: eternal === true, wl: [0, 0, 0] }];
+      return w;
+    }
+    var w310l = mkAmb310(0, 0);
+    var shape310l = JSON.stringify([w310l.stones, w310l.prodigies[0].amb, w310l.karmaEventScore]);
+    var lock310 = SQ.Prodigy.ambush(w310l, pack, D, M(mkProf([]), w310l), "pr1", t309, noopLog(), null);
+    var lockKeep310 = JSON.stringify([w310l.stones, w310l.prodigies[0].amb, w310l.karmaEventScore]) === shape310l;
+    var w310 = mkAmb310(2, 5);                                        /* 我 4973 对 常人 realm2 = 171 ⇒ 碾压档 */
+    var m310 = M(mkProf([]), w310), t310 = Date.now();
+    var ev0 = { st: w310.stones, led: w310.ledger.in.event, karm: w310.karmaEventScore };
+    var rs310 = stubRandom([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+    var r310 = SQ.Prodigy.ambush(w310, pack, D, m310, "pr1", t310, noopLog(), null);
+    rs310();
+    var loot310 = SQ.Prodigy.sparStake(w310, D, "heavy");
+    var cd310 = SQ.Prodigy.ambush(w310, pack, D, m310, "pr1", t310 + A310.KILL_CD_MS - 1000, noopLog(), null);
+    var w310f = mkAmb310(9, 2);                                       /* realm2 对 realm9 天才 ⇒ 绝打下手不成 */
+    var dao0310f = w310f.daoShang, karm0310f = w310f.karmaEventScore;
+    var rs310f = stubRandom([0.01, 0.99, 0.5, 0.5, 0.5, 0.5]);
+    var r310f = SQ.Prodigy.ambush(w310f, pack, D, M(mkProf([]), w310f), "pr1", t310, noopLog(), null);
+    rs310f();
+    var w310k = mkAmb310(2, 5, A310.KILL_MAX - 1, true);
+    w310k.prodMarks = { slotMax: 1 };
+    var s310k = { meta: { eternalProdigy: "pr1", unlocks: {} } };
+    var rs310k = stubRandom([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+    var r310k = SQ.Prodigy.ambush(w310k, pack, D, M(mkProf([]), w310k), "pr1", t310, noopLog(), s310k);
+    rs310k();
+    var left310 = w310k.prodigies.length;                /* rollOne 会把名录又填回去，先取身死后的那一瞬 */
+    var slot310 = SQ.Prodigy.rollOne(w310k, pack, D, null, {}).id;
+    ok("310", "袭杀天骄（第卌四批）：(a) 未解锁 locked 拒且档案逐字不动（灵石/计数/善恶） (b) 碾压胜 ratio=" +
+      A310.KILL_RATIO + "：夺资 " + r310.loot + " = 切磋既有「重注」价目、in.event 增额 === 灵石增额（#113）、amb→" +
+      r310.count + "/" + A310.KILL_MAX + "、善恶 " + A310.KILL_KARMA + " 照记 (c) 冷却 cd−1s 拒且 until = t+" + A310.KILL_CD_MS +
+      " (d) 败 = win false、amb 不涨、道伤 +" + A310.KILL_DAO + "（走 daoAdd 唯一写口）、善恶照记（行凶未遂也是行凶） (e) 满 " +
+      A310.KILL_MAX + " 次身死：名录清空、新号取 slotMax+1 = " + slot310 + "（不复用死号）、跨世宿敌清位 + sudiWin 打标、ws.revenge 播种 n=0",
+      lock310.reason === "locked" && lockKeep310 && r310.ok && r310.win && r310.loot === loot310 && r310.count === 1 &&
+      w310.prodigies[0].amb === 1 && w310.stones - ev0.st === loot310 && w310.ledger.in.event - ev0.led === loot310 &&
+      w310.karmaEventScore - ev0.karm === A310.KILL_KARMA &&
+      cd310.reason === "cd" && cd310.until === t310 + A310.KILL_CD_MS &&
+      r310f.ok && r310f.win === false && r310f.count === 0 && w310f.daoShang === dao0310f + A310.KILL_DAO &&
+      w310f.prodigies[0].amb === 0 && w310f.karmaEventScore - karm0310f === A310.KILL_KARMA &&
+      r310k.dead === true && left310 === 0 && slot310 === "pr2" && s310k.meta.eternalProdigy === null &&
+      w310k.prodMarks.sudiWin === true && w310k.revenge && w310k.revenge.n === 0 && w310k.revenge.nextAt === t310 &&
+      w310k.revenge.foe.length > 0,
+      "胜=" + JSON.stringify([r310.win, r310.loot, r310.count, w310.stones - ev0.st, w310.ledger.in.event - ev0.led, w310.karmaEventScore - ev0.karm]) +
+      " ‖ 冷却=" + JSON.stringify([cd310.reason, cd310.until - t310]) +
+      " ‖ 败=" + JSON.stringify([r310f.win, r310f.count, w310f.daoShang - dao0310f, w310f.karmaEventScore - karm0310f]) +
+      " ‖ 身死=" + JSON.stringify([r310k.dead, left310, slot310, s310k.meta.eternalProdigy, w310k.revenge]));
+
+    /* #311 族中寻仇链（第卌四批 · 数值详设 §6.1B）：冷却未到不发 / 到点必发（顶档钳成同境，屏上如实写）/
+     * 模板只声明迎战一支 / 倍率逐值封顶 / escalate 只乘灵石且**不污染模板字面量**（同 seed 两局： stones 比 = 倍率比、
+     * qi 一分不动）/ 败 → failE 道伤全额 + 链断不进冷却 */
+    var sys311 = pack.worldSystems;
+    var t311 = Date.now();
+    function mkRv311(n, nextAt, realm) {
+      var w = mkWs({ realm: realm == null ? 5 : realm, stones: 200000 });
+      w.revenge = { n: n || 0, nextAt: nextAt != null ? nextAt : t311, foe: "沈孤云" };
+      w.bonds = { hanli: 40 }; w.prodigies = [];
+      return w;
+    }
+    var w311w = mkRv311(0, t311 + 60000);
+    var rs311w = stubRandom([0, 0]);
+    var wait311 = sys311.ambushTick(w311w, pack, D, A310.ROLL_MS, t311, { log: noopLog() });
+    rs311w();
+    var w311 = mkRv311(1, t311, 9);                                   /* 真仙顶档：高一境被钳成同境 */
+    var rs311f2 = stubRandom([0, 0]);
+    var fire311 = sys311.ambushTick(w311, pack, D, 1000, t311, { log: noopLog() });
+    rs311f2();
+    var foe311 = (w311.pendingChoice || {}).foe || {};
+    var evR311 = SQ.Events.findById(pack, "ambush_revenge");
+    var mults311 = [0, 1, 2, 3, 4, 9].map(function (n) { return sys311.escalationOf(mkRv311(n, 0)); });
+    function run311(n) {
+      var w = mkRv311(n, t311, 9);
+      var rs0 = stubRandom([0, 0]);
+      sys311.ambushTick(w, pack, D, 1000, t311, { log: noopLog() });
+      rs0();
+      var foe0 = (w.pendingChoice || {}).foe || {};
+      var st0 = w.stones, qi0 = Math.floor(w.qi);
+      var rs = stubRandom([0.99, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+      var res = SQ.Events.resolveBranch(w, pack, D, M(mkProf([]), w), "ambush_revenge", "right", t311,
+        { log: noopLog(), profile: mkProf([]) });
+      rs();
+      var set = sys311.ambushSettled(w, pack, D, "ambush_revenge", res.pass, t311, noopLog());
+      return { w: w, res: res, set: set, foe: foe0, stones: w.stones - st0, qi: Math.floor(w.qi) - qi0 };
+    }
+    /* 递增比用**未满档**两局（n=0 与 n=2，倍率 1 → 2）；n≥REVENGE_FINAL 是老祖那一档，掷不赢、拿来比倍率没有意义 */
+    var g0_311 = run311(0), g3_311 = run311(2), wall311 = run311(A310.REVENGE_FINAL);
+    var ratio311 = g0_311.stones > 0 ? g3_311.stones / g0_311.stones : 0;
+    /* 败局（realm2 打不过高一境）：道伤 = failE.dao 4 全额、链断且不写冷却 */
+    var w311b = mkRv311(3, t311, 2);
+    var rsb0 = stubRandom([0, 0]);
+    sys311.ambushTick(w311b, pack, D, 1000, t311, { log: noopLog() });
+    rsb0();
+    var rs311b = stubRandom([0.01, 0.99, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+    var res311b = SQ.Events.resolveBranch(w311b, pack, D, M(mkProf([]), w311b), "ambush_revenge", "right", t311,
+      { log: noopLog(), profile: mkProf([]) });
+    rs311b();
+    var set311b = sys311.ambushSettled(w311b, pack, D, "ambush_revenge", res311b.pass, t311, noopLog());
+    /* 第卌五批（用户改口径 · N56 收口）：偿清满 REVENGE_FINAL 场 ⇒ 上门的是高**两**境的族中老祖，未满仍高一境 */
+    function foeOf311(n, realm) {
+      var w = mkRv311(n, t311, realm);
+      var rs = stubRandom([0, 0]);
+      sys311.ambushTick(w, pack, D, 1000, t311, { log: noopLog() });
+      rs();
+      return (w.pendingChoice || {}).foe || {};
+    }
+    var soft311 = foeOf311(A310.REVENGE_FINAL - 1, 3), hard311 = foeOf311(A310.REVENGE_FINAL, 3);
+    ok("311", "族中寻仇链（第卌四批）：(a) 冷却未到不发（null 且不挂抉择） (b) 到点必发：id=ambush_revenge、via=revenge、" +
+      " 顶档 realm 钳成同境 = " + foe311.realm + "、power = REALMS[9].power × REVENGE_K(" + A310.REVENGE_K + ") = " +
+      foe311.power + " (c) 模板只声明 right 一支 ⇒ 界面天然只剩一枚「迎战」钮 (d) 倍率逐值 n=0/1/2/3/4/9 → " +
+      mults311.join("/") + "（硬顶 " + A310.STREAK_CAP + "） (e) 同 seed 两局（n=0 与 n=2，都在未满档）灵石比 = " + ratio311.toFixed(3) +
+      " = 倍率比 " + sys311.escalationOf(mkRv311(2, 0)) + " 且**修为增额两局相同**（" + g0_311.qi + " === " + g3_311.qi +
+      "）⇒ escalate 只喂 stones、模板零污染 (f) 胜账 n→" + g0_311.set.chain + " / " + g3_311.set.chain +
+      " 且 nextAt = now+" + A310.REVENGE_CD_MS + " (g) 败账：道伤 +4（failE 全额）、revenge=null、链断不进冷却" +
+      " (h) 第卌五批改口：满 " + A310.REVENGE_FINAL + " 场前 realm 3 → 来者 " + soft311.realm + "（高一境）、power " + soft311.power +
+      "；满 " + A310.REVENGE_FINAL + " 场 → 来者 " + hard311.realm + "（高两境）、power " + hard311.power + "（= 前者 ×3）且名号挂「老祖」" +
+      " (i) 老祖当关：真仙顶档满 " + A310.REVENGE_FINAL + " 场来者 power = " + wall311.foe.power +
+      "（钳同境也仍取「实付 ×" + A310.REVENGE_FINAL_MIN + "」下界 > 高一境基值 " + foe311.power + "），" +
+      "同一把最有利掷点 n=" + A310.REVENGE_FINAL + " ⇒ pass=false、道伤 +4、链断不进冷却",
+      wait311 === null && w311w.pendingChoice === null &&
+      fire311 && fire311.id === "ambush_revenge" && fire311.via === "revenge" && foe311.realm === 9 &&
+      foe311.power === Math.round(D.REALMS[9].power * A310.REVENGE_K) && foe311.src === "clan" &&
+      Object.keys(evR311.choices).join(",") === "right" && mults311.join(",") === "1,1.5,2,2.5,3,3" &&
+      g0_311.res.pass && g3_311.res.pass &&
+      Math.abs(ratio311 - sys311.escalationOf(mkRv311(2, 0))) < 0.02 && g0_311.qi === g3_311.qi &&
+      g0_311.set.chain === 1 && g3_311.set.chain === 3 && g0_311.set.nextAt === t311 + A310.REVENGE_CD_MS &&
+      res311b.pass === false && w311b.daoShang === 4 && w311b.revenge === null &&
+      set311b.ended === true && set311b.chain === 0 &&
+      soft311.realm === 4 && soft311.power === Math.round(D.REALMS[4].power * A310.REVENGE_K) &&
+      hard311.realm === 5 && hard311.power === Math.round(D.REALMS[5].power * A310.REVENGE_K) &&
+      hard311.power === soft311.power * 3 && /老祖$/.test(hard311.nm) && !/老祖$/.test(soft311.nm) &&
+      wall311.res.pass === false && wall311.set.ended === true && wall311.foe.power > foe311.power &&
+      wall311.w.daoShang === 4,
+      "不发=" + (wait311 === null) + " ‖ 到点=" + JSON.stringify([fire311 && fire311.id, fire311 && fire311.via, foe311]) +
+      " ‖ 倍率=" + mults311.join("/") + " ‖ 两局=" + JSON.stringify([[g0_311.stones, g0_311.qi], [g3_311.stones, g3_311.qi],
+      ratio311.toFixed(3)]) + " ‖ 账=" + JSON.stringify([g0_311.set, g3_311.set]) +
+      " ‖ 败=" + JSON.stringify([res311b.pass, w311b.daoShang, w311b.revenge, set311b]) +
+      " ‖ 两档=" + JSON.stringify([[soft311.realm, soft311.power, soft311.nm], [hard311.realm, hard311.power, hard311.nm]]));
+
+    /* #312 江湖名录池与取数口（第卌七批 ① · 设计稿《江湖榜与角色库》）：
+     * 规模/唯一性/值域/势力覆盖/幂等 一次钉死——名录是**静态内容**，认不出就什么都不写，
+     * 所以这里既是内容对表也是「视图不编名字」那条纪律的后盾。 */
+    var JH312 = SQ.Jianghu, P312 = pack.jianghuPool(), PS312 = P312.persons;
+    var seenId312 = {}, seenNm312 = {}, bad312 = [];
+    var bondNm312 = {};
+    (D.COMPANIONS || []).forEach(function (c) { bondNm312[SQ.t('bond.' + c.id + '.name', null, 'xiuxian')] = 1; });
+    var FC312 = {}, HID312 = 0;
+    PS312.forEach(function (p) {
+      if (seenId312[p.id]) bad312.push('id 重复 ' + p.id); seenId312[p.id] = 1;
+      if (seenNm312[p.nm]) bad312.push('名号重复 ' + p.nm); seenNm312[p.nm] = 1;
+      if (bondNm312[p.nm]) bad312.push('与道友撞名 ' + p.nm);
+      if (!['right', 'neutral', 'evil'].includes(p.al)) bad312.push('阵营非法 ' + p.id);
+      if (!(p.rlm >= 0 && p.rlm <= 9)) bad312.push('境界越界 ' + p.id);
+      if (![-1, 0, 1, 2].includes(p.off)) bad312.push('际遇档越界 ' + p.id);
+      if (!(p.wp >= 0 && p.wp < P312.wp.length)) bad312.push('兵刃索引越界 ' + p.id);
+      if (!p.nm || !p.ti || !p.bio) bad312.push('三缺其一 ' + p.id);
+      if (/[A-Za-z]/.test(p.nm + p.ti + p.bio)) bad312.push('文本含拉丁 ' + p.id);
+      if (p.hid) HID312++;
+      if (p.fc) (FC312[p.fc] = FC312[p.fc] || []).push(p);
+    });
+    D.FACTIONS_FIXED.forEach(function (f) {
+      var s = FC312[f.id] || [];
+      if (s.length !== 4) bad312.push('势力席数 ' + f.id + ' = ' + s.length);
+      for (var i = 1; i < s.length; i++) if (s[i - 1].rlm < s[i].rlm) bad312.push('席位境界倒挂 ' + f.id);
+      if (JH312.masterOf(pack, f.id) !== s[1] || JH312.elderOf(pack, f.id) !== s[0]) bad312.push('掌门/太上取数错 ' + f.id);
+    });
+    var hidList312 = PS312.filter(function (p) { return p.hid; });
+    var once312 = JH312.count(pack) + '|' + PS312.map(function (p) { return p.id + ':' + p.rlm + ':' + p.off; }).join(',');
+    var twice312 = JH312.count(pack) + '|' + pack.jianghuPool().persons.map(function (p) { return p.id + ':' + p.rlm + ':' + p.off; }).join(',');
+    ok(312, '江湖名录 200 条与取数口（第卌七批①）：规模 200 = 16 势力 × 4 + 隐世 3 + 散修与新秀 133 ‖ ' +
+      'id 与名号全库唯一且不与道友 58 名撞 ‖ 值域（阵营/境界 0~9/际遇档 −1~+2/兵刃池索引）逐项合 ‖ ' +
+      '文本零拉丁零空（名号/称号/小传三缺即判红）‖ 每派恰四席且席位境界不倒挂、掌门=第二席、太上=第一席 ‖ ' +
+      '隐世恰三席（榜面交互屏蔽随第卌九批落）‖ 认不出的 id / 势力一律 null ‖ 取数口幂等（两次逐条同值）',
+      PS312.length === 200 && JH312.count(pack) === 200 && bad312.length === 0 && HID312 === 3 &&
+      hidList312.length === 3 && Object.keys(FC312).length === 16 &&
+      once312 === twice312 && P312.wp.length >= 24 &&
+      JH312.masterOf(pack, 'nope') === null && JH312.of(pack, 'nope') === null,
+      '规模=' + PS312.length + ' 隐世=' + HID312 + ' 势力=' + Object.keys(FC312).length + ' 违例=' + bad312.slice(0, 5).join(' | '));
+
+    /* #313 名录**零侵染**：静态表不入存档、不进世界状态 ⇒ 容量读数与旧档迁移都不该动（第卌七批①的收口凭据） */
+    var init313 = pack.initialState();
+    var norm313 = pack.normalize(pack.normalize(init313));
+    var keys313 = Object.keys(init313).filter(function (k) { return /jh|jianghu/i.test(k); });
+    ok(313, '名录零侵染（第卌七批①）：initialState 与 normalize 产物里没有任何 jianghu 字段（名录是代码侧静态内容，不是角色态）‖ ' +
+      '双次 normalize 键集不变（幂等，不会因为挂上名录就长字段）‖ 取数口全为纯读，跑一遍不新增世界键',
+      keys313.length === 0 && !norm313.jianghu && !init313.jianghu &&
+      JSON.stringify(Object.keys(pack.normalize(norm313)).sort()) === JSON.stringify(Object.keys(norm313).sort()),
+      '多余键=' + keys313.join(',') + ' ‖ 键数 ' + Object.keys(init313).length + ' → ' + Object.keys(norm313).length);
+
+    /* ══ #314 寿元增减通道（第卌八批③ · 用户令「丹药 / 功法 / 法宝 / 奇遇给寿元增减，
+     * 渡劫失败与被人击伤损耗寿元」）══════════════════════════════════════════════
+     * 判据两面都要：**(甲) 引擎口**（lifeAdd 唯一写口 + lifeHit 比例 + 无尽档不扣）与
+     * **(乙) 内容真有写入方**（四族各跑一次真函数，不是只在测试里调 lifeAdd）。
+     * 本仓吃过太多次「引擎对、屏上错」与「只有测试在调」的假在跑，所以 (乙) 一律走消费者的真入口：
+     * 丹 = Alchemy.drinkPill、功法 = Arts.gainArt/recheckShelf、法宝 = Treasures.gain+bondAdvance、
+     * 奇遇 = Events.resolveBranch（neutral 支无判定 ⇒ 可复现）。 */
+    (function () {
+      var p314 = SQ.Worlds.xiuxian.pack, D314 = p314.data, s314 = p314.worldSystems;
+      var pr314 = mkProf([]);
+      /* (甲1) 唯一写口：正负入账、脏值不写、返回累计 */
+      var wa = p314.normalize(p314.initialState()); wa.lifeUsed = 0; wa.lifeBonus = 0;
+      s314.lifeAdd(wa, 30); s314.lifeAdd(wa, -10);
+      var before314 = wa.lifeBonus;
+      s314.lifeAdd(wa, '脏值'); s314.lifeAdd(wa, NaN); s314.lifeAdd(wa, null);
+      /* (甲2) lifeHit = 当境上界 × 表率、下限 1 年；真仙（无尽）一分不扣。
+       * 取的是**单口扣量**（每次另起一份档、只扣一口）——lifeHit 返的是累计 bonus，两口连扣会糊在一起对不上表。 */
+      var hitSeq314 = [0, 4, 8].map(function (r) {
+        var mk = function () { var h = p314.normalize(p314.initialState()); h.realm = r; h.lifeUsed = 0; h.lifeBonus = 0; return h; };
+        return [-s314.lifeHit(mk(), 'trib'), -s314.lifeHit(mk(), 'wound'), s314.lifeCapOf(r)];
+      });
+      var hitBad314 = hitSeq314.filter(function (x) {
+        return !(x[0] === Math.max(1, Math.round(x[2] * D314.LIFE_HIT.trib)) && x[1] === Math.max(1, Math.round(x[2] * D314.LIFE_HIT.wound)));
+      });
+      var wEtern314 = p314.normalize(p314.initialState()); wEtern314.realm = D314.LIFE_ETERNAL;
+      /* (乙1) 丹：坊市两颗改过效果的各走一次真入口（凝神 +20 / 破障 −30） */
+      /* 丹匣走 Alchemy.normalize 造（与 #257 同法）：initialState 的 alchemy 是 null，直挂 pills 会踩空 */
+      var wp314 = p314.normalize(p314.initialState()); wp314.lifeUsed = 0; wp314.lifeBonus = 0;
+      wp314.alchemy = SQ.Alchemy.normalize({ pills: { ningshen: 1, pozhang: 1 } }, D314);
+      var lg314 = [];
+      var logs314 = function (cat, txt) { lg314.push(cat + '|' + txt); };
+      SQ.Alchemy.drinkPill(wp314, p314, D314, 'ningshen', Date.now(), logs314, pr314);
+      var afterNing314 = wp314.lifeBonus;
+      SQ.Alchemy.drinkPill(wp314, p314, D314, 'pozhang', Date.now(), logs314, pr314);
+      var afterPo314 = wp314.lifeBonus;
+      /* 日志要写「谁给的寿」（第卌六批「钱扣了屏上无痕」那一族的同型处置）：
+       * 丹名由 drinkPill 经 ctx.lifeSrc 递进 applyEffects，模板 = life.log.gain/loss */
+      var gainTxt314 = SQ.t('life.log.gain', { src: SQ.t('pill.ningshen.name', null, 'xiuxian'), n: SQ.fmt(20) }, 'xiuxian');
+      var effTxt314 = SQ.Events.effText(wp314, p314, D314, { life: 20 });
+      /* (乙2) 功法：入门那一次给寿；**重复入门不重给**；架上复检入门同一条口 */
+      var we314 = p314.normalize(p314.initialState()); we314.realm = 6; we314.lifeBonus = 0;
+      SQ.Arts.gainArt(we314, p314, D314, 'changsheng', null);
+      var csFirst314 = we314.lifeBonus;
+      SQ.Arts.gainArt(we314, p314, D314, 'changsheng', null);
+      var csTwice314 = we314.lifeBonus;
+      var wsx314 = p314.normalize(p314.initialState()); wsx314.karma = -300; wsx314.lifeBonus = 0;
+      SQ.Arts.gainArt(wsx314, p314, D314, 'shixue', null);
+      /* 复检支路：把长生诀先塞进架上（低境界 gainArt 走 shelf），提到 realm 4 后 recheckShelf 入门 */
+      var wr314 = p314.normalize(p314.initialState()); wr314.realm = 1; wr314.lifeBonus = 0; wr314.shelf = ['changsheng'];
+      SQ.Arts.recheckShelf(wr314, p314, D314, null);
+      var rBefore314 = wr314.lifeBonus;
+      wr314.realm = 5;
+      SQ.Arts.recheckShelf(wr314, p314, D314, null);
+      /* (乙3) 法宝：龙髓珠认主晋阶授寿，非寿件不给 */
+      var wt314 = p314.normalize(p314.initialState()); wt314.realm = 7; wt314.lifeBonus = 0;
+      SQ.Treasures.gain(wt314, p314, D314, 'x19', null);
+      /* bondAdvance 是内部件，对外只出 bondTick（+1 计数后调它）⇒ 先把计数摆到差一跳，再 tick 一次 */
+      wt314.treasures.bondCount = p314.treasures.BOND_COST - 1;
+      SQ.Treasures.bondTick(wt314, p314, D314, null);
+      var x19Gain314 = wt314.lifeBonus;
+      /* (乙4) 奇遇：山间甘泉「饮泉」支路（无判定 ⇒ 可复现），区间两端各 stub 一次 */
+      var wv314 = p314.normalize(p314.initialState()); wv314.lifeBonus = 0;
+      var rs1 = stubRandom(function () { return 0; });
+      SQ.Events.resolveBranch(wv314, p314, D314, M(pr314, wv314), 'spirit_spring', 'neutral', Date.now(), { log: noopLog(), profile: pr314 });
+      var evLo314 = wv314.lifeBonus;
+      var rs2 = stubRandom(function () { return 0.9999; });
+      wv314.lifeBonus = 0;
+      SQ.Events.resolveBranch(wv314, p314, D314, M(pr314, wv314), 'spirit_spring', 'neutral', Date.now(), { log: noopLog(), profile: pr314 });
+      var evHi314 = wv314.lifeBonus;
+      rs1(); rs2();
+      /* (乙5) 数据面：声明了 life 的功法必须 noSalvage（否则「购入→弃置→再购入」= 刷命回路）；
+       *      袭击 / 寻仇三张模板的 failE 都挂 lifeWound，残魂借体的 failE 挂负 life */
+      var lifeArts314 = Object.keys(p314.artsMap()).filter(function (k) { return p314.artsMap()[k].life != null; });
+      var badArt314 = lifeArts314.filter(function (k) {
+        var a = p314.artsMap()[k];
+        return !a.noSalvage && (a.obtain || {}).type !== 'initial';
+      });
+      var findEv314 = function (id) { return SQ.Events.findById(p314, id); };   /* allIds 返的是 id 串，模板要经 findById */
+      var amb314 = ['ambush_by_evil', 'ambush_by_right', 'ambush_revenge'].map(function (id) {
+        var ev = findEv314(id);
+        if (!ev) return false;
+        /* 逐支扫（袭击只声明一支、寻仇也只一支，写死 choices.right 会随模板改口而假失败） */
+        return Object.keys(ev.choices).some(function (k) {
+          var c = (ev.choices[k] || {}).check;
+          return !!(c && c.failE && c.failE.lifeWound);
+        });
+      });
+      var spr314 = findEv314('spirit_spring');
+      var hasLifeGain314 = !!(spr314 && (spr314.choices.neutral.gain || []).some(function (g) { return g.type === 'life'; }));
+      var chj314 = findEv314('canhun_jieti');
+      var hasLifeFail314 = !!(chj314 && chj314.choices.evil && chj314.choices.evil.check &&
+        chj314.choices.evil.check.some(function (c) { return c.failE && c.failE.life != null; }));
+      ok(314, '寿元增减通道（第卌八批③）：(甲) lifeAdd 唯一写口 = 正负入账 + 脏值不写（' + before314 + ' 后再三次调用不动）‖ ' +
+        'lifeHit 逐档 === max(1, round(当界 × LIFE_HIT.' + Object.keys(D314.LIFE_HIT).join('/') + '))（违例=' + (hitBad314.length ? JSON.stringify(hitBad314[0]) : '无') + '）‖ 真仙无尽一分不扣 ' +
+        '(乙) 四族各走真入口：丹 +20/−30（' + [afterNing314, afterPo314].join('→') + '，日志写「' + gainTxt314 + '」、结果页有 effText 那一行「' + effTxt314 + '」）‖ ' +
+        '功法入门 +200/−40 且**重复入门不重给**（' + csFirst314 + '→' + csTwice314 + '）‖ 架上复检入门同样给（' + rBefore314 + '→' + wr314.lifeBonus + '）‖ ' +
+        '法宝龙髓珠认主晋阶 +150（实得 ' + x19Gain314 + '）‖ 奇遇「山间甘泉·饮泉」按区间入账（' + evLo314 + '~' + evHi314 + '） ' +
+        '(丙) 不变式：写了 life 的功法全部 noSalvage（违例=' + (badArt314.join(',') || '无') + '）‖ 袭击/寻仇三张 failE 都挂 lifeWound ‖ 甘泉有 life 词条 ‖ 借体 failE 有负 life',
+      wa.lifeBonus === 20 && before314 === 20 &&
+      hitBad314.length === 0 && s314.lifeHit(wEtern314, 'trib') === 0 &&
+      afterNing314 === 20 && afterPo314 === -10 &&
+      lg314.some(function (l) { return l.indexOf(gainTxt314) >= 0; }) &&
+      effTxt314.indexOf(SQ.t('log.eff.life', { sign: '+', n: SQ.fmt(20) }, 'xiuxian')) >= 0 &&
+      csFirst314 === p314.artsMap().changsheng.life && csTwice314 === csFirst314 &&
+      wsx314.lifeBonus === p314.artsMap().shixue.life &&
+      rBefore314 === 0 && wr314.lifeBonus === p314.artsMap().changsheng.life &&
+      x19Gain314 === p314.treasures.LIST.filter(function (t) { return t.id === 'x19'; })[0].life &&
+      evLo314 === 8 && evHi314 === 18 &&
+      badArt314.length === 0 && lifeArts314.length >= 2 &&
+      amb314.every(function (x) { return x === true; }) && hasLifeGain314 && hasLifeFail314,
+      'bonus=' + wa.lifeBonus + ' 丹=' + [afterNing314, afterPo314].join('/') +
+      ' 功法=' + [csFirst314, csTwice314, wsx314.lifeBonus, rBefore314, wr314.lifeBonus].join('/') +
+      ' 法宝=' + x19Gain314 + ' 奇遇=' + evLo314 + '~' + evHi314 +
+      ' ‖ hit=' + JSON.stringify(hitSeq314) + ' 真仙扣=' + s314.lifeHit(wEtern314, 'trib') +
+      ' ‖ life功法=' + lifeArts314.join(',') + ' 违例=' + (badArt314.join(',') || '无') +
+      ' ‖ 模板=' + amb314.join(',') + '/' + hasLifeGain314 + '/' + hasLifeFail314 +
+      ' ‖ 丹日志=' + lg314.join('¦').slice(0, 200));
+    })();
+
+    /* ═══ #315 下线取证（第册批 · 用户令「前世书有个天道做传的，这块功能去掉」）═══
+     * 删除类批次立的是「认不到」——这类断言天然容易假绿（名字拼错也算认不到、整条传记链跑不通也算认不到），
+     * 所以同一条里必须**同时**正判一件事：兵解仍然写传记。两个方向咬在一起才叫取证。 */
+    var g315 = {
+      memo: SQ.Codex.bioMemo, adopt: SQ.Codex.adoptBio, act: SQ.Actions.adoptBio, cap: D.LEGACY.BIO_MEMO_LEN,
+      k: ['legacy.ui.bioAsk', 'legacy.ui.bioPaste', 'legacy.ui.bioAdopt', 'legacy.ui.bioAdopted',
+        'legacy.ui.bioFail', 'tiandao.prompt.bio'].filter(function (x) { return SQ.t(x, null, 'xiuxian') !== x; })
+    };
+    var gone315 = g315.memo === undefined && g315.adopt === undefined &&
+      g315.act === undefined && g315.cap === undefined && g315.k.length === 0;
+    /* 有意保留的两样：来源小标（老档确有 source:'tiandao' 的条目，抹掉等于改史）+ 敏感词口（问天谪星同读） */
+    var kept315 = SQ.t('legacy.ui.bio.source.tiandao', null, 'xiuxian') !== 'legacy.ui.bio.source.tiandao' &&
+      typeof SQ.Tiandao.filterText === 'function' &&
+      SQ.t('legacy.ui.recap.title', null, 'xiuxian') !== 'legacy.ui.recap.title';
+    localStorage.removeItem(SQ.KEY);
+    var ref315 = {};
+    await SQ.mutate(ref315, function (s315) {
+      s315.profile = mkProf([]);
+      s315.worlds.xiuxian = pack.initialState();
+      s315.worlds.xiuxian.realm = 4;               /* BINGJIE_MIN_REALM 门槛上 */
+    });
+    var rb315 = SQ.Legacy.doBingjie(ref315, Date.now());
+    var bs315 = (ref315.meta || {}).biographies || [];
+    var bio315 = bs315[bs315.length - 1] || {};
+    ok(315, '「烧表请天道作传」整族下线 + 兵解仍写传记（第册批）：(甲) 四个出口一律认不到 = Codex.bioMemo / Codex.adoptBio / ' +
+      'Actions.adoptBio / D.LEGACY.BIO_MEMO_LEN ‖ 六枚键（五条词条 + 作传提示词）在词表里全部回显 key ' +
+      '(乙) 有意保留 = bio.source.* 小标在册（老档 source:tiandao 的条目仍要说清来路）+ Tiandao.filterText 仍是函数（问天同读）' +
+      ' + 新键 legacy.ui.recap.title 取到值 ' +
+      '(丙) 正判据同咬：兵解事务 ok 且 meta.biographies 末条有正文（≤BIO_MAX、source=local）——下线的是「请天道改写」不是「史官不写」',
+      gone315 && kept315 && rb315 && rb315.ok === true && bs315.length === 1 &&
+      typeof bio315.text === 'string' && bio315.text.length > 0 &&
+      bio315.text.length <= (D.LEGACY.BIO_MAX || 500) && bio315.source === 'local',
+      '认不到=' + JSON.stringify({ memo: typeof g315.memo, adopt: typeof g315.adopt, act: typeof g315.act, cap: g315.cap }) +
+      ' 残键=' + (g315.k.join(',') || '无') + ' ‖ 保留=' + kept315 +
+      ' ‖ 兵解=' + (rb315 && rb315.ok) + ' 传记=' + bs315.length + ' 篇/' + (bio315.text || '').length + '字/' + bio315.source);
+
+    /* ═══ #316 战力散布四档重标定（第册一批② · 用户令「同境界上下限相差超过两个大境界」）═══
+     * 立的是**口径**：不新立乘区，改偏移境界表 `REALMS[clamp(rlm + 际遇档)] × 资质微调`。
+     * 甲 = 逐档对表（四档各取一名真名录角色）‖ 乙 = 旧档零侵染（无 rid / 脏 rid ⇒ off 恒 0，
+     * 与改前逐字同值——这条是本批「不迁移旧档」承诺的直证）‖ 丙 = 上下限差与钳位 ‖
+     * 丁 = 幂等与 normalize（rid 留、脏 rid 归 null、超长截断）。 */
+    var PS316 = SQ.Jianghu.pool(pack).persons, byOff316 = {};
+    PS316.forEach(function (x) { if (!byOff316[x.off]) byOff316[x.off] = x; });
+    var four316 = [-1, 0, 1, 2].every(function (o) { return !!byOff316[o]; });   /* 四档齐备 = 数据说话 */
+    var w316 = pack.initialState(), R316 = D.REALMS, PC316 = D.PRODIGY.POWER_COEF;
+    var pow316 = [-1, 0, 1, 2].map(function (o) {
+      return SQ.Prodigy.powerOf(w316, { id: 'prA', rid: byOff316[o].id, rlm: 4, apt: 0 }, D, pack);
+    });
+    var tabOk316 = pow316.every(function (v, i) { return v === R316[4 + [-1, 0, 1, 2][i]].power * PC316[0]; });
+    var old316 = SQ.Prodigy.powerOf(w316, { id: 'prB', rlm: 4, apt: 0 }, D, pack);          /* 无 rid */
+    var dirty316 = SQ.Prodigy.powerOf(w316, { id: 'prC', rid: 'zz9', rlm: 4, apt: 0 }, D, pack); /* 名录认不出 */
+    var oldOk316 = old316 === R316[4].power * PC316[0] && dirty316 === old316;
+    var clamp316 = [
+      SQ.Prodigy.powerOf(w316, { rid: byOff316[2].id, rlm: 9, apt: 0 }, D, pack),
+      SQ.Prodigy.powerOf(w316, { rid: byOff316[-1].id, rlm: 0, apt: 0 }, D, pack)
+    ];
+    var spread316 = pow316[3] / pow316[0];                       /* 同境界（rlm 4）上下限之比 */
+    var idem316 = SQ.Prodigy.powerOf(w316, { rid: byOff316[1].id, rlm: 6, apt: 2 }, D, pack) ===
+      SQ.Prodigy.powerOf(w316, { rid: byOff316[1].id, rlm: 6, apt: 2 }, D, pack);
+    var nrm316 = pack.normalize(Object.assign(pack.initialState(), { prodigies: [
+      { id: 'pr1', rid: 's001', nm: [0, 0, 0], rlm: 3, apt: 1 },
+      { id: 'pr2', rid: 123, nm: [0, 0, 0], rlm: 1, apt: 0 },
+      { id: 'pr3', rid: 'abcdefghijkl', nm: [0, 0, 0], rlm: 2, apt: 0 }
+    ] })).prodigies;
+    ok(316, '战力散布四档重标定（第册一批②）：(甲) 际遇档四档齐备（−1×' + PS316.filter(function (x) { return x.off === -1; }).length +
+      '/0×' + PS316.filter(function (x) { return x.off === 0; }).length +
+      '/+1×' + PS316.filter(function (x) { return x.off === 1; }).length +
+      '/+2×' + PS316.filter(function (x) { return x.off === 2; }).length + '）且 rlm4 逐档 === REALMS[3..6].power × 资质档0 ' +
+      '(乙) 旧档零侵染：无 rid 与名录认不出的脏 rid 一律 off=0 ⇒ 与改前逐字同值 ' +
+      '(丙) 同境界上下限差 = ' + spread316.toFixed(1) + ' 倍（=== REALMS[6]/REALMS[3]，即 3 档 ≈ 27×，用户要的「超过两个大境界」）‖ 顶钳真仙 / 地板钳练气 ' +
+      '(丁) 同输入两次调用同值 ‖ normalize 保留 rid、脏 rid 归 null、超长截 8 字',
+      four316 && tabOk316 && oldOk316 &&
+      spread316 === R316[6].power / R316[3].power && spread316 > 9 &&
+      clamp316[0] === R316[9].power * PC316[0] && clamp316[1] === R316[0].power * PC316[0] &&
+      idem316 && nrm316[0].rid === 's001' && nrm316[1].rid === null && nrm316[2].rid === 'abcdefgh',
+      '四档=' + JSON.stringify(pow316.map(function (x) { return Math.round(x); })) + ' 旧档=' + old316 + '/' + dirty316 +
+      ' 钳位=' + JSON.stringify(clamp316) + ' 差=' + spread316.toFixed(2) + ' rid=' + JSON.stringify(nrm316.map(function (x) { return x.rid; })));
+
+    /* ═══ #317 江湖四榜装配（第册一批③ · 设计稿 §二 / §三）═══
+     * 判据取「形状 + 同源」不取文案：十席恒满、天榜前三恒为隐世、玩家恰一行且落在自己那一榜、
+     * 同榜不重影、可交互性只给相识者、双跑逐字全等（零随机零副作用）、三档徽标与 ratio 对表、
+     * 五项派生过境界门槛、死者不复生、跨带与递补各播一条。 */
+    var w317 = pack.initialState();
+    w317.realm = 5; w317.zone = 0;                          /* 玩家落玄榜（4~5），zone 错开月事件 */
+    SQ.Prodigy.rollForNewLife(w317, pack, D, mkMeta(), 1700000000000);
+    var m317 = M(mkProf([]), w317);
+    var B317 = SQ.Prodigy.board4(w317, pack, D, m317);
+    var B317b = SQ.Prodigy.board4(w317, pack, D, m317);
+    var shape317 = B317.length === 4 && B317.every(function (b) {
+      var vis = b.rows.filter(function (r) { return r !== null; });
+      return b.n >= 10 && vis.length <= 11 && vis.length >= 10;
+    });
+    var hid3 = SQ.Jianghu.hermits(pack).map(function (h) { return h.id; });
+    var top3 = B317[0].rows.slice(0, 3);
+    var hidOk317 = top3.length === 3 && top3.every(function (r, i) { return r.hid === true && r.rid === hid3[i]; });
+    var meN317 = 0, meBand317 = -1;
+    B317.forEach(function (b) { b.rows.forEach(function (r) { if (r && r.me) { meN317++; meBand317 = b.band; } }); });
+    var meOk317 = meN317 === 1 && meBand317 === SQ.Jianghu.bandOf(w317.realm);
+    var dup317 = false, interOk317 = true;
+    B317.forEach(function (b) {
+      var seen = {};
+      b.rows.forEach(function (r) {
+        if (!r || r.me) return;
+        if (r.rid && seen[r.rid]) dup317 = true;
+        seen[r.rid] = 1;
+        if (r.known && !r.pid) interOk317 = false;          /* 相识者必须有存档 id 才点得开 */
+        if (!r.known && r.pid) interOk317 = false;          /* 背景席位不许有入口 */
+      });
+    });
+    var HC317 = D.PRODIGY.HANDICAP, myP317 = SQ.Mods.powerOf(w317, pack, D, m317);
+    var lvBad317 = [];
+    B317.forEach(function (b) { b.rows.forEach(function (r) {
+      if (!r || r.me || r.hid) return;
+      var ratio = myP317 / r.power;
+      var want = ratio >= HC317.crush ? 0 : (ratio <= HC317.brave ? 2 : 1);
+      if (r.lv !== want) lvBad317.push([b.band, r.rid, r.lv, want]);
+    }); });
+    var gearBad317 = [], gearDup317 = false;
+    B317.forEach(function (b) { b.rows.forEach(function (r) {
+      if (!r || r.me || r.hid || !r.rid) return;
+      var g = SQ.Jianghu.gearOf(pack, D, r.rid, r.realm), g2 = SQ.Jianghu.gearOf(pack, D, r.rid, r.realm);
+      if (JSON.stringify(g) !== JSON.stringify(g2)) gearDup317 = true;
+      if (!g.wp) gearBad317.push(r.rid + ' 无兵刃');
+      var am = pack.artsMap();
+      if (g.tb && ((pack.treasures.byId[g.tb] || {}).reqs || {}).realm > r.realm) gearBad317.push(r.rid + ' 法宝越境');
+      if (g.art && ((am[g.art] || {}).reqs || {}).realm > r.realm) gearBad317.push(r.rid + ' 功法越境');
+    }); });
+    /* 死者不复生 + 递补播报：挑一名相识者走唯一出榜写口 */
+    var victim317 = w317.prodigies[0];
+    SQ.Prodigy.killOff(w317, { meta: {} }, pack, D, victim317, 1700000001000, noopLog());
+    var deadOk317 = (w317.prodMarks.dead || []).indexOf(victim317.rid) >= 0;
+    var back317 = SQ.Prodigy.board4(w317, pack, D, m317);
+    var ghost317 = false;
+    back317.forEach(function (b) { b.rows.forEach(function (r) { if (r && r.rid === victim317.rid) ghost317 = true; }); });
+    var fillCard317 = (w317.rumors || []).filter(function (x) { return x.tpl === 'prodigy.rumor.bandfill'; })[0] || null;
+    /* 跨带播报：把一名相识者摆到带界下沿，一次月结破境即换榜（rivAt 置今 ⇒ 机缘竞争不掷，传闻不被挤掉） */
+    var climber317 = w317.prodigies[0];
+    climber317.rlm = 3; climber317.prg = D.REALMS[4].need - 1; climber317.rivAt = 1700000002000;
+    w317.realm = 3;                                          /* 玩家也回黄榜：避开 sameZone 狭路相逢支 */
+    w317.zone = 9;
+    SQ.Prodigy.tick(w317, pack, D, M(mkProf([]), w317), 30000, 1700000002000, { log: noopLog() });
+    var upCard317 = (w317.rumors || []).filter(function (x) { return x.tpl === 'prodigy.rumor.bandup'; })[0] || null;
+    ok(317, '江湖四榜装配（第册一批③）：(甲) 四榜各十席（候选 ≥10、可见 ≤11 = 十席 + 玩家尾行） ' +
+      '(乙) 天榜前三恒为隐世三席且 hid 标在位（裁定 2） ' +
+      '(丙) 玩家恰一行、落在 bandOf(自己境界) 那一榜（裁定 3：不另开「我方之势」行） ' +
+      '(丁) 同榜不重影（相识 / 补位 / 隐世 三族互斥）‖ 可交互性只给相识者（背景席位 pid 恒 null） ' +
+      '(戊) 三档徽标 === 切磋表值 HANDICAP.crush/brave 复算（违例 ' + (lvBad317.length || 0) + '） ' +
+      '(己) 五项派生：兵刃恒有、法宝与主修过境界门槛、两次派生逐字全等 ' +
+      '(庚) 双跑逐字全等（纯派生、零随机、零写档） ' +
+      '(辛) 死者不复生：出榜者不再以任何席位回榜 + 递补传闻一条 ' +
+      '(壬) 跨带播报一条（黄→玄，一次连破也只播落点）',
+      shape317 && hidOk317 && meOk317 && !dup317 && interOk317 && lvBad317.length === 0 &&
+      gearBad317.length === 0 && !gearDup317 && JSON.stringify(B317) === JSON.stringify(B317b) &&
+      deadOk317 && !ghost317 && !!fillCard317 && !!upCard317 && climber317.rlm === 4,
+      '席=' + JSON.stringify(B317.map(function (b) { return b.n + '/' + b.rows.length; })) +
+      ' 玩家=' + meN317 + '@' + meBand317 + ' 徽标违例=' + JSON.stringify(lvBad317.slice(0, 2)) +
+      ' 五项违例=' + JSON.stringify(gearBad317.slice(0, 2)) + ' 双跑=' + (JSON.stringify(B317) === JSON.stringify(B317b)) +
+      ' 死=' + deadOk317 + '/' + ghost317 + ' 播=' + !!fillCard317 + '/' + !!upCard317);
+
+
+    /* ═══ #318 身死即结的「夺宝」（第册三批 · 设计稿《江湖榜与角色库》§四 · 用户裁定「照设计稿全给」）═══
+     * 当晚独立复核返修三处：① 灵石一律按**实测差值**并逐笔对 ledger（旧判据只量 stones，把两处
+     * `Ledger.note` 删掉照样绿 = 空判「有账」）；② 架上溢出（overflow）单独立一判，它折的是
+     * `in.refine` 不是 `in.event`，漏了这支就正好复现「钱多了账上没记」那一族；③ 涉寿元的功法照掉
+     * （用户点档「不筛，日志写明白」），所以必须钉「走的是 `lifeAdd` 唯一写口 + 那一行寿元日志真的在」，
+     * 否则「白拿 200 年」这件事哪天变成静默的，没人知道。 */
+    var pill318 = (D.PILLS || []).filter(function (x) { return !x.nogift && x.price > 0; })
+      .sort(function (a, b) { return b.price - a.price; })[0];
+    var cap318 = (D.ALCHEMY || {}).PILL_STOCK_CAP || 99;
+    var stake318 = function (w) {
+      var z = (D.ZONES || [])[Math.min(w.realm, (D.ZONES || []).length - 1)] || {};
+      return Math.round((z.stones || 3) * ((D.PRODIGY.STAKE_K3 || {}).heavy || 0));
+    };
+    var per318 = SQ.Jianghu.pool(pack).persons.filter(function (x) { return !x.hid && !x.fc; });
+    var find318 = function (fn, tag) {               /* 扫名录挑素材；挑不到就如实红，不让判据靠 TypeError 打断整沙箱 */
+      var hit = null;
+      per318.forEach(function (x) {
+        if (hit) return;
+        var g = SQ.Jianghu.gearOf(pack, D, x.id, x.rlm);
+        if (g.tb && g.art && fn(x, g)) hit = { rid: x.id, rlm: x.rlm, g: g };
+      });
+      if (!hit) bad318.push('挑不到素材:' + tag);
+      return hit || { rid: per318[0].id, rlm: per318[0].rlm, g: { tb: null, art: null } };
+    };
+    var bad318 = [];
+    var am318 = pack.artsMap();
+    var mLife318 = find318(function (x, g) { return am318[g.art] && am318[g.art].life != null; }, '涉寿元功法');
+    var mShelf318 = find318(function (x, g) {                       /* 死者境界高到玩家（realm 1）够不着 ⇒ 落架 / 架满则溢出 */
+      var req = (am318[g.art].reqs || {}).realm || 0;
+      return req > 1 && !!am318[g.art];
+    }, '要求未达功法');
+    var new318 = function (rid, realm, rlm) {      /* rlm 显式覆盖：rollOne 把出场者掷成「与你同代、从练气长起」，
+                                                     * 而 gearOf 按**该行当前境界**派生 ⇒ 不设就挑不到目标档的道具 */
+      var w = pack.initialState();
+      w.realm = realm; w.zone = 0;
+      var p = SQ.Prodigy.rollOne(w, pack, D, mkMeta(), rid ? { rid: rid } : null);
+      if (!rid) p.rid = null;
+      if (rlm != null) p.rlm = rlm;
+      w.prodigies = [p];
+      return w;
+    };
+    var nameOf318 = function (k) { return SQ.Jianghu.of(pack, k.p.rid).nm; };
+    var kill318 = function (w) {
+      var p = w.prodigies[0], g = SQ.Jianghu.gearOf(pack, D, p.rid, p.rlm);
+      var snap = { st: w.stones, ev: w.ledger.in.event, rf: w.ledger.in.refine, life: w.lifeBonus || 0,
+        kn: (w.artsKnown || []).length, sh: (w.shelf || []).length, tb: ((w.treasures || {}).owned || []).length };
+      var lg = [];
+      SQ.Prodigy.killOff(w, { meta: {} }, pack, D, p, 1700000000000, function (c, t) { lg.push(t); });
+      return { p: p, g: g, lg: lg, snap: snap, w: w };
+    };
+    /* (甲) 两件真道具各按真入口落位 + 灵石一笔有账 + 主日志行由词表现算 */
+    var kA = kill318(new318(per318[0].id, 9));
+    var evA = kA.snap.ev, stA = kA.w.stones - kA.snap.st;
+    var a318 = kA.w.prodigies.length === 0 &&
+      ((kA.w.treasures || {}).owned || []).some(function (x) { return x.id === kA.g.tb; }) &&
+      ((kA.w.artsKnown || []).indexOf(kA.g.art) >= 0 || (kA.w.shelf || []).indexOf(kA.g.art) >= 0) &&
+      stA === stake318(kA.w) && kA.w.ledger.in.event - evA === stA &&
+      kA.lg.some(function (s) { return s.indexOf(SQ.t('prodigy.log.killloot', {
+        name: SQ.Jianghu.of(pack, kA.p.rid).nm, n: 2, cur: SQ.t('resource.currency', null, 'xiuxian'), loot: SQ.fmt(stA)
+      }, 'xiuxian')) >= 0; });
+    /* (乙) 待修习架已满 ⇒ 那部功法折灵石：走 `in.refine` 不走 `in.event`，且不算「取走一件」 */
+    var wB = new318(mShelf318.rid, 1, mShelf318.rlm);
+    var gB = SQ.Jianghu.gearOf(pack, D, mShelf318.rid, mShelf318.rlm);
+    var dupB = SQ.Arts.dupValue(pack, D, gB.art);
+    wB.shelf = Object.keys(am318).filter(function (k) { return k !== gB.art && (wB.artsKnown || []).indexOf(k) < 0; })
+      .slice(0, D.SHELF_CAP);
+    var kB = kill318(wB);
+    var b318 = (kB.w.artsKnown || []).indexOf(gB.art) < 0 && (kB.w.shelf || []).length === D.SHELF_CAP &&
+      dupB > 0 && kB.w.stones - kB.snap.st === stake318(kB.w) + dupB &&
+      kB.w.ledger.in.event - kB.snap.ev === stake318(kB.w) &&
+      kB.w.ledger.in.refine - kB.snap.rf === dupB &&
+      kB.lg.some(function (s) { return s.indexOf(SQ.t('arts.shelffull', {
+        name: SQ.t('skill.' + gB.art + '.name', null, 'xiuxian'), n: SQ.fmt(dupB), cur: SQ.t('resource.currency', null, 'xiuxian')
+      }, 'xiuxian')) >= 0; }) &&
+      kB.lg.some(function (s) { return s.indexOf(SQ.t('prodigy.log.killloot', {
+        name: nameOf318(kB), n: 1, cur: SQ.t('resource.currency', null, 'xiuxian'), loot: SQ.fmt(stake318(kB.w) + dupB)
+      }, 'xiuxian')) >= 0; });
+    /* (丙) 已持有 ⇒ 不重复入册、留说明行（白拿的东西不许无声消失） */
+    var wC = new318(per318[0].id, 9);
+    var gC = SQ.Jianghu.gearOf(pack, D, wC.prodigies[0].rid, wC.prodigies[0].rlm);
+    wC.treasures = wC.treasures || { owned: [], slots: [] };
+    wC.treasures.owned.push({ id: gC.tb, st: {}, lv: 1 });
+    var tb0C = wC.treasures.owned.length, kC = kill318(wC);
+    var c318 = kC.w.treasures.owned.length === tb0C &&
+      kC.lg.some(function (s) { return s.indexOf(SQ.t('prodigy.log.killloot.dup', { name: nameOf318(kC) }, 'xiuxian')) >= 0; });
+    /* (丁) 丹匣满 ⇒ 整枚按坊市价折灵石：有账（in.event 含这一笔）+ 有说明行 */
+    var wD = new318(per318[1].id, 9);
+    SQ.Alchemy.gainPill(wD, D, pill318.id, cap318, noopLog(), 'xiuxian');   /* 用真入口塞满丹匣（initialState 的 alchemy 是 null，直接写会崩） */
+    var kD = kill318(wD);
+    var d318 = kD.w.alchemy.pills[pill318.id] === cap318 &&
+      kD.w.stones - kD.snap.st === stake318(kD.w) + pill318.price &&
+      kD.w.ledger.in.event - kD.snap.ev === stake318(kD.w) + pill318.price &&
+      kD.lg.some(function (s) { return s.indexOf(SQ.t('prodigy.log.killloot.pillfull', {
+        cur: SQ.t('resource.currency', null, 'xiuxian'), n: SQ.fmt(pill318.price) }, 'xiuxian')) >= 0; });
+    /* (戊) 一次性 = 死者出榜、进 dead，四榜（含背景席位补位）再也装配不到该 rid */
+    var B318 = SQ.Prodigy.board4(kA.w, pack, D, M(mkProf([]), kA.w));
+    var e318 = kA.w.prodMarks.dead.indexOf(kA.p.rid) >= 0 &&
+      B318.every(function (b) { return b.rows.every(function (r) { return !r || r.rid !== kA.p.rid; }); });
+    /* (己) 涉寿元的功法照掉，但**必须走 `lifeAdd` 唯一写口并留那行寿元日志**（用户点档「不筛，日志写明白」） */
+    var kF = kill318(new318(mLife318.rid, 9, mLife318.rlm));
+    var lifeN318 = am318[mLife318.g.art].life;
+    var f318 = kF.w.lifeBonus - kF.snap.life === lifeN318 &&
+      kF.lg.some(function (s) { return s.indexOf(SQ.t(lifeN318 > 0 ? 'life.log.gain' : 'life.log.loss', {
+        n: SQ.fmt(Math.abs(lifeN318)), src: SQ.t('skill.' + mLife318.g.art + '.name', null, 'xiuxian')
+      }, 'xiuxian')) >= 0; });
+    /* (庚) 旧档 rid 认不出 ⇒ 实物零掉、灵石与丹照给（与战力口径同一把「认不出就不动」的尺） */
+    var kG = kill318(new318(null, 9));
+    var g318 = ((kG.w.treasures || {}).owned || []).length === 0 && (kG.w.shelf || []).length === 0 &&
+      kG.w.artsKnown.length === kG.snap.kn && kG.w.shelf.length === kG.snap.sh && kG.snap.tb === 0 && kG.w.stones - kG.snap.st === stake318(kG.w) &&
+      kG.w.alchemy.pills[pill318.id] === 1;
+    ok(318, '身死掉落（第册三批① · 复核返修）：(甲) 两件真道具按真入口落位 + 灵石实测差 === 表值重注 === `in.event` 增额 + 主日志行对词表 ' +
+      '(乙) 架满 ⇒ 功法折灵石走 `in.refine`、不算「取走一件」且 `arts.shelffull` 在案 ' +
+      '(丙) 已持有不重复入册且留说明行 (丁) 丹匣满 ⇒ 整枚折等额灵石、有账有说明 ' +
+      '(戊) 一次性 = 进 dead 且四榜装配不到该 rid (己) 涉寿元功法走 `lifeAdd` 唯一写口且寿元日志在案 ' +
+      '(庚) 旧档无 rid ⇒ 实物零掉、灵石与丹照给',
+      bad318.length === 0 && a318 && b318 && c318 && d318 && e318 && f318 && g318,
+      '素材缺=' + JSON.stringify(bad318) + ' 甲=' + stA + '/' + (kA.w.ledger.in.event - evA) +
+      ' 乙=' + (kB.w.stones - kB.snap.st) + '=' + stake318(kB.w) + '+' + dupB + '(refine+' + (kB.w.ledger.in.refine - kB.snap.rf) + ')' +
+      ' 丁=' + (kD.w.stones - kD.snap.st) + ' 己=' + (kF.w.lifeBonus - kF.snap.life) + '/' + lifeN318 +
+      ' 庚=' + (kG.w.stones - kG.snap.st));
+
+    /* ═══ #319 两支新通道（第册三批②③ · 设计稿 §六 4 / §七）═══
+     * 复核返修两条：① 旧写法用 `hashOf(rid) % 2` 在判据里**复刻生产公式** ⇒ 把哈希改成恒取第一支也照样绿
+     *    （零鉴别力）；现改判「真 tick 在两个不同 rid 上分别挂中了**两支不同的词条**」+「同一 rid 两次跑挂
+     *    同一支」，公式只在取样时用、不进判据。② `HID_EVENT_REALM` / `RIVAL_EVENTS` 两枚表值此前无钉值判据
+     *    ⇒ 改 6 为 9、删掉整条池都不会红；本批起与事件池在册对表并钉值。 */
+    var hidEv319 = SQ.Events.findById(pack, 'jianghu_hid_glimpse'), rvIds319 = D.PRODIGY.RIVAL_EVENTS;
+    var poolBad319 = [], rvNotTagged319 = [];
+    ['tian', 'di', 'ren'].forEach(function (tr) {
+      ['good', 'bad'].forEach(function (na) {
+        (SQ.Events.buildPool(pack, kA.w, D, tr, na, 1700000000000) || []).forEach(function (ev) {
+          if (ev.tags && ev.tags.length) poolBad319.push(ev.id);
+        });
+      });
+    });
+    (rvIds319 || []).forEach(function (id) {
+      var ev = SQ.Events.findById(pack, id);
+      if (!ev || !ev.tags || ev.tags.indexOf('prodigy_rival') < 0) rvNotTagged319.push(id);
+    });
+    var h319 = D.PRODIGY.HID_EVENT_REALM === 6 && rvIds319.length === 2 && rvNotTagged319.length === 0 &&
+      !!hidEv319 && hidEv319.tags.indexOf('jianghu_hid') >= 0 && poolBad319.length === 0;
+    /* 取样：从名录里找两个哈希落在不同支上的 rid（只为构造场景，判据不引用这个公式） */
+    var ridFirst319 = null, ridSecond319 = null;
+    per318.forEach(function (x) {
+      var slot = SQ.Jianghu.hashOf(x.id) % 2;
+      if (slot === 0 && !ridFirst319) ridFirst319 = x.id;
+      if (slot === 1 && !ridSecond319) ridSecond319 = x.id;
+    });
+    var fireRival319 = function (rid) {
+      var w = pack.initialState();
+      w.realm = 5; w.zone = 5;   /* sameZone = 「死者境界对应区 === ws.zone」⇒ 两边都取 5 */
+      var p = SQ.Prodigy.rollOne(w, pack, D, mkMeta(), { rid: rid });
+      p.rlm = 5; p.prg = 0; p.feud = false; p.rivAt = 0;
+      w.prodigies = [p];
+      var rum = (w.rumors || []).length, rst = stubRandom(function () { return 0.01; });
+      SQ.Prodigy.tick(w, pack, D, M(mkProf([]), w), 30000, 1700000000000, { log: noopLog() });
+      rst();
+      return { id: w.pendingChoice && w.pendingChoice.id, pid: w.pendingChoice && w.pendingChoice.prodigy,
+        riv: p.rivAt, boost: !!p.boost, rumor: (w.rumors || []).length > rum };
+    };
+    var r1319 = fireRival319(ridFirst319), r2319 = fireRival319(ridSecond319), r1b319 = fireRival319(ridFirst319);
+    var i319 = !!ridFirst319 && !!ridSecond319 &&
+      rvIds319.indexOf(r1319.id) >= 0 && rvIds319.indexOf(r2319.id) >= 0 && r1319.id !== r2319.id &&
+      r1b319.id === r1319.id &&                                   /* 同一 rid 两次跑挂同一支 = 确定性 */
+      r1319.pid === 'pr1' && r1319.riv === 1700000000000 && r1319.boost && r1319.rumor;
+    /* 隐世 once：未达门槛恒不演；门槛上真 tick 一次演、第二次池已被 fateSeen 记空 */
+    var w319b = pack.initialState();
+    w319b.realm = 5; w319b.zone = 9;   /* 出场者多在不同区 ⇒ 本 tick 只可能命中隐世那一条钩子 */
+    SQ.Prodigy.rollForNewLife(w319b, pack, D, mkMeta(), 1700000000000);
+    var m319b = M(mkProf([]), w319b), rst319b = stubRandom(function () { return 0.99; });
+    w319b.realm = D.PRODIGY.HID_EVENT_REALM - 1;
+    SQ.Prodigy.tick(w319b, pack, D, m319b, 30000, 1700000000000, { log: noopLog() });
+    var j319 = !w319b.pendingChoice;
+    w319b.realm = D.PRODIGY.HID_EVENT_REALM;
+    SQ.Prodigy.tick(w319b, pack, D, m319b, 30000, 1700000000030, { log: noopLog() });
+    var k319 = !!w319b.pendingChoice && w319b.pendingChoice.id === 'jianghu_hid_glimpse' &&
+      w319b.pendingChoice.prodigy == null && (w319b.fateSeen || []).length > 0;
+    w319b.pendingChoice = null;
+    var fs319 = (w319b.fateSeen || []).length;
+    SQ.Prodigy.tick(w319b, pack, D, m319b, 30000, 1700000000060, { log: noopLog() });
+    var l319 = !w319b.pendingChoice && (w319b.fateSeen || []).length === fs319;
+    rst319b();
+    var cx319 = hidEv319 ? JSON.stringify(hidEv319.choices) : '{}';
+    var m319 = cx319.indexOf('$prodigy') < 0 && cx319.indexOf('prodigySpar') < 0 && cx319.indexOf('"npc"') < 0;
+    ok(319, '机缘与隐世两条通道（第册三批②③ · 复核返修）：(甲) 两枚表值钉住（HID_EVENT_REALM === 6 ‖ RIVAL_EVENTS 恰两支且都在册并带 `prodigy_rival`）' +
+      ' ‖ 三支带 tags 的词条 `buildPool` 六组合零命中（生效抽取池一字未动） ' +
+      '(乙) 真 tick 在两个不同 rid 上分别挂中**两支不同**的词条，同一 rid 两次跑挂同一支（判据不复刻哈希公式） ' +
+      '‖ 竞争原三项收益（传闻 / boost / rivAt 频控）一项不丢 ' +
+      '(丙) 未达门槛恒不演 ‖ 达门槛演一次且不挂天骄槽位 ‖ 演过之后 fateSeen 记空不再演 ' +
+      '(丁) 隐世那一支三条分支不引用任何天骄槽位（不可交互落到内容侧）',
+      h319 && i319 && j319 && k319 && l319 && m319,
+      '两支=' + JSON.stringify([r1319.id, r2319.id]) + ' 重跑同支=' + (r1b319.id === r1319.id) +
+      ' 池内违例=' + JSON.stringify(poolBad319.slice(0, 3)) + ' 未tag=' + JSON.stringify(rvNotTagged319) +
+      ' 隐世=' + j319 + '/' + !!k319 + '/' + l319);
+
+
+    /* ═══ #320 已读公告号（第册四批 · 更新公告浮层 · 视图代码外置试点的存档面）═══
+     * profile 是**逐字段显式 normalize**：漏抄一行就静默丢（读档后打回未读 ⇒ 每次进线重弹一次），
+     * 所以判据要同时咬「保值 / 脏值归 null / 缺键补 null / 复 normalize 幂等 / 键确在声明集内」。 */
+    var s320 = SQ.defaultState();
+    var prof320 = function (p) { return SQ.normalize({ v: s320.v, profile: p, worlds: {}, meta: {} }).profile; };
+    var a320 = s320.profile.seenNote === null;
+    var b320 = prof320({ name: '甲', seenNote: '2026-10-17-1' }).seenNote === '2026-10-17-1';
+    var c320 = prof320({ seenNote: { a: 1 } }).seenNote === null && prof320({ seenNote: 7 }).seenNote === null &&
+      prof320({ seenNote: '' }).seenNote === null;
+    var d320 = prof320({ name: '甲' }).seenNote === null;                       /* 旧档无此键 ⇒ 补 null（不是 undefined） */
+    var e320 = (function () {
+      var one = SQ.normalize({ v: s320.v, profile: { seenNote: 'x-1' }, worlds: {}, meta: {} });
+      var t1 = JSON.stringify(SQ.normalize(one).profile), t2 = JSON.stringify(SQ.normalize(SQ.normalize(one)).profile);
+      return one.profile.seenNote === 'x-1' && t1 === t2;
+    })();
+    var f320 = Object.keys(prof320({ seenNote: 'k' })).indexOf('seenNote') >= 0;
+    ok('320', '已读公告号（第册四批）：默认 null ‖ 字符串保值 ‖ 对象 / 数字 / 空串三档脏值归 null ‖ 旧档缺键补 null ' +
+      '‖ 复 normalize 幂等 ‖ 键在 profile 声明集内（漏一行即读档丢，判据抓得住）',
+      a320 && b320 && c320 && d320 && e320 && f320,
+      '默认=' + a320 + ' 保值=' + b320 + ' 脏=' + c320 + ' 缺键=' + d320 + ' 幂等=' + e320 + ' 声明=' + f320);
+
 
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');

@@ -42,7 +42,7 @@ async function buildSave() {
   ws.lastSave = now; ws.lastOffline = null; ws.pendingChoice = null;
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-1' },
     meta: { unlockedWorlds: ['xiuxian'], unlocks: { prodigySlot: true } },
     settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
     worlds: { xiuxian: ws }
@@ -123,16 +123,26 @@ async function buildSave() {
   T(alWide.n >= 3 && alWide.cols >= 2, 'M7 炼丹炼器信息为卡片网格（≥3 段 · 宽屏 ≥2 列）', 'grids=' + alWide.n + ' cols=' + alWide.cols);
   T(alWide.items >= 6, 'M8 丹方/图纸/材料均以卡片呈现', 'items=' + alWide.items);
 
-  /* ── ④ 同代天骄：前 10 详情 + 每 10 游戏年刷榜 ── */
+  /* ──  江湖榜：一榜十席 + 玩家名次行只在自己那一榜（第册一批③改口）── */
   await page.click('#m-tabbar button[data-v="prodigy"]');
+  await page.waitForTimeout(400);
+  /* 玩家名次行只渲染在他所属那条境界带上 ⇒ 先切到自己那一榜再取数（不切就会假红） */
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const el = document.querySelector('#tab-prodigy .jbchips button[data-v="' +
+      SQ.Jianghu.bandOf(s.worlds.xiuxian.realm) + '"]');
+    if (el) el.click();
+  });
   await page.waitForTimeout(400);
   const pd = await page.evaluate(() => {
     const rows = document.querySelectorAll('#tab-prodigy .lrow');
     return { rows: rows.length, txt: document.querySelector('#tab-prodigy').textContent };
   });
-  T(pd.rows === 10, 'M9 榜面只展前 10 位详情（名录 30）', 'rows=' + pd.rows);
-  T(pd.txt.indexOf('10 游戏年') >= 0, 'M10 榜面标注每 10 游戏年一刷', pd.txt.slice(0, 0) || 'ok');
-  T(pd.txt.indexOf('位列第') >= 0, 'M11 显示玩家榜位');
+  T(pd.rows >= 10 && pd.rows <= 11, 'M9 一榜十席（名录 30 人分带后每榜仍只十席；玩家跌出十席时榜尾补自己那一行 ⇒ ≤11）',
+    'rows=' + pd.rows);
+  T(pd.txt.indexOf('10 游戏年') >= 0, 'M10 榜面标注名次播报节律（榜本身已改实时装配 ⇒ 措辞随批改口）', 'ok');
+  T(/位列.{0,4}第 [0-9]+ 位/.test(pd.txt), 'M11 显示玩家榜位（第册一批③起带榜名：「你当前位列玄榜第 N 位」）',
+    (pd.txt.match(/位列.{0,8}第 [0-9]+ 位/) || ['无该行'])[0]);
 
   /* ── 窄屏退单列 ── */
   await page.setViewportSize({ width: 390, height: 844 });
@@ -215,6 +225,17 @@ async function buildSave() {
   page3.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page3.goto(url);
   await page3.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+  /* M22（第卅九批 · 用户报「神秘商人触发的特席我从没见过」）：复盘 = 机制没坏（玩家真档里开过两次席，间隔与 12h 冷却吻合），
+   * 坏在没人告诉玩家——席期只有 MERCHANT_DURATION_MS(10 分钟)，而坊市红点签名原先只含补货时间戳、日志末行又是 event 类被 toast 跳过。
+   * 台次也要说清：商人席只摆在第三台（ctx3 / saveTags）的档里，toast 又只活 3 秒 ⇒ 必须紧跟这台载入去轮询。 */
+  const merchToast = await page3.evaluate(() => new Promise((res) => {
+    var t0 = Date.now(), txt = '';
+    var iv = setInterval(() => {
+      txt = Array.prototype.map.call(document.querySelectorAll('#toasts .toast'), (x) => x.textContent).join(' | ');
+      if (/神秘商人/.test(txt) || Date.now() - t0 > 4200) { clearInterval(iv); res(txt); }
+    }, 120);
+  }));
+  T(/神秘商人/.test(merchToast), 'M32 载入时席还开着就主动提示一次（坊市红点签名现已含开席时刻）', merchToast.slice(0, 64) || '（4 秒内无提示）');
   await page3.waitForTimeout(800);
   await page3.click('#m-tabbar button[data-v="shop"]');
   await page3.waitForTimeout(600);
@@ -233,8 +254,20 @@ async function buildSave() {
     });
     return { shelf: rows('#tab-shop .shopgrid .shopcard', true), merch: rows('#tab-shop .merchbox .shopcard', false) };
   });
+  const merchLeft = await page3.evaluate(() => {
+    const box = document.querySelector('.merchbox');
+    return ((box ? box.textContent : '').match(/离去[^0-9]{0,3}[0-9]+s*(分钟|分|秒|时)/) || [])[0] || '';
+  });
+  T(merchLeft !== '', 'M33 特席倒计时在位（玩家看得清还多久收摊 · 容器 = .merchbox）', merchLeft || '（读不到倒计时）');
+  const copyM = await page3.evaluate(() => {
+    const D = SQ.Worlds.xiuxian.pack.data;
+    return { txt: SQ.t('log.eff.merchant', { n: Math.round(D.MERCHANT_DURATION_MS / 60000) }), mins: Math.round(D.MERCHANT_DURATION_MS / 60000) };
+  });
+  T(copyM.txt.indexOf(copyM.mins + ' 分钟') >= 0 && copyM.txt.indexOf('{') < 0 && copyM.txt.indexOf('一炷香') < 0,
+    'M34 开席文案的分钟数取表值（旧写法写死「一炷香」，改表不带动屏上话）', copyM.txt.slice(0, 56) + ' ‖ n=' + copyM.mins);
   await ctx3.close();
   const sh = tagDump.shelf, mc = tagDump.merch;
+
   const at = (i) => sh[i] || {};
   T(sh.length === 10 && mc.length === 3, 'M15 非空观测：货架十格 + 特席三格全部渲染（六类货各就位，后面每条 chip 断言才有对象可量）',
     '货架=' + sh.length + ' 特席=' + mc.length);

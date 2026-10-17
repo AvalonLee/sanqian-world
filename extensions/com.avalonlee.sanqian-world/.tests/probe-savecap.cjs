@@ -82,6 +82,55 @@ console.log('  board() 实时榜可用      = ' + (!!live && Array.isArray(live.
   '（rows=' + (live && live.rows ? live.rows.length : -1) + ' myRank=' + (live ? live.myRank : -1) + '）');
 console.log('');
 
+/* ── 身死掉落通道的落盘上界（第册三批 2026-10-17 · 设计稿 §四 · 读数由本件自己打印，不手抄）──
+ * 造一世满档出场者（prodigySlot 解锁 ⇒ 30 人），让**引擎**把他们全杀光，量这条通道往哪几个既有
+ * 容器里长：法宝 `owned` / 已学功法 `artsKnown` / 待修习架 `shelf` / `prodMarks.dead`。
+ * 这条通道没有新增字段，但会把既有容器推向真实上界 ⇒ #206 的 61,118B 那一档模型不含袭杀，
+ * 补这一段就是为了不把「大概 1KB 级」当成读数。 */
+const wsDrop = pack.initialState();
+wsDrop.realm = 9;
+/* 播种：rollForNewLife 会掷出场者与天赋 ⇒ 不播种则每次跑抽到不同的人，读数随批漂移
+ * （第册三批复核抓到四跑给出 −6252 / −6205 / −6197 / −6174 四个数，写进文档即成假读数）。
+ * mulberry32 与 sim 两件套同一形态；只覆写这段抽取，杀光循环本身不掷随机。 */
+let seed32 = 20261017 >>> 0;
+const rand32 = () => { seed32 = (seed32 + 0x6D2B79F5) >>> 0; let t = seed32; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const origRandom = Math.random;
+Math.random = rand32;
+SQ.Prodigy.rollForNewLife(wsDrop, pack, D, { unlocks: { prodigySlot: true }, stats: {} }, 1790000000000);
+Math.random = origRandom;
+const ownOf = x => ((x.treasures || {}).owned || []).length;
+const dropBefore = {
+  n: wsDrop.prodigies.length, tb: ownOf(wsDrop), kn: (wsDrop.artsKnown || []).length,
+  sh: (wsDrop.shelf || []).length, b: bytes({ prodigies: wsDrop.prodigies, prodMarks: wsDrop.prodMarks,
+    treasures: wsDrop.treasures, artsKnown: wsDrop.artsKnown, shelf: wsDrop.shelf, stones: wsDrop.stones,
+    alchemy: wsDrop.alchemy })
+};
+let dropPeak = dropBefore.b, dropPeakAt = 0;
+const dropB = x => bytes({ prodigies: x.prodigies, prodMarks: x.prodMarks, treasures: x.treasures,
+  artsKnown: x.artsKnown, shelf: x.shelf, stones: x.stones, alchemy: x.alchemy });
+for (let guard = 0; guard < 200 && wsDrop.prodigies.length; guard++) {
+  SQ.Prodigy.killOff(wsDrop, { meta: {} }, pack, D, wsDrop.prodigies[0], 1790000000000 + guard * 1000, () => { });
+  const cur = dropB(wsDrop);
+  if (cur > dropPeak) { dropPeak = cur; dropPeakAt = guard + 1; }
+}
+const dropAfter = {
+  tb: ownOf(wsDrop), kn: (wsDrop.artsKnown || []).length, sh: (wsDrop.shelf || []).length,
+  dead: (wsDrop.prodMarks.dead || []).length,
+  b: dropB(wsDrop)
+};
+console.log('--- 身死掉落通道（第册三批）：全世 ' + dropBefore.n + ' 名出场者杀光的实测上界 ---');
+console.log('  法宝 owned            = ' + dropBefore.tb + ' → ' + dropAfter.tb + ' 件（+' + (dropAfter.tb - dropBefore.tb) + '）');
+console.log('  功法 artsKnown + shelf = ' + (dropBefore.kn + dropBefore.sh) + ' → ' + (dropAfter.kn + dropAfter.sh) +
+  ' 部（已学 ' + dropBefore.kn + '→' + dropAfter.kn + ' ‖ 架 ' + dropBefore.sh + '→' + dropAfter.sh + '，架 ' + D.SHELF_CAP + ' 位封顶）');
+console.log('  prodMarks.dead        = ' + dropAfter.dead + ' 条（≤20 封顶，超限挤最旧）');
+const sB = n => (n >= 0 ? '+' : '−') + Math.abs(n) + 'B';   /* 符号统一算：旧写法把 '+' 拼在负数前打成 '+-6205B' */
+console.log('  本通道净增（末态）    = ' + sB(dropAfter.b - dropBefore.b) + ' ≈ ' + ((dropAfter.b - dropBefore.b) / 1024).toFixed(2) + 'KB');
+console.log('  过程中最贵的一刻      = 杀掉第 ' + dropPeakAt + ' 人时 ' + sB(dropPeak - dropBefore.b) +
+  '（对 ' + (SQ.SAVE_RED / 1024) + 'KB 红线 = ' + ((dropPeak - dropBefore.b) / SQ.SAVE_RED * 100).toFixed(2) + '%）' +
+  '⇒ 判据取峰值不取末态：死者出榜把本人那行（≤256B）从档里带走，换回的法宝 / 功法 / dead 三处加起来更轻');
+console.log('  抽取已播种            = mulberry32(20261017) ⇒ 同码同种双跑逐字同值；改表或改名录则随批复测，读数不手抄进文档');
+console.log('');
+
 /* 红线余量核算：红线与触发线读 core.js 导出的单一事实源（旧版三处硬编码 50/45 已废）
  * breachMaxKB = 2026-10-05 事故时 sim-playthrough 实测越线峰值，保留作历史参照 */
 const breachMaxKB = 50.7;

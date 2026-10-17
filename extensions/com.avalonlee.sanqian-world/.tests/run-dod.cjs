@@ -3,8 +3,8 @@
  *   现拼（本会话就拼了两次），而本仓纪律明确要求「逐篇末行读数**由脚本求和、不手算」——
  *   手算总数正是 FACTS 里那条「十七篇却只列 16 篇、282+16=298 恰好闭合」勘误的成因。
  * 用法：
- *   node .tests/run-dod.cjs            快速预检（无浏览器依赖 16 件 · 实测累计墙钟 ~19s，非"2~4 分钟"）
- *   node .tests/run-dod.cjs --ui       追加界面走查（需 playwright-core + Edge，约 8~10 分钟：26 篇各起一次浏览器）
+ *   node .tests/run-dod.cjs            快速预检（无浏览器依赖 · 件数与断言合计**只认末行** `DOD_ALL_GREEN n 件 / 断言合计 m`，注释不抄数）
+ *   node .tests/run-dod.cjs --ui       追加界面走查（需 playwright-core + Edge，约 8~15 分钟：每篇各起一次浏览器）
  *   node .tests/run-dod.cjs --sim      追加 sim-playthrough 全量（约 10~20 分钟，收口必跑）
  *   node .tests/run-dod.cjs --full     = --ui --sim
  * 判据：末行 DOD_ALL_GREEN <件数>；任一子件红 ⇒ 末行 DOD_FAILED <清单> 且退码 1。

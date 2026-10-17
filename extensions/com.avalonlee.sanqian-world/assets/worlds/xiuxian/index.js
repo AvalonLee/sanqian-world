@@ -14,8 +14,11 @@
     var now = Date.now();
     return {
       qi: 0, total: 0, stones: 100, realm: 0,
-      artsKnown: ['tuna', 'juling'], artsLevels: {}, artsSlots: [], shelf: [],
-      artsAutoInit: false, artsLearnClock: 0, artsSelfLearnN: 0,
+      artsKnown: ['tuna', 'juling'], artsLevels: { tuna: 1, juling: 1 }, artsSlots: [], shelf: [],
+      artsAutoInit: false, artsLearnClock: 0, artsSelfLearnN: 0, artsMain: null,
+      /* 自动炼化开关（GitHub issue #2）：false = 换下的旧件 / 不如在件的新件先入库藏阁。
+       * 认 ws 而不是 state.settings：autoEquip 的十一个调用点签名各异，只有 ws 一定在场。 */
+      gearAutoRefine: true,
       zone: 0, prog: {}, cleared: [], combatAcc: 0, kills: 0,
       /* 系统深化批 A4（数值详设 §2.5~§2.7）：区域词缀 {affixId, until} / 域主 {zone, state, retryAt}
        * / 探宝残片 10 元分区计数；A6：天道垂青 fateSeen [{id, realm}]（同境界段排除） */
@@ -40,7 +43,7 @@
        * 商人「无视」标记；factionRep~factionSupply = 职级贡献/捐献窗口/委托/冲突/供给五件套 */
       factions: null, factionNpcs: null, factionId: null, factionCdUntil: 0, merchantScout: false,
       factionRep: {}, factionDonate: { at: 0, used: 0 },
-      factionQuest: null, factionQuestCd: 0, factionWar: null, factionSupply: {},
+      factionQuests: [], factionQuestCd: 0, factionWar: null, factionSupply: {},
       /* 系统深化批（势力全录卷 §八/§九）：职位双技能 CD 时间戳（null = 从未使用）+
        * 功法情报白名单（永久随档，献秘与探宝残片两渠道共用） */
       factionOffice: null, intelArts: {},
@@ -49,6 +52,24 @@
       rumors: [], rumorClock: 0,
       mode: D.MODE_DEFAULT,
       artsPractice: {},
+      /* ── 寿元 / 道伤（寿元批 2026-10-15 · 第卌八批改累加口径 · 数值详设 §6.1A）─────────
+       * lifeUsed = 本世**已历岁月**（游戏年，浮点）：初值即创角生年（LIFE_SEED 随机 16~30），
+       *   之后与修为同一条时钟流逝（见 claim 内流逝口）⇒ 屏上的「N 岁」= floor(lifeUsed)，
+       *   「享年」也读同一个数；晋升境界绝不重算、只有转世才重掷生年。
+       * lifeBonus = 本世寿元上界的**累计增减**（延寿丹 / 长生功 / 奇遇为正，渡劫失败与战败折寿为负），
+       *   唯一写口 lifeAdd；它是永久账，不随卸下或遗忘回收（与 mods 那套佩戴型加成划清界限）。
+       * daoShang = 道伤层数（浮点，界面按 ceil 显层）；
+       * lastDeath = 待呈报的死因快照 {at, cause, realm, age, dao, total}，与 lastOffline 同款
+       * 「引擎写一次、界面按 at 键控读一次」⇒ 不加已读旗标（第廿八批「刷屏」同族坑）。
+       * 旧档缺 lifeBonus → normalize 走一次性保底迁移（见下），其余三字段缺省补 0/0/null 不变。 */
+      lifeUsed: D.LIFE_SEED[0] + Math.floor(Math.random() * (D.LIFE_SEED[1] - D.LIFE_SEED[0] + 1)),
+      lifeBonus: 0, daoShang: 0, lastDeath: null,
+      /* ── 袭击 / 袭杀 / 族中寻仇（第卌四批 · 数值详设 §6.1B）───────────────────
+       * ambushClock = 在线掷判累计（毫秒，离线不推进，与 eventClock 同纪律）；
+       * ambushKillAt = 袭杀冷却锚（绝对墙钟，全局一枚——按人记会随名录线性增长，红线不让）；
+       * revenge = 寻仇链单槽 {n:连胜次数, nextAt:下一轮最早时刻, foe:被袭杀者名}，
+       *   链断即置 null。**不是容器**：一槽一仇家，新的袭杀覆盖旧链（同时只有一份仇，符合叙事）。 */
+      ambushClock: 0, ambushKillAt: 0, revenge: null,
       eventHistory: { lastId: null, seen: {}, feed: [] },
       eventClock: 0,                 /* 在线奇遇时钟·秒（事件池 §三 v1.5：仅在线推进，触发归零，离线冻结） */
       lastOffline: null,             /* 离线结算汇总 {at,secs,qi,stones,trib}（数值详设 §1.3 v1.7） */
@@ -108,14 +129,28 @@
       qi: num(raw.qi, 0), total: num(raw.total, 0),
       stones: num(raw.stones, d.stones), realm: num(raw.realm, 0),
       artsKnown: arr(raw.artsKnown, d.artsKnown),
-      artsLevels: obj(raw.artsLevels, {}),
+      /* 等级起点批（2026-10-14 · 用户令「功法等级改为从 1 起」）：入门即 Lv1。
+       * 这里是**旧档 Lv0 的唯一迁移落点** ⇒ `mods.js` / `attrs.js` / 视图那六处
+       * `artsLevels[id] || 0` 直读口不必各自兜底，也不会出现「档里 0、屏上 Lv0」。
+       * 幂等：补完再 normalize 结果不变（已入门者的值恒 ≥1）。 */
+      artsLevels: (function () {
+        var lv = obj(raw.artsLevels, {});
+        arr(raw.artsKnown, d.artsKnown).forEach(function (id) {
+          if (!(num(lv[id], 0) >= 1)) lv[id] = 1;
+        });
+        return lv;
+      })(),
       artsSlots: arr(raw.artsSlots, []).slice(0, D.ARTS_SLOTS),
+      /* issue #3：玩家点定的主修（null = 未点定 ⇒ 回落槽内第 1 位，旧档零迁移）。
+       * 是否在槽内 / 是否已入门由 SQ.Arts.mainArt 读时校验，脏值即回落。 */
+      artsMain: typeof raw.artsMain === 'string' ? raw.artsMain : null,
       artsAutoInit: raw.artsAutoInit === true, /* 体验手感批：一次性入槽回填旗标（旧档缺省 false → 首次 claim 补齐） */
       shelf: arr(raw.shelf, []).slice(0, D.SHELF_CAP),
       zone: num(raw.zone, 0), prog: obj(raw.prog, {}),
       cleared: arr(raw.cleared, []), combatAcc: num(raw.combatAcc, 0), kills: num(raw.kills, 0),
       gear: Object.assign({}, d.gear, obj(raw.gear, {})),
       stash: arr(raw.stash, []).slice(0, D.STASH_CAP + 4),
+      gearAutoRefine: raw.gearAutoRefine !== false,   /* issue #2：缺省 = 开（旧档行为逐字不变）*/
       gearSeen: obj(raw.gearSeen, {}),
       /* 洞府：脏 id / 缺 owned 一律回落初始洞府；cooldownUntil 只收绝对时间戳（负数归零）；
        * fac 附属设施（v2.0）：只收已拥有福地 × 在册设施 id，等级钳位 0~MAX_LV */
@@ -184,6 +219,33 @@
       })(),
       eventClock: Math.max(0, num(raw.eventClock, 0)),
       lastOffline: obj(raw.lastOffline, null),
+      /* 寿元 / 道伤（§6.1A）：非负数 + 道伤钳 cap（脏档穿透也只是「下次收功即判死」，不造负数假余量）；
+       * lastDeath 与 lastOffline 同口径 = 结构原样透传，视图自守缺省。幂等：补齐后再 normalize 不变。
+       * ⚠️ lifeBonus 带**一次性旧档保底**：第卌八批把上界从 400~16000 砍到 62~5167，老档的已历岁月
+       *   可能早已越过新界 ⇒ 读档当场就坐化（本仓「改判据不许销毁玩家数据」那条）。判据 = 字段在不在：
+       *   缺 = 旧档 ⇒ 补「超出量 + LIFE_GRACE 年」；有 = 已迁过 ⇒ 原样透传，故二次 normalize 键值都不变。 */
+      lifeUsed: Math.max(0, num(raw.lifeUsed, 0)),
+      lifeBonus: (function () {
+        if (raw.lifeBonus !== undefined) return num(raw.lifeBonus, 0);
+        var rl = Math.max(0, Math.min(D.REALMS.length - 1, num(raw.realm, 0)));
+        if (rl >= D.LIFE_ETERNAL) return 0;
+        var over = Math.max(0, num(raw.lifeUsed, 0)) - lifeCapOf(rl);
+        return over > 0 ? over + D.LIFE_GRACE : 0;
+      })(),
+      daoShang: Math.max(0, Math.min(D.DAO_SHANG.cap, num(raw.daoShang, 0))),
+      lastDeath: obj(raw.lastDeath, null),
+      /* 袭击三字段（第卌四批）：两个非负数 + 寻仇单槽（结构不合规整槽丢弃 = 链断，
+       * 不留半截对象——脏档里 n=「abc」会让收益倍率吃 NaN 顶穿天花板）。旧档缺字段补 0/0/null，零迁移。 */
+      ambushClock: Math.max(0, num(raw.ambushClock, 0)),
+      ambushKillAt: Math.max(0, num(raw.ambushKillAt, 0)),
+      revenge: (function () {
+        var rv = obj(raw.revenge, null);
+        if (!rv) return null;
+        var n = Math.floor(num(rv.n, 0));
+        if (!(n >= 0)) return null;
+        return { n: n, nextAt: Math.max(0, num(rv.nextAt, 0)),
+          foe: typeof rv.foe === 'string' ? rv.foe.slice(0, 24) : '' };
+      })(),
       pendingChoice: obj(raw.pendingChoice, null),
       breakCostNext: num(raw.breakCostNext, 0),
       /* 洗髓缘两字段：非负整数（脏值/小数/负数一律归零，与 artsSelfLearnN 同口径） */
@@ -356,12 +418,23 @@
     var don = obj(raw.factionDonate, {});
     out.factionDonate = { at: Math.max(0, num(don.at, 0)), used: Math.max(0, Math.floor(num(don.used, 0))) };
     var qTypes = Object.keys((D.FACTION_QUEST || {}).TYPES || {});
-    var rq = obj(raw.factionQuest, null);
-    out.factionQuest = (rq && qTypes.indexOf(rq.type) >= 0 && rq.target > 0 && rq.expireAt > nowN)
-      ? { type: rq.type, target: num(rq.target, 0), base: Math.max(0, num(rq.base, 0)),
-          rep: Math.max(0, Math.floor(num(rq.rep, 0))), stones: Math.max(0, Math.round(num(rq.stones, 0))),
-          bornAt: num(rq.bornAt, nowN), expireAt: num(rq.expireAt, nowN) }
-      : null;
+    /* 委托板面（第卅九批：单槽 → 最多 3 张不同类型）。旧档的 `factionQuest` 单张 = **唯一迁移落点**：
+     * 未过期则并入板面首格，过期则整格丢弃；两形同时存在时以新形为准、旧键直接丢（不留第二份事实源）。 */
+    var qNorm = function (rq) {
+      return (rq && qTypes.indexOf(rq.type) >= 0 && rq.target > 0 && rq.expireAt > nowN)
+        ? { type: rq.type, target: num(rq.target, 0), base: Math.max(0, num(rq.base, 0)),
+            rep: Math.max(0, Math.floor(num(rq.rep, 0))), stones: Math.max(0, Math.round(num(rq.stones, 0))),
+            bornAt: num(rq.bornAt, nowN), expireAt: num(rq.expireAt, nowN) }
+        : null;
+    };
+    var qSrc = Array.isArray(raw.factionQuests) ? raw.factionQuests.slice() : [];
+    if (!Array.isArray(raw.factionQuests) && raw.factionQuest && typeof raw.factionQuest === 'object') qSrc.push(raw.factionQuest);
+    var qOut = [], qSeen = {};
+    for (var qi = 0; qi < qSrc.length && qOut.length < Math.max(1, (D.FACTION_QUEST || {}).SLOTS || 1); qi++) {
+      var nq = qNorm(qSrc[qi]);
+      if (nq && !qSeen[nq.type]) { qSeen[nq.type] = 1; qOut.push(nq); }   /* 同类型只留一张（板面唯一性 = 交付按 type 寻址的前提） */
+    }
+    out.factionQuests = qOut;
     out.factionQuestCd = Math.max(0, num(raw.factionQuestCd, 0));
     var rw = obj(raw.factionWar, null);
     out.factionWar = (rw && facIdSet[rw.aId] && facIdSet[rw.bId] && rw.aId !== rw.bId && rw.until > nowN)
@@ -523,6 +596,24 @@
      * 离线 = 潜心悟道，两处都不触碰（按原有规则结算）。 */
     var idleRes = SQ.Idle.settle(ws, pack, D, dtMs, now, ctx);
 
+    /* G2A 寿元流逝 + 道伤疗养（寿元批 §6.1A · 第卌八批改封顶口径）：与修为**同一条时钟**取 settle
+     * 已结算时长，1 游戏年 = 360 s = 0.1 h ⇒ hours × 10；但衰老另吃一枚 LIFE_OFFLINE_MIN=30 分钟的
+     * 离线上限（经济侧照旧按 OFFLINE_CAP_H 结 12 小时）。两把尺子是刻意的：新累加界练气只有 62 年，
+     * 若照旧 120 年/次回归，**隔夜一次就老死**——离线少产可以接受，少命不行。在线仍 1:1，
+     * 关掉页面规避不了流逝，只是不再被离线一次性咬掉一辈子的寿。
+     * 致死判定**不在这里**：转世是 state 级事务，由 core.claimInner 取 lifeInfo().cause
+     * 走既有 SQ.Legacy.rebirth 通道（与兵解同一条，折分 ×0.7）。 */
+    var settledYrs = idleRes.hours * 10;
+    var lifeYrs = idleRes.offline ? Math.min(settledYrs, D.LIFE_OFFLINE_MIN / 60 * 10) : settledYrs;
+    if (lifeYrs > 0) ws.lifeUsed = (ws.lifeUsed || 0) + lifeYrs;
+    /* 道伤疗养吃的是**未封顶**的结算时长：那枚 30 分钟的尺子只管「老多少」，顺手用它疗伤会把
+     * 离线自愈一起砍掉 24 倍——那是附带伤害，不是本批裁定（冒烟 #303(d) 钉住这条分界）。 */
+    if (ws.daoShang > 0) ws.daoShang = Math.max(0, ws.daoShang - settledYrs * D.DAO_SHANG.healPerYear);
+
+    /* G2B 认主计时（体验批）：与寿元同一条**已结算**时钟（离线同计、照 OFFLINE_CAP_H 封顶）——
+     * 卡在境界线上渡不了劫时，先天法宝不再整段停摆；计时只是下限，渡劫仍是更快的一路。 */
+    if (SQ.Treasures) SQ.Treasures.bondTime(ws, pack, D, idleRes.hours, ctx && ctx.log);
+
     /* G3：战斗只随在线 tick 推进（详设 §2.1 P4 登记），且**只有外出历练才进秘境**——
      * 闭关不产灵石、不出装备、不推进度（需求 §1.1/§2）；历练期角色位于 ws.zone 秘境。 */
     var mods = modsFor(ws, prof);
@@ -549,6 +640,9 @@
      * 离线零奇遇、时钟冻结；pendingChoice 挂起期间时钟暂停） */
     if (!idleRes.offline && dtMs > 0) {
       SQ.Events.tickOnline(ws, pack, D, mods2, dtMs / 1000, now, ctx);
+      /* G7A 阵营袭击 / 族中寻仇（第卌四批 · 数值详设 §6.1B）：与奇遇同一条「只随在线时钟」通道——
+       * 离线不掷不补算、pendingChoice 挂起期不叠加；限时倒计时归界面（弹窗开着时 claim 本就跳过） */
+      ambushTick(ws, pack, D, dtMs, now, ctx);
       /* G17：传闻在线刷新（rumorClock 与奇遇时钟同纪律——离线冻结不刷新；
        * pendingChoice 挂起期间照常刷新，传闻是货架不是弹窗） */
       if (SQ.Rumors) SQ.Rumors.tick(ws, pack, D, mods2, dtMs / 1000, now, ctx);
@@ -589,6 +683,204 @@
     return idleRes;
   }
 
+  /* ── 寿元 / 道伤（寿元批 2026-10-15 · 数值详设 §6.1A 唯一实现处 · 第卌八批改累加界 + 增减写口）──
+   * 一律经 pack.worldSystems 出：core 只取 cause 判死、realm/combat 只打伤涤伤折寿、丹与功法与奇遇
+   * 只经 lifeAdd 记账、视图只读派生数，都不许回头自拼一套口径（第廿五批「同源」纪律沿用）。
+   * 形参比同族钩子窄是本模块刻意：表在闭包里的 D，调用方无须再传一遍（shortcut: 第二世界装载时若通用层要复用本族，
+   * 再把 D 提成形参并落进世界包契约，届时随 N 号一并处置）。 */
+  /* 上界 = 凡人寿元 + 逐境增量 LIFE_STEP 的**前缀和**（第卌八批改累加口径 · 用户令「晋升后不从 0 重新计算」）：
+   * 破境只把上界抬高、已历岁月一字不动 ⇒ 「活到多少岁」是一条连续线，界面上「N 岁 / 尚余约 M 年」同源。 */
+  function lifeCapOf(realm) {
+    var t = D.LIFE_MORTAL, st = D.LIFE_STEP;
+    for (var i = 0; i <= Math.min(realm | 0, st.length - 1); i++) t += st[i];
+    return t;
+  }
+  function lifeInfo(ws) {
+    var DS = D.DAO_SHANG;
+    var realm = Math.max(0, Math.min(ws.realm || 0, D.REALMS.length - 1));
+    var eternal = realm >= D.LIFE_ETERNAL;      /* 真仙不受寿限：剩余与上界一律 Infinity，绝不做减法 */
+    var used = Math.max(0, ws.lifeUsed || 0);
+    var bonus = num(ws.lifeBonus, 0);           /* 本世累计得寿 / 折寿（lifeAdd 唯一写口） */
+    var dao = Math.max(0, ws.daoShang || 0);
+    var max = eternal ? Infinity : lifeCapOf(realm) + bonus;
+    var left = eternal ? Infinity : max - used;
+    /* 道伤一律按**屏上显示的层数**判（ceil）：疗养是连续量，15 层吃满后再结算 1 秒就变 14.997，
+     * 用原值判等于「伤重不治的人被一秒的疗养救活」——伤满即死的悬崖会被小数抹平（冒烟 #304 抓到）。 */
+    var daoLv = Math.ceil(dao);
+    /* 死因三条（第卌八批加折寿）：折寿只在「把加成拿掉本来还活着」时报——同一条越线到底是天数到
+     * 了还是被人打折的，叙述得说实话。双超线仍先报寿系（道伤是内伤、寿尽是天数，取后者）。 */
+    var cause = null;
+    if (!eternal && left <= 0) cause = (bonus < 0 && lifeCapOf(realm) - used > 0) ? 'zhesou' : 'shoujin';
+    if (!cause && daoLv >= DS.cap) cause = 'daoshang';
+    return {
+      max: max, used: used, age: Math.floor(used), bonus: bonus, left: left, eternal: eternal,
+      near: !eternal && left <= max * D.LIFE_WARN_P,
+      dao: dao, daoLv: daoLv, daoMax: DS.cap, daoNear: daoLv >= DS.warn,
+      cause: cause
+    };
+  }
+  /* 寿元增减**唯一写口**（第卌八批 · 与 daoAdd 同纪律：一条通道、一份口径）：
+   * 正 = 得寿（延寿丹 / 长生功 / 奇遇），负 = 折寿（渡劫失败 / 战败 / 损人寿的邪途）。
+   * 记进 `ws.lifeBonus` 是**永久账**，不随卸下功法或法宝陨落回收——佩戴型加成走 mods，两族不混。
+   * 不钳上下界：加多少算多少，死亡判定交给 lifeInfo；界被打穿就是死，不做「保底一年」那种暗改。 */
+  function lifeAdd(ws, yrs, log, cat, src) {
+    var pts = num(yrs, 0);
+    if (!pts) return num(ws.lifeBonus, 0);
+    ws.lifeBonus = num(ws.lifeBonus, 0) + pts;
+    if (log) log(cat || 'sys', SQ.t(pts > 0 ? 'life.log.gain' : 'life.log.loss',
+      { n: SQ.fmt(Math.abs(pts)), src: src || '' }, 'xiuxian'));
+    return ws.lifeBonus;
+  }
+  /* 折寿口（渡劫失败 / 战败共用）：按**当境上界的比例**扣，不是固定年数——固定数在练气是致命的、
+   * 在渡劫期连零头都算不上（新表跨三个数量级，只有比例扛得住）。无尽档不扣（真仙不受寿限）。 */
+  function lifeHit(ws, kind, log) {
+    var r = D.LIFE_HIT[kind];
+    if (!r) return 0;
+    var realm = Math.max(0, Math.min(ws.realm || 0, D.REALMS.length - 1));
+    if (realm >= D.LIFE_ETERNAL) return 0;
+    var yrs = Math.max(1, Math.round(lifeCapOf(realm) * r));
+    return lifeAdd(ws, -yrs, log, kind === 'trib' ? 'trib' : 'combat',
+      SQ.t('life.hit.' + kind, null, 'xiuxian'));
+  }
+  /* 渡劫失败入伤（realm.js 挂点）：加层 = min(连败, gainMax) ⇒ 1+2+3+4+5 恰吃满 cap；
+   * 封顶在 cap ⇒ 越线即由 lifeInfo 判死，屏上不留「18/15」那种溢出数。
+   * 警示只在**跨过 warn 那一层**写一条（同层重复不写 ⇒ 离线批量渡劫不刷屏，第廿八批同族坑）。 */
+  function daoHit(ws, streak, log) {
+    var DS = D.DAO_SHANG;
+    daoAdd(ws, Math.min((streak || 1) - (DS.freeStreak != null ? DS.freeStreak : 2), DS.gainMax), log, 'trib');
+  }
+  /* 道伤加层**唯一写口**（第卌四批从 daoHit 里抽出）：渡劫连败阶梯与袭击/寻仇的 failE 都走这里——
+   * 封顶与「只在跨过 warn 那一层写一条」的降噪纪律只有一份实现，第二条写口 = 第二个口径。 */
+  function daoAdd(ws, pts, log, cat) {
+    var DS = D.DAO_SHANG;
+    var before = Math.max(0, ws.daoShang || 0);
+    ws.daoShang = Math.min(DS.cap, before + Math.max(0, num(pts, 0)));
+    if (log && before < DS.warn && ws.daoShang >= DS.warn) {
+      log(cat || 'trib', SQ.t('daoshang.log.warn', { n: Math.ceil(ws.daoShang), cap: DS.cap }, 'xiuxian'));
+    }
+    return ws.daoShang;
+  }
+  /* 破境涤伤（realm.js 成功挂点）：道伤 −cleanse、下限 0；不写日志（破境本身已播数行）。 */
+  function daoCleanse(ws) {
+    ws.daoShang = Math.max(0, (ws.daoShang || 0) - D.DAO_SHANG.cleanse);
+  }
+
+  /* ══ 袭击 / 袭杀 / 族中寻仇（第卌四批 · 数值详设 §6.1B · 设计稿 docs/设计稿/袭击与袭杀寻仇-设计稿.md 转正）══
+   * 敌手人选 = 在册相识（好感档 ≥1、未绝交锁、未裂疤——**道侣本就记在同一张 bonds 表里**，
+   * 故「道友 / 道侣 / 天骄」三池在代码里是两池）∪ 天骄名录。
+   * 强度**只两档**：来客 = 高一境基础战力 × FOE_K；寻仇 = 同基准 × REVENGE_K（境界一定压玩家一头，
+   * 顶到真仙即同境——屏上如实写「同境」，不做隐性削弱）。道友池不供境界（名录无此字段）⇒ 屏上只报
+   * 「何人 + 战力几何」，不编一个假境界出来（N33「兜底键复用会让文案说谎」的同型面）。
+   * 计时一律在线：掷判累计只吃在线时长（与 eventClock 同纪律）；**限时倒计时归界面**（抉择浮层开着时
+   * 引擎 claim 本就跳过结算）⇒ 关掉页面不会「睡一觉被仇家打死」，重新进线重新给满一段时间。 */
+  function foeGuest(ws, pack, D, k) {
+    var cands = [];
+    if (SQ.Bonds) SQ.Bonds.list(pack).forEach(function (c) {
+      if (SQ.Bonds.tierOf(ws, c.id, D) >= 1 && !SQ.Bonds.locked(ws, c.id) && !SQ.Bonds.scarred(ws, c.id)) {
+        cands.push({ src: 'bond', nm: SQ.t('bond.' + c.id + '.name', null, 'xiuxian') });
+      }
+    });
+    if (SQ.Prodigy) (ws.prodigies || []).forEach(function (p) {
+      cands.push({ src: 'prodigy', nm: SQ.Prodigy.nameOf(ws, p, pack) });
+    });
+    if (!cands.length) return null;
+    var c = cands[Math.floor(Math.random() * cands.length)];
+    var realm = Math.min((ws.realm || 0) + 1, D.REALMS.length - 1);
+    c.realm = realm;
+    c.power = Math.round(D.REALMS[realm].power * (k != null ? k : D.AMBUSH.FOE_K));
+    return c;
+  }
+  /* 挑一条限时抉择挂上 pendingChoice（与 fire / fireTagged 同口径的五件套：冷却 / lastId / seen） */
+  function foeFire(ws, pack, D, evId, foe, now, ctx, via) {
+    var ev = SQ.Events.findById(pack, evId);
+    if (!ev) return null;
+    if (ev.cooldownHours != null) ws.eventCooldowns[ev.id] = now;
+    ws.eventHistory.lastId = ev.id;
+    if (ws.eventHistory.seen[ev.id] == null) ws.eventHistory.seen[ev.id] = now;
+    ws.pendingChoice = { id: ev.id, at: now, tier: ev.tier, nature: ev.nature,
+      via: via, foe: { nm: foe.nm, src: foe.src, realm: foe.realm, power: foe.power } };
+    if (ctx && ctx.log) ctx.log('event', SQ.t(via === 'revenge' ? 'event.ambush.log.revenge' : 'event.ambush.log.ambush', { name: foe.nm }, 'xiuxian'));
+    return { id: ev.id, pending: true, via: via, foe: ws.pendingChoice.foe };
+  }
+  /* 独立通道（tags）不进 buildPool ⇒ 模板上的 cooldownHours 不会自动生效；这里按**读端同一条判据**
+   * 自查（照 events.buildPool 那个式子），否则就是「写了冷却没人接」——审计 A8 那一族的成因形态。 */
+  function foeReady(ws, pack, D, id, now) {
+    var ev = SQ.Events.findById(pack, id);
+    var cdH = ev && ev.cooldownHours != null ? ev.cooldownHours : null;
+    var cd = (ws.eventCooldowns || {})[id];
+    return !(cdH != null && cd != null && now < cd + cdH * 3600 * 1000);
+  }
+  function ambushTick(ws, pack, D, dtMs, now, ctx) {
+    var A = D.AMBUSH;
+    if (ws.pendingChoice || !(dtMs > 0)) return null;
+    /* 寻仇链优先（有仇必偿，压过随机袭击）：冷却未到就整段等下一次 tick。
+     * 敌手不从三池取——「族中高手」是被袭杀者的族人，屏上如实写来历，不拿旧相识冒充（同 N33 那一形）。 */
+    var rv = ws.revenge;
+    if (rv) {
+      if (now < (rv.nextAt || 0)) return null;
+      /* 第卌五批（用户改口径 · N56 收口）：偿清满 REVENGE_FINAL 场 ⇒ 上门的是高**两**境的族中老祖。
+       * 战力取两者之大：`REALMS[玩家+2].power`（境界表量级，一境 ≈3 倍）与「玩家实付 ×REVENGE_FINAL_MIN」的下界——
+       * 只按境界表立不起这道墙：① 顶到真仙两档都钳成同境；② 玩家实付含法器/功法乘区，高一境基值常年被越过
+       * （第卌四批全量读数 寻仇 2393 场零链断就是这条证据）。这条判定只掷**我方**一侧 ±10% 且仍要 ≥ 快照 ×1.01（最高只翻 1.1÷1.01≈1.089）
+       * ⇒ ×1.2 挂出时当场掷不赢，只有在这一链期间把战力长过它才翻盘 = 「几乎必败」而非档上写死必败；败即链断（failE 道伤全额），
+       * 玩家要往下走只能另寻他法（疗道伤 / 变强 / 收手不再袭杀）。
+       * 屏上不报敌手境界、只报名号与战力 ⇒ 顶档钳同境时这句注释也不撒谎。 */
+      var hard = (rv.n || 0) >= A.REVENGE_FINAL;
+      var realm = Math.min((ws.realm || 0) + (hard ? 2 : 1), D.REALMS.length - 1);
+      var foeP = hard ? Math.max(D.REALMS[realm].power,
+        Math.round(powerOf(ws, (ctx && ctx.profile) || { talents: [] }) * A.REVENGE_FINAL_MIN))
+        : Math.round(D.REALMS[realm].power * A.REVENGE_K);
+      var foe = { src: 'clan', nm: SQ.t(hard ? 'event.ambush.foe.elder' : 'event.ambush.foe.clan',
+        { foe: rv.foe || '' }, 'xiuxian'), realm: realm, power: foeP };
+      return foeFire(ws, pack, D, 'ambush_revenge', foe, now, ctx, 'revenge');
+    }
+    ws.ambushClock = (ws.ambushClock || 0) + dtMs;
+    if (ws.ambushClock < A.ROLL_MS) return null;
+    ws.ambushClock = 0;                       /* 一格一掷：没中也把这一格的花掉（不欠概率） */
+    var karma = ws.karma || 0;               /* 现行善恶值（recalcDerived 已覆盖式重算，与名号/档位同一把尺） */
+    if (!karma) return null;                  /* 善恶未著 = 无人讨你 */
+    var p = A.P_BASE + (A.P_MAX - A.P_BASE) * Math.min(1, Math.abs(karma) / A.K_REF);
+    if (Math.random() >= p) return null;
+    /* 正道深 ⇒ 魔道来袭；魔道深 ⇒ 正道讨伐。左道（karma 恰 0）已在上面 return null。
+     * 冷却自查放在取人**之前**：独立通道不进 buildPool，模板上的 cooldownHours 若不在此读一次，
+     * 就只是写在档上的装饰（A8「写了没人接」那一族）。 */
+    var idA = karma > 0 ? 'ambush_by_evil' : 'ambush_by_right';
+    if (!foeReady(ws, pack, D, idA, now)) return null;
+    var g = foeGuest(ws, pack, D, A.FOE_K);
+    if (!g) return null;
+    return foeFire(ws, pack, D, idA, g, now, ctx, 'ambush');
+  }
+  /* 寻仇收益倍率（ev.escalate 的加成源，events.resolveBranch 经 worldSystems 读这一处） */
+  function escalationOf(ws) {
+    var A = D.AMBUSH;
+    var n = (ws.revenge && ws.revenge.n) || 0;
+    return Math.min(A.STREAK_CAP, 1 + n * A.STREAK_STEP);
+  }
+  /* 结算后的链条账（actions.resolveChoice 与 onEventResolved 同点位调用）：
+   * 胜 ⇒ 连胜 +1、进 10 分钟冷却（冷却后继续下一轮，奖励按上式递增）；
+   * 败 ⇒ 链断（道伤已由 failE 落账），**不进冷却**——用户定的「失败惩罚更重」在此。
+   * ⚠️ 调用时 pendingChoice 已被 resolveBranch 清掉 ⇒ 人名取链条自己那份（ws.revenge.foe），
+   *    别回头去读刚被清空的槽（读到 null 就是一条「{foe} 之仇」的空花括号）。 */
+  function ambushSettled(ws, pack, D, evId, pass, now, log) {
+    if (evId !== 'ambush_revenge' || !ws.revenge) return null;
+    if (!pass) {
+      var avenger = ws.revenge.foe || '';
+      ws.revenge = null;
+      if (log) log('event', SQ.t('event.ambush.log.chainend', { foe: avenger }, 'xiuxian'));
+      return { chain: 0, ended: true };
+    }
+    ws.revenge.n = (ws.revenge.n || 0) + 1;
+    ws.revenge.nextAt = now + D.AMBUSH.REVENGE_CD_MS;
+    if (log) log('event', SQ.t('event.ambush.log.chainwin', { n: ws.revenge.n, m: Math.round(D.AMBUSH.REVENGE_CD_MS / 60000) }, 'xiuxian'));
+    return { chain: ws.revenge.n, nextAt: ws.revenge.nextAt };
+  }
+  /* 袭杀满 KILL_MAX 次 ⇒ 该天骄身死 ⇒ 播种寻仇链（prodigy.js 的 killOff 出榜之后调用）。
+   * 已有链在场 = 覆盖（同时只有一份仇；做成容器就会随名录长档，本仓吃过两次）。 */
+  function revengeArm(ws, pack, D, foeName, now) {
+    ws.revenge = { n: 0, nextAt: now, foe: foeName || '' };
+    ws.ambushClock = 0;                     /* 有仇在先，随机袭击这一格作废（不双线程挤同一枚 pendingChoice） */
+  }
+
   var pack = {
     worldId: 'xiuxian',
     data: D,                               /* 数据表引用（systems 只读 pack.data，不 import 世界模块） */
@@ -602,6 +894,8 @@
     capOf: capOf,
     powerOf: powerOf,
     artsMap: function () { return SQ.XARTS; },
+    /* 江湖名录池（第卌七批）：通用层 `SQ.Jianghu` 经此取数，不直读世界全局（审计 D3 同一纪律） */
+    jianghuPool: function () { return SQ.JIANGHU_POOL; },
     /* G13 洞天福地表（引擎卷 §2.2 数据契约；引擎 systems/cave.js 只读本表） */
     caves: D.CAVES,
     /* G14 道友名录表（引擎卷 §3.2 数据契约；引擎 systems/bonds.js 只读本表） */
@@ -628,7 +922,18 @@
       alignMultOf: function (ws) { return SQ.XKarma.alignMultOf(ws, D); },
       effectsOf: function (ws) { return SQ.XKarma.effectsOf(ws, D); },   /* ALIGN_EFFECTS 整行（引擎消费入口） */
       tribInfo: function (ws, pk, DD, mods, opts) { return SQ.XTrib.info(ws, pk, DD, mods, opts); },
-      tribLoss: function (ws, pk, DD, mods) { return SQ.XTrib.loss(ws, pk, DD, mods); }
+      tribLoss: function (ws, pk, DD, mods) { return SQ.XTrib.loss(ws, pk, DD, mods); },
+      /* 寿元 / 道伤（寿元批 §6.1A）：core.claimInner 取 cause 判死并走既有转世事务，
+       * realm.js 渡劫成败两侧打伤涤伤，视图只读 lifeInfo 的派生数——三处都不碰表。
+       * 第卌八批另出三口：lifeCapOf = 累加上界（境界一览与全部判据的唯一取数口）、
+       * lifeAdd = 寿元增减唯一写口（丹 / 功法 / 法宝 / 奇遇共用）、lifeHit = 折寿（渡劫失败 / 战败）。 */
+      lifeInfo: lifeInfo, daoHit: daoHit, daoCleanse: daoCleanse,
+      lifeCapOf: lifeCapOf, lifeAdd: lifeAdd, lifeHit: lifeHit,
+      /* 袭击 / 寻仇四口（第卌四批 §6.1B）：daoAdd = 道伤加层唯一写口（渡劫阶梯与事件 failE 共用）；
+       * ambushTick 由本包 claim 的在线段调用；ambushSettled 由 actions.resolveChoice 调用；
+       * escalationOf 由 events.resolveBranch 在 ev.escalate 时读（收益递增的那一乘） */
+      daoAdd: daoAdd, ambushTick: ambushTick, ambushSettled: ambushSettled,
+      escalationOf: escalationOf, revengeArm: revengeArm
     }
   };
 

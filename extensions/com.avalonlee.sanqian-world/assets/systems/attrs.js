@@ -9,26 +9,36 @@
   function baseOf(ws, D) { return (ws.realm + 1) * D.ATTR_BASE_PER_REALM; }
   function dcStdOf(ws, D) { return baseOf(ws, D) * D.ATTR_DC_MULT; }
 
+  /* 功法滋养的**唯一算式**（第卅八批）：槽内 × 等级 × (正/左 2 | 魔 3) × 品阶阶梯。
+   * 引擎与视图同走这里——此前视图自己抄了一遍 `lv × ARTS_NURTURE`，品阶一上就会变成
+   * 「引擎给得多、屏上说旧的」（本仓这条缺陷的同型面，见 mods 乘区与卡面增益行两次收口）。 */
+  function artsNurtureOf(ws, pack, D, attrId) {
+    var artsMap = pack.artsMap() || {};
+    var sum = 0;
+    (ws.artsSlots || []).forEach(function (aid) {
+      if ((ws.artsKnown || []).indexOf(aid) < 0) return;
+      var a = artsMap[aid];
+      if (!a || a.attr !== attrId) return;
+      var lv = ws.artsLevels[aid] || 0;
+      sum += lv * (D.ARTS_NURTURE[a.alignment] || 2) * ((D.ARTS_NURTURE_TIER || {})[a.tier] || 1);
+    });
+    return sum;
+  }
+
   SQ.Attrs = {
     baseOf: baseOf,
     dcStdOf: dcStdOf,
+    artsNurtureOf: artsNurtureOf,
     dcOf: function (ws, D, diff) { return dcStdOf(ws, D) * D.ATTR_DIFF[diff]; },
 
     /* 重算三属性（buff 项含 attr.{id} 类临时增益；只读未过期 buff） */
     recalc: function (ws, pack, D, mods) {
-      var artsMap = pack.artsMap();
       var now = Date.now();
       var out = {};
       D.ATTRS.forEach(function (id) {
         var v = baseOf(ws, D);
-        /* 功法滋养：槽内 × 等级 × (正/左 2 | 魔 3) */
-        (ws.artsSlots || []).forEach(function (aid) {
-          if ((ws.artsKnown || []).indexOf(aid) < 0) return;
-          var a = artsMap[aid];
-          if (!a || a.attr !== id) return;
-          var lv = ws.artsLevels[aid] || 0;
-          v += lv * (D.ARTS_NURTURE[a.alignment] || 2);
-        });
+        /* 功法滋养：见 artsNurtureOf（含第卅八批的品阶阶梯 黄1/玄2/地3.5/天6） */
+        v += artsNurtureOf(ws, pack, D, id);
         /* 装备滋养：attrValue */
         for (var slot in ws.gear) {
           var it = ws.gear[slot];

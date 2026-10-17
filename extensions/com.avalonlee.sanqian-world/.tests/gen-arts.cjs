@@ -11,7 +11,11 @@
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
-const DOC = '/workspace/app/docs/玄幻修仙/功法全录（51部）.md';
+/* 仓库根现找（.tests/repo-root.cjs），不许硬编码层数——原值 '/workspace/app/docs/…' 是容器时代的绝对路径，
+ *    平台壳退役后即失效：本生成器因此长期跑不动，arts.js 事实上成了无源抄本（第卅六批收口时发现并修）。 */
+const REPO = require('./repo-root.cjs')();
+const DOC = path.join(REPO, 'docs/玄幻修仙/功法全录（51部）.md');
+if (!require('fs').existsSync(DOC)) { console.error('DOC_MISSING ' + DOC); process.exit(2); }
 
 const ALIGN = { '正道': 'right', '左道': 'neutral', '魔道': 'evil' };
 const ATTR = { '精': 'jing', '气': 'qi', '神': 'shen' };
@@ -164,12 +168,18 @@ if (ids.length !== 70 || byTier.huang !== 14 || byTier.xuan !== 18 || byTier.di 
 
 /* ── 输出数据文件 ── */
 function js(v) { return JSON.stringify(v); }
+/* 寿元增减两部（第卌八批 · 数值详设 §6.1A 与《功法全录》§2.8 那张表是事实源，本处只是把表编码进生成器）：
+ * `life` = 入门那一次经 lifeAdd 入账的**绝对年数**（正 = 得寿、负 = 折寿）；写了 life 的两部一律
+ * 同时出 `noSalvage: true`——否则「购入 → 弃置 → 再购入」是条刷命回路，该不变式由冒烟 #314(丙) 逐条对表。
+ * 与上方 T.perId 同性质：**改了这张表必须同批改文档**，否则生成物与正典分叉（第卅八批那次返工的同一族）。 */
+const LIFE = { changsheng: 200, shixue: -40 };
 const lines = ids.map((id) => {
   const a = arts[id];
   return '  ' + js(id) + ': { tier: ' + js(a.tier) + ', core: ' + a.core + ', alignment: ' + js(a.alignment) +
     ', attr: ' + js(a.attr) + ', effects: ' + js(a.effects) +
     (a.effectsFixed ? ', effectsFixed: ' + js(a.effectsFixed) : '') + ', special: ' + js(a.special) +
-    ', reqs: ' + js(a.reqs) + ', obtain: ' + js(a.obtain) + ' }';
+    ', reqs: ' + js(a.reqs) + ', obtain: ' + js(a.obtain) +
+    (LIFE[id] != null ? ', life: ' + LIFE[id] + ', noSalvage: true' : '') + ' }';
 });
 fs.writeFileSync(path.join(ROOT, 'assets/worlds/xiuxian/arts.js'),
 `/* xiuxian/arts.js — 修仙功法全录（70 部）纯机制数据
@@ -178,6 +188,8 @@ fs.writeFileSync(path.join(ROOT, 'assets/worlds/xiuxian/arts.js'),
  * obtain.type: initial 初始 / shop 坊市 / black 黑市 / zone 秘境N首通 / event(_evil|_rare) 奇遇 /
  *   event_locked 天阶独占（§2.5：仅指定天级特殊奇遇「指定分支+判定链全过」授予，不入商店/掉落/首通池）。
  * effectsFixed: 列内字段 Lv1 全效、不随等级缩放（校对批裁定 · 数值详设 §4.5；mods.js 消费）。
+ * life: 入门那一次的寿元增减年数（绝对值，第卌八批 · 数值详设 §6.1A 与《功法全录》§2.8）；
+ *   凡带 life 者同时带 noSalvage（弃置再购入 = 刷命回路）。表在生成器 LIFE 那张 map，改它先改文档。
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
@@ -223,6 +235,12 @@ ${lexLines.join('\n')}
     'special.changye.name': '长夜修行',
     'special.sanyan.name': '三尸宴坐', 'special.yanhuo.name': '人间烟火',
     'special.kujing.name': '枯井不波',
+    /* 混沌三签名（融合扩容批 v1.3：自创部专属，混沌淬炼唯一授予；正典部零引用）
+     * ⚠️ 这三枚一度只躺在生成物里、模板不产出 ⇒ 模板缺它们时，跑一次生成器就把三枚静默删掉（屏上落裸键名）。
+     *    8563d60 / PR #10 已把它们补进本模板 ⇒「生成物 = 文档 + 模板」重新成立；
+     *    要改这三枚的说明文字就改这里，改生成物会被下一次再生成整段抹掉（第卅六批随件 59b65b2 正是这么被抹回来的）。 */
+    'special.hundun.name': '混沌重生', 'special.zaohua.name': '造化余韵',
+    'special.taiyi.name': '太一星光',
     'special.grade.0': '弱', 'special.grade.1': '标准', 'special.grade.2': '强'
   });
 })();

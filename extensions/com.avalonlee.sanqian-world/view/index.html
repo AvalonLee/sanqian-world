@@ -4,940 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>三千世界</title>
-<style>
-  /* ── 主题：双声明 fallback（x-hub §5.5）；页面底永远透明（§5.4 铁律）── */
-  :root {
-    color-scheme: light;
-    --surface: var(--xhub-surface, rgba(255, 255, 255, 0.66));
-    --well: var(--xhub-bg-card, rgba(255, 255, 255, 0.9));
-    --ink: var(--xhub-text-1, #1f2230);
-    --ink-2: var(--xhub-text-2, #5b6070);
-    --ink-3: var(--xhub-text-3, #8a8fa0);
-    --line: var(--xhub-border, rgba(0, 0, 0, 0.1));
-    --primary: var(--xhub-accent, #a8842c);
-    --brand-soft: var(--xhub-brand-soft, rgba(168, 132, 44, 0.12));
-    --good: var(--xhub-green, #1a7f37);
-    --bad: var(--xhub-red, #c0392b);
-    --danger: var(--xhub-red, #c0392b);
-    --radius: var(--xhub-radius-lg, 12px);
-    /* 阵营文字统一规范（走查 v2.7 §4）：正/魔/左三色 token 全项目唯一定义点——
-     * 浅色主题取「可读加深」值（正道暗金 #7a5c08，不再用装饰金 #b8860b），暗色主题取亮值 */
-    --sq-karma-right: #7a5c08;
-    --sq-karma-evil: #b03a2e;
-    --sq-karma-neutral: #5f7d8c;
-    --sq-tier-0: #8a8fa0; --sq-tier-1: #3a8f5f; --sq-tier-2: #3f5fbf;
-    --sq-tier-3: #8a3fbf; --sq-tier-4: #b8860b;
-    /* 日志吸顶栏底色：近实遮罩（面板表面偏透明，滚动内容会透出残影） */
-    --sq-sticky-veil: rgba(255, 255, 255, 0.92);
-  }
-  :root[data-xhub-theme="dark"] {
-    color-scheme: dark;
-    --surface: var(--xhub-surface, rgba(255, 255, 255, 0.06));
-    --well: var(--xhub-bg-card, rgba(255, 255, 255, 0.04));
-    --ink: var(--xhub-text-1, #e8e9f0);
-    --ink-2: var(--xhub-text-2, #a2a7b8);
-    --ink-3: var(--xhub-text-3, #71768a);
-    --line: var(--xhub-border, rgba(255, 255, 255, 0.12));
-    --primary: var(--xhub-accent, #d9b45e);
-    --brand-soft: var(--xhub-brand-soft, rgba(217, 180, 94, 0.14));
-    --good: var(--xhub-green, #4ec96a);
-    --bad: var(--xhub-red, #e57373);
-    --danger: var(--xhub-red, #e57373);
-    --sq-karma-right: #e3c34a;
-    --sq-karma-evil: #e57373;
-    --sq-karma-neutral: #8fa8b5;
-    --sq-tier-0: #a2a7b8; --sq-tier-1: #4ec96a; --sq-tier-2: #6f8fdf;
-    --sq-tier-3: #b47fdf; --sq-tier-4: #d9b45e;
-    /* 日志吸顶栏底色：暗色下 --surface 近乎全透（0.06），须换近实深遮罩挡残影 */
-    --sq-sticky-veil: rgba(30, 32, 41, 0.92);
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0; padding: 16px;
-    font-family: system-ui, -apple-system, "Segoe UI", "Songti SC", SimSun, sans-serif;
-    font-size: 13px;
-    background: var(--xhub-page-bg, transparent);
-    color: var(--ink);
-  }
-  :root[data-xhub-wallpaper-clear="1"] .panel {
-    border-color: transparent;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  }
-  .wrap { max-width: 480px; margin: 0 auto; }
-  /* ── 滚动条（界面美化 · 第十九批）：细身 + 全圆角 + 无箭头 + 透明轨道，滑块用主色描一圈透明边
-   *    做成「内缩的胶囊」，hover 时变粗——只用既有主题变量，零新色（暗色主题随 --xhub-* 自动换肤）。
-   * shortcut: 只写 `::-webkit-scrollbar`（宿主 x-hub 与走查用的 Edge 都是 Chromium）；
-   *           Firefox 需另加 `scrollbar-color`，但那条会让 Chromium 改走标准渲染、反把本套样式废掉 ⇒ 刻意不并存。 */
-  ::-webkit-scrollbar { width: 9px; height: 9px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb {
-    background: var(--primary); border: 3px solid transparent; border-radius: 99px;
-    background-clip: padding-box; min-height: 34px;
-  }
-  ::-webkit-scrollbar-thumb:hover { border-width: 2px; }
-  ::-webkit-scrollbar-button, ::-webkit-scrollbar-corner { width: 0; height: 0; display: none; }
-  .panel {
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
-  }
-  h1 { margin: 0 0 4px; font-size: 17px; font-weight: 650; letter-spacing: 0.12em; }
-  .sub { margin: 0 0 12px; color: var(--ink-2); }
-  .hint { color: var(--ink-3); font-size: 12px; }
-  button {
-    font: inherit; color: var(--ink); background: var(--well);
-    border: 1px solid var(--line); border-radius: 8px;
-    padding: 8px 14px; cursor: pointer; min-height: 44px;
-  }
-  button:hover { border-color: var(--primary); }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  button.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
-  :root[data-xhub-theme="dark"] button.primary { color: #1c1a12; }
-  input {
-    font: inherit; color: var(--ink); background: var(--well);
-    border: 1px solid var(--line); border-radius: 8px;
-    padding: 8px 12px; width: 100%; min-height: 44px;
-  }
-  .row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
-  .row.between { justify-content: space-between; }
-  .big { font-size: 26px; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
-  .bar { height: 10px; border-radius: 5px; background: var(--well); overflow: hidden; margin: 10px 0; }
-  .bar > i { display: block; height: 100%; width: 0%; background: var(--primary); transition: width .3s; }
-  .bar.slim { height: 6px; margin: 6px 0; }
-  .kv { display: flex; justify-content: space-between; margin: 6px 0; }
-  .hide { display: none !important; }
-  .err { color: var(--danger); margin: 8px 0 0; }
-
-  /* ── 创角：天赋卡 ── */
-  .combo-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--primary); font-weight: 650; margin-left: 8px; vertical-align: middle; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 12px 0; }
-  .tcard.dim { opacity: 0.72; }
-  /* 功法卡网格（走查 v2.6 §2）：同行卡片数随窗口宽度自适应 */
-  .artgrid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important; }
-  .artgrid .acts { display: flex; flex-wrap: wrap; gap: 4px; }
-  .artgrid .acts button { flex: 1 1 auto; }
-  /* 法器 / 法宝卡网格（卡片化批）：同行卡片数随窗口宽度自适应，宽屏多列、窄屏单列 */
-  .geargrid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)) !important; }
-  .trgrid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important; }
-  .geargrid .acts, .trgrid .acts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
-  .geargrid .acts button, .trgrid .acts button { flex: 1 1 auto; min-height: 34px; padding: 4px 10px; font-size: 12px; }
-  .tcard .tslot { font-size: 11px; color: var(--ink-2); margin-bottom: 3px; }
-  .tcard .tacts-src { margin-top: 6px; }
-  .tcard { position: relative; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--well); }
-  .tcard.pos { border-color: var(--good); }
-  .tcard.neg { border-color: var(--bad); }
-  .tcard.rare { box-shadow: 0 0 0 1px var(--primary) inset; }
-  .tcard .tname { font-weight: 650; font-size: 14px; }
-  .tcard.pos .tname { color: var(--good); }
-  .tcard.neg .tname { color: var(--bad); }
-  .tcard .teff { margin: 4px 0; color: var(--ink); }
-  .tcard .tdesc { color: var(--ink-3); font-size: 12px; }
-  /* 洗髓浮层（v1.8 §十）：卡面对象即按钮（data-act 走全局派发），选中态描主色环 */
-  .tcard.pickable { cursor: pointer; }
-  .tcard.pick { border-color: var(--primary); box-shadow: 0 0 0 2px var(--brand-soft); }
-  .corner { position: absolute; top: -7px; right: 8px; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--primary); color: #fff; white-space: nowrap; }
-  :root[data-xhub-theme="dark"] .corner { color: #1c1a12; }
-  .corner.amp { right: auto; left: 8px; background: var(--good); color: #fff; }
-  /* ── 系统深化批 B1：epic 档专属配色（色值本批拍板：紫金双色，与 rare 金描边明显区分）
-     + 机制词条角标 + 羁绊连线徽标（天赋池设计 §七）── */
-  :root { --epic: #7a4fb8; --epic-soft: rgba(122, 79, 184, 0.08); --epic-glow: rgba(122, 79, 184, 0.25); }
-  :root[data-xhub-theme="dark"] { --epic: #b58ae8; --epic-soft: rgba(181, 138, 232, 0.10); --epic-glow: rgba(181, 138, 232, 0.30); }
-  .tcard.epic { border-color: var(--epic); box-shadow: 0 0 0 1px var(--epic) inset, 0 0 12px var(--epic-glow); }
-  .tcard.epic.pos { background: linear-gradient(160deg, var(--epic-soft), transparent 55%); }
-  .tcard.epic.neg { background: linear-gradient(200deg, var(--epic-soft), transparent 55%); }
-  .corner.epic { background: var(--epic); color: #fff; }
-  .corner.mech { right: auto; left: 8px; background: var(--ink-2); color: var(--well); font-size: 10px; }
-  .corner.amp.mechshift { left: 52px; }
-  .synline { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin: 2px 0; }
-  .synline .dash { flex: 1; border-top: 1px dashed var(--epic); }
-  .synbadge { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--epic); color: var(--epic); background: var(--epic-soft); white-space: nowrap; }
-  /* 临时增益图标行（B2）：来源溯源 chip，减益红描边 */
-  .buffrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-  .buffchip { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--good); color: var(--good); background: var(--well); white-space: nowrap; }
-  .buffchip.deb { border-color: var(--bad); color: var(--bad); }
-  /* 历练页（B3）：词缀 chip / 域主行 / 残片兑换行 */
-  .affixrow { display: flex; align-items: baseline; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
-  .affixchip { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--sq-tier-2); color: var(--sq-tier-2); background: var(--well); white-space: nowrap; }
-  .bossrow { display: flex; align-items: baseline; gap: 4px; margin: 4px 0; }
-  .tierbadge.tboss { color: var(--bad); background: var(--well); }
-  .shardrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; }
-  .shardrow .acts { margin: 0; display: flex; gap: 4px; }
-  /* 批 2 · 主修角标（B4）与秘境↔洞府联动角标（B6） */
-  .corner.maincorner { background: var(--primary); letter-spacing: .1em; }
-  .lrow .cavelink { font-size: 10px; padding: 0 6px; border-radius: 999px; cursor: pointer;
-    border: 1px dashed var(--primary); color: var(--primary); margin-left: 6px; white-space: nowrap; }
-  .zone-pw { font-size: 11px; }
-  .zone-pw.ok { color: var(--good); } .zone-pw.tight { color: var(--sq-karma-right); }
-  .zone-pw.bad { color: var(--bad); }
-
-  /* ── 创角：世界卡 ── */
-  .wcard { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 10px 0; background: var(--well); cursor: pointer; position: relative; }
-  .wcard.sel { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
-  .wcard.coming { opacity: .5; cursor: not-allowed; }
-  .wcard .wname { font-weight: 650; font-size: 15px; }
-  .wcard .wtags { margin-top: 4px; color: var(--ink-2); font-size: 12px; }
-  .wstatus { position: absolute; top: 10px; right: 12px; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--primary); }
-  .wcard.coming .wstatus { background: var(--well); color: var(--ink-3); border: 1px solid var(--line); }
-
-  /* ── 主界面骨架：窄屏单栏（顶栏 / 内容 / 底栏 Tab），≥720px 自动升为「左栏导航 + 右栏内容」
-     用 grid-template-areas 承载两种排布，DOM 顺序不变（创角三屏仍走 .wrap 窄栏）── */
-  #sc-main {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    grid-template-areas: "top" "body" "tabs";
-    /* 定高（而非 min-height）：只有容器高度确定，右栏 .tabbody 才会内部滚动、
-       左栏（顶栏 + 导航）才钉住不动；用 min-height 时内容撑高容器 → 整页跟着滚。 */
-    height: calc(100vh - 32px);
-    height: calc(100dvh - 32px);
-  }
-  #sc-main > .topbar { grid-area: top; }
-  #sc-main > .tabbody { grid-area: body; min-height: 0; }
-  #sc-main > .tabbar { grid-area: tabs; }
-  /* 走查 v2.7 §1：三行——①名字 ②善恶徽章 + 灵石 ③战力 + 修为；二三行字号样式一致 */
-  .topbar { display: block; padding: 10px 14px; position: relative; overflow: hidden; }
-  /* 世界名水印（方案 B3 · 右上竖排落款）：夹在面板底色与文字层之间——absolute 贴右上，文字行抬到 z-index 1。
-   * 竖排字号取 20px（3 字约 60px 高），避免竖排大字被 .topbar 裁切。
-   * opacity 由 .06 → .10 → .30（用户逐次要求更明显，现为较高墨色）。 */
-  .topbar .wm {
-    position: absolute; right: 12px; top: 6px; z-index: 0;
-    writing-mode: vertical-rl;
-    font-size: 20px; font-weight: 800; letter-spacing: .06em; line-height: 1;
-    color: var(--ink); opacity: .30; white-space: nowrap;
-    pointer-events: none; user-select: none;
-  }
-  .topbar .topline { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); position: relative; z-index: 1; }
-  .topbar .topline + .topline { margin-top: 4px; }
-  .topbar .topline.name { font-weight: 650; font-size: 13px; color: var(--ink); cursor: pointer; min-width: 0; }
-  /* 名号徽章（第二行最左 · 善恶入口）固定不缩；元信息 / 灵石可缩省略号（防势力名过长溢出） */
-  .topbar .topline .rankchip { flex: 0 0 auto; white-space: nowrap; }
-  .topbar .topline .who-meta { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .topbar .who { font-weight: 650; cursor: pointer; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .stones { font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
-  .tabbody { overflow-y: auto; }
-  /* 导航条（页面整合批 2026-10-06 顺手修）：窄屏 <720px 为横向滚动条而非 flex:1 等分——
-   * 等分时 12 项每项仅 ≈25px，而两字标签需 ≈24px + 左右 padding 4px，配合下方 button 的
-   * nowrap+ellipsis 会把**全部**标签截成「修…」「秘…」实际不可读（既有缺陷，13 项时更甚）。
-   * 改为不收缩 + min-width 52px + 容器横向滚动：标签完整可读、滑动取用。
-   * ≥720px 侧栏媒体查询（flex-direction:column + align-items:stretch）覆盖本规则，不受影响。
-   * 合并页取三字标签「法与器」正是以本修复为前提（否则窄屏截成「法…」比原两字更糟）。 */
-  .tabbar { display: flex; gap: 4px; padding: 8px 0 0; overflow-x: auto; overflow-y: hidden;
-    -webkit-overflow-scrolling: touch; }   /* scrollbar-width 已摘：Chromium 一见它就走标准渲染，把本套 ::-webkit-scrollbar 样式整个废掉 */
-  .tabbar button { flex: 0 0 auto; min-width: 52px; min-height: 44px; padding: 8px 8px; font-size: 12px; border-radius: 8px; position: relative;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tabbar button.on { border-color: var(--primary); color: var(--primary); background: var(--brand-soft); }
-  .tabbar button.locked { opacity: 0.55; cursor: not-allowed; letter-spacing: 2px; }
-  .tabbar .dot { position: absolute; top: 4px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--bad); }
-  /* 导航分组线：游戏页（修行…奇遇）与系统页（日志 · 设置）之间 */
-  .tabbar .navsep { flex: 0 0 auto; align-self: center; width: 1px; height: 60%; background: var(--line); }
-
-  /* ── 日志页（原「奇遇页 → 系统日志弹层」升级为左侧导航的独立页）── */
-  /* 顶部分类切换栏吸顶：.tabbody 内部滚动时钉在顶部，长列表下也能随手切分类；
-     负外边距抵消 .panel 的 16px 内边距、铺满卡宽；近实遮罩 + 背景模糊挡住滚过的日志行
-     ⚠️ 法与器页**不能写 `#tab-arts > .chips`**（真机走查 N4 抓到，不是假想防御）：`artsBody()`
-     返回的是一串**平铺**块，融合坛「父母选择」那排 `.chips` 同为 `#tab-arts` 的直接子代，
-     写成 `> .chips` 会把它一起吸到页顶（页中页压在标签下）。故顶部标签行带专名 `.lawchips` 与之区分。 */
-  #tab-journal > .chips, #tab-arts > .lawchips {
-    position: sticky; top: 0; z-index: 6;
-    background: var(--sq-sticky-veil);
-    -webkit-backdrop-filter: blur(14px) saturate(1.2);
-    backdrop-filter: blur(14px) saturate(1.2);
-    margin: -16px -16px 8px; padding: 16px 16px 8px;
-    border-bottom: 1px solid var(--line);
-    border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
-  }
-  #tab-journal .loglist { margin-top: 8px; }
-  #tab-journal .logline:last-child { border-bottom: none; }
-
-  /* ── 设置页 ── */
-  .setrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
-  .setrow .sl { font-size: 13px; font-weight: 650; }
-  .setrow .sl .sd { display: block; font-size: 12px; font-weight: 400; color: var(--ink-3); margin-top: 3px; }
-  /* 纵向设置块（奇遇倾向等：说明在上、控件整行在下，窄屏也不挤压） */
-  .setrow.col { flex-direction: column; align-items: stretch; gap: 0; }
-  .setrow.col .chips { margin: 8px 0 0; }
-  button.danger { border-color: var(--danger); color: var(--danger); background: transparent; }
-  button.danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
-  /* 开关（设置页 · 自动渡劫）：胶囊 + 滑块 + 状态词 */
-  .switch { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 4px 12px; border-radius: 999px; font-size: 12px; color: var(--ink-3); white-space: nowrap; }
-  .switch i { display: block; width: 30px; height: 18px; border-radius: 999px; background: var(--line); position: relative; transition: background .18s; }
-  .switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .18s; }
-  .switch.on { color: var(--primary); border-color: var(--primary); background: var(--brand-soft); }
-  .switch.on i { background: var(--primary); }
-  .switch.on i::after { transform: translateX(12px); }
-  /* 设置页 · 菜单顺序：每行两个小按钮 */
-  .tabordacts { display: inline-flex; gap: 6px; }
-  button.mini { min-height: 30px; padding: 3px 10px; font-size: 12px; }
-  button.mini:disabled { opacity: .35; cursor: default; }
-
-  /* ── 宽屏（≥720px）：左栏 264px 常驻（顶栏摘要 + 纵向 Tab），右栏内容铺满剩余宽度 ──
-     创角三屏不受影响——它们在 .wrap 里，始终保持 480px 居中窄栏。 */
-  @media (min-width: 720px) {
-    #sc-main {
-      grid-template-columns: 264px minmax(0, 1fr);
-      grid-template-rows: auto minmax(0, 1fr);
-      grid-template-areas: "top body" "tabs body";
-      column-gap: 14px;
-    }
-    #sc-main > .topbar { flex-wrap: wrap; row-gap: 6px; margin-bottom: 12px; }
-
-    .tabbar { flex-direction: column; align-items: stretch; padding: 0; overflow-y: auto; }
-    .tabbar button { flex: 0 0 auto; text-align: left; padding: 9px 12px; font-size: 13px; min-height: 40px; }
-    .tabbar .dot { top: 50%; right: 12px; margin-top: -3.5px; }
-    .tabbar .navsep { align-self: stretch; width: auto; height: 1px; margin: 6px 0; }
-    /* 内容卡限宽居中：宽屏下叙事段落一行别拉太长（中文字距舒适区 ~40 字/行） */
-    #sc-main > .tabbody > .panel { max-width: 980px; margin-left: auto; margin-right: auto; }
-  }
-
-  /* ── 列表行通用 ── */
-  .lrow { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 8px 0; background: var(--well); position: relative; }
-  .lrow.cur { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
-  .lrow.locked { opacity: .5; }
-  .lrow .nm { font-weight: 650; font-size: 14px; }
-  .lrow .meta { color: var(--ink-2); font-size: 12px; margin-top: 3px; }
-  .lrow .red { color: var(--danger); }
-  .lrow .acts { display: flex; gap: 6px; margin-top: 8px; }
-  .lrow .acts button { min-height: 36px; padding: 4px 12px; font-size: 12px; }
-  /* 遗泽商店（轮回页）：卡片网格——宽屏多列 / 窄屏单列，动作按钮贴底满宽 */
-  .shopgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 10px; align-items: stretch; }
-  .shopgrid > .shopcard { margin: 0; display: flex; flex-direction: column; }
-  .shopgrid > .shopcard .acts { margin-top: auto; }
-  .shopgrid > .shopcard .acts button { width: 100%; }
-  @media (max-width: 719px) { .shopgrid { grid-template-columns: 1fr; } }
-  /* 通用卡片网格（坊市/门中供给/炼丹炼器）：宽屏多列 / 窄屏单列，动作按钮贴底、多个按钮自动换行 */
-  .cardgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 10px; align-items: stretch; }
-  .cardgrid > .carditem { margin: 0; display: flex; flex-direction: column; }
-  .cardgrid > .carditem .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 8px; }
-  .cardgrid > .carditem .acts button { flex: 1 1 auto; min-height: 34px; padding: 4px 10px; font-size: 12px; }
-  @media (max-width: 719px) { .cardgrid { grid-template-columns: 1fr; } }
-  /* ── 秘境页卡片网格（信息密度批）：每秘境一卡并排，宽屏多列、窄屏单列；
-     当前秘境 = 通栏 hero（承载天时/域主/进度/残片等富信息），其余紧凑卡等高分栏 ── */
-  .zonegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 10px; align-items: stretch; }
-  .zonegrid > .zcard { margin: 0; display: flex; flex-direction: column; }
-  .zonegrid > .zsep { grid-column: 1 / -1; margin: 10px 0 0; }
-  .zcard.hero { grid-column: 1 / -1; }
-  .zcard.locked { align-self: start; }
-  .zcard .zstats { display: flex; flex-wrap: wrap; gap: 2px 10px; margin-top: 4px;
-    font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-  .zcard .zfoot { margin-top: auto; }
-  /* 当前秘境 hero 内层：宽屏天时/域主（左）与进度/残片（右）双栏并排，收紧通栏留白 */
-  .zcard.hero .zhero { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; align-items: start; margin-top: 2px; }
-  .zcard.hero .zhero .zhcol { min-width: 0; }
-  @media (max-width: 719px) {
-    .zonegrid { grid-template-columns: 1fr; }
-    .zcard.hero .zhero { grid-template-columns: 1fr; }
-  }
-  /* ── 秘境洞天合并批：页内分节标题（秘境 / 洞天福地）+ 洞天福地卡片网格。
-     洞天节与秘境节同构——宽屏多列、窄屏单列，当前驻留福地为通栏 hero 卡 ── */
-  .secbar { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-    margin: 18px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
-  .secbar > span:first-child { font-weight: 650; font-size: 14px; }
-  .secbar .secnote { margin-left: auto; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-  .cavegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 10px; align-items: stretch; }
-  .cavegrid > .cavecard { margin: 0; display: flex; flex-direction: column; }
-  .cavegrid > .cavecard.hero { grid-column: 1 / -1; }
-  .cavegrid > .cavecard .cavebtn { margin-top: auto; }
-  @media (max-width: 719px) {
-    .cavegrid { grid-template-columns: 1fr; }
-    .secbar .secnote { margin-left: 0; }
-  }
-  /* ── 成就图鉴批：独立「成就」页卡片网格——已解锁（.got）显名/条件/遗泽，
-     未解锁（.lock）遮为问号；特殊成就（data 标 hint）在未解锁时出条件提示（.ahint）── */
-  .achvgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: 10px; align-items: stretch; }
-  .achvcard { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--well);
-    display: flex; flex-direction: column; gap: 6px; }
-  .achvcard.got { border-color: var(--good); }
-  .achvcard.lock { opacity: .72; }
-  .achvcard .ah { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  .achvcard .an { font-weight: 650; font-size: 13px; }
-  .achvcard.got .an { color: var(--good); }
-  .achvcard.lock .an { color: var(--ink-3); letter-spacing: 2px; }
-  .achvcard .ak { font-size: 11px; color: var(--primary); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .achvcard .ad { font-size: 11.5px; color: var(--ink-2); line-height: 1.5; }
-  .achvcard .aq { flex: 1; display: flex; align-items: center; justify-content: center;
-    font-size: 30px; font-weight: 700; color: var(--ink-3); opacity: .5; padding: 4px 0; }
-  .achvcard .ahint { font-size: 11px; color: var(--primary); line-height: 1.5;
-    border-top: 1px dashed var(--line); padding-top: 6px; }
-  .achvcard .amark { margin-top: auto; font-size: 11px; color: var(--good); font-weight: 650; }
-  @media (max-width: 719px) { .achvgrid { grid-template-columns: 1fr; } }
-  /* ── 图鉴九面卡（自轮回页迁入成就页顶）：收集率进度条 + 里程碑点 ── */
-  .facegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: 10px; align-items: stretch; margin-bottom: 4px; }
-  .facecard { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--well);
-    display: flex; flex-direction: column; gap: 6px; }
-  .facecard .ch { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  .facecard .cn { font-weight: 650; font-size: 13px; }
-  .facecard .cc { font-size: 11.5px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .facecard .bar { margin: 0; }
-  .facecard .cfoot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; }
-  .facecard .cms { font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-  .facecard .msdots { display: flex; gap: 4px; }
-  .facecard .msdots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
-  .facecard .msdots i.on { background: var(--good); }
-  .facecard .csub { font-size: 10.5px; color: var(--ink-3); line-height: 1.4; }
-  @media (max-width: 719px) { .facegrid { grid-template-columns: 1fr; } }
-  .tierbadge { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; margin-left: 6px; vertical-align: 1px; }
-  .t0 { color: var(--sq-tier-0); } .t1 { color: var(--sq-tier-1); } .t2 { color: var(--sq-tier-2); }
-  .t3 { color: var(--sq-tier-3); } .t4 { color: var(--sq-tier-4); }
-  .special-mark { color: var(--primary); font-weight: 650; }
-  /* 卡片「分类」chip（坊市标签批 2026-10-09 · UI 卷 §3.4）：刻意与 `.special-mark` 分家——
-     后者在法器卡上已承担「特殊词条」（破军 / 摄灵），同色同形会让「分类」和「词条」两种语义混起来。 */
-  .catbadge { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 999px; margin-left: 6px;
-    vertical-align: 1px; color: var(--ink-3); border: 1px solid var(--line); font-weight: 400; }
-  .align-sym { margin-right: 3px; }
-  .align-right { color: var(--sq-karma-right); } .align-evil { color: var(--sq-karma-evil); } .align-neutral { color: var(--sq-karma-neutral); }
-
-  /* ── 修行页 ── */
-  .detailbox { border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 8px; font-size: 12px; color: var(--ink-2); }
-  .detailbox .kv { margin: 3px 0; }
-  .linkbtn { background: none; border: none; color: var(--primary); cursor: pointer; padding: 2px 6px; min-height: 0; font-size: 12px; text-decoration: underline; }
-  /* 胶囊式链接按钮（体验批）：取代纯色下划线文本——柔色底 + 描边 + 尾箭头，悬停描边提亮 */
-  .linkbtn.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px 3px 11px; border-radius: 999px; background: var(--brand-soft); border: 1px solid transparent; color: var(--primary); font-weight: 600; text-decoration: none; transition: border-color .15s ease, transform .15s ease; }
-  .linkbtn.chip::after { content: '\203A'; font-size: 14px; line-height: 1; opacity: .7; margin-top: -1px; }
-  .linkbtn.chip:hover { border-color: var(--primary); }
-  .linkbtn.chip:active { transform: scale(.97); }
-  .fullcap { color: var(--primary); font-weight: 650; }
-  /* 手动渡劫入口（自动渡劫关闭时）：修为圆满才亮 */
-  .tribready { border: 1px solid var(--primary); border-radius: 10px; padding: 10px 12px; margin-top: 10px; background: var(--brand-soft); text-align: center; }
-  .tribready .tr-t { font-size: 13px; font-weight: 650; color: var(--primary); margin-bottom: 2px; }
-  /* 角色总览卡（修行页重点展示）：战力大字 + 三维三格；境界行附「境界说明」入口 */
-  .stathero { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 10px 0; background: var(--well); }
-  .stathero .shmain { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
-  .stathero .shv { font-size: 30px; line-height: 1.1; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
-  .stathero .shl { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
-  .stathero .shattr { display: flex; gap: 6px; flex: 0 0 auto; }
-  .stathero .sha { display: flex; flex-direction: column; align-items: center; min-width: 46px; padding: 6px 8px; border-radius: 10px; background: var(--brand-soft); }
-  .stathero .sha .an { font-size: 11px; color: var(--ink-3); }
-  .stathero .sha .av { font-size: 18px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
-  /* 游戏历顶栏（v2.3）：修行页最顶——罗云历X年X月X日，1 游戏日 = 1 现实秒 */
-  .calrow { text-align: center; font-size: 12px; color: var(--ink-3); letter-spacing: 1px; margin: 0 0 8px; font-variant-numeric: tabular-nums; }
-  /* ── 势力页（G16 · 势力批 v2.4）── */
-  .facbanner { border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; margin: 8px 0; background: var(--well); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .facbanner .ft { font-weight: 650; font-size: 13px; color: var(--ink); }
-  .facbanner .fg { font-size: 12px; color: var(--primary); font-weight: 650; }
-  .facbanner.none { opacity: 0.8; }
-  /* 三栏布局（走查 v2.5 §1）：宽屏 正|左|魔 三列，窄屏退化为单列堆叠 */
-  .faccols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: start; }
-  .faccolhead { display: block; text-align: center; padding: 2px 0; margin-bottom: 4px; }
-  @media (max-width: 719px) { .faccols { grid-template-columns: 1fr; } }
-  .faccard { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 8px 0; background: var(--well); }
-  .faccard.cur { border-color: var(--primary); }
-  .faccard .fh { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  .faccard .fn { font-weight: 650; font-size: 14px; color: var(--ink); }
-  .faccard .fm { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
-  .faccard .fd { font-size: 12px; color: var(--ink-2); line-height: 1.65; margin-top: 5px; }
-  .faccard .fperk { font-size: 12px; margin-top: 5px; color: var(--ink-2); }
-  .faccard .fperk b { color: var(--good); }
-  .faccard .frel { margin-top: 6px; font-size: 11px; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-  .faccard .frel .lab { color: var(--ink-3); flex: 0 0 auto; }
-  .faccard .chipsx { display: inline-flex; gap: 4px; flex-wrap: wrap; }
-  .relchip { display: inline-flex; align-items: baseline; gap: 3px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); font-size: 11px; }
-  .relchip.friendly { color: var(--good); border-color: var(--good); }
-  .relchip.enemy { color: var(--bad); border-color: var(--bad); }
-  .relchip.neutral { color: var(--ink-3); }
-  .relchip i { font-style: normal; opacity: 0.8; }
-  /* 道友：厌恶（负好感）红标 + 所属势力签 */
-  .pal .tier.hate { color: var(--bad); font-weight: 650; }
-  .facsig { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--line); margin-bottom: 4px; color: var(--ink-2); }
-  .facsig.fac-right { color: var(--sq-karma-right); border-color: var(--sq-karma-right); }
-  .facsig.fac-evil { color: var(--sq-karma-evil); border-color: var(--sq-karma-evil); }
-  /* 神秘商人特席（坊市页） */
-  .merchbox { border: 1px solid var(--primary); border-radius: 10px; padding: 9px 12px; margin: 8px 0; background: var(--brand-soft); }
-  .merchbox .mh { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  .merchbox .mh .t { font-weight: 650; color: var(--primary); }
-  /* ── 修行状态选择（模式二选一：闭关领悟 / 外出历练；离线 = 潜心悟道）── */
-  .modesel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
-  .modeopt { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; cursor: pointer; background: var(--well); }
-  .modeopt .mt { font-weight: 650; font-size: 13px; color: var(--ink); }
-  .modeopt .md { font-size: 11px; color: var(--ink-3); margin-top: 3px; line-height: 1.5; }
-  .modeopt .mat { font-size: 11px; color: var(--primary); margin-top: 3px; }
-  /* 历练入口预告（体验手感批 v2.12）：当前秘境战力不足时「外出历练」卡常驻预告行 */
-  .modeopt .mw { font-size: 11px; color: var(--bad); margin-top: 3px; line-height: 1.5; }
-  .modeopt.on { border-color: var(--primary); background: var(--brand-soft); }
-  .modeopt.on .mt { color: var(--primary); }
-  /* 精通条（功法行 / 槽位卡共用） */
-  .pbar { height: 4px; border-radius: 3px; background: var(--brand-soft); overflow: hidden; margin-top: 6px; }
-  .pbar > i { display: block; height: 100%; width: 0%; background: var(--primary); }
-  .tpract { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
-  .tpract .pbar { flex: 1 1 auto; margin-top: 0; }
-  .tpract .hint { flex: 0 0 auto; font-size: 10px; }
-  /* 境界说明浮层：十阶一览，当前高亮 / 已过 / 未至三态 */
-  .realmrow { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin: 6px 0; background: var(--well); }
-  .realmrow.cur { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
-  .realmrow.passed { opacity: .82; }
-  .realmrow.locked { opacity: .55; }
-  .realmrow .rrhead { display: flex; align-items: baseline; gap: 8px; }
-  .realmrow .rri { min-width: 15px; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-  .realmrow .rrn { font-size: 14px; font-weight: 650; }
-  .realmrow .rrtag { margin-left: auto; font-size: 11px; color: var(--ink-3); }
-  .realmrow.cur .rrtag { color: var(--primary); font-weight: 650; }
-  .realmrow .rrsub { font-size: 12px; color: var(--ink-2); margin-top: 3px; }
-
-  /* ── 日志 ── */
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
-  .chips button { min-height: 32px; padding: 3px 10px; font-size: 12px; border-radius: 999px; }
-  .chips button.on { border-color: var(--primary); color: var(--primary); background: var(--brand-soft); }
-  /* 页头：仅右上角动作（坊市刷新）；页内不再重复 Tab 名（左栏导航已标） */
-  .pagehead { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 8px; }
-  /* 左 chips + 右动作同排（坊市：左「坊市/黑市」右「刷新」），两端对齐、垂直居中 */
-  .pagehead.split { justify-content: space-between; }
-  .pagehead .chips { margin-bottom: 0; }
-  .refreshbtn { min-height: 34px; padding: 4px 14px; border-radius: 999px; font-size: 12px; color: var(--primary); border-color: var(--primary); background: var(--brand-soft); white-space: nowrap; }
-  .refreshbtn:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
-  :root[data-xhub-theme="dark"] .refreshbtn:hover { color: #1c1a12; }
-
-  /* ── 批 2 · 四柱 chip 行（B1）：财/法/地 激活，侣位灰置「虚位以待」（批 3 解锁）── */
-  .pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0 2px; }
-  .pillar { text-align: left; padding: 7px 8px; min-height: 0; border-radius: 10px;
-    border: 1px solid var(--line); background: var(--well); cursor: pointer; }
-  .pillar .pk { font-size: 12px; font-weight: 700; color: var(--primary); letter-spacing: .1em; }
-  .pillar .pv { display: block; font-size: 11px; color: var(--ink-2); margin-top: 2px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pillar.locked { cursor: not-allowed; opacity: .55; }
-  .pillar.locked .pk { color: var(--ink-3); }
-
-  /* ── 批 2 · 财柱总账（B2）：恒等式 + 收支条形（区内归一）── */
-  .lg-ident { font-size: 13px; font-weight: 650; text-align: center; padding: 8px 0 2px;
-    color: var(--ink); font-variant-numeric: tabular-nums; }
-  .lg-sec { font-size: 12px; font-weight: 650; color: var(--ink-2); margin: 12px 0 4px;
-    letter-spacing: .08em; }
-  .lgrow { margin: 5px 0; }
-  .lgrow .lgl { display: flex; justify-content: space-between; font-size: 12px; }
-  .lgrow .lgl .nm { color: var(--ink); }
-  .lgrow .lgl .vl { font-variant-numeric: tabular-nums; color: var(--ink-2); }
-  .lgrow .lgb { height: 5px; border-radius: 3px; background: var(--well); overflow: hidden; margin-top: 2px; }
-  .lgrow .lgb > i { display: block; height: 100%; width: 0%; }
-  .lgrow.in .lgb > i { background: var(--good); }
-  .lgrow.out .lgb > i { background: var(--bad); }
-  .lgrow .lgn { font-size: 10px; color: var(--ink-3); }
-  #mlg-seal { text-align: center; margin-top: 12px; color: var(--primary); letter-spacing: .12em; }
-
-  /* ── 批 2 · 地柱洞府卡（B3）：四态（驻留/持有/可入驻/缺项）+ 叙事折叠 ── */
-  .cavecard { border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; margin: 7px 0; background: var(--well); }
-  .cavecard.cur { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
-  .cavecard.lack { opacity: .72; }
-  .cavecard .ch { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  .cavecard .cn { font-weight: 650; font-size: 13px; }
-  .cavecard .cm { font-variant-numeric: tabular-nums; color: var(--primary); font-size: 12px; white-space: nowrap; }
-  .cavecard .cs { font-size: 11px; color: var(--ink-2); margin-top: 2px; }
-  .cavecard .ctag { display: inline-block; font-size: 10px; padding: 0 6px; border-radius: 999px;
-    border: 1px solid currentColor; margin-left: 6px; vertical-align: middle; }
-  .cavecard .ctag.cur { color: var(--primary); }
-  .cavecard .ctag.own { color: var(--good); }
-  .reqchips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
-  .reqchips span { font-size: 10px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-3); }
-  .reqchips span.ok { color: var(--good); border-color: var(--good); }
-  .reqchips span.no { color: var(--bad); border-color: var(--bad); }
-  .cavestory { font-size: 11px; color: var(--ink-2); line-height: 1.75; margin-top: 6px;
-    border-top: 1px dashed var(--line); padding-top: 6px; }
-  .cavebtn { width: 100%; margin-top: 7px; min-height: 36px; padding: 5px 10px; font-size: 12px; }
-  .logline { padding: 7px 4px; border-bottom: 1px dashed var(--line); font-size: 12px; color: var(--ink-2); }
-  .logline .ts { color: var(--ink-3); margin-right: 6px; font-variant-numeric: tabular-nums; }
-  /* 奇遇日志：内嵌该条事件的具体叙事，保留换行、放宽行距 */
-  .logline.ev { white-space: pre-line; line-height: 1.65; }
-  .logline.ev .ts { margin-right: 6px; }
-
-  /* ── 批 2 · B4 功法页：双维分组 / 独占剪影 / 三态标（「待重修」金标随第廿五批撤除）── */
-  .grouper { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin: 12px 0 6px; }
-  .gseg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-  .gseg span { font-size: 11px; padding: 2px 10px; cursor: pointer; color: var(--ink-2); }
-  .gseg span.on { background: var(--primary); color: #fff; }
-  :root[data-xhub-theme="dark"] .gseg span.on { color: #1c1a12; }
-  .gchip { font-size: 11px; padding: 1px 9px; border-radius: 999px; border: 1px solid var(--line);
-    cursor: pointer; color: var(--ink-2); }
-  .gchip.on { border-color: var(--primary); color: var(--primary); background: var(--brand-soft); }
-  .resetbanner { border: 1px dashed var(--sq-karma-right); border-radius: 10px; padding: 8px 11px;
-    margin: 8px 0; font-size: 11.5px; color: var(--sq-karma-right); background: var(--well); line-height: 1.65; }
-  .tagok { color: var(--good); border: 1px solid var(--good); border-radius: 4px;
-    font-size: 9.5px; padding: 0 4px; margin-left: 5px; vertical-align: 1px; white-space: nowrap; }
-  .daoline { color: var(--primary); }
-  .lrow.sil { border-style: dashed; border-color: var(--primary); }
-  .ebadge.gold { color: var(--primary); border-color: var(--primary); background: var(--brand-soft); }
-  .ebadge.gray { color: var(--ink-3); border-color: var(--line); }
-
-  /* ── 批 2 · B5 法宝页：百器录横幅 + 浮层 12 格双节 + 来源行 + 极品 ※ ── */
-  .gbanner { display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    border: 1px solid var(--primary); border-radius: 10px; padding: 9px 12px; margin: 8px 0;
-    background: var(--brand-soft); cursor: pointer; }
-  .gbanner .l { font-weight: 700; letter-spacing: .3em; color: var(--primary); font-size: 13px; white-space: nowrap; }
-  .gbanner .r { font-size: 11px; color: var(--ink-2); text-align: right; }
-  .sechead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 12px 0 4px; }
-  .sechead .t { font-weight: 650; letter-spacing: .2em; font-size: 12px; color: var(--ink-2); }
-  .sechead .s { font-size: 10.5px; color: var(--ink-3); text-align: right; }
-
-  /* ── 法与器合并页（页面整合批 2026-10-06 · UI 卷 §3.4a）──
-   * ① 概览条 .laware：一行三格（主修 / 佩器 / 战力），点格锚跳到对应段。
-   *    这是合并页存在的理由——进页一眼看到「法」「器」两条轴的当前态。
-   * ② ④ 段标 .secdiv：单字大字 + 一句副标，把长页明确切成「法」「器」两段。
-   * 两者只用既有主题变量（--well/--line/--ink-2/--ink-3/--primary/--brand-soft），
-   * 零硬编码色，随宿主明暗主题走（§八 主题铁律）。 */
-  .laware { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 4px; }
-  .laware button { display: block; width: 100%; text-align: left; padding: 8px 10px; border-radius: 10px;
-    border: 1px solid var(--line); background: var(--well); cursor: pointer; min-width: 0; }
-  .laware button:hover { border-color: var(--primary); background: var(--brand-soft); }
-  .laware .k { display: block; font-size: 10px; letter-spacing: .16em; color: var(--ink-3); margin-bottom: 3px; }
-  .laware .v { display: block; font-size: 12.5px; font-weight: 650; color: var(--ink-2);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-  .laware .v.none { font-weight: 400; color: var(--ink-3); }
-  .secdiv { display: flex; align-items: baseline; gap: 10px; margin: 18px 0 2px;
-    padding-top: 12px; border-top: 1px solid var(--line); }
-  .secdiv .zi { font-size: 20px; font-weight: 800; letter-spacing: 0; color: var(--primary); line-height: 1; }
-  .secdiv .sub { font-size: 11px; color: var(--ink-3); letter-spacing: .08em; }
-  .secdiv:first-child { margin-top: 0; }
-  @media (max-width: 400px) {
-    .laware { grid-template-columns: 1fr; }
-  }
-  .srcrow { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
-  .srcrow .src, .ccell .src { color: var(--primary); cursor: pointer; }
-  .primetag { font-size: 9px; color: var(--primary); border: 1px solid var(--primary); border-radius: 3px;
-    padding: 0 4px; margin-left: 5px; vertical-align: 1px; white-space: nowrap; }
-  .ccell { border: 1px dashed var(--line); border-radius: 8px; padding: 7px 6px; font-size: 10.5px;
-    text-align: center; background: var(--well); color: var(--ink-3); overflow: hidden; }
-  .ccell .cn { display: block; font-weight: 650; font-size: 11.5px; }
-  .ccell .ct { display: block; color: var(--ink-2); margin-top: 2px; }
-  .ccell .q { display: block; font-size: 15px; color: var(--ink-3); }
-  .ccell .bz { display: inline-block; font-size: 9px; padding: 0 4px; border-radius: 3px;
-    border: 1px solid var(--line); color: var(--ink-3); margin-bottom: 2px; }
-  .ccell.got { border-style: solid; color: var(--ink); cursor: pointer; }
-  .ccell.got .cn { color: var(--primary); }
-  .ccell.exgot { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
-  .ccell.exgot .bz { color: var(--primary); border-color: var(--primary); background: var(--brand-soft); }
-  .ccell .stale { color: var(--ink-3); opacity: .75; }   /* 已炼化灰字：炼化不除名的可视化 */
-  .ccell.nudge, .cslot.nudge { animation: nudge .32s ease-in-out; }
-  .cslot[data-act] { cursor: pointer; }
-
-  /* ── 批 2 · B6 秘境列表分隔（已首通折叠在下）── */
-  .zsep { text-align: center; font-size: 10.5px; color: var(--ink-3); letter-spacing: .2em; margin: 14px 0 6px; }
-
-  /* ── 批 2 · B3 洞府入驻轻演出（第一次拥有全屏叙事，点按跳过；迁居只弹 toast）── */
-  .cave-stage { position: fixed; inset: 0; z-index: 64; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; background: radial-gradient(ellipse at center, rgba(18, 38, 32, .94), rgba(5, 12, 9, .97)); }
-  .cavebox { text-align: center; padding: 26px 22px; max-width: min(400px, calc(100vw - 48px)); animation: exclIn 1s ease-out; }
-  .cavebox .cv1 { font-size: 12px; letter-spacing: .3em; color: rgba(205, 230, 214, .7); }
-  .cavebox .cv2 { font-size: 25px; font-weight: 700; letter-spacing: .12em; color: #bfe8cf; margin: 12px 0 4px;
-    text-shadow: 0 0 18px rgba(140, 220, 170, .45); }
-  .cavebox .cv3 { font-size: 12.5px; color: rgba(240, 212, 115, .85); letter-spacing: .06em; }
-  .cavebox .cvstory { font-size: 12px; line-height: 1.95; color: rgba(232, 240, 234, .78); margin-top: 14px; text-align: left; }
-  .cavebox .cvskip { font-size: 10.5px; color: rgba(255, 255, 255, .4); margin-top: 16px; letter-spacing: .1em; }
-  #cf-text { white-space: pre-line; }
-
-  /* ── 批 3 · 侣柱 G14（B1~B9）── */
-  :root { --spouse: #a05a78; }                       /* 道侣候选「双」语义色（小面积，双声明） */
-  :root[data-xhub-theme="dark"] { --spouse: #cf87a6; }
-  .pdot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--bad);
-    margin-left: 4px; vertical-align: 1px; }
-  .guardline { display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    border: 1px solid var(--line); border-radius: 11px; background: var(--well);
-    padding: 8px 12px; font-size: 12px; color: var(--ink-2); margin: 10px 0 2px; }
-  .guardline b { color: var(--ink); }
-  .guardline .g { color: var(--primary); white-space: nowrap; }
-  .guardline.dead { opacity: .65; }
-  .guardline.dead .g { color: var(--bad); font-size: 11px; white-space: normal; text-align: right; }
-  .spouserow { display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    border: 1px solid var(--spouse); border-radius: 11px; background: var(--well);
-    padding: 8px 12px; font-size: 12px; color: var(--spouse); margin: 8px 0 2px; }
-  .spouserow.luding { border-color: var(--bad); color: var(--bad); }
-  .spouserow.none { border-style: dashed; border-color: var(--line); color: var(--ink-3); }
-  /* 护法位/道侣位可点选态（择选批）：hover 描边提示可点 */
-  .guardline.pickable, .spouserow.pickable { cursor: pointer; transition: border-color .15s ease; }
-  .guardline.pickable:hover { border-color: var(--primary); }
-  .spouserow.pickable:hover { border-color: var(--spouse); }
-  .spouserow.none.pickable:hover { border-color: var(--spouse); }
-  .guardline.pickable .g::after, .spouserow.pickable .g::after, .spouserow.none.pickable span:last-child::after {
-    content: ' ›'; opacity: .7; }
-  .palgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin: 8px 0; }
-  .pal { position: relative; border-radius: 12px; border: 1px solid var(--line); background: var(--well);
-    padding: 9px 4px 7px; text-align: center; cursor: pointer; overflow: hidden; }
-  .pal .ava { width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 5px; display: flex;
-    align-items: center; justify-content: center; font-size: 16px; font-weight: 700;
-    color: var(--surface); background: var(--primary); }
-  .pal.sp .ava { background: var(--spouse); }
-  .pal .nm { font-size: 11px; font-weight: 600; line-height: 1.3; }
-  .pal .tier { font-size: 9.5px; color: var(--ink-3); margin-top: 1px; }
-  .pal .pb { height: 4px; border-radius: 99px; background: var(--line); margin: 5px 6px 0; overflow: hidden; }
-  .pal .pb > i { display: block; height: 100%; background: var(--primary); border-radius: 99px; }
-  .pal .fv { font-size: 9px; color: var(--ink-3); margin-top: 3px; font-variant-numeric: tabular-nums; }
-  .pal .pcorner { position: absolute; top: 3px; right: 5px; font-size: 10px; line-height: 1; color: var(--primary); }
-  .pal .pcorner.sh { color: var(--spouse); }
-  .pal.lock .ava { background: transparent; border: 1px dashed var(--line); color: var(--ink-3); font-weight: 300; font-size: 19px; }
-  .pal.lock .nm { color: var(--ink-3); }
-  .pal.dead { opacity: .62; }
-  .pal.dead .ava { background: transparent; border: 1px solid var(--line); color: var(--ink-3); font-size: 13px; }
-  .pal.dead .nm { color: var(--ink-3); }
-  .pal.dead .deadtag { font-size: 9.5px; color: var(--bad); margin-top: 3px; letter-spacing: .2em; }
-  /* 缘尽可赎角标（阵营名号联动批）：与 .pcorner.sh/.um 同位同规格，色走 primary 表示「可动作」*/
-  .pal.dead .pcorner.rd { color: var(--primary); font-weight: 650; }
-  .pal.nudge { animation: nudge .32s ease-in-out; }
-  /* 格位详情（五段式） */
-  .bd-head { display: flex; gap: 14px; align-items: center; }
-  .bd-head .ava { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center;
-    justify-content: center; font-size: 26px; font-weight: 700; color: var(--surface); background: var(--primary); flex-shrink: 0; }
-  .bd-head.sp .ava { background: var(--spouse); }
-  .bd-head b { font-size: 16px; }
-  .bd-head .gmark { font-size: 11px; color: var(--primary); }
-  .bd-head .sub { font-size: 11.5px; color: var(--ink-3); margin-top: 3px; line-height: 1.7; }
-  .fbar { margin: 14px 0 4px; }
-  .fbar .lab { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-2); margin-bottom: 5px; }
-  .fbar .lab b { color: var(--primary); }
-  .fbar .tr { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
-  .fbar .tr > i { display: block; height: 100%; background: var(--primary); }
-  .fbar .marks { display: flex; justify-content: space-between; font-size: 9px; color: var(--ink-3); margin-top: 4px; }
-  .dsec { margin-top: 14px; border-top: 1px dashed var(--line); padding-top: 10px; }
-  .dsec:first-child { margin-top: 0; border-top: none; padding-top: 0; }
-  .dsec .dt { font-size: 11px; letter-spacing: .25em; color: var(--ink-3); margin-bottom: 6px; }
-  .dsec .dd { font-size: 12.5px; line-height: 1.95; color: var(--ink-2); }
-  /* 往来段（好感三渠道批 2026-10-06 · UI 卷 §3.4c）：拜访主按钮 + 赠丹 chips。
-   * 只用既有主题变量（--well/--line/--ink-2/--ink-3/--primary/--brand-soft），零新色零新字体。 */
-  .actbtn { display: flex; align-items: center; gap: 7px; width: 100%; min-height: 40px;
-    padding: 8px 12px; border-radius: 10px; text-align: left; }
-  .actbtn .an { font-size: 12.5px; }
-  .actbtn .gv { margin-left: auto; font-size: 12px; color: var(--primary); font-variant-numeric: tabular-nums; }
-  .actbtn .ab, .actbtn .mt { font-size: 10.5px; padding: 1px 6px; border-radius: 999px;
-    background: var(--brand-soft); color: var(--primary); white-space: nowrap; }
-  .actbtn .cd { margin-left: auto; font-size: 11px; color: var(--ink-3); }
-  .actbtn[disabled] { opacity: .55; cursor: default; }
-  .chips button .gv { margin-left: 6px; color: var(--primary); font-variant-numeric: tabular-nums; }
-  .chips button .st { margin-left: 5px; color: var(--ink-3); font-size: 11px; }
-  .chips button[disabled] { opacity: .5; cursor: default; }
-  .perk { display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    background: var(--well); border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; font-size: 12px; }
-  .perk .pv { color: var(--good); font-weight: 650; white-space: nowrap; }
-  .perk.off .pv { color: var(--ink-3); text-decoration: line-through; }
-  .perk .why { display: block; font-size: 10.5px; color: var(--bad); margin-top: 2px; }
-  .srcline { font-size: 11.5px; color: var(--ink-2); display: flex; justify-content: space-between;
-    align-items: center; gap: 8px; background: var(--well); border: 1px solid var(--line);
-    border-radius: 10px; padding: 8px 11px; cursor: pointer; }
-  .srcline .go { color: var(--primary); font-size: 11px; white-space: nowrap; }
-  /* 提亲三形态卡 */
-  .formcard { border: 1px solid var(--line); border-radius: 12px; background: var(--well); padding: 11px 13px; margin-bottom: 10px; }
-  .formcard .fn { font-size: 13.5px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .formcard .fn .st { font-size: 10px; font-weight: 400; padding: 1px 7px; border-radius: 99px; white-space: nowrap; }
-  .formcard.cur { border: 1.5px solid var(--primary); box-shadow: 0 0 0 2px var(--brand-soft); }
-  .formcard.cur .fn .st { border: 1px solid var(--primary); color: var(--primary); }
-  .formcard.off { opacity: .55; }
-  .formcard.off .fn .st { border: 1px solid var(--line); color: var(--ink-3); }
-  .formcard .cond { font-size: 10.5px; color: var(--ink-3); margin-top: 3px; }
-  .formcard .eff { font-size: 12px; color: var(--ink-2); margin-top: 6px; line-height: 1.8; }
-  .formcard .cost { font-size: 11px; color: var(--bad); margin-top: 6px; line-height: 1.8; }
-  .pfoot { margin-top: 10px; font-size: 10px; color: var(--ink-3); text-align: center; line-height: 1.8; }
-  /* 结契轻演出（结缘词全屏 2s） */
-  .spouse-stage { position: fixed; inset: 0; z-index: 64; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; background: radial-gradient(ellipse at center, rgba(46, 24, 38, .94), rgba(12, 6, 10, .97)); }
-  .spousebox { text-align: center; padding: 26px 24px; max-width: min(420px, calc(100vw - 48px)); animation: exclIn 1s ease-out; }
-  .spousebox .sv1 { font-size: 12px; letter-spacing: .3em; color: rgba(240, 205, 222, .72); }
-  .spousebox .sv2 { font-size: 13px; line-height: 2.1; color: rgba(245, 232, 238, .88); margin-top: 16px; text-align: left; }
-  .spousebox .sv3 { font-size: 10.5px; color: rgba(255, 255, 255, .4); margin-top: 18px; letter-spacing: .1em; }
-  /* 坊市划线原价（B9） */
-  .pricewas { text-decoration: line-through; color: var(--ink-3); font-size: 10px; margin-right: 5px; font-weight: 400; }
-  .bondline { font-size: 10.5px; color: var(--good); margin-top: 2px; }
-  /* 未择之路（B8 · 照世镜） */
-  .unwalked { border-top: 1px dashed var(--line); margin-top: 7px; padding-top: 6px; }
-  .unwalked .uw-t { font-size: 11px; color: var(--primary); cursor: pointer; letter-spacing: .06em; }
-  .unwalked .uw-b { font-size: 11px; color: var(--ink-2); line-height: 1.7; margin-top: 4px; }
-  .unwalked .uw-hint { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
-
-  /* ── 模态与演出 ── */
-  .mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
-  /* 通用确认层恒在其它浮层之上（2026-10-05 层级修复）：.mask 同为 z-index 50 时按 DOM 序叠放，
-   * 而 #modal-confirm 在 #modal-decree 之前 → 抗旨二次确认被圣旨浮层盖住，需先关掉前面浮层才见。
-   * 抬到 68（> 演出层 64/65、< toasts 70），任何浮层内触发的确认都浮在触发者之上。 */
-  #modal-confirm { z-index: 68; }
-  .modal { width: min(360px, calc(100vw - 48px)); max-height: 80vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; backdrop-filter: blur(8px); }
-  /* 角色浮层单独加宽（2026-10-12）：360px 内宽只有 324px，天赋卡（minmax 130px）排不下三列 ⇒ 第三枚掉到次行；
-   * 取创角「观天赋」屏同一档 480px（= .wrap 上限），三列卡阵与创角一致；窄屏仍按视口收拢，其它浮层不受影响 */
-  #modal-role .modal { width: min(480px, calc(100vw - 32px)); }
-  .modal h2 { margin: 0 0 8px; font-size: 15px; }
-  .modal p { margin: 0 0 14px; color: var(--ink-2); }
-  .modal .branch { display: block; width: 100%; text-align: left; margin: 8px 0; }
-  /* 出关呈报数据网格（离线所得批）：label + 大数字，弱化散文 */
-  .osub { font-size: 12px; color: var(--ink-3); margin: -2px 0 10px; }
-  .ostat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 12px; }
-  .ostat .o { background: var(--well); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; }
-  .ostat .on { font-size: 11px; color: var(--ink-3); }
-  .ostat .ov { font-size: 20px; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; margin-top: 2px; line-height: 1.15; }
-  .ostat .ov .u { font-size: 12px; font-weight: 500; color: var(--ink-2); margin-left: 3px; }
-  .ostat .os { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
-  /* ── 天道系统（天道系统批 B1~B4）：问天行 / 焚表浮层 / 圣旨卷轴演出 / 天象卡 ── */
-  .tdrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
-  .tdbtn { position: relative; min-height: 34px; padding: 5px 14px; border-radius: 999px; border: 1px solid var(--primary); color: var(--primary); background: var(--brand-soft); font-weight: 650; cursor: pointer; }
-  .tdbtn.plain { border-color: var(--line); color: var(--ink-2); background: var(--well); font-weight: 400; }
-  .tdbtn .pdot { position: absolute; top: 3px; right: 5px; }
-  .tddefy { font-size: 12px; color: var(--ink-2); }
-  .tdstage { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--bad); color: var(--bad); white-space: nowrap; }
-  .tdstage.nijie { border-color: var(--primary); color: var(--primary); background: var(--brand-soft); }
-  .tdtitle { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--primary); color: var(--primary); background: var(--brand-soft); white-space: nowrap; }
-  .tdhex { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
-  .tdhex button { min-height: 34px; padding: 4px 10px; border-radius: 10px; font-size: 12px; text-align: center; }
-  .tdhex button.on { border-color: var(--primary); color: var(--primary); background: var(--brand-soft); }
-  .tdhex .hx { display: block; font-size: 10px; color: var(--ink-3); margin-top: 1px; }
-  textarea.tdta { width: 100%; min-height: 88px; background: var(--well); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12px; line-height: 1.6; resize: vertical; box-sizing: border-box; font-family: inherit; }
-  .decree-scroll { animation: unroll .55s ease-out; transform-origin: top center; border: 1px solid var(--primary); border-radius: 10px; padding: 14px; background: var(--brand-soft); }
-  @keyframes unroll { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
-  .decree-type { text-align: center; font-size: 16px; font-weight: 700; color: var(--primary); letter-spacing: .2em; }
-  .decree-verdict { margin-top: 10px; font-size: 13px; line-height: 1.7; min-height: 44px; white-space: pre-wrap; }
-  .decree-omen { margin-top: 8px; font-size: 12px; color: var(--ink-2); }
-  .decree-meta { display: flex; justify-content: center; gap: 10px; font-size: 11px; color: var(--ink-3); margin-top: 6px; }
-  .omenitem { border: 1px solid var(--line); border-left: 3px solid var(--primary); border-radius: 10px; padding: 8px 12px; margin: 6px 0; background: var(--well); font-size: 12px; line-height: 1.6; }
-  .omenitem .ot { color: var(--ink-3); font-size: 11px; margin-bottom: 2px; }
-  .rumorcard.sky { border-left-color: var(--primary); }
-  @media (prefers-reduced-motion: reduce) { .decree-scroll { animation: none; } }
-  /* ── 渡劫呈报（渡劫演出重做批）：主题感知卡片 + 成算环，弃近黑幕布（信息落在浅色卡上）── */
-  .trib-mask { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; cursor: pointer; background: rgba(18, 16, 28, .34); backdrop-filter: blur(4px); }
-  .trib-card { position: relative; overflow: hidden; width: min(300px, calc(100vw - 56px)); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 18px 16px; text-align: center; box-shadow: 0 14px 44px rgba(0, 0, 0, .22); animation: tribIn .3s cubic-bezier(.3, .8, .3, 1); }
-  .trib-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--primary); opacity: .85; }
-  .trib-card.lose::before { background: var(--bad); }
-  .trib-card.charging .trib-ring { animation: tribPulse 1.1s ease-in-out infinite; }
-  @keyframes tribIn { from { transform: translateY(12px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
-  @keyframes tribPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: .85; } }
-  .trib-ring { position: relative; width: 92px; height: 92px; margin: 2px auto 12px; }
-  .trib-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-  .trib-ring circle { fill: none; stroke-width: 8; }
-  .trib-ring .trk { stroke: var(--well); }
-  .trib-ring .tfl { stroke: var(--primary); stroke-linecap: round; stroke-dasharray: 264; stroke-dashoffset: 264; transition: stroke-dashoffset .8s cubic-bezier(.3, .7, .3, 1), stroke .3s ease; }
-  .trib-ring .tri-in { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-  .trib-ring .tri-p { font-size: 23px; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
-  .trib-ring .tri-u { font-size: 11px; color: var(--ink-3); margin-left: 1px; }
-  .trib-card.lose .tri-p { color: var(--bad); }
-  .trib-card .t1 { font-size: 16px; letter-spacing: .16em; font-weight: 700; color: var(--ink); }
-  .trib-card.win .t1 { color: var(--primary); }
-  .trib-card.lose .t1 { color: var(--bad); }
-  .trib-card .t2 { margin-top: 7px; font-size: 12px; color: var(--ink-2); line-height: 1.5; }
-  .trib-rows { margin-top: 12px; display: grid; gap: 6px; }
-  .trib-rows .tr { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); background: var(--well); border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px; }
-  .trib-rows .tr b { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .trib-rows .tr.hot b { color: var(--primary); }
-  .trib-rows .tr.bad b { color: var(--bad); }
-  .trib-card .trib-skip { margin-top: 12px; font-size: 11px; color: var(--ink-3); opacity: .85; }
-  @media (prefers-reduced-motion: reduce) { .trib-card { animation: none; } .trib-card.charging .trib-ring { animation: none; } .trib-ring .tfl { transition: none; } }
-  #toasts { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 70; display: flex; flex-direction: column; gap: 6px; width: min(420px, calc(100vw - 32px)); pointer-events: none; }
-  .toast { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 12px; color: var(--ink); backdrop-filter: blur(8px); box-shadow: 0 4px 14px rgba(0,0,0,.15); }
-
-  /* ── F1 问道初心三段卡 ── */
-  .biascards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
-  .biascard { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--well); cursor: pointer; text-align: center; }
-  .biascard.sel { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; background: var(--brand-soft); }
-  .biascard .bn { font-weight: 650; font-size: 13px; }
-  .biascard.right .bn { color: var(--sq-karma-right); }
-  .biascard.evil .bn { color: var(--sq-karma-evil); }
-  .biascard .bd { margin-top: 4px; color: var(--ink-3); font-size: 11px; line-height: 1.5; }
-  .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--primary); font-size: 12px; font-weight: 650; }
-
-  /* ── F2 奇遇页：叙事流 + 图鉴 ── */
-  .fcard { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 8px 0; background: var(--well); }
-  /* G17 江湖传闻卡：性质色调左边线 + 倒计时行（临期转红）；war 卡固定赭线 */
-  .rumorcard { border: 1px solid var(--line); border-left: 3px solid var(--line); border-radius: 10px; padding: 8px 12px; margin: 6px 0; background: var(--well); }
-  .rumorcard.good { border-left-color: var(--good); }
-  .rumorcard.bad, .rumorcard.war { border-left-color: var(--bad); }
-  .rumorcard .rt { display: flex; justify-content: space-between; gap: 8px; color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; }
-  .rumorcard .fg { font-size: 12px; margin-top: 4px; }
-  .rumorcard.soon .rt span:last-child { color: var(--bad); font-weight: 650; }
-  /* G13 v2.0 附属设施行（洞府浮层） */
-  .cavefac { margin-top: 6px; border-top: 1px dashed var(--line); padding-top: 4px; }
-  .facrow { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 12px; }
-  .facrow .nm { font-weight: 600; white-space: nowrap; }
-  .facrow .meta { flex: 1; color: var(--ink-2); font-size: 11px; }
-  .facrow button { white-space: nowrap; }
-  .fcard .fh { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-  .fcard .fn { font-weight: 650; font-size: 13px; }
-  .fcard .ft { color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .fcard .fg { font-size: 12px; margin-top: 3px; }
-  .fcard .fe { color: var(--ink-2); font-size: 12px; margin-top: 4px; }
-  .ebadge { display: inline-block; font-size: 10px; padding: 0 5px; border-radius: 4px; border: 1px solid currentColor; margin-left: 4px; vertical-align: 1px; }
-  .codexgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
-  .cslot { border: 1px dashed var(--line); border-radius: 8px; padding: 7px 6px; font-size: 11px; text-align: center; color: var(--ink-2); background: var(--well); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .cslot.seen { border-style: solid; color: var(--ink); }
-  .cslot.unseen { color: var(--ink-3); opacity: .65; }
-  .codex-sec { margin-top: 10px; font-weight: 650; color: var(--ink-2); font-size: 12px; }
-
-  /* ── F3 抉择模态：徽标行 / 分支信息层 / 判定演出 / 结果页 ── */
-  .mc-badges { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
-  /* 创角步骤条（走查稿① 第 6 项）：当前步实心金、已过步描金 */
-  .stepper { display: flex; justify-content: center; align-items: center; margin: -4px 0 12px; }
-  .step { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-3); }
-  .step .n { width: 19px; height: 19px; border-radius: 50%; border: 1px solid var(--line);
-    display: flex; align-items: center; justify-content: center; font-size: 10px; }
-  .step.on { color: var(--primary); font-weight: 700; }
-  .step.on .n { border-color: var(--primary); background: var(--primary); color: var(--surface); }
-  .step.done .n { border-color: var(--primary); color: var(--primary); }
-  .stepline { width: 30px; height: 1px; background: var(--line); margin: 0 8px; }
-  .mbadge { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; }
-  .mbadge.good { color: var(--good); } .mbadge.bad { color: var(--bad); }
-  .mbadge.sp { color: var(--primary); background: var(--brand-soft); }
-  .mc-story { color: var(--ink-2); font-size: 12px; line-height: 1.8; margin: 0 0 12px; }
-  .branch { position: relative; }
-  .branch .bk { font-weight: 650; }
-  .branch .bi { display: block; color: var(--ink-3); font-size: 11px; margin-top: 3px; line-height: 1.5; }
-  .branch.right-b { border-left: 3px solid var(--sq-karma-right); }
-  .branch.evil-b { border-left: 3px solid var(--sq-karma-evil); }
-  .branch.neutral-b { border-left: 3px solid var(--sq-karma-neutral); }
-  .branch:disabled { opacity: .45; }
-  /* 抉择模态 footer 三纪律（交互说明 §4.3：必选 / 无倒计时 / 点遮罩不关）+ 点遮罩轻震反馈 */
-  .mc-foot { text-align: center; font-size: 11px; margin: 10px 0 0; letter-spacing: .04em; }
-  .modal.nudge { animation: nudge .32s ease-in-out; }
-  @keyframes nudge {
-    0%, 100% { transform: translateX(0); }
-    22% { transform: translateX(-5px); }
-    48% { transform: translateX(4px); }
-    74% { transform: translateX(-2px); }
-  }
-  .judging { text-align: center; padding: 18px 0; color: var(--ink-2); font-size: 13px; }
-  .judging .jline { margin: 6px 0; opacity: .35; transition: opacity .3s; }
-  .judging .jline.lit { opacity: 1; }
-  .res-karma { font-size: 16px; font-weight: 700; text-align: center; margin: 6px auto; padding: 3px 14px; width: fit-content; border-radius: 999px; }
-  /* 走查 v2.5 §5：金色字压浅底不易识别 → 加深文字色 + 软底徽章（明暗双主题各自校色） */
-  .res-karma.pos { color: var(--sq-karma-right); background: var(--brand-soft); }
-  .res-karma.neg { color: var(--sq-karma-evil); background: rgba(192, 57, 43, 0.10); }
-  .res-check { text-align: center; font-size: 12px; margin-bottom: 6px; }
-  .res-check.pass { color: var(--good); } .res-check.fail { color: var(--bad); }
-
-  /* ── F4 闭关所得常驻面板 ── */
-  .offbox { border: 1px dashed var(--line); border-radius: 10px; padding: 9px 12px; margin: 10px 0; background: var(--well); font-size: 12px; color: var(--ink-2); }
-  .offbox .ot { font-weight: 650; color: var(--ink); margin-bottom: 3px; }
-
-  /* ── F7 渡劫演出（样式见上「渡劫呈报」）+ 独占全屏演出 ── */
-  .excl-mask { position: fixed; inset: 0; z-index: 65; display: flex; align-items: center; justify-content: center; cursor: pointer;
-    background: radial-gradient(ellipse at center, rgba(60,45,10,.92), rgba(10,8,4,.97)); }
-  .excl-box { text-align: center; color: #f0d473; padding: 24px; animation: exclIn 1.2s ease-out; }
-  .excl-box .e1 { font-size: 13px; letter-spacing: .3em; color: rgba(240,212,115,.75); }
-  .excl-box .e2 { font-size: 26px; font-weight: 700; letter-spacing: .12em; margin: 12px 0; text-shadow: 0 0 18px rgba(240,212,115,.5); }
-  .excl-box .e3 { font-size: 12px; color: rgba(255,255,255,.65); }
-  @keyframes exclIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
-
-  /* ── 善恶名号（善恶名号批）：顶栏头衔徽章 + 浮层九段天梯 + 名号更迭全屏演出 ── */
-  /* 名号徽章：顶栏第一行唯一的善恶入口（点按开善恶浮层）——第二行档位徽章已撤 */
-  .rankchip { display: inline-block; padding: 1px 9px; border-radius: 999px; cursor: pointer;
-    font-size: 12px; font-weight: 700; letter-spacing: .04em; border: 1px solid currentColor; vertical-align: 1px; }
-  .rankchip.right { color: var(--sq-karma-right); background: var(--brand-soft); }
-  .rankchip.evil { color: var(--sq-karma-evil); background: rgba(192, 57, 43, 0.10); }
-  .rankchip.neutral { color: var(--sq-karma-neutral); background: var(--well); }
-  .rankladder { display: flex; flex-direction: column; gap: 3px; margin: 8px 0; }
-  .rankladder .rrow { display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    padding: 3px 10px; border-radius: 8px; border: 1px solid transparent; font-size: 12px; color: var(--ink-2); }
-  .rankladder .rrow .rr-range { font-variant-numeric: tabular-nums; font-size: 11px; opacity: .7; }
-  .rankladder .rrow.on { font-weight: 700; border-color: currentColor; background: var(--well); }
-  .rankladder .rrow.on.right { color: var(--sq-karma-right); }
-  .rankladder .rrow.on.evil { color: var(--sq-karma-evil); }
-  .rankladder .rrow.on.neutral { color: var(--sq-karma-neutral); }
-  /* 名号更迭全屏演出：轻幕（alpha ≤ 0.6）保底，大名号高对比；z 66 在独占演出之上、确认层之下 */
-  .rank-mask { position: fixed; inset: 0; z-index: 66; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-  .rank-mask.right { background: radial-gradient(ellipse at center, rgba(48,40,10,.58), rgba(10,9,5,.84)); }
-  .rank-mask.evil { background: radial-gradient(ellipse at center, rgba(48,14,16,.58), rgba(10,5,5,.84)); }
-  .rank-mask.neutral { background: radial-gradient(ellipse at center, rgba(18,26,32,.58), rgba(5,7,9,.84)); }
-  .rank-box { text-align: center; padding: 26px; animation: rankIn 1s ease-out; }
-  .rank-box .r1 { font-size: 13px; letter-spacing: .34em; color: rgba(255,255,255,.62); }
-  .rank-box .r2 { font-size: 30px; font-weight: 800; letter-spacing: .14em; margin: 14px 0; }
-  .rank-box .r2.right { color: var(--sq-karma-right); text-shadow: 0 0 24px rgba(227,195,74,.55); }
-  .rank-box .r2.evil { color: var(--sq-karma-evil); text-shadow: 0 0 24px rgba(229,115,115,.55); }
-  .rank-box .r2.neutral { color: #cfe0e8; text-shadow: 0 0 20px rgba(143,168,181,.45); }
-  .rank-box .r3 { font-size: 12px; color: rgba(255,255,255,.6); }
-  @keyframes rankIn { from { opacity: 0; transform: translateY(12px) scale(.92); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) {
-    .bar > i { transition: none; }
-    * { animation: none !important; }
-    .judging .jline { transition: none; }
-  }
-</style>
+<link rel="stylesheet" href="ui.css">
 </head>
 <body>
 <div class="wrap">
@@ -1319,6 +386,34 @@
   </div>
 </div>
 
+<!-- 兵解 · 盖棺之传（第册批 · 用户令「点击兵解做一个效果演出，逐字出现，给当前角色一个类似传记总结」）：
+     卷轴观感与逐字节奏复用接旨那一族（.decree-scroll / .decree-type / .decree-verdict ⇒ 零新 CSS），
+     正文取引擎 doBingjie 刚写入的 `meta.biographies` 末条——视图不另生成文本，与前世书同源。
+     ⚠️ 挂点前缀取 `mrp-` 而非顺手的 `mrc-`：`mrc-title` 已被上面「奇遇回看」浮层占用（同 id 两个 ⇒
+     getElementById 只认文档里第一个，标题会写进一个 display:none 的 h2 里，屏上看不见——本批截图取证抓到）。 -->
+<!-- 更新公告（第册四批 · UI 卷 §3.4e · 视图代码外置试点）：结构与文案分别活在 view/updatenote.js 与词表里，
+     本块只留挂点。刻意**不进 MASKS** ⇒ 点遮罩不关（要玩家亲手点「知道了」，与「奇遇抉择」同一套纪律）。
+     挂点前缀 `mun-`（全库唯一由审计 D6 守）。 -->
+<div id="modal-updatenote" class="mask hide">
+  <div class="modal">
+    <div class="decree-scroll">
+      <div class="decree-type" id="mun-title"></div>
+      <div id="mun-text" style="max-height:58vh;overflow-y:auto"></div>
+    </div>
+    <button id="mun-go" class="primary" data-act="noteClose" style="width:100%;margin-top:12px"></button>
+  </div>
+</div>
+
+<div id="modal-recap" class="mask hide">
+  <div class="modal">
+    <div class="decree-scroll">
+      <div class="decree-type" id="mrp-title"></div>
+      <div class="decree-verdict" id="mrp-text" style="max-height:58vh;overflow-y:auto"></div>
+    </div>
+    <button id="mrp-go" class="primary" style="width:100%;margin-top:12px"></button>
+  </div>
+</div>
+
 <!-- 渡劫呈报（渡劫演出重做批：主题感知卡片 + 成算环 + 数据行） -->
 <div id="trib-stage" class="trib-mask hide">
   <div class="trib-card" id="trib-box">
@@ -1370,6 +465,7 @@
 <script src="../assets/worlds/xiuxian/lexicon-meta.js"></script>
 <script src="../assets/worlds/xiuxian/lexicon-alchemy.js"></script>
 <script src="../assets/worlds/xiuxian/lexicon-prodigy.js"></script>
+<script src="../assets/worlds/xiuxian/lexicon-jianghu.js"></script>
 <script src="../assets/worlds/xiuxian/lexicon-spirit.js"></script>
 <script src="../assets/worlds/xiuxian/lexicon-sect.js"></script>
 <script src="../assets/lexicon/talents.js"></script>
@@ -1401,6 +497,7 @@
 <script src="../assets/systems/codex.js"></script>
 <script src="../assets/systems/alchemy.js"></script>
 <script src="../assets/systems/prodigy.js"></script>
+<script src="../assets/systems/jianghu.js"></script>
 <script src="../assets/systems/fusion.js"></script>
 <script src="../assets/systems/sect.js"></script>
 <script src="../assets/systems/actions.js"></script>
@@ -1409,6 +506,12 @@
 <script src="../assets/worlds/xiuxian/index.js"></script>
 <script src="../assets/talents/engine.js"></script>
 <script src="../assets/core.js"></script>
+<script src="updatenote.js"></script>
+<script src="journal.js"></script>
+<script src="achv.js"></script>
+<script src="shop.js"></script>
+<script src="jianghu.js"></script>
+<script src="arts.js"></script>
 <script>
 (function () {
   var SQ = window.SQ;
@@ -1428,10 +531,11 @@
     rumorSeenAt: null,                      /* G17 传闻红点基线（走查修复）：已读时点，其后出生的传闻才亮 */
     feedExpand: false, lastFeedKey: '',     /* 奇遇页叙事流折叠态（F2）+ 未读判定基线（最新条标识） */
     seenOfflineAt: 0,                       /* 出关呈报 at 键控 · 会话一次（F4） */
+    seenDeathAt: 0, deathPending: false,    /* 坐化呈报（寿元批）：同 at 键控 · 确定后进创角 */
     ioErrSeen: null,                        /* 存档 I/O 失败提示去重（平台关卡 #89） */
     caveStory: {},                          /* 洞府叙事展开态（B3；未达资格者本就不给展开） */
     tribSnap: null,                         /* 渡劫前 {p, loss} 快照（F7 复盘行） */
-    artsGroup: 'tier', artsGroupVal: null,  /* 功法页双维分组（B4）：品阶|阵营 × 选中值（null=全节） */
+    artsGroup: 'tier', artsGroupVal: null,  /* 功法页双维筛选（B4 + 体验批）：品阶|阵营 × 选中值（null=不筛，已学会与图鉴同受） */
     lawChip: 'fa',                          /* 法与器页顶部标签（标签化批 2026-10-09）：'fa' 功法段 | 'qi' 法器段，两段互斥；纯 UI 态不入存档 */
     slotPickFor: null,                      /* 满槽替换选择模式（B4）：待入槽的功法 id */
     bondDetail: null,                       /* 名录浮层二级页（B3）：当前查看的 npcId */
@@ -1440,6 +544,8 @@
     caveSnap: null,                         /* 地 chip 红点快照（B1）：新福地解锁变化检测 */
     achvSnap: null,                         /* 成就页红点快照：新成就达成变化检测（meta.achv 只增） */
     spouseLogSeen: 0,                       /* 双修解除叙事已消费标记（B4）：spouseLog.at 键控，会话一次 */
+    giftI: -1, giftUntil: 0,                /* 页游礼包彩蛋（第卅九批）：会话内轮换槽位与下次重掷时刻——纯呈现，不入存档 */
+    lastMerchUntil: 0,                      /* 神秘商人开席时刻（第卅九批）：席期只 MERCHANT_DURATION_MS，靠它把「到货」这件事提示出来 */
     karmaRank: ''                           /* 善恶名号段位基线（善恶名号批）：跨段即触发名号更迭演出 */
   };
 
@@ -1451,6 +557,14 @@
   function pack() { return SQ.Worlds[wid()].pack; }
   function D() { return pack().data; }
   function mods() { return SQ.Mods.collect(state.profile, ws(), pack(), D()); }
+
+  /* 视图外置件的桥（第册五批 · N34 第二刀）：内联闭包里的私有量不许被外置件自取，一律走这一枚 ctx。
+   * ⚠️ 键集由审计 **D7** 逐键对账：`view/*.js` 里用到的 c.xxx 必须在这里给过 ⇒ 少给一枚键当场判红，不留到运行时。
+   * shortcut: 只放**已被外置件需要**的键；下一片要用新服务（toast / renderAll / mutate 之类）时在这里加一行、D7 自动跟。 */
+  function ctx() {
+    return { s: state, w: ws(), p: pack(), d: D(), ui: ui, $: $, t: t, esc: esc, date: gameDateStr,
+      mods: mods(), tierCls: tierCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, fuseAltar: renderFuseAltar };
+  }
 
   function show(name) {
     ['loading', 'c1', 'c2', 'c3', 'main'].forEach(function (s) {
@@ -1709,7 +823,10 @@
         createdAt: Date.now(),
         alignBias: draft.bias,   /* 问道初心（锁定态；gender/race 走 normalize 缺省，本期无入口） */
         gender: 'male',
-        race: 'human'
+        race: 'human',
+        /* 转世与换界都走这里重建 profile ⇒ 「已读公告号」必须显式带走，否则每死一次就重弹一次
+           同一版公告（不能改成整对象展开：legacyTalents 那枚要的是「新一世没有赠礼就清干净」，见下 `if (lg)`） */
+        seenNote: s.profile.seenNote
       };
       s.worlds[w] = SQ.Worlds[w].pack.initialState();
       /* N20 接线：首世开场行（转世世由 legacy.js 的 `legacy.log.rebirth` 起头，首世此前一片空白） */
@@ -1806,7 +923,7 @@
     { id: 'event', key: 'tab.event' },
     /* 六向长线批：炼丹炼器（筑基开炉）/ 同代天骄（金丹方闻同代之名）/ 宗门（化神亮入口） */
     { id: 'alchemy', key: null, sys: 'alchemy.system', lock: 1 },
-    { id: 'prodigy', key: null, sys: 'prodigy.system', lock: 2 },
+    { id: 'prodigy', key: null, sys: 'jianghu.system', lock: 2 },
     { id: 'sect', key: null, sys: 'sect.system', lock: 4 },
     /* 成就图鉴批：成就自轮回页迁出为独立页（常驻可见，无境界门槛） */
     { id: 'achv', key: null, sys: 'achv.system' }
@@ -2194,13 +1311,14 @@
     for (var i = 0; i < d.ARTS_SLOTS; i++) {
       var id = w.artsSlots[i];
       if (!id) {
+        /* 「主修虚位」只在整页没有一个主修时说（issue #3 后第 1 格空着不代表没有主修）*/
         h += '<div class="lrow locked"><div class="nm">—</div><div class="meta">' +
-          esc(t(i === 0 ? 'arts.main.empty' : 'arts.empty')) + '</div></div>';
+          esc(t(i === 0 && !SQ.Arts.mainArt(w) ? 'arts.main.empty' : 'arts.empty')) + '</div></div>';
         continue;
       }
       var a = am[id];
       var lv = w.artsLevels[id] || 0;
-      var isMain = i === 0 && SQ.Arts.mainArt(w) === id;
+      var isMain = SQ.Arts.mainArt(w) === id;   /* issue #3：主修可由玩家点定，不再绑第 1 位 */
       h += '<div class="lrow cur">';
       h += '<div class="nm"><span class="align-sym align-' + a.alignment + '">' + esc(t('align.sym.' + a.alignment)) + '</span>' +
         esc(t('skill.' + id + '.name')) +
@@ -2208,7 +1326,7 @@
         (isMain ? ' <span class="special-mark">' + esc(t('arts.main')) + '</span>' : '') +
         ' <span class="hint">Lv' + lv + '</span></div>';
       h += '<div class="meta">' + esc(t('skill.' + id + '.desc')) + (lv > 0 ? ' ×' + lv : '') + '</div>';
-      h += '<div class="meta"><span class="special-mark">' + esc(t('arts.special')) + ' · ' + t('special.' + a.special.pool + '.name') + '</span> · ' +
+      h += '<div class="meta">' + (a.special ? '<span class="special-mark">' + esc(t('arts.special')) + ' · ' + t('special.' + a.special.pool + '.name') + '</span> · ' : '') +
         esc(t('skill.nurture.' + a.attr)) + '</div>';
       h += '<div class="meta">' + esc(t('arts.practice', { p: Math.floor(SQ.Arts.practiceOf(w, id, d)) })) + '</div>';
       h += '</div>';
@@ -2250,7 +1368,13 @@
         '<span class="rrtag">' + esc(tag) + '</span></div>' +
         '<div class="rrsub">' + esc(t('realm.info.base', { n: R.baseQi })) + ' · ' +
         esc(t('realm.info.power', { n: SQ.fmt(R.power) })) + '</div>' +
-        '<div class="rrsub">' + esc(gate) + '</div></div>';
+        /* 寿元同行列出（寿元批 §6.1A）：「破境即得寿」这条因果要在境界一览里看得见，
+         * 否则玩家只在本世行见到一串数字、不知为何要抢岁月。
+         * 第卌八批改累加阶梯 ⇒ 这一列读的是世界包 `lifeCapOf(i)`（凡寿 + 逐境增量前缀和），
+         * 不再直取表尾——`LIFESPAN` 这个键已随批删除，无尽改由 `LIFE_ETERNAL` 那一枚常数判。 */
+        '<div class="rrsub">' + esc(gate) + ' · ' + esc(i >= d.LIFE_ETERNAL
+          ? t('realm.info.life.eternal')
+          : t('realm.info.life', { n: SQ.fmt(pack().worldSystems.lifeCapOf(i)) })) + '</div></div>';
     });
     $('mrm-list').innerHTML = h;
     $('mrm-close').textContent = t('ui.close');
@@ -2283,6 +1407,22 @@
       }).join('') + '</div></div>';
     h += '<div class="kv"><span class="hint">' + esc(t('realm.info.cur', { realm: t('realm.' + w.realm) })) + '</span>' +
       '<button class="linkbtn chip" data-act="openRealm">' + esc(t('realm.info.link')) + '</button></div>';
+    /* 寿元 / 道伤两行（寿元批 §6.1A · 第卌八批改显示口径）：一律取世界包 lifeInfo 的派生数，视图零自拼口径
+     * （第廿五批「同源」纪律沿用）。大限将至整行转红——引擎侧刻意**不写日志**：每秒 tick
+     * 重绘会刷屏（第廿八批「转世结算刷屏」同族坑），警示只在这一屏。道伤满 1 层才报，
+     * 岁月疗养中的零点几层不占行。
+     * 用户令「寿元：111岁，尚余约1111年」⇒ `li.age`（= floor(lifeUsed)，含创角生年）报岁、
+     * 只报剩余，不再摆「X/Y」分数：上界会随累加阶梯与 lifeBonus 动，摆出来只诱导误算。 */
+    var li = p.worldSystems.lifeInfo(w);
+    h += '<div class="kv"><span' + (li.near ? ' class="bad"' : '') + '>' + esc(
+      li.eternal ? t('life.row.eternal', { age: SQ.fmt(li.age) })
+        : t('life.row', { age: SQ.fmt(li.age), left: SQ.fmt(Math.max(0, Math.ceil(li.left))) })
+      ) + '</span>' + (li.near ? '<span class="bad">' + esc(t('life.near', { left: SQ.fmt(Math.ceil(li.left)) })) + '</span>' : '') + '</div>';
+    if (li.daoLv >= 1) {
+      h += '<div class="kv"><span' + (li.daoNear ? ' class="bad"' : '') + '>' +
+        esc(t('daoshang.row', { n: li.daoLv, cap: li.daoMax })) + '</span>' +
+        (li.daoNear ? '<span class="bad">' + esc(t('daoshang.near')) + '</span>' : '') + '</div>';
+    }
     /* 修为大数字（修行状态批 v2.1）：**全位数字逐秒跳动**——不带 万/亿 缩放（缩放会把
      * 低境界产出量化到 0.1万/步，数字长时间纹丝不动）、不带「修为」单位字，只留 / 上限；
      * 每秒 tick 由 renderAll 重绘，配合全位数字形成最直观的增长动效 */
@@ -2500,6 +1640,7 @@
     /* ── 自动区（自动批）：自动渡劫（自设置页迁入）+ 自动奇遇（新增），修行页页尾统一挂靠 ── */
     var autoT = !!(state.settings && state.settings.autoTrib);
     var autoE = !!(state.settings && state.settings.autoEvent);
+    var autoR = ws().gearAutoRefine !== false;   /* 自动炼化（issue #2）：缺省开 = 旧行为 */
     h += '<div class="sechead" style="margin-top:14px"><span class="t">' + esc(t('idle.auto.sec')) + '</span></div>';
     h += '<div class="setrow"><span class="sl">' + esc(t('settings.auto.title')) +
       '<span class="sd">' + esc(t('settings.auto.desc')) + '</span></span>' +
@@ -2509,6 +1650,10 @@
       '<span class="sd">' + esc(t('settings.autoevent.desc')) + '</span></span>' +
       '<button class="switch' + (autoE ? ' on' : '') + '" data-act="toggleAutoEvent" role="switch" aria-checked="' + autoE + '">' +
       '<i></i><span>' + esc(autoE ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>';
+    h += '<div class="setrow"><span class="sl">' + esc(t('settings.gearrefine.title')) +
+      '<span class="sd">' + esc(t('settings.gearrefine.desc')) + '</span></span>' +
+      '<button class="switch' + (autoR ? ' on' : '') + '" data-act="toggleGearRefine" role="switch" aria-checked="' + autoR + '">' +
+      '<i></i><span>' + esc(autoR ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>';
     /* 奇遇倾向（体验批）：自动抉择时的分支偏好——优先选倾向分支，不可用则随机其他。
      * 仅自动奇遇开启时展开（子选项，关闭时无意义，避免界面干扰）。 */
     if (autoE) {
@@ -2664,41 +1809,6 @@
     function p2(n) { return ('0' + n).slice(-2); }
     return dt.getFullYear() + '-' + p2(dt.getMonth() + 1) + '-' + p2(dt.getDate()) + ' ' + p2(dt.getHours()) + ':' + p2(dt.getMinutes());
   }
-  /* 修习缺项含差值（B4：「相差 314」两段式 karma 门槛可视化；draft 帧一） */
-  function artLackTexts(id) {
-    var w = ws(), p = pack();
-    var a = p.artsMap()[id];
-    if (!a) return [];
-    var r = a.reqs || {};
-    var karma = p.worldSystems && p.worldSystems.karmaOf ? p.worldSystems.karmaOf(w) : 0;
-    var kTxt = (karma >= 0 ? '+' : '') + karma;
-    var out = [];
-    if (r.realm != null && w.realm < r.realm) {
-      out.push(t('arts.lack.realmgap', { realm: t('realm.' + r.realm), n: r.realm - w.realm }));
-    }
-    if (r.attr) {
-      var cur = Math.floor((w.attrs || {})[r.attr.id] || 0);
-      if (cur < r.attr.min) {
-        out.push(t('arts.lack.attr', { attr: t('attr.' + r.attr.id), min: r.attr.min, cur: cur, gap: r.attr.min - cur }));
-      }
-    }
-    if (r.karmaMin != null && karma < r.karmaMin) {
-      out.push(t('arts.lack.karmaMin', { min: r.karmaMin, cur: kTxt, gap: r.karmaMin - karma }));
-    }
-    if (r.karmaMax != null && karma > r.karmaMax) {
-      out.push(t('arts.lack.karmaMax', { max: r.karmaMax, cur: kTxt, gap: karma - r.karmaMax }));
-    }
-    return out;
-  }
-  /* 获取途径行（B4：未获得显示教学行——收集牵引 = 知道去哪拿） */
-  function obtainVia(a) {
-    var o = a.obtain || {};
-    if (o.type === 'zone') return t('arts.obtain.zone', { zone: t('combat.zone.' + o.zone) });
-    if (['initial', 'shop', 'black', 'event', 'event_evil', 'event_rare'].indexOf(o.type) >= 0) {
-      return t('arts.obtain.' + o.type);
-    }
-    return t('arts.obtain.event');
-  }
   /* 独占载体溯源（B4/B5 共用）：扫全事件表三分支 gain → {ev, branch} */
   function carrierOf(kind, id) {
     var out = null;
@@ -2719,26 +1829,6 @@
   var TIER_CLS = { huang: 0, xuan: 2, di: 3, tian: 4 };
   function artTierCls(a) { return 't' + (TIER_CLS[a && a.tier] != null ? TIER_CLS[a.tier] : 0); }
   function tierCls(tier) { return TIER_CLS[tier] != null ? 't' + TIER_CLS[tier] : ''; }
-  /* 独占剪影（B4：？？？ + 天阶 + 大道方向一句 skill.{id}.dao + 载体奇遇明示 + 法·灰角标） */
-  function artSilhouette(id, a) {
-    var car = carrierOf('art', id);
-    var r = a.reqs || {}, reqTxt = [];
-    if (r.realm != null) reqTxt.push(t('realm.' + r.realm));
-    if (r.attr) reqTxt.push(t('attr.' + r.attr.id) + ' ≥ ' + r.attr.min);
-    if (r.karmaMin != null) reqTxt.push(t('arts.req.karmaMin', { min: r.karmaMin }));
-    if (r.karmaMax != null) reqTxt.push(t('arts.req.karmaMax', { max: r.karmaMax }));
-    var h = '<div class="lrow sil">';
-    h += '<div class="nm">' + esc(t('event.codex.unknown')) +
-      ' <span class="tierbadge ' + artTierCls(a) + '">' + esc(t('skill.tier.' + a.tier)) + '</span>' +
-      ' <span class="ebadge gray">' + esc(t('event.badge.exArt')) + '</span></div>';
-    h += '<div class="meta daoline">' + esc(t('arts.dao.line', { txt: t('skill.' + id + '.dao') })) + '</div>';
-    h += '<div class="meta hint">' + esc(t('arts.exclusive.via', {
-      ev: car ? t('event.' + car.ev.id + '.name') : t('event.codex.unknown'),
-      branch: car ? t('align.' + car.branch) : ''
-    })) + '</div>';
-    if (reqTxt.length) h += '<div class="meta hint">' + esc(t('arts.req.line', { req: reqTxt.join(' · ') })) + '</div>';
-    return h + '</div>';
-  }
   /* 未获得行（B4：获取途径教学行 + 缺项红字；系统深化批 B4：情报角标 + 豁免提示行） */
   /* ══════════ Tab · 法与器（页面整合批 2026-10-06 · UI 卷 §3.4a；标签化批 2026-10-09 改顶部标签）══════════
    * 原「功法」「法器」两页并为一页（tab id 沿用 `arts`，导航 13 → **12** 项）。
@@ -2747,7 +1837,9 @@
    * **顶部 chip 二枚 + 只渲染选中段**：① chip 行（吸顶）② 概览条（跨轴摘要，两段之间恒在）
    * ③ 段标 ④ 段体。段体本身仍**逐段照搬**（元素与交互零删改）：`artsBody()`（原 renderArts 主体）
    * / `gearBody()`（原 renderGear），都是返回 HTML 串的纯渲染器（实测两者只做读侧计算，无落状态副作用）。
-   * 红点键 `newArtsDot` 与签名 `lastArtsSig` 零改动——只换承载页，法器侧本无红点。 */
+   * 红点键 `newArtsDot` 与签名 `lastArtsSig` 零改动——只换承载页，法器侧本无红点。
+   * 🔧 第册八批 2026-10-17（N34 第五刀）：`artsBody` 及其四条动作已外置 `view/arts.js`，下方那行按
+   * `SQ.UI.arts.body(ctx())` 调用；`gearBody` 与融合坛、悟道石留在内核，随下一刀切。 */
   function renderArts() {
     var c = lawChipOf();
     $('tab-arts').innerHTML =
@@ -2755,7 +1847,7 @@
       lawareBar() +
       (c === 'qi'
         ? secDiv('arts.seg.qi', 'arts.seg.qi.sub', 'qi') + gearBody()
-        : secDiv('arts.seg.fa', 'arts.seg.fa.sub', 'fa') + artsBody());
+        : secDiv('arts.seg.fa', 'arts.seg.fa.sub', 'fa') + SQ.UI.arts.body(ctx()));
   }
 
   /* 顶部标签表（标签化批）：**词表零新键**——两枚 chip 复用既有系统名键 `skill.system`（功法）/
@@ -2810,183 +1902,8 @@
       '</span><span class="sub">' + esc(t(subKey)) + '</span></div>';
   }
 
-  /* ③ 功法段（原 renderArts 主体逐段照搬：槽位抉择横幅 / 修习槽 6 格 /
-   * 自行领悟 / 已学会 / 品阶×阵营分组切换 / 功法图鉴 / 融合坛） */
-  function artsBody() {
-    var w = ws(), m = mods(), d = D(), p = pack();
-    var am = p.artsMap();
-    /* 「待重修」金标与渡劫 24h 横幅随第廿五批撤除：渡劫不再清功法等级 ⇒ 两者语义失效。
-     * 词表键 `arts.reset` / `ui.arts.reset_hint` 按用户裁定保留不删（成孤儿，登记 N32 ②）。 */
-    var h = '';
-    /* 满槽抉择态横幅（批 2·B4）：正典文案 + 取消；**原位替换入口渲染在下方每个槽卡内**
-     * （`slotReplace` + `data-r`）——此处只留提示不留按钮，是因为「替换哪一格」必须由玩家逐格点定。 */
-    if (ui.slotPickFor) {
-      h += '<div class="resetbanner">' + esc(t('arts.slotpick.title', { name: t('skill.' + ui.slotPickFor + '.name') })) +
-        ' <button class="linkbtn" data-act="slotPickCancel">' + esc(t('ui.cancel')) + '</button></div>';
-    }
-    h += '<div class="kv"><span>' + esc(t('arts.slots', { n: w.artsSlots.length, cap: d.ARTS_SLOTS })) + ' · ' +
-      esc(t('arts.shelf', { n: (w.shelf || []).length, cap: d.SHELF_CAP })) + '</span></div>';
-    h += '<p class="hint" style="margin:0 0 8px">' + esc(t('arts.practice.hint')) + '</p>';
-    h += '<div class="cards" style="grid-template-columns:repeat(3,1fr)">';
-    for (var i = 0; i < d.ARTS_SLOTS; i++) {
-      var id = w.artsSlots[i];
-      /* 主修 = 修习槽第 1 位（B4 · 引擎卷 §4.2）：角标 + 定位锚（法柱 chip 滚动到此） */
-      /* 槽序即语义：第 1 位 = 主修（引擎卷 §4.2）。data-slot = 槽序号，供替换态定位与走查取数。 */
-      var isMain = (i === 0 && id && SQ.Arts.mainArt(w) === id);
-      if (id) {
-        var a = am[id];
-        var lvS = w.artsLevels[id] || 0;
-        var prS = SQ.Arts.practiceOf(w, id, d);
-        h += '<div class="tcard ' + (a.alignment === 'evil' ? 'neg' : a.alignment === 'right' ? 'pos' : '') + '"' +
-             (isMain ? ' data-mainart="1"' : '') + ' data-slot="' + i + '">' +
-             (isMain ? '<span class="corner maincorner">' + esc(t('arts.main')) + '</span>' : '') +
-             '<div class="tname">' + esc(t('skill.' + id + '.name')) + '</div>' +
-             '<div class="teff">Lv' + lvS + '</div>' +
-             '<div class="tdesc">' + esc(t('special.' + a.special.pool + '.name')) + '</div>' +
-             /* 精通迷你条（修行状态批）：主修（第 1 位）增速最高 */
-             '<div class="tpract"><span class="pbar"><i style="width:' +
-               (lvS >= d.ARTS_MAX_LV ? 100 : prS).toFixed(0) + '%"></i></span><span class="hint">' +
-               esc(lvS >= d.ARTS_MAX_LV ? t('arts.max') : t('arts.practice', { p: Math.floor(prS) })) + '</span></div>' +
-             /* 满槽「原位替换」（批 2·B4 引擎支路 + 本批补渲染点）：抉择态下每格挂「替换」——
-              * data-v = 待入槽功法、data-r = 被顶下的在槽功法，handler 走 Arts.slot 的 replaceId 分支。
-              * 缺这一段 = 整条替换链不可达（引擎 + handler + 文案三件齐全、只无渲染点）：玩家只能
-              * 「卸下再装」，新功法落到队列**尾部**，「主修 = 修习槽第 1 位」（引擎卷 §4.2）语义被静默改掉。 */
-             (ui.slotPickFor ? '<div class="tacts-src"><button data-act="slotReplace" data-v="' +
-               esc(ui.slotPickFor) + '" data-r="' + esc(id) + '">' + esc(t('arts.slotpick.replace')) +
-               '</button></div>' : '') +
-             '</div>';
-      } else {
-        h += '<div class="tcard"' + (i === 0 ? ' data-mainart="1"' : '') + '><div class="tdesc" style="text-align:center;padding:14px 0">' +
-             (i === 0 ? esc(t('arts.main.empty')) : esc(t('arts.empty'))) + '</div></div>';
-      }
-    }
-    h += '</div>';
-    /* ── 自行领悟（自悟批 · 需求 §2）：在线修持中随机领悟市面传承功法，进度满（保底）必得一部 ── */
-    (function () {
-      var pct = SQ.Arts.selfLearnPct(w, d);
-      var cands = SQ.Arts.selfLearnCands(w, p, d).length;
-      h += '<div class="sechead"><span class="t">' + esc(t('arts.selflearn.sec')) + '</span>' +
-           '<span class="s">' + esc(t('arts.selflearn.cands', { n: cands })) + '</span></div>';
-      h += '<div class="tcard selflearn">' +
-           '<div class="tpract"><span class="pbar"><i style="width:' + pct.toFixed(0) + '%"></i></span>' +
-           '<span class="hint">' + esc(t('arts.selflearn.pct', { p: pct.toFixed(0) })) + '</span></div>' +
-           '<div class="hint">' + esc(t(cands ? 'arts.selflearn.hint' : 'arts.selflearn.none')) + '</div>' +
-           '</div>';
-    })();
-    /* ── 已学会（走查 v2.5 §4）：紧贴修习槽——装入/升级/精通一屏可达 ── */
-    var knownS = (w.artsKnown || []).slice().sort(function (x, y) {
-      return ((w.artsSlots || []).indexOf(y) >= 0 ? 1 : 0) - ((w.artsSlots || []).indexOf(x) >= 0 ? 1 : 0);
-    });
-    h += '<div class="sechead"><span class="t">' + esc(t('arts.sec.known')) +
-      ' · ' + knownS.length + '</span></div>';
-    if (!knownS.length) h += '<div class="lrow locked"><div class="meta">' + esc(t('arts.known.empty')) + '</div></div>';
-    /* 走查 v2.6 §2：卡片化——同行卡片数随窗口宽度自适应（auto-fill） */
-    h += '<div class="cards artgrid">' + knownS.map(function (x) { return artCard(x, w, m); }).join('') + '</div>';
-    /* ── 功法图鉴（走查 v2.5 §4 + v2.8 §1：待修习架功法回归各品阶/阵营小节，弃置在卡内）── */
-    var grp = ui.artsGroup;
-    h += '<div class="grouper"><span class="gseg">' +
-      '<span class="' + (grp === 'tier' ? 'on' : '') + '" data-act="artsGroup" data-v="tier">' + esc(t('arts.group.tier')) + '</span>' +
-      '<span class="' + (grp === 'align' ? 'on' : '') + '" data-act="artsGroup" data-v="align">' + esc(t('arts.group.align')) + '</span></span>';
-    (grp === 'tier' ? ['huang', 'xuan', 'di', 'tian'] : ['right', 'neutral', 'evil']).forEach(function (v) {
-      h += '<span class="gchip' + (ui.artsGroupVal === v ? ' on' : '') + '" data-act="artsGroupVal" data-v="' + v + '">' +
-        esc(grp === 'tier' ? t('arts.tierchar.' + v) : t('align.' + v)) + '</span>';
-    });
-    h += '</div>';
-    h += '<div class="sechead"><span class="t">' + esc(t('arts.codex.title')) + '</span></div>';
-    var groups = grp === 'tier' ? ['huang', 'xuan', 'di', 'tian'] : ['right', 'neutral', 'evil'];
-    if (ui.artsGroupVal) groups = [ui.artsGroupVal];
-    var allIds = Object.keys(am);
-    groups.forEach(function (gv) {
-      var ids = allIds.filter(function (x) { return grp === 'tier' ? am[x].tier === gv : am[x].alignment === gv; });
-      if (!ids.length) return;
-      var sil = [], ownedS = [], unownedS = [];
-      ids.forEach(function (x) {
-        if (!SQ.Arts.owned(w, x) && ((am[x].obtain || {}).type === 'event_locked')) { sil.push(x); return; }
-        if (SQ.Arts.owned(w, x)) ownedS.push(x);
-        else unownedS.push(x);
-      });
-      h += '<div class="sechead"><span class="t">' +
-        esc(grp === 'tier' ? t('arts.sec.tier', { g: t('arts.tierchar.' + gv) }) : t('arts.sec.align', { g: t('align.' + gv) })) +
-        '</span>' + (sil.length ? '<span class="s">' + esc(t('arts.sec.excl', { n: sil.length })) + '</span>' : '') + '</div>';
-      sil.forEach(function (x) { h += artSilhouette(x, am[x]); });
-      h += '<div class="cards">' + ownedS.concat(unownedS).map(function (x) { return artCodexCard(x, w); }).join('') + '</div>';
-    });
-    h += renderFuseAltar();
-    return h;
-  }
 
-  /* 已学会卡（走查 v2.6 §2）：详情卡——名号/品阶/Lv/签名/滋养/精通 + 装入/移出/升级/散功 */
-  function artCard(id, w, m) {
-    var d = D(), p = pack();
-    var a = p.artsMap()[id];
-    var slotted = (w.artsSlots || []).indexOf(id) >= 0;
-    var lv = w.artsLevels[id] || 0;
-    var pr = SQ.Arts.practiceOf(w, id, d);
-    var h = '<div class="tcard ' + (a.alignment === 'evil' ? 'neg' : a.alignment === 'right' ? 'pos' : '') + '">';
-    h += '<div class="tname">' + esc(t('skill.' + id + '.name')) +
-      ' <span class="tierbadge ' + artTierCls(a) + '">' + esc(t('skill.tier.' + a.tier)) + '</span>' +
-      (slotted ? '<span class="tierbadge t1">' + esc(t('zone.current')) + '</span>' : '') + '</div>';
-    h += '<div class="hint">Lv' + lv + (lv >= d.ARTS_MAX_LV ? ' · ' + esc(t('arts.max')) : '') +
-      ' · ' + esc(t('special.' + a.special.pool + '.name')) +
-      ' · ' + esc(t('skill.nurture.' + a.attr)) + '</div>';
-    /* 走查 v2.7 §3：功法带来的具体增益（当前等级实际生效值，多效果并列） */
-    var effParts = Object.keys(a.effects || {}).map(function (k) {
-      if (lv > 0) {
-        var v = a.effects[k] * lv;
-        return t('talent.field.' + k) + ' ' + (v >= 0 ? '+' : '−') + pct(Math.abs(v));
-      }
-      return t('talent.field.' + k) + ' ' + t('arts.gain.perslot', { p: Math.round(a.effects[k] * 100) });
-    });
-    h += '<div class="meta">' + esc(effParts.join(' · ')) + '</div>';
-    if (lv < d.ARTS_MAX_LV) {
-      h += '<div class="pbar"><i style="width:' + pr.toFixed(0) + '%"></i></div>' +
-        '<div class="hint">' + esc(t('arts.practice', { p: Math.floor(pr) })) + '</div>';
-    }
-    h += '<div class="acts">';
-    h += slotted
-      ? '<button data-act="unslotArt" data-v="' + id + '">' + esc(t('arts.unequip')) + '</button>'
-      : '<button data-act="slotArt" data-v="' + id + '">' + esc(t('arts.equip')) + '</button>';
-    if (lv < d.ARTS_MAX_LV) {
-      var cost = SQ.Arts.upgradeCost(w, p, d, id, m);
-      h += '<button data-act="upgradeArt" data-v="' + id + '"' + (w.qi < cost ? ' disabled' : '') + '>' +
-        esc(t('arts.upgrade.qi', { n: SQ.fmt(cost), res: t('resource.primary') })) + '</button>';
-    }
-    if (!slotted && SQ.Arts.canSalvage(w, p, d, id)) {
-      h += '<button data-act="salvageArt" data-v="' + id + '">' + esc(t('arts.salvage')) + '</button>';
-    } else if (!slotted) {
-      /* N20 接线：此前散功钮静默消失（初始自带 / 不可散功的功法玩家看不到任何解释） */
-      h += '<span class="hint">' + esc(t('arts.salvage.lock')) + '</span>';
-    }
-    h += '</div></div>';
-    return h;
-  }
 
-  /* 图鉴卡（走查 v2.6 §2）：已录=状态行；未获得=获取途径+缺项红字；全部只读 */
-  function artCodexCard(id, w) {
-    var d0 = D();
-    var a = pack().artsMap()[id];
-    var known = (w.artsKnown || []).indexOf(id) >= 0;
-    var shelf = (w.shelf || []).indexOf(id) >= 0;
-    var lv = w.artsLevels[id] || 0;
-    var via = obtainVia(a);
-    var h = '<div class="tcard' + (known ? '' : ' dim') + '">';
-    h += '<div class="tname">' + esc(t('skill.' + id + '.name')) +
-      ' <span class="tierbadge ' + artTierCls(a) + '">' + esc(t('skill.tier.' + a.tier)) + '</span></div>';
-    if (known) {
-      h += '<div class="hint">' + esc(t('arts.codex.known', { lv: lv })) + '</div>';
-    } else if (shelf) {
-      h += '<div class="hint">' + esc(t('arts.codex.shelf')) + '</div>';
-      /* 待修习架功法：复检未过，先弃置止损（走查 v2.8 §1——弃置动作随卡走） */
-      h += '<div class="acts"><button data-act="salvageArt" data-v="' + id + '">' +
-        esc(t('arts.discard')) + ' · +' + esc(SQ.fmt(SQ.Arts.salvageValue(w, pack(), d0, id))) + ' ' + esc(t('resource.currency')) + '</button></div>';
-    } else {
-      h += '<div class="hint">' + esc(t('arts.state.unowned', { via: via })) + '</div>';
-      var lacks = artLackTexts(id);
-      if (lacks.length) h += '<div class="hint" style="color:var(--bad)">' + esc(t('arts.state.lackline', { req: lacks.join(' · ') })) + '</div>';
-    }
-    h += '</div>';
-    return h;
-  }
 
 
   /* ── Tab 4 法器（批 2 · B5：百器录横幅+浮层 / 4 槽来源行 / 独占替换 CONFIRM / 极品 ※）── */
@@ -3130,7 +2047,7 @@
     h += '<div class="teff">' + esc(t('treasure.lv.' + dd.kind, { n: lv, cap: max })) +
       ' · ' + esc(SQ.Treasures.fxText(w, p, dd, e)) + '</div>';
     h += '<div class="tdesc">' + esc(t('treasure.' + e.id + '.desc')) + '</div>';
-    if (dd.kind === 'xian') h += '<div class="tdesc">' + esc(t('treasure.bond.hint', { n: (p.treasures.BOND_COST || 3) })) + '</div>';
+    if (dd.kind === 'xian') h += '<div class="tdesc">' + esc(t('treasure.bond.hint', { n: (p.treasures.BOND_COST || 3), h: (p.treasures.BOND_HOURS || 8) })) + '</div>';
     if (!eq && lacks.length) h += '<div class="tdesc" style="color:var(--danger)">' + esc(lacks.join(' · ')) + '</div>';
     var acts = '';
     if (eq) {
@@ -3619,25 +2536,14 @@
     var n0 = tbl[tierName] != null ? tbl[tierName] : 0;
     return pd.rune ? Math.round(n0 * (d.BOND_GIFT_RUNE_MULT != null ? d.BOND_GIFT_RUNE_MULT : 1.5)) : n0;
   }
-  /* 今日剩余可赠次数（与引擎同口径：Alchemy.gameDayOf，1 游戏日 = 1 现实秒）*/
-  function giftLeft(w, d) {
-    var cap = d.BOND_GIFT_DAILY != null ? d.BOND_GIFT_DAILY : 3;
-    var al = w && w.alchemy;
-    if (!al || !SQ.Alchemy || !SQ.Alchemy.gameDayOf) return cap;
-    var day = SQ.Alchemy.gameDayOf(w, state.profile, Date.now());
-    var g = al.giftDay;
-    if (!g || g.day !== day) return cap;
-    return Math.max(0, cap - (g.n || 0));
-  }
+  /* 赠丹段（GitHub issue #4）：无日次上限，能送几颗只看丹匣库存 ⇒ 这里不再算「今日 n/cap」*/
   function bondActSection(id) {
     var w = ws(), d = D();
     var tier = SQ.Bonds.tierOf(w, id, d);
     var h = '<div class="dsec"><div class="dt">' + esc(t('bond.detail.act')) + '</div>' +
       '<div class="dd hint" style="margin-bottom:8px">' + esc(t('bond.act.tip')) + '</div>' + visitBtn(id, tier);
-    var cap = d.BOND_GIFT_DAILY != null ? d.BOND_GIFT_DAILY : 3;
-    var left = giftLeft(w, d);
     h += '<div class="kv" style="margin-top:12px"><span class="hint">' +
-      esc(t('bond.gift.head', { n: cap - left, cap: cap })) + '</span></div>';
+      esc(t('bond.gift.head')) + '</span></div>';
     if (SQ.Bonds.locked(w, id) || SQ.Bonds.scarred(w, id)) return h + '</div>';
     if (tier >= maxBondTier()) return h + '<div class="dd hint">' + esc(t('bond.gift.fail.max')) + '</div></div>';
     var pills = giftablePills(w, d);
@@ -3647,14 +2553,13 @@
     pills.forEach(function (pl) {
       var g = Math.min(pillGiftGain(d, pl.key), head);
       if (!(g > 0)) return;
-      chips += '<button type="button" data-act="bondGift" data-v="' + id + '" data-c="' + pl.key + '"' +
-        (left > 0 ? '' : ' disabled') + '>' + esc(t((SQ.Alchemy.pillDefOf(d, pl.key) || {}).nameKey ||
+      chips += '<button type="button" data-act="bondGift" data-v="' + id + '" data-c="' + pl.key + '">' +
+        esc(t((SQ.Alchemy.pillDefOf(d, pl.key) || {}).nameKey ||
           'alchemy.pill.' + pl.key + '.name')) +   /* 两族名各按本族键族（成品丹是 `pill.*`，M4）*/
         '<span class="gv">+' + g + '</span><span class="st">' + esc(t('bond.gift.stock', { n: pl.n })) + '</span></button>';
     });
     if (!chips) return h + '<div class="dd hint">' + esc(t('bond.gift.fail.max')) + '</div></div>';
     h += '<div class="chips">' + chips + '</div>';
-    if (!(left > 0)) h += '<div class="dd hint">' + esc(t('bond.gift.fail.daily', { n: cap })) + '</div>';
     return h + '</div>';
   }
   /* 未识 / 厌恶者的隐匿详情：身份不揭示（「？」+ 未结缘或厌恶值），只给渠道 A 主动结识口 */
@@ -3673,7 +2578,7 @@
     var why = (r && r.reason) || 'unknown';
     if (why === 'cooldown') return t('bond.visit.fail.cooldown', { t: timeLeftText(Math.max(0, (r && r.waitMs) || 0)) });
     var ks = ['bond.visit.fail.' + why, 'bond.gift.fail.' + why, 'bond.fail.' + why];
-    for (var i = 0; i < ks.length; i++) if (SQ.t(ks[i], null, wid()) !== ks[i]) return t(ks[i], why === 'daily' ? { n: (D().BOND_GIFT_DAILY != null ? D().BOND_GIFT_DAILY : 3) } : null);
+    for (var i = 0; i < ks.length; i++) if (SQ.t(ks[i], null, wid()) !== ks[i]) return t(ks[i]);
     return t('bond.fail.unknown');
   }
 
@@ -3844,123 +2749,9 @@
   }
 
   /* ── Tab 5 坊市 ── */
-  /* 丹药双标签子函数（**同型面第二处**）：门中供给（势力页 §六）卖的就是 `D.PILLS` 这四颗丹，
-   * 坊市加了标签而那里不加 = 造一处新的不一致，故词缀 / 分类各抽一个纯函数、两处共用。 */
-  function pillAffix(pill) {
-    /* tier = 展示用字段（与同名丹方同档），不参与结算；缺字段就不挂词缀，不猜 */
-    if (!pill || !pill.tier || !tierCls(pill.tier)) return '';
-    return '<span class="tierbadge ' + tierCls(pill.tier) + '">' + esc(t('goods.tier.' + pill.tier)) + '</span>';
-  }
-  function pillCat() { return '<span class="catbadge">' + esc(t('shop.cat.pill')) + '</span>'; }
-  /* 货架卡片双标签（坊市标签批 2026-10-09 · UI 卷 §3.4）：词缀 chip（品阶 / 性质，彩色 tierbadge）
-   * + 分类 chip（灰描边 catbadge）。**一处取数、两处共用**——坊市货架与神秘商人特席此前各拼一套
-   * （特席：法器有品阶、功法没有、丹药一个都没有），那正是「同一种货两张卡三种口径」的成因。
-   * ⚠️ 无词缀的货类（材料包 / 图纸 / 丹炉成品 / 灵石包）**如实留空**，不为了凑齐两枚 chip 编一个档次。
-   * 返回串以空格起头，直接拼在名称后。 */
-  function shopTagHtml(it) {
-    var d = D(), p = pack(), aff = '', cat = '', k = it.kind, gp = it.pack;
-    if (k === 'gear' && it.gear) {
-      aff = '<span class="tierbadge t' + it.gear.tier + '">' + esc(t('gear.tier.' + it.gear.tier)) + '</span>';
-      cat = '<span class="catbadge">' + esc(t('gear.system')) + '</span>';
-    } else if (k === 'arts') {
-      var a = p.artsMap()[it.ref];
-      if (a && tierCls(a.tier)) aff = '<span class="tierbadge ' + tierCls(a.tier) + '">' + esc(t('skill.tier.' + a.tier)) + '</span>';
-      cat = '<span class="catbadge">' + esc(t('skill.system')) + '</span>';
-    } else if (k === 'pill') {
-      var pl2 = null;
-      (d.PILLS || []).forEach(function (x) { if (x.id === it.ref) pl2 = x; });
-      aff = pillAffix(pl2); cat = pillCat();
-    } else if (k === 'treasure') {
-      var td = SQ.Treasures.def(p, it.ref);
-      if (td) aff = '<span class="tierbadge t' + (td.kind === 'xian' ? 4 : 2) + '">' + esc(t('treasure.kind.' + td.kind)) + '</span>';
-      cat = '<span class="catbadge">' + esc(t('treasure.system')) + '</span>';
-    } else if (k === 'pack' && gp) {
-      if (gp.type === 'recipe') {
-        var rc = ((d.ALCHEMY || {}).RECIPES || []).filter(function (r) { return r.id === gp.ref; })[0];
-        if (rc && rc.tier && tierCls(rc.tier)) aff = '<span class="tierbadge ' + tierCls(rc.tier) + '">' + esc(t('goods.tier.' + rc.tier)) + '</span>';
-      }
-      cat = '<span class="catbadge">' + esc(t('alchemy.system')) + '</span>';
-    } else if (k === 'pack') {
-      cat = '<span class="catbadge">' + esc(t('shop.cat.pack')) + '</span>';
-    }
-    return (aff ? ' ' + aff : '') + (cat ? ' ' + cat : '');
-  }
+  /* 坊市那族标签 / 件名 / 计价 / 货架卡已随第册六批整段搬进 view/shop.js（`SQ.UI.shop.*`）；
+     门中供给那一行仍回头调 pillAffix / pillCat —— 势力页外置时这层临时调用自然消失。 */
 
-  /* 货架件名与价格文案的唯一取数口（本批立 · 三处同源：货架卡 / 购单 CONFIRM / 商人特席）。
-   * 立因：CONFIRM 那处自抄了一套三元式且没跟上 pack 子货（材料包/丹方/图纸/丹炉成品），
-   * 买「丹炉成品」弹出「确认购入『灵石包』？价格 修为 0」——名称取 `shop.pack.name`、
-   * 价格取根本不存在的 `it.qiPrice`（`fmt(undefined)` = 0）。 */
-  function shopGoodName(it) {
-    if (it.kind === 'gear' && it.gear) return it.gear.name;
-    if (it.kind === 'pill') return t('pill.' + it.ref + '.name');
-    if (it.kind === 'arts') return t('skill.' + it.ref + '.name');
-    if (it.kind === 'treasure') return t('treasure.' + it.ref + '.name');
-    var gp = it.pack;
-    if (gp) return gp.type === 'mat' ? t('alchemy.good.mat')
-      : gp.type === 'recipe' ? t('alchemy.good.recipe', { name: t('alchemy.recipe.' + gp.ref + '.name') })
-      : gp.type === 'bp' ? t('alchemy.good.bp', { name: t('alchemy.bp.' + gp.ref + '.name') })
-      : t('alchemy.good.furnace');
-    return t('shop.pack.name');
-  }
-  /* 只有**灵石包**这一种货耗修为（其余含 pack 子货一律按灵石计价）⇒ 判据取 `!it.pack`，
-   * 不是取 `kind === 'pack'`（后者把子货也算成灵石包）。 */
-  function shopPriceTxt(it) {
-    return (it.kind === 'pack' && !it.pack)
-      ? t('shop.qiprice', { p: SQ.fmt(it.qiPrice) })
-      : t('shop.price', { n: SQ.fmt(it.price) }) + ' ' + t('resource.currency');
-  }
-
-  function shopItemRow(it, idx, black, w) {
-    var h = '<div class="lrow shopcard' + (it.sold ? ' locked' : '') + '">';
-    if (it.kind === 'gear') {
-      h += '<div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) +
-           (it.gear.special ? ' <span class="special-mark">' + esc(t('gear.special.' + it.gear.special)) + '</span>' : '') + '</div>';
-      h += '<div class="meta">' + esc(statLine(it.gear)) + '</div>';
-      if (!SQ.Gear.canWear(it.gear, w)) h += '<div class="meta red">' + esc(t('gear.req', { realm: t('realm.' + it.gear.reqs.realm) })) + '</div>';
-    } else if (it.kind === 'pill') {
-      h += '<div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) + '</div>';
-      h += '<div class="meta">' + esc(t('pill.' + it.ref + '.desc')) + '</div>';
-    } else if (it.kind === 'arts') {
-      var a = pack().artsMap()[it.ref];
-      /* 情报角标（势力全录卷 §9.9 · B4）：intelArts 条目在坊市显示「情报」角标 + 豁免提示行 */
-      var intelS = !!(w.intelArts && w.intelArts[it.ref]);
-      h += '<div class="nm"><span class="align-sym align-' + a.alignment + '">' + esc(t('align.sym.' + a.alignment)) + '</span>' + esc(shopGoodName(it)) +
-        (intelS ? ' <span class="tierbadge t2">' + esc(t('faction.intel.tag')) + '</span>' : '') + shopTagHtml(it) + '</div>';
-      h += '<div class="meta">' + esc(t('skill.' + it.ref + '.desc')) + '</div>';
-      if (intelS) h += '<div class="meta" style="color:var(--sq-tier-2)">' + esc(t('faction.intel.ignore')) + '</div>';
-    } else if (it.kind === 'treasure') {
-      var td = SQ.Treasures.def(pack(), it.ref);
-      h += '<div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) + '</div>';
-      h += '<div class="meta">' + esc(t('treasure.grade.' + td.grade)) + ' · ' + esc(t('treasure.' + it.ref + '.desc')) + '</div>';
-    } else if (it.pack) {
-      /* 炼丹炼器子货（材料包/丹方/图纸/丹炉成品 · §2.5 pack 格二级权重） */
-      var gp = it.pack;
-      h += '<div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) + '</div>';
-      h += '<div class="meta">' + esc(gp.type === 'recipe' ? t('alchemy.recipe.' + gp.ref + '.name') : (gp.type === 'bp' ? t('alchemy.bp.' + gp.ref + '.desc') : (gp.type === 'mat' ? t('alchemy.shopdesc.mat') : t('alchemy.furnace.desc')))) + '</div>';
-    } else {
-      h += '<div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) + '</div>';
-      h += '<div class="meta">' + esc(t('shop.pack.desc')) + ' → ' + SQ.fmt(it.stones) + ' ' + esc(t('resource.currency')) + '</div>';
-    }
-    if (it.sold) {
-      h += '<div class="acts"><button disabled>' + esc(t('shop.sold')) + '</button></div>';
-    } else {
-      var priceTxt = shopPriceTxt(it);
-      /* 道友折扣可视化（B9 · 坊市稿）：柳三变「消息灵通」在位 → 划线参考原价 + 绿字生效行。
-       * 原价 = 现价按当前乘区反推去掉 bond 份额（同一 mods 快照，参考口径如实标注）。 */
-      var mS = mods();
-      var bS = ((mS.detail || {}).shopCost || {}).bond || 0;
-      var wasHtml = '';
-      if (bS < 0 && it.kind !== 'pack') {
-        var sumS = (mS.sum || {}).shopCost || 0;
-        var wasP = Math.round(it.price * (1 + sumS - bS) / (1 + sumS));
-        if (wasP > it.price) wasHtml = '<span class="pricewas">' + SQ.fmt(wasP) + '</span>';
-        h += '<div class="bondline">' + esc(t('shop.bond.discount', { p: Math.round(-bS * 100) })) + '</div>';
-      }
-      h += '<div class="acts"><button data-act="buy" data-v="' + idx + '" data-b="' + (black ? 1 : 0) + '">' +
-        esc(t('shop.buy')) + ' · ' + wasHtml + esc(priceTxt) + '</button></div>';
-    }
-    return h + '</div>';
-  }
   /* ── 势力页（G16 · 势力批 v2.4 + 深化批 v1.23）：当前效力（职级/声望/捐献）+ 冲突横幅 + 委托 + 供给 + 16~20 张势力卡（固定池名门角标）── */
   function factionRelChips(w, f) {
     var chips = '';
@@ -4123,19 +2914,22 @@
       }
     }
     /* 冲突结果卡残留期（§7.4）：结算已出的 warResult 传闻卡在传闻栏展示，此处不重复 */
-    /* 门中委托（势力全录卷 §四） */
+    /* 门中委托（势力全录卷 §四）——第卅九批改形：单槽 → **板面最多 3 张不同类型**
+     * （`w.factionQuests` 数组，交付按 type 寻址；补单仍吃 factionQuestCd 30 分钟闸）。 */
     if (cur) {
       h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('faction.quest.title')) + '</p>';
-      var q = w.factionQuest;
-      if (q && q.expireAt > Date.now()) {
-        var pr = SQ.Factions.questProgress(w, pack(), d);
-        h += '<div class="faccard cur"><div class="fh"><span class="fn">' +
-          esc(t('faction.quest.' + q.type, { n: SQ.fmt(q.target) })) + '</span>' +
-          '<span class="fm">' + esc(t('faction.quest.left', { t: fmtLeft(q.expireAt - Date.now()) })) + '</span></div>' +
-          '<div class="fperk">' + esc(t('faction.quest.prog', { cur: SQ.fmt(pr.cur), target: SQ.fmt(pr.target) })) +
-          ' · ' + esc(t('faction.quest.reward', { rep: q.rep, stones: q.stones ? ' + ' + SQ.fmt(q.stones) + ' ' + t('resource.currency') : '' })) + '</div>' +
-          '<div class="acts"><button class="' + (pr.done ? 'primary' : '') + '" data-act="questClaim"' +
-          (pr.done ? '' : ' disabled') + '>' + esc(t('faction.quest.claim')) + '</button></div></div>';
+      var qlist = (w.factionQuests || []).filter(function (q) { return q && q.expireAt > Date.now(); });
+      if (qlist.length) {
+        qlist.forEach(function (q) {
+          var pr = SQ.Factions.questProgress(w, pack(), d, q);
+          h += '<div class="faccard cur"><div class="fh"><span class="fn">' +
+            esc(t('faction.quest.' + q.type, { n: SQ.fmt(q.target) })) + '</span>' +
+            '<span class="fm">' + esc(t('faction.quest.left', { t: fmtLeft(q.expireAt - Date.now()) })) + '</span></div>' +
+            '<div class="fperk">' + esc(t('faction.quest.prog', { cur: SQ.fmt(pr.cur), target: SQ.fmt(pr.target) })) +
+            ' · ' + esc(t('faction.quest.reward', { rep: q.rep, stones: q.stones ? ' + ' + SQ.fmt(q.stones) + ' ' + t('resource.currency') : '' })) + '</div>' +
+            '<div class="acts"><button class="' + (pr.done ? 'primary' : '') + '" data-act="questClaim" data-v="' + esc(q.type) + '"' +
+            (pr.done ? '' : ' disabled') + '>' + esc(t('faction.quest.claim')) + '</button></div></div>';
+        });
       } else {
         h += '<p class="hint" style="padding:6px 0">' + esc(t('faction.quest.none')) + '</p>';
       }
@@ -4155,7 +2949,7 @@
         var btnTxt = onCd ? t('faction.supply.cd') : lockRank ? t('faction.supply.locked', { rank: t('faction.rank.' + si.rank) })
           : t('faction.supply.cost', { rep: si.rep, n: SQ.fmt(costS) });
         /* 与坊市货架同一对标签（`pillAffix` / `pillCat`）——这四颗丹就是 `D.PILLS`，两处口径必须一致 */
-        h += '<div class="faccard carditem"><div class="fh"><span class="fn">' + esc(t('faction.supply.sku.' + si.sku)) + '</span>' + pillAffix(pill) + pillCat() + '</div>' +
+        h += '<div class="faccard carditem"><div class="fh"><span class="fn">' + esc(t('faction.supply.sku.' + si.sku)) + '</span>' + SQ.UI.shop.pillAffix(ctx(), pill) + SQ.UI.shop.pillCat(ctx()) + '</div>' +
           '<div class="fd">' + esc(t('pill.' + si.pill + '.desc')) + '</div>' +
           '<div class="acts"><button data-act="supplyBuy" data-v="' + si.sku + '"' +
           ((onCd || lockRank || lockRep || lockSt) ? ' disabled' : '') + '>' + esc(btnTxt) + '</button></div></div>';
@@ -4196,6 +2990,12 @@
       (f.perk.field === 'tribBonus' ? perkV.toFixed(2) : Math.round(perkV * 100) + '%');
     var cdLeft = (w.factionCdUntil || 0) > Date.now();
     var rankC = isCur ? SQ.Factions.rankOf(w, D(), f.id) : -1;
+    /* 江湖名录取数（第卌七批）：固定势力在卡上写清「掌门 / 太上」是谁——名录认不出就不写这一行，
+     * 视图不编名字（同第卌四批「不编一个假境界出来」那条纪律）；行样式复用 `.fd`，不新增 CSS。 */
+    var mst = f.fixed && SQ.Jianghu ? SQ.Jianghu.masterOf(pack(), f.id) : null;
+    var eld = f.fixed && SQ.Jianghu ? SQ.Jianghu.elderOf(pack(), f.id) : null;
+    var mstLine = (mst && eld) ? '<div class="fd">' + esc(t('faction.master.line', {
+      name: mst.nm, realm: t('realm.' + mst.rlm), elder: eld.nm })) + '</div>' : '';
     var c = '<div class="faccard' + (isCur ? ' cur' : '') + '">' +
       '<div class="fh"><span class="fn">' + esc(f.name) +
       (f.fixed ? '<span class="tierbadge t1">' + esc(t('faction.fixed.tag')) + '</span>' : '') +
@@ -4203,7 +3003,7 @@
       (isCur && rankC > 0 ? '<span class="tierbadge t2">' + esc(t('faction.rank.' + rankC)) + '</span>' : '') +
       '</span>' +
       '<span class="fm">' + esc(t('faction.members', { n: factionMembers(w, f) })) + '</span></div>' +
-      '<div class="fd">' + esc(t(f.desc)) + '</div>' +
+      '<div class="fd">' + esc(t(f.desc)) + '</div>' + mstLine +
       '<div class="fperk">' + esc(t('faction.perk')) + ' · <b>' + esc(perkTxt) + '</b></div>' +
       '<div class="frel"><span class="lab">' + esc(t('faction.relations')) + '</span>' +
       '<span class="chipsx">' + factionRelChips(w, f) + '</span></div>';
@@ -4221,73 +3021,10 @@
     return c + '</div>';
   }
 
-  function renderShop() {
-    var w = ws(), d = D(), m = mods();
-    var blackOpen = SQ.Shop.blackOpen(w, pack(), d);
-    var restockMs = Math.max(0, (isFinite(+((w.shop || {}).nextRestock)) ? +w.shop.nextRestock : 0) - Date.now());
-    var rh = Math.floor(restockMs / 3600000), rm = Math.floor((restockMs % 3600000) / 60000);
-    /* 页头：左「坊市/黑市」切换 chips + 右刷新按钮，同排水平对齐 */
-    var h = '<div class="pagehead split"><div class="chips">';
-    h += '<button class="' + (ui.shopBlack ? '' : 'on') + '" data-act="shopTab" data-v="0">' + esc(t('shop.system')) + '</button>';
-    if (blackOpen || (w.shop.blackItems || []).some(function (x) { return x.sold; })) {
-      h += '<button class="' + (ui.shopBlack ? 'on' : '') + '" data-act="shopTab" data-v="1">' + esc(t('shop.blackmarket')) + '</button>';
-    }
-    h += '</div>';
-    h += '<button class="refreshbtn" data-act="refreshShop">' +
-      esc(t('shop.refresh', { n: SQ.fmt(SQ.Shop.refreshFee(w, pack(), d, m)) })) + '</button></div>';
-    if (ui.shopBlack && !blackOpen) {
-      h += '<p class="hint">' + esc(t('shop.blackHint')) + '</p>';
-    }
-    h += '<div class="kv"><span class="hint">' + esc(t('shop.restock', { t: rh > 0 ? t('ui.time.hm', { h: rh, m: rm }) : t('ui.time.m', { m: Math.max(1, rm) }) })) + '</span></div>';
-    /* 神秘商人特席（势力批 v2.4 §8）：交好奇遇开启、10 分钟自动离去；scout = 无视后的更好货 */
-    var merch = w.shop && w.shop.merchant;
-    if (merch && merch.until > Date.now()) {
-      var itP = pack();
-      h += '<div class="merchbox"><div class="mh"><span class="t">' +
-        esc(t('shop.merchant.title') + (merch.scout ? ' ' + t('shop.merchant.scout') : '')) + '</span>' +
-        '<span class="hint">' + esc(t('shop.merchant.left', { t: timeLeftText(Math.max(0, merch.until - Date.now())) })) + '</span></div>' +
-        '<p class="hint" style="margin:2px 0 6px">' + esc(t('shop.merchant.hint')) + '</p><div class="shopgrid">';
-      (merch.items || []).forEach(function (it, i) {
-        if (it.sold) { h += '<div class="lrow shopcard locked"><div class="nm">—</div><div class="meta">' + esc(t('shop.sold')) + '</div></div>'; return; }
-        /* 词缀 + 分类一律走 `shopTagHtml`（本批起与货架同一函数）——旧写法在此另拼一套，
-         * 结果特席上「法器有品阶、功法没有、丹药一个都没有」，同一件货在两个货架上标签不一致。
-         * 名与价同走 shopGoodName / shopPriceTxt（特席旧式的三元式不含 treasure ⇒ 法宝会错显成丹药名）。 */
-        h += '<div class="lrow shopcard"><div class="nm">' + esc(shopGoodName(it)) + shopTagHtml(it) + '</div>' +
-          '<div class="meta">' + esc(shopPriceTxt(it)) + '</div>' +
-          '<div class="acts"><button data-act="buyMerchant" data-v="' + i + '"' + (w.stones < it.price ? ' disabled' : '') + '>' +
-          esc(t('shop.buy')) + '</button></div></div>';
-      });
-      h += '</div></div>';
-    }
-    var items = ui.shopBlack ? (w.shop.blackItems || []) : w.shop.items;
-    h += '<div class="shopgrid">';
-    items.forEach(function (it, i) { h += shopItemRow(it, i, ui.shopBlack, w); });
-    h += '</div>';
-    if (ui.shopBlack) h += '<p class="hint">' + esc(t('shop.blackHint')) + '</p>';
-    $('tab-shop').innerHTML = h;
-  }
 
-  /* ── Tab 6 奇遇（F2：叙事流 + 图鉴三节 + 系统日志弹层）──
-   * 分类（v2.3）：+「功法」（gainArt/顿悟/升级/散功全路由至此）；−「突破」——
-   * 死分类删除：无任何代码写 break 类日志，渡劫/晋升全走 trib（历史遗留）。 */
-  var LOG_CATS = [
-    { id: 'all', key: 'log.cat.all' }, { id: 'event', key: 'event.tag' },
-    /* 历练（秘境 / 域主 / 残片兑换 / 法宝战斗日志）：写口在 combat.js + treasures.js
-     * （cat 'combat' 15 处），此前本表无项 ⇒ 只能混在「全部」里、任何筛选都取不到，
-     * 标签键 combat.tag 也一直躺孤儿表。本批补分类并同时消费该键。 */
-    { id: 'combat', sys: 'combat.tag' },
-    { id: 'trib', sys: 'tribulation.tag' },
-    { id: 'karma', sys: 'karma.system' },   /* 名号更迭（善恶名号批）：跨段日志独立成类，可单独筛选 */
-    { id: 'gear', sys: 'gear.tag' }, { id: 'arts', sys: 'skill.system' },
-    /* 道友分类（好感三渠道批）：拜访 / 赠丹 / 同贺 + 既有的同道相吸 / 缘尽赎回 / 结缘 / 冥佑。
-     * ⚠️ 收口批 A 遗留——cat 'bond' 早已在写（xiuxian/index.js 同道相吸、actions.js 缘尽赎回），
-     * 但本表此前无此分类，那些日志只能在「全部」里看到、任何分类筛选都取不到。 */
-    { id: 'bond', sys: 'bond.system' },
-    /* 洞府 / 坊市（同类补口）：cave.js 记 cat 'cave' 3 处、shop.js + alchemy.js 记 'shop' 2 处。
-     * 标签复用既有系统名键 cave.system / shop.system（零新键、零新孤儿）。 */
-    { id: 'cave', sys: 'cave.system' }, { id: 'shop', sys: 'shop.system' },
-    { id: 'sys', key: 'sys.tag' }
-  ];
+  /* 坊市页渲染器 renderShop 已外置成 view/shop.js 的 SQ.UI.shop.render（第册六批） */
+
+  /* ── Tab 6 奇遇（F2：叙事流 + 图鉴三节 + 系统日志弹层）── */
   function allEventList() {
     return (Array.isArray(SQ.EVENTS.common) ? SQ.EVENTS.common : [])
       .concat(Array.isArray(SQ.EVENTS[wid()]) ? SQ.EVENTS[wid()] : []);
@@ -4362,7 +3099,11 @@
       chk = f.pass ? ' <span style="color:var(--good)">' + esc(t('check.ok')) + '</span>'
         : ' <span style="color:var(--bad)">' + esc(t('check.fail')) + '</span>';
     }
-    var h = '<div class="fcard"><div class="fh"><span class="fn">' + esc(t('event.' + f.id + '.name')) +
+    /* 卡片整体可点 = 复用图鉴那套「奇遇回看」浮层（`openRecall`：story + 首遇 + 上次抉择 + 上次得失），
+     * 不再另造第二张详情卡（用户令「点击近来奇遇卡片应弹窗便于查阅」）。
+     * 卡内「未择之路」折叠区自带 `data-act="unwalked"`，委托走 `closest('[data-act]')` ⇒ 内层优先，不冲突。 */
+    var h = '<div class="fcard" data-act="recallEvent" data-v="' + esc(f.id) + '"><div class="fh">' +
+      '<span class="fn">' + esc(t('event.' + f.id + '.name')) +
       (f.via === 'rumor' ? '<span class="ebadge">' + esc(t('rumor.badge.via')) + '</span>' : '') +
       ' <span class="hint">[' + esc(grade) + ']</span></span><span class="ft">' + esc(ft) + '</span></div>';
     h += '<div class="fg">' + esc(t('event.' + f.id + '.branch.' + f.branch)) + chk + ' · ' + esc(k) + '</div>';
@@ -4485,11 +3226,13 @@
     h += renderRumors(Date.now());
     h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('event.feed.title')) + '</p>';
     if (!feed.length) h += '<p class="hint" style="padding:8px 0">' + esc(t('event.feed.empty')) + '</p>';
-    var shown = ui.feedExpand ? feed : feed.slice(0, 3);
+    /* 折叠 3 条 / 展开只到最近 10 条（用户令「展开的条数太多了」）；
+     * 存储上限仍是 `D.EVENT_FEED_CAP`（50），这条只管屏上给看多少 ⇒ 不改档、不裁流。 */
+    var shown = ui.feedExpand ? feed.slice(0, 10) : feed.slice(0, 3);
     shown.forEach(function (f) { h += feedCard(f); });
     if (feed.length > 3) {
       h += '<div class="row"><button style="flex:1" data-act="feedMore">' +
-        esc(ui.feedExpand ? t('event.feed.less') : t('event.feed.more', { n: feed.length })) + '</button></div>';
+        esc(ui.feedExpand ? t('event.feed.less') : t('event.feed.more', { n: Math.min(10, feed.length) })) + '</button></div>';
     }
     h += '<p class="hint" style="margin:14px 0 2px;font-weight:650">' + esc(t('event.codex.title')) + '</p>';
     ['tian', 'di', 'ren'].forEach(function (tier) {
@@ -4522,53 +3265,8 @@
     $('tab-event').innerHTML = h;
   }
 
-  /* ── Tab 7 日志（原「奇遇页 → 系统日志弹层」升级为左侧导航的独立页）──
-   * 分类含「奇遇」：奇遇日志内嵌该条事件的具体叙事（log.event.resolve 带 {story}） */
-  /* 展示取数（日志存档批）：存储留全量（独立日志档），界面**每分类只显示最新
-   * LOG_CAT_CAP(200) 条**——具体分类取其最新 200；「全部」为各分类各取最新 200 后按时间倒序合并。 */
-  function journalLines(w) {
-    var cap = (SQ.Log && SQ.Log.CAT_CAP) || 200;
-    var list = (w && w.log) || [];
-    if (ui.logFilter !== 'all') {
-      return list.filter(function (l) { return l.cat === ui.logFilter; }).slice(-cap).reverse();
-    }
-    var per = {}, out = [];
-    for (var i = list.length - 1; i >= 0; i--) {
-      var c = list[i].cat;
-      per[c] = (per[c] || 0) + 1;
-      if (per[c] <= cap) out.push(list[i]);
-    }
-    return out;
-  }
-  function renderJournal() {
-    var w = ws();
-    var ch = '';
-    LOG_CATS.forEach(function (c) {
-      var label = c.key ? t(c.key) : t(c.sys);
-      ch += '<button class="' + (ui.logFilter === c.id ? 'on' : '') + '" data-act="logFilter" data-v="' + c.id + '">' + esc(label) + '</button>';
-    });
-    var lines = journalLines(w);
-    var h = '<div class="chips">' + ch + '</div>';
-    if (!lines.length) {
-      h += '<p class="hint" style="padding:12px 0">' + esc(t('log.empty')) + '</p>';
-    } else {
-      h += '<div class="loglist">';
-      lines.forEach(function (l) {
-        /* 时间列（v2.3）：游戏历「罗云历X年X月X日」；createdAt 缺失的旧档兜底回真实时刻 */
-        var gt = gameDateStr(l.ts);
-        if (!gt) {
-          var dt0 = new Date(l.ts);
-          gt = ('0' + dt0.getHours()).slice(-2) + ':' + ('0' + dt0.getMinutes()).slice(-2);
-        }
-        /* N20 接线：「全部」筛选下行内不显分类（11 个分类标签键都在用，只是没进日志行）⇒ 仅在该筛选下加 `[分类]` 前缀，         * 其余筛选由选中态自身表达，不重复 */
-        var catC = ((ui.logFilter || 'all') === 'all') ? LOG_CATS.filter(function (cc) { return cc.id === l.cat; })[0] : null;
-        h += '<div class="logline' + (l.cat === 'event' ? ' ev' : '') + '"><span class="ts">' + esc(gt) + '</span>' +
-          esc(catC ? t('log.catted', { cat: catC.key ? t(catC.key) : t(catC.sys), text: l.text }) : l.text) + '</div>';
-      });
-      h += '</div>';
-    }
-    $('tab-journal').innerHTML = h;
-  }
+
+  /* 日志页整段（LOG_CATS / journalLines / renderJournal）已外置成 view/journal.js（第册五批） */
 
   /* ── Tab 8 设置（重置存档：覆盖为新档 → 回填引用 → 停 tick → 关浮层 → 回创角）── */
   /* 菜单顺序：仅游戏页可调；「日志」「设置」固定在导航最底部 */
@@ -4621,6 +3319,7 @@
     $('c1-err').classList.add('hide');
     ui.tab = 'idle'; ui.newLogDot = false; ui.newFeedDot = false;
     ui.lastLogKey = ''; ui.lastFeedKey = ''; ui.seenOfflineAt = 0; ui.spouseLogSeen = 0;
+    ui.seenDeathAt = 0; ui.deathPending = false;   /* 坐化呈报基线随清档复位（寿元批） */
     ui.announcedLogKey = ''; ui.karmaRank = '';   /* 名号段位基线复位（新档重新入世后由 enterMain 对齐） */
     /* 走查 v2.5 §6：重置后四类红点基线清零（新档从头计数） */
     ui.lastArtsSig = 0; ui.lastTreasureSig = 0; ui.lastBondSig = 0; ui.lastShopSig = 0;
@@ -4666,16 +3365,16 @@
     else if (ui.tab === 'combat') renderCombat();
     else if (ui.tab === 'arts') renderArts();
     else if (ui.tab === 'treasure') renderTreasure();
-    else if (ui.tab === 'shop') renderShop();
+    else if (ui.tab === 'shop') SQ.UI.shop.render(ctx());
     else if (ui.tab === 'faction') renderFaction();
     else if (ui.tab === 'bonds') renderBonds('tab');
     else if (ui.tab === 'event') renderEvent();
     else if (ui.tab === 'alchemy') renderAlchemy();
-    else if (ui.tab === 'prodigy') renderProdigy();
+    else if (ui.tab === 'prodigy') SQ.UI.jianghu.render(ctx());
     else if (ui.tab === 'sect') renderSect();
-    else if (ui.tab === 'achv') renderAchv();
+    else if (ui.tab === 'achv') SQ.UI.achv.render(ctx());
     else if (ui.tab === 'legacy') renderLegacy();
-    else if (ui.tab === 'journal') renderJournal();
+    else if (ui.tab === 'journal') SQ.UI.journal.render(ctx());
     else if (ui.tab === 'settings') renderSettings();
   }
 
@@ -4868,6 +3567,16 @@
       var nd = d.ZONES[w.zone].need * (chk.ratio != null ? chk.ratio : 1);
       return { kind: 'det', ok: pw >= nd, label: t('event.check.type.power') };
     }
+    if (type === 'ambushFoe') {
+      /* 敌手快照（第卌四批 · §6.1B）：只报「你多少 / 对方多少」，**不置灰**——
+       * 打得过打不过都是玩家的一念，这一族的「难」不该由 disabled 替他决定。
+       * 成算不显示：引擎是双方各 ±10% 浮动的对局，写一个百分比就是假精确（切磋那边同理只给让差档）。 */
+      var fo = (w.pendingChoice && w.pendingChoice.foe) || null;
+      var fpw = fo && fo.power > 0 ? fo.power : 0;
+      return { kind: 'odds', ok: true, label: t('event.check.type.ambushFoe'),
+        text: fpw ? t('event.ambush.ui.vs', { a: SQ.fmt(SQ.Mods.powerOf(w, p, d, m)), b: SQ.fmt(fpw) })
+          : t('event.check.type.ambushFoe') };
+    }
     return { kind: 'det', ok: true, label: '' };
   }
 
@@ -4876,7 +3585,17 @@
    * 倾向（体验批）：settings.eventPref 指定分支且可用 → 直接选它；否则可用分支中随机择一
    * （机缘本就无常）；全部不可用（理论不发生，防御）退化为全分支随机。
    * 结算走与手动抉择完全相同的 SQ.Actions.resolveChoice 单一通道，toast 告知抉择结果。 */
-  function autoEventOn() { return !!(state.settings && state.settings.autoEvent); }
+  function autoEventOn() {
+    /* 战术限时抉择（第卌四批 · §6.1B）不受自动奇遇代择：用户原话「必须手动选，限时，超时默认迎战」——
+     * 自动模式的语义是「机缘当前替玩家拿主意」，而这一族要保留的正是那一念之间。
+     * 判据 = 走查 verify-ui-ambush A1（开着 autoEvent 也不代择，浮层与挂起都还在）。 */
+    var wp = ws();
+    if (wp && wp.pendingChoice) {
+      var evp = findEvent(wp.pendingChoice.id);
+      if (evp && evp.tactical) return false;
+    }
+    return !!(state.settings && state.settings.autoEvent);
+  }
   function autoEventPref() {
     var p = state.settings && state.settings.eventPref;
     return (p === 'right' || p === 'evil' || p === 'neutral') ? p : 'none';
@@ -4936,8 +3655,12 @@
       (ev.special ? '<span class="mbadge sp">' + esc(t('event.badge.special')) + '</span>' : '') +
       (ev.once ? '<span class="mbadge sp">' + esc(t('event.badge.once')) + '</span>' : '');
     $('mc-title').textContent = t('event.' + ev.id + '.name');
-    $('mc-story').textContent = t('event.' + ev.id + '.story');
+    $('mc-story').textContent = t('event.' + ev.id + '.story') +
+      /* 敌手快照（第卌四批 · 袭击/寻仇）：名号与战力在触发时刻已定，屏上如实报——
+       * 名录里那人此刻可能已绝交/已出榜，但**那一刀是真的冲你来过**，不回填成别人 */
+      (pend.foe ? '\n' + t('event.ambush.ui.foe', { name: pend.foe.nm, p: SQ.fmt(pend.foe.power) }) : '');
     var bh = '';
+    var tac = ev.tactical === true;   /* 战术抉择（迎战 / 避战 / 认输）与善恶无关：不打「正道/魔道」前缀 */
     ['right', 'evil', 'neutral'].forEach(function (bk) {
       var br = ev.choices[bk];
       if (!br) return;
@@ -4952,7 +3675,7 @@
       /* 情谊生裂角标（缘尽收敛批）：轻中度背叛分支的预告——措辞比「绝缘」轻，明示不致缘尽 */
       var hasDrain = (br.gain || []).some(function (g) { return g.type === 'bondDrain'; });
       bh += '<button class="branch ' + bk + '-b" data-act="choose" data-v="' + bk + '"' + (disabled ? ' disabled' : '') + '>' +
-        '<span class="bk">' + esc(t('branch.' + bk)) + ' · ' + esc(t('event.' + ev.id + '.branch.' + bk)) +
+        '<span class="bk">' + (tac ? '' : esc(t('branch.' + bk)) + ' · ') + esc(t('event.' + ev.id + '.branch.' + bk)) +
         (hasLock ? ' <span class="ebadge gray">' + esc(t('event.badge.bondlock')) + '</span>' : '') +
         (!hasLock && hasDrain ? ' <span class="ebadge gray">' + esc(t('event.badge.bonddrain')) + '</span>' : '') + '</span>' +
         (infos.length ? '<span class="bi">' + esc(infos.join(' · ')) + '</span>' : '') +
@@ -4960,11 +3683,52 @@
     });
     $('mc-branches').innerHTML = bh;
     $('mc-branches').classList.remove('hide');
-    $('mc-foot').textContent = t('event.modal.foot');
-    $('mc-foot').classList.remove('hide');
+    if (tac) ambushCountdown();
+    else {
+      ambushHalt();
+      $('mc-foot').textContent = t('event.modal.foot');
+      $('mc-foot').classList.remove('hide');
+    }
     $('mc-judging').classList.add('hide');
     $('mc-result').classList.add('hide');
     $('modal-choice').classList.remove('hide');
+  }
+
+  /* ── 限时抉择（第卌四批 · 数值详设 §6.1B）：袭击 / 族中寻仇必须手动择，超时默认迎战。
+   * 计时器归浮层自己养：秒级 tick 在「抉择浮层开着」时整段让路（见 startTick 首行那句 return），
+   * 挂在 tick 上等于永远不倒数。**离线不倒数**——关掉页面就是把这抉择留到下次进线，
+   * 不会「睡一觉被仇家打死」（用户定的这条与「限时」并不冲突：限时限的是你盯着屏幕的那一刻）。
+   * 超时结算走与玩家手点**完全同一条** `SQ.Actions.resolveChoice`，不另开结算口——
+   * 否则「超时迎战胜」与「手点迎战胜」的账会分叉（本仓「单一通道」纪律）。
+   * shortcut: 重新载入页面会把这一轮的时限重新给满（刷新即可拖延）；要收紧就得把剩余量落盘、
+   * 按在线时长扣减，代价是每秒一次写档——不值。 */
+  var ambushTimer = null;
+  function ambushHalt() {
+    if (ambushTimer) { clearInterval(ambushTimer); ambushTimer = null; }
+  }
+  function ambushFoot(left) {
+    $('mc-foot').textContent = t('event.modal.foot') +
+      (left > 0 ? ' · ' + t('event.ambush.ui.remain', { t: timeLeftText(left) }) : '');
+    $('mc-foot').classList.remove('hide');
+  }
+  function ambushCountdown() {
+    ambushHalt();
+    var A = D().AMBUSH || {};
+    var left = A.DECIDE_MS || 0;
+    ambushFoot(left);
+    if (!(left > 0)) return;
+    ambushTimer = setInterval(async function () {
+      var w = ws();
+      if (!w || !w.pendingChoice || $('modal-choice').classList.contains('hide')) { ambushHalt(); return; }
+      left -= 1000;
+      if (left > 0) { ambushFoot(left); return; }
+      ambushHalt();
+      ambushFoot(0);
+      toast(t('event.ambush.ui.timeout'));
+      var res = await SQ.Actions.resolveChoice(state, 'right');
+      if (res && res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) showExclusive(res.eff);
+      renderAll();
+    }, 1000);
   }
 
   /* 独占奖励全屏演出（获得即演；点击或 2.8s 自动收起） */
@@ -5101,8 +3865,33 @@
     $('mo-ok').textContent = t('offline.report.ok');
     $('modal-offline').classList.remove('hide');
   }
+  /* 坐化呈报（寿元批 2026-10-15 · §6.1A）：引擎在 claim 内已经判死、结完遗泽、把 ws 换成新世，
+   * 这里只交代「为什么死 + 这一世带走了什么」，确定即进创角——绝不做「无声被扔回创角屏」。
+   * 与出关呈报同一浮层组件（不加新 DOM id ⇒ A3 零新增面），at 键控会话一次。 */
+  function showDeathReport() {
+    var ld = ws().lastDeath;
+    if (!ld) return;
+    ui.seenDeathAt = ld.at;
+    ui.deathPending = true;
+    $('mo-title').textContent = t('life.death.title');
+    /* 死因取话（第卌八批）：旧写法是 `cause === 'daoshang' ? 道伤 : 寿尽` 的二元 ternary，
+     * 新增的 zhesou 会被静默归成「寿元耗尽」——那句谎话正是本仓登记过的「兜底键复用」那一形。
+     * 三个键名都按字面量写全：A6 的反向扫描只认字面量，动态拼串会把它判成孤儿。 */
+    $('mo-sub').textContent = t(ld.cause === 'daoshang' ? 'life.death.daoshang'
+      : (ld.cause === 'zhesou' ? 'life.death.zhesou' : 'life.death.shoujin'));
+    $('mo-stats').innerHTML = '';
+    $('mo-hint').textContent = t('life.death.stats', {
+      age: SQ.fmt(ld.age || 0),
+      realm: t('realm.' + Math.min(ld.realm || 0, D().REALMS.length - 1)),
+      dao: ld.dao || 0, n: SQ.fmt(ld.total || 0)
+    });
+    $('mo-ok').textContent = t('life.death.ok');
+    $('modal-offline').classList.remove('hide');
+  }
   $('mo-ok').addEventListener('click', function () {
     $('modal-offline').classList.add('hide');
+    /* 死后的「转世重生」= 进创角（与兵解/飞升收线同一条路）；出关呈报仍走原路重绘 */
+    if (ui.deathPending) { ui.deathPending = false; enterRebirthCreation(); return; }
     renderAll();
   });
 
@@ -5138,13 +3927,7 @@
       h += '<div class="bar slim"><i style="width:' + Math.min(100, (v / dc2) * 100).toFixed(1) + '%"></i></div>';
       /* 构成明细 */
       var base = SQ.Attrs.baseOf(w, d);
-      var artsMap = p.artsMap();
-      var nurture = 0;
-      (w.artsSlots || []).forEach(function (aid) {
-        if ((w.artsKnown || []).indexOf(aid) < 0) return;
-        var a = artsMap[aid];
-        if (a && a.attr === id) nurture += (w.artsLevels[aid] || 0) * (d.ARTS_NURTURE[a.alignment] || 2);
-      });
+      var nurture = SQ.Attrs.artsNurtureOf(w, p, d, id);   /* 与引擎同一处算式（含品阶阶梯），视图不再自己抄一遍 */
       var gearV = 0;
       for (var slot in w.gear) {
         var it = w.gear[slot];
@@ -5349,6 +4132,23 @@
    * + 接旨粘贴解析；圣旨揭晓：卷轴展开 + 判词逐字 + 领旨/抗旨（抗旨 CONFIRM 明示逆天值收益与档位后果）；
    * 天象浮层：即开即消红点；逆天大劫入口在渡劫预估浮层（detailTrib 段）。 */
   var tdTypeTimer = null;
+  var GIFT_N = 6, GIFT_ROLL_MS = 600000;   /* 六款页游贴片 · 10 现实分钟换一张（会话态，不入存档） */
+
+  /* 恶搞彩蛋：修行页右侧那张贴在墙上的「充值大礼包」。
+   * 零机制是本条的底线——点击只出一句提示，不发资源、不写档、不入 Ledger、不碰 cooldown。 */
+  function renderGiftPack() {
+    var now = Date.now();
+    if (ui.giftI < 0 || now >= ui.giftUntil) {
+      ui.giftI = Math.floor(Math.random() * GIFT_N);
+      ui.giftUntil = now + GIFT_ROLL_MS;
+    }
+    var gk = 'eggs.gift.p' + ui.giftI + '.';   /* 前缀先落变量：内联在 t(' 里会被 A2 当成整键静态引用（本仓同款先例 = legacy.shop.qirate） */
+    return '<span class="giftcard" data-act="giftBuy">' +
+      '<span class="gtag">' + esc(t('eggs.gift.tag')) + '</span>' +
+      '<span class="gname">' + esc(t(gk + 'name')) + '</span>' +
+      '<span class="goffer">' + esc(t(gk + 'offer')) + '</span>' +
+      '<span class="gbtn">' + esc(t('eggs.gift.btn')) + '</span></span>';
+  }
 
   function renderTiandaoRow() {
     var w = ws(), d = D();
@@ -5357,7 +4157,11 @@
     var unseen = SQ.Tiandao.unseenOmens(w);
     var stage = SQ.Tiandao.stageOf(w, d);
     var h = '<div class="tdrow">';
-    h += '<button class="tdbtn" data-act="openTiandao">' + esc(t('tiandao.entry')) +
+    /* 问天入口（第卅九批 · 用户令「隐藏游戏问天功能」）：**用既有 .hide 工具类收掉，不删代码**——
+     * 引擎（Tiandao.ask / 奏疏 / 圣旨浮层）与词表键原样留着，恢复只需去掉这一个类名；
+     * 判据 = 走查 `verify-ui-tiandao` B1（在 DOM 但 `offsetParent === null` ⇒ 玩家看不见也点不着），
+     * 后续链路仍由该篇以 dispatchEvent 驱动（委托挂在 document 上，隐藏元素被合成点击照跑）。 */
+    h += '<button class="tdbtn hide" data-act="openTiandao">' + esc(t('tiandao.entry')) +
       (unseen ? '<i class="pdot"></i>' : '') + '</button>';
     h += '<button class="tdbtn plain" data-act="openOmens">' + esc(t('tiandao.omen.chip')) +
       (unseen ? '<i class="pdot"></i>' : '') + '</button>';
@@ -5370,6 +4174,7 @@
     if (w.realm >= ((d.LEGACY || {}).BINGJIE_MIN_REALM || 4) && SQ.Legacy) {
       h += '<button class="tdbtn plain" data-act="dissolve">' + esc(t('legacy.ui.bingjie.btn')) + '</button>';
     }
+    h += renderGiftPack();   /* 页游充值贴片彩蛋（恶搞，零机制） */
     h += '</div>';
     return h;
   }
@@ -5519,6 +4324,36 @@
     if (SQ.Tiandao.unseenOmens(w)) SQ.Actions.tdOmensSeen(state).then(renderAll);   /* 即开即消红点 */
   }
 
+  /* ── 兵解 · 盖棺之传（第册批）：逐字节奏抄接旨判词那一段（+3 字 / 24ms，500 字 ≈ 4 秒），
+   * reducedMotion 直出全文。定时器自查隐藏态自收 ⇒ 四条关法（入世钮 / 点遮罩 / ESC /
+   * enterRebirthCreation 的 MASKS 全关）都不会留下一个还在往暗处写字的 interval。
+   * shortcut: 中途按「入世」即离场，未写完的正文不在屏上补全——全文恒在轮回页「前世书」，无丢失。 ── */
+  var recapTimer = null;
+  function showRecap(title, text) {
+    var el = $('mrp-text');
+    $('mrp-title').textContent = title;
+    $('mrp-go').textContent = t('legacy.ui.recap.go');
+    el.textContent = '';
+    el.scrollTop = 0;
+    if (recapTimer) { clearInterval(recapTimer); recapTimer = null; }
+    if (reducedMotion()) el.textContent = text;
+    else {
+      var vi = 0;
+      recapTimer = setInterval(function () {
+        if ($('modal-recap').classList.contains('hide')) { clearInterval(recapTimer); recapTimer = null; return; }
+        vi += 3;
+        el.textContent = text.slice(0, vi);
+        el.scrollTop = el.scrollHeight;   /* 滚的是正文那一格：标题与「入世」钮都不跟着滚走 */
+        if (vi >= text.length) { clearInterval(recapTimer); recapTimer = null; }
+      }, 24);
+    }
+    $('modal-recap').classList.remove('hide');
+  }
+  $('mrp-go').addEventListener('click', function () {
+    if (recapTimer) { clearInterval(recapTimer); recapTimer = null; }
+    $('modal-recap').classList.add('hide');
+  });
+
   /* 复制奏疏：先走同步 execCommand（内嵌 webview 无剪贴板权限时唯一可用路径，
    * 且在全选态下必然复制全文），失败再试异步 clipboard；两条都失败则明示手动全选，
    * 不再无脑弹「已复制」——旧实现在 clipboard 存在但被拒时静默失败且谎报成功 */
@@ -5628,7 +4463,7 @@
   var MASKS = ['modal-role', 'modal-karma', 'modal-offline', 'modal-lock', 'modal-confirm',
     'modal-ledger', 'modal-arts', 'modal-realm', 'modal-gearcodex', 'modal-recall', 'modal-bonds', 'modal-propose',
     'modal-slotpick', 'modal-tiandao', 'modal-decree', 'modal-omens', 'rank-stage', 'modal-matwudao',
-    'modal-heirchoice', 'modal-talentwash'];
+    'modal-heirchoice', 'modal-talentwash', 'modal-recap'];
   document.addEventListener('click', function (e) {
     var el = e.target;
     if (!el.classList || !el.classList.contains('mask')) return;
@@ -5654,6 +4489,25 @@
       if (id === 'modal-confirm') confirmCb = null;
       $(id).classList.add('hide');
     });
+  });
+
+  /* 命名框的字跨重渲染存活（GitHub issue #5 · 融合坛自定义名打不进字）：
+   * 立派名早有 `ui.sectRollName` 这条口，融合坛自定义名此前没有——DOM 一重建就清空，
+   * 于是「输入框里的字」只活在节点上。两处一律收进 ui.* 单源，渲染时再回填 value。 */
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (!t || t.tagName !== 'INPUT') return;
+    if (t.classList.contains('fusename')) ui.fuseName = t.value;
+    else if (t.id === 'sect-name-input') ui.sectRollName = t.value;
+  });
+
+  /* 输入闸（GitHub issue #5）：焦点在输入框里时 tick 不重建 DOM（见 startTick），
+   * 焦点离开输入框（focusout）时补一次渲染 ⇒ 读数最多只停更到打完字，不会长期不刷新。 */
+  document.addEventListener('focusout', function (e) {
+    var t = e.target;
+    if (!t || (t.tagName !== 'INPUT' && t.tagName !== 'TEXTAREA')) return;
+    if ($('sc-main').classList.contains('hide')) return;   /* 创角屏的输入框（#c1-name）不归游戏页渲染管 */
+    renderAll();   /* 顶栏读数与红点也一并补上（tick 跳过的是整次 DOM 重建）*/
   });
 
   /* ══════════ 六向长线批视图（轮回/图鉴/炼丹/天骄/融合器灵/宗门 六页）══════════ */
@@ -5788,93 +4642,8 @@
     return t(k) !== k ? t(k) : t('legacy.ui.fail.other');
   }
 
-  /* ── 成就页（成就图鉴批 · 自轮回页迁出）：60 条行为成就按六组卡片化——
-   * 已解锁显名/条件/遗泽 + 已达成标；未解锁遮为问号；data 标 hint 的特殊成就提示达成条件 ── */
-  function achvCard(a, has) {
-    var h = '<div class="achvcard ' + (has ? 'got' : 'lock') + '">' +
-      '<div class="ah"><span class="an">' +
-      esc(has ? t('codex.achv.' + a.id + '.name') : t('codex.ui.silhouette')) +
-      '</span><span class="ak">' + esc(t('codex.ui.achv.reward', { k: a.karma })) + '</span></div>';
-    if (has) {
-      h += '<div class="ad">' + esc(t('codex.achv.' + a.id + '.desc')) + '</div>' +
-        '<div class="amark">' + esc(t('achv.ui.got')) + '</div>';
-    } else if (a.hint) {
-      h += '<div class="aq">' + esc(t('achv.ui.q')) + '</div>' +
-        '<div class="ahint">' + esc(t('codex.ui.achv.hint', { t: t('codex.achv.' + a.id + '.desc') })) + '</div>';
-    } else {
-      h += '<div class="aq">' + esc(t('achv.ui.q')) + '</div>';
-    }
-    return h + '</div>';
-  }
-  /* 图鉴九面卡（收集率进度条 + 里程碑点）——自轮回页迁入成就页顶，与行为成就同页成「图鉴 + 成就」双区 */
-  function codexFaceCard(face, meta, p, d) {
-    var den = SQ.Codex.faceDenom(face, p, d);
-    var got = SQ.Codex.faceCount(meta, face);
-    var msDone = 0;
-    if (face === 'title') {
-      (d.CODEX.TITLE_MS || []).forEach(function (th) { if (got >= th) msDone++; });
-    } else {
-      [50, 80, 100].forEach(function (pc) { if ((meta.earnedKeys || {})['codex.ms.' + face + '.' + pc] != null) msDone++; });
-    }
-    /* 称号面无百分比分母（绝对数阶梯）：只报枚数，杜绝「22/—」 */
-    var cnt = face === 'title' ? t('codex.ui.collected.n', { n: got }) : t('codex.ui.collected', { n: got, total: den });
-    var pct = face === 'title' || !den ? 0 : Math.min(100, got / den * 100);
-    var h = '<div class="facecard"><div class="ch"><span class="cn">' + esc(t('codex.face.' + face)) + '</span>' +
-      '<span class="cc">' + esc(cnt) + '</span></div>';
-    if (face !== 'title') h += '<div class="bar slim"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
-    h += '<div class="cfoot"><span class="cms">' + esc(msDone >= 3 ? t('codex.ui.ms.all') : t('codex.ui.ms', { done: msDone })) + '</span>' +
-      '<span class="msdots">' + [0, 1, 2].map(function (i) { return '<i' + (i < msDone ? ' class="on"' : '') + '></i>'; }).join('') + '</span></div>';
-    /* N20 接线：下一档阈值（正典 = UI 卷 v2.26 §3.7「取 [50,80,100] 中第一个未达者」；称号面无分母、三档齐、den 缺失都不出） */
-    var nextMsD = (face === 'title' || !den || pct >= 100) ? 0 : ([50, 80, 100].filter(function (pc) { return pct < pc; })[0] || 0);
-    if (nextMsD) h += '<div class="csub">' + esc(t('codex.ui.ms.next', { pct: nextMsD })) + '</div>';
-    if (face === 'zone') {
-      h += '<div class="csub">' + esc(t('codex.ui.zone.layer', {
-        a: SQ.Codex.faceCount(meta, 'zone', 'z'), b: SQ.Codex.faceCount(meta, 'zone', 'b'), c: SQ.Codex.faceCount(meta, 'zone', 'a')
-      })) + '</div>';
-    }
-    return h + '</div>';
-  }
-  function renderAchv() {
-    var d = D(), meta = state.meta || {}, p = pack();
-    var got = {};
-    (meta.achv || []).forEach(function (id) { got[id] = 1; });
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + esc(t('achv.system')) + '</button></div>' +
-      '<span class="tdtitle">' + esc(t('codex.ui.achv.done', { n: (meta.achv || []).length })) + '</span></div>';
-    /* 图鉴九面（自轮回页迁入）：收集率 + 里程碑，卡片网格置顶 */
-    h += '<div class="secbar"><span>' + esc(t('codex.system')) + '</span>' +
-      '<span class="secnote">' + esc(t('codex.ui.codexnote')) + '</span></div>';
-    h += '<div class="facegrid">';
-    (d.CODEX.FACES || []).forEach(function (face) { h += codexFaceCard(face, meta, p, d); });
-    /* 转世天赋子区（epic 专属池 8 格 · 只发遗泽不发 qiRate） */
-    var nL = SQ.Codex.faceCount(meta, 'talentLegacy');
-    var msL = 0;
-    [50, 80, 100].forEach(function (pc) { if ((meta.earnedKeys || {})['codex.ms.talentLegacy.' + pc] != null) msL++; });
-    h += '<div class="facecard"><div class="ch"><span class="cn">' + esc(t('codex.ui.face.talentLegacy')) + '</span>' +
-      '<span class="cc">' + esc(t('codex.ui.collected', { n: nL, total: 8 })) + '</span></div>' +
-      '<div class="bar slim"><i style="width:' + (nL / 8 * 100).toFixed(1) + '%"></i></div>' +
-      '<div class="cfoot"><span class="cms">' + esc(t('codex.ui.ms', { done: msL })) + '</span>' +
-      '<span class="msdots">' + [0, 1, 2].map(function (i) { return '<i' + (i < msL ? ' class="on"' : '') + '></i>'; }).join('') + '</span></div></div>';
-    h += '</div>';
-    /* 称号墙（自轮回页迁入）：已录称号 chips */
-    if ((meta.titles || []).length) {
-      h += '<div class="secbar"><span>' + esc(t('codex.ui.titles')) + ' · ' + (meta.titles || []).length + '</span></div>';
-      h += '<div class="chips">' + (meta.titles || []).map(function (id) {
-        return '<span class="tdtitle">' + esc(t('codex.title.' + id)) + '</span>';
-      }).join('') + '</div>';
-    }
-    /* 行为成就六组 */
-    var byG = {};
-    (d.CODEX.ACHV || []).forEach(function (a) { (byG[a.g] = byG[a.g] || []).push(a); });
-    ['xiu', 'jie', 'chen', 'men', 'mi', 'ni'].forEach(function (g) {
-      var list = byG[g] || [];
-      if (!list.length) return;
-      var n = list.filter(function (a) { return got[a.id]; }).length;
-      h += '<div class="secbar"><span>' + esc(t('codex.achv.group.' + g)) + '</span>' +
-        '<span class="secnote">' + esc(t('achv.ui.gcount', { n: n, total: list.length })) + '</span></div>' +
-        '<div class="achvgrid">' + list.map(function (a) { return achvCard(a, !!got[a.id]); }).join('') + '</div>';
-    });
-    $('tab-achv').innerHTML = h;
-  }
+
+  /* 成就页整段（achvCard / codexFaceCard / renderAchv）已外置成 view/achv.js（第册五批 · N34 第二刀） */
 
   /* ── 轮回页（SYS · 轮回卷 B1 + 图鉴卷 B2：余额/商店/九面图鉴/称号墙/前世书/飞升兵解）── */
   function renderLegacy() {
@@ -5884,7 +4653,9 @@
     var h = '<div class="pagehead split"><div class="chips"><button class="on">' + esc(t('legacy.system')) + '</button></div>' +
       '<span class="tdtitle">' + esc(t('legacy.ui.balance', { n: SQ.fmt(meta.karma || 0) })) + '</span></div>';
     h += '<div class="kv"><span class="hint">' + esc(t('legacy.ui.stats', {
-      lives: st.lives || 0, asc: st.ascensions || 0, dis: st.dissolutions || 0, realm: t('realm.' + Math.min(st.realmMax || 0, d.REALMS.length - 1))
+      lives: st.lives || 0, asc: st.ascensions || 0, dis: st.dissolutions || 0,
+      death: st.deaths || 0,   /* 身死 = 被动了结（寿尽 / 道伤）计数，与玩家主动兵解分列（寿元批） */
+      realm: t('realm.' + Math.min(st.realmMax || 0, d.REALMS.length - 1))
     })) + '</span></div>';
     /* 飞升 / 兵解入口 */
     if (w.realm >= d.REALMS.length - 1 && SQ.Legacy) {
@@ -5972,7 +4743,11 @@
     });
     h += '</div>';
     /* 图鉴九面 / 称号墙 / 成就图鉴入口已迁至独立「成就」页顶（图鉴与成就同页），轮回页只留转世机制 */
-    /* 前世书（≤9 世 · 展开全文 + 烧表请天道作传） */
+    /* 前世书（≤9 世 · 展开全文）
+     * ⚠️ 「烧表请天道作传」那一族入口已于第册批整族下线（按钮 / 粘贴框 / 采纳钮 + `Codex.bioMemo`
+     *    / `Codex.adoptBio` / `Actions.adoptBio` / `BIO_MEMO_LEN` / 五条词条 + 作传提示词一起删）：这条通道要玩家
+     *    自己粘回一段外部文本，实机上没人真用它，留着只让前世书看起来像个待办清单。
+     *    来源小标**保留**——老档里确有 `source:'tiandao'` 的条目，抹掉小标等于把它们的来路抹了。 */
     h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + esc(t('legacy.ui.bios')) + '</p>';
     var bios = meta.biographies || [];
     if (!bios.length) h += '<p class="hint">' + esc(t('legacy.ui.bios.empty')) + '</p>';
@@ -5982,10 +4757,7 @@
       h += '<div class="lrow"><div class="nm"><button class="linkbtn" data-act="bioOpen" data-v="' + idx + '">' +
         esc(t('codex.bio.head', { name: b.name, life: b.life })) + '</button> <span class="hint">' +
         esc(t('legacy.ui.bio.source.' + (b.source || 'local'))) + '</span></div>' +
-        (open ? '<div class="biobox"><div class="meta" style="white-space:pre-wrap">' + esc(b.text) + '</div>' +
-          '<div class="row" style="margin-top:6px"><button data-act="bioAsk" style="flex:1">' + esc(t('legacy.ui.bioAsk')) + '</button></div>' +
-          '<textarea class="tdta" rows="3" style="margin-top:6px;min-height:56px" placeholder="' + esc(t('legacy.ui.bioPaste')) + '"></textarea>' +
-          '<button data-act="bioAdopt" style="width:100%;margin-top:4px">' + esc(t('legacy.ui.bioAdopt')) + '</button></div>' : '') +
+        (open ? '<div class="biobox"><div class="meta" style="white-space:pre-wrap">' + esc(b.text) + '</div></div>' : '') +
         '</div>';
     });
     $('tab-legacy').innerHTML = h;
@@ -6222,103 +4994,8 @@
   }
 
   /* ── 天骄页（天骄卷 B4：同代榜 + 详情 + 切磋）── */
-  function renderProdigy() {
-    var w = ws(), d = D(), p = pack(), m = mods();
-    /* 「效力于你」角标数据源：宗门弟子档里的天骄来源位 `pr`（零新增存档字段，派生态） */
-    var srvSet = {};
-    if (w.sect && w.sect.disciples) w.sect.disciples.forEach(function (x) { if (x.pr) srvSet[x.pr] = 1; });
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + esc(t('prodigy.board.title')) + '</button></div>' +
-      '<span class="hint">' + esc(t('prodigy.board.hint')) + '</span></div>';
-    if (!(w.prodigies || []).length) {
-      h += '<p class="hint">' + esc(t('prodigy.board.empty')) + '</p>';
-      $('tab-prodigy').innerHTML = h;
-      return;
-    }
-    var show = SQ.Prodigy.boardShow(d);
-    /* 榜面数据源：优先读 10 游戏年一刷的冻结快照（tick 内写入）；无快照（首次未结算）回落实时榜 */
-    var rows = [];
-    var snap = SQ.Prodigy.rankRows(w);
-    if (snap) {
-      snap.forEach(function (r) { rows.push({ me: !!r.me, id: r.me ? null : r.id, realm: r.realm, power: r.power }); });
-    } else {
-      SQ.Prodigy.board(w, p, d, m).rows.forEach(function (r) {
-        rows.push({ me: !!r.me, id: r.me ? null : r.id, realm: r.realm, power: r.power });
-      });
-    }
-    var myRank = 1;
-    rows.forEach(function (r, i) { if (r.me) myRank = i + 1; });
-    h += '<div class="kv"><span class="hint">' + esc(t('prodigy.board.myrank', { n: myRank })) + '</span>' +
-      '<span class="hint">' + esc(t('prodigy.board.refresh', { y: Math.round((d.PRODIGY.RANK_REFRESH_MS) / 360000) })) + '</span></div>';
-    /* 榜面只展前 N 位详情；玩家若在 N 名之外，追加其所在位次（带省略号分隔） */
-    var list = rows.slice(0, show).map(function (r, i) { return { r: r, rank: i + 1, gap: false }; });
-    if (myRank > show) rows.forEach(function (r, i) { if (r.me) list.push({ r: r, rank: i + 1, gap: true }); });
-    list.forEach(function (item) {
-      var r = item.r, rank = item.rank;
-      var pr = r.me ? null : SQ.Prodigy.byId(w, r.id);
-      if (!r.me && !pr) return;                     /* 快照后已斩杀出榜者略过 */
-      var isMe = r.me;
-      if (item.gap) h += '<p class="hint" style="text-align:center;margin:2px 0">⋯</p>';
-      var nm = isMe ? t('prodigy.board.me') : SQ.Prodigy.nameOf(w, pr, p);
-      var align = isMe ? null : pr.al;
-      var relTxt = '';
-      if (!isMe) {
-        if (pr.feud) relTxt = '<span class="bad">' + esc(t('prodigy.rel.feud')) + '</span>';
-        else {
-          var aff = (w.bonds || {})[pr.id] || 0;
-          if (aff >= 1) relTxt = esc(t('prodigy.rel.friend')) + ' ' + aff;
-        }
-        if (pr.eternal) relTxt += ' <span class="tierbadge t4">' + esc(t('prodigy.detail.eternal')) + '</span>';
-        if (pr.boost) relTxt += ' <span class="tierbadge t2">' + esc(t('prodigy.detail.boost')) + '</span>';
-        if (srvSet[pr.id]) relTxt += ' <span class="tierbadge t3">' + esc(t('prodigy.detail.serving')) + '</span>';
-      }
-      h += '<div class="lrow' + (isMe ? ' cur' : '') + '"><div class="nm">' + rank + '. ' +
-        (isMe ? '<b>' + esc(nm) + '</b>' : '<button class="linkbtn" data-act="prodDetail" data-v="' + r.id + '">' + esc(nm) + '</button>') +
-        (align != null ? ' <span class="align-sym align-' + ['right', 'neutral', 'evil'][align] + '">' + esc(t('align.sym.' + ['right', 'neutral', 'evil'][align])) + '</span>' : '') +
-        ' ' + relTxt + '</div>' +
-        '<div class="meta">' + esc(t('realm.' + r.realm)) + ' · ' + esc(t('resource.power')) + ' ' + SQ.fmt(r.power) +
-        (!isMe ? ' · ' + esc(SQ.Prodigy.factionNameOf(w, pr, p)) : '') + '</div></div>';
-      if (!isMe && ui.prodOpen === r.id) {
-        var cdLeft = pr.lastSparAt + (d.PRODIGY.SPAR_CD_DAYS || 7) * 86400000 - Date.now();
-        /* 强弱差让展示（切磋平衡批 §5.3 v2）：ratio = 浮动前真战力比——信息全透明正典纪律 */
-        var pdD = d.PRODIGY || {}, hcD = pdD.HANDICAP || {};
-        var myPD = SQ.Mods.powerOf(w, p, d, m);
-        var q0D = SQ.Prodigy.powerOf(w, pr, d);
-        var ratioD = q0D > 0 ? myPD / q0D : 999;
-        var crushD = ratioD >= (hcD.crush != null ? hcD.crush : 1.5);
-        var braveD = !crushD && ratioD <= (hcD.brave != null ? hcD.brave : 0.8);
-        var hcKey = crushD ? 'crush' : (braveD ? 'brave' : 'even');
-        h += '<div class="detailbox">' +
-          '<div class="kv"><span>' + esc(t('prodigy.detail.faction')) + '</span><span>' + esc(SQ.Prodigy.factionNameOf(w, pr, p)) + '</span></div>' +
-          /* N20 接线：关系档此前只在榜行露出（relTxt），详情面整行缺席；正典 = 天骄卷 line128 详情页列「关系档与好感」 */
-          (relTxt ? '<div class="kv"><span>' + esc(t('prodigy.detail.rel')) + '</span><span>' + relTxt + '</span></div>' : '') +
-          '<div class="kv"><span>' + esc(t('prodigy.detail.apt')) + '</span><span>' + esc(t('prodigy.apt.' + pr.apt)) + '</span></div>' +
-          '<div class="kv"><span>' + esc(t('prodigy.detail.talent')) + '</span><span>' +
-          (pr.tl || []).map(function (tid) { return esc(t('talent.' + tid + '.name')); }).join(' · ') + '</span></div>' +
-          '<div class="kv"><span>' + esc(t('prodigy.detail.wl', { w: pr.wl[0], l: pr.wl[1], d: pr.wl[2] })) + '</span>' +
-          '<span>' + esc(t('prodigy.detail.bond', { n: (w.bonds || {})[pr.id] || 0 })) + '</span></div>' +
-          (pr.feud ? '<div class="kv"><span class="bad">' + esc(t('prodigy.detail.feudstate')) + '</span></div>' : '') +
-          '<div class="kv"><span>' + esc(t('prodigy.spar.vs', { a: SQ.fmt(myPD), b: SQ.fmt(q0D) })) + '</span>' +
-          '<span class="tierbadge ' + (crushD ? 't1' : (braveD ? 't4' : 't2')) + '">' + esc(t('prodigy.spar.handicap.' + hcKey)) + '</span></div>' +
-          '<div class="meta hint">' + esc(t('prodigy.spar.handicap.' + hcKey + '.hint')) + '</div>';
-        if (cdLeft > 0) {
-          h += '<button disabled style="width:100%;margin-top:6px">' + esc(t('prodigy.spar.cd', { t: timeLeftText(cdLeft) })) + '</button>';
-        } else {
-          h += '<div class="acts" style="margin-top:6px">' + ['light', 'std', 'heavy'].map(function (kd) {
-            var stk = SQ.Prodigy.sparStake(w, d, kd);
-            return '<button data-act="sparProd" data-v="' + pr.id + '" data-c="' + kd + '"' +
-              (w.stones < stk ? ' disabled' : '') + '>' +
-              esc(t('prodigy.spar.kind.' + kd) + ' ' + SQ.fmt(stk)) + '</button>';
-          }).join('') + '</div>' +
-          '<div class="meta hint">' +
-          esc(t('prodigy.spar.matp', { p: Math.round((braveD ? (hcD.braveMatP != null ? hcD.braveMatP : 0.15) : (pdD.SPAR_MAT_P || 0.10)) * 100) })) +
-          ' · ' + esc(t('prodigy.spar.feudp', { p: Math.round((pdD.SPAR_FEUD_P || 0.30) * 100) })) +
-          '/' + esc(t('prodigy.spar.kind.heavy')) + ' ' + Math.round((pdD.SPAR_FEUD_P_HEAVY || 0.40) * 100) + '%</div>';
-        }
-        h += '</div>';
-      }
-    });
-    $('tab-prodigy').innerHTML = h;
-  }
+  /* 江湖榜（天骄页）整片已外置成 view/jianghu.js：渲染族 + 换榜 / 切磋 / 袭杀三条动作（第册七批） */
+
 
   /* ── 宗门页（自立门户卷 B6：开宗流程 / 弟子 / 设施 / 战争 / 传位）── */
   function renderSect() {
@@ -6485,7 +5162,7 @@
     }
     h += '<p class="hint">' + esc(t('fuse.ui.parents')) + '</p><div class="chips">';
     (w.artsKnown || []).forEach(function (id) {
-      if ((w.artsLevels || {})[id] < 9) return;
+      if (SQ.Arts.levelOf(w, id) < 9) return;   /* 走 levelOf：原 `artsLevels[id] < 9` 在无键时是 undefined<9=false ⇒ 满级关形同不存在 */
       var def = SQ.Fusion.artDefOf(w, id);
       if (!def || (def.obtain || {}).type === 'event_locked') return;
       var cU = SQ.Fusion.customById(w, id);
@@ -6495,7 +5172,7 @@
     });
     h += '</div>';
     if (ui.fuseSel.length === 2) {
-      h += '<div class="sectnamebox"><input class="tdta fusename" style="min-height:38px" maxlength="8" placeholder="' + esc(t('fuse.ui.name.ph')) + '"></div>';
+      h += '<div class="sectnamebox"><input class="tdta fusename" style="min-height:38px" maxlength="8" placeholder="' + esc(t('fuse.ui.name.ph')) + '" value="' + esc(ui.fuseName || '') + '"></div>';
       h += '<button class="primary" data-act="fuseStart" style="width:100%;margin-top:6px">' + esc(t('fuse.ui.btn')) + '</button>';
     } else if (chk.ok) {
       h += '<p class="hint">' + esc(t('fuse.ui.pick2')) + '</p>';
@@ -6568,6 +5245,15 @@
     var act = el.dataset.act, v = el.dataset.v;
     var keepScroll = document.querySelector('.tabbody') ? document.querySelector('.tabbody').scrollTop : 0;
     if (act === 'tab') { switchTab(v); return; }
+    /* 更新公告（第册四批）：点「知道了」才落库并收层；落库走 SQ.mutate 事务口（直写内存态会被下一次 claim 覆盖） */
+    if (act === 'noteClose') {
+      if (SQ.UI && SQ.UI.updateNote) {
+        var noteId = SQ.UI.updateNote.id;
+        SQ.UI.updateNote.hide();
+        await SQ.mutate(state, function (s) { s.profile.seenNote = noteId; });
+      }
+      return;
+    }
     /* 法与器合并页（页面整合批 2026-10-06 · UI 卷 §3.4a；标签化批 2026-10-09 改顶部标签）：
      * `lawChip` = 页顶两枚标签（功法 / 法器），互斥显示，切一枚就只渲染那一段。
      * `lawJump` = 概览条三格，语义随标签化改：**目标段没选中 → 切过去并回顶**（原来「锚跳到看不见的段」
@@ -6576,6 +5262,12 @@
      * 两条都必须 `return`：委托尾部会把 `.tabbody.scrollTop` 复原成动作前的值（keepScroll），
      * 不 return 就切完标签又被拽回原处——与 `logFilter` 同口径。 */
     if (act === 'lawChip') { lawChipTo(v); return; }
+    /* 江湖榜换榜（第册一批③）：`ui.jhb` 只在内存（与 `ui.lawChip` 同纪律——选看哪一榜不是角色状态，
+     * 写进存档等于给主档加一个与游玩时长相关的增长项）；切榜等价换页 ⇒ 滚动归零。 */
+    if (act === 'jbChip') {
+      SQ.UI.jianghu.actChip(ctx(), v);
+      return;
+    }
     if (act === 'lawJump') {
       if (lawChipOf() !== (v === 'qi' ? 'qi' : 'fa')) { lawChipTo(v); return; }
       var lawT = document.getElementById('lawsec-' + v);
@@ -6650,41 +5342,30 @@
     }
     /* 叛离入口（系统深化批 B4 改造）：升级为去向感知两级弹窗——处理见下方 leaveFaction/defectGo 段 */
     if (act === 'buyMerchant') {
-      /* 特席拒因必须有中文回显（第十七批复核 M2）：匣满时扣钱前的拒单在屏上是静默的 */
-      var rMc = await SQ.Actions.buyMerchant(state, parseInt(v));
-      if (rMc && rMc.ok === false)
-        toast(t(rMc.reason === 'pillfull' ? 'shop.fail.pillfull' : 'shop.fail.other'));
-      renderAll();
+      await SQ.UI.shop.actMerchant(ctx(), parseInt(v));
       return;
     }
     if (act === 'slotArt') {
-      /* 满槽 → 进入替换选择模式（B4：点按入槽，满槽弹替换；原位替换保主修位语义） */
-      var wSA = ws();
-      if ((wSA.artsSlots || []).length >= D().ARTS_SLOTS && (wSA.artsSlots || []).indexOf(v) < 0) {
-        ui.slotPickFor = v;
-        renderTab();
-        return;
-      }
-      await SQ.Actions.slotArt(state, v);
-      ui.slotPickFor = null;
-      renderAll();
+      await SQ.UI.arts.actSlot(ctx(), v);
       return;
     }
     if (act === 'slotReplace') {
-      await SQ.Actions.slotArt(state, v, el.dataset.r);
-      ui.slotPickFor = null;
-      renderAll();
+      await SQ.UI.arts.actReplace(ctx(), v, el.dataset.r);
       return;
     }
     if (act === 'slotPickCancel') { ui.slotPickFor = null; renderTab(); return; }
     if (act === 'artsGroup') { ui.artsGroup = v; ui.artsGroupVal = null; renderTab(); return; }
     if (act === 'artsGroupVal') { ui.artsGroupVal = ui.artsGroupVal === v ? null : v; renderTab(); return; }
     if (act === 'unslotArt') { await SQ.Actions.unslotArt(state, v); renderAll(); return; }
+    /* 设主修（GitHub issue #3）：六槽任一都可选，选中即换人；被引擎拒（不在槽内）给如实文案 */
+    if (act === 'setMainArt') {
+      await SQ.UI.arts.actSetMain(ctx(), v);
+      return;
+    }
     if (act === 'upgradeArt') { await SQ.Actions.upgradeArt(state, v); renderAll(); return; }
     if (act === 'shopTab') { ui.shopBlack = v === '1'; renderTab(); return; }
     if (act === 'refreshShop') {
-      await SQ.Actions.refreshShop(state, ui.shopBlack);
-      renderAll();
+      await SQ.UI.shop.actRefresh(ctx());
       return;
     }
     if (act === 'toggleAutoTrib') {
@@ -6697,6 +5378,12 @@
       await SQ.Actions.setAutoEvent(state, !(state.settings && state.settings.autoEvent));
       /* 开启瞬间若已有挂起抉择，立即自动结算，不留残窗 */
       if ((state.settings && state.settings.autoEvent) && ws() && ws().pendingChoice) autoResolveChoice();
+      renderTab();
+      return;
+    }
+    /* 自动炼化（GitHub issue #2）：开关存 ws.gearAutoRefine（autoEquip 只认得到 ws） */
+    if (act === 'toggleGearRefine') {
+      await SQ.Actions.setGearRefine(state, ws().gearAutoRefine === false);   /* 关→开、开→关 */
       renderTab();
       return;
     }
@@ -6721,27 +5408,7 @@
       return;
     }
     if (act === 'buy') {
-      var black = el.dataset.b === '1';
-      var idx = parseInt(v);
-      var items = black ? ws().shop.blackItems : ws().shop.items;
-      var it = items[idx];
-      if (!it) { renderAll(); return; }
-      var nm = shopGoodName(it);
-      var priceTxt = shopPriceTxt(it);
-      /* 弹窗是无阻塞的：CONFIRM 开着的时候秒级 tick 仍会跑，4h 补货或手动刷新会把
-       * `ws.shop.items` **整表替换**，此时旧序号指向的是另一件货 ⇒ 第廿六批实测：弹窗写
-       * 「春风化雨篇 · 2,300 灵石」，点确认实扣 360 买走一件法器。故开弹窗时先记身份指纹，
-       * 确认时复查「这一格还是不是它」，不是就不成交（与引擎先判后扣同一族）。 */
-      var sig = SQ.Shop.goodSig(it);
-      askConfirm(t('shop.buy'), t('shop.confirm', { name: nm, price: priceTxt }), async function () {
-        /* 指纹回给引擎复查（SQ.Shop.buy 里 reason:'stale' ⇒ 分文不动），视图不再自判一套 */
-        var rBy = await SQ.Actions.buy(state, idx, black, sig);
-        /* 丹匣满 / 已拥有 / 待修习架已满 ⇒ 引擎在扣钱之前整笔拒单（先判后扣），屏上必须说一句 ——
-         * 与 #272/#273 那条「失败不告警」同族，未知 reason 走 .other 兜底、不打内部字段名 */
-        if (rBy && rBy.ok === false)
-          toast(t(rBy.reason === 'pillfull' ? 'shop.fail.pillfull' : 'shop.fail.other'));
-        renderAll();
-      });
+      await SQ.UI.shop.actBuy(ctx(), parseInt(v), el.dataset.b === '1');
       return;
     }
     /* ── 批 2 · 四柱 chip（B1）与洞府入驻（B3）── */
@@ -6813,7 +5480,7 @@
       return;
     }
     if (act === 'questClaim') {
-      var rQ = await SQ.Actions.deliverQuest(state);
+      var rQ = await SQ.Actions.deliverQuest(state, v);   /* v = 委托类型（板面同类型至多一张 ⇒ type 就是地址） */
       if (rQ && rQ.ok) toast(t('faction.quest.claim.ok') + ' · ' + t('faction.quest.done', { n: rQ.rep }));
       else if (rQ) toast(t('faction.quest.fail.' + rQ.reason));
       renderAll();
@@ -6917,6 +5584,10 @@
     }
     /* ── 天道系统（天道系统批 B1~B4）：问天/天象浮层 + 卦位香火选择 + 逆天大劫挑战 ── */
     if (act === 'openTiandao') { openTiandao(); return; }
+    /* 页游充值贴片彩蛋：只回一句拒绝，零发放 / 零落档 / 零账（判据 = 走查 G 组「点完存档字节不变」）。
+     * 刻意不碰 ui.announcedLogKey——那是「动作自己就同一条日志弹过提示」的去重位，本动作不写日志，
+     * 认领它会把当时恰好新增的那条日志呈报吞掉（红点仍亮、toast 却不弹）。 */
+    if (act === 'giftBuy') { toast(t('eggs.gift.deny')); return; }
     if (act === 'openOmens') { openOmens(); return; }
     if (act === 'tdHex') { ui.tdHex = v; renderTdModal(); return; }
     if (act === 'tdIncense') { ui.tdIncense = parseInt(v, 10); renderTdModal(); return; }
@@ -6965,7 +5636,13 @@
             var rB = await SQ.Actions.dissolve(state);
             if (rB && rB.ok) {
               toast(t('legacy.ui.settle.title') + ' · ' + t('legacy.ui.settle.gain', { n: SQ.fmt((rB.preview || {}).total || 0) }));
+              /* 盖棺之传（第册批）：正文 = doBingjie → Codex.pushBio 刚写入的末条，视图零生成。
+               * 先 enterRebirthCreation 再开演——它会把 MASKS 全关一遍，反序就把自己刚开的浮层关掉了；
+               * 且这样任何关法（钮 / 遮罩 / ESC）落回的都是创角屏，不会停在已了结的那一世。 */
+              var bsB = state.meta.biographies || [];
+              var bioB = bsB[bsB.length - 1];
               enterRebirthCreation();
+              if (bioB && bioB.text) showRecap(t('legacy.ui.recap.title'), bioB.text);
             }
             renderAll();
           });
@@ -6993,21 +5670,8 @@
     if (act === 'heirPick') { commitHeirChoice(v); return; }
     if (act === 'heirSwitch') { openHeirSwitch(); return; }
     if (act === 'bioOpen') { ui.bioOpen = (ui.bioOpen === parseInt(v, 10)) ? null : parseInt(v, 10); renderTab(); return; }
-    if (act === 'bioAsk') {
-      var memoB = SQ.Codex.bioMemo(state, Date.now());
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(memoB);
-      } catch (e) { /* 环境不支持剪贴板时静默 */ }
-      toast(t('tiandao.memo.copied'));
-      return;
-    }
-    if (act === 'bioAdopt') {
-      var taB = el.closest('.lrow') ? el.closest('.lrow').querySelector('textarea') : null;
-      var rAd = await SQ.Actions.adoptBio(state, taB ? taB.value : '');
-      toast(rAd && rAd.ok ? t('legacy.ui.bioAdopted') : t('legacy.ui.bioFail'));
-      renderAll();
-      return;
-    }
+    /* 第册批：`bioAsk` / `bioAdopt` 两个处理器随「烧表请天道作传」整族下线
+     * （`Codex.bioMemo` / `Codex.adoptBio` / `Actions.adoptBio` 同批删，不留死枝）。 */
     if (act === 'alStart') {
       var kindS = el.dataset.c || 'dan';
       var optsS = kindS === 'qi' ? { dir: (ui.forge || {}).dir, attr: (ui.forge || {}).attr } : {};
@@ -7061,34 +5725,11 @@
     if (act === 'forgeAttr') { ui.forge = ui.forge || {}; ui.forge.attr = v; renderTab(); return; }
     if (act === 'prodDetail') { ui.prodOpen = (ui.prodOpen === v ? null : v); renderTab(); return; }
     if (act === 'sparProd') {
-      var kdS = el.dataset.c || 'std';                       /* 三档赌注（data-c 透传，exchangeShard 先例） */
-      var prS = SQ.Prodigy.byId(ws(), v);
-      var nmS = prS ? SQ.Prodigy.nameOf(ws(), prS, pack()) : '';
-      var dS = D(), pdS = dS.PRODIGY || {}, hcS = pdS.HANDICAP || {};
-      var myPS = SQ.Mods.powerOf(ws(), pack(), dS, mods());
-      var q0S = prS ? SQ.Prodigy.powerOf(ws(), prS, dS) : 0;
-      var ratioS = q0S > 0 ? myPS / q0S : 999;
-      var crushS = ratioS >= (hcS.crush != null ? hcS.crush : 1.5);
-      var braveS = !crushS && ratioS <= (hcS.brave != null ? hcS.brave : 0.8);
-      var stakeS = SQ.Prodigy.sparStake(ws(), dS, kdS);
-      var retS = Math.round(stakeS * (crushS ? (hcS.crushRet != null ? hcS.crushRet : 1.5) : (braveS ? (hcS.braveRet != null ? hcS.braveRet : 3) : 2)));
-      var hcapS = t('prodigy.spar.handicap.' + (crushS ? 'crush' : (braveS ? 'brave' : 'even')));
-      var fpS = kdS === 'heavy' ? (pdS.SPAR_FEUD_P_HEAVY || 0.40) : (pdS.SPAR_FEUD_P || 0.30);
-      var mpS = braveS ? (hcS.braveMatP != null ? hcS.braveMatP : 0.15) : (pdS.SPAR_MAT_P || 0.10);
-      askConfirm(t('prodigy.spar.title'), t('prodigy.spar.confirm2', {
-        name: nmS, handicap: hcapS, n: SQ.fmt(stakeS), ret: SQ.fmt(retS),
-        cur: t('resource.currency'), fp: Math.round(fpS * 100), mp: Math.round(mpS * 100)
-      }), async function () {
-        var rSp = await SQ.Actions.prodigySpar(state, v, kdS);
-        if (rSp && rSp.ok) {
-          toast(t('prodigy.log.spar.' + rSp.result, { name: nmS, n: SQ.fmt(rSp.stake), cur: t('resource.currency') }));
-          if (rSp.mat) toast(t('prodigy.log.spar.mat', { mat: t('alchemy.mat.' + rSp.mat + '.name') }));
-        }
-        else if (rSp && rSp.reason === 'cd') toast(t('prodigy.spar.cd', { t: timeLeftText(rSp.until - Date.now()) }));
-        else if (rSp && rSp.reason === 'poor') toast(t('prodigy.spar.poor'));
-        else if (rSp && rSp.reason === 'locked') toast(t('prodigy.spar.locked'));
-        renderAll();
-      });
+      SQ.UI.jianghu.actSpar(ctx(), v, el.dataset.c || 'std');
+      return;
+    }
+    if (act === 'ambushProd') {
+      SQ.UI.jianghu.actAmbush(ctx(), v);
       return;
     }
     if (act === 'fusePick') {
@@ -7106,6 +5747,7 @@
         var rF = await SQ.Actions.fuseStart(state, ui.fuseSel[0], ui.fuseSel[1], nameIn ? nameIn.value : '');
         if (rF && rF.ok && rF.success) {
           ui.fuseSel = [];
+          ui.fuseName = '';                 /* 成交即清：下一对父母不该继承上一部的自定义名 */
           toast(t('fuse.log.win', { name: rF.art.name, gen: rF.art.gen, tier: t('skill.tier.' + ['huang', 'xuan', 'di', 'tian'][rF.art.tier]) }));
         } else if (rF && rF.ok) {
           toast(t('fuse.log.fail', { p: Math.round(rF.p * 100) }));
@@ -7281,7 +5923,7 @@
       return;
     }
     /* 赠丹（渠道 B）：data-v = 道友 id、data-c = 丹药 key（含 _rw 丹纹版）。
-     * 引擎侧「入账成功才扣丹、才占日限」，故失败态绝无白扣——视图不做乐观更新。 */
+     * 引擎侧「入账成功才扣丹」，故失败态绝无白扣——视图不做乐观更新。 */
     if (act === 'bondGift') {
       var pkG = el.dataset.c || '';
       var rvG = await SQ.Actions.giftBond(state, v, pkG);
@@ -7319,18 +5961,7 @@
     }
     /* ── 道具处置打磨包：功法散功/弃置 + 库藏阁手动炼化（CONFIRM 后走 mutate 单一通道）── */
     if (act === 'salvageArt') {
-      var wA = ws(), pA = pack(), dA = D(), idA = v;
-      if (!SQ.Arts.canSalvage(wA, pA, dA, idA)) return;
-      var knownA = (wA.artsKnown || []).indexOf(idA) >= 0;
-      var bodyA = t('arts.salvage.confirm', {
-        act: t(knownA ? 'arts.salvage' : 'arts.discard'),
-        name: t('skill.' + idA + '.name'), n: SQ.fmt(SQ.Arts.salvageValue(wA, pA, dA, idA)), cur: t('resource.currency')
-      });
-      askConfirm(t(knownA ? 'arts.salvage' : 'arts.discard'), bodyA, async function () {
-        var rA = await SQ.Actions.salvageArt(state, idA);
-        if (rA) toast(t('arts.salvaged', { name: t('skill.' + idA + '.name'), n: SQ.fmt(rA.value), cur: t('resource.currency') }));
-        renderAll();
-      });
+      await SQ.UI.arts.actSalvage(ctx(), v);
       return;
     }
     if (act === 'refineGear') {
@@ -7400,7 +6031,7 @@
       renderAll();
       return;
     }
-    if (act === 'logFilter') { ui.logFilter = v; renderJournal(); return; }
+    if (act === 'logFilter') { ui.logFilter = v; SQ.UI.journal.render(ctx()); return; }
     if (act === 'resetSave') { askConfirm(t('settings.reset'), t('settings.reset.confirm'), resetSave); return; }
     if (act === 'clearBuffs') {
       askConfirm(t('settings.clearbuffs'), t('settings.clearbuffs.confirm'), async function () {
@@ -7460,7 +6091,9 @@
   function afterClaim(prevAttempts) {
     var w = ws();
     checkIo();
-    if (w.pendingChoice) {
+    /* 坐化呈报排在弹层栈首（寿元批）：人死在这一刻，抉择 / 出关 / 渡劫结果都属于上一世了 */
+    if (w.lastDeath && w.lastDeath.at !== ui.seenDeathAt) showDeathReport();
+    else if (w.pendingChoice) {
       /* 自动批：自动奇遇开启 → 不弹抉择模态，自动择分支结算；关闭 → 维持弹窗 */
       if (autoEventOn()) autoResolveChoice();
       else showChoice();
@@ -7484,6 +6117,14 @@
       ui.newLogDot = true;
     }
     ui.lastLogKey = logKey;
+    /* 神秘商人开席提示（第卅九批 · 用户报「黑市/特席从没见过」）：席期只有 MERCHANT_DURATION_MS，
+     * 而 settle 侧先写 shop 类日志、resolveBranch 随后写 event 类尾行 ⇒ 上面那条「只 toast 末行且跳过 event」
+     * 的规则天然把开席吞掉。这里按开席时刻去重，一次开席只提示一次（含载入时仍在席期的补提示）。 */
+    var mu = ((w.shop || {}).merchant || {}).until || 0;
+    if (mu !== ui.lastMerchUntil) {
+      ui.lastMerchUntil = mu;
+      if (mu > Date.now()) toast(t('shop.merchant.open'));
+    }
     var feedKey = feedKeyOf(w.eventHistory.feed);
     if (feedKey && feedKey !== ui.lastFeedKey && ui.tab !== 'event') ui.newFeedDot = true;
     ui.lastFeedKey = feedKey;
@@ -7524,7 +6165,10 @@
       arts: (w.artsKnown || []).length,
       treasure: (w.treasures && w.treasures.owned ? w.treasures.owned.length : 0),
       bonds: bonded,
-      shop: w.shop && w.shop.nextRestock || 0
+      /* 坊市 = 补货时间戳 + **商人席的开席时刻**（第卅九批：特席只活 MERCHANT_DURATION_MS，
+       * 原签名不含它 ⇒ 12h 冷却换来的一次到货从不点亮 tab，玩家实测「从没见过」）。
+       * 只取 until 原值不做时间比较：席过期的那一 tick 若参与签名，会把红点在**收尾时**再点一次。 */
+      shop: (w.shop && w.shop.nextRestock || 0) + '#' + ((w.shop && w.shop.merchant || {}).until || 0)
     };
   }
 
@@ -7547,10 +6191,16 @@
       if (!$('modal-choice').classList.contains('hide')) return; /* 选择模态期间暂停自动结算展示 */
       var prev = ws() ? ws().tribulation.attempts : 0;
       var keep = document.querySelector('.tabbody') ? document.querySelector('.tabbody').scrollTop : 0;
+      /* 输入闸（GitHub issue #5 · 用户报「融合坛自定义名输入框无法输入文字，点击后很快丢失焦点」）：
+       * renderAll() 把当前页整块 innerHTML 重建 ⇒ 正在打字的 <input> 换成新节点，焦点被抢、字一起丢。
+       * 结算照跑（玩家进程不能停），只跳过这一次 DOM 重建；focusout 时补渲染。 */
+      var ae = document.activeElement;
+      var typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
       try {
         snapTrib();                       /* 劫前成算/损失快照（F7 复盘行） */
         await SQ.claim(state);
         afterClaim(prev);
+        if (typing) return;
         renderAll();
         var tb = document.querySelector('.tabbody');
         if (tb) tb.scrollTop = keep;
@@ -7589,6 +6239,9 @@
       else showChoice();
     }
     else if (w0.lastOffline && w0.lastOffline.at !== ui.seenOfflineAt) showOfflineReport();
+    /* 更新公告（第册四批 · 判定与渲染全在 view/updatenote.js）：排在遇袭抉择与出关呈报**之后**，
+       公告是最低优先级的打断，不能盖掉那些要玩家做决定的层。 */
+    if (SQ.UI && SQ.UI.updateNote && SQ.UI.updateNote.needed((state.profile || {}).seenNote)) SQ.UI.updateNote.show(wid());
     startTick();
   }
 
@@ -7598,6 +6251,10 @@
     show('loading');
     try {
       var s = await SQ.claim(state);
+      /* 死在门口（寿元批）：boot 那一次离线结算里就已完成强制转世 ⇒ 档案名已空、进不了主界面。
+       * 不能把人无声扔在创角屏——先演坐化呈报，确定后仍是创角流程。 */
+      var ld0 = ((s.worlds || {})[s.profile.worldId] || {}).lastDeath;
+      if (!hasProfile(s) && ld0 && ld0.at !== ui.seenDeathAt) { show('c1'); showDeathReport(); return; }
       if (hasProfile(s)) enterMain();
       else show('c1');
     } catch (e) {

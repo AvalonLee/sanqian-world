@@ -25,6 +25,23 @@
     'ui.error.save': '存档写入失败：{msg}（本次进度恐未记下）',
     'ui.error.sideflow': '历史日志与奇遇记事没能保存（修为进度已保存）',
     'ui.error.short': '读取失败',
+    /* ── 恶搞彩蛋 · 页游充值贴片（第卅九批 2026-10-15 · 用户令「修行页随机刷几种网页游戏常见的大礼包，
+     * 模拟页游充值获取资源的感觉」）：纯呈现，点击零发放、零落档、零 Ledger，六款走拼接前缀 eggs.gift.p{n}.── */
+    'eggs.gift.tag': '限时',
+    'eggs.gift.btn': '立即充值',
+    'eggs.gift.p0.name': '首充大礼包',
+    'eggs.gift.p0.offer': '6 元 · 绝品功法直接到手，七日登录再送神装',
+    'eggs.gift.p1.name': '至尊 648 礼盒',
+    'eggs.gift.p1.offer': '648 元 · 必出天品至宝（概率 0.0001%，出货以实际为准）',
+    'eggs.gift.p2.name': '屠龙宝刀',
+    'eggs.gift.p2.offer': '98 元 · 战力 +99999，一刀 999，跨服碾压不是梦',
+    'eggs.gift.p3.name': '仙君直通',
+    'eggs.gift.p3.offer': '198 元 · 连登七日即送飞升体验卡（三分钟后自动回落）',
+    'eggs.gift.p4.name': '霓裳道侣',
+    'eggs.gift.p4.offer': '30 元 · 她不会说话，但很好看',
+    'eggs.gift.p5.name': '榜末补偿礼包',
+    'eggs.gift.p5.offer': '6480 元 · 充完即可超越榜首那位（就是他，别问）',
+    'eggs.gift.deny': '仙商把袖子一摆：此界不通金银，只通苦修。（彩蛋，不收费也不发货）',
     /* ── 一世洗髓（天赋池设计 v1.8 §十 · 洗髓批 2026-10-12）：世界无关的机制文案 ── */
     'talent.swap.title': '洗髓 · 换骨',
     'talent.swap.sub': '本世可换 {n}/{cap} 枚 · 手中缘 {owed} 枚',
@@ -129,6 +146,9 @@
     'idle.auto.sec': '自动',
     'settings.autoevent.title': '自动奇遇',
     'settings.autoevent.desc': '触发奇遇时自动择一路抉择并结算，不再弹出询问',
+    /* 自动炼化开关（GitHub issue #2 · 用户报「系统判断不符合要求就自动炼化更好更强的装备」）*/
+    'settings.gearrefine.title': '自动炼化',
+    'settings.gearrefine.desc': '开启时，换下的旧件与不如在件的新件直接炼化回灵石；关闭则先进库藏阁，由你定夺（库藏阁满时仍需炼化腾位）',
     'event.auto.resolved': '奇遇「{name}」已自动抉择 · {branch}',
     /* 奇遇倾向（体验批）：自动抉择时的分支偏好；选项复用 branch 名，none 另起 */
     'settings.eventpref.title': '奇遇倾向',
@@ -158,6 +178,10 @@
     'toast.gear.refine': '拾得 {name}（{tier}）→ 已炼化 +{n} {cur}',
     'toast.gear.stash': '拾得 {name}（{tier}）→ 境界不足，已收入库藏阁',
     'toast.gear.stashfull': '库藏阁已满，炼化 {name} +{n} {cur}',
+    /* 自动炼化关闭时的两条如实文案（GitHub issue #2）——**不经 `t('…')` 字面量**、只作 `itemLog` 第三形参传入，
+     * 所以 A2 的静态键扫描照不到它们（判据盲区登记见冒烟 #35 的 log 文本对表）。 */
+    'toast.gear.keep': '拾得 {name}（{tier}）→ 未炼化，已收入库藏阁',
+    'toast.gear.kept': '换下 {name}（{tier}）→ 未炼化，已收入库藏阁',
     'toast.gear.tierup': '福缘凝华：{name}（{tier}）品阶上浮！',
     'toast.gear.exhold': '拾得 {name}（{tier}）→ 独占法器在位，已入库藏阁，手动替换需确认',
     /* 库藏阁处置（道具处置打磨包）：手动炼化出口 */
@@ -166,6 +190,9 @@
     'toast.gear.salvage': '炼化 {name}（{tier}）+{n} {cur}',
     /* 功法 */
     'arts.slots': '修习槽 {n}/{cap}', 'arts.shelf': '待修习架 {n}/{cap}',
+    /* 第卌六批（用户反馈「坊市买功法后功法页看不见」）：入架这一支原本一条日志都不写 */
+    'arts.shelf.stow': '{name} 要求未达，暂存待修习架（{n}/{cap}），达标即自行入门',
+    'arts.sec.shelf': '要 求 未 达',
     'arts.empty': '虚位以待', 'arts.equip': '装入', 'arts.unequip': '移出',
     'arts.max': '满级',
     'arts.learned': '{name} 修炼有成，已入门',
@@ -176,6 +203,10 @@
        **要重新接线必须先改值**，否则是把已作废的机制搬回屏上。 */
     'arts.reset': '待重修',
     'arts.main': '主修', 'arts.main.empty': '主修虚位',
+    /* 主修可点定（GitHub issue #3）：非主修的在槽功法逐格挂此按钮，不必再「全拆重装」 */
+    'arts.main.set': '设为主修',
+    'arts.main.ok': '已转修「{name}」，此后此功修持最快',
+    'arts.main.reject': '此功不在修习槽内，无从主修',
     /* 功法处置（道具处置打磨包）：已入门 → 散功、架上未入门 → 弃置 */
     'arts.salvage': '散功', 'arts.discard': '弃置',
     'arts.salvage.confirm': '确认{act}「{name}」？返还 {n} {cur}，此功法将从你的道途中抹去。',
@@ -196,7 +227,7 @@
     'arts.selflearn.pct': '自悟进度 {p}%',
     'arts.selflearn.hint': '修持中随机领悟市面传承功法（黄/玄阶；闭关易悟、历练难悟）；越悟越难，离线潜心悟道亦可缓进；进度满必得一部',
     'arts.selflearn.none': '当前无可自悟之功法（已尽数持有，或境界未达）',
-    /* 升级消耗口径（修行状态批）：Lv0-9，消耗修为而非灵石 */
+    /* 升级消耗口径（修行状态批）：Lv1-9（入门即 Lv1，Lv9 封顶），消耗修为而非灵石 */
     'arts.upgrade.qi': '升级 · {n} {res}',
     /* 功法页改版（走查 v2.5 §4）：已学会/待修习架独立节 + 图鉴化 */
     'arts.sec.known': '已 学 会',
@@ -204,8 +235,9 @@
     'arts.codex.title': '功 法 图 鉴',
     'arts.codex.known': '已学会 · Lv{lv}',
     'arts.codex.shelf': '待复检 · 要求未达',
-    /* 已学会卡增益行（走查 v2.7 §3） */
-    'arts.gain.perslot': '+{p}%/级',
+    /* 已学会卡增益行（走查 v2.7 §3）：等级起点批（2026-10-14 · 入门即 Lv1）后「Lv0 未修持」态不可达，
+     * 随批删 `arts.gain.zero` / `arts.gain.perslot` / `arts.gain.fixed` 三键（留着就是 A6 孤儿）。
+     * 该行只剩一件事：把当前等级的**实际生效值**列出来（缩放口径见 view 的 artCard 与 mods.js）。 */
     /* 功法升级（v2.3 日志「功法」分类）模板：升级成功即记，含消耗修为口径 */
     'arts.upgraded': '{name} 修习精进，升至 Lv{lv}（耗{res} {n}）',
 
@@ -276,7 +308,9 @@
     /* 商店 */
     'shop.refresh': '刷新（{n}）', 'shop.restock': '{t}后补货', 'shop.fail.other': '这一单没有成交（货已卖出，或手头不足）', 'shop.sold': '已售罄', 'shop.fail.pillfull': '丹匣已满（每种上限 99），先服几颗再来',
     'shop.buy': '购入', 'shop.price': '{n}', 'shop.qiprice': '修为 {p}',
-    'shop.confirm': '确认购入「{name}」？价格 {price}', 
+    'shop.confirm': '确认购入「{name}」？价格 {price}',
+    /* 第卌六批：买的是要求未达的功法时，确认框要把去向说一句（原本只有成交后的日志，而日志里也没有这一条） */
+    'shop.confirm.shelf': '（此功要求未达，购入后先入待修习架，达标即自行入门）', 
     'shop.blackHint': '价高三成，慎入',
     'zone.unknown': '？？？',
     'gear.stat.atk': '攻击', 'gear.stat.resist': '渡劫抗性',
@@ -299,7 +333,7 @@
     /* 奇遇页（F2：叙事流 + 图鉴 + 系统日志弹层）——tab.event 由世界分卷拥有（词族契约） */
     'event.page.progress': '图鉴 {n}/{total}',
     'event.feed.title': '近来奇遇', 'event.feed.empty': '尚无奇遇记录——时辰到了，缘分自来。',
-    'event.feed.more': '展开全部 {n} 条', 'event.feed.less': '收起',
+    'event.feed.more': '展开最近 {n} 条', 'event.feed.less': '收起',
     'event.codex.title': '奇遇图鉴', 'event.codex.unknown': '？？？', 'event.codex.unseen': '未遇',
     'event.codex.sec': '{tier} {n}/{total}',
     'event.badge.special': '特', 'event.badge.once': '缘', 'event.badge.exGear': '宝', 'event.badge.exArt': '法',
@@ -433,7 +467,7 @@
     /* ── 批 2 · B4 功法页（双维分组 / 独占剪影 / 架上三态；**待重修横幅自第廿五批退役**，见本卷 `arts.reset` 上方注）── */
     'ui.arts.reset_hint': '渡劫功成，功法等级归零，持有与槽位保留——重修即恢复原有效果（等级为 0 的槽位挂「待重修」金标，练回即摘）',
     /* 法柱浮层（修行页四柱「法」：只读一览修习槽内功法） */
-    'arts.modal.title': '修习功法', 'arts.modal.sub': '已装备 {n}/{cap} · 第 1 位为主修',
+    'arts.modal.title': '修习功法', 'arts.modal.sub': '已装备 {n}/{cap} · 挂「主修」角标者修持最快（点格子上的「设为主修」自由指定）',
     'arts.group.tier': '品阶', 'arts.group.align': '阵营', 'arts.group.all': '全部',
     'arts.tierchar.huang': '黄', 'arts.tierchar.xuan': '玄', 'arts.tierchar.di': '地', 'arts.tierchar.tian': '天',
     'arts.sec.tier': '待修习架 · {g}字阶', 'arts.sec.align': '待修习架 · {g}',

@@ -268,7 +268,7 @@
     'bond.visit.fail.max': '已是道护之交，无须再客套',
     /* 渠道 B · 赠丹 */
     'bond.gift.btn': '赠丹',
-    'bond.gift.head': '以丹相赠（今日 {n}/{cap}）',
+    'bond.gift.head': '以丹相赠（丹尽则止，不论日次）',
     'bond.gift.tip': '丹是你自己炼的心血，送出去的是情分，不是买卖。',
     'bond.gift.empty': '丹匣是空的——先去炼丹页开炉',
     'bond.gift.rune': '丹纹',
@@ -278,7 +278,6 @@
     'bond.gift.fail.stock': '丹匣里没有这一味',
     'bond.gift.fail.once': '破障丹与镇劫丹是你自己的底牌，送不得人',
     'bond.gift.fail.nogift': '洗髓丹换的是你自己的骨，送不得人',
-    'bond.gift.fail.daily': '今日已赠过 {n} 次，改日再送',
     'bond.gift.fail.max': '已是道护之交，无须再赠',
     /* 两渠道共用拒绝文案（绝交锁 / 心结锁 / 名录外） */
     'bond.fail.lock': '此人已与你恩断义绝，登门只会被逐出来',

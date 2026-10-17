@@ -83,6 +83,15 @@
         SQ.Arts.unslot(s.worlds[s.profile.worldId], id);
       });
     },
+    /* 设主修（GitHub issue #3）：玩家点定六槽中任一功法为主修；拒因由视图如实弹文案。
+     * 主修只改修习增速的指向，不动任何属性乘区 ⇒ 无需 recalcDerived。 */
+    setMainArt: async function (ref, id) {
+      var out = null;
+      await SQ.mutate(ref, function (s) {
+        out = SQ.Arts.setMain(s.worlds[s.profile.worldId], id);
+      });
+      return out;
+    },
     upgradeArt: function (ref, id) {
       return SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
@@ -171,8 +180,13 @@
         out = SQ.Events.resolveBranch(ws, pack, D, mods, pcId, branchKey, Date.now(),
           { log: log, profile: s.profile });
         if (prodigyPid && out && SQ.Prodigy) {
-          SQ.Prodigy.onEventResolved(ws, s, pack, D, pcId, branchKey, out.pass, Date.now(), prodigyPid);
+          SQ.Prodigy.onEventResolved(ws, s, pack, D, pcId, branchKey, out.pass, Date.now(), prodigyPid, log);
           pack.recalcDerived(ws, s.profile);   /* 斩杀 karma / 释怀 bond 即刻覆盖式重算 */
+        }
+        /* 族中寻仇的链条账（第卌四批 · 数值详设 §6.1B）：胜 ⇒ 连胜 +1 并进冷却；败 ⇒ 链断。
+         * 走 pack.worldSystems（通用层不直读世界模块，审计 D3 那条），点位与上面同源 = 判定之后。 */
+        if (out && pack.worldSystems && pack.worldSystems.ambushSettled) {
+          pack.worldSystems.ambushSettled(ws, pack, D, pcId, out.pass, Date.now(), log);
         }
       });
       return out;
@@ -344,13 +358,13 @@
       });
       return out;
     },
-    deliverQuest: async function (ref) {
+    deliverQuest: async function (ref, qtype) {
       var out = null;
       await SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
         var pack = packOf(s), D = dataOf(s);
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
-        out = SQ.Factions.questDeliver(ws, pack, D, Date.now(), log);
+        out = SQ.Factions.questDeliver(ws, pack, D, Date.now(), log, qtype);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
       });
       return out;
@@ -457,14 +471,14 @@
       });
       return out;
     },
-    /* 赠丹（渠道 B）：耗自有丹药、按丹方 tier 给好感。profile 透传供 Alchemy.gameDayOf 算日限锚。 */
+    /* 赠丹（渠道 B）：耗自有丹药、按丹方 tier 给好感。GitHub issue #4 起无日限，节流只在丹药库存。 */
     giftBond: async function (ref, npcId, pillKey) {
       var out = null;
       await SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
         var pack = packOf(s), D = dataOf(s);
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
-        out = SQ.Bonds.giftPill(ws, pack, D, npcId, pillKey, Date.now(), log, s.profile);
+        out = SQ.Bonds.giftPill(ws, pack, D, npcId, pillKey, Date.now(), log);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
       });
       return out;
@@ -509,6 +523,15 @@
       return SQ.mutate(ref, function (s) {
         if (!s.settings) s.settings = {};
         s.settings.eventPref = (pref === 'right' || pref === 'evil' || pref === 'neutral') ? pref : 'none';
+      });
+    },
+
+    /* 自动炼化开关（GitHub issue #2 · 默认开）：存 ws 而非 settings——autoEquip 十一个调用点
+     * 只有 ws 是一定在场的，避免为了一个偏好去改十一条签名。 */
+    setGearRefine: function (ref, on) {
+      return SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        ws.gearAutoRefine = !!on;
       });
     },
 
@@ -625,15 +648,7 @@
       });
       return out;
     },
-    /* 烧表请天道作传（图鉴卷 §5.3）：奏疏生成为纯读；采纳回复走 mutate（敏感词过滤+500 字截断，
-     * 异常回落本地稿——作传永不阻塞转世事务） */
-    adoptBio: async function (ref, rawText) {
-      var out = null;
-      await SQ.mutate(ref, function (s) {
-        out = SQ.Codex.adoptBio(s, rawText, Date.now());
-      });
-      return out;
-    },
+    /* 第册批：`adoptBio` 动作壳随「烧表请天道作传」整族下线（见 `codex.js` 同批注）。 */
 
     /* ── 炼丹炼器（炼丹卷 v1.1 · 六向长线批 A3）：开工 / 出炉 / 服丹 / 售材 ──
      * 全部显式动作（mutate 通道）；炼制倒计时 = 时间戳比较，无 per-tick 掷判。
@@ -668,9 +683,12 @@
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
         out = SQ.Alchemy.drinkPill(ws, pack, D, pillKey, Date.now(), log, s.profile);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
-        /* 上限取表值不留魔数（M3）；兜底与 alchemy.js 服丹闸的 `|| 3` 同口径 */
+        /* 上限取表值不留魔数（M3）；兜底与 alchemy.js 服丹闸的 `|| 3` 同口径。
+         * ⚠️ 本行随第卅九批改口时误抄视图助手的写法 `D()`——本模块里 D 是数据对象（dataOf 取得），
+         * 于是第 5 颗丹触发 daily 分支必抛 TypeError、mutate 整笔不落盘（玩家点服用没反应）。
+         * 长跑模拟测出（乙·全修 二世 drink 八次崩溃），判据 = 冒烟 #305 走真入口。 */
         else if (out && out.reason === 'daily') SQ.Log.push(ws, 'sys', SQ.t('alchemy.log.pillcap',
-          { n: (D().ALCHEMY || {}).PILL_DAILY_CAP || 3 }, s.profile.worldId));
+          { n: (D.ALCHEMY || {}).PILL_DAILY_CAP || 3 }, s.profile.worldId));
       });
       return out;
     },
@@ -696,7 +714,7 @@
       return out;
     },
 
-    /* ── 同代天骄（天骄卷 v1.0 · 六向长线批 A4）：论道切磋（7 现实天/人 CD，即时对局
+    /* ── 同代天骄（天骄卷 v1.0 · 六向长线批 A4）：论道切磋（10 现实分钟/人 CD，即时对局
      * 不进 pendingChoice；赌注 out.event_loss / 胜返 in.event 既有分类）── */
     prodigySpar: async function (ref, pid, kind) {
       var out = null;
@@ -707,6 +725,21 @@
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
         out = SQ.Prodigy.spar(ws, pack, D, mods, pid, Date.now(), log, kind);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
+      });
+      return out;
+    },
+
+    /* ── 袭杀（第卌四批 · 数值详设 §6.1B）：对天骄主动下手的「杀人夺宝」，即时对局不进 pendingChoice；
+     * 收益 in.event / 冷却与道伤见 prodigy.ambush，身死与寻仇播种也在那一处的注释里 ── */
+    prodigyAmbush: async function (ref, pid) {
+      var out = null;
+      await SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        var pack = packOf(s), D = dataOf(s);
+        var mods = SQ.Mods.collect(s.profile, ws, pack, D);
+        function log(cat, text) { SQ.Log.push(ws, cat, text); }
+        out = SQ.Prodigy.ambush(ws, pack, D, mods, pid, Date.now(), log);
+        if (out && out.ok) pack.recalcDerived(ws, s.profile);   /* 行凶的 karma 即时覆盖式重算 */
       });
       return out;
     },

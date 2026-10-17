@@ -194,8 +194,14 @@
       SQ.Gear.recordSeen(ws, item);
       var cur = ws.gear[item.slot];
       if (cur && !cur.exclusive) {
-        var rv = addRefine(ws, SQ.Gear.refineValue(cur, ws, D, mods));
-        if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.replace', item, rv));
+        /* issue #2 开关也管这一口：授予独占时换下的普通件，关炼化则先入库藏阁（库满才回落炼化）*/
+        if (ws.gearAutoRefine === false && ws.stash.length < SQ.Gear.stashCap(ws, D, mods)) {
+          ws.stash.push(cur);
+          if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.kept', cur, 0));
+        } else {
+          var rv = addRefine(ws, SQ.Gear.refineValue(cur, ws, D, mods));
+          if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.replace', item, rv));
+        }
       } else if (log) {
         log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.replace', item, 0));
       }
@@ -207,7 +213,10 @@
      * 不可佩戴 → 库藏阁（满 12 炼化最低分，独占豁免炼化且不作牺牲品）；
      * 当前槽位是独占 → 随机件不顶换（返回 exclusive_hold，UI 走手动替换 CONFIRM，交互说明 §4.4）；
      * 可佩戴且 score 更高 → 替换（旧件炼化）；否则炼化。
-     * 返回 {action, gained, refined?, item?} 供日志/toast。 */
+     * 🔧 GitHub issue #2（2026-10-14）新增玩家开关 `ws.gearAutoRefine`（缺省 true = 上面的旧行为）：
+     *    关 ⇒ 「替换下来的旧件」与「不如在件的新件」都**先入库藏阁**，不自动炼化。
+     *    shortcut: 库藏阁满时仍回落炼化——STASH_CAP 是落盘容量红线，不为开关放开；要真零炼化得先扩容。
+     * 返回 {action, gained, refined?, kept?, item?} 供日志/toast。 */
     autoEquip: function (ws, pack, D, mods, item, log) {
       var gained = 0;
       SQ.Gear.recordSeen(ws, item);
@@ -240,6 +249,12 @@
       }
       if (cur && SQ.Gear.scoreOf(item) > SQ.Gear.scoreOf(cur)) {
         ws.gear[item.slot] = item;
+        /* issue #2：关自动炼化 ⇒ 旧件入库藏阁（有库位时），库满才回落炼化 */
+        if (ws.gearAutoRefine === false && ws.stash.length < SQ.Gear.stashCap(ws, D, mods)) {
+          ws.stash.push(cur);
+          if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.kept', cur, 0));
+          return { action: 'replace', gained: 0, kept: cur, item: item };
+        }
         var rv = addRefine(ws, SQ.Gear.refineValue(cur, ws, D, mods));
         if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.replace', item, rv));
         return { action: 'replace', gained: rv, item: item };
@@ -253,6 +268,12 @@
         /* 独占 vs 独占（同槽仅两件可能）：手动语义，默认保留当前、新件入库 */
         ws.stash.push(item);
         if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.stash', item, 0));
+        return { action: 'stash', gained: 0, item: item };
+      }
+      /* issue #2：关自动炼化 ⇒ 不如在件的新件也先入库藏阁（有库位时），库满才回落炼化 */
+      if (ws.gearAutoRefine === false && ws.stash.length < SQ.Gear.stashCap(ws, D, mods)) {
+        ws.stash.push(item);
+        if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.keep', item, 0));
         return { action: 'stash', gained: 0, item: item };
       }
       var v2 = addRefine(ws, SQ.Gear.refineValue(item, ws, D, mods));

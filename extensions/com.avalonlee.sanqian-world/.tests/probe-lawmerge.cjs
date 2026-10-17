@@ -27,7 +27,12 @@ const vm = require('vm');
 const { load } = require('./sandbox.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
-const HTML = fs.readFileSync(path.join(ROOT, 'view/index.html'), 'utf8');
+/* 第册八批起「法与器」页的法段住在 view/arts.js ⇒ 抽源码的源 = 页面 + 同目录外置件拼起来
+ * （与第册四批给审计 A3 / D5 定的口径一致：按名抽，名字全库唯一，拼接不会撞车）。 */
+const viewDir = path.join(ROOT, 'view');
+const HTML = fs.readFileSync(path.join(viewDir, 'index.html'), 'utf8') + '\n' +
+  fs.readdirSync(viewDir).filter((f) => f.endsWith('.js')).sort()
+    .map((f) => fs.readFileSync(path.join(viewDir, f), 'utf8')).join('\n');
 
 /* ── 按函数名抽源码（大括号配平，避开正则跨函数误吞）── */
 function extractFn(name) {
@@ -91,40 +96,61 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
     style: {}, dataset: {}, textContent: '',
     querySelector() { return null; }, appendChild() {}, scrollIntoView() {}
   });
+  /* ⚠️ 第册八批：**两套名字都要给**——还没搬的内核页框（renderArts / lawareBar / gearBody）仍按旧式
+   *    调 `ws()` / `D()` / `mods()` / `gearCard()`，而搬出去的法段按 ctx 式调 `c.w` / `c.mods`。
+   *    所以桩袋保持原样（函数形态 + 未搬件的子渲染器桩），另备一枚 `__C` 当桥，装载段用
+   *    `function ctx(){ return this.__C; }` 接上 ⇒ 抽出来的 renderArts 走的仍是 `SQ.UI.arts.body(ctx())` 这条真路径。 */
+  const modsNow = SQ.Mods.collect(profile, w, pack, D);
+  const CB = {
+    s: { profile, meta: { achv: [], earnedKeys: {} }, worlds: { xiuxian: w } },
+    w: w, p: pack, d: D, mods: modsNow,
+    ui: { slotPickFor: null, artsGroup: 'tier', artsGroupVal: null, lawChip: 'fa' },
+    $: (id) => { if (!written[id]) written[id] = elStub(); return written[id]; },
+    esc: (x) => String(x == null ? '' : x).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])),
+    t: (k, v) => SQ.t(k, v || null, 'xiuxian'),
+    pct: (n) => (Math.round(n * 1000) / 10).toString().replace(/\.0$/, '') + '%',
+    tierCls: (x) => (x == null ? '' : 't' + (x >= 4 ? 4 : x)),
+    artTier: () => 't2', carrier: () => null,
+    fuseAltar: () => '<div class="fusealtar"></div><div class="chips"><button data-act="fusePick" data-v="tuna">桩父母</button></div>',
+    renderTab: () => {}, renderAll: () => {}, toast: () => {}, ask: () => {},
+    timeLeft: () => '—', date: () => '', statLine: () => '桩面板',
+    specialEff: () => '', holder: () => null, holderState: () => ''
+  };
   const ctx = {
-    SQ,
+    SQ, __C: CB,
     /* view 里 D() / pack() / ws() / mods() 都是**函数**（`function D() { return pack().data; }`），
      * 桩必须同签名，否则 lawareBar 首行 `d = D()` 直接 TypeError。 */
     D: () => D,
     ws: () => w,
     pack: () => pack,
-    mods: () => SQ.Mods.collect(profile, w, pack, D),
+    mods: () => modsNow,
     /* ui.lawChip = 标签态（'fa' | 'qi'）；缺省时 renderArts 兜底功法段，由 A3 单独验 */
-    ui: { slotPickFor: null, artsGroup: 'tier', artsGroupVal: null, lawChip: 'fa' },
-    $: (id) => { if (!written[id]) written[id] = elStub(); return written[id]; },
-    esc: (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])),
-    t: (k, v) => SQ.t(k, v || null, 'xiuxian'),
-    pct: (n) => (Math.round(n * 1000) / 10).toString().replace(/\.0$/, '') + '%',
-    /* 段内子渲染器：本探针只验**拼接与段间互斥**，卡片内部由各 verify-ui-* 真机走查覆盖 */
-    artCard: (id) => '<div class="tcard artcard" data-art="' + id + '"></div>',
-    artSilhouette: (id) => '<div class="sil" data-art="' + id + '"></div>',
-    artCodexCard: (id) => '<div class="tcard codexcard" data-art="' + id + '"></div>',
+    ui: CB.ui,
+    $: CB.$,
+    esc: CB.esc,
+    t: CB.t,
+    pct: CB.pct,
+    /* 段内子渲染器：本探针只验**拼接与段间互斥**，卡片内部由各 verify-ui-* 真机走查覆盖。
+     * ⚠️ 法段（artCard / artSilhouette / artCodexCard / artFxLine）自第册八批起是**真件真码**（跑 view/arts.js），
+     *    这里只剩还没搬的「器段」子渲染器用桩；桩形随现实改（承重结构不许在桩里简化）。 */
     gearCard: (g, _w, label, i) => '<div class="tcard gearcard" data-i="' + (i == null ? '' : i) + '"></div>',
-    /* 融合坛桩**照真实结构平铺**：`renderFuseAltar()` 返回的不是一个裹好的块，而是
-     * 「坛容器 + 一排裸 `.chips` 父母选择器」两个平级片段——上一版桩只返回 `<div class="fusealtar">`，
-     * 于是段内第二排 chip 在探针串里根本不存在，标签化批的吸顶碰撞就全靠真机走查才被抓到。
-     * 桩形随现实改（承重结构不许在桩里简化）。 */
-    renderFuseAltar: () => '<div class="fusealtar"></div><div class="chips"><button data-act="fusePick" data-v="tuna">桩父母</button></div>',
+    renderFuseAltar: CB.fuseAltar,
     treasureCard: () => '',
+    statLine: CB.statLine, specialEffText: CB.specialEff, gearHolder: CB.holder, gearHolderState: CB.holderState,
+    tierCls: CB.tierCls, artTierCls: CB.artTier, carrierOf: CB.carrier,
+    timeAgo: () => '3日前', fmtDate: () => '2026-10-14', gameDateStr: () => '罗云历1年1月1日',
     Date, Math, JSON, console
   };
   ctx.window = ctx;
   vm.createContext(ctx);
 
-  /* ── 装载真实源码（一字不改）：chip 表 + chip 取数 + chip 行 + 概览条 + 段标 + 两段体 + renderArts ── */
-  const src = ['lawareBar', 'secDiv', 'artsBody', 'gearBody', 'lawChipOf', 'lawChipBar', 'renderArts']
+  /* ── 装载真实源码（一字不改）：先跑外置件 `view/arts.js`（它把法段挂上 SQ.UI.arts），
+   *    再抽内核里的页框（chip 表 + 取数 + chip 行 + 概览条 + 段标 + 器段体 + renderArts）。
+   *    `ctx()` 在 vm 里返回桩袋本身 ⇒ 抽出来的 `renderArts` 走的仍是 `SQ.UI.arts.body(ctx())` 这条真路径。 */
+  const src = ['lawareBar', 'secDiv', 'gearBody', 'lawChipOf', 'lawChipBar', 'renderArts']
     .map(extractFn).join('\n\n');
-  vm.runInContext(extractVarLine('LAW_CHIPS') + '\n' + src +
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'view/arts.js'), 'utf8'), ctx);
+  vm.runInContext('function ctx() { return this.__C; }\n' + extractVarLine('LAW_CHIPS') + '\n' + src +
     '\n;this.__render = renderArts;', ctx);
 
   /* 一次渲染 = 设定 chip → 清容器 → 真跑 renderArts → 取回 HTML 串 */

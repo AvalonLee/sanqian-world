@@ -148,6 +148,8 @@
      * 心结锁 scars 自动拒入账），且**均不经商店购买**——「侣不可交易」是世界观底线（§3.2）；
      * 渠道 B 送的是**自有丹药**，不是灵石。落盘增量合计 ≈40B：ws.bondVisitAt（A 单锚）+
      * ws.alchemy.giftDay（B 日限）；渠道 C **零新增字段**。
+     * 🔧 勘正（GitHub issue #4 · 2026-10-14）：上句里的 `ws.alchemy.giftDay` 已退役，赠丹无日限，
+     *    渠道 B 从此**零落盘字段**（理由见下方 giftPill 段注）。
      * 三条日志一律落 cat **'bond'**——同批为日志页新增「道友」分类筛选（view LOG_CATS）；
      * 顺带收口批 A 遗留：同道相吸（xiuxian/index.js）与缘尽赎回（actions.js）早已写 cat 'bond'，
      * 但 LOG_CATS 无此分类，那些日志此前**只能在「全部」里看到、任何分类筛选都取不到**。 */
@@ -194,15 +196,17 @@
 
     /* 渠道 B · 赠丹：主动、耗**自有丹药**（ws.alchemy.pills 扣 1）、按 `pillDefOf` 的档次给好感——
      * 把炼丹炼器整条产线接进道友系统（此前丹药只有「自服」一个出口）。「以丹会友」。
-     * 校验链**全串行**，任一不合即返回且**不扣丹、不占日限**：有名录 → 有库存 → 非底牌族
+     * 校验链**全串行**，任一不合即返回且**不扣丹**：有名录 → 有库存 → 非底牌族
      * （自产 once: pozhang / zhenjie + swap: xisui；成品丹自带 nogift，第十七批破障丹入此族）→
-     * 有丹方 tier → 非绝交锁 / 心结锁 → 未满档 → 日限 → gain 未被拒。
+     * 有丹方 tier → 非绝交锁 / 心结锁 → 未满档 → gain 未被拒。
      * 丹纹版（key 尾 _rw）收益 ×BOND_GIFT_RUNE_MULT 取整。接近满档时 gain 自带 clamp，
      * 返回值 gain = **实际增量**（可能小于名义值），视图与日志一律显示实际值，不做静默溢出。
-     * ⚠️ 日限走既有 Alchemy.gameDayOf（**1 游戏日 = 1 现实秒**，与丹毒 PILL_DAILY_CAP 同口径），
-     *    故真正的节流是**丹药库存与炼制耗时**，日限只防单帧连点。
+     * 🔧 **GitHub issue #4（2026-10-14）撤销日限**：原 `BOND_GIFT_DAILY = 3` 走 `gameDayOf`，
+     *    而 **1 游戏日 = 1 现实秒** ⇒ 每次点击都已跨日清零，上限永不生效、屏上恒显「今日 1/3」，
+     *    是一个**只会说谎的计数器**（用户裁定：去掉限制、改文案，而不是把计数改成真的能生效）。
+     *    真正的节流自始至终是**丹药库存与炼制耗时**（`ws.alchemy.pills` 扣 1，见 §3.9 丹方）。
      * 返回 {ok, gain, aff, tier, tierUp, rune, pillTier, reason}。 */
-    giftPill: function (ws, pack, D, npcId, pillKey, now, log, profile) {
+    giftPill: function (ws, pack, D, npcId, pillKey, now, log) {
       var c = SQ.Bonds.byId(pack, npcId);
       if (!c) return { ok: false, reason: 'unknown' };
       if (typeof pillKey !== 'string' || !pillKey) return { ok: false, reason: 'nopill' };
@@ -228,16 +232,10 @@
       var n0 = tbl[pillTier] != null ? tbl[pillTier] : 0;
       if (!(n0 > 0)) return { ok: false, reason: 'notier' };
       var n = rune ? Math.round(n0 * (D.BOND_GIFT_RUNE_MULT != null ? D.BOND_GIFT_RUNE_MULT : 1.5)) : n0;
-      /* 日限：与丹毒 pillDay 同形同口径（跨日自动清零重计）*/
-      var day = (SQ.Alchemy && SQ.Alchemy.gameDayOf) ? SQ.Alchemy.gameDayOf(ws, profile, now) : -1;
-      if (!al.giftDay || al.giftDay.day !== day) al.giftDay = { day: day, n: 0 };
-      var cap = D.BOND_GIFT_DAILY != null ? D.BOND_GIFT_DAILY : 3;
-      if (al.giftDay.n >= cap) return { ok: false, reason: 'daily' };
       var r = SQ.Bonds.gain(ws, pack, D, npcId, n, now);
       if (r.blocked) return { ok: false, reason: r.blocked };
-      al.pills[pillKey] -= 1;                       /* 入账成功才扣丹（与日限同序，杜绝白扣）*/
+      al.pills[pillKey] -= 1;                       /* 入账成功才扣丹，杜绝白扣 */
       if (al.pills[pillKey] <= 0) delete al.pills[pillKey];
-      al.giftDay.n += 1;
       if (log) log('bond', SQ.t('bond.log.gift', {
         name: SQ.t('bond.' + npcId + '.name', null, pack.worldId),
         pill: SQ.t((SQ.Alchemy.pillDefOf(D, pillKey) || {}).nameKey ||

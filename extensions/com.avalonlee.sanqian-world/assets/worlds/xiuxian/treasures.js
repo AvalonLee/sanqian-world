@@ -59,7 +59,9 @@
     { id: 'x18', forma: 'yao', kind: 'xian', grade: 'xian_ji', MAX_STAGE: 5,   /* 昆吾镇魔链：№104 联动；满阶 −2.5pp（5 阶全效 · 主代理裁定口径） */
       reqs: { realm: 6 }, scaled: { 'mult:tribFailLossMod': [-0.005, -0.025] } },
     { id: 'x19', forma: 'shou', kind: 'xian', grade: 'xian_zhong',   /* 龙髓珠：老龙城联动 №91 */
-      reqs: { realm: 6 }, scaled: { 'mult:qiCap': [0.02, 0.06] } },
+      /* life = 认主每晋一阶授寿的年数（第卌八批 · 三阶共三次）：珠中龙髓养人，是本卷唯一一件
+       * 明写「给寿」的先天件，其余法宝的寿元一律经它自己的 special/hook 走，不给第二套数。 */
+      reqs: { realm: 6 }, scaled: { 'mult:qiCap': [0.02, 0.06] }, life: 150 },
 
     /* ── 后天法宝（27 件 · 修士炼制 · 祭炼 1→5 级；h19 例外 1→3 级）── */
     { id: 'h01', forma: 'shou', kind: 'hou', grade: 'ling', reqs: { realm: 2 }, scaled: { 'mult:qiRate': [0.15, 0.30] } },
@@ -128,7 +130,8 @@
     SLOT_UNLOCK: [0, 2, 4],      /* 栏位解锁境界：练气(0) / 金丹(2) / 化神(4) */
     MAX_LV: 5,                   /* 后天祭炼上限 */
     MAX_STAGE: 3,                /* 先天认主上限 */
-    BOND_COST: 2,                /* 先天认主：每 2 次渡劫成功 +1 阶 */
+    BOND_COST: 2,                /* 先天认主：每 2 份计数 +1 阶（计数来源 = 渡劫成功 ×1 / 计时 +1 每 BOND_HOURS 小时） */
+    BOND_HOURS: 8,               /* 认主计时通道（体验批）：每 8 小时已结算时长 +1 计数，与寿元同时钟 */
     REFINE_BASE: 400,            /* 祭炼基础灵石 */
     REFINE_GROWTH: 2.2,          /* 祭炼费用随等级递增 */
     REFINE_REALM: 0.4,           /* 祭炼费用随境界系数 */

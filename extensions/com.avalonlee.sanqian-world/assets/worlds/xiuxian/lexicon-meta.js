@@ -37,6 +37,11 @@
   K['legacy.ui.bingjie'] = '兵解';
   K['legacy.ui.bingjie.btn'] = '兵解转世';
   K['legacy.ui.bingjie.confirm'] = '兵解＝主动终结本世：结算折分项 ×0.7（已入账的成就与里程碑遗泽不折损不追回）。明细如下，确认后不可回头。';
+  /* 被动了结两通道（寿元批）：不是玩家点的「兵解转世」，日志与呈报都要各说各的因
+     〔第卌八批勘正：折寿单列 ⇒ 现在是**三条**，三条各有一句，不许再借「寿尽」那句话糊过去〕 */
+  K['legacy.ui.shoujin'] = '寿尽坐化';
+  K['legacy.ui.daoshang'] = '道伤崩碎';
+  K['legacy.ui.zhesou'] = '折寿而殒';
   K['legacy.ui.preview.title'] = '本世结算';
   K['legacy.ui.preview.subtotal'] = '折分小计';
   K['legacy.ui.preview.mult'] = '通道系数';
@@ -54,16 +59,16 @@
   K['legacy.ui.bios.empty'] = '尚无前世传记。';
   K['legacy.ui.bio.source.local'] = '本地史笔';
   K['legacy.ui.bio.source.tiandao'] = '天道亲笔';
-  K['legacy.ui.bioAsk'] = '烧表请天道作传';
-  K['legacy.ui.bioPaste'] = '粘贴天道所作传记（失败自动保留本地史稿）';
-  K['legacy.ui.bioAdopt'] = '采纳史传';
-  K['legacy.ui.bioAdopted'] = '已采纳天道史传';
-  K['legacy.ui.bioFail'] = '天道搁笔——保留本地史稿';
+  /* 第册批：`legacy.ui.bioAsk / bioPaste / bioAdopt / bioAdopted / bioFail` 五条随
+   * 「烧表请天道作传」整族下线（见 codex.js 同批注）；两行 `bio.source.*` **留下**——
+   * 老档确有 source:'tiandao' 的条目，抹掉来源标记等于改史。 */
+  K['legacy.ui.recap.title'] = '盖棺之传';
+  K['legacy.ui.recap.go'] = '入世';
   K['legacy.ui.startRealm.pick'] = '起步境界（跳档不跳渡劫）';
   K['legacy.ui.legacyTalent.pick'] = '转世天赋（≤2，逐世可换）';
   K['legacy.ui.bondHeir.pick'] = '跨世之缘 · 赎回道友 1 人';
   K['legacy.ui.none'] = '无';
-  K['legacy.ui.stats'] = '跨世：{lives} 世 · 飞升 {asc} · 兵解 {dis} · 最高{realm}';
+  K['legacy.ui.stats'] = '跨世：{lives} 世 · 飞升 {asc} · 兵解 {dis} · 身死 {death} · 最高{realm}';
   /* 结算计分项名（§2.3 十一行） */
   K['legacy.score.realmMax'] = '最高境界档';
   K['legacy.score.ascend'] = '飞升';
@@ -322,6 +327,22 @@
   K['codex.bio.sect'] = '一世开宗，立「{sect}」，门下 {n5} 人——道之外，还留下一脉香火。';
   K['codex.bio.line.ascend'] = '是日霞光接引，飞升而去。';
   K['codex.bio.line.dissolve'] = '是日自散修为，兵解转世。';
+  /* 被动了结两行（寿元批）：传记终行原先非飞升即写「兵解转世」，死世用即说谎 */
+  K['codex.bio.line.shoujin'] = '是日寿尽，坐化于蒲团之上。';
+  K['codex.bio.line.daoshang'] = '是日道伤崩碎，伤重不治。';
+  K['codex.bio.line.zhesou'] = '是日折寿已尽，未及大限而殒。';
+
+  /* ── 更新公告浮层（第册四批 · UI 卷 §3.4e · 玩家可见文案一律白话短句，零英文名词、零版本号）──
+   * 消费侧 = `view/updatenote.js` 逐条字面取词（不走拼键，A2/A6 才看得见这七行）。 */
+  K['update.note.title'] = '江湖新讯';
+  K['update.note.l1'] = '同代天骄那一页改成「江湖榜」：分天、地、玄、黄四榜，每榜十个位子。榜上不再写战力数字，只给你一档看得懂的比较——可压、相当、悬殊。';
+  K['update.note.l2'] = '天榜最前那三位依旧是传闻里的人物：名号、来路、去向全是问号，谁也不能向他们递帖。';
+  K['update.note.l3'] = '杀人夺宝这回真能夺到货：把一名同代天骄逼到身死，能取走他的法宝与主修功法各一件，另得一笔灵石和一颗丹。你已经有的那件不会重复给，屏上会写明只留下一个名号。';
+  K['update.note.l4'] = '有的功法一入手就动你的寿数，有延寿的，也有折寿的——这一笔一定写在日志里，不会闷着。';
+  K['update.note.l5'] = '同代的人不再只是背景：你们会撞见同一处机缘，争一条灵脉、同破一处藏，怎么答话会影响情分与因果。';
+  K['update.note.l6'] = '踏进地榜那条线之后，有人会向你提起天榜上那三个问号的来历——一世只听得见这一回，听完还是找不到他们。';
+  K['update.note.l7'] = '还有些顺手的小调整：与人切磋的冷却从七日缩短到十分钟；在坊市买了暂时练不了的功法，屏上会写明还差什么；兵解那一刻会逐字演完你这一世的传记；寿元也改成「几岁，还剩约几年」这样一句人话。';
+  K['update.note.close'] = '知道了';
 
   SQ.lexRegister('xiuxian', K);
 })();

@@ -22,13 +22,17 @@
     'toast.sanyan': '三尸宴坐：灵台忽明，判定重来',
     'log.eff.stones': '{res} {sign}{n}',
     'log.eff.qi': '{res} {sign}{n}',
+    /* 寿元增减的结果页一行（第卌八批 · 丹 / 奇遇 / failE 的 `life` 都折进这一条，不另起日志）：
+     * 单位写死「年」——它与修为、灵石不同名，借 `{res}` 那套资源词会把「岁/年」口径搅混。 */
+    'log.eff.life': '寿元 {sign}{n} 年',
     'log.eff.pct': '{res} {sign}{p}%',
     'log.eff.buff': '{field} {sign}{p}% · {h}小时',
     'log.eff.dropGear': '拾得{gear}',
     'log.eff.exclusiveGear': '得独占法器「{name}」',
     'log.eff.exclusiveArt': '得独占功法《{name}》',
     'log.eff.exclusiveLocked': '独占之珍缘悭一线，宝物不曾认主',
-    'log.eff.merchant': '神秘商人已入坊市设席（一炷香之久）',
+    /* {n} 由 `MERCHANT_DURATION_MS` 换算（第卅九批：原文案写死「一炷香」，与实际 10 分钟不符且改表不带动） */
+    'log.eff.merchant': '神秘商人已入坊市设席，只留 {n} 分钟——去坊市看他（下次再来不知何日）',
     'log.eff.merchantScout': '记下了那张斗篷下的脸——下次他带的货会更好',
     'log.eff.primeGear': '夺得不世出的极品法器！',
     'log.eff.primeArt': '抢得商人怀中的一部极品功法！',
@@ -734,6 +738,33 @@
     'event.xisui_pond.story': '山坳里一汪黑泉，泉底沉着历代散修的骨殖，水寒刺骨却隐有灵光。老碑上只剩四个字：饮之洗骨。',
     'event.xisui_pond.branch.right': '掬泉灌顶，任旧骨被一点点洗去',
     'event.xisui_pond.branch.evil': '汲尽泉眼，把沉骨里的残蕴一并夺来',
-    'event.xisui_pond.branch.neutral': '只浅饮一口，余下的留给后来人'
+    'event.xisui_pond.branch.neutral': '只浅饮一口，余下的留给后来人',
+    /* ── 第卌四批 · 袭击 / 族中寻仇（专属事件池 v2.14 №126~128 · 数值详设 §6.1B）──────────
+     * 叙事**不点人名**：来者是谁由引擎在触发时刻从旧相识 / 天骄名录里取，屏上单独一行列出
+     * （写在正文里就成了「文案说一个人、屏上另一个」的两张脸）。 */
+    'event.ambush_by_evil.name': '魔道来犯',
+    'event.ambush_by_evil.story': '你行走多年，善恶之名早已传开。今日路径转弯处，一人负手而立，衣袂无风自动——他不问你修为，只递出一句话：「正道的光，照得人多。」话落，掌心灵光已凝。此人的名号与战力就在眼前，如何应对，只在这一念之间。',
+    'event.ambush_by_evil.branch.right': '迎战：赢下有赢下的拿头，输了要挨内伤',
+    'event.ambush_by_evil.branch.evil': '认输：交出随身灵石的一成半，买一条通路',
+    'event.ambush_by_evil.branch.neutral': '避战：绕道而行，无得失',
+    'event.ambush_by_right.name': '正道讨伐',
+    'event.ambush_by_right.story': '你这些年的行事，早已被人记在账上。今日山道之上一人按剑而立，佩的是名门弟子的牌——他开口只有一句：「你做的这些事，今日总要还一点。」剑鸣出鞘，去路已断。此人的名号与战力就在眼前，如何应对，只在这一念之间。',
+    'event.ambush_by_right.branch.right': '迎战：赢下有赢下的拿头，输了要挨内伤',
+    'event.ambush_by_right.branch.evil': '认输：交出随身灵石的一成半，买一条通路',
+    'event.ambush_by_right.branch.neutral': '避战：绕道而行，无得失',
+    'event.ambush_revenge.name': '族中寻仇',
+    'event.ambush_revenge.story': '你袭杀的那人，族里终究还是查到了你头上。来者不递话、不讲价、不给你绕道的余地——他要的只是把这一笔抹平。境界压你在上（连偿三场之后上门的，是高两境的族中老祖），战力写在明处。此战只能迎战。',
+    'event.ambush_revenge.branch.right': '迎战：胜则缴下这份仇、并取走他们的赔偿；败则重伤，此仇暂止',
+    'event.check.type.ambushFoe': '敌手战力',
+    'event.ambush.ui.foe': '来者 {name} · 战力 {p}',
+    'event.ambush.ui.vs': '你 {a} 对 {b}（对方）',
+    'event.ambush.ui.remain': '抉择时限 {t}，未择即迎战',
+    'event.ambush.ui.timeout': '时限已到，你下意识迎了上去',
+    'event.ambush.log.ambush': '{name} 拦路出手，来者不善',
+    'event.ambush.log.revenge': '{name} 寻上门来，此战避不开',
+    'event.ambush.log.chainwin': '你连胜 {n} 场，对方一族越发动真格（{m} 分钟后再来）',
+    'event.ambush.log.chainend': '{foe} 之仇到此为止——对方见你已受创，收手而去',
+    'event.ambush.foe.clan': '{foe} 的族中高手',
+    'event.ambush.foe.elder': '{foe} 的族中老祖'
   });
 })();

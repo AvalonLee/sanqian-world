@@ -172,7 +172,7 @@ const ATTRIB = {
   'probe-realsave': { src: '玩家真档 读→存→读 零丢失', touches: ['.tests/storage-read.cjs 候选路径', 'assets/core.js'], repro: 'node .tests/probe-realsave.cjs' },
   'gen-ledger': { src: 'docs/ledger.json + 各文件哨兵段', touches: ['docs/FACTS.md', 'README.md', 'DESIGN.md', 'docs/三千世界-工程规范与验收计划.md', 'docs/三千世界-项目设计文档.md'], repro: 'node .tests/gen-ledger.cjs --fix 后复跑' }
 };
-/* shortcut: 归因表只覆盖无头件与账本件；26 篇走查共用一条「改 view/index.html 就跑 --ui」口径，
+/* shortcut: 归因表只覆盖无头件与账本件；全部走查篇共用一条「改 view/index.html 就跑 --ui」口径，
  * 待走查改成单浏览器会话（N36）时再按篇建目。 */
 
 if (require.main === module) {

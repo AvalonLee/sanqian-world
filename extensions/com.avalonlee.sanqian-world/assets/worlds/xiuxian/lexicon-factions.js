@@ -82,6 +82,8 @@
   keys['faction.rel.neutral'] = '持平';
   keys['faction.rel.same'] = '同门';
   keys['faction.members'] = '同道 {n} 人';
+  /* 江湖名录取数（第卌七批）：固定势力卡上写清「掌门是谁」——名录认不出就不写这行（视图不编名字） */
+  keys['faction.master.line'] = '掌门 {name}（{realm}）· 太上 {elder}';
   keys['faction.none.mem'] = '无所属';
   keys['faction.confirm.join'] = '确认投身「{name}」？与其友好的势力门下道友好感 +10，敌对的 −20（厌恶下限 −20），同道 +5。';
   keys['faction.confirm.leave'] = '确认叛出「{name}」？道心蒙尘（道心 −30），一游戏年内不可投身任何势力；已结的人情不收回。';

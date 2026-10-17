@@ -33,7 +33,10 @@
   K['prodigy.rumor.rivalry.2'] = '{faction}的{name}连夜掘走了那株百年灵植，连土都没给你剩——捎话的人说，他挖完还哼着小曲。';
   K['prodigy.rumor.rivalry.3'] = '坊市传言：古修洞府的秘钥三日前被人开了，后来者只看到墙上一行剑刻的字，狂得像是故意留给人看的。';
   K['prodigy.rumor.feud'] = '{name}拂袖而去，放话下次见面剑下不留情——江湖都知道了。';
-  K['prodigy.rumor.kill'] = '{name}殒落。同代榜划去一行，无人递补。';
+  K['prodigy.rumor.kill'] = '{name}殒落。同代榜划去一行。';
+  /* 第册一批③：出榜即空一席 ⇒ 两条新传闻（跨榜带才播 bandup，一次连破两界也只播一条落点） */
+  K['prodigy.rumor.bandup'] = '{name} 连破同侪，自{from}升入{to}。';
+  K['prodigy.rumor.bandfill'] = '{name} 既出榜，{band}一席由 {by} 递补。';
   K['prodigy.rumor.eternal.1'] = '又是你。';
 
   /* ── 编年史短语（§4.2 数据源扩展五类 + 飞升叩门）── */
@@ -87,15 +90,44 @@
   K['event.prodigy_ev_forgive.branch.right'] = '当面致歉——一言解数年之怨';
   K['event.prodigy_ev_forgive.branch.evil'] = '冷笑不语，拂袖而去';
   K['event.prodigy_ev_forgive.branch.neutral'] = '提来一坛酒——恩怨都在杯子里';
+  /* ── 江湖榜④ №129~131（第册三批 · 设计稿 §六 4 / §七）────────────────────── */
+  K['event.jianghu_ev_rival_ling.name'] = '同脉争灵';
+  K['event.jianghu_ev_rival_ling.story'] = '你与{name}在同一处灵脉落了脚。脉眼只一个，谁先坐下，这一季的灵气就归谁。';
+  K['event.jianghu_ev_rival_ling.branch.right'] = '分脉而居——各取半季，交个朋友';
+  K['event.jianghu_ev_rival_ling.branch.evil'] = '抢先纳灵——把脉眼占死，让对方扑空（判定 [气·普通]）';
+  K['event.jianghu_ev_rival_ling.branch.neutral'] = '起身让出此地，另寻一处野脉';
+  K['event.jianghu_ev_rival_trial.name'] = '同破一藏';
+  K['event.jianghu_ev_rival_trial.story'] = '一座前辈洞府现了门，{name} 也在门外。府中禁制认“先到者”，而两人同时伸出了手。';
+  K['event.jianghu_ev_rival_trial.branch.right'] = '推让在先，结伴入府——藏中所得按出力分';
+  K['event.jianghu_ev_rival_trial.branch.evil'] = '硬闯禁制，抢在对方前面取宝（判定 [战·1.2 倍]）';
+  K['event.jianghu_ev_rival_trial.branch.neutral'] = '只取门口那层散落的，见好就收';
+  K['event.jianghu_hid_glimpse.name'] = '云外一声';
+  K['event.jianghu_hid_glimpse.story'] = '山道上有人谈起天榜最前那三个问号：一位据说只在雨天落子，一位替人盖屋从不留名，一位你说出名字时对方只笑了笑。你听见的是风，不是他们。';
+  K['event.jianghu_hid_glimpse.branch.right'] = '把这些话记在心里——心境澄明一时（不寻人、不递名帖）';
+  K['event.jianghu_hid_glimpse.branch.evil'] = '顺着话头去卖消息，换一袋灵石';
+  K['event.jianghu_hid_glimpse.branch.neutral'] = '一笑而过，继续赶自己的路';
 
   /* ── UI ── */
+  /* `prodigy.system` 一字未动：它还被「弟子档天骄角标」与渐次解锁提示两处读着（view:4543 / :6737），
+   * 那两处说的是「这人来自同代名录」，不是页签名 ⇒ 页签另起 `jianghu.system`，不拿改值当复用。 */
   K['prodigy.system'] = '同代天骄';
-  K['prodigy.board.title'] = '江湖榜 · 同代卷';
+  K['jianghu.system'] = '江湖榜';
+  K['jianghu.band.0'] = '天榜';
+  K['jianghu.band.1'] = '地榜';
+  K['jianghu.band.2'] = '玄榜';
+  K['jianghu.band.3'] = '黄榜';
+  K['jianghu.q'] = '？？？';                          /* 隐世三席的一切明细（裁定 2） */
+  K['jianghu.hid.tag'] = '隐世';
+  K['jianghu.stranger'] = '素不相识';                  /* 名录补位的背景席位：在榜、可见、不给战书入口 */
+  K['jianghu.lv.0'] = '可压';                          /* 三档徽标取代战力数字：阈值取切磋表值 */
+  K['jianghu.lv.1'] = '相当';
+  K['jianghu.lv.2'] = '悬殊';
   K['prodigy.board.me'] = '你';
-  K['prodigy.board.empty'] = '榜上无名——入世之后，同代自会现身';
-  K['prodigy.board.hint'] = '境界优先、同境界按战力；每代名录至多 30 人，榜面只录前 10 位的详细行迹，每 10 游戏年更新一次';
-  K['prodigy.board.myrank'] = '你当前位列第 {n} 位';
-  K['prodigy.board.refresh'] = '榜面每 {y} 游戏年一刷';
+  /* 第册一批③：`prodigy.board.empty`「榜上无名」随早退分支删除——四榜席位由名录实时补位，
+   * 新口径下这一态不存在（新建角色也看得见四十个名字），留着就是一枚永远取不到的孤儿键。 */
+  K['prodigy.board.hint'] = '一榜十席：相识者、名录补位与天榜前三的隐世高人同张榜；榜面不写战力，只给可压 / 相当 / 悬殊三档';
+  K['prodigy.board.myrank'] = '你当前位列{band}第 {n} 位';
+  K['prodigy.board.refresh'] = '名次播报每 {y} 游戏年一次';
   K['prodigy.detail.apt'] = '资质';
   K['prodigy.detail.faction'] = '归属';
   K['prodigy.detail.talent'] = '天赋（纯展示，不作用任何数值）';
@@ -126,6 +158,28 @@
   K['prodigy.spar.matp'] = '胜方材料彩头 {p}%';
   K['prodigy.spar.locked'] = '金丹之后，方闻同代之名';
   K['prodigy.log.spar.mat'] = '论道之后互赠所得：得材料「{mat}」';
+
+  /* ── 袭杀与族中寻仇（第卌四批 · 天骄卷 v1.11 §五B · 数值详设 §6.1B）──
+   * 与切磋同构：引擎写这一行日志，界面把**同一个 key** 拿去 toast（不另抄一份措辞）。
+   * 屏上只说引擎真算的几件事：门槛倍率 / 夺资额 / 败的道伤与善恶 / 已袭杀次数 / 链条状态。 */
+  K['prodigy.log.ambush'] = '你伏击{name}，夺 {cur} ×{loot}（此人已遭你袭杀 {n}/{max}）';
+  K['prodigy.log.ambushfail'] = '你伏击{name}不成，反受其伤（道伤 +{dao}）';
+  K['prodigy.log.revengearm'] = '{name} 一门已将你记入死账——族中高手不诛你不休';
+  /* 身死即结的「夺宝」三条（第册三批 · 设计稿 §四）：正账一行 + 两支「没白拿成空」的说明行 */
+  K['prodigy.log.killloot'] = '{name} 身死，你从其遗物中取走 {n} 件，另得 {cur} ×{loot}';
+  K['prodigy.log.killloot.dup'] = '{name} 的那件东西你本就有着一份，此趟只留下一个名号';
+  K['prodigy.log.killloot.pillfull'] = '丹匣已满，那枚丹换作了 {cur} ×{n}';
+  K['prodigy.ambush.title'] = '袭杀';
+  K['prodigy.ambush.btn'] = '袭杀此人';
+  K['prodigy.ambush.why'] = '需战力 ≥ 对方 ×{r}；败 = 道伤 +{dao}、善恶 −{k}';
+  K['prodigy.ambush.count'] = '已遭袭杀 {n}/{max} 次';
+  K['prodigy.ambush.loot'] = '夺资约 {cur} ×{n}';
+  K['prodigy.ambush.cd'] = '伏击未复（{t} 后可再出手）';
+  K['prodigy.ambush.confirm'] = '伏击{name}：胜则夺 {cur} ×{loot} 并记袭杀 {n}/{max}，败则道伤 +{dao}、善恶 −{k}。'
+    + '双方战力 ±10% 浮动，须压过对方 ×{r} 才算成；满 {max} 次此人必死，其族高手必来寻仇。袭杀？';
+  K['prodigy.ambush.reject'] = '此刻下不了手';
+  K['prodigy.ambush.chain.n'] = '一族寻仇 · 已胜 {n} 场';
+  K['prodigy.ambush.chain.cd'] = '{t} 后再战';
 
   SQ.lexRegister('xiuxian', K);
 })();

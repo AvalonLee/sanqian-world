@@ -19,8 +19,9 @@
  *   B7 壁纸透底态规则（#86 静态半区）  B8 桥容错（#89，单一桥模块 + try/catch + 失败出口）
  *   B9 交付镜像一致性（七项逐字节零差异）〔**2026-10-14 GitHub 整理批退役**：根侧副本删除后没有第二份可比 ⇒ 由 D4 接管〕
  * D 组 · 账本与装载（2026-10-14 结构整治批B 立）：
- *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 全等 ⇔ smoke.html 保序子集 ⇔ assets 无未挂载件）
+ *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 的引擎段与 view 的 assets 段全等 ‖ 视图专属件必须在 view 下 ‖ smoke.html 保序子集 ‖ assets 无未挂载件）
  *   D3 世界专属别名封闭（通用层与视图直读 SQ.XDATA 必须挂册，例外失效同判；2026-10-14 批C 立）
+ *   D7 视图外置件与内核桥 ctx() 的键集对账（第册五批 · N34 拆视图立：外置件用了 ctx 没给的键即判红）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
@@ -248,15 +249,19 @@ const SQ = sandbox.window.SQ;
   ['huang', 'xuan', 'di', 'tian'].forEach((tt) => {
     if (lexAll['skill.tier.' + tt] == null) missing.push('skill.tier.' + tt);
   });
-  /* 事件族 v2（平铺池）：event.{id}.name/.story + 三分支 .branch.{right|evil|neutral} */
+  /* 事件族 v2（平铺池）：event.{id}.name/.story + 分支文案 = **模板自己声明的那几支**
+   * （第卌四批改口：原先一律要求 right/evil/neutral 三件齐全，而「族中寻仇」按设计只给迎战一条路——
+   *   照旧写法只能逼词表补两条永不消费的孤儿键，那是拿判据逼出假数据）；
+   *   无 choices 的旧形仍按三件兜底，覆盖面不缩。 */
   for (const w of ['common', 'xiuxian']) {
     const list = Array.isArray(SQ.EVENTS[w]) ? SQ.EVENTS[w] : [];
     for (const ev of list) {
       if (lexAll['event.' + ev.id + '.name'] == null) missing.push('event.' + ev.id + '.name');
       if (lexAll['event.' + ev.id + '.story'] == null) missing.push('event.' + ev.id + '.story');
-      for (const bk of ['right', 'evil', 'neutral']) {
+      const bks = Object.keys(ev.choices || {});
+      (bks.length ? bks : ['right', 'evil', 'neutral']).forEach((bk) => {
         if (lexAll['event.' + ev.id + '.branch.' + bk] == null) missing.push('event.' + ev.id + '.branch.' + bk);
-      }
+      });
     }
   }
   /* 事件等级/性质/分支标签族 + 独占法宝族（gear.ex.{id} 与定名 special） */
@@ -388,6 +393,11 @@ const SQ = sandbox.window.SQ;
     const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
     let m;
     while ((m = re.exec(src))) code.push(m[1]);
+    /* 第册四批：视图代码开始外置（`view/*.js` 与本页同目录）⇒ 同目录的 js 也算这页的脚本，
+     * 否则「脚本引用的 id 必须静态存在」这条对账会随搬家出现盲区。 */
+    const here = path.dirname(f);
+    if (fs.existsSync(here)) fs.readdirSync(here).filter((x) => x.endsWith('.js'))
+      .forEach((x) => code.push(fs.readFileSync(path.join(here, x), 'utf8')));
     const body = code.join('\n');
     const refs = [...body.matchAll(/\$\('([^']+)'\)|getElementById\(\s*'([^']+)'\s*\)/g)]
       .map((x) => x[1] || x[2]);
@@ -877,10 +887,16 @@ const SQ = sandbox.window.SQ;
   }
   ok('B3', '零 CDN（入口 HTML 无外链）', b3.length === 0, b3.join(','));
 
-  /* B4 主题铁律（module 卡为透明玻璃底，不要求 --xhub-surface） */
-  const viewSrc = fs.readFileSync(path.join(ROOT, 'view/index.html'), 'utf8');
+  /* B4 主题铁律（module 卡为透明玻璃底，不要求 --xhub-surface）
+   * ⚠️ 第册四批起 view 的样式外置成 `view/ui.css` ⇒ 本关读「HTML + 那份样式」合起来的旧字符串口径，
+   *    载体搬了家、覆盖面不许缩水；样式文件本身缺失也判红（免得铁律被搬到没人查的地方）。 */
+  const viewCssPath = path.join(ROOT, 'view/ui.css');
+  const viewHasCss = fs.existsSync(viewCssPath);
+  const viewSrc = fs.readFileSync(path.join(ROOT, 'view/index.html'), 'utf8') +
+    (viewHasCss ? '\n' + fs.readFileSync(viewCssPath, 'utf8') : '');
   const modSrc = fs.readFileSync(path.join(ROOT, 'module/index.html'), 'utf8');
   const b4 = [];
+  if (!viewHasCss) b4.push('view/ui.css 不在（样式若仍内联，本关口径要同批改）');
   if (!viewSrc.includes('background: var(--xhub-page-bg, transparent)')) b4.push('view 页面底非透明变量');
   if (!viewSrc.includes('var(--xhub-surface')) b4.push('view 缺 --xhub-surface');
   if (!/background:\s*transparent/.test(modSrc)) b4.push('module 卡底非透明');
@@ -984,6 +1000,110 @@ const SQ = sandbox.window.SQ;
     (bad.length ? ' ‖ ' + bad.slice(0, 8).join(' ‖ ') : ' ‖ 四判全合'));
 })();
 
+/* ── D5 内联脚本可解析（第卅七批立例 · 由一次真实漏网立证）──
+ * 快速预检此前只验 `assets/**.js` 的语法与挂载关系，`view/index.html` 里那一大块内联脚本没人替它把语法：
+ * 本批一处笔误（`)}))` 多写一个右括号）跑过了 `npm test` 全绿，直到起浏览器才炸成「一直卡在加载页」，
+ * 代价 = 一次界面走查（分钟级）而不是一次预检（秒级）。
+ * 本关用 vm 解析每个 HTML 的每段内联脚本，取块口与 A1 CJK 扫描**同一个**（`inlineScripts`，不会两关口径漂），
+ * 报错行号回加 `baseLine` ⇒ 指回真文件行。 */
+(function () {
+  const bad = [];
+  let n = 0;
+  /* 第册四批：视图代码开始外置 ⇒ 本关射程 = 各 HTML 的内联块 **+ 同目录外置 js**（只查一半就是盲区） */
+  const extJs = [...new Set(htmlFiles.flatMap((f) => (fs.existsSync(path.dirname(f))
+    ? fs.readdirSync(path.dirname(f)).filter((x) => x.endsWith('.js')).map((x) => path.join(path.dirname(f), x))
+    : [])))];
+  extJs.forEach((f) => {
+    n++;
+    try { new vm.Script(fs.readFileSync(f, 'utf8'), { filename: relOf(f) }); }
+    catch (e) { bad.push(relOf(f) + ':1 ' + e.message); }
+  });
+  htmlFiles.forEach((f) => {
+    inlineScripts(f).forEach((b) => {
+      n++;
+      try { new vm.Script(b.code, { filename: relOf(f) }); }
+      catch (e) {
+        /* vm 的编译错误首形如 `view/index.html:3086`（**不带列号**，Node 版本差异会补 `:57`），
+         * 且那个行号是**块内行** ⇒ 回加 `baseLine − 1` 才指回真文件行（本关的用处就在能直接跳过去） */
+        const frames = String(e.stack || '').split('\n');
+        const frame = frames.find((l) => l.indexOf(relOf(f)) >= 0) || '';
+        const m = /:(\d+)(?::\d+)?\s*$/.exec(frame);
+        bad.push(relOf(f) + ':' + (m ? b.baseLine + (+m[1]) - 1 : '?') + ' ' + e.message);
+      }
+    });
+  });
+  ok('D5', '内联脚本可解析（view/module 的 JS = 浏览器实际加载那一份 · 语法错不再只在真机炸）',
+    bad.length === 0, 'HTML ' + htmlFiles.length + ' 件 · 脚本块 ' + n + ' 段（含外置视图件 ' + extJs.length + ' 件）' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 4).join(' ‖ ') : ' ‖ 全部可解析'));
+})();
+
+/* ── D6 挂点 id 全库唯一（第册批立例 · 由本批一次真实撞车立证）──
+ * 本批给「盖棺之传」浮层顺手取前缀 `mrc-`，而 `mrc-title` 已被上面的「奇遇回看」浮层占用：
+ * `getElementById` 只认文档里第一个 ⇒ 标题写进一个 display:none 的 h2，屏上看不见，
+ * 而**只读文本值的走查断言照样绿**（它读到的正是那个暗处的元素）。最后是人眼截图抓到的。
+ * 同 id 在 HTML 里本来就非法，且这里没有「模板内重复 id」的正当用法（列表行一律 class，不用 id），
+ * 所以直接按文件判重，零例外。射程 = 所有 .html 原文（含内联脚本里的字符串），与 D5 同一文件集。 */
+(function () {
+  const bad = [];
+  let n = 0;
+  htmlFiles.forEach((f) => {
+    const seen = Object.create(null);
+    (fs.readFileSync(f, 'utf8').match(/\sid="[^"]+"/g) || []).forEach((m) => {
+      const id = m.slice(5, -1);
+      seen[id] = (seen[id] || 0) + 1;
+      if (seen[id] === 2) { n++; bad.push(relOf(f) + ' #' + id); }
+      if (seen[id] === 1) n++;
+    });
+  });
+  ok('D6', '挂点 id 全库唯一（同 id ⇒ getElementById 只认文档第一个，写进暗处那一枚没人看得见）',
+    bad.length === 0, '挂点 ' + n + ' 枚' + (bad.length ? ' ‖ 重复：' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 零重复'));
+})();
+
+/* ── D7 视图外置件只用 ctx() 给过的键（第册五批 2026-10-17 · N34 第二刀立）──
+ * 搬家把「闭包私有量」换成「显式参数 c」，好处是可静态对账；风险也在这条路上：
+ * 桥少给一枚键 ⇒ 运行时是 undefined，而那一页只是渲染成空——本仓最贵的那族缺陷正是「引擎对、屏上错」。
+ * 判据 = 从内核抓 `function ctx()` 返回的字面量键集，逐件扫 `view/*.js` 里的 `c.xxx`；
+ * 用了没给的键判红，整枚桥被删（取不到键集）同样判红。反向取证 = 把 ctx 里一枚键改名 ⇒ 本关必红。 */
+(function () {
+  const dir = path.join(ROOT, 'view');
+  const viewJs = fs.readdirSync(dir).filter((f) => f.endsWith('.js'));
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  const m = html.match(/function ctx\(\)[\s\S]{0,400}?return \{([\s\S]{0,400}?)\};/);
+  const keys = m ? (m[1].match(/(^|[,{\s])([A-Za-z0-9_$]+)\s*:/g) || [])
+    .map((x) => x.replace(/[^A-Za-z0-9_$]/g, '')) : [];
+  const bad = [];
+  if (!m) bad.push('view/index.html 里找不到 ctx() 工厂（桥没了 ⇒ 外置件无从取数）');
+  /* 第二判（第册八批立 · 本批真实漏网）：**桥里换了名字的闭包私名**不许裸读。
+   * 名单不手抄，从同一枚 `ctx()` 现推：`键: 一枚裸标识符` 且两者不同名 ⇒ 那枚标识符就是闭包私名
+   *（`s: state` / `date: gameDateStr` / `ask: askConfirm` … 全在这里，内核改名而桥没跟 ⇒ 本关自动换名单）。
+   * `pack()` 这类带括号的取值按整项锚定排除；**首项必须按逗号切分来判**，用 `^` 配 `[{,]` 的写法会漏掉
+   * 紧跟 `{` 的第一枚（本批反证第一次就栽在这上面：`state` 恰恰是首项）。
+   * 成因：改跳脚本的私名清单按「顶格 var 声明」现取，而 `state` 藏在多变量声明行里，清单照不到 ⇒
+   * 四条动作体整批带着裸 `state` 进了外置件，直到走查才报 ReferenceError。
+   * 第一判只查 `c.X` 有没有源（方向朝外），查不到这个反向洞。 */
+  const priv = [];
+  if (m) m[1].split(',').forEach((e) => {
+    const kv = e.match(/^\s*([A-Za-z0-9_$]+)\s*:\s*([A-Za-z0-9_$]+)\s*$/);
+    if (kv && kv[1] !== kv[2] && priv.indexOf(kv[2]) < 0) priv.push(kv[2]);
+  });
+  let used = 0;
+  viewJs.forEach((f) => {
+    const src = fs.readFileSync(path.join(dir, f), 'utf8');
+    (src.match(/\bc\.[A-Za-z0-9_$]+/g) || []).forEach((x) => {
+      const k = x.slice(2);
+      used++;
+      if (keys.indexOf(k) < 0) bad.push('view/' + f + ' 用了 c.' + k + '，ctx 没给');
+    });
+    priv.forEach((nm) => {
+      const hits = src.match(new RegExp('(^|[^.\\w$])' + nm.replace(/[$]/g, '\\$') + '(?![\\w$])', 'g'));
+      if (hits) bad.push('view/' + f + ' 裸读了闭包私名 ' + nm + '（' + hits.length + ' 处 ⇒ 只能走 ctx 给过的键）');
+    });
+  });
+  ok('D7', '视图外置件只用 ctx() 给过的键 ‖ 不裸读桥里换名的私名（少给一枚 = undefined，裸读一枚 = ReferenceError）',
+    bad.length === 0, 'ctx 键 ' + keys.length + ' 枚 · 外置件 ' + viewJs.length + ' 件 · 引用点 ' + used + ' 处 · 私名 ' + priv.length + ' 枚' +
+    (bad.length ? ' ‖ ' + [...new Set(bad)].slice(0, 6).join(' ‖ ') : ' ‖ 全部有源、零裸读'));
+})();
+
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）
  * 射程说明（批A 自发现的盲区，写在这里免得下次又按错口径造反证）：`view/index.html` 是装载顺序的
  * **唯一事实源**，所以「HTML 少挂一个标签」本身是有意卸载、不是漂移，本关绝不判 HTML 自比。判这四件
@@ -1001,10 +1121,28 @@ const SQ = sandbox.window.SQ;
   const view = srcs('view/index.html');
   if (!view) { ok('D2', '加载顺序单源（view 为事实源 ⇔ 四判）', false, 'view/index.html 读不到'); return; }
   const bad = [];
-  view.forEach((f) => { if (!fs.existsSync(path.join(ROOT, f))) bad.push('引用不存在的件 ' + f); });
+  /* 引用件的存在性按「相对该 HTML 自身目录」解（第册四批起 view 下同目录有外置件），
+   * 老口径一律从扩展根解 ⇒ `updatenote.js` 这类视图件会被误判成「引用不存在的件」。 */
+  const base = path.dirname('view/index.html');
+  view.forEach((f) => {
+    const hit = fs.existsSync(path.join(ROOT, f)) || fs.existsSync(path.join(ROOT, base, f));
+    if (!hit) bad.push('引用不存在的件 ' + f);
+  });
   const mod = srcs('module/index.html');
+  /* 第册四批改口（D2 的立身之本不变）：**引擎装载序列**仍要求两份逐字全等；
+   * 而 `view/*.js` 这类**视图专属件**只属 view（module 卡没有那些浮层的 DOM，硬挂等于在卡片里造弹窗）。
+   * ⇒ 判据从「两条序列全等」改成「view 里所有 assets/ 项组成的序列 === module 全序列」，
+   *   并加一条「非 assets 的挂载件必须就躺在 view 目录下」，免得有人从别处拖脚本进来。 */
   if (!mod) bad.push('module/index.html 读不到');
-  else if (JSON.stringify(mod) !== JSON.stringify(view)) bad.push('module 序列与 view 不同（' + mod.length + ' vs ' + view.length + '）');
+  else {
+    const eng = view.filter((x) => x.startsWith('assets/'));
+    if (JSON.stringify(mod) !== JSON.stringify(eng)) {
+      bad.push('module 引擎序列 ≠ view 的 assets 段（' + mod.length + ' vs ' + eng.length + '）');
+    }
+  }
+  view.filter((x) => !x.startsWith('assets/')).forEach((x) => {
+    if (!fs.existsSync(path.join(ROOT, 'view', x))) bad.push('视图专属件不在 view 目录下：' + x);
+  });
   const smoke = srcs('.tests/smoke.html');
   if (smoke) {
     const only = smoke.filter((f) => f.startsWith('assets/'));
@@ -1019,7 +1157,7 @@ const SQ = sandbox.window.SQ;
     }
   })(path.join(ROOT, 'assets'));
   js.forEach((f) => { if (view.indexOf(f) < 0) bad.push('assets 件未挂进 view/index.html：' + f); });
-  ok('D2', '加载顺序单源（view 事实源 ⇔ 引用件存在 ⇔ module 全等 ⇔ smoke.html 保序子集 ⇔ assets 无未挂载件）',
+  ok('D2', '加载顺序单源（view 事实源 ⇔ 引用件存在 ⇔ module 引擎段全等 ⇔ 视图件落在 view ‖ smoke.html 保序子集 ⇔ assets 无未挂载件）',
     bad.length === 0, '序列 ' + view.length + ' 项 · assets ' + js.length + ' 件' + (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 四判全合'));
 })();
 

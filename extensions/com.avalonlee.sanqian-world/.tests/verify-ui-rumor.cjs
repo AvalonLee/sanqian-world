@@ -27,18 +27,31 @@ async function buildSave() {
     { rid: 'ev-2', evId: 'zhujian_renjia', tier: 'ren', nature: 'good',
       bornAt: now - 4 * 60000, expireAt: now + 26 * 60000, tpl: 'rumor.tpl.ren.2', place: 'rumor.place.2' }
   ];
+  /* RF 组取样（近来奇遇条数 + 卡片详情弹窗）：造 13 条真事件流水（feed **新在前** = 生产侧 unshift 口径），
+   * 并逐条打 `seen` 卡——回看浮层的闸是「未遇不开」（`openRecall` 读 seen），不打卡点了没反应。 */
+  const rfIds = SQ.Events.allIds(pack).slice(0, 13);
+  ws.eventHistory.feed = rfIds.map((id, i) => ({
+    id: id, ts: now - i * 60000, tier: 'ren', nature: i % 2 ? 'good' : 'bad',
+    branch: 'neutral', karma: 1, hadCheck: false, eff: {}
+  }));
+  rfIds.forEach((id, i) => { ws.eventHistory.seen[id] = now - i * 60000; });
   return {
-    v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral' },
-    meta: { unlockedWorlds: ['xiuxian'] },
-    settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
-    worlds: { xiuxian: ws }
+    save: {
+      v: 1,
+      profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-1' },
+      meta: { unlockedWorlds: ['xiuxian'] },
+      settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
+      worlds: { xiuxian: ws }
+    },
+    /* 屏上第一条该是谁：feed 新在前 ⇒ rfIds[0]（供 RF②/RF⑤ 对表，不靠肉眼比文本） */
+    newest: rfIds[0]
   };
 }
 
 (async () => {
   const ROOT = path.resolve(__dirname, '..');
-  const save = await buildSave();
+  const built = await buildSave();
+  const save = built.save, RF_NEWEST = built.newest;
   const url = 'file:///' + path.join(ROOT, 'view/index.html').replace(/\\/g, '/');
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
   let pass = 0, fail = 0;
@@ -81,6 +94,38 @@ async function buildSave() {
   const evWarBtn = await page.$$eval('#tab-event .rumorcard.war button', els => els.length);
   const evWatch = await page.$eval('#tab-event', el => el.textContent.includes('观望'));
   T(evWarBtn === 0 && evWatch, 'R① 奇遇页战况卡同源只读');
+
+  /* ── RF 组：近来奇遇「折叠 3 / 展开最近 10」+「点卡片出回看浮层」（用户令，展开条数太多 + 卡片应可查阅）──
+   * fixture 存 13 条流水 ⇒ 屏上折叠恰 3、展开恰 10（裁的是**看得见的**，不是档里的 50 上限）。 */
+  const rfFold = await page.$$eval('#tab-event .fcard', els => els.length);
+  const rfBtn1 = await page.$eval('#tab-event [data-act="feedMore"]', el => el.textContent.trim());
+  T(rfFold === 3 && rfBtn1 === '展开最近 10 条',
+    'RF① 折叠态只 3 张卡，按钮如实写「展开最近 10 条」（13 条流水不谎称 13）', 'n=' + rfFold + ' btn=' + rfBtn1);
+  const rfNewest = await page.$eval('#tab-event .fcard', el => el.dataset.v);
+  T(rfNewest === RF_NEWEST, 'RF② 折叠显示的是最近三条之首（新在前，未把旧流水顶到屏前）', 'id=' + rfNewest);
+  await page.click('#tab-event [data-act="feedMore"]');
+  await page.waitForTimeout(400);
+  const rfExp = await page.$$eval('#tab-event .fcard', els => els.length);
+  const rfBtn2 = await page.$eval('#tab-event [data-act="feedMore"]', el => el.textContent.trim());
+  T(rfExp === 10 && rfBtn2 === '收起',
+    'RF③ 展开态恰 10 张（13 条流水裁到 10 ⇒ 展开不再是整屏长流），按钮转「收起」', 'n=' + rfExp + ' btn=' + rfBtn2);
+  await page.click('#tab-event [data-act="feedMore"]');
+  await page.waitForTimeout(300);
+  T((await page.$$eval('#tab-event .fcard', els => els.length)) === 3, 'RF④ 收起回到 3 条（切换是幂等的，不是一次性）');
+  /* 卡片点击 = 复用图鉴那套 `openRecall`（story + 首遇 + 上次抉择 + 上次得失），不另造第二张详情卡 */
+  await page.click('#tab-event .fcard');
+  await page.waitForTimeout(400);
+  const rfOpen = await page.$eval('#modal-recall', el => !el.classList.contains('hide'));
+  const rfTitle = await page.$eval('#mrc-title', el => el.textContent.trim());
+  const rfStory = await page.$eval('#mrc-story', el => el.textContent.trim());
+  const rfLast = await page.$eval('#mrc-last', el => (el.classList.contains('hide') ? '' : el.textContent.trim()));
+  const rfName = await page.evaluate((id) => SQ.t('event.' + id + '.name', null, 'xiuxian'), RF_NEWEST);
+  T(rfOpen && rfTitle.indexOf(rfName) >= 0 && rfStory.length > 0,
+    'RF⑤ 点卡片弹出回看浮层，标题带该奇遇名、正文有 story（点第一条 = 最近那条，与屏上一致）',
+    'open=' + rfOpen + ' title=' + rfTitle.slice(0, 24) + ' story=' + rfStory.length + 'B');
+  T(rfLast.length > 0 && rfLast.indexOf('抉择') >= 0, 'RF⑥ 浮层含上次抉择（是「查阅内容」的卡，不是只有名字）', rfLast.slice(0, 40));
+  await page.click('#mrc-close');
+  T(await page.$eval('#modal-recall', el => el.classList.contains('hide')), 'RF⑦ 关闭钮可关（不靠遮罩/ESC）');
   await page.click('#m-tabbar button:has-text("修行")');
   await page.waitForTimeout(500);
   const hasDot2 = await page.$('#m-tabbar button[data-v="event"] .dot');
