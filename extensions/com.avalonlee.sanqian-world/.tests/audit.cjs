@@ -1095,7 +1095,8 @@ const SQ = sandbox.window.SQ;
       if (keys.indexOf(k) < 0) bad.push('view/' + f + ' 用了 c.' + k + '，ctx 没给');
     });
     priv.forEach((nm) => {
-      const hits = src.match(new RegExp('(^|[^.\\w$])' + nm.replace(/[$]/g, '\\$') + '(?![\\w$])', 'g'));
+      /* 对象键位（`{ state: … }`）不是「读」，别把它算成裸读 —— 本批 gear.js 的 toast 插值键就叫 state */
+      const hits = src.match(new RegExp('(^|[^.\\w$])' + nm.replace(/[$]/g, '\\$') + '(?!\\s*[\\w$:])', 'g'));
       if (hits) bad.push('view/' + f + ' 裸读了闭包私名 ' + nm + '（' + hits.length + ' 处 ⇒ 只能走 ctx 给过的键）');
     });
   });
