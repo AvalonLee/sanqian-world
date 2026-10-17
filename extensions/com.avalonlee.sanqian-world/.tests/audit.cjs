@@ -1073,6 +1073,19 @@ const SQ = sandbox.window.SQ;
     .map((x) => x.replace(/[^A-Za-z0-9_$]/g, '')) : [];
   const bad = [];
   if (!m) bad.push('view/index.html 里找不到 ctx() 工厂（桥没了 ⇒ 外置件无从取数）');
+  /* 第二判（第册八批立 · 本批真实漏网）：**桥里换了名字的闭包私名**不许裸读。
+   * 名单不手抄，从同一枚 `ctx()` 现推：`键: 一枚裸标识符` 且两者不同名 ⇒ 那枚标识符就是闭包私名
+   *（`s: state` / `date: gameDateStr` / `ask: askConfirm` … 全在这里，内核改名而桥没跟 ⇒ 本关自动换名单）。
+   * `pack()` 这类带括号的取值按整项锚定排除；**首项必须按逗号切分来判**，用 `^` 配 `[{,]` 的写法会漏掉
+   * 紧跟 `{` 的第一枚（本批反证第一次就栽在这上面：`state` 恰恰是首项）。
+   * 成因：改跳脚本的私名清单按「顶格 var 声明」现取，而 `state` 藏在多变量声明行里，清单照不到 ⇒
+   * 四条动作体整批带着裸 `state` 进了外置件，直到走查才报 ReferenceError。
+   * 第一判只查 `c.X` 有没有源（方向朝外），查不到这个反向洞。 */
+  const priv = [];
+  if (m) m[1].split(',').forEach((e) => {
+    const kv = e.match(/^\s*([A-Za-z0-9_$]+)\s*:\s*([A-Za-z0-9_$]+)\s*$/);
+    if (kv && kv[1] !== kv[2] && priv.indexOf(kv[2]) < 0) priv.push(kv[2]);
+  });
   let used = 0;
   viewJs.forEach((f) => {
     const src = fs.readFileSync(path.join(dir, f), 'utf8');
@@ -1081,10 +1094,14 @@ const SQ = sandbox.window.SQ;
       used++;
       if (keys.indexOf(k) < 0) bad.push('view/' + f + ' 用了 c.' + k + '，ctx 没给');
     });
+    priv.forEach((nm) => {
+      const hits = src.match(new RegExp('(^|[^.\\w$])' + nm.replace(/[$]/g, '\\$') + '(?![\\w$])', 'g'));
+      if (hits) bad.push('view/' + f + ' 裸读了闭包私名 ' + nm + '（' + hits.length + ' 处 ⇒ 只能走 ctx 给过的键）');
+    });
   });
-  ok('D7', '视图外置件只用 ctx() 给过的键（少给一枚 = 运行时 undefined，别留给走查去撞）',
-    bad.length === 0, 'ctx 键 ' + keys.length + ' 枚 · 外置件 ' + viewJs.length + ' 件 · 引用点 ' + used + ' 处' +
-    (bad.length ? ' ‖ ' + [...new Set(bad)].slice(0, 6).join(' ‖ ') : ' ‖ 全部有源'));
+  ok('D7', '视图外置件只用 ctx() 给过的键 ‖ 不裸读桥里换名的私名（少给一枚 = undefined，裸读一枚 = ReferenceError）',
+    bad.length === 0, 'ctx 键 ' + keys.length + ' 枚 · 外置件 ' + viewJs.length + ' 件 · 引用点 ' + used + ' 处 · 私名 ' + priv.length + ' 枚' +
+    (bad.length ? ' ‖ ' + [...new Set(bad)].slice(0, 6).join(' ‖ ') : ' ‖ 全部有源、零裸读'));
 })();
 
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）
