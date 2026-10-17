@@ -35,7 +35,7 @@
       aff = pillAffix(c, pl2); cat = pillCat(c);
     } else if (k === 'treasure') {
       var td = SQ.Treasures.def(p, it.ref);
-      if (td) aff = '<span class="tierbadge t' + (td.kind === 'xian' ? 4 : 2) + '">' + c.esc(c.t('treasure.kind.' + td.kind)) + '</span>';
+      if (td) aff = '<span class="tierbadge ' + c.kindCls(td.kind) + '">' + c.esc(c.t('treasure.kind.' + td.kind)) + '</span>';
       cat = '<span class="catbadge">' + c.esc(c.t('treasure.system')) + '</span>';
     } else if (k === 'pack' && gp) {
       if (gp.type === 'recipe') {

@@ -61,8 +61,9 @@ function seed(over) {
   w.alchemy = {
     furnace: true,
     pills: { ap_juqi: 3, ap_pozhang: 1, ap_haina: 1, juqi: 2 },
-    giftDay: { day: 7, n: 2 },                    /* issue #4 旧档残留字段：读档后必须被剪掉（B5/C1 的 giftDayAbsent 靠它才有鉴别力）*/
-    pillDay: { day: -999999, n: 0 }
+    /* 🔧 issue #4（赠丹日限）与本批 N43（丹毒日限）两枚计数都已退役 ⇒ 桩里不再摆死键；
+     *   「旧档里这两个键读进来即被 normalize 丢掉」由冒烟 #211 / #305 那一族判据守。 */
+                                           /* issue #4 旧档残留字段：读档后必须被剪掉（B5/C1 的 giftDayAbsent 靠它才有鉴别力）*/
   };
   return { save: s0, at: T, bornAt: bornAt, freeze: !!over.freeze };
 }

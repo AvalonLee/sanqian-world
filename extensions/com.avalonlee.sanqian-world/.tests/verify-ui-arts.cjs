@@ -40,6 +40,11 @@ async function buildSave() {
   ws.artsKnown = ['tuna', 'juling', 'emotionless']; ws.artsSlots = ['tuna', 'juling'];
   ws.artsLevels = { tuna: 3, juling: 1, emotionless: 9 };
   ws.lastSave = now; ws.lastOffline = null; ws.pendingChoice = null;
+  /* N52（第册十二批）· 认主按件：两件先天法宝各带自己的进度——x02 未满阶（卡上该出「这件还差约 N 小时」），
+   * x04 已满阶（这句该不出现，作反例）。进度写在 owned[].st 上，与引擎的按键形状一致。 */
+  ws.treasures.owned.push({ id: 'x02', stage: 1, st: { bondN: 1, bondH: 3 } });
+  ws.treasures.owned.push({ id: 'x04', stage: 3, st: { bondN: 2, bondH: 1 } });
+  ws.treasures.slots = ['x02', 'x04', null];
   return {
     v: 1,
     profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-2' },
@@ -502,6 +507,32 @@ async function buildSave() {
   });
   T(tr.hasGrid && tr.cols >= 2, 'A7 法宝页为卡片网格（宽屏 ≥2 列）', 'cols=' + tr.cols);
   T(tr.cards >= 3, 'A7b 法宝栏每槽一卡（≥3 卡）', 'n=' + tr.cards);
+
+  /* ── A7c 认主进度按件（N52 · 第册十二批）：卡上那句「这件还差约 N 小时」的数字必须
+   * **等于页内现算的 `SQ.Treasures.bondHoursLeft`**（公式只许在引擎那一处，视图抄第二份即说谎），
+   * 且满阶那件**不出现**这句（反例：空集上的「都在」恒真）。 ── */
+  const bond = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const w = s.worlds[s.profile.worldId], p = SQ.Worlds.xiuxian.pack;
+    const cards = Array.prototype.slice.call(document.querySelectorAll('#tab-treasure .trgrid > .tcard'));
+    const txt = c => (c ? (c.textContent || '').replace(/\s+/g, ' ') : '');
+    const ent = id => (w.treasures.owned.filter(e => e.id === id)[0]) || null;
+    const cardOf = id => cards.filter(c => txt(c).indexOf(SQ.t('treasure.' + id + '.name', null, 'xiuxian')) >= 0)[0] || null;
+    const e1 = ent('x02'), e2 = ent('x04');
+    const left = SQ.Treasures.bondHoursLeft(p, e1);
+    const t1 = txt(cardOf('x02')), t2 = txt(cardOf('x04'));
+    const m = t1.match(/还差约\s*(\d+)\s*小时/) || [];
+    return { left: left, onScreen: m[1] || '', hit: t1.indexOf('还差约') >= 0,
+      hitMax: t2.indexOf('还差约') >= 0, leftMax: SQ.Treasures.bondHoursLeft(p, e2),
+      want: SQ.t('treasure.bond.left', { n: left }, 'xiuxian'), inCard: t1.indexOf(SQ.t('treasure.bond.left', { n: left }, 'xiuxian')) >= 0,
+      s1: t1.slice(0, 150), s2: t2.slice(0, 80), found: !!cardOf('x02') && !!cardOf('x04') };
+  });
+  T(bond.found && bond.left > 0 && Number(bond.onScreen) === bond.left && bond.hit && bond.inCard,
+    'A7c 未满阶那件的「这件还差约 N 小时」=== 页内 bondHoursLeft 现算值（整句取词表、视图零自造公式）',
+    '屏=' + bond.onScreen + ' 引擎=' + bond.left + ' 整句在卡=' + bond.inCard + ' ‖ ' + bond.s1);
+  T(bond.hitMax === false && bond.leftMax === 0,
+    'A7d 反例：已满阶那件卡上不出现这句（引擎取数口对它回 0）——否则「按件停表」只在数上成立、屏上仍在催',
+    '满阶卡=' + bond.s2 + ' 命中=' + bond.hitMax + ' leftMax=' + bond.leftMax);
 
   /* ── A8 窄屏：器段退单列 + **导航零截断**（横向滚动修复的验收点）── */
   await page.setViewportSize({ width: 390, height: 844 });

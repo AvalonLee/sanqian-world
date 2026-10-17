@@ -1,17 +1,17 @@
 {
  "generated_by": ".tests/gen-ledger.cjs",
- "at": "2026-10-17T08:56:33.016Z",
+ "at": "2026-10-17T15:02:26.150Z",
  "values": {
-  "ext_version": "0.5.21",
-  "dod_items": 49,
-  "dod_asserts": 1323,
-  "dod_secs": 270.3,
-  "smoke": 320,
+  "ext_version": "0.5.23",
+  "dod_items": 18,
+  "dod_asserts": 593,
+  "dod_secs": 23.6,
+  "smoke": 321,
   "audit_gates": 26,
   "versions_rows": null,
   "probe_asserts": 246,
   "ui_files": 31,
-  "ui_asserts": 731,
+  "ui_asserts": 752,
   "sim_playthrough": true,
   "arts": 70,
   "zones": 10,
@@ -52,7 +52,7 @@
  ],
  "attrib": {
   "smoke": {
-   "src": ".tests/smoke.js（300 案顺序共享沙箱态，不可单跑）",
+   "src": ".tests/smoke.js（壳）+ .tests/smoke/NN-*.js 十片（320 案顺序共享沙箱态，单片不可独立跑）",
    "touches": [
     "assets/core.js",
     "assets/systems/**",

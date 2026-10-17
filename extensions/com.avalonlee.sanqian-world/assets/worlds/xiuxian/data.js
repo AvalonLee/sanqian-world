@@ -791,7 +791,8 @@
      * 🔧 **GitHub issue #4（2026-10-14）撤销 BOND_GIFT_DAILY**：原日限 3 走 gameDayOf，而
      *    **1 游戏日 = 1 现实秒** ⇒ 每次点击都已跨日清零，上限永不生效、屏上恒显「今日 1/3」，
      *    只会误导。节流本来就在**丹药库存与炼制耗时**上，故直接取消计数（`ws.alchemy.giftDay` 同批退役）。
-     *    ⚠️ 同型的丹毒日限 `ALCHEMY.PILL_DAILY_CAP` 保持原样——那条管自服吞吐平衡，不属本 issue 射程。 */
+     *    🔧 同型的丹毒日限 `ALCHEMY.PILL_DAILY_CAP` 于**第册十二批随 N43 一并退役**（当时记为
+     *    「那条管自服吞吐平衡，不属本 issue 射程」，实测它同样永不触发、只会让文案说谎）。 */
     BOND_GIFT_BY_TIER: { huang: 4, xuan: 6, di: 9, tian: 14 },
     BOND_GIFT_RUNE_MULT: 1.5,
 
@@ -1056,10 +1057,14 @@
       GATHER_INTERVAL_MS: 360000, GATHER_N_MIN: 1, GATHER_N_MAX: 4, GATHER_WUDAO_P: 0.10,
       /* 灵田材料轴（灵田迁栏批）：驻留福地灵田 Lv≥1 时每 6 游戏月（180 现实秒）入账 1~4 枚本区材料 */
       FARM_INTERVAL_MS: 180000, FARM_N_MIN: 1, FARM_N_MAX: 4,
-      /* 丹毒日限 3 → **4**（丹药两族合一 · 第十七批）：坊市 / 门中供给 / 特席 / 残片所得的成品丹从此与自产丹
-       * 同池同规矩（同一具身体吃药，两类丹分开计限 = 第二条静默旁路）；抬一档是给用户交底的补偿：
-       * 旧「买 10 颗当场全吞」不受日限约束，改后受约束 ⇒ 择时自由换来了吞吐上限。判据 = 冒烟 #226 / #297(b)。 */
-      PILL_DAILY_CAP: 4, PILL_STOCK_CAP: 99,
+      /* 🔧 **N43 定案（第册四批点头 · 第册十二批落地）：`PILL_DAILY_CAP` 整族退役**（连同
+       * `ws.alchemy.pillDay` 计数与屏上 `alchemy.ui.pillcap` 那句）。立因 = 这道闸走 `gameDayOf`，
+       * 而 **1 游戏日 = 1 现实秒** ⇒ 每次点击都已跨日清零，上限永不生效、屏上那句话只会说谎，
+       * 与 GitHub issue #4 撤掉的赠丹日限同一形状（那一条已先退役，丹毒是唯一残留）。
+       * 第十七批「两族合一 · 自产丹与成品丹同池同规矩」的**同池**部分保留（丹药仍同一匣、同一具身体吃药），
+       * 只是不再有「每日几颗」这层闸；节流回到本来的两把尺子 = **丹药库存与炼制耗时**。
+       * 防连点叠 buff 由冒烟 #119「同字段同向不叠加」守着，撤闸不开新口子。 */
+      PILL_STOCK_CAP: 99,
       CRAFT_BASE: { huang: 0.85, xuan: 0.70, di: 0.55, tian: 0.40, qi: 0.80, qi_jing: 0.70 },
       CRAFT_CAP: 0.95,
       CRAFT_TIME_MIN: { huang: 10, xuan: 20, di: 40, tian: 80, qi: 30, qi_jing: 45 },
