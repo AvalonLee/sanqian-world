@@ -328,7 +328,13 @@
       if (ws.artsSlots.length >= D.ARTS_SLOTS) {
         var ri = replaceId != null ? ws.artsSlots.indexOf(replaceId) : -1;
         if (ri < 0) return false;
+        var outId = ws.artsSlots[ri];
         ws.artsSlots[ri] = id;
+        /* N44 定案（第册四批点头 · 第册十二批落地）：被顶下槽的那部正是玩家点定的主修 ⇒ 同批清掉点定值，
+         * 主修按既有回落口径走 `artsSlots[0]` ⇒ 屏上「主修」永远是当前在槽的那部，不会出现
+         * 「点定的一部已不在修习、界面还替它挂着主修」那种说谎态（与 N43 同族：留着不生效的设定 = 会说谎的配置）。
+         * ⚠️ 口径只这一条：**移出槽外仍不清**（玩家自己摘下来还可能装回去，记忆式语义由 #123(f) 钉）。 */
+        if (ws.artsMain === outId) ws.artsMain = null;
         return true;
       }
       ws.artsSlots.push(id);

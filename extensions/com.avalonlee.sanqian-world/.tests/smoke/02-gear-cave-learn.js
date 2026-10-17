@@ -612,8 +612,28 @@ window.SQSmoke.frag('02-gear-cave-learn', async function () {
     var keptPin123 = w123h.artsMain === 'yunzong' && SQ.Arts.mainArt(w123h) === 'tuna';
     var sv123h = SQ.Arts.salvage(w123h, pack, D, 'yunzong');
     var main123h = SQ.Arts.mainArt(w123h);
+    /* (g) N44 定案（第册四批点头 · 第册十二批落地）：点定的那部被**原位替换**顶下槽 ⇒ `artsMain` 同批清空、
+     *     主修回落第 1 位；且该部日后重新入槽**不再自动夺回主修**（记忆式只保留在「移出槽外」那一支 = (f)）。
+     *     反向对照：若只改 `mainArt` 的回落而不清点定值，(g2) 会在重新入槽时把主修又交还给不在修习的那部。*/
+    var ids123i = Object.keys(pack.artsMap()).slice(0, D.ARTS_SLOTS + 1);
+    var w123i = mkWs({ realm: 3 });
+    w123i.artsKnown = ids123i.slice();
+    w123i.artsSlots = ids123i.slice(0, D.ARTS_SLOTS);
+    w123i.artsLevels = {};
+    ids123i.forEach(function (x) { w123i.artsLevels[x] = 1; });
+    var pin123i = w123i.artsSlots[D.ARTS_SLOTS - 1];          /* 点定最后一格，免得第 1 位天然就是主修 */
+    SQ.Arts.setMain(w123i, pin123i);
+    var new123i = ids123i[D.ARTS_SLOTS];
+    var rep123i = SQ.Arts.slot(w123i, pack, D, new123i, pin123i);
+    var g123i = rep123i === true && w123i.artsMain === null &&
+      SQ.Arts.mainArt(w123i) === w123i.artsSlots[0];
+    SQ.Arts.unslot(w123i, w123i.artsSlots[0]);                /* 腾出一个空位 */
+    SQ.Arts.slot(w123i, pack, D, pin123i);                    /* 被顶下的那部重新入槽，落到尾部 */
+    var g2123i = w123i.artsMain === null && w123i.artsSlots.indexOf(pin123i) >= 0 &&
+      SQ.Arts.mainArt(w123i) !== pin123i;
     ok(123, '主修指向（引擎卷 §4.2 · GitHub issue #3）：未点定 = 槽第 1 位（旧档逐字不变）· 点定 = 跟随 ws.artsMain · ' +
-      '移出槽外的记忆式回落 · 散功散掉点定者则清空 artsMain · 满级顺延槽内 · 全空不报错 · setMain 拒槽外且不脏写 · artsMain 过 normalize',
+      '移出槽外的记忆式回落 · 散功散掉点定者则清空 artsMain · 满级顺延槽内 · 全空不报错 · setMain 拒槽外且不脏写 · artsMain 过 normalize · ' +
+      '🆕 被原位替换顶下槽则清空点定且重新入槽不复活（N44 定案）',
       main123 === 'tuna' && lvAfter123[0] === 2 && lvAfter123[1] === 1 &&
       SQ.Arts.mainArt(w123b) === 'tuna' && w123b.artsLevels.juling === 3 &&
       w123b.artsLevels.tuna === D.ARTS_MAX_LV &&
@@ -623,12 +643,13 @@ window.SQSmoke.frag('02-gear-cave-learn', async function () {
       sm123out.ok === false && sm123out.reason === 'inslot' && main123out === 'juling' &&
       main123f === 'tuna' && sm123dup.ok === true && sm123dup.same === true &&
       keptPin123 && sv123h && w123h.artsMain === null && main123h === 'tuna' &&
-      n123k === 'juling' && n123bad === null,
+      n123k === 'juling' && n123bad === null && g123i && g2123i,
       'main=' + main123 + ' lv=' + lvAfter123.join('/') + ' 满级顺延→juling=' + w123b.artsLevels.juling +
       ' 首位=' + main123c + ' 全空=' + SQ.Arts.mainArt(w123d) +
       ' ‖ (e) 点定=' + main123e + ' 槽外拒=' + sm123out.reason + ' 移出后回落=' + main123f +
       ' 幂等=' + sm123dup.same + ' normalize=' + n123k + '/' + n123bad +
-      ' ‖ (f) 移出槽外仍记忆=' + keptPin123 + ' 散功后清空=' + (w123h.artsMain === null) + '/' + main123h);
+      ' ‖ (f) 移出槽外仍记忆=' + keptPin123 + ' 散功后清空=' + (w123h.artsMain === null) + '/' + main123h +
+      ' ‖ (g) 顶下槽即清空=' + g123i + ' 重入槽不复活=' + g2123i);
 
     /* #117 normalize：事件新字段 + seenOnce→seen 迁移 + drift 钳位 + profile 三字段 */
     var n117 = SQ.normalize({ v: SQ.V, profile: { name: '旧档', alignBias: 'weird' }, worlds: { xiuxian: {
