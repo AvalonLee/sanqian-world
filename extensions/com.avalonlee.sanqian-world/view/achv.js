@@ -26,11 +26,12 @@
   function codexFaceCard(c, face, meta, p, d) {
     var den = SQ.Codex.faceDenom(face, p, d);
     var got = SQ.Codex.faceCount(meta, face);
+    var marks = SQ.Codex.msMarks(d);          /* 档位与分母一律走引擎单源（改 MS_PCT 即改屏）*/
     var msDone = 0;
     if (face === 'title') {
       (d.CODEX.TITLE_MS || []).forEach(function (th) { if (got >= th) msDone++; });
     } else {
-      [50, 80, 100].forEach(function (pc) { if ((meta.earnedKeys || {})['codex.ms.' + face + '.' + pc] != null) msDone++; });
+      marks.forEach(function (pc) { if ((meta.earnedKeys || {})['codex.ms.' + face + '.' + pc] != null) msDone++; });
     }
     /* 称号面无百分比分母（绝对数阶梯）：只报枚数，杜绝「22/—」 */
     var cnt = face === 'title' ? c.t('codex.ui.collected.n', { n: got }) : c.t('codex.ui.collected', { n: got, total: den });
@@ -38,10 +39,10 @@
     var h = '<div class="facecard"><div class="ch"><span class="cn">' + c.esc(c.t('codex.face.' + face)) + '</span>' +
       '<span class="cc">' + c.esc(cnt) + '</span></div>';
     if (face !== 'title') h += '<div class="bar slim"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
-    h += '<div class="cfoot"><span class="cms">' + c.esc(msDone >= 3 ? c.t('codex.ui.ms.all') : c.t('codex.ui.ms', { done: msDone })) + '</span>' +
-      '<span class="msdots">' + [0, 1, 2].map(function (i) { return '<i' + (i < msDone ? ' class="on"' : '') + '></i>'; }).join('') + '</span></div>';
-    /* N20 接线：下一档阈值（正典 = UI 卷 v2.26 §3.7「取 [50,80,100] 中第一个未达者」；称号面无分母、三档齐、den 缺失都不出） */
-    var nextMsD = (face === 'title' || !den || pct >= 100) ? 0 : ([50, 80, 100].filter(function (pc) { return pct < pc; })[0] || 0);
+    h += '<div class="cfoot"><span class="cms">' + c.esc(msDone >= marks.length ? c.t('codex.ui.ms.all') : c.t('codex.ui.ms', { done: msDone })) + '</span>' +
+      '<span class="msdots">' + marks.map(function (_m, i) { return '<i' + (i < msDone ? ' class="on"' : '') + '></i>'; }).join('') + '</span></div>';
+    /* N20 接线：下一档阈值（正典 = UI 卷 v2.26 §3.7「取里程碑档表里第一个未达者」；称号面无分母、档数齐、den 缺失都不出） */
+    var nextMsD = (face === 'title' || !den || pct >= 100) ? 0 : (marks.filter(function (pc) { return pct < pc; })[0] || 0);
     if (nextMsD) h += '<div class="csub">' + c.esc(c.t('codex.ui.ms.next', { pct: nextMsD })) + '</div>';
     if (face === 'zone') {
       h += '<div class="csub">' + c.esc(c.t('codex.ui.zone.layer', {
@@ -62,15 +63,17 @@
       '<span class="secnote">' + c.esc(c.t('codex.ui.codexnote')) + '</span></div>';
     h += '<div class="facegrid">';
     (d.CODEX.FACES || []).forEach(function (face) { h += codexFaceCard(c, face, meta, p, d); });
-    /* 转世天赋子区（epic 专属池 8 格 · 只发遗泽不发 qiRate） */
+    /* 转世天赋子区（epic 专属池 · 只发遗泽不发 qiRate）——分母与档位同读引擎单源，不写死 8 与三档 */
     var nL = SQ.Codex.faceCount(meta, 'talentLegacy');
+    var capL = Math.max(1, SQ.Codex.legacyCap(d));
+    var marksL = SQ.Codex.msMarks(d);
     var msL = 0;
-    [50, 80, 100].forEach(function (pc) { if ((meta.earnedKeys || {})['codex.ms.talentLegacy.' + pc] != null) msL++; });
+    marksL.forEach(function (pc) { if ((meta.earnedKeys || {})['codex.ms.talentLegacy.' + pc] != null) msL++; });
     h += '<div class="facecard"><div class="ch"><span class="cn">' + c.esc(c.t('codex.ui.face.talentLegacy')) + '</span>' +
-      '<span class="cc">' + c.esc(c.t('codex.ui.collected', { n: nL, total: 8 })) + '</span></div>' +
-      '<div class="bar slim"><i style="width:' + (nL / 8 * 100).toFixed(1) + '%"></i></div>' +
+      '<span class="cc">' + c.esc(c.t('codex.ui.collected', { n: nL, total: capL })) + '</span></div>' +
+      '<div class="bar slim"><i style="width:' + (nL / capL * 100).toFixed(1) + '%"></i></div>' +
       '<div class="cfoot"><span class="cms">' + c.esc(c.t('codex.ui.ms', { done: msL })) + '</span>' +
-      '<span class="msdots">' + [0, 1, 2].map(function (i) { return '<i' + (i < msL ? ' class="on"' : '') + '></i>'; }).join('') + '</span></div></div>';
+      '<span class="msdots">' + marksL.map(function (_m, i) { return '<i' + (i < msL ? ' class="on"' : '') + '></i>'; }).join('') + '</span></div></div>';
     h += '</div>';
     /* 称号墙（自轮回页迁入）：已录称号 chips */
     if ((meta.titles || []).length) {

@@ -5,7 +5,8 @@
  *    而且同一版想重发一次公告，只改这里的号即可。文案全在词表，本件只出结构与判定（视图零自造文本）。 */
 (function () {
   var SQ = (window.SQ = window.SQ || {});
-  /* shortcut: 改这一行公告号 ⇒ 旧号在测试侧还有 **13 处字面**（`.tests/fixture-save.json` 1 ‖ `.tests/smoke.js` 2 ‖
+  /* shortcut: 改这一行公告号 ⇒ 旧号在测试侧还有 **13 处字面**（`.tests/fixture-save.json` 1 ‖
+   * `.tests/smoke/10-life-heir-jianghu.js` 2（第册二批起冒烟正文已切片，#320 在这一片）‖
    * 11 篇 `verify-ui-*.cjs` 各 1~2），那些串的意思是「这档已读过公告」，不改就整页被浮层盖住、点击类走查各红 30s。
    * 一条命令：`grep -rl 旧号 .tests view | xargs sed -i 's/旧号/新号/g'`，改完必须再 grep 一次残留（本批实测 14 个文件、零残留）。 */
   var ID = '2026-10-17-2';

@@ -557,14 +557,19 @@
   function ws() { return state.worlds[wid()]; }
   function pack() { return SQ.Worlds[wid()].pack; }
   function D() { return pack().data; }
-  function mods() { return SQ.Mods.collect(state.profile, ws(), pack(), D()); }
+  /* mods 聚合的「一轮渲染一次」记忆（第册二批 · 热路径项）：一次 renderAll 里 ctx() 被取 27 次，
+   * 每次都重跑一遍 Mods.collect 全量聚合（同一表达式里还有连取两次的）。渲染器是纯拼串、不改状态，
+   * 所以缓存只需活过本轮渲染：renderAll / renderTab 各自在入口清一次，跨轮必重算 ⇒ 不存在读到旧值的路径。
+   * shortcut: 若哪天出现「渲染中途写状态再读 mods」的写法，把失效点从渲染入口挪到写口（同 mutate 收口那条纪律）。 */
+  var _mods = null;
+  function mods() { if (!_mods) _mods = SQ.Mods.collect(state.profile, ws(), pack(), D()); return _mods; }
 
   /* 视图外置件的桥（第册五批 · N34 第二刀）：内联闭包里的私有量不许被外置件自取，一律走这一枚 ctx。
    * ⚠️ 键集由审计 **D7** 逐键对账：`view/*.js` 里用到的 c.xxx 必须在这里给过 ⇒ 少给一枚键当场判红，不留到运行时。
    * shortcut: 只放**已被外置件需要**的键；下一片要用新服务（toast / renderAll / mutate 之类）时在这里加一行、D7 自动跟。 */
   function ctx() {
     return { s: state, w: ws(), p: pack(), d: D(), ui: ui, $: $, t: t, esc: esc, date: gameDateStr,
-      mods: mods(), tierCls: tierCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, timeAgo: timeAgo, fmtDate: fmtDate };
+      mods: mods(), tierCls: tierCls, kindCls: treasureKindCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, timeAgo: timeAgo, fmtDate: fmtDate };
   }
 
   function show(name) {
@@ -1822,6 +1827,8 @@
   var TIER_CLS = { huang: 0, xuan: 2, di: 3, tian: 4 };
   function artTierCls(a) { return 't' + (TIER_CLS[a && a.tier] != null ? TIER_CLS[a.tier] : 0); }
   function tierCls(tier) { return TIER_CLS[tier] != null ? 't' + TIER_CLS[tier] : ''; }
+  /* 法宝「先天 / 后天」→ 色阶：同一套 t 类，映射只这一处（原四处逐字抄 `xian ? 4 : 2`）*/
+  function treasureKindCls(kind) { return 't' + (kind === 'xian' ? 4 : 2); }
   /* 未获得行（B4：获取途径教学行 + 缺项红字；系统深化批 B4：情报角标 + 豁免提示行） */
   /* ══════════ Tab · 法与器（页面整合批 2026-10-06 · UI 卷 §3.4a；标签化批 2026-10-09 改顶部标签）══════════
    * 原「功法」「法器」两页并为一页（tab id 沿用 `arts`，导航 13 → **12** 项）。
@@ -1922,7 +1929,7 @@
     var lacks = SQ.Treasures.lacksTexts(w, p, d, dd);
     var h = '<div class="tcard' + (eq ? ' rare' : '') + '">';
     h += '<div class="tname">' + esc(t('treasure.' + e.id + '.name')) +
-      ' <span class="tierbadge t' + (dd.kind === 'xian' ? 4 : 2) + '">' + esc(t('treasure.kind.' + dd.kind)) + '</span>' +
+      ' <span class="tierbadge ' + treasureKindCls(dd.kind) + '">' + esc(t('treasure.kind.' + dd.kind)) + '</span>' +
       ' <span class="align-sym">' + esc(t('treasure.grade.' + dd.grade)) + '</span>' +
       (eq ? ' <span class="special-mark">' + esc(t('treasure.equip')) + '</span>' : '') + '</div>';
     h += '<div class="teff">' + esc(t('treasure.lv.' + dd.kind, { n: lv, cap: max })) +
@@ -1957,14 +1964,14 @@
     var h = '<div class="tcard' + (it.owned ? '' : ' dim') + '">';
     if (!it.owned) {
       h += '<div class="tname">' + esc(qq) +
-        ' <span class="tierbadge t' + (dd.kind === 'xian' ? 4 : 2) + '">' + esc(q) + '</span>' +
+        ' <span class="tierbadge ' + treasureKindCls(dd.kind) + '">' + esc(q) + '</span>' +
         ' <span class="align-sym">' + esc(q) + '</span></div>';
       h += '<div class="teff">' + esc(q) + '</div>';
       h += '<div class="tdesc">' + esc(q) + '</div>';
       return h + '</div>';
     }
     h += '<div class="tname">' + esc(t('treasure.' + dd.id + '.name')) +
-      ' <span class="tierbadge t' + (dd.kind === 'xian' ? 4 : 2) + '">' + esc(t('treasure.kind.' + dd.kind)) + '</span>' +
+      ' <span class="tierbadge ' + treasureKindCls(dd.kind) + '">' + esc(t('treasure.kind.' + dd.kind)) + '</span>' +
       ' <span class="align-sym">' + esc(t('treasure.grade.' + dd.grade)) + '</span>' +
       (it.equipped ? ' <span class="special-mark">' + esc(t('treasure.equip')) + '</span>' : '') + '</div>';
     h += '<div class="teff">' + esc(t('treasure.lv.' + dd.kind, { n: it.level, cap: SQ.Treasures.maxOf(p, dd) })) +
@@ -2851,9 +2858,14 @@
   /* 坊市页渲染器 renderShop 已外置成 view/shop.js 的 SQ.UI.shop.render（第册六批） */
 
   /* ── Tab 6 奇遇（F2：叙事流 + 图鉴三节 + 系统日志弹层）── */
+  /* 事件表是静态装载的（SQ.EVENTS.*），可这里被逐卡片/逐页调用，每次 concat 出一份 131 条的新数组
+   * ⇒ 按「两源数组身份 + 世界 id」记忆化；两个调用点都只读（forEach / .length），共享一份不外泄。 */
+  var _evl = null;
   function allEventList() {
-    return (Array.isArray(SQ.EVENTS.common) ? SQ.EVENTS.common : [])
-      .concat(Array.isArray(SQ.EVENTS[wid()]) ? SQ.EVENTS[wid()] : []);
+    var a = Array.isArray(SQ.EVENTS.common) ? SQ.EVENTS.common : [];
+    var b = Array.isArray(SQ.EVENTS[wid()]) ? SQ.EVENTS[wid()] : [];
+    if (!_evl || _evl.a !== a || _evl.b !== b || _evl.w !== wid()) _evl = { a: a, b: b, w: wid(), out: a.concat(b) };
+    return _evl.out;
   }
   /* 独占载体（批 2 升级）：返回 {kind:'gear'|'art', id}——宝/法角标灰→金随获得切换（交互说明 ★） */
   function exclusiveOf(ev) {
@@ -3187,6 +3199,7 @@
   }
 
   function renderTab() {
+    _mods = null;                       /* 渲染入口清 mods 记忆（见 mods() 那条注）*/
     if (ui.tab === 'idle') renderIdle();
     else if (ui.tab === 'combat') renderCombat();
     else if (ui.tab === 'arts') renderArts();
@@ -3205,6 +3218,7 @@
   }
 
   function renderAll() {
+    _mods = null;                       /* 整轮渲染一次聚合：renderTop 与 renderTab 各自入口清 */
     renderTop();
     renderTabbar();
     /* 惰性页（journal/settings 每次重进时重建）：清掉上一状态残留，避免离开后仍显示旧数据 */
@@ -5905,13 +5919,19 @@
         snapTrib();                       /* 劫前成算/损失快照（F7 复盘行） */
         await SQ.claim(state);
         afterClaim(prev);
-        if (typing) return;
+        if (typing || document.hidden) return;
+        /* document.hidden：面板收在后台时结算与落盘照跑（进度不能停），只跳过每秒一次的整页 DOM 重建；
+         * 回到可见由下面的 visibilitychange 立刻补一帧 ⇒ 玩家看到的不会是旧数。 */
         renderAll();
         var tb = document.querySelector('.tabbody');
         if (tb) tb.scrollTop = keep;
       } catch (e) { /* 单次 tick 失败静默 */ }
     }, 1000);
   }
+  /* 回到前台立刻补一帧（tick 里 document.hidden 那支跳过的渲染在这里接回来）*/
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && ws()) { _mods = null; renderAll(); }
+  });
 
   /* ── MAIN 入口 ── */
   function enterMain() {
