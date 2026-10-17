@@ -1944,7 +1944,12 @@
     h += '<div class="teff">' + esc(t('treasure.lv.' + dd.kind, { n: lv, cap: max })) +
       ' · ' + esc(SQ.Treasures.fxText(w, p, dd, e)) + '</div>';
     h += '<div class="tdesc">' + esc(t('treasure.' + e.id + '.desc')) + '</div>';
-    if (dd.kind === 'xian') h += '<div class="tdesc">' + esc(t('treasure.bond.hint', { n: (p.treasures.BOND_COST || 3), h: (p.treasures.BOND_HOURS || 8) })) + '</div>';
+    if (dd.kind === 'xian') {
+      /* N52（第册十二批）：认主进度按件 ⇒ 这句只报「这件」的剩余，公式在引擎那一处（bondHoursLeft），视图不抄第二份 */
+      var bondLeft = SQ.Treasures.bondHoursLeft(p, e);
+      h += '<div class="tdesc">' + esc(t('treasure.bond.hint', { n: (p.treasures.BOND_COST || 3), h: (p.treasures.BOND_HOURS || 8) })) +
+        (bondLeft > 0 ? ' · ' + esc(t('treasure.bond.left', { n: bondLeft })) : '') + '</div>';
+    }
     if (!eq && lacks.length) h += '<div class="tdesc" style="color:var(--danger)">' + esc(lacks.join(' · ')) + '</div>';
     var acts = '';
     if (eq) {

@@ -98,7 +98,11 @@ window.SQSmoke.frag('05-codex-log-capacity', async function () {
       w.realm = 9; w.stones = 1e9;
       for (var li = 0; li < 2000; li++) SQ.Log.push(w, ['combat', 'idle', 'break', 'trib', 'event', 'shop', 'arts', 'sys'][li % 8], '这是一条四十字节的测试日志文本用来模拟真实渲染长度嗯嗯', 1700000000000 + li);
       pack.treasures.LIST.forEach(function (tt, ti) {
-        w.treasures.owned.push({ id: tt.id, st: ti < 6 ? { spirit: { w: 600, a: 1, p: 'jian', cd: 1, mk: 0, hun: 0, vt: { trib: 1, omen: 1, skill: 1, pickup: 1 } } } : {} });
+        /* 🔧 N52（第册十二批）：认主进度按件 ⇒ 先天件各带一份 st.bondN / st.bondH（最坏态每枚都摆上）；
+         * 顶层那两枚全局数同时退役 ⇒ 模型里也不再摆它们（摆着 = 虚报一份不存在的价格）*/
+        var st206 = ti < 6 ? { spirit: { w: 600, a: 1, p: 'jian', cd: 1, mk: 0, hun: 0, vt: { trib: 1, omen: 1, skill: 1, pickup: 1 } } } : {};
+        if (tt.kind === 'xian') { st206.bondN = 99; st206.bondH = 7.999999999; }
+        w.treasures.owned.push({ id: tt.id, st: st206 });
       });
       w.treasures.slots = pack.treasures.LIST.slice(0, 6).map(function (tt) { return tt.id; });
       Object.keys(pack.artsMap()).forEach(function (aid) { w.artsKnown.push(aid); w.artsLevels[aid] = 9; });

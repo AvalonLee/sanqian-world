@@ -468,54 +468,79 @@ window.SQSmoke.frag('10-life-heir-jianghu', async function () {
       ' ‖ 顶档 kills=' + r306b.kills + ' cleared=' + JSON.stringify(r306b.cleared) +
       ' ‖ 瓶颈 kills=' + r306c.kills + ' prog=' + w306c.prog[1]);
 
-    /* #307 法宝认主计时通道（第卌三批 · 用户报「要渡劫才涨进度太慢」）：计时与渡劫**共用同一枚
-     * bondCount 与同一条 bondAdvance modulo**（不另立升级路），所以判据要同时证
-     * 「不满份不涨」「满份进一阶」「渡劫仍在同一计数上继续走」「全数满阶即停表」「旧档补 0」。 */
+    /* #307 法宝认主计时通道（第卌三批立 · 🔧 **N52 第册十二批 = 按件改口**）：旧形状是计时与渡劫
+     * **共吃 `ws.treasures` 顶层一枚全局 bondCount**，现行 = 每件各吃自己的 `owned[].st.bondN`（计数）
+     * 与 `st.bondH`（计时余数），顶层那两枚读档即剪、**不摊派**。判据跟着改口，旧判据覆盖的支路
+     * 搬到新位置重判：原 (d)「共吃一枚」⇒ 现 (d)「一件顶阶停表、另一件照走」（全局形状做不到这条），
+     * 原 (e)「全数满阶停表」⇒ 现 (e)「顶阶件连渡劫计数也不涨」。 */
     var BOND307 = SQ.XTREASURES;
     var mkBond307 = function () {
       var w = mkWs({ realm: 2 });
-      w.treasures = { owned: [{ id: 'x02', stage: 1, st: {} }], slots: ['x02', null, null],
-        fate: { trib: 0, check: 0, drop: 0, event: 0 }, bondCount: 0 };   /* 旧档形状：无 bondHours */
+      w.treasures = { owned: [{ id: 'x02', stage: 1, st: {} }, { id: 'x04', stage: 1, st: {} }],
+        slots: ['x02', 'x04', null], fate: { trib: 0, check: 0, drop: 0, event: 0 },
+        bondCount: 7, bondHours: 5 };      /* 旧档形状：顶层那两枚全局数，本批起引擎不再读 */
       return w;
     };
+    var bn307 = function (e) { return (e.st && e.st.bondN) || 0; };
     var w307 = mkBond307();
+    var e307 = w307.treasures.owned[0], e307b = w307.treasures.owned[1];
     var lg307 = [];
     var log307 = function (c, txt) { lg307.push(txt); };
     SQ.Treasures.bondTime(w307, pack, D, BOND307.BOND_HOURS - 0.1, log307);
-    var under307 = w307.treasures.bondCount === 0 && w307.treasures.owned[0].stage === 1;
-    SQ.Treasures.bondTime(w307, pack, D, 0.2, log307);                       /* 满一份 → 计数 1，未到 BOND_COST */
-    var odd307 = w307.treasures.bondCount === 1 && w307.treasures.owned[0].stage === 1;
-    SQ.Treasures.bondTime(w307, pack, D, BOND307.BOND_HOURS, log307);         /* 再满一份 → 2 = BOND_COST → 进阶 */
-    var stage307 = w307.treasures.owned[0].stage === 2 && lg307.length === 1 &&
-      lg307[0] === SQ.t('treasure.bond.done', { name: SQ.t('treasure.x02.name', null, 'xiuxian'), n: 2 }, 'xiuxian');
-    SQ.Treasures.bondTick(w307, pack, D, log307);                             /* 渡劫 +1 → 3（奇数不进阶） */
-    SQ.Treasures.bondTick(w307, pack, D, log307);                             /* 再 +1 → 4 → 顶阶 3 */
-    var shared307 = w307.treasures.bondCount === 4 && w307.treasures.owned[0].stage === BOND307.MAX_STAGE &&
-      lg307.length === 2;
-    var bc307 = w307.treasures.bondCount, bh307 = w307.treasures.bondHours;
-    SQ.Treasures.bondTime(w307, pack, D, 999, log307);                        /* 全数满阶 → 停表 */
-    var stopped307 = w307.treasures.bondCount === bc307 && w307.treasures.bondHours === bh307 && lg307.length === 2;
-    var norm307 = SQ.Treasures.normalize({ owned: [{ id: 'x02', stage: 2 }], slots: [null, null, null],
-      fate: {}, bondCount: 3 }, pack);                                        /* 旧档（无该字段）读入补 0 */
+    var under307 = bn307(e307) === 0 && bn307(e307b) === 0 && e307.stage === 1 && e307b.stage === 1 &&
+      Math.abs(e307.st.bondH - (BOND307.BOND_HOURS - 0.1)) < 1e-9 && lg307.length === 0;
+    SQ.Treasures.bondTime(w307, pack, D, 0.2, log307);                       /* 两份各满 8h ⇒ 每件各 +1 计数，未到 BOND_COST */
+    var odd307 = bn307(e307) === 1 && bn307(e307b) === 1 && e307.stage === 1 && e307b.stage === 1 && lg307.length === 0;
+    SQ.Treasures.bondTime(w307, pack, D, BOND307.BOND_HOURS, log307);         /* 再满一份 → 每件计数 2 = BOND_COST → 各进一阶 */
+    var stage307 = e307.stage === 2 && e307b.stage === 2 && lg307.length === 2 &&
+      lg307[0] === SQ.t('treasure.bond.done', { name: SQ.t('treasure.x02.name', null, 'xiuxian'), n: 2 }, 'xiuxian') &&
+      lg307[1] === SQ.t('treasure.bond.done', { name: SQ.t('treasure.x04.name', null, 'xiuxian'), n: 2 }, 'xiuxian');
+    e307.stage = BOND307.byId.x02.MAX_STAGE || 3;                            /* 把 x02 摆到顶阶：按件的独立性只能在这种形状下看得见 */
+    var bnBefore307 = bn307(e307), lgBefore307 = lg307.length;
+    SQ.Treasures.bondTime(w307, pack, D, BOND307.BOND_HOURS * 2, log307);
+    var perItem307 = bn307(e307) === bnBefore307 && e307.stage === (BOND307.byId.x02.MAX_STAGE || 3) &&
+      bn307(e307b) === 4 && e307b.stage === (BOND307.byId.x04.MAX_STAGE || 3) && lg307.length === lgBefore307 + 1;
+    var bc307 = bn307(e307), bh307 = e307.st.bondH;
+    SQ.Treasures.bondTick(w307, pack, D, log307);                            /* 两件都顶阶 ⇒ 连渡劫计数也不涨 */
+    SQ.Treasures.bondTime(w307, pack, D, 999, log307);
+    var stopped307 = bn307(e307) === bc307 && e307.st.bondH === bh307 && bn307(e307b) === 4 && lg307.length === lgBefore307 + 1;
+    var norm307 = SQ.Treasures.normalize({ owned: [{ id: 'x02', stage: 2, st: {} }], slots: [null, null, null],
+      fate: {}, bondCount: 3, bondHours: 5 }, pack);                         /* 旧档：顶层两键读入即剪、件上不留残余计数 */
     /* (g) 真入口：挂点在世界包 claim 的已结算时长之后（与寿元同一条时钟），离线 24h 照 OFFLINE_CAP_H
-     * 封顶 12h ⇒ 12÷8 = 1 份计数、余 4h 留档。直调 bondTime 证不了这根线接上了，故必须走 claim。 */
+     * 封顶 12h ⇒ 该件 12÷8 = 1 份计数、余 4h 留在这件的 st.bondH。直调 bondTime 证不了线接上了，故走 claim。 */
     var w307g = mkWs({ realm: 2 });
     w307g.treasures = { owned: [{ id: 'x02', stage: 1, st: {} }], slots: ['x02', null, null],
-      fate: { trib: 0, check: 0, drop: 0, event: 0 }, bondCount: 0 };
+      fate: { trib: 0, check: 0, drop: 0, event: 0 }, bondCount: 9, bondHours: 9 };
     pack.claim(w307g, 24 * 3600000, Date.now(), mkProf(), { autoTrib: false });
-    var wired307 = w307g.treasures.bondCount === 1 &&
-      Math.abs(w307g.treasures.bondHours - (D.OFFLINE_CAP_H % BOND307.BOND_HOURS)) < 1e-9 &&
-      w307g.treasures.owned[0].stage === 1;
-    ok('307', '法宝认主加计时通道（第卌三批）：(a) 差 0.1h 不满份不涨 (b) 满 BOND_HOURS(' + BOND307.BOND_HOURS +
-      'h) 一份 = 计数 +1，未满 BOND_COST(' + BOND307.BOND_COST + ') 不进阶 (c) 两份即到一阶且写一条 bond.done ' +
-      '(d) 渡劫与计时同吃一枚 bondCount（3/4 → 顶阶' + BOND307.MAX_STAGE + '） (e) 全数满阶停表、无谓计数不长 ' +
-      '(f) 旧档缺字段 normalize 补 0（零迁移面） (g) 真入口：claim 离线 24h 只按封顶 ' + D.OFFLINE_CAP_H +
-      'h 计 ⇒ +1 份、余 ' + (D.OFFLINE_CAP_H % BOND307.BOND_HOURS) + 'h 留档',
-      under307 && odd307 && stage307 && shared307 && stopped307 &&
-      norm307.bondHours === 0 && norm307.bondCount === 3 && BOND307.BOND_HOURS === 8 && wired307,
-      'under=' + under307 + ' odd=' + odd307 + ' stage=' + w307.treasures.owned[0].stage +
-      ' count=' + w307.treasures.bondCount + ' stopped=' + stopped307 + ' norm=' + norm307.bondHours +
-      ' 真入口=' + w307g.treasures.bondCount + '/' + w307g.treasures.bondHours.toFixed(2) + 'h');
+    var g307e = w307g.treasures.owned[0];
+    var wired307 = w307g.treasures.bondCount === 9 && w307g.treasures.bondHours === 9 &&   /* claim 不读顶层旧键（它们只是没被剪的残值） */
+      bn307(g307e) === 1 && Math.abs(g307e.st.bondH - (D.OFFLINE_CAP_H % BOND307.BOND_HOURS)) < 1e-9 &&
+      g307e.stage === 1;
+    /* (h) 视图取数口只此一处（公式不许在视图抄第二份）：未满件给正数、顶阶件与非先天件都给 0 */
+    var w307h = mkBond307();
+    var leftOpen307 = SQ.Treasures.bondHoursLeft(pack, w307h.treasures.owned[0]);
+    w307h.treasures.owned[0].st.bondN = 2; w307h.treasures.owned[0].st.bondH = 1;
+    var leftMid307 = SQ.Treasures.bondHoursLeft(pack, w307h.treasures.owned[0]);
+    w307h.treasures.owned[0].stage = (BOND307.byId.x02.MAX_STAGE || 3);
+    var leftMax307 = SQ.Treasures.bondHoursLeft(pack, w307h.treasures.owned[0]);
+    var leftHou307 = SQ.Treasures.bondHoursLeft(pack, { id: 'h19', lv: 1, st: {} });
+    var leftOk307 = leftOpen307 === BOND307.BOND_COST * BOND307.BOND_HOURS &&
+      leftMid307 === BOND307.BOND_COST * BOND307.BOND_HOURS - 1 &&
+      leftMax307 === 0 && leftHou307 === 0;
+    ok('307', '法宝认主计时通道（第卌三批立 · 🔧 N52 按件改口）：(a) 差 0.1h 不满份 ⇒ 每件各自不涨、余数留在各件上 (b) 满 BOND_HOURS(' + BOND307.BOND_HOURS +
+      'h) ⇒ 每件各 +1 计数，未满 BOND_COST(' + BOND307.BOND_COST + ') 不进阶 (c) 两份各进一阶且**每件各写一条** bond.done ' +
+      '(d) 按件独立：一件顶阶停表、另一件照走到' + (BOND307.byId.x04.MAX_STAGE || 3) + '阶（旧「共吃一枚全局 bondCount」那条支路搬到新位置重判） ' +
+      '(e) 两件全顶阶 ⇒ 渡劫与再喂 999h 都不涨计数、不再写日志 (f) 旧档顶层 bondCount/bondHours 读入即剪且**不摊派**到件上 ' +
+      '(g) 真入口：claim 离线 24h 按封顶 ' + D.OFFLINE_CAP_H + 'h 计 ⇒ 该件 +1 份、余 ' + (D.OFFLINE_CAP_H % BOND307.BOND_HOURS) + 'h 留在该件 st ' +
+      '(h) bondHoursLeft 单源：未满给正数、顶阶与非先天给 0',
+      under307 && odd307 && stage307 && perItem307 && stopped307 && leftOk307 &&
+      norm307.bondCount === undefined && norm307.bondHours === undefined &&
+      norm307.owned[0].st.bondN === undefined && BOND307.BOND_HOURS === 8 && wired307,
+      '顶阶停表=' + stopped307 + ' 按件=' + perItem307 + ' 件计数=' + bn307(e307) + '/' + bn307(e307b) +
+      ' 旧档剪=' + (norm307.bondCount === undefined) + '/' + (norm307.bondHours === undefined) +
+      ' 不摊派=' + (norm307.owned[0].st.bondN === undefined) +
+      ' 真入口=' + bn307(g307e) + '/' + g307e.st.bondH.toFixed(2) + 'h 剩余=' +
+      leftOpen307 + '/' + leftMid307 + '/' + leftMax307 + '/' + leftHou307);
 
     /* #308 切磋冷却改 10 现实分钟（第卌三批 · 用户报「7 天太长，榜基本是摆设」）：
      * 键名随单位一并改成 SPAR_CD_MS（旧 DAYS 键不许留第二份事实源，A9 死常量关会抓、这里也直判一次）。 */
@@ -851,8 +876,8 @@ window.SQSmoke.frag('10-life-heir-jianghu', async function () {
       /* (乙3) 法宝：龙髓珠认主晋阶授寿，非寿件不给 */
       var wt314 = p314.normalize(p314.initialState()); wt314.realm = 7; wt314.lifeBonus = 0;
       SQ.Treasures.gain(wt314, p314, D314, 'x19', null);
-      /* bondAdvance 是内部件，对外只出 bondTick（+1 计数后调它）⇒ 先把计数摆到差一跳，再 tick 一次 */
-      wt314.treasures.bondCount = p314.treasures.BOND_COST - 1;
+      /* bondAdvance 已按件（N52）：对外仍只出 bondTick ⇒ 先把**这件**的 st.bondN 摆到差一跳，再 tick 一次 */
+      SQ.Treasures.entryOf(wt314, 'x19').st.bondN = p314.treasures.BOND_COST - 1;
       SQ.Treasures.bondTick(wt314, p314, D314, null);
       var x19Gain314 = wt314.lifeBonus;
       /* (乙4) 奇遇：山间甘泉「饮泉」支路（无判定 ⇒ 可复现），区间两端各 stub 一次 */
