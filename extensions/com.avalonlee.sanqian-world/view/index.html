@@ -1412,10 +1412,19 @@
      * 用户令「寿元：111岁，尚余约1111年」⇒ `li.age`（= floor(lifeUsed)，含创角生年）报岁、
      * 只报剩余，不再摆「X/Y」分数：上界会随累加阶梯与 lifeBonus 动，摆出来只诱导误算。 */
     var li = p.worldSystems.lifeInfo(w);
+    /* N58 定案（第册十二批落地）：历练态在寿元行旁补一句**按当前模式折算**的等效可用年——
+     * 寿元阶梯按「全部闭关」定标，而历练产出只有闭关的 42% ⇒ 同一境要烧 2.4 倍岁月。
+     * 不改表、不改节奏（那两案第册三批已否），只把这件事摆到屏上。折算率现取 `MODES`，不写死 2.4。 */
+    var ventSpan = '';
+    if (!li.eternal && w.mode === 'venture') {
+      var MSv = p.data.MODES || {};
+      var skv = (MSv.seclude || {}).qiMult || 1, vkv = (MSv.venture || {}).qiMult || 1;
+      ventSpan = '<span class="hint"> · ' + esc(t('life.venture.warn', { n: SQ.fmt(Math.max(0, Math.floor(li.left * vkv / skv))) })) + '</span>';
+    }
     h += '<div class="kv"><span' + (li.near ? ' class="bad"' : '') + '>' + esc(
       li.eternal ? t('life.row.eternal', { age: SQ.fmt(li.age) })
         : t('life.row', { age: SQ.fmt(li.age), left: SQ.fmt(Math.max(0, Math.ceil(li.left))) })
-      ) + '</span>' + (li.near ? '<span class="bad">' + esc(t('life.near', { left: SQ.fmt(Math.ceil(li.left)) })) + '</span>' : '') + '</div>';
+      ) + '</span>' + (li.near ? '<span class="bad">' + esc(t('life.near', { left: SQ.fmt(Math.ceil(li.left)) })) + '</span>' : '') + ventSpan + '</div>';
     if (li.daoLv >= 1) {
       h += '<div class="kv"><span' + (li.daoNear ? ' class="bad"' : '') + '>' +
         esc(t('daoshang.row', { n: li.daoLv, cap: li.daoMax })) + '</span>' +

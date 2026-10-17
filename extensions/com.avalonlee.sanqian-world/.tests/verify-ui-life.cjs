@@ -214,6 +214,55 @@ const { load } = require('./sandbox.cjs');   /* 种子数值一律取自引擎�
     await ctx.close();
   }
 
+  /* ── V 历练折算预警（N58 定案 · 第册四批点头 · 第册十二批落地）──
+   * 寿元阶梯按「全部闭关」定标，而历练产出只有闭关的 42% ⇒ 同一境要烧 2.4 倍岁月。
+   * 裁定 = 不改表、不改节奏，只在历练态把这件事摆到屏上。四刀：数字对表 / 句式独立形状 /
+   * 折算必小于闭关口径 / **改表 ⇒ 屏上跟着变**（证视图真读 MODES，没把 0.42 写死）。 */
+  {
+    const { ctx, page, errors } = await openPage(buildSave({ lifeUsed: Math.floor(CAP1 * 0.14), mode: 'venture' }));
+    await page.waitForSelector('#tab-idle', { timeout: 15000 });
+    await page.waitForTimeout(400);
+    const v = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+      const w = s.worlds[s.profile.worldId], D = SQ.Worlds.xiuxian.pack.data;
+      const li = SQ.Worlds.xiuxian.pack.worldSystems.lifeInfo(w);
+      const eff = n => Math.max(0, Math.floor(n * D.MODES.venture.qiMult / D.MODES.seclude.qiMult));
+      const row = (document.getElementById('tab-idle').textContent.match(/照此刻的历练节奏.+?年/) || [''])[0];
+      return { left: li.left, eff: eff(li.left), rate: D.MODES.venture.qiMult / D.MODES.seclude.qiMult,
+        want: SQ.t('life.venture.warn', { n: SQ.fmt(eff(li.left)) }, 'xiuxian'), row: row };
+    });
+    T(v.row !== '' && v.row === v.want, 'V1 历练态寿元行带折算预警，数字 === 页内按 MODES 复算',
+      '屏=' + v.row + ' 期望=' + v.want + ' 剩余=' + Math.round(v.left));
+    T(v.row.indexOf('照此刻的历练节奏') === 0 && /年$/.test(v.row) && !/[A-Za-z0-9.]/.test(v.row.replace(/\d+(?=年$)/, '')),
+      'V2 句式独立形状判据（以这句开头、以「年」收尾、数字之外零英文字母）——词表整句改写时 L1 那类「屏上===派生串」会假绿，靠这条兜', v.row);
+    T(v.rate > 0 && v.rate < 1 && v.eff < Math.ceil(v.left),
+      'V3 折算后必然少于闭关口径的剩余（「历练烧岁月更快」这件事要落在数上，不是只换句话）',
+      '率=' + v.rate.toFixed(3) + ' 等效=' + v.eff + ' 闭关口径剩余=' + Math.ceil(v.left));
+    const d4 = await page.evaluate(async () => {
+      const D = SQ.Worlds.xiuxian.pack.data, keep = D.MODES.venture.qiMult;
+      const read = () => (document.getElementById('tab-idle').textContent.match(/照此刻的历练节奏.+?年/) || [''])[0];
+      D.MODES.venture.qiMult = keep * 0.5;
+      await new Promise(r => setTimeout(r, 1600));                 /* 等一帧 tick 重绘 */
+      const changed = read();
+      D.MODES.venture.qiMult = keep;
+      await new Promise(r => setTimeout(r, 1600));
+      return { changed: changed, back: read() };
+    });
+    T(d4.changed !== '' && d4.changed !== v.row && d4.back === v.row,
+      'V4 当场改历练产出 ⇒ 屏上数字跟着变、改回即复原（证读表，不写死折算率）',
+      '改后=' + d4.changed + ' 复原=' + d4.back);
+    T(errors.length === 0, 'V5 零页面报错（历练世）', errors.join(' | ').slice(0, 160) || 'clean');
+    await ctx.close();
+  }
+  {   /* V6 反例：闭关态这句必须不出现（否则 V1 可以在空集上假绿）*/
+    const { ctx, page } = await openPage(buildSave({ lifeUsed: Math.floor(CAP1 * 0.14), mode: 'seclude' }));
+    await page.waitForSelector('#tab-idle', { timeout: 15000 });
+    await page.waitForTimeout(400);
+    const txt = await idleText(page);
+    T(txt.indexOf('照此刻的历练节奏') < 0, 'V6 闭关态不出这句（反例，防空集恒真）', txt.slice(0, 46));
+    await ctx.close();
+  }
+
   await browser.close();
   console.log(fail === 0 ? 'UI_LIFE_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_LIFE_FAILED ' + fail);
   process.exit(fail === 0 ? 0 : 1);
