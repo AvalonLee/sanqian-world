@@ -125,7 +125,7 @@ async function buildSave() {
   return {
     save: {
       v: 1,
-      profile: { name: '链通验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral' },
+      profile: { name: '链通验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-1' },
       meta: meta,
       settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
       worlds: { xiuxian: ws }

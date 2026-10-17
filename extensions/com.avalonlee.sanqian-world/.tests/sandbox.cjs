@@ -21,7 +21,13 @@ function readOrder(html) {
   const out = [];
   const re = /<script[^>]*\bsrc="([^"]+)"[^>]*>/g;
   let m;
-  while ((m = re.exec(src))) out.push(m[1].replace(/^\.\.\//, '').replace(/^\.\//, ''));
+  while ((m = re.exec(src))) {
+    const f = m[1].replace(/^\.\.\//, '').replace(/^\.\//, '');
+    /* 第册四批：视图代码开始外置 ⇒ `view/` 同目录的**视图专属件**（updatenote.js 等）不是引擎装载序列的一部分，
+     * 不进本清单（沙箱只重放引擎）。它们的在位与语法由审计 D2（存在性 + 必须落在 view 目录下）、D5（可解析）、
+     * A1/A3（CJK 与 DOM id 对账按同目录 js 一并扫）守，不会因为换了载体变成没人查。 */
+    if (f.startsWith('assets/')) out.push(f);
+  }
   if (out.length < 50) throw new Error('sandbox: <script src> 只解析出 ' + out.length + ' 项（< 50），清单或 HTML 已漂：' + html);
   if (!/core\.js$/.test(out[out.length - 1])) throw new Error('sandbox: 末项不是 core.js，装载顺序不可信：' + out[out.length - 1]);
   out.forEach((f) => { if (!fs.existsSync(path.join(ROOT, f))) throw new Error('sandbox: 清单里的文件不存在 ' + f); });

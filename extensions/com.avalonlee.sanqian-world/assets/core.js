@@ -30,7 +30,8 @@
       createdAt: 0,
       alignBias: 'neutral',    /* 问道初心（创角屏 2，锁定态）：right|neutral|evil（工程规范 §3.1 v2.0） */
       gender: 'male',          /* 预留字段，本期无选择入口（工程规范 §3.1 v2.2 / 冒烟 #117） */
-      race: 'human'            /* 同上 */
+      race: 'human',           /* 同上 */
+      seenNote: null           /* 已读更新公告的公告号（第册四批 · UI 卷 §3.4e）；null = 一次都没看过 */
     };
   }
 
@@ -90,7 +91,8 @@
       createdAt: typeof p.createdAt === 'number' ? p.createdAt : 0,
       alignBias: BIAS[p.alignBias] ? p.alignBias : 'neutral',
       gender: typeof p.gender === 'string' && p.gender ? p.gender : 'male',
-      race: typeof p.race === 'string' && p.race ? p.race : 'human'
+      race: typeof p.race === 'string' && p.race ? p.race : 'human',
+      seenNote: typeof p.seenNote === 'string' && p.seenNote ? p.seenNote : null   /* 脏值（对象/数字/空串）归 null */
     };
     var m = raw.meta && typeof raw.meta === 'object' ? raw.meta : {};
     /* codices 串接还原（容量级⑦ · 扩容批启用）：落盘时九面数组可能被压成逗号串（save 侧序列化副本），
