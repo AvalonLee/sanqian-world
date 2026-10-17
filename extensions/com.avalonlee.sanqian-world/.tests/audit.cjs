@@ -19,7 +19,7 @@
  *   B7 壁纸透底态规则（#86 静态半区）  B8 桥容错（#89，单一桥模块 + try/catch + 失败出口）
  *   B9 交付镜像一致性（七项逐字节零差异）〔**2026-10-14 GitHub 整理批退役**：根侧副本删除后没有第二份可比 ⇒ 由 D4 接管〕
  * D 组 · 账本与装载（2026-10-14 结构整治批B 立）：
- *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 全等 ⇔ smoke.html 保序子集 ⇔ assets 无未挂载件）
+ *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 的引擎段与 view 的 assets 段全等 ‖ 视图专属件必须在 view 下 ‖ smoke.html 保序子集 ‖ assets 无未挂载件）
  *   D3 世界专属别名封闭（通用层与视图直读 SQ.XDATA 必须挂册，例外失效同判；2026-10-14 批C 立）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
@@ -392,6 +392,11 @@ const SQ = sandbox.window.SQ;
     const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
     let m;
     while ((m = re.exec(src))) code.push(m[1]);
+    /* 第册四批：视图代码开始外置（`view/*.js` 与本页同目录）⇒ 同目录的 js 也算这页的脚本，
+     * 否则「脚本引用的 id 必须静态存在」这条对账会随搬家出现盲区。 */
+    const here = path.dirname(f);
+    if (fs.existsSync(here)) fs.readdirSync(here).filter((x) => x.endsWith('.js'))
+      .forEach((x) => code.push(fs.readFileSync(path.join(here, x), 'utf8')));
     const body = code.join('\n');
     const refs = [...body.matchAll(/\$\('([^']+)'\)|getElementById\(\s*'([^']+)'\s*\)/g)]
       .map((x) => x[1] || x[2]);
@@ -881,10 +886,16 @@ const SQ = sandbox.window.SQ;
   }
   ok('B3', '零 CDN（入口 HTML 无外链）', b3.length === 0, b3.join(','));
 
-  /* B4 主题铁律（module 卡为透明玻璃底，不要求 --xhub-surface） */
-  const viewSrc = fs.readFileSync(path.join(ROOT, 'view/index.html'), 'utf8');
+  /* B4 主题铁律（module 卡为透明玻璃底，不要求 --xhub-surface）
+   * ⚠️ 第册四批起 view 的样式外置成 `view/ui.css` ⇒ 本关读「HTML + 那份样式」合起来的旧字符串口径，
+   *    载体搬了家、覆盖面不许缩水；样式文件本身缺失也判红（免得铁律被搬到没人查的地方）。 */
+  const viewCssPath = path.join(ROOT, 'view/ui.css');
+  const viewHasCss = fs.existsSync(viewCssPath);
+  const viewSrc = fs.readFileSync(path.join(ROOT, 'view/index.html'), 'utf8') +
+    (viewHasCss ? '\n' + fs.readFileSync(viewCssPath, 'utf8') : '');
   const modSrc = fs.readFileSync(path.join(ROOT, 'module/index.html'), 'utf8');
   const b4 = [];
+  if (!viewHasCss) b4.push('view/ui.css 不在（样式若仍内联，本关口径要同批改）');
   if (!viewSrc.includes('background: var(--xhub-page-bg, transparent)')) b4.push('view 页面底非透明变量');
   if (!viewSrc.includes('var(--xhub-surface')) b4.push('view 缺 --xhub-surface');
   if (!/background:\s*transparent/.test(modSrc)) b4.push('module 卡底非透明');
@@ -997,6 +1008,15 @@ const SQ = sandbox.window.SQ;
 (function () {
   const bad = [];
   let n = 0;
+  /* 第册四批：视图代码开始外置 ⇒ 本关射程 = 各 HTML 的内联块 **+ 同目录外置 js**（只查一半就是盲区） */
+  const extJs = [...new Set(htmlFiles.flatMap((f) => (fs.existsSync(path.dirname(f))
+    ? fs.readdirSync(path.dirname(f)).filter((x) => x.endsWith('.js')).map((x) => path.join(path.dirname(f), x))
+    : [])))];
+  extJs.forEach((f) => {
+    n++;
+    try { new vm.Script(fs.readFileSync(f, 'utf8'), { filename: relOf(f) }); }
+    catch (e) { bad.push(relOf(f) + ':1 ' + e.message); }
+  });
   htmlFiles.forEach((f) => {
     inlineScripts(f).forEach((b) => {
       n++;
@@ -1012,7 +1032,7 @@ const SQ = sandbox.window.SQ;
     });
   });
   ok('D5', '内联脚本可解析（view/module 的 JS = 浏览器实际加载那一份 · 语法错不再只在真机炸）',
-    bad.length === 0, 'HTML ' + htmlFiles.length + ' 件 · 脚本块 ' + n + ' 段' +
+    bad.length === 0, 'HTML ' + htmlFiles.length + ' 件 · 脚本块 ' + n + ' 段（含外置视图件 ' + extJs.length + ' 件）' +
     (bad.length ? ' ‖ ' + bad.slice(0, 4).join(' ‖ ') : ' ‖ 全部可解析'));
 })();
 
@@ -1055,10 +1075,28 @@ const SQ = sandbox.window.SQ;
   const view = srcs('view/index.html');
   if (!view) { ok('D2', '加载顺序单源（view 为事实源 ⇔ 四判）', false, 'view/index.html 读不到'); return; }
   const bad = [];
-  view.forEach((f) => { if (!fs.existsSync(path.join(ROOT, f))) bad.push('引用不存在的件 ' + f); });
+  /* 引用件的存在性按「相对该 HTML 自身目录」解（第册四批起 view 下同目录有外置件），
+   * 老口径一律从扩展根解 ⇒ `updatenote.js` 这类视图件会被误判成「引用不存在的件」。 */
+  const base = path.dirname('view/index.html');
+  view.forEach((f) => {
+    const hit = fs.existsSync(path.join(ROOT, f)) || fs.existsSync(path.join(ROOT, base, f));
+    if (!hit) bad.push('引用不存在的件 ' + f);
+  });
   const mod = srcs('module/index.html');
+  /* 第册四批改口（D2 的立身之本不变）：**引擎装载序列**仍要求两份逐字全等；
+   * 而 `view/*.js` 这类**视图专属件**只属 view（module 卡没有那些浮层的 DOM，硬挂等于在卡片里造弹窗）。
+   * ⇒ 判据从「两条序列全等」改成「view 里所有 assets/ 项组成的序列 === module 全序列」，
+   *   并加一条「非 assets 的挂载件必须就躺在 view 目录下」，免得有人从别处拖脚本进来。 */
   if (!mod) bad.push('module/index.html 读不到');
-  else if (JSON.stringify(mod) !== JSON.stringify(view)) bad.push('module 序列与 view 不同（' + mod.length + ' vs ' + view.length + '）');
+  else {
+    const eng = view.filter((x) => x.startsWith('assets/'));
+    if (JSON.stringify(mod) !== JSON.stringify(eng)) {
+      bad.push('module 引擎序列 ≠ view 的 assets 段（' + mod.length + ' vs ' + eng.length + '）');
+    }
+  }
+  view.filter((x) => !x.startsWith('assets/')).forEach((x) => {
+    if (!fs.existsSync(path.join(ROOT, 'view', x))) bad.push('视图专属件不在 view 目录下：' + x);
+  });
   const smoke = srcs('.tests/smoke.html');
   if (smoke) {
     const only = smoke.filter((f) => f.startsWith('assets/'));
@@ -1073,7 +1111,7 @@ const SQ = sandbox.window.SQ;
     }
   })(path.join(ROOT, 'assets'));
   js.forEach((f) => { if (view.indexOf(f) < 0) bad.push('assets 件未挂进 view/index.html：' + f); });
-  ok('D2', '加载顺序单源（view 事实源 ⇔ 引用件存在 ⇔ module 全等 ⇔ smoke.html 保序子集 ⇔ assets 无未挂载件）',
+  ok('D2', '加载顺序单源（view 事实源 ⇔ 引用件存在 ⇔ module 引擎段全等 ⇔ 视图件落在 view ‖ smoke.html 保序子集 ⇔ assets 无未挂载件）',
     bad.length === 0, '序列 ' + view.length + ' 项 · assets ' + js.length + ' 件' + (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 四判全合'));
 })();
 

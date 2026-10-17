@@ -7,7 +7,7 @@
 **零 CDN、零打包器、零框架**：全部代码是经典 `<script>` 脚本，随扩展包一起走，改完刷新即生效。
 
 <!-- SQ:LEDGER:BEGIN readme 现行读数由 .tests/gen-ledger.cjs 生成，手改即漂；段外不参与覆盖 -->
-- **现行读数**（本行由 `.tests/gen-ledger.cjs` 生成）：扩展版本 `0.5.14` · 冒烟 319 · 审计 25 关 · 常驻探针 246 断言 · 界面走查 30 篇 / 722 断言 · 词表键 4788 · 世界名册 6 界（可见 6）。缺读数 = 「未跑」，不当 0 计。
+- **现行读数**（本行由 `.tests/gen-ledger.cjs` 生成）：扩展版本 `0.5.15` · 冒烟 320 · 审计 25 关 · 常驻探针 246 断言 · 界面走查 31 篇 / 730 断言 · 词表键 4797 · 世界名册 6 界（可见 6）。缺读数 = 「未跑」，不当 0 计。
 <!-- SQ:LEDGER:END -->
 
 ## 一、仓库结构（先看这个）
@@ -18,9 +18,11 @@
 仓库根
 ├── extensions/com.avalonlee.sanqian-world/   ← 唯一事实源（下面七件是宿主读的）
 │   ├── manifest.json         扩展清单（id / version / 四形态 entry / moduleVariants）
-│   ├── view/index.html       主入口（view / window / drawer 共用）：51 个 <script src> 按顺序加载
-│   ├── module/index.html     工作台卡片（同一引擎的紧凑壳，装载序列必须与 view 全等 = 审计 D2）
-│   ├── assets/               引擎与数据 51 个 .js：core.js + systems/ + worlds/xiuxian/ + lexicon/ + talents/ + events/
+│   ├── view/index.html       主入口（view / window / drawer 共用）：<script src> 按顺序加载 = 装载序列唯一事实源（件数由审计 D2 打印，此处不抄）
+│   ├── view/ui.css           界面样式（第册四批从 index.html 的 <style> 整块搬出，B4 主题铁律读「HTML + 这份样式」）
+│   ├── view/updatenote.js    更新公告浮层的判定与渲染（**视图专属件**：只挂 view、不进 assets、不挂 module = D2 新判的一族）
+│   ├── module/index.html     工作台卡片（同一引擎的紧凑壳；它的序列必须等于 view 里 `assets/` 那一段 = 审计 D2）
+│   ├── assets/               引擎与数据（core.js + systems/ + worlds/xiuxian/ + lexicon/ + talents/ + events/，件数由 D2 打印）
 │   ├── .tests/               回归资产（引擎冒烟 / 静态审计 / 仿真探针 / 界面走查 / 账本工具）
 │   ├── icon.svg              扩展图标
 │   └── DESIGN.md             扩展目录内的快照索引件

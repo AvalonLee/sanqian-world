@@ -10902,6 +10902,28 @@
       ' 隐世=' + j319 + '/' + !!k319 + '/' + l319);
 
 
+    /* ═══ #320 已读公告号（第册四批 · 更新公告浮层 · 视图代码外置试点的存档面）═══
+     * profile 是**逐字段显式 normalize**：漏抄一行就静默丢（读档后打回未读 ⇒ 每次进线重弹一次），
+     * 所以判据要同时咬「保值 / 脏值归 null / 缺键补 null / 复 normalize 幂等 / 键确在声明集内」。 */
+    var s320 = SQ.defaultState();
+    var prof320 = function (p) { return SQ.normalize({ v: s320.v, profile: p, worlds: {}, meta: {} }).profile; };
+    var a320 = s320.profile.seenNote === null;
+    var b320 = prof320({ name: '甲', seenNote: '2026-10-17-1' }).seenNote === '2026-10-17-1';
+    var c320 = prof320({ seenNote: { a: 1 } }).seenNote === null && prof320({ seenNote: 7 }).seenNote === null &&
+      prof320({ seenNote: '' }).seenNote === null;
+    var d320 = prof320({ name: '甲' }).seenNote === null;                       /* 旧档无此键 ⇒ 补 null（不是 undefined） */
+    var e320 = (function () {
+      var one = SQ.normalize({ v: s320.v, profile: { seenNote: 'x-1' }, worlds: {}, meta: {} });
+      var t1 = JSON.stringify(SQ.normalize(one).profile), t2 = JSON.stringify(SQ.normalize(SQ.normalize(one)).profile);
+      return one.profile.seenNote === 'x-1' && t1 === t2;
+    })();
+    var f320 = Object.keys(prof320({ seenNote: 'k' })).indexOf('seenNote') >= 0;
+    ok('320', '已读公告号（第册四批）：默认 null ‖ 字符串保值 ‖ 对象 / 数字 / 空串三档脏值归 null ‖ 旧档缺键补 null ' +
+      '‖ 复 normalize 幂等 ‖ 键在 profile 声明集内（漏一行即读档丢，判据抓得住）',
+      a320 && b320 && c320 && d320 && e320 && f320,
+      '默认=' + a320 + ' 保值=' + b320 + ' 脏=' + c320 + ' 缺键=' + d320 + ' 幂等=' + e320 + ' 声明=' + f320);
+
+
     ok(72, '数字格式 <1万千分位/万/亿',
       SQ.fmt(9999) === '9,999' && SQ.fmt(12345) === '1.2万' && SQ.fmt(123456789) === '1.2亿' && SQ.fmt(0) === '0');
 
