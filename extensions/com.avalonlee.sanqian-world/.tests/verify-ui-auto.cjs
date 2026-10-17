@@ -23,7 +23,7 @@ function buildSave(autoEvent, withPend, eventPref) {
   if (withPend) ws.pendingChoice = { id: 'road_tea_stall', at: now, tier: 'ren', nature: 'good' };
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-1' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-2' },
     meta: { unlockedWorlds: ['xiuxian'] },
     settings: { autoTrib: false, autoEvent: autoEvent, eventPref: eventPref || 'none', tabOrder: [] },
     worlds: { xiuxian: ws }
