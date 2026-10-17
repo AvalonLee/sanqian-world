@@ -15,6 +15,10 @@
  *      数组，normalize 不再声明旧键。**非空**的旧单不许只靠这条豁免过关 ⇒ §5b 正面证它被迁进板面。
  *   E4 `ws.artsLevels..{}` 空对象占位 —— 等级起点批 2026-10-14（入门即 Lv1）：normalize 逐部补等级键，
  *      占位叶随之消失。§1 同时正面证「补完的每个已入门功法等级 ≥1」，不只认它消失了。
+ *   E6 `ws.treasures.bondCount` / `ws.treasures.bondHours` —— 认主按件批 2026-10-17（N52 · 第册十二批）：
+ *      两枚全局计数退役、下沉 `owned[].st.bondN` / `st.bondH`，normalize 不再搬运 ⇒ 旧档顶层键读入即剪。
+ *      **不摊派**是用户裁定的迁移口径（旧值折算给各件 = 凭空送进度），所以这条丢失是设计而非缺陷；
+ *      件上进度另有正面判据（冒烟 #307(f) 旧档读入即剪 + #281 按件键集对表），本探针只认它「不再回来」。
  * 用法：node .tests/probe-normround.cjs     末行 NORMROUND_ALL_GREEN n/n 或 NORMROUND_FAILED k
  */
 'use strict';
@@ -48,6 +52,8 @@ const isOmenSeenReset = (k) => k.indexOf('ws.tiandao.omenSeen') === 0 && k.endsW
 const isArtsLevelsBackfill = (k) => k === 'ws.artsLevels..{}';
 /* E5 旧委托单槽键（**只认 null 占位**）——板面批：非空旧单由 §5b 单独正面证迁移，不走豁免 */
 const isQuestSlotRetire = (k, v) => k === 'ws.factionQuest.' && v === null;
+/* E6 认主顶层两键（N52 第册十二批）：全局计数退役、下沉 owned[].st ⇒ 顶层键读入即剪是**既定口径**，不是丢数据 */
+const isBondTopRetire = (k) => k === 'ws.treasures.bondCount.' || k === 'ws.treasures.bondHours.';
 
 function buildRichState() {
   const raw = JSON.parse(fs.readFileSync(path.join(ROOT, '.tests/fixture-save.json'), 'utf8'));
@@ -91,12 +97,13 @@ function lost(a, b) {
   return { drop, chg };
 }
 const dws = lost(snap.ws, after.ws), dme = lost(snap.meta, after.meta);
-const unexpected = dws.drop.filter(([k, v]) => !(k === 'ws.rumorSeq.' || isOmenSeenReset(k)|| isZeroBond(k, v) || isArtsLevelsBackfill(k) || isQuestSlotRetire(k, v)));
+const unexpected = dws.drop.filter(([k, v]) => !(k === 'ws.rumorSeq.' || isOmenSeenReset(k)|| isZeroBond(k, v) || isArtsLevelsBackfill(k) || isQuestSlotRetire(k, v) || isBondTopRetire(k)));
 
-ok('§1 五条豁免逐条存在（豁免清单不是空口白话：拿实测数据证明它们确实发生且成因如述）',
+ok('§1 六条豁免逐条存在（豁免清单不是空口白话：拿实测数据证明它们确实发生且成因如述）',
   dws.drop.some(([k]) => k === 'ws.rumorSeq.') &&
   dws.drop.some(([k, v]) => isZeroBond(k, v)) &&
   dws.drop.some(([k]) => isOmenSeenReset(k)) &&
+  dws.drop.some(([k]) => isBondTopRetire(k)) &&
   dws.drop.some(([k, v]) => isArtsLevelsBackfill(k) && (Object.keys(nw.artsLevels || {}).length > 0)) &&
   (Object.keys(nw.artsLevels || {}).every(function (id) {
     return (nw.artsKnown || []).indexOf(id) < 0 || nw.artsLevels[id] >= 1;
