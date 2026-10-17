@@ -3740,7 +3740,7 @@
   $('mo-ok').addEventListener('click', function () {
     $('modal-offline').classList.add('hide');
     /* 死后的「转世重生」= 进创角（与兵解/飞升收线同一条路）；出关呈报仍走原路重绘 */
-    if (ui.deathPending) { ui.deathPending = false; enterRebirthCreation(); return; }
+    if (ui.deathPending) { ui.deathPending = false; enterRebirthCreation(); playRecapLastBio(); return; }
     renderAll();
   });
 
@@ -4202,6 +4202,16 @@
     if (recapTimer) { clearInterval(recapTimer); recapTimer = null; }
     $('modal-recap').classList.add('hide');
   });
+
+  /* ── 盖棺之传的通用出口（N61 · 第册十二批）：五条终局路（飞升 / 兵解 / 寿尽 / 道伤 / 折寿）
+     * 演的是同一句标题、同一份正文 = 引擎刚写进 `meta.biographies` 的那一世末条 ⇒ 视图零自造文本
+     * （第册批那条纪律沿用）。**必须在 enterRebirthCreation() 之后调用**：它会把 MASKS 全关一遍，
+     * 反序就把自己刚开的浮层关掉（兵解那一路第册批已踩过）。 ── */
+  function playRecapLastBio() {
+    var bs = state.meta.biographies || [];
+    var bio = bs[bs.length - 1];
+    if (bio && bio.text) showRecap(t('legacy.ui.recap.title'), bio.text);
+  }
 
   /* 复制奏疏：先走同步 execCommand（内嵌 webview 无剪贴板权限时唯一可用路径，
    * 且在全选态下必然复制全文），失败再试异步 clipboard；两条都失败则明示手动全选，
@@ -5407,7 +5417,11 @@
           var rA = await SQ.Actions.ascend(state);
           if (rA && rA.ok && rA.success) {
             toast(t('legacy.ui.settle.title') + ' · ' + t('legacy.ui.settle.gain', { n: SQ.fmt((rA.preview || {}).total || 0) }));
+            /* N61（第册十二批）：飞升这条终局也演盖棺之传。取证点 = 飞升路上**没有**独占奖励全屏演出
+             * （`showExclusive` 的三个调用点都在奇遇结算支路），故不与 `#excl-stage` 争屏；
+             * 由 verify-ui-life F2 量几何（rect 高 > 0 且 excl-stage 隐藏）坐实这句。 */
             enterRebirthCreation();
+            playRecapLastBio();
           } else if (rA && rA.ok) {
             toast(t('legacy.log.feisheng.fail'));
           } else if (rA) {
@@ -5428,13 +5442,9 @@
             var rB = await SQ.Actions.dissolve(state);
             if (rB && rB.ok) {
               toast(t('legacy.ui.settle.title') + ' · ' + t('legacy.ui.settle.gain', { n: SQ.fmt((rB.preview || {}).total || 0) }));
-              /* 盖棺之传（第册批）：正文 = doBingjie → Codex.pushBio 刚写入的末条，视图零生成。
-               * 先 enterRebirthCreation 再开演——它会把 MASKS 全关一遍，反序就把自己刚开的浮层关掉了；
-               * 且这样任何关法（钮 / 遮罩 / ESC）落回的都是创角屏，不会停在已了结的那一世。 */
-              var bsB = state.meta.biographies || [];
-              var bioB = bsB[bsB.length - 1];
+              /* 盖棺之传（第册批立、N61 归口）：先 enterRebirthCreation 再开演（顺序不能反，见 playRecapLastBio 注） */
               enterRebirthCreation();
-              if (bioB && bioB.text) showRecap(t('legacy.ui.recap.title'), bioB.text);
+              playRecapLastBio();
             }
             renderAll();
           });
