@@ -637,15 +637,20 @@ window.SQSmoke.frag('07-ledger-economy', async function () {
     var dk209c = SQ.Alchemy.drinkPill(w209, pack, D, 'ap_juqi', now209 + 2, null, prof209);
     var dk209d = SQ.Alchemy.drinkPill(w209, pack, D, 'ap_juqi', now209 + 3, null, prof209);
     var qBuffs209 = w209.buffs.filter(function (b2) { return b2.field === 'qiRate' && b2.source === 'alchemy'; });
-    var dk209f = SQ.Alchemy.drinkPill(w209, pack, D, 'ap_juqi', now209 + 4, null, prof209);        /* 第 5 颗 → 丹毒拒 */
+    /* 🔧 N43 改口：原判「第 5 颗 reason==='daily'」随日限退役；这条支路在防的东西搬到新位置重判 =
+     * 连点五颗之后 qiRate buff 仍只有一条（同字段同向不叠加 #119 形状），那才是「撤闸会不会让人一口气叠满」的答案。*/
+    var qBuffs209z = w209.buffs.filter(function (b2) { return b2.field === 'qiRate' && b2.source === 'alchemy'; });
+    var dk209f = SQ.Alchemy.drinkPill(w209, pack, D, 'ap_juqi', now209 + 4, null, prof209);        /* 🔧 N43：第 5 颗照服（日限已退役）*/
     var dk209e = SQ.Alchemy.drinkPill(w209, pack, D, 'ap_juqi', now209 + 5000, null, prof209);   /* 跨游戏日 */
-    ok('209', '炼丹流程：成功率表 0.85/0.95cap/0.70/0.55/0.67 对表；开工扣料记 out、失败不还熟练度照涨；宗师丹纹 5% 仅时限型（九转正名）；丹毒日限 4 跨日重置（第十七批 3 → 4，第 5 颗才拒）；pushBuff 同字段保最强（丹纹 ×2）',
+    ok('209', '炼丹流程：成功率表 0.85/0.95cap/0.70/0.55/0.67 对表；开工扣料记 out、失败不还熟练度照涨；宗师丹纹 5% 仅时限型（九转正名）；🔧 N43 丹毒日限整族退役 ⇒ 第 5 颗照服，防连点改由「同字段同向不叠加」这一守；pushBuff 同字段保最强（丹纹 ×2）',
       p209a === 0.85 && p209b === 0.95 && p209c === 0.70 && p209d === 0.55 && p209e === 0.67 &&
       sc209.ok === true && busy209.reason === 'busy' && profUp209 && matOut209b === matOut209a + 3 &&
       fail209 && rune209 && noRune209 &&
       dk209a.ok === true && dk209b.ok === true && dk209c.ok === true && dk209d.ok === true &&
-      dk209f.reason === 'daily' && dk209e.ok === true &&
-      qBuffs209.length === 1 && qBuffs209[0].mult === 0.20);
+      dk209f.ok === true && dk209e.ok === true &&
+      qBuffs209.length === 1 && qBuffs209[0].mult === 0.20 &&
+      /* 连点五颗之后仍然只有一条 qiRate buff —— 这才是撤掉日限之后真正守「一口气叠满」的那道 */
+      qBuffs209z.length === 1 && qBuffs209z[0].mult === 0.20);
 
     /* #210 双特例每境界限（破障 −0.10 下限不破 / 镇劫 +0.02 判后即清 / 相互独立于丹毒） */
     var w210 = pack.initialState();
@@ -656,12 +661,13 @@ window.SQSmoke.frag('07-ledger-economy', async function () {
     var now210 = Date.now();
     var dp210a = SQ.Alchemy.drinkPill(w210, pack, D, 'ap_pozhang', now210, null, prof210);
     var bc210 = w210.breakCostNext;
-    /* （dayN210a 于下方 dp210b 前取值） */
-    var dayN210a = w210.alchemy.pillDay.n;
+    /* 🔧 N43：原三支判「被拒不消耗日限 / 独立特例入账 +1」，日限退役后改判**库存守恒**
+     *（同一件事的守恒面：拒服时丹药一枚不少、成功时一枚不多扣，比「计数不变」更贴玩家所得）*/
+    var stock210a = w210.alchemy.pills.ap_pozhang;
     var dp210b = SQ.Alchemy.drinkPill(w210, pack, D, 'ap_pozhang', now210 + 1, null, prof210);
-    var dayN210 = w210.alchemy.pillDay.n;                   /* 被拒不消耗日限：n 不变 */
+    var stock210b = w210.alchemy.pills.ap_pozhang;            /* 被拒不吞丹：库存与拒前逐枚相同 */
     var dp210c = SQ.Alchemy.drinkPill(w210, pack, D, 'ap_zhenjie', now210 + 2, null, prof210);   /* 相互独立 */
-    var dayN210c = w210.alchemy.pillDay.n;                  /* 独立特例正常入账 +1 */
+    var stock210c = w210.alchemy.pills.ap_zhenjie;            /* 独立特例正常扣一枚（3 → 2）*/
     var tn210 = w210.tribulation.next;
     /* needEffOf 下限：realmCost −0.12 + breakCostNext −0.10 → 0.78；极端 −2.0 → max(0.1) 下限 */
     var m210 = M(mkProf([mkTalent({ realmCost: -0.12 })]), w210);
@@ -674,9 +680,9 @@ window.SQSmoke.frag('07-ledger-economy', async function () {
     var info210a = pack.worldSystems.tribInfo(w210, pack, D, SQ.Mods.collect(prof210, w210, pack, D));
     var nextIn210 = info210a.parts.next === 0.02 && Math.abs(info210a.parts.talent - 0.02) < 1e-9;
     (function () { var rs = stubRandom([0.0]); SQ.Realm.tryBreakthrough(w210, pack, D, SQ.Mods.collect(prof210, w210, pack, D), now210, { log: noopLog() }); rs(); })();
-    ok('210', '双特例每境界限：破障 −0.10 写 breakCostNext、needEff 下限 0.1 不破（−22%→0.78 / 极端→0.1）；镇劫 +0.02 写 tribulation.next 判后即清；同境界二服拒且不耗丹毒日限、相互独立',
+    ok('210', '双特例每境界限：破障 −0.10 写 breakCostNext、needEff 下限 0.1 不破（−22%→0.78 / 极端→0.1）；镇劫 +0.02 写 tribulation.next 判后即清；同境界二服拒且**不吞丹**（🔧 N43 日限退役 ⇒ 改判库存守恒）、相互独立',
       dp210a.ok === true && bc210 === -0.10 && dp210b.reason === 'once' &&
-      dayN210 === dayN210a && dayN210c === dayN210a + 1 &&
+      stock210a === 2 && stock210b === 2 && stock210c === 2 &&
       dp210c.ok === true && tn210 === 0.02 &&
       Math.abs(ne210a - base210 * 0.78) < 1e-6 && Math.abs(ne210b - base210 * 0.1) < 1e-6 &&
       nextIn210 && w210.tribulation.next === 0 && w210.breakCostNext === 0);
@@ -719,12 +725,14 @@ window.SQSmoke.frag('07-ledger-economy', async function () {
     })();
     /* normalize 幂等 + 脏档清理 */
     var dirty211 = { furnace: 'x', recipes: ['rc_juqi', 'bad'], blueprints: ['bp_weapon', 'nope'], prof: { dan: -5 },
-      pills: { ap_juqi: 999, bad_pill: 3 }, pillDay: { day: 'x', n: 99 }, pillOnce: {}, craft: { kind: 'xx', id: 1 }, farmAt: -1 };
+      pills: { ap_juqi: 999, bad_pill: 3 }, pillDay: { day: 'x', n: 99 }, pillOnce: {},   /* 🔧 N43：pillDay 是**已退役键**，故意留着验 normalize 会不会把它搬回来 */ craft: { kind: 'xx', id: 1 }, farmAt: -1 };
     var n211a = SQ.Alchemy.normalize(dirty211, D);
     var n211b = SQ.Alchemy.normalize(n211a, D);
     ok('211', '炼器零漂移：品阶逐区 凡×4/良×2/上×3/灵×1 对照（z8 D=3.45 勘误登记）；主词条 [50%,100%] 上半区；灵品 attr 自由指定；打造件 neutral/special=null/source=forge；极品 reqs+1；minTier 方向锁；normalize 幂等',
       tiers211.join() === '0,0,0,0,1,1,2,2,2,3' &&
       sc211.ok === true && dirLock211.reason === 'dir' &&
+      /* N43 退役面：旧档里的 pillDay 读档即丢、二次 normalize 也不复活（留字段 = 写了没人接那一族）*/
+      n211a.pillDay === undefined && n211b.pillDay === undefined &&
       item211.success === true && it211.slot === 'armor' && it211.tier === 3 &&
       it211.alignment === 'neutral' && it211.special === null && it211.source.type === 'forge' && it211.forged === 'resist' &&
       it211.attrValue && it211.attrValue.attr === 'jing' &&

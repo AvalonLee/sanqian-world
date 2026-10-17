@@ -197,7 +197,7 @@ window.SQSmoke.frag('05-codex-log-capacity', async function () {
       w.shop.merchant.items.push({ kind: 'treasure', ref: 'x14', sold: false, price: 99999 });
       D.ALCHEMY.MATS.forEach(function (mm) { w.materials[mm.id] = 999; });
       w.alchemy = { furnace: true, recipes: D.ALCHEMY.RECIPES.map(function (rr) { return rr.id; }), blueprints: D.ALCHEMY.BLUEPRINTS.map(function (bb) { return bb.id; }),
-        prof: { dan: 999, qi: 999 }, pills: {}, pillDay: { day: 99, n: 4 }, pillOnce: { pozhang: 9, zhenjie: 9 },
+        prof: { dan: 999, qi: 999 }, pills: {}, pillOnce: { pozhang: 9, zhenjie: 9 },   /* 🔧 N43：pillDay 已退役 ⇒ 最坏态模型同步摘掉（留着就是虚报容量）*/
         craft: null, farmAt: 1, fires: 999, jiuzhuan: 99, forgeMade: 99 };
       /* 丹药两族合一（第十七批）：最坏态必须把**成品丹四枚**一起摆满（玩家在坊市 / 门中 / 特席 / 残片也能囤到 99），
        * 只按 RECIPES 造 = 少算四键 ⇒ 红线余量虚报 */

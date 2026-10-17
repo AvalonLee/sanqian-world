@@ -1060,7 +1060,7 @@ window.SQSmoke.frag('06-karma-bond-writes', async function () {
     var drinkTo = function () {
       var w = mkWs({ realm: 5 });
       var al = SQ.Alchemy.ensure(w, D);
-      al.pills = { ap_pozhang: 1 }; al.pillDay = { day: 'x', n: 0 }; al.pillOnce = al.pillOnce || {};
+      al.pills = { ap_pozhang: 1 }; al.pillOnce = al.pillOnce || {};   /* 🔧 N43：日限退役，不再需要摆一个 pillDay 绕开它 */
       w.breakCostNext = 0.4;
       SQ.Alchemy.drinkPill(w, pack, D, 'ap_pozhang', 1700000095100, noop295, mkProf());
       return w.breakCostNext;

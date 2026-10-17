@@ -303,7 +303,7 @@ async function buildSave() {
     return {
       pills: ((w.alchemy || {}).pills || {}).cuiti || 0,
       buffs: (w.buffs || []).filter(b => b.field === 'combatPower' && b.source === 'alchemy').length,
-      stones: w.stones, day: ((w.alchemy || {}).pillDay || {}).n || 0
+      stones: w.stones
     };
   });
   await page.click('#m-tabbar button[data-v="faction"]');
@@ -312,8 +312,8 @@ async function buildSave() {
   await page.click('[data-act="supplyBuy"][data-v="cuiti"]');
   await page.waitForTimeout(500);
   const aD = await readPill();
-  T(aD.pills === bD.pills + 1 && aD.buffs === bD.buffs && aD.stones < bD.stones && aD.day === bD.day,
-    'M25 门中供给买丹：入丹匣且**不当场生效**（战力 buff 数不变、丹毒计数不占、灵石照扣）',
+  T(aD.pills === bD.pills + 1 && aD.buffs === bD.buffs && aD.stones < bD.stones,
+    'M25 门中供给买丹：入丹匣且**不当场生效**（战力 buff 数不变、灵石照扣；🔧 N43 起「丹毒计数不占」那半随日限退役）',
     '匣 ' + bD.pills + '→' + aD.pills + ' buff ' + bD.buffs + '→' + aD.buffs + ' 灵石 ' + bD.stones + '→' + aD.stones);
   await page.click('#m-tabbar button[data-v="alchemy"]');
   await page.waitForSelector('[data-act="alDrink"][data-v="cuiti"]', { timeout: 8000 });
@@ -327,9 +327,9 @@ async function buildSave() {
   await page.click('[data-act="alDrink"][data-v="cuiti"]');
   await page.waitForTimeout(500);
   const cD = await readPill();
-  T(cD.pills === aD.pills - 1 && cD.buffs === aD.buffs + 1 && cD.day === aD.day + 1,
-    'M27 点「服用」才落效：战力 buff 挂上、库存 −1、**占丹毒日限**（与自产丹同池计数）',
-    '匣 ' + aD.pills + '→' + cD.pills + ' buff ' + aD.buffs + '→' + cD.buffs + ' 日限 ' + aD.day + '→' + cD.day);
+  T(cD.pills === aD.pills - 1 && cD.buffs === aD.buffs + 1 && cD.buffs === 1,
+    'M27 点「服用」才落效：战力 buff 挂上且**只此一条**、库存 −1（🔧 N43 起「占丹毒日限」那半随日限退役，防连点改由「同字段同向不叠加」这一判接住）',
+    '匣 ' + aD.pills + '→' + cD.pills + ' buff ' + aD.buffs + '→' + cD.buffs);
 
   /* ── M28~M31（第廿六批 2026-10-13 · 买到的东西必须落得下）：弹窗与成交同源 + 先判后扣 ──
    * 桩：货架钉成 [春风化雨篇]，并把 nextRestock 设到 1.2 秒后 ⇒ 无阻塞 CONFIRM 开着的那两秒多

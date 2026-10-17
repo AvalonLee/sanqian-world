@@ -5483,13 +5483,11 @@
     if (act === 'alDrink') {
       var rDk = await SQ.Actions.alDrink(state, v);
       if (rDk && !rDk.ok) {
-        /* 服丹失败四 reason（drinkPill: stock / once / daily / swapfull）全覆盖——旧兜底把 'stock' 裸打上屏，
-         * 与本批 C3 同族，顺手收口。swapfull = 洗髓丹在本世三次已尽时拒服（扣丹前判，不白吃）。 */
-        toast(t(rDk.reason === 'daily' ? 'alchemy.ui.pillcap'
-          : rDk.reason === 'once' ? 'alchemy.ui.once'
-          : rDk.reason === 'swapfull' ? 'alchemy.ui.swapfull' : 'alchemy.ui.pillnone',
-          /* 上限取表值不留魔数（M3）；兜底与 alchemy.js 服丹闸的 `|| 3` 同口径 */
-          { n: D().ALCHEMY.PILL_DAILY_CAP || 3 }));
+        /* 服丹失败三支 reason（drinkPill: stock / once / swapfull）全覆盖——旧兜底把 'stock' 裸打上屏，
+         * 与本批 C3 同族，顺手收口。swapfull = 洗髓丹在本世三次已尽时拒服（扣丹前判，不白吃）。
+         * 🔧 N43（第册十二批）：第四支 'daily' 随丹毒日限整族退役，屏上那句谎话一并删。 */
+        toast(t(rDk.reason === 'once' ? 'alchemy.ui.once'
+          : rDk.reason === 'swapfull' ? 'alchemy.ui.swapfull' : 'alchemy.ui.pillnone'));
       } else if (rDk && rDk.ok && rDk.swap) {
         /* 洗髓丹服下即开洗髓浮层（缘已入账，先 renderAll 让顶栏与角色浮层读数跟上） */
         renderAll();

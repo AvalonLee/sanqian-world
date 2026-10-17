@@ -704,8 +704,8 @@ window.SQSmoke.frag('09-rumors-title-swap', async function () {
     w297.alchemy.pills[P297.id] = 2;
     var qiC297 = w297.qi;
     var d297c = SQ.Alchemy.drinkPill(w297, pack, D, P297.id, 1006002, null, prof297);
-    var drinkTrade297 = d297c.ok === true && w297.qi > qiC297 && w297.alchemy.pillDay.n === 1 &&
-      w297.alchemy.pills[P297.id] === 1;
+    /* 🔧 N43：原带一支 `pillDay.n === 1` 判「服一颗计一次」，日限退役后改判**扣丹与增益同时成立** */
+    var drinkTrade297 = d297c.ok === true && w297.qi > qiC297 && w297.alchemy.pills[P297.id] === 1;
     /* (d) 门中供给：拒单时灵石 / 声望 / 24h 锚三者纹丝不动；成功时入匣不当场生效 */
     var w297f = pack.normalize(Object.assign(pack.initialState(), { realm: 4, stones: 999999 }));
     var T297 = 1700000000000;   /* 现实量级：门中供给 24h 冷却以 `now − last` 计，last=0 时小时间戳必被误判 'cd' */
@@ -763,7 +763,7 @@ window.SQSmoke.frag('09-rumors-title-swap', async function () {
     var norm297 = n297.pills.juqi === 3 && n297.pills.ningshen === 2 && n297.pills.cuiti === 1 &&
       n297.pills.pozhang === 9 && n297.pills.ap_juqi === 4 && n297.pills.bogus_pill == null &&
       n297b.pills.ap_juqi === 4 && Object.keys(n297b.pills).length === 1;
-    /* (h) 两族同池同限：自产 + 成品混着吃也计同一计数（第 5 颗即拒） */
+    /* (h) 两族同池：自产 + 成品混着吃走同一个丹匣、同一套扣减（🔧 N43 起「同限」那半随日限退役）*/
     var w297h = mkWs({ realm: 9 });
     SQ.Alchemy.ensure(w297h, D);
     w297h.alchemy.pills = { ap_juqi: 3, juqi: 3 };
@@ -773,8 +773,9 @@ window.SQSmoke.frag('09-rumors-title-swap', async function () {
       SQ.Alchemy.drinkPill(w297h, pack, D, 'ap_juqi', 1000003, null, profH),
       SQ.Alchemy.drinkPill(w297h, pack, D, 'juqi', 1000004, null, profH),
       SQ.Alchemy.drinkPill(w297h, pack, D, 'juqi', 1000005, null, profH)];
-    var samePool297 = seqH.slice(0, 4).every(function (r) { return r.ok === true; }) &&
-      seqH[4].reason === 'daily' && w297h.alchemy.pillDay.n === 4;
+    var samePool297 = seqH.every(function (r) { return r.ok === true; }) &&
+      /* 五颗全服成功 ⇒ 自产两枚与成品三枚各自从同一匣里扣掉（混吃不另立门户，也不互相让路）*/
+      w297h.alchemy.pills.ap_juqi === 1 && w297h.alchemy.pills.juqi == null;
     /* (i) 🆕 当晚复核 M2 锚：特席是第四个购买口，拒单必须回传可消费的 reason
      * （上一版只给坊市 / 黑市接了返回值 ⇒ 匣满时点了没反应，屏上静默 = 本仓头号缺陷族）*/
     var w297m = mkWs({ realm: 9 });
@@ -787,20 +788,18 @@ window.SQSmoke.frag('09-rumors-title-swap', async function () {
     var bM297 = SQ.Shop.buyMerchant(w297m, pack, D, M(prof297, w297m), 0, null);
     var merchant297 = bM297.ok === false && bM297.reason === 'pillfull' &&
       w297m.stones === stM297 && w297m.shop.merchant.items[0].sold === false;
-    /* (j) 🆕 当晚复核 M3 锚：丹毒上限文案取表值——模板里不许留裸数字，数字只从表里来 */
-    var capTpl297 = ['alchemy.ui.pillcap', 'alchemy.log.pillcap'].every(function (k2) {
-      var raw = (SQ.LEX.xiuxian || {})[k2] || '';
-      return raw.indexOf('{n}') >= 0 && !/\d/.test(raw);
-    });
-    var capCopy297 = capTpl297 &&
-      SQ.t('alchemy.ui.pillcap', { n: D.ALCHEMY.PILL_DAILY_CAP }, 'xiuxian')
-        .indexOf(String(D.ALCHEMY.PILL_DAILY_CAP)) >= 0;
+    /* (j) 🔧 N43 改口：原判「丹毒上限文案取表值、模板不留裸数字」随两枚键退役。这条支路在防的形状是
+     * 「引擎改了数、屏上还写旧数」——键没了不等于形状没了 ⇒ 改判**退役要退干净**：两枚键必须已从词表消失
+     * （留键 = 下一批随手接回屏上就说谎，与 A6 孤儿同一族），且表上那个键也不再存在。*/
+    var capGone297 = ['alchemy.ui.pillcap', 'alchemy.log.pillcap'].every(function (k2) {
+      return (SQ.LEX.xiuxian || {})[k2] === undefined && SQ.t(k2, null, 'xiuxian') === k2;
+    }) && D.ALCHEMY.PILL_DAILY_CAP === undefined;
     ok('297', '丹药两族合一（第十七批 · 坊市 / 特席 / 门中供给 / 残片兑丹四口所得一律入丹匣（黑市 buy 体与坊市同码但货架从不掷丹），何时服用玩家定）：(a) 坊市买丹入匣且**不当场生效**（qi / buffs 纹丝不动、灵石与 out.shop 照旧） (b) 匣满 ⇒ 整笔拒单、**灵石分文不动**、货架项不标 sold（先判后扣） (c) 服用成品丹：效果照落 + **占丹毒日限**（与自产同池） (d) 门中供给拒单时灵石 / 声望 / 24h 锚三者不动，成功时入匣不生效 (e) 残片兑丹匣满拒兑且**片不扣**，成功时扣 20 片入匣 (f) 赠丹两族同轨：成品丹按 D.PILLS 自带 tier 计好感、成品破障丹拒因 `nogift` 且不扣丹（issue #4 起赠丹无日限） (g) normalize 白名单认四个成品丹键、伪键滤除、旧档（只有自产丹）零受影响 (h) 两族混吃计同一计数（第 5 颗即拒） (i) 🆕 当晚复核补：特席买丹匣满拒单**回传 reason**、灵石分文不动（视图若不接返回值就是静默无反馈；屏上面由 probe-bondact 两条 + 走查 B4 锚） (j) 🆕 丹毒上限文案取表值不写死数（模板零裸数字，改 `PILL_DAILY_CAP` 屏上跟着动）',
       inBox297 && fullRefuse297 && drinkTrade297 && supply297 && shard297 && gift297 && norm297 &&
-      samePool297 && merchant297 && capCopy297,
+      samePool297 && merchant297 && capGone297,
       '入匣=' + inBox297 + ' 拒单不扣钱=' + fullRefuse297 + ' 服用=' + drinkTrade297 +
       ' 门中=' + supply297 + ' 残片=' + shard297 + ' 赠=' + gift297 + '(玄=' + expGift + ') 档=' + norm297 +
-      ' 同池=' + samePool297 + ' 特席拒因=' + merchant297 + ' 上限取表=' + capCopy297);
+      ' 同池=' + samePool297 + ' 特席拒因=' + merchant297 + ' 退役退干净=' + capGone297);
 
     /* #298 坊市与特席的先判后扣（第廿六批 2026-10-13 · 用户报「买了春风化雨篇，法与器里却没解锁」，
      *   排查出的整族缺陷——掷货时按「未持有」过滤候选，但货架要挂满 4 小时才补货，这期间玩家可能

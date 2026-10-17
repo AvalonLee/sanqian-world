@@ -386,7 +386,9 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
     var bH226 = w226.buffs.filter(function (b) { return b.field === 'qiCap' && b.source === 'alchemy'; });
     var dk226c = SQ.Alchemy.drinkPill(w226, pack, D, 'ap_xirui', now226 + 2, null, prof226);
     var dk226d = SQ.Alchemy.drinkPill(w226, pack, D, 'ap_daohe', now226 + 3, null, prof226);   /* 第 4 颗 = 新上限内 */
-    var dk226e = SQ.Alchemy.drinkPill(w226, pack, D, 'ap_fengxing', now226 + 4, null, prof226); /* 第 5 颗 → 丹毒拒 */
+    var dk226e = SQ.Alchemy.drinkPill(w226, pack, D, 'ap_fengxing', now226 + 4, null, prof226); /* 🔧 N43：第 5 颗照服（日限退役）*/
+    /* 这一族真正在守的东西搬到新位置重判：连点五颗之后 combatSpeed 仍只有一条 buff（同字段同向不叠加）*/
+    var bF226z = w226.buffs.filter(function (b) { return b.field === 'combatSpeed' && b.source === 'alchemy'; });
     var bX226 = w226.buffs.filter(function (b) { return b.field === 'dropRate' && b.source === 'alchemy'; });
     /* 脏档 normalize：新丹纹 key 保留（pillKeys 自动跟随 APILLS） */
     var n226 = SQ.Alchemy.normalize({ pills: { ap_daohe_rw: 5, ap_juqi_rw: 2, fake_pill: 9, ap_pozhang_rw: 3 } }, D);
@@ -395,7 +397,7 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
       dk226a.ok === true && bF226.length === 1 && Math.abs(bF226[0].mult - 0.12) < 1e-9 &&
       dk226b.ok === true && bH226.length === 1 && Math.abs(bH226[0].mult - 0.50) < 1e-9 &&
       dk226c.ok === true && bX226.length === 1 && Math.abs(bX226[0].mult - 0.20) < 1e-9 &&
-      dk226d.ok === true && dk226e.reason === 'daily' && n226.pills.ap_daohe_rw === 5 && n226.pills.ap_juqi_rw === 2 && n226.pills.fake_pill == null && n226.pills.ap_pozhang_rw == null,   /* 非 buff 型无丹纹版 */
+      dk226d.ok === true && dk226e.ok === true && bF226z.length === 1 && n226.pills.ap_daohe_rw === 5 && n226.pills.ap_juqi_rw === 2 && n226.pills.fake_pill == null && n226.pills.ap_pozhang_rw == null,   /* 非 buff 型无丹纹版 */
       'keys=' + keys226.length + ' buff/once=' + buffCnt226 + '/' + onceCnt226);
 
     /* #227 精制图纸跨阶打造（+1 口径三处共用 / 材料 12 / 45min / 0.70 档 / attr 必选同判 / 上品价 1500） */
@@ -517,7 +519,7 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
       AL230.BP_PRICE_JING === 1500 && AL230.FORGE_MAT_COST_JING === 12 && AL230.REFINE_IN === 4 &&
       AL230.CRAFT_BASE.qi_jing === 0.70 && AL230.CRAFT_TIME_MIN.qi_jing === 45;
     /* 既有经济锚零改动（扩容只加不改） */
-    var keep230 = AL230.MAT_DROP_P === 0.15 && AL230.PILL_DAILY_CAP === 4 &&   /* 第十七批 3 → 4（丹药两族合一，同池同限），故本条不再是「零改动」 */ AL230.FORGE_DROP_K === 0.5 &&
+    var keep230 = AL230.MAT_DROP_P === 0.15 && AL230.PILL_DAILY_CAP === undefined &&   /* 🔧 N43 整族退役：键不在表上（残留读者由审计 A10 抓）；第十七批那次 3→4 随之内存作废 */ AL230.FORGE_DROP_K === 0.5 &&
       AL230.FORGE_MAT_COST === 6 && AL230.RUNE_P === 0.05 && AL230.GATHER_WUDAO_P === 0.10 &&
       AL230.CRAFT_BASE.huang === 0.85 && AL230.CRAFT_BASE.tian === 0.40 && AL230.CRAFT_BASE.qi === 0.80 &&
       AL230.MAT_SELL.join() === '8,40,160,600' && AL230.RECIPE_PRICES.huang === 400 && AL230.BP_PRICE === 600 &&
@@ -542,7 +544,7 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
     var zero230 = D.REALMS.length === 10 && D.REALMS[9].tribBase === 0.22 &&
       D.TRIB_P_CLAMP[0] === 0.05 && D.TRIB_P_CLAMP[1] === 0.95 && SQ.Mods.FIELDS.length === 17 &&
       D.ARTS_COST.join() === '240,900,3200,11000,36000,120000,400000,1300000';
-    ok('230', '经济参数与容量红线回归：六新参对表（tian 12000/精制 1500·12 料·0.70·45min/提炼 4:1）；既有经济锚**只动一处并如实报**：`PILL_DAILY_CAP` 3 → **4**（第十七批丹药两族合一）；其余（坊市权重全表 50/25/10/10/5——锚 9.12 复跑不变红线）零改动；normalize 上限数据驱动（脏档 16→11、12→9）；alchemy 独立最坏态 <2.5KB（50KB 红线分摊）；p 公式/CLAMP/REALMS/FIELDS 红线零改动 ‖ ARTS_COST 按等级起点批改八档并如实报',
+    ok('230', '经济参数与容量红线回归：六新参对表（tian 12000/精制 1500·12 料·0.70·45min/提炼 4:1）；🔧 N43：`PILL_DAILY_CAP` **整族退役**（第十七批那次 3→4 随之内存作废，键不在表上）；其余（坊市权重全表 50/25/10/10/5——锚 9.12 复跑不变红线）零改动；normalize 上限数据驱动（脏档 16→11、12→9）；alchemy 独立最坏态 <2.5KB（50KB 红线分摊）；p 公式/CLAMP/REALMS/FIELDS 红线零改动 ‖ ARTS_COST 按等级起点批改八档并如实报',
       par230 && keep230 && capOk230 && size230 < 2500 && zero230,
       'size=' + size230 + 'B cap=' + capOk230);
 

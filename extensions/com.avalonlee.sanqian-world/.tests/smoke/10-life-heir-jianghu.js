@@ -421,22 +421,26 @@ window.SQSmoke.frag('10-life-heir-jianghu', async function () {
     });
     var ref305 = {};
     await SQ.claim(ref305);
-    var CAP305 = DT305.ALCHEMY.PILL_DAILY_CAP;
-    await SQ.mutate(ref305, function (s) {   /* 先吃满日限（同一条真通道，不手写 pillDay 猜日键） */
+    /* 🔧 N43：原走 daily 分支（第 5 颗被拒 + 写那条日志），日限退役后这条支路改走 **once** 分支——
+     * 本判据真正要守的形状是「alDrink 的失败出口走真入口不抛、整笔不落盘、拒服不吞丹」（第卅九批那个
+     * `D()` 误抄 bug 的同类），换一个 reason 重判，而不是删掉了事。*/
+    await SQ.mutate(ref305, function (s) {   /* 同一条真通道先服一颗特例丹，把「本境界已服过」这个态坐实 */
       var w = s.worlds[s.profile.worldId], p = SQ.Worlds[s.profile.worldId].pack;
-      for (var q305 = 0; q305 < CAP305; q305++) {
-        SQ.Alchemy.drinkPill(w, p, p.data, 'ap_juqi', Date.now(), null, s.profile);
-      }
+      w.alchemy.pills.ap_pozhang = 3;
+      SQ.Alchemy.drinkPill(w, p, p.data, 'ap_pozhang', Date.now(), null, s.profile);
     });
-    var nDay305 = ref305.worlds.xiuxian.alchemy.pillDay.n;
-    var r305 = await SQ.Actions.alDrink(ref305, 'ap_juqi');
+    var nStock305 = ref305.worlds.xiuxian.alchemy.pills.ap_pozhang;
+    var bc305 = ref305.worlds.xiuxian.breakCostNext;   /* 首服已写入 ⇒ 取拒服前的现值做守恒对照 */
+    var r305 = await SQ.Actions.alDrink(ref305, 'ap_pozhang');
     var sysLog305 = (ref305.worlds.xiuxian.log || []).filter(function (l) { return l.cat === 'sys'; });
     var txt305 = String((sysLog305[sysLog305.length - 1] || {}).text || '');
-    ok('305', 'alDrink 日限分支：走真入口不抛 + 日志出行且**上限取表值**（随件修 D().ALCHEMY → D.ALCHEMY）',
-      nDay305 === CAP305 && r305 && r305.ok === false && r305.reason === 'daily' &&
-      txt305 === SQ.t('alchemy.log.pillcap', { n: CAP305 }, 'xiuxian') &&
-      txt305.indexOf(String(CAP305)) >= 0 && ref305.profile.name === '试丹者',
-      '日限 n=' + nDay305 + '/' + CAP305 + ' ‖ reason=' + (r305 || {}).reason + ' ‖ 行=' + txt305);
+    ok('305', 'alDrink 失败出口走真入口：不抛 + 整笔不落盘 + **拒服不吞丹**（🔧 N43 起改走 once 支路；原 daily 支路随日限退役，它守的形状另由 #209 / #226 的「同字段同向不叠加」接住）',
+      nStock305 === 2 && r305 && r305.ok === false && r305.reason === 'once' &&
+      ref305.worlds.xiuxian.alchemy.pills.ap_pozhang === 2 &&
+      ref305.worlds.xiuxian.breakCostNext === bc305 &&
+      sysLog305.length === 0 && ref305.profile.name === '试丹者',
+      '库存=' + nStock305 + '→拒后=' + ref305.worlds.xiuxian.alchemy.pills.ap_pozhang +
+      ' ‖ reason=' + (r305 || {}).reason + ' ‖ sys 日志条数=' + sysLog305.length);
 
     /* #306 秘境进度与战力富余挂钩（第卌三批 · 用户报「高战力刷低级秘境要更快，更符合直觉」）
      * 判据取「同一区、同样杀数的通关与否」而不是重算一遍乘式：三档战力把加速的两端钉住——
