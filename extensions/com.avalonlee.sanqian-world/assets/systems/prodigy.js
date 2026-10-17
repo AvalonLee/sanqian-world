@@ -435,6 +435,10 @@
           rumor(ws, pack, D, now, 'prodigy.rumor.rivalry.' + (1 + Math.floor(Math.random() * 3)),
             { name: nameOf(ws, p, pack), faction: factionNameOf(ws, p, pack) });
           events.push({ type: 'rivalry', p: p });
+          /* 角色间机缘词条（第册三批 · 设计稿 §六 4）**挂点在循环之后**，与狭路相逢 / 一笑泯恩仇同一相位：
+           * 抉择是独占资源（`pendingChoice` 一份），当场挂会把本 tick 已掷中的宿敌那条挤掉、掷判无声作废。
+           * 取哪一支由名录号 `hashOf` 确定性派生 ⇒ 本分支不多掷一次随机（判据不落成采样族），
+           * 且同一人换世重遇掷的是同一支。见 `rivalEventOf` 与下方 events 循环。 */
         }
       });
       /* 携才投效月掷（§6.2；解锁 gate 与其余月概率事件同口径——金丹前事件面整体静默） */
@@ -464,11 +468,12 @@
         }
       }
     }
-    /* 狭路相逢 / 一笑泯恩仇：至多触发一条（pendingChoice 独占） */
+    /* 狭路相逢 / 一笑泯恩仇 / 角色间机缘：至多触发一条（pendingChoice 独占，谁先掷中归谁） */
     for (var ei = 0; ei < events.length; ei++) {
       var ev = events[ei];
-      if ((ev.type === 'feudMeet' || ev.type === 'forgive') && !ws.pendingChoice) {
-        fireProdigyEvent(ws, pack, D, ev.type === 'feudMeet' ? 'prodigy_ev_feud' : 'prodigy_ev_forgive', ev.p.id, now, ctx);
+      if ((ev.type === 'feudMeet' || ev.type === 'forgive' || ev.type === 'rivalry') && !ws.pendingChoice) {
+        fireProdigyEvent(ws, pack, D, ev.type === 'feudMeet' ? 'prodigy_ev_feud'
+          : ev.type === 'forgive' ? 'prodigy_ev_forgive' : rivalEventOf(D, ev.p), ev.p.id, now, ctx);
         break;
       }
     }
@@ -492,7 +497,23 @@
         }
       });
     }
+    /* 隐世三席的「间接得知」（第册三批 · 设计稿 §七 那条待裁，用户点「给一条专属奇遇」）：
+     * 踏进地榜带才有人开始跟你提天榜上那三个问号。走 `fireTagged` 独立通道 + `fateSeen` ⇒
+     * 一世只演一次（第二次进来池已被记空、静默返回 null），零交互、不给战书入口（裁定 2 不破）。
+     * realmSeg 恒传 −1 = 与渡劫垂青池（按境界段分账）隔开，否则会把那一族提前喂饱。 */
+    if (un && !ws.pendingChoice && (ws.realm || 0) >= (PD.HID_EVENT_REALM || 6) &&
+      SQ.Events && SQ.Events.fireTagged) {
+      SQ.Events.fireTagged(ws, pack, D, 'jianghu_hid', -1, now, ctx);
+    }
     return events.length ? events : null;
+  }
+
+  /* 角色间机缘取哪一支 = 名录号确定性哈希（`hashOf` 与榜面五项派生同一把尺），**不掷随机**；
+   * 池配空返回 null ⇒ fireProdigyEvent 查不到词条即静默不挂（不吞掉本 tick 其余收益）。 */
+  function rivalEventOf(D, p) {
+    var ids = P(D).RIVAL_EVENTS || [];
+    if (!ids.length) return null;
+    return ids[(SQ.Jianghu ? SQ.Jianghu.hashOf((p && p.rid) || (p && p.id) || '') : 0) % ids.length];
   }
 
   /* 天骄专属事件触发（独立触发面：不入常规抽取池——tags:['prodigy'] 隔离，对表 fireTagged 落地五件套） */
@@ -647,15 +668,76 @@
     while (ws.prodMarks.dead.length > 20) ws.prodMarks.dead.shift();
   }
 
+  /* ── 身死即结的「夺宝」（第册三批 · 设计稿《江湖榜与角色库》§四 · 用户裁定「照设计稿全给」）───
+   * 掉什么 = 名录派生出的**两件真道具**（`Jianghu.gearOf` 已经按 `reqs.realm` 过境界门槛 ⇒ 「档位
+   *   不高于其境界带」是派生自带的，这里不再判一次）+ 一注「重注」等额灵石 + 一枚丹。
+   * ⚠️ 那口具名兵刃（`P.wp`）按名录头注就是「与玩家掉落/装备系统无关，纯名录文本」⇒ 掉不出实物，
+   *   榜面那一栏照旧只显名号。这一条是设计稿 §四 的第五处实施改口，已记进该稿 §〇A。
+   * 三条闸：① 只在本函数给 ⇒ 死者同时进 `prodMarks.dead`、相识与背景两族都不再出现 ⇒ 刷不出第二次；
+   *   ② 已持有 / 已学会**不折算也不静默丢**，日志明说「只留下名号」（「重复购买照扣钱零收益」那一族
+   *      的第廿六批同型反例，白拿的东西同样不许无声消失）；
+   *   ③ 丹匣满 ⇒ 那枚丹按**坊市同一张价目表**折成等额灵石入账并写明，不留一笔无账的白丢。
+   * 旧档 `rid` 认不出 ⇒ 没有派生装备可掉，仍给灵石与丹（与战力口径同一把「认不出就不动」的尺）。
+   * ⚠️ **涉寿元的功法照掉、不筛**（用户 2026-10-17 点档「不筛，日志写明白」）：`gainArt` 入门那一步本就走
+   *   `gainLife → lifeAdd` 那唯一写口，而写口自带一行寿元日志（`life.log.gain` / `life.log.loss`）⇒
+   *   白拿长生诀 +200 年与误得食血功 −40 年都**不静默**，屏上看得见。判据 = 冒烟 #318 己。
+   * shortcut: 这条通道因此成为一个**可达的得寿 / 折寿入口**（原本只有丹 / 奇遇 / 认主三族）；日后若要收口，
+   *   做法是在 `gearOf` 的派生侧筛掉带 `life` 的功法，而不是在这里补第二套寿元口径。 */
+  function killLoot(ws, pack, D, p, log) {
+    var wid = pack.worldId, out = { items: 0, stones: 0, dup: 0, pillFull: false };
+    var st0 = ws.stones;                                    /* 灵石一律按**实测差值**合计（复核抓到旧写法漏报架上溢出那一笔） */
+    var g = (p.rid && SQ.Jianghu) ? SQ.Jianghu.gearOf(pack, D, p.rid, p.rlm) : { tb: null, art: null };
+    if (g.tb) {
+      if (SQ.Treasures.entryOf(ws, g.tb)) out.dup++;
+      else if (SQ.Treasures.gain(ws, pack, D, g.tb, log).ok) out.items++;
+      /* gain 不 ok 只剩 'unknown'（派生 id 不在表里）——那是不可能分支，不为它立一枚会说谎的键 */
+    }
+    if (g.art) {
+      if (SQ.Arts.owned(ws, g.art)) out.dup++;
+      else {
+        /* gainArt 的三种去处：known/shelf = 真进手（算件）；overflow = 架满按重复所得折灵石，它自己已写
+         * `arts.shelffull` 日志 ⇒ 不算件、不另说一遍，但灵石按上面的实测差值合计，一分不漏。 */
+        var ar = SQ.Arts.gainArt(ws, pack, D, g.art, log);
+        if (ar === 'known' || ar === 'shelf') out.items++;  /* overflow 不算件：它折成灵石，由上面那行 `arts.shelffull` 说明 */
+      }
+    }
+    var lot = sparStake(ws, D, 'heavy');
+    ws.stones += lot;
+    SQ.Ledger.note(ws, 'in', 'event', lot);
+    /* 一枚丹 = 价目表里最贵的**非底牌**成品丹（`nogift` 那枚是玩家自己拿筹码换的，不白送） */
+    var pl = (D.PILLS || []).filter(function (x) { return !x.nogift && x.price > 0; })
+      .sort(function (a, b) { return b.price - a.price; })[0];
+    if (pl && SQ.Alchemy.pillRoom(ws, D, pl.id, 1)) {
+      SQ.Alchemy.gainPill(ws, D, pl.id, 1, log, wid);
+    } else if (pl) {
+      out.pillFull = true;
+      ws.stones += pl.price;
+      SQ.Ledger.note(ws, 'in', 'event', pl.price);          /* 与 gainPill 那条不同笔，逐笔记、不并成一笔糊账 */
+    }
+    out.stones = ws.stones - st0;
+    if (log) log('sys', SQ.t('prodigy.log.killloot', {
+      name: nameOf(ws, p, pack), n: out.items, cur: SQ.t('resource.currency', null, wid), loot: SQ.fmt(out.stones)
+    }, wid));
+    if (out.dup && log) log('sys', SQ.t('prodigy.log.killloot.dup', { name: nameOf(ws, p, pack) }, wid));
+    if (out.pillFull && log) log('sys', SQ.t('prodigy.log.killloot.pillfull', {
+      cur: SQ.t('resource.currency', null, wid), n: SQ.fmt(pl.price)
+    }, wid));
+    return out;
+  }
+
   /* 天骄身死的**唯一出榜写口**（第卌四批自 onEventResolved 的斩杀分支原样抽出）：
    * 心结除 + 出榜（槽位不复用）+ 跨世宿敌清位 + 成就标记 + 传闻——狭路相逢斩杀与袭杀满三次都走这里，
-   * 复制一份就是第二个「谁算死了」口径（本仓「唯一写口」纪律的同族）。karma 不在这里，由调用方照记。 */
-  function killOff(ws, s, pack, D, p, now) {
+   * 复制一份就是第二个「谁算死了」口径（本仓「唯一写口」纪律的同族）。karma 不在这里，由调用方照记。
+   * 第册三批起这里多一段「夺宝」（见 `killLoot`），所以**两条身死路都给掉落**——设计稿原文只写袭杀
+   * 满三次，但「身死即结」这条闸在两处是同一个谓词，分给不给只会造出第二个「谁算死了」之外的第二个
+   * 「谁该掉宝」口径。 */
+  function killOff(ws, s, pack, D, p, now, log) {
     endFeud(ws, pack, D, p, now, null, true);
     if (p.eternal && s && s.meta) s.meta.eternalProdigy = null;
     if (p.eternal) { ws.prodMarks = ws.prodMarks || {}; ws.prodMarks.sudiWin = true; }
     ws.prodigies = (ws.prodigies || []).filter(function (x) { return x.id !== p.id; });
     rumor(ws, pack, D, now, 'prodigy.rumor.kill', { name: nameOf(ws, p, pack) });
+    killLoot(ws, pack, D, p, log);
     markDead(ws, p.rid);
     /* 空出来的一席由名库同带最高者**即时补位**并播报（设计稿 §二）：补位者是背景席位
      * （不入档、不可交互），所以这条只说「谁顶上来了」，不给战书入口 */
@@ -715,7 +797,7 @@
     out.dead = false;
     if (p.amb >= (A.KILL_MAX != null ? A.KILL_MAX : 3)) {
       var slain = nameOf(ws, p, pack);
-      killOff(ws, s, pack, D, p, now);
+      killOff(ws, s, pack, D, p, now, log);
       out.dead = true;
       if (pack.worldSystems && pack.worldSystems.revengeArm) {
         pack.worldSystems.revengeArm(ws, pack, D, slain, now);
@@ -734,7 +816,7 @@
 
   /* 狭路相逢/一笑泯恩仇 结算后处理（actions.resolveChoice 在 resolveBranch 前抓取 pid 传入）：
    * 正胜 = 心结除；魔胜 = 斩杀出榜 + karma 按天骄阵营；败 = failE 已在事件内全额结算，心结仍在 */
-  function onEventResolved(ws, s, pack, D, evId, branchKey, pass, now, pid) {
+  function onEventResolved(ws, s, pack, D, evId, branchKey, pass, now, pid, log) {
     var p = pid ? byId(ws, pid) : null;
     if (!p) return null;
     var out = { pid: pid };
@@ -745,7 +827,7 @@
       } else if (branchKey === 'evil') {
         /* 斩杀：出榜走 killOff（唯一写口，袭杀满三次同一条）+ karma 按天骄阵营照记 */
         var kd = (P(D).FEUD_KILL_KARMA || [-25, -10, 15])[p.al] || -10;
-        killOff(ws, s, pack, D, p, now);
+        killOff(ws, s, pack, D, p, now, log);
         ws.karmaEventScore = (ws.karmaEventScore || 0) + kd;
         out.karma = kd;
         out.killed = true;

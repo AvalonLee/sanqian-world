@@ -202,6 +202,89 @@ function buildSave() {
     'J12 玩家行只出现在自己境界带那一榜并高亮，且名次行**不会被写成「第 0 位」**（截图目检抓到过这一枚谎；裁定 3：不另开「我方之势」行）',
     '天榜cur=' + r0.cur + ' 玄榜cur=' + r1.cur + ' 行=' + r1.curTxt.trim().slice(0, 28));
 
+  /* ══ J14~J16 第册三批④：夺宝与隐世奇遇「真的上屏」（第册批 mrc-title 那一课不重演）══
+   * 场景全由**引擎自己**写：夺宝走唯一写口 `killOff`（日志函子 = 真的 `SQ.Log.push`），
+   * 隐世那一支走 `fireTagged`（pendingChoice 的形状由引擎建，测试不手抄）。
+   * 期望值一律回词表与表值现算，断言里不写中文常量、不钉具体人名。 */
+  const openWith = async (s) => {
+    const c = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    await c.addInitScript(v => { localStorage.setItem('sanqian-state-v1', v); }, JSON.stringify(s));
+    const pg = await c.newPage();
+    await pg.clock.install({ time: new Date(T0) });
+    pg.on('pageerror', e => errs.push('pageerror: ' + e.message));
+    pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+    await pg.goto(url);
+    await pg.waitForSelector('#sc-main:not(.hide)', { timeout: 20000 });
+    return { c, pg };
+  };
+  const stakeUI = Math.round((D.ZONES[Math.min(5, D.ZONES.length - 1)].stones || 3) * D.PRODIGY.STAKE_K3.heavy);
+  {
+    const s2 = buildSave(), w2 = s2.worlds.xiuxian;
+    let target = null, gear = null;
+    w2.prodigies.forEach(p => {                       /* 取一件「两件都还没拿过」的具名出场者（否则走 dup 支，n 就不是 2） */
+      if (target || !p.rid) return;
+      const g = S.Jianghu.gearOf(PACK, D, p.rid, p.rlm);
+      if (!g.tb || !g.art) return;
+      if (((w2.treasures || {}).owned || []).some(x => x.id === g.tb)) return;
+      if ((w2.artsKnown || []).indexOf(g.art) >= 0 || (w2.shelf || []).indexOf(g.art) >= 0) return;
+      target = p; gear = g;
+    });
+    S.Prodigy.killOff(w2, { meta: {} }, PACK, D, target, T0 + 1, (cat, txt) => S.Log.push(w2, cat, txt));
+    const { c, pg } = await openWith(s2);
+    /* J14 读**屏**不读 localStorage（复核抓到旧写法把自填的值当上屏证据）：切到法宝页，
+     * 那件掉来的东西必须真的是一张卡片，标题由词表现算。 */
+    await pg.click('#m-tabbar button[data-v="treasure"]');
+    await pg.waitForTimeout(500);
+    const r = await pg.evaluate(() => ({
+      cards: Array.prototype.slice.call(document.querySelectorAll('#tab-treasure .trgrid > .tcard'))
+        .map(n => (n.textContent || '').replace(/\s+/g, ' ').trim()),
+      owned: (((JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.treasures) || {}).owned || []).map(x => x.id)
+    }));
+    await pg.click('#m-tabbar button[data-v="journal"]');
+    await pg.waitForTimeout(500);
+    const r2 = await pg.evaluate(() => ({
+      lines: Array.prototype.slice.call(document.querySelectorAll('#tab-journal .logline'))
+        .map(n => (n.textContent || '').replace(/\s+/g, ' '))
+    }));
+    const want = S.t('prodigy.log.killloot', {
+      name: S.Jianghu.of(PACK, target.rid).nm, n: 2, cur: S.t('resource.currency', null, 'xiuxian'), loot: S.fmt(stakeUI)
+    }, 'xiuxian');
+    const tbName = S.t('treasure.' + gear.tb + '.name', null, 'xiuxian');
+    T(r.owned.indexOf(gear.tb) >= 0 && r.cards.some(t2 => t2.indexOf(tbName) >= 0),
+      'J14 夺宝掉的那件法宝既进了档、又真的渲染成法宝页的一张卡（标题回词表，屏上不抄第二份名号）',
+      'owned=' + JSON.stringify(r.owned) + ' ‖ 卡数=' + r.cards.length + ' ‖ 找=' + tbName);
+    T(r2.lines.some(l => l.indexOf(want.replace(/\s+/g, ' ')) >= 0),
+      'J15 那行夺宝日志真的渲染在「日志」页上（期望串由词表现算，屏上零自造文本）',
+      '期望=' + want.slice(0, 40) + ' ‖ 行=' + (r2.lines[0] || '空').slice(0, 40));
+    await c.close();
+  }
+  {
+    const s3 = buildSave(), w3 = s3.worlds.xiuxian;
+    w3.realm = D.PRODIGY.HID_EVENT_REALM;
+    const fired = S.Events.fireTagged(w3, PACK, D, 'jianghu_hid', -1, T0 + 2, { log: (cat, txt) => S.Log.push(w3, cat, txt) });
+    const { c, pg } = await openWith(s3);
+    await pg.waitForTimeout(600);
+    const r = await pg.evaluate(() => {
+      const m = document.getElementById('modal-choice');
+      const rect = m ? m.getBoundingClientRect() : { height: 0 };
+      return {
+        open: !!m && !m.classList.contains('hide'), h: Math.round(rect.height),
+        title: ((document.getElementById('mc-title') || {}).textContent || '').trim(),
+        branches: Array.prototype.slice.call(document.querySelectorAll('#mc-branches button')).length,
+        pend: (JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.pendingChoice) || null
+      };
+    });
+    const nm = S.t('event.jianghu_hid_glimpse.name', null, 'xiuxian');
+    const nWant = Object.keys(((S.Events.findById(PACK, 'jianghu_hid_glimpse') || {}).choices) || {}).length;
+    T(!!fired && !!r.pend && r.pend.id === 'jianghu_hid_glimpse' && !r.pend.prodigy,
+      'J16 隐世奇遇由 fireTagged 建起挂起抉择，且**不挂任何天骄槽位**（内容侧也不给入口 = 裁定 2）',
+      'pend=' + JSON.stringify(r.pend && { id: r.pend.id, via: r.pend.via, prodigy: r.pend.prodigy }));
+    T(r.open && r.h > 0 && r.title === nm && r.branches === nWant,
+      'J17 浮层真在屏上打开：可见（height>0）· 标题 === 词表事件名 · 分支按钮数 === 该支声明的 choices 数',
+      'h=' + r.h + ' title=' + r.title + ' 钮=' + r.branches + '/' + nWant);
+    await c.close();
+  }
+
   T(errs.length === 0, 'J13 全程零 pageerror / 零 console error', errs.join(' | ').slice(0, 200) || 'clean');
 
   console.log(fail === 0 ? 'UI_JIANGHU_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_JIANGHU_FAILED ' + fail);

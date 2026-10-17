@@ -90,6 +90,22 @@
   K['event.prodigy_ev_forgive.branch.right'] = '当面致歉——一言解数年之怨';
   K['event.prodigy_ev_forgive.branch.evil'] = '冷笑不语，拂袖而去';
   K['event.prodigy_ev_forgive.branch.neutral'] = '提来一坛酒——恩怨都在杯子里';
+  /* ── 江湖榜④ №129~131（第册三批 · 设计稿 §六 4 / §七）────────────────────── */
+  K['event.jianghu_ev_rival_ling.name'] = '同脉争灵';
+  K['event.jianghu_ev_rival_ling.story'] = '你与{name}在同一处灵脉落了脚。脉眼只一个，谁先坐下，这一季的灵气就归谁。';
+  K['event.jianghu_ev_rival_ling.branch.right'] = '分脉而居——各取半季，交个朋友';
+  K['event.jianghu_ev_rival_ling.branch.evil'] = '抢先纳灵——把脉眼占死，让对方扑空（判定 [气·普通]）';
+  K['event.jianghu_ev_rival_ling.branch.neutral'] = '起身让出此地，另寻一处野脉';
+  K['event.jianghu_ev_rival_trial.name'] = '同破一藏';
+  K['event.jianghu_ev_rival_trial.story'] = '一座前辈洞府现了门，{name} 也在门外。府中禁制认“先到者”，而两人同时伸出了手。';
+  K['event.jianghu_ev_rival_trial.branch.right'] = '推让在先，结伴入府——藏中所得按出力分';
+  K['event.jianghu_ev_rival_trial.branch.evil'] = '硬闯禁制，抢在对方前面取宝（判定 [战·1.2 倍]）';
+  K['event.jianghu_ev_rival_trial.branch.neutral'] = '只取门口那层散落的，见好就收';
+  K['event.jianghu_hid_glimpse.name'] = '云外一声';
+  K['event.jianghu_hid_glimpse.story'] = '山道上有人谈起天榜最前那三个问号：一位据说只在雨天落子，一位替人盖屋从不留名，一位你说出名字时对方只笑了笑。你听见的是风，不是他们。';
+  K['event.jianghu_hid_glimpse.branch.right'] = '把这些话记在心里——心境澄明一时（不寻人、不递名帖）';
+  K['event.jianghu_hid_glimpse.branch.evil'] = '顺着话头去卖消息，换一袋灵石';
+  K['event.jianghu_hid_glimpse.branch.neutral'] = '一笑而过，继续赶自己的路';
 
   /* ── UI ── */
   /* `prodigy.system` 一字未动：它还被「弟子档天骄角标」与渐次解锁提示两处读着（view:4543 / :6737），
@@ -149,6 +165,10 @@
   K['prodigy.log.ambush'] = '你伏击{name}，夺 {cur} ×{loot}（此人已遭你袭杀 {n}/{max}）';
   K['prodigy.log.ambushfail'] = '你伏击{name}不成，反受其伤（道伤 +{dao}）';
   K['prodigy.log.revengearm'] = '{name} 一门已将你记入死账——族中高手不诛你不休';
+  /* 身死即结的「夺宝」三条（第册三批 · 设计稿 §四）：正账一行 + 两支「没白拿成空」的说明行 */
+  K['prodigy.log.killloot'] = '{name} 身死，你从其遗物中取走 {n} 件，另得 {cur} ×{loot}';
+  K['prodigy.log.killloot.dup'] = '{name} 的那件东西你本就有着一份，此趟只留下一个名号';
+  K['prodigy.log.killloot.pillfull'] = '丹匣已满，那枚丹换作了 {cur} ×{n}';
   K['prodigy.ambush.title'] = '袭杀';
   K['prodigy.ambush.btn'] = '袭杀此人';
   K['prodigy.ambush.why'] = '需战力 ≥ 对方 ×{r}；败 = 道伤 +{dao}、善恶 −{k}';

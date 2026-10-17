@@ -1805,9 +1805,9 @@
         if (SQ.t(key, null, 'xiuxian') === key) bad118.push(ev.id + ':lex.branch.' + bk);
       });
     });
-    ok(118, '128 条分布（天25/地44/人59 · 特殊12 · once12 · tags14=垂青6+天骄5+袭击2+寻仇1）+ schema/词表对表（第卌四批 №126~128 入池 · GAIN_TYPES 登记 stonesPct / CHECK_TYPES 登记 ambushFoe）',
-      all118.length === 128 && tiers118.tian === 25 && tiers118.di === 44 && tiers118.ren === 59 &&
-      special118 === 12 && once118 === 12 && tagged118 === 14 && bad118.length === 0,
+    ok(118, '131 条分布（天26/地45/人60 · 特殊12 · once12 · tags17=垂青6+天骄5+袭击2+寻仇1+机缘2+隐世1）+ schema/词表对表（第册三批 №129~131 入池 · GAIN_TYPES 登记 stonesPct / CHECK_TYPES 登记 ambushFoe）',
+      all118.length === 131 && tiers118.tian === 26 && tiers118.di === 45 && tiers118.ren === 60 &&
+      special118 === 12 && once118 === 12 && tagged118 === 17 && bad118.length === 0,
       'n=' + all118.length + ' ' + JSON.stringify(tiers118) + ' sp=' + special118 + ' once=' + once118 +
       ' tags=' + tagged118 + ' bad=' + bad118.slice(0, 5).join(','));
 
@@ -2125,7 +2125,10 @@
       /* 天骄专属事件（№120~124 · 六向批 A4）：bond 槽位占位符 '$prodigy'（resolveBranch 运行时
        * 替换为触发槽位实际 id pr{n}——天骄 bonds 键空间与道友名录隔离，天骄卷 §10.1） */
       prodigy_ev_drink:    { right: { '$prodigy': 8 }, neutral: { '$prodigy': 4 }, evil: {} },
-      prodigy_ev_gift:     { right: { '$prodigy': 10 }, neutral: { '$prodigy': 5 }, evil: {} }
+      prodigy_ev_gift:     { right: { '$prodigy': 10 }, neutral: { '$prodigy': 5 }, evil: {} },
+      /* 江湖榜④ №129~130（第册三批）：机缘竞争挂的两支词条，bond 目标同样是运行时占位符 */
+      jianghu_ev_rival_ling:  { right: { '$prodigy': 4 }, neutral: {}, evil: {} },
+      jianghu_ev_rival_trial: { right: { '$prodigy': 6 }, neutral: {}, evil: {} }
     };
     var bad109 = [];
     var all109 = SQ.EVENTS.common.concat(SQ.EVENTS.xiuxian);
@@ -2182,7 +2185,7 @@
     normOk = normOk && JSON.stringify(m109.bonds) === '{}' && m109.spouse === null &&
       m109.guardLog.count === 0 && m109.chuBlessAt === 0 && JSON.stringify(m109.scars) === '{}' &&
       m109.spouseCdUntil === 0 && m109.spouseLog === null;
-    ok('109', 'bond 映射表对表（60 行 = 正典 57 事件 + 垂青 pei 1 + 天骄占位 2 · companion 链）+ 四态（bond/lock/drain/互斥）+ 好感模型 + normalize + 旧档迁移',
+    ok('109', 'bond 映射表对表（62 行 = 正典 57 事件 + 垂青 pei 1 + 天骄占位 2 + 机缘占位 2 · companion 链）+ 四态（bond/lock/drain/互斥）+ 好感模型 + normalize + 旧档迁移',
       bad109.length === 0 && tierOk && gainOk && normOk,
       'bad=' + bad109.slice(0, 4).join(',') + ' tier=' + tierOk + ' gain=' + gainOk + ' norm=' + normOk);
 
@@ -7428,16 +7431,16 @@
     w215b.karmaEventScore = 100;
     w215b.prodigies = [{ id: 'pr7', nm: [1, 1, 1], tl: [], al: 2, fc: -1, fid: null, apt: 1, rlm: 4, prg: 0, feud: true, feudBond: 40, lastSparAt: 0, rivAt: 0, boost: null, eternal: true, wl: [0, 0, 0] }];
     var s215 = { meta: mkMeta() }; s215.meta.eternalProdigy = { nm: [1, 1, 1] };
-    var kill215 = SQ.Prodigy.onEventResolved(w215b, s215, pack, D, 'prodigy_ev_feud', 'evil', true, Date.now(), 'pr7');
+    var kill215 = SQ.Prodigy.onEventResolved(w215b, s215, pack, D, 'prodigy_ev_feud', 'evil', true, Date.now(), 'pr7', noopLog());
     var killOk215 = kill215.killed === true && w215b.prodigies.length === 0 &&
       w215b.karmaEventScore === 115 &&                               /* 魔天骄被斩 +15 */
       s215.meta.eternalProdigy === null && w215b.prodMarks.sudiWin === true;
     var w215c = pack.initialState();
     w215c.prodigies = [{ id: 'pr8', nm: [1, 1, 1], tl: [], al: 0, fc: -1, fid: null, apt: 1, rlm: 4, prg: 0, feud: true, feudBond: 80, lastSparAt: 0, rivAt: 0, boost: null, eternal: false, wl: [0, 0, 0] }];
-    var clear215 = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_feud', 'right', true, Date.now(), 'pr8');
-    var lose215b = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_feud', 'right', false, Date.now(), 'pr8');
+    var clear215 = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_feud', 'right', true, Date.now(), 'pr8', noopLog());
+    var lose215b = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_feud', 'right', false, Date.now(), 'pr8', noopLog());
     w215c.prodigies[0].feud = true;
-    var fg215 = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_forgive', 'right', true, Date.now(), 'pr8');
+    var fg215 = SQ.Prodigy.onEventResolved(w215c, null, pack, D, 'prodigy_ev_forgive', 'right', true, Date.now(), 'pr8', noopLog());
     var forgive215 = clear215.cleared === true && w215c.prodigies[0].feud === false &&
       (w215c.bonds.pr8 || 0) === 5 && fg215.cleared === true;
     /* 跨世宿敌：saveEternal ≤300B + 转世开场「又是你。」+ eternal +0.2 */
@@ -10672,7 +10675,7 @@
     }); });
     /* 死者不复生 + 递补播报：挑一名相识者走唯一出榜写口 */
     var victim317 = w317.prodigies[0];
-    SQ.Prodigy.killOff(w317, { meta: {} }, pack, D, victim317, 1700000001000);
+    SQ.Prodigy.killOff(w317, { meta: {} }, pack, D, victim317, 1700000001000, noopLog());
     var deadOk317 = (w317.prodMarks.dead || []).indexOf(victim317.rid) >= 0;
     var back317 = SQ.Prodigy.board4(w317, pack, D, m317);
     var ghost317 = false;
@@ -10701,6 +10704,202 @@
       ' 玩家=' + meN317 + '@' + meBand317 + ' 徽标违例=' + JSON.stringify(lvBad317.slice(0, 2)) +
       ' 五项违例=' + JSON.stringify(gearBad317.slice(0, 2)) + ' 双跑=' + (JSON.stringify(B317) === JSON.stringify(B317b)) +
       ' 死=' + deadOk317 + '/' + ghost317 + ' 播=' + !!fillCard317 + '/' + !!upCard317);
+
+
+    /* ═══ #318 身死即结的「夺宝」（第册三批 · 设计稿《江湖榜与角色库》§四 · 用户裁定「照设计稿全给」）═══
+     * 当晚独立复核返修三处：① 灵石一律按**实测差值**并逐笔对 ledger（旧判据只量 stones，把两处
+     * `Ledger.note` 删掉照样绿 = 空判「有账」）；② 架上溢出（overflow）单独立一判，它折的是
+     * `in.refine` 不是 `in.event`，漏了这支就正好复现「钱多了账上没记」那一族；③ 涉寿元的功法照掉
+     * （用户点档「不筛，日志写明白」），所以必须钉「走的是 `lifeAdd` 唯一写口 + 那一行寿元日志真的在」，
+     * 否则「白拿 200 年」这件事哪天变成静默的，没人知道。 */
+    var pill318 = (D.PILLS || []).filter(function (x) { return !x.nogift && x.price > 0; })
+      .sort(function (a, b) { return b.price - a.price; })[0];
+    var cap318 = (D.ALCHEMY || {}).PILL_STOCK_CAP || 99;
+    var stake318 = function (w) {
+      var z = (D.ZONES || [])[Math.min(w.realm, (D.ZONES || []).length - 1)] || {};
+      return Math.round((z.stones || 3) * ((D.PRODIGY.STAKE_K3 || {}).heavy || 0));
+    };
+    var per318 = SQ.Jianghu.pool(pack).persons.filter(function (x) { return !x.hid && !x.fc; });
+    var find318 = function (fn, tag) {               /* 扫名录挑素材；挑不到就如实红，不让判据靠 TypeError 打断整沙箱 */
+      var hit = null;
+      per318.forEach(function (x) {
+        if (hit) return;
+        var g = SQ.Jianghu.gearOf(pack, D, x.id, x.rlm);
+        if (g.tb && g.art && fn(x, g)) hit = { rid: x.id, rlm: x.rlm, g: g };
+      });
+      if (!hit) bad318.push('挑不到素材:' + tag);
+      return hit || { rid: per318[0].id, rlm: per318[0].rlm, g: { tb: null, art: null } };
+    };
+    var bad318 = [];
+    var am318 = pack.artsMap();
+    var mLife318 = find318(function (x, g) { return am318[g.art] && am318[g.art].life != null; }, '涉寿元功法');
+    var mShelf318 = find318(function (x, g) {                       /* 死者境界高到玩家（realm 1）够不着 ⇒ 落架 / 架满则溢出 */
+      var req = (am318[g.art].reqs || {}).realm || 0;
+      return req > 1 && !!am318[g.art];
+    }, '要求未达功法');
+    var new318 = function (rid, realm, rlm) {      /* rlm 显式覆盖：rollOne 把出场者掷成「与你同代、从练气长起」，
+                                                     * 而 gearOf 按**该行当前境界**派生 ⇒ 不设就挑不到目标档的道具 */
+      var w = pack.initialState();
+      w.realm = realm; w.zone = 0;
+      var p = SQ.Prodigy.rollOne(w, pack, D, mkMeta(), rid ? { rid: rid } : null);
+      if (!rid) p.rid = null;
+      if (rlm != null) p.rlm = rlm;
+      w.prodigies = [p];
+      return w;
+    };
+    var nameOf318 = function (k) { return SQ.Jianghu.of(pack, k.p.rid).nm; };
+    var kill318 = function (w) {
+      var p = w.prodigies[0], g = SQ.Jianghu.gearOf(pack, D, p.rid, p.rlm);
+      var snap = { st: w.stones, ev: w.ledger.in.event, rf: w.ledger.in.refine, life: w.lifeBonus || 0,
+        kn: (w.artsKnown || []).length, sh: (w.shelf || []).length, tb: ((w.treasures || {}).owned || []).length };
+      var lg = [];
+      SQ.Prodigy.killOff(w, { meta: {} }, pack, D, p, 1700000000000, function (c, t) { lg.push(t); });
+      return { p: p, g: g, lg: lg, snap: snap, w: w };
+    };
+    /* (甲) 两件真道具各按真入口落位 + 灵石一笔有账 + 主日志行由词表现算 */
+    var kA = kill318(new318(per318[0].id, 9));
+    var evA = kA.snap.ev, stA = kA.w.stones - kA.snap.st;
+    var a318 = kA.w.prodigies.length === 0 &&
+      ((kA.w.treasures || {}).owned || []).some(function (x) { return x.id === kA.g.tb; }) &&
+      ((kA.w.artsKnown || []).indexOf(kA.g.art) >= 0 || (kA.w.shelf || []).indexOf(kA.g.art) >= 0) &&
+      stA === stake318(kA.w) && kA.w.ledger.in.event - evA === stA &&
+      kA.lg.some(function (s) { return s.indexOf(SQ.t('prodigy.log.killloot', {
+        name: SQ.Jianghu.of(pack, kA.p.rid).nm, n: 2, cur: SQ.t('resource.currency', null, 'xiuxian'), loot: SQ.fmt(stA)
+      }, 'xiuxian')) >= 0; });
+    /* (乙) 待修习架已满 ⇒ 那部功法折灵石：走 `in.refine` 不走 `in.event`，且不算「取走一件」 */
+    var wB = new318(mShelf318.rid, 1, mShelf318.rlm);
+    var gB = SQ.Jianghu.gearOf(pack, D, mShelf318.rid, mShelf318.rlm);
+    var dupB = SQ.Arts.dupValue(pack, D, gB.art);
+    wB.shelf = Object.keys(am318).filter(function (k) { return k !== gB.art && (wB.artsKnown || []).indexOf(k) < 0; })
+      .slice(0, D.SHELF_CAP);
+    var kB = kill318(wB);
+    var b318 = (kB.w.artsKnown || []).indexOf(gB.art) < 0 && (kB.w.shelf || []).length === D.SHELF_CAP &&
+      dupB > 0 && kB.w.stones - kB.snap.st === stake318(kB.w) + dupB &&
+      kB.w.ledger.in.event - kB.snap.ev === stake318(kB.w) &&
+      kB.w.ledger.in.refine - kB.snap.rf === dupB &&
+      kB.lg.some(function (s) { return s.indexOf(SQ.t('arts.shelffull', {
+        name: SQ.t('skill.' + gB.art + '.name', null, 'xiuxian'), n: SQ.fmt(dupB), cur: SQ.t('resource.currency', null, 'xiuxian')
+      }, 'xiuxian')) >= 0; }) &&
+      kB.lg.some(function (s) { return s.indexOf(SQ.t('prodigy.log.killloot', {
+        name: nameOf318(kB), n: 1, cur: SQ.t('resource.currency', null, 'xiuxian'), loot: SQ.fmt(stake318(kB.w) + dupB)
+      }, 'xiuxian')) >= 0; });
+    /* (丙) 已持有 ⇒ 不重复入册、留说明行（白拿的东西不许无声消失） */
+    var wC = new318(per318[0].id, 9);
+    var gC = SQ.Jianghu.gearOf(pack, D, wC.prodigies[0].rid, wC.prodigies[0].rlm);
+    wC.treasures = wC.treasures || { owned: [], slots: [] };
+    wC.treasures.owned.push({ id: gC.tb, st: {}, lv: 1 });
+    var tb0C = wC.treasures.owned.length, kC = kill318(wC);
+    var c318 = kC.w.treasures.owned.length === tb0C &&
+      kC.lg.some(function (s) { return s.indexOf(SQ.t('prodigy.log.killloot.dup', { name: nameOf318(kC) }, 'xiuxian')) >= 0; });
+    /* (丁) 丹匣满 ⇒ 整枚按坊市价折灵石：有账（in.event 含这一笔）+ 有说明行 */
+    var wD = new318(per318[1].id, 9);
+    SQ.Alchemy.gainPill(wD, D, pill318.id, cap318, noopLog(), 'xiuxian');   /* 用真入口塞满丹匣（initialState 的 alchemy 是 null，直接写会崩） */
+    var kD = kill318(wD);
+    var d318 = kD.w.alchemy.pills[pill318.id] === cap318 &&
+      kD.w.stones - kD.snap.st === stake318(kD.w) + pill318.price &&
+      kD.w.ledger.in.event - kD.snap.ev === stake318(kD.w) + pill318.price &&
+      kD.lg.some(function (s) { return s.indexOf(SQ.t('prodigy.log.killloot.pillfull', {
+        cur: SQ.t('resource.currency', null, 'xiuxian'), n: SQ.fmt(pill318.price) }, 'xiuxian')) >= 0; });
+    /* (戊) 一次性 = 死者出榜、进 dead，四榜（含背景席位补位）再也装配不到该 rid */
+    var B318 = SQ.Prodigy.board4(kA.w, pack, D, M(mkProf([]), kA.w));
+    var e318 = kA.w.prodMarks.dead.indexOf(kA.p.rid) >= 0 &&
+      B318.every(function (b) { return b.rows.every(function (r) { return !r || r.rid !== kA.p.rid; }); });
+    /* (己) 涉寿元的功法照掉，但**必须走 `lifeAdd` 唯一写口并留那行寿元日志**（用户点档「不筛，日志写明白」） */
+    var kF = kill318(new318(mLife318.rid, 9, mLife318.rlm));
+    var lifeN318 = am318[mLife318.g.art].life;
+    var f318 = kF.w.lifeBonus - kF.snap.life === lifeN318 &&
+      kF.lg.some(function (s) { return s.indexOf(SQ.t(lifeN318 > 0 ? 'life.log.gain' : 'life.log.loss', {
+        n: SQ.fmt(Math.abs(lifeN318)), src: SQ.t('skill.' + mLife318.g.art + '.name', null, 'xiuxian')
+      }, 'xiuxian')) >= 0; });
+    /* (庚) 旧档 rid 认不出 ⇒ 实物零掉、灵石与丹照给（与战力口径同一把「认不出就不动」的尺） */
+    var kG = kill318(new318(null, 9));
+    var g318 = ((kG.w.treasures || {}).owned || []).length === 0 && (kG.w.shelf || []).length === 0 &&
+      kG.w.artsKnown.length === kG.snap.kn && kG.w.shelf.length === kG.snap.sh && kG.snap.tb === 0 && kG.w.stones - kG.snap.st === stake318(kG.w) &&
+      kG.w.alchemy.pills[pill318.id] === 1;
+    ok(318, '身死掉落（第册三批① · 复核返修）：(甲) 两件真道具按真入口落位 + 灵石实测差 === 表值重注 === `in.event` 增额 + 主日志行对词表 ' +
+      '(乙) 架满 ⇒ 功法折灵石走 `in.refine`、不算「取走一件」且 `arts.shelffull` 在案 ' +
+      '(丙) 已持有不重复入册且留说明行 (丁) 丹匣满 ⇒ 整枚折等额灵石、有账有说明 ' +
+      '(戊) 一次性 = 进 dead 且四榜装配不到该 rid (己) 涉寿元功法走 `lifeAdd` 唯一写口且寿元日志在案 ' +
+      '(庚) 旧档无 rid ⇒ 实物零掉、灵石与丹照给',
+      bad318.length === 0 && a318 && b318 && c318 && d318 && e318 && f318 && g318,
+      '素材缺=' + JSON.stringify(bad318) + ' 甲=' + stA + '/' + (kA.w.ledger.in.event - evA) +
+      ' 乙=' + (kB.w.stones - kB.snap.st) + '=' + stake318(kB.w) + '+' + dupB + '(refine+' + (kB.w.ledger.in.refine - kB.snap.rf) + ')' +
+      ' 丁=' + (kD.w.stones - kD.snap.st) + ' 己=' + (kF.w.lifeBonus - kF.snap.life) + '/' + lifeN318 +
+      ' 庚=' + (kG.w.stones - kG.snap.st));
+
+    /* ═══ #319 两支新通道（第册三批②③ · 设计稿 §六 4 / §七）═══
+     * 复核返修两条：① 旧写法用 `hashOf(rid) % 2` 在判据里**复刻生产公式** ⇒ 把哈希改成恒取第一支也照样绿
+     *    （零鉴别力）；现改判「真 tick 在两个不同 rid 上分别挂中了**两支不同的词条**」+「同一 rid 两次跑挂
+     *    同一支」，公式只在取样时用、不进判据。② `HID_EVENT_REALM` / `RIVAL_EVENTS` 两枚表值此前无钉值判据
+     *    ⇒ 改 6 为 9、删掉整条池都不会红；本批起与事件池在册对表并钉值。 */
+    var hidEv319 = SQ.Events.findById(pack, 'jianghu_hid_glimpse'), rvIds319 = D.PRODIGY.RIVAL_EVENTS;
+    var poolBad319 = [], rvNotTagged319 = [];
+    ['tian', 'di', 'ren'].forEach(function (tr) {
+      ['good', 'bad'].forEach(function (na) {
+        (SQ.Events.buildPool(pack, kA.w, D, tr, na, 1700000000000) || []).forEach(function (ev) {
+          if (ev.tags && ev.tags.length) poolBad319.push(ev.id);
+        });
+      });
+    });
+    (rvIds319 || []).forEach(function (id) {
+      var ev = SQ.Events.findById(pack, id);
+      if (!ev || !ev.tags || ev.tags.indexOf('prodigy_rival') < 0) rvNotTagged319.push(id);
+    });
+    var h319 = D.PRODIGY.HID_EVENT_REALM === 6 && rvIds319.length === 2 && rvNotTagged319.length === 0 &&
+      !!hidEv319 && hidEv319.tags.indexOf('jianghu_hid') >= 0 && poolBad319.length === 0;
+    /* 取样：从名录里找两个哈希落在不同支上的 rid（只为构造场景，判据不引用这个公式） */
+    var ridFirst319 = null, ridSecond319 = null;
+    per318.forEach(function (x) {
+      var slot = SQ.Jianghu.hashOf(x.id) % 2;
+      if (slot === 0 && !ridFirst319) ridFirst319 = x.id;
+      if (slot === 1 && !ridSecond319) ridSecond319 = x.id;
+    });
+    var fireRival319 = function (rid) {
+      var w = pack.initialState();
+      w.realm = 5; w.zone = 5;   /* sameZone = 「死者境界对应区 === ws.zone」⇒ 两边都取 5 */
+      var p = SQ.Prodigy.rollOne(w, pack, D, mkMeta(), { rid: rid });
+      p.rlm = 5; p.prg = 0; p.feud = false; p.rivAt = 0;
+      w.prodigies = [p];
+      var rum = (w.rumors || []).length, rst = stubRandom(function () { return 0.01; });
+      SQ.Prodigy.tick(w, pack, D, M(mkProf([]), w), 30000, 1700000000000, { log: noopLog() });
+      rst();
+      return { id: w.pendingChoice && w.pendingChoice.id, pid: w.pendingChoice && w.pendingChoice.prodigy,
+        riv: p.rivAt, boost: !!p.boost, rumor: (w.rumors || []).length > rum };
+    };
+    var r1319 = fireRival319(ridFirst319), r2319 = fireRival319(ridSecond319), r1b319 = fireRival319(ridFirst319);
+    var i319 = !!ridFirst319 && !!ridSecond319 &&
+      rvIds319.indexOf(r1319.id) >= 0 && rvIds319.indexOf(r2319.id) >= 0 && r1319.id !== r2319.id &&
+      r1b319.id === r1319.id &&                                   /* 同一 rid 两次跑挂同一支 = 确定性 */
+      r1319.pid === 'pr1' && r1319.riv === 1700000000000 && r1319.boost && r1319.rumor;
+    /* 隐世 once：未达门槛恒不演；门槛上真 tick 一次演、第二次池已被 fateSeen 记空 */
+    var w319b = pack.initialState();
+    w319b.realm = 5; w319b.zone = 9;   /* 出场者多在不同区 ⇒ 本 tick 只可能命中隐世那一条钩子 */
+    SQ.Prodigy.rollForNewLife(w319b, pack, D, mkMeta(), 1700000000000);
+    var m319b = M(mkProf([]), w319b), rst319b = stubRandom(function () { return 0.99; });
+    w319b.realm = D.PRODIGY.HID_EVENT_REALM - 1;
+    SQ.Prodigy.tick(w319b, pack, D, m319b, 30000, 1700000000000, { log: noopLog() });
+    var j319 = !w319b.pendingChoice;
+    w319b.realm = D.PRODIGY.HID_EVENT_REALM;
+    SQ.Prodigy.tick(w319b, pack, D, m319b, 30000, 1700000000030, { log: noopLog() });
+    var k319 = !!w319b.pendingChoice && w319b.pendingChoice.id === 'jianghu_hid_glimpse' &&
+      w319b.pendingChoice.prodigy == null && (w319b.fateSeen || []).length > 0;
+    w319b.pendingChoice = null;
+    var fs319 = (w319b.fateSeen || []).length;
+    SQ.Prodigy.tick(w319b, pack, D, m319b, 30000, 1700000000060, { log: noopLog() });
+    var l319 = !w319b.pendingChoice && (w319b.fateSeen || []).length === fs319;
+    rst319b();
+    var cx319 = hidEv319 ? JSON.stringify(hidEv319.choices) : '{}';
+    var m319 = cx319.indexOf('$prodigy') < 0 && cx319.indexOf('prodigySpar') < 0 && cx319.indexOf('"npc"') < 0;
+    ok(319, '机缘与隐世两条通道（第册三批②③ · 复核返修）：(甲) 两枚表值钉住（HID_EVENT_REALM === 6 ‖ RIVAL_EVENTS 恰两支且都在册并带 `prodigy_rival`）' +
+      ' ‖ 三支带 tags 的词条 `buildPool` 六组合零命中（生效抽取池一字未动） ' +
+      '(乙) 真 tick 在两个不同 rid 上分别挂中**两支不同**的词条，同一 rid 两次跑挂同一支（判据不复刻哈希公式） ' +
+      '‖ 竞争原三项收益（传闻 / boost / rivAt 频控）一项不丢 ' +
+      '(丙) 未达门槛恒不演 ‖ 达门槛演一次且不挂天骄槽位 ‖ 演过之后 fateSeen 记空不再演 ' +
+      '(丁) 隐世那一支三条分支不引用任何天骄槽位（不可交互落到内容侧）',
+      h319 && i319 && j319 && k319 && l319 && m319,
+      '两支=' + JSON.stringify([r1319.id, r2319.id]) + ' 重跑同支=' + (r1b319.id === r1319.id) +
+      ' 池内违例=' + JSON.stringify(poolBad319.slice(0, 3)) + ' 未tag=' + JSON.stringify(rvNotTagged319) +
+      ' 隐世=' + j319 + '/' + !!k319 + '/' + l319);
 
 
     ok(72, '数字格式 <1万千分位/万/亿',

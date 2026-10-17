@@ -1194,6 +1194,11 @@
       SPAR_MAT_P: 0.10,                         /* 胜方材料彩头：10% 得同区组随机材料 ×1（材料账零灵石流，提炼双路先例） */
       BOND_GAIN: { win: 2, lose: 1, draw: 1 },
       BOND_EVENTS: [30, 70, 100],               /* 知交/生死之交/道护 达档触发专属事件 */
+      /* ── 江湖榜④（第册三批 · 设计稿 §六 4 / §七）两支独立通道的钩子表 ──
+       * RIVAL_EVENTS = 机缘竞争那一条挂的词条池（按名录号 hashOf 取模，**不掷随机**）；
+       * HID_EVENT_REALM = 隐世三席「间接得知」的门槛境界（地榜带入口 = 索引 6） */
+      RIVAL_EVENTS: ['jianghu_ev_rival_ling', 'jianghu_ev_rival_trial'],
+      HID_EVENT_REALM: 6,
       FEUD_TRIB: -0.02,
       FEUD_MEET_P: 0.03,
       FEUD_FORGIVE_P: 0.05,

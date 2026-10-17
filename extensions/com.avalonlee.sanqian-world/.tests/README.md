@@ -21,7 +21,7 @@
 
 ```powershell
 node .tests/run-dod.cjs          # 快速预检：无浏览器依赖 18 件（实测累计墙钟 ~19s，**不是文档旧写的「2~4 分钟」**）
-node .tests/run-dod.cjs --ui     # 追加界面走查 26 篇（逐篇末行由脚本求和，不手算；每篇各起一次 Edge，约 8~10 分钟）
+node .tests/run-dod.cjs --ui     # 追加界面走查（**篇数不手抄**：= `ls .tests/verify-ui-*.cjs | wc -l`，逐篇末行由脚本求和打印；每篇各起一次 Edge，约 8~10 分钟）
 node .tests/run-dod.cjs --sim    # 追加 sim-playthrough 全量（约 10~20 分钟，收口必跑）
 node .tests/run-dod.cjs --full   # 两者都要 = 收口终检
 ```
@@ -102,6 +102,7 @@ node .tests/verify-ui-life.cjs
 node .tests/verify-ui-modulecard.cjs
 node .tests/verify-ui-talentswap.cjs
 node .tests/verify-ui-ambush.cjs
+node .tests/verify-ui-jianghu.cjs
 ```
 
 判据：出现 `UI_RUMOR_ALL_GREEN` / `UI_VERIFY_ALL_GREEN` / `UI_AUTO_ALL_GREEN` / `UI_ZONE_ALL_GREEN` / `UI_ACHV_ALL_GREEN` / `UI_ARTS_ALL_GREEN` / `UI_MARKET_ALL_GREEN` / `UI_JOURNAL_ALL_GREEN` / `UI_CAVEDOT_ALL_GREEN` / `UI_ACHVDOT_ALL_GREEN` / `UI_OFFLINE_ALL_GREEN` / `UI_TRIB_ALL_GREEN` / `UI_TIANDAO_ALL_GREEN` / `UI_FACTION_ALL_GREEN` / `UI_TOASTDEDUP_ALL_GREEN` / `UI_KARMA_ALL_GREEN` / `UI_FUSE_ALL_GREEN` / `UI_BONDS_ALL_GREEN` / `UI_HEIRCHOICE_ALL_GREEN` / `UI_CHAINS_ALL_GREEN` / `UI_A6BLINDSPOT_ALL_GREEN` / `UI_JOIN_ALL_GREEN` / `UI_COLDSTART_ALL_GREEN` / `UI_BADSAVE_ALL_GREEN` / `UI_ALLTABS_ALL_GREEN` / `UI_LIFE_ALL_GREEN` / `UI_MODULECARD_ALL_GREEN` / `UI_TALENTSWAP_ALL_GREEN` / `UI_AMBUSH_ALL_GREEN / **UI_JIANGHU_ALL_GREEN**（第册一批③ 江湖四榜）`（**篇目以 `.tests/verify-ui-*.cjs` 为准**（`ls` 即得，本处不点篇数 = 删掉一个手抄死数），逐篇断言数与增补链见 `docs/FACTS.md`「界面走查断言」行，**合计以该行为准**、本处不复算：原句此处曾写死 498 = 449 + badsave 31 + alltabs 18，是 2026-10-09 存档水位批末的旧读数 ⇒ 双源即漂移，自本批起本处只留指针；⚠️ **下表止于 2026-10-07 的十八篇口径**：其后 11 篇（`heirchoice` / `chains` / `a6blindspot` / `join` / `coldstart` / `badsave` / `alltabs` / `life` / `modulecard` / `talentswap` / 本篇 `ambush`）没有行，各行断言数也是历批手抄值（arts 仍写 33、现值 68）——补行 = 文档小改，已登记任务清单 **N55**。
