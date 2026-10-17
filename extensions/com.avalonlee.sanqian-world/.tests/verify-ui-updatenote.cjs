@@ -69,6 +69,13 @@ function buildSave() {
   T(r0.rows.length === 7 && r0.rows.every(x => x.length > 4 && x.indexOf('update.note.') < 0),
     'U2 七行逐条渲染且无一行是裸键（拼键取词漏一处就会把 key 印给玩家看）', 'rows=' + r0.rows.length);
 
+  /* U9（第册九批立 · 用户口径「玩家可见文案一律白话短句、不出现任何英文名词或版本号」）：
+   * 判的是**渲染出来的那七行**，不是词表源文件——键名与拼键写法都不该漏进屏上文本。 */
+  const bad9 = r0.rows.map((x, i) => ({ i: i + 1, hit: /[A-Za-z]/.test(x) || /\d+\.\d+/.test(x) })).filter(o => o.hit);
+  T(r0.rows.length === 7 && bad9.length === 0,
+    'U9 七行文案零英文字母、零版本号形状（玩家界面不许出现工程名词与版号）',
+    bad9.length ? '违规行=' + bad9.map(o => o.i).join(',') : 'clean');
+
   /* 点遮罩不关（刻意不进 MASKS）：左上角一定是遮罩而非卡片 */
   await page.mouse.click(24, 24);
   await page.waitForTimeout(400);

@@ -112,7 +112,7 @@ node .tests/verify-ui-updatenote.cjs
 
 > ⚠️ **`verify-ui-coldstart.cjs` 是唯一「不注入存档、真点完创角流程」的一篇**：廿三篇里 **12 篇直接灌 `fixture-save.json`**、其余用 `addInitScript` 页内写状态起步，全库碰过创角按钮的只有两篇——`verify-ui-a6blindspot`（停在「未择界就报错」这条失败分支）与本篇（起名 → 择界 → 观天赋 → 入定 → 主界面 → 首 tick → 刷新读档走完）。所以本篇**不吃 fixture，也别给它 fixture**；它要求 context 干净无档。
 
-> 🆕 **第册四批起种档要带 `profile.seenNote`**（值 = 公告号，现行那枚串写在 `view/updatenote.js` 的 `ID` 上）：更新公告浮层只在「已读号 ≠ 公告号」时弹，而它**刻意不进遮罩可关族**（要玩家亲手点「知道了」）⇒ 少这一枚的种档进线即被整页盖住，凡点击的走查各挂 30 秒（本批实测红过四篇）。共享件 `fixture-save.json` 与 11 篇内联种档都已带上；`verify-ui-updatenote` 反过来**先删掉它**，才验得出「会弹 → 点掉才落库 → 重开不再弹 → 号不匹配必须再弹」。
+> 🆕 **第册四批起种档要带 `profile.seenNote`**（值 = 公告号，现行那枚串写在 `view/updatenote.js` 的 `ID` 上）：更新公告浮层只在「已读号 ≠ 公告号」时弹，而它**刻意不进遮罩可关族**（要玩家亲手点「知道了」）⇒ 少这一枚的种档进线即被整页盖住，凡点击的走查各挂 30 秒（本批实测红过四篇）。共享件 `fixture-save.json` 与 11 篇内联种档都已带上；🆕 **改公告号的射程（第册九批实测）** = 旧号在测试侧共 **13 处字面**（`fixture-save.json` 1 ‖ `smoke.js` 的 #320 两枚 ‖ 11 篇 `verify-ui-*.cjs` 各 1~2）⇒ `grep -rl 旧号 .tests view | xargs sed -i 's/旧号/新号/g'`，改完**复 grep 必须零残留**；`verify-ui-updatenote` 反过来**先删掉它**，才验得出「会弹 → 点掉才落库 → 重开不再弹 → 号不匹配必须再弹」。
 
 > Windows 下命令末尾若打印 `TRAE Sandbox Error: hit restricted`，那是 Edge 无头进程往 `%LocalAppData%`
 > 写自身缓存被沙箱拦截的**环境噪声**，不是用例失败——以脚本自己打印的 `*_ALL_GREEN` 与退出码为准。
