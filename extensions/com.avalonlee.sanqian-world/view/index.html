@@ -512,6 +512,7 @@
 <script src="shop.js"></script>
 <script src="jianghu.js"></script>
 <script src="arts.js"></script>
+<script src="gear.js"></script>
 <script>
 (function () {
   var SQ = window.SQ;
@@ -563,7 +564,7 @@
    * shortcut: 只放**已被外置件需要**的键；下一片要用新服务（toast / renderAll / mutate 之类）时在这里加一行、D7 自动跟。 */
   function ctx() {
     return { s: state, w: ws(), p: pack(), d: D(), ui: ui, $: $, t: t, esc: esc, date: gameDateStr,
-      mods: mods(), tierCls: tierCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, fuseAltar: renderFuseAltar };
+      mods: mods(), tierCls: tierCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, timeAgo: timeAgo, fmtDate: fmtDate };
   }
 
   function show(name) {
@@ -1338,14 +1339,6 @@
   $('mam-close').addEventListener('click', function () { $('modal-arts').classList.add('hide'); });
 
   /* ── 悟道石说明浮层（融合坛点按「悟道石」入口）：物品介绍 + 获取来源（只读词表，不触存档）── */
-  function renderMatWudao() {
-    $('mwd-title').textContent = t('alchemy.mat.mat_wudao.name');
-    $('mwd-desc').textContent = t('alchemy.mat.mat_wudao.desc');
-    $('mwd-srct').textContent = t('alchemy.mat.mat_wudao.src.title');
-    $('mwd-src').textContent = t('alchemy.mat.mat_wudao.src');
-    $('mwd-close').textContent = t('ui.close');
-  }
-  function openMatWudao() { renderMatWudao(); $('modal-matwudao').classList.remove('hide'); }
   $('mwd-close').addEventListener('click', function () { $('modal-matwudao').classList.add('hide'); });
 
   /* ── 境界说明浮层（修行页）：十阶一览 · 当前高亮 · 已过/未至三态 ──
@@ -1838,15 +1831,17 @@
    * ③ 段标 ④ 段体。段体本身仍**逐段照搬**（元素与交互零删改）：`artsBody()`（原 renderArts 主体）
    * / `gearBody()`（原 renderGear），都是返回 HTML 串的纯渲染器（实测两者只做读侧计算，无落状态副作用）。
    * 红点键 `newArtsDot` 与签名 `lastArtsSig` 零改动——只换承载页，法器侧本无红点。
-   * 🔧 第册八批 2026-10-17（N34 第五刀）：`artsBody` 及其四条动作已外置 `view/arts.js`，下方那行按
-   * `SQ.UI.arts.body(ctx())` 调用；`gearBody` 与融合坛、悟道石留在内核，随下一刀切。 */
+   * 🔧 第册八批（N34 第五刀）`artsBody` 及其四条动作外置 `view/arts.js` ‖ 第册十批（第六刀）`gearBody`
+   * 与器段渲染族、百器录外置 `view/gear.js`，融合坛与悟道石并进 `view/arts.js`（就渲染在「法」段里）。
+   * 下面那行因此两侧都按 `SQ.UI.arts.body(ctx())` / `SQ.UI.gear.body(ctx())` 调用；本页只剩页框三件
+   * （chip 行 / 概览条 / 段标）在内核。 */
   function renderArts() {
     var c = lawChipOf();
     $('tab-arts').innerHTML =
       lawChipBar() +
       lawareBar() +
       (c === 'qi'
-        ? secDiv('arts.seg.qi', 'arts.seg.qi.sub', 'qi') + gearBody()
+        ? secDiv('arts.seg.qi', 'arts.seg.qi.sub', 'qi') + SQ.UI.gear.body(ctx())
         : secDiv('arts.seg.fa', 'arts.seg.fa.sub', 'fa') + SQ.UI.arts.body(ctx()));
   }
 
@@ -1914,120 +1909,6 @@
     if (it.resist) parts.push(t('gear.stat.resist') + ' ' + SQ.fmt(it.resist));
     if (it.attrValue) parts.push(t('attr.' + it.attrValue.attr) + ' +' + it.attrValue.value);
     return parts.join(' · ');
-  }
-  /* 特殊词条效果行（百器录格）：数值从引擎表推导，禁手写数字 */
-  function specialEffText(id) {
-    var d = D();
-    if (id === 'ignore_req') return t('gear.special.ignore_req');
-    if (id === 'adamantine') return t('gear.stat.resist') + ' +' + d.ADAMANTINE_RESIST;
-    var eff = (d.GEAR_SPECIAL_EFFECTS || {})[id] || {};
-    return Object.keys(eff).map(function (f) {
-      var v = eff[f];
-      var txt = Math.abs(v) < 1 ? (v > 0 ? '+' : '−') + pct(Math.abs(v)) : (v > 0 ? '+' : '') + v;
-      return t('talent.field.' + f) + ' ' + txt;
-    }).join(' · ');
-  }
-  /* 当前持有扫描（百器录状态行）：佩戴中 / 在库（件名）/ 已炼化 */
-  function gearHolder(w, match) {
-    var d = D(), found = null, where = null;
-    d.GEAR_SLOTS.forEach(function (s) {
-      var it = w.gear[s];
-      if (it && !found && match(it)) { found = it; where = 'worn'; }
-    });
-    if (!found) (w.stash || []).forEach(function (it) {
-      if (!found && match(it)) { found = it; where = 'stash'; }
-    });
-    return found ? { item: found, where: where } : null;
-  }
-  function gearHolderState(hold) {
-    if (!hold) return t('gear.codex.state.refined');
-    return hold.where === 'worn' ? t('gear.codex.state.worn') : t('gear.codex.state.stash', { name: hold.item.name });
-  }
-  /* 来源行（B5：zone 跳秘境 · event 跳图鉴回看 story · shop 标注） */
-  function gearSrcLine(it) {
-    var s = it.source;
-    if (!s) return '';
-    if (s.type === 'zone' && s.ref != null && D().ZONES[s.ref]) {
-      return '<div class="srcrow"><span class="src" data-act="tab" data-v="combat">' +
-        esc(t('gear.src.zone', { name: t('combat.zone.' + s.ref) })) + ' ›</span></div>';
-    }
-    if (s.type === 'event' && s.ref) {
-      return '<div class="srcrow"><span class="src" data-act="recallEvent" data-v="' + esc(s.ref) + '">' +
-        esc(t('gear.src.event', { name: t('event.' + s.ref + '.name') })) + ' ›</span></div>';
-    }
-    if (s.type === 'shop') return '<div class="srcrow">' + esc(t('gear.src.shop')) + '</div>';
-    if (s.type === 'exclusive') return '<div class="srcrow">' + esc(t('gear.src.exclusive')) + '</div>';
-    return '';
-  }
-  /* 法器卡（卡片化批）：槽位名 + 名号/品阶/阵营 + 属性行 + 评分 + 缺项红字 + 来源行 + 动作 */
-  function gearCard(it, w, slotLabel, stashIdx) {
-    if (!it) return '<div class="tcard dim"><div class="tslot">' + esc(slotLabel) + '</div>' +
-      '<div class="tdesc">' + esc(t('gear.empty')) + '</div></div>';
-    var h = '<div class="tcard">';
-    h += '<div class="tslot">' + esc(slotLabel) + '</div>';
-    h += '<div class="tname">' + esc(it.name) +
-         ' <span class="tierbadge t' + it.tier + '">' + esc(t('gear.tier.' + it.tier)) + '</span>' +
-         ' <span class="align-sym align-' + it.alignment + '">' + esc(t('align.sym.' + it.alignment)) + '</span>' +
-         (it.special ? ' <span class="special-mark">' + esc(t('gear.special.' + it.special)) + '</span>' : '') +
-         (it.prime ? ' <span class="primetag">' + esc(t('gear.prime')) + '</span>' : '') +
-         (it.exclusive ? ' <span class="ebadge gold">' + esc(t('event.badge.exGear')) + '</span>' : '') + '</div>';
-    h += '<div class="teff">' + esc(statLine(it)) + '</div>';
-    h += '<div class="tdesc">' + esc(t('gear.score', { n: SQ.fmt(SQ.Gear.scoreOf(it)) })) + '</div>';
-    if (!SQ.Gear.canWear(it, w)) {
-      /* 库藏阁红字：要求与剩余境界差（B5）；极品 ※ = 追加一阶的可解释性标注 */
-      h += '<div class="tdesc" style="color:var(--danger)">' + esc(t('gear.lack.stash', {
-        realm: t('realm.' + it.reqs.realm), star: it.prime ? '※' : '', n: Math.max(1, it.reqs.realm - w.realm)
-      })) + '</div>';
-      if (it.prime) h += '<div class="tdesc">' + esc(t('gear.prime.note')) + '</div>';
-    }
-    if (it.exclusive) h += '<div class="tdesc">' + esc(t(stashIdx != null ? 'gear.ex.lock' : 'gear.ex.norefine')) + '</div>';
-    h += gearSrcLine(it);
-    /* 库藏阁条目操作（批 2·B5 独占手动替换 + 道具处置打磨包手动炼化出口） */
-    if (stashIdx != null) {
-      var cur = w.gear[it.slot];
-      var acts = '';
-      if (SQ.Gear.canWear(it, w) && (it.exclusive || (cur && cur.exclusive))) {
-        acts += '<button data-act="swapGear" data-v="' + stashIdx + '">' +
-          esc(t(cur && cur.exclusive && !it.exclusive ? 'gear.swap.btn' : 'gear.swap.wear')) + '</button>';
-      }
-      if (!it.exclusive) {
-        acts += '<button data-act="refineGear" data-v="' + stashIdx + '">' +
-          esc(t('gear.refine.btn', { n: SQ.fmt(SQ.Gear.refineValue(it, w, D(), mods())) })) + '</button>';
-      }
-      if (acts) h += '<div class="acts">' + acts + '</div>';
-    }
-    return h + '</div>';
-  }
-  /* ⑤ 法器段（原 renderGear 主体逐段照搬：百器录横幅 / 已佩 4 槽 / 库藏阁）——
-   * 页面整合批 2026-10-06 由「写 #tab-gear」改为「返回 HTML 串」，供合并页拼接。
-   * ⚠️ UI 卷 §3.4a 勘误：原设计文档末项「最近拾得滚动列表」在本函数里从来不存在，
-   * 实际只有百器录 / 已佩 / 库藏阁三段；已按代码现实收敛登记，不在本批补做。 */
-  function gearBody() {
-    var w = ws(), d = D();
-    var seen = w.gearSeen || {};
-    var spIds = (d.GEAR_SPECIALS || []).map(function (s) { return s.id; });
-    var exIds = Object.keys(d.EXCLUSIVE_GEAR || {});
-    var sGot = spIds.filter(function (x) { return seen[x] != null; }).length;
-    var eGot = exIds.filter(function (x) { return seen['ex_' + x] != null; }).length;
-    /* 页首百器录横幅（B5）：计数三分，点开 = 12 格双节浮层 */
-    var h = '<div class="gbanner" data-act="openGearCodex"><span class="l">' + esc(t('gear.codex.title')) + '</span>' +
-      '<span class="r">' + esc(t('gear.codex.banner', {
-        n: sGot + eGot, total: spIds.length + exIds.length, s: sGot, st: spIds.length, e: eGot, et: exIds.length
-      })) + ' ›</span></div>';
-    var worn = 0, resSum = 0;
-    d.GEAR_SLOTS.forEach(function (s) { if (w.gear[s]) { worn++; resSum += w.gear[s].resist || 0; } });
-    h += '<div class="sechead"><span class="t">' + esc(t('gear.sec.worn')) + '</span><span class="s">' +
-      esc(t('gear.sec.wornsub', { n: worn, total: d.GEAR_SLOTS.length, r: SQ.fmt(resSum) })) + '</span></div>';
-    h += '<div class="cards geargrid">' + d.GEAR_SLOTS.map(function (slot) {
-      return gearCard(w.gear[slot], w, t('gear.slot.' + slot));
-    }).join('') + '</div>';
-    h += '<div class="sechead"><span class="t">' + esc(t('gear.stash', { n: w.stash.length, cap: SQ.Gear.stashCap(w, d, mods()) })) +
-      '</span><span class="s">' + esc(t('gear.stash.hint')) + '</span></div>';
-    if (!w.stash.length) h += '<div class="lrow locked"><div class="meta">' + esc(t('gear.empty')) + '</div></div>';
-    else h += '<div class="cards geargrid">' + w.stash.map(function (it, i) {
-      return gearCard(it, w, t('gear.slot.' + it.slot), i);
-    }).join('') + '</div>';
-    return h;
   }
 
   /* ── Tab · 法宝（灵宝 · 法宝全录）：法宝栏 3 槽 + 法宝库 + 祭炼/认主 + 造化 ──
@@ -2143,61 +2024,6 @@
     h += renderSpiritPanel();
     $('tab-treasure').innerHTML = h;
   }
-  /* 百器录浮层（B5 · 帧四）：12 格双节；已录格点按 = 首获详情 toast；未录格点按 = 轻震 */
-  function renderGearCodex() {
-    var w = ws(), d = D();
-    var seen = w.gearSeen || {};
-    var spIds = (d.GEAR_SPECIALS || []).map(function (s) { return s.id; });
-    var exIds = Object.keys(d.EXCLUSIVE_GEAR || {});
-    var sGot = spIds.filter(function (x) { return seen[x] != null; }).length;
-    var eGot = exIds.filter(function (x) { return seen['ex_' + x] != null; }).length;
-    $('mgc-title').textContent = t('gear.codex.title');
-    $('mgc-close').textContent = t('ui.close');
-    var h = '<div class="sechead" style="margin-top:0"><span class="t">' + esc(t('gear.codex.sec.special')) +
-      ' ' + sGot + '/' + spIds.length + '</span><span class="s">' + esc(t('gear.codex.hint1')) + '</span></div><div class="codexgrid">';
-    spIds.forEach(function (id) {
-      var ts = seen[id];
-      if (ts == null) {
-        h += '<div class="ccell lock" data-act="codexNudge"><span class="q">' + esc(t('ui.qmark')) +
-          '</span><span class="cn">' + esc(t('gear.special.' + id)) + '</span></div>';
-        return;
-      }
-      var hold = gearHolder(w, function (it) { return it.special === id && !it.exclusive; });
-      h += '<div class="ccell got' + (hold ? '' : ' stale') + '" data-act="gcDetail" data-v="' + id + '" data-ts="' + ts + '">' +
-        '<span class="cn">✦ ' + esc(t('gear.special.' + id)) + '</span>' +
-        '<span class="ct">' + esc(specialEffText(id)) + '</span>' +
-        '<span class="ct">' + esc(t('gear.codex.first', { t: timeAgo(ts) })) + '</span>' +
-        '<span class="ct' + (hold ? '' : ' stale') + '">' + esc(gearHolderState(hold)) + '</span></div>';
-    });
-    h += '</div>';
-    h += '<div class="sechead"><span class="t">' + esc(t('gear.codex.sec.ex')) + ' ' + eGot + '/' + exIds.length +
-      '</span><span class="s">' + esc(t('gear.codex.hint2')) + '</span></div><div class="codexgrid" style="grid-template-columns:repeat(2,1fr)">';
-    exIds.forEach(function (gid) {
-      var ts = seen['ex_' + gid];
-      var car = carrierOf('gear', gid);
-      var evName = car ? t('event.' + car.ev.id + '.name') : t('event.codex.unknown');
-      if (ts == null) {
-        /* 未遇：连载体奇遇名都只显事件名不显 story（与奇遇图鉴「？」同语义）；宝角标灰态 */
-        h += '<div class="ccell lock" data-act="codexNudge"><span class="bz">' + esc(t('event.badge.exGear')) + '</span>' +
-          '<span class="q">' + esc(t('ui.qmark')) + '</span><span class="cn">' + esc(t('gear.ex.' + gid)) + '</span>' +
-          '<span class="ct">' + esc(t('gear.codex.via', { ev: evName }) + t('gear.codex.unmet')) + '</span></div>';
-        return;
-      }
-      var hold = gearHolder(w, function (it) { return it.exclusive === gid; });
-      var seenEv = car && (w.eventHistory.seen || {})[car.ev.id] != null;
-      h += '<div class="ccell got exgot" data-act="gcDetail" data-v="ex_' + gid + '" data-ts="' + ts + '">' +
-        '<span class="bz">' + esc(t('event.badge.exGear')) + '</span>' +
-        '<span class="cn">' + esc(t('gear.ex.' + gid)) + '</span>' +
-        '<span class="ct">' + esc(specialEffText((d.EXCLUSIVE_GEAR[gid] || {}).special)) + '</span>' +
-        '<span class="ct">' + esc(t('gear.codex.first', { t: timeAgo(ts) }) + ' · ' + gearHolderState(hold)) + '</span>' +
-        (seenEv ? '<span class="ct src" data-act="recallEvent" data-v="' + esc(car.ev.id) + '">' +
-          esc(t('gear.codex.via', { ev: evName })) + ' ›</span>' : '') + '</div>';
-    });
-    h += '</div>';
-    h += '<p class="hint" style="margin-top:10px;line-height:1.7">' + esc(t('gear.codex.note')) + '</p>';
-    $('mgc-body').innerHTML = h;
-  }
-  function openGearCodex() { renderGearCodex(); $('modal-gearcodex').classList.remove('hide'); }
   $('mgc-close').addEventListener('click', function () { $('modal-gearcodex').classList.add('hide'); });
 
   /* 奇遇回看浮层（批 2 · 交互说明 ★）：story 全文 + 首遇时间 + 上次选择与结果。
@@ -5144,63 +4970,6 @@
   }
 
   /* ── 融合坛（功法页尾 · 融合器灵卷 B5）── */
-  function renderFuseAltar() {
-    var w = ws(), d = D(), p = pack();
-    if (!SQ.Fusion || w.realm < 4) return '';
-    var fu = w.fusion || { customs: [], meditate: 0, lastFuseAt: 0, seq: 0 };
-    ui.fuseSel = ui.fuseSel || [];
-    var h = '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + esc(t('fuse.system')) + '</p>';
-    var chk = SQ.Fusion.canFuse(w, p, d, ui.fuseSel[0] || '', ui.fuseSel[1] || '', Date.now());
-    var needH = (d.FUSE || {}).MEDITATE_NEED_H || 12;
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('fuse.ui.wudao')) + '</p>';
-    h += '<div class="kv"><span>' + esc(t('fuse.ui.wudao.med', { h: Math.floor(fu.meditate || 0), need: needH })) + ' · ' +
-      '<button class="linkbtn" data-act="matWudao" style="padding:0;vertical-align:baseline">' +
-      esc(t('fuse.ui.wudao.stone', { n: (w.materials || {})['mat_wudao'] || 0 })) + '</button></span>' +
-      '<span>' + esc(t('fuse.ui.p', { p: Math.round(SQ.Fusion.fuseP(w, d) * 100) })) + '</span></div>';
-    if (fu.lastFuseAt > 0 && Date.now() - fu.lastFuseAt < (d.FUSE.CD_MS)) {
-      h += '<div class="kv hint"><span>' + esc(t('fuse.ui.cd', { t: timeLeftText(fu.lastFuseAt + d.FUSE.CD_MS - Date.now()) })) + '</span></div>';
-    }
-    h += '<p class="hint">' + esc(t('fuse.ui.parents')) + '</p><div class="chips">';
-    (w.artsKnown || []).forEach(function (id) {
-      if (SQ.Arts.levelOf(w, id) < 9) return;   /* 走 levelOf：原 `artsLevels[id] < 9` 在无键时是 undefined<9=false ⇒ 满级关形同不存在 */
-      var def = SQ.Fusion.artDefOf(w, id);
-      if (!def || (def.obtain || {}).type === 'event_locked') return;
-      var cU = SQ.Fusion.customById(w, id);
-      if (cU && cU.gen >= (d.FUSE.GEN_MAX || 3)) return;
-      var on = ui.fuseSel.indexOf(id) >= 0;
-      h += '<button class="' + (on ? 'on' : '') + '" data-act="fusePick" data-v="' + id + '">' + esc(t('skill.' + id + '.name')) + '</button>';
-    });
-    h += '</div>';
-    if (ui.fuseSel.length === 2) {
-      h += '<div class="sectnamebox"><input class="tdta fusename" style="min-height:38px" maxlength="8" placeholder="' + esc(t('fuse.ui.name.ph')) + '" value="' + esc(ui.fuseName || '') + '"></div>';
-      h += '<button class="primary" data-act="fuseStart" style="width:100%;margin-top:6px">' + esc(t('fuse.ui.btn')) + '</button>';
-    } else if (chk.ok) {
-      h += '<p class="hint">' + esc(t('fuse.ui.pick2')) + '</p>';
-    } else if (ui.fuseSel.length < 2) {
-      h += '<p class="hint">' + esc(t('fuse.ui.pick2')) + '</p>';
-    }
-    /* 自创部一览（融合扩容批：混沌签名徽标 + 淬炼按钮） */
-    if ((fu.customs || []).length) {
-      h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + esc(t('fuse.ui.customs')) + '</p>';
-      h += '<div class="meta hint" style="margin-top:8px">' + esc(t('fuse.chaos.hint')) + '</div>';
-    }
-    var fuR0 = (fu.lastReforgeAt || 0) + ((d.FUSE || {}).REFORGE_CD_MS);
-    (fu.customs || []).forEach(function (c) {
-      var cdR = fuR0 - Date.now();
-      var costR = SQ.Fusion.reforgeCostOf(c, d);   /* 与引擎同一个取数口（审计 #9：原先视图兜底 800 = 玄阶价，引擎兜底 huang = 200） */
-      var hasStoneR = ((w.materials || {})['mat_wudao'] || 0) >= 1;
-      var canR = cdR <= 0 && w.stones >= costR && hasStoneR;
-      var rBtnTxt = cdR > 0 ? t('fuse.reforge.cd', { t: timeLeftText(cdR) })
-        : t('fuse.reforge.btn') + ' · ' + t('fuse.reforge.cost', { n: SQ.fmt(costR) });
-      h += '<div class="lrow"><div class="nm">' + esc(c.name) + ' <span class="tierbadge t' + c.tier + '">' + esc(t('skill.tier.' + ['huang', 'xuan', 'di', 'tian'][c.tier])) + '</span>' +
-        ' <span class="hint">' + esc(t('fuse.ui.gen', { n: c.gen })) + '</span>' +
-        (c.special ? ' <span class="special-mark">' + esc(t('special.' + c.special.pool + '.name') + '·' + t('special.grade.' + c.special.grade)) + '</span>' : '') + '</div>' +
-        '<div class="meta">' + esc(SQ.effectsToText(c.effects, 'xiuxian')) + '</div>' +
-        '<div class="meta hint">' + esc(c.parents.map(function (pp) { return pp.name; }).join(' + ')) + '</div>' +
-        '<div class="acts"><button data-act="customReforge" data-v="' + c.id + '"' + (canR ? '' : ' disabled') + '>' + esc(rBtnTxt) + '</button></div></div>';
-    });
-    return h;
-  }
 
   /* ── 器灵面板（法宝页尾 · 融合器灵卷 B5）── */
   function renderSpiritPanel() {
@@ -5297,7 +5066,7 @@
     if (act === 'washPick') { washDraft.cand = parseInt(v, 10); renderWash(); return; }
     if (act === 'washOk') { await doWash(); return; }
     if (act === 'karma') { showKarma(); return; }
-    if (act === 'matWudao') { openMatWudao(); return; }
+    if (act === 'matWudao') { SQ.UI.arts.actMatWudao(ctx()); return; }
     if (act === 'setZone') { await SQ.Actions.setZone(state, parseInt(v)); renderAll(); return; }
     /* ── 系统深化批 B3：域主挑战（一次性掷判，胜负 toast + 引擎日志）/ 残片兑换（z6~8 带 choice）── */
     if (act === 'challengeBoss') {
@@ -5732,53 +5501,13 @@
       SQ.UI.jianghu.actAmbush(ctx(), v);
       return;
     }
-    if (act === 'fusePick') {
-      ui.fuseSel = ui.fuseSel || [];
-      var ixF = ui.fuseSel.indexOf(v);
-      if (ixF >= 0) ui.fuseSel.splice(ixF, 1);
-      else if (ui.fuseSel.length < 2) ui.fuseSel.push(v);
-      else ui.fuseSel = [ui.fuseSel[1], v];
-      renderTab();
-      return;
-    }
+    if (act === 'fusePick') { SQ.UI.arts.actFusePick(ctx(), v); return; }
     if (act === 'fuseStart') {
-      var nameIn = document.querySelector('.fusename');
-      askConfirm(t('fuse.ui.btn'), t('fuse.ui.confirm', { p: Math.round(SQ.Fusion.fuseP(ws(), D()) * 100) }), async function () {
-        var rF = await SQ.Actions.fuseStart(state, ui.fuseSel[0], ui.fuseSel[1], nameIn ? nameIn.value : '');
-        if (rF && rF.ok && rF.success) {
-          ui.fuseSel = [];
-          ui.fuseName = '';                 /* 成交即清：下一对父母不该继承上一部的自定义名 */
-          toast(t('fuse.log.win', { name: rF.art.name, gen: rF.art.gen, tier: t('skill.tier.' + ['huang', 'xuan', 'di', 'tian'][rF.art.tier]) }));
-        } else if (rF && rF.ok) {
-          toast(t('fuse.log.fail', { p: Math.round(rF.p * 100) }));
-        } else if (rF && rF.reason === 'cd') {
-          toast(t('fuse.ui.cd', { t: timeLeftText(rF.until - Date.now()) }));
-        } else if (rF) {
-          var fk = 'fuse.ui.fail.' + rF.reason;
-          var fv = t(fk, { need: (D().FUSE || {}).MEDITATE_NEED_H || 12 });
-          toast(fv !== fk ? fv : t('fuse.ui.fail.other'));
-        }
-        renderAll();
-      });
+      await SQ.UI.arts.actFuseStart(ctx());
       return;
     }
     if (act === 'customReforge') {
-      /* 混沌淬炼（融合扩容批 §4.4）：悟道石 ×1 + 灵石随尝试消耗，掷 CHAOS_P 淬出混沌签名 */
-      var cR0 = SQ.Fusion.customById(ws(), v);
-      var costR0 = SQ.Fusion.reforgeCostOf(cR0, D());
-      askConfirm(t('fuse.reforge.btn'), t('fuse.reforge.confirm', {
-        n: SQ.fmt(costR0), p: Math.round(((D().FUSE || {}).CHAOS_P || 0.30) * 100)
-      }), async function () {
-        var rR = await SQ.Actions.customReforge(state, v);
-        if (rR && rR.ok && rR.hit) toast(t('fuse.reforge.hit', { name: (cR0 || {}).name || '', sig: t('special.' + rR.pool + '.name') }));
-        else if (rR && rR.ok) toast(t('fuse.reforge.miss', { name: (cR0 || {}).name || '' }));
-        else if (rR && rR.reason === 'cd') toast(t('fuse.reforge.cd', { t: timeLeftText(rR.until - Date.now()) }));
-        else if (rR && rR.reason === 'poor') toast(t('fuse.reforge.poor'));
-        else if (rR && rR.reason === 'wudao') toast(t('fuse.reforge.wudao'));
-        /* 'unknown'（自创部已不在档）原为**静默无提示** ⇒ 点了没反应，与购买支同形缺陷 */
-        else if (rR) toast(t('fuse.reforge.unknown'));
-        renderAll();
-      });
+      await SQ.UI.arts.actCustomReforge(ctx(), v);
       return;
     }
     if (act === 'spiritSkill') {
@@ -5865,16 +5594,8 @@
       return;
     }
     /* ── 批 2 · B5 法宝页委托：百器录 / 回看 / 轻震 / 独占替换 CONFIRM ── */
-    if (act === 'openGearCodex') { openGearCodex(); return; }
-    if (act === 'gcDetail') {
-      /* 已录格点按 = 首获详情 toast（时间 + 现状；载体事件跳转在格内 src 链接） */
-      var gidD = v, tsD = parseInt(el.dataset.ts, 10);
-      var holdD = gidD.indexOf('ex_') === 0
-        ? gearHolder(ws(), (function (gx) { return function (it) { return it.exclusive === gx; }; })(gidD.slice(3)))
-        : gearHolder(ws(), (function (gx) { return function (it) { return it.special === gx && !it.exclusive; }; })(gidD));
-      toast(t('gear.codex.detail', { date: fmtDate(tsD), ago: timeAgo(tsD), state: gearHolderState(holdD) }));
-      return;
-    }
+    if (act === 'openGearCodex') { SQ.UI.gear.actOpenCodex(ctx()); return; }
+    if (act === 'gcDetail') { SQ.UI.gear.actGcDetail(ctx(), v, el); return; }
     if (act === 'codexNudge') { nudgeEl(el); return; }   /* 未录格点按 = 轻震回弹（★） */
     if (act === 'recallEvent') { openRecall(v); return; }
     /* ── 批 3 · 侣柱委托（B1~B4/B8）── */
@@ -5965,23 +5686,7 @@
       return;
     }
     if (act === 'refineGear') {
-      var wR = ws(), dR = D(), mR = mods(), idxR = parseInt(v, 10);
-      var itR = (wR.stash || [])[idxR];
-      if (!itR || itR.exclusive) return;
-      var bodyR = t('gear.refine.confirm', {
-        name: itR.name, tier: t('gear.tier.' + itR.tier),
-        n: SQ.fmt(SQ.Gear.refineValue(itR, wR, dR, mR)), cur: t('resource.currency')
-      });
-      askConfirm(t('gear.refine.title'), bodyR, async function () {
-        /* 指纹回给引擎复查（库藏会被掉落与溢出炼化重排 ⇒ 序号错位 = 炼掉玩家没点的那件）；
-         * 拒单一律不销毁、不加分文，屏上兜底走坊市同一句「这一单没有成交」 */
-        var rR = await SQ.Actions.refineGear(state, idxR, SQ.Gear.itemSig(itR));
-        if (rR && rR.ok) toast(t('toast.gear.salvage', {
-          name: rR.item.name, tier: t('gear.tier.' + rR.item.tier), n: SQ.fmt(rR.value), cur: t('resource.currency')
-        }));
-        else if (rR && rR.reason === 'stale') toast(t('shop.fail.other'));
-        renderAll();
-      });
+      await SQ.UI.gear.actRefine(ctx(), v);
       return;
     }
     /* ── G15 法宝：祭出/收起/祭炼/造化 ── */

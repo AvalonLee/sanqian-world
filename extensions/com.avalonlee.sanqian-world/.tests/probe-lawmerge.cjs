@@ -73,18 +73,13 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
 
   /* 世界态：炼气起步 + 一部主修功法 + 两件佩器（概览条三格都要有真值可读） */
   const w = pack.initialState();
-  w.realm = 2; w.stones = 12345; w.qi = 800; w.total = 800;
+  w.realm = 4; w.stones = 12345;   /* 第册十批：融合坛自渲染起门槛是真的（realm<4 整块不出）*/ w.qi = 800; w.total = 800;
   const am = pack.artsMap();
   const artIds = Object.keys(am).slice(0, 3);
   w.artsKnown = artIds.slice();
   w.artsSlots = artIds.slice(0, 2);
   w.artsLevels[artIds[0]] = 4;
   w.artsLevels[artIds[1]] = 0;                 /* Lv0 槽内功法（第廿五批起「待重修」金标已撤，此桩只覆盖 Lv0 正常渲染） */
-  const slots = D.GEAR_SLOTS || [];
-  slots.forEach((s, i) => {
-    if (i < 2) w.gear[s] = { id: 'probe_gear_' + i, slot: s, tier: 2, atk: 10 + i, resist: 5 + i, score: 30 };
-  });
-  w.stash = [{ id: 'probe_stash_0', slot: slots[0], tier: 1, atk: 3, resist: 1, score: 8 }];
 
   const profile = { name: '探针', worldId: 'xiuxian', talents: [], alignBias: 'neutral' };
 
@@ -101,6 +96,10 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
    *    所以桩袋保持原样（函数形态 + 未搬件的子渲染器桩），另备一枚 `__C` 当桥，装载段用
    *    `function ctx(){ return this.__C; }` 接上 ⇒ 抽出来的 renderArts 走的仍是 `SQ.UI.arts.body(ctx())` 这条真路径。 */
   const modsNow = SQ.Mods.collect(profile, w, pack, D);
+  /* 器段桩件走引擎出厂口（第册十批：gearCard 不再被桩替，假件缺字段 = 真卡面印 undefined）*/
+  const slots = D.GEAR_SLOTS || [];
+  slots.forEach((s, i) => { if (i < 2) w.gear[s] = SQ.Gear.roll(w, pack, D, 0, modsNow, { slot: s }); });
+  w.stash = [SQ.Gear.roll(w, pack, D, 0, modsNow, { slot: slots[0] })];
   const CB = {
     s: { profile, meta: { achv: [], earnedKeys: {} }, worlds: { xiuxian: w } },
     w: w, p: pack, d: D, mods: modsNow,
@@ -111,7 +110,6 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
     pct: (n) => (Math.round(n * 1000) / 10).toString().replace(/\.0$/, '') + '%',
     tierCls: (x) => (x == null ? '' : 't' + (x >= 4 ? 4 : x)),
     artTier: () => 't2', carrier: () => null,
-    fuseAltar: () => '<div class="fusealtar"></div><div class="chips"><button data-act="fusePick" data-v="tuna">桩父母</button></div>',
     renderTab: () => {}, renderAll: () => {}, toast: () => {}, ask: () => {},
     timeLeft: () => '—', date: () => '', statLine: () => '桩面板',
     specialEff: () => '', holder: () => null, holderState: () => ''
@@ -144,12 +142,14 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
   ctx.window = ctx;
   vm.createContext(ctx);
 
-  /* ── 装载真实源码（一字不改）：先跑外置件 `view/arts.js`（它把法段挂上 SQ.UI.arts），
-   *    再抽内核里的页框（chip 表 + 取数 + chip 行 + 概览条 + 段标 + 器段体 + renderArts）。
-   *    `ctx()` 在 vm 里返回桩袋本身 ⇒ 抽出来的 `renderArts` 走的仍是 `SQ.UI.arts.body(ctx())` 这条真路径。 */
-  const src = ['lawareBar', 'secDiv', 'gearBody', 'lawChipOf', 'lawChipBar', 'renderArts']
+  /* ── 装载真实源码（一字不改）：先跑两件外置件（`view/arts.js` 挂法段与融合坛、`view/gear.js` 挂器段），
+   *    再抽内核里的页框（chip 表 + 取数 + chip 行 + 概览条 + 段标 + renderArts）。
+   *    `ctx()` 在 vm 里返回桩袋本身 ⇒ 抽出来的 `renderArts` 走的仍是
+   *    `SQ.UI.arts.body(ctx())` / `SQ.UI.gear.body(ctx())` 这两条真路径（第册十批随片改口）。 */
+  const src = ['lawareBar', 'secDiv', 'lawChipOf', 'lawChipBar', 'renderArts']
     .map(extractFn).join('\n\n');
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'view/arts.js'), 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'view/gear.js'), 'utf8'), ctx);
   vm.runInContext('function ctx() { return this.__C; }\n' + extractVarLine('LAW_CHIPS') + '\n' + src +
     '\n;this.__render = renderArts;', ctx);
 
@@ -168,7 +168,7 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
     ['法·段标 #lawsec-fa', 'id="lawsec-fa"'],
     ['功法段（修习槽）', 'data-mainart="1"'],
     ['功法段（自悟节）', 'class="tcard selflearn"'],
-    ['功法段（融合坛）', 'class="fusealtar"']
+    ['功法段（融合坛上的悟道石按钮）', 'data-act="matWudao"']
   ];
   const QI_MARKS = [
     ['器·段标 #lawsec-qi', 'id="lawsec-qi"'],
@@ -266,14 +266,14 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
   const both = [['功法段', h], ['法器段', h2]];
   ok('E1 零 undefined 漏进 HTML（两段）',
     both.every(([, s]) => s.indexOf('undefined') < 0),
-    both.filter(([, s]) => s.indexOf('undefined') >= 0).map(([n]) => n + ':' + s.slice(Math.max(0, s.indexOf('undefined') - 60), s.indexOf('undefined') + 30)).join(' | ') || 'clean');
+    both.filter(([, s]) => s.indexOf('undefined') >= 0).map(([n, s]) => n + ':' + s.slice(Math.max(0, s.indexOf('undefined') - 60), s.indexOf('undefined') + 30)).join(' | ') || 'clean');
   ok('E2 零 NaN 漏进 HTML（两段）', both.every(([, s]) => s.indexOf('NaN') < 0),
     both.filter(([, s]) => s.indexOf('NaN') >= 0).map(([n]) => n).join(',') || 'clean');
   ok('E3 零未替换占位符 `{`（词表 key 占位名写错会原样漏出）', both.every(([, s]) => s.indexOf('{') < 0),
-    both.filter(([, s]) => s.indexOf('{') >= 0).map(([n]) => n + ':' + s.slice(Math.max(0, s.indexOf('{') - 60), s.indexOf('{') + 40)).join(' | ') || 'clean');
+    both.filter(([, s]) => s.indexOf('{') >= 0).map(([n, s]) => n + ':' + s.slice(Math.max(0, s.indexOf('{') - 60), s.indexOf('{') + 40)).join(' | ') || 'clean');
   ok('E4 零词表 key 回落（缺 key 时 t() 返回 key 本身，会看到 `arts.ov.` 之类）',
     both.every(([, s]) => s.indexOf('arts.ov.') < 0 && s.indexOf('arts.seg.') < 0 && s.indexOf('skill.system') < 0 && s.indexOf('gear.system') < 0),
-    ['arts.ov.', 'arts.seg.', 'skill.system', 'gear.system'].flatMap((k) => both.filter(([, s]) => s.indexOf(k) >= 0).map(([n]) => n + '@' + k)).join(',') || 'clean');
+    ['arts.ov.', 'arts.seg.', 'skill.system', 'gear.system'].flatMap((k) => both.filter(([, s]) => s.indexOf(k) >= 0).map(([n, s]) => n + '@' + k)).join(',') || 'clean');
 
   /* ══ 主修空态分支（无功法入槽时概览条不得崩、不得漏 undefined）══ */
   const w2 = pack.initialState();
