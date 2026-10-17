@@ -180,7 +180,7 @@
         out = SQ.Events.resolveBranch(ws, pack, D, mods, pcId, branchKey, Date.now(),
           { log: log, profile: s.profile });
         if (prodigyPid && out && SQ.Prodigy) {
-          SQ.Prodigy.onEventResolved(ws, s, pack, D, pcId, branchKey, out.pass, Date.now(), prodigyPid);
+          SQ.Prodigy.onEventResolved(ws, s, pack, D, pcId, branchKey, out.pass, Date.now(), prodigyPid, log);
           pack.recalcDerived(ws, s.profile);   /* 斩杀 karma / 释怀 bond 即刻覆盖式重算 */
         }
         /* 族中寻仇的链条账（第卌四批 · 数值详设 §6.1B）：胜 ⇒ 连胜 +1 并进冷却；败 ⇒ 链断。
