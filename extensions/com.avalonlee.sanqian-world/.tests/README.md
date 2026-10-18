@@ -21,7 +21,7 @@
 
 ```powershell
 node .tests/run-dod.cjs          # 快速预检：无浏览器依赖 18 件（实测累计墙钟 ~19s，**不是文档旧写的「2~4 分钟」**）
-node .tests/run-dod.cjs --ui     # 追加界面走查（**篇数不手抄**：= `ls .tests/verify-ui-*.cjs | wc -l`，逐篇末行由脚本求和打印；每篇各起一次 Edge，约 8~10 分钟）
+node .tests/run-dod.cjs --ui     # 追加界面走查（**篇数不手抄**：= `ls .tests/verify-ui-*.cjs | wc -l`，逐篇末行由脚本求和打印；🆕 第册十六批起**同时在飞 3 篇**（各起一次 Edge），串行实测 8~15 分钟 → 并发 3 实测 ~2 分钟；判据口径一字未动，只是不再串行等浏览器）
 node .tests/run-dod.cjs --sim    # 追加 sim-playthrough 全量（约 10~20 分钟，收口必跑）
 node .tests/run-dod.cjs --full   # 两者都要 = 收口终检
 ```
