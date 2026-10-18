@@ -30,6 +30,15 @@ function readJSON(rel) {
   try { return JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8')); }
   catch (e) { return null; }
 }
+/* 日志分类项数（第册二十批 · N66）：这一族住在**视图侧件**里，沙箱不装载 view/*.js ⇒
+ * 只能按字面量数（与审计 D8 同一取法，两处取法一致才算同一口径；D8 另有在册清单双向相等）*/
+function logCatCount() {
+  try {
+    const src = fs.readFileSync(path.join(ROOT, 'view/journal.js'), 'utf8');
+    const m = src.match(/var LOG_CATS = \[([\s\S]*?)\n\s*\];/);
+    return m ? (m[1].match(/\{\s*id:/g) || []).length : null;
+  } catch (e) { return null; }
+}
 function uiFiles() {
   return fs.readdirSync(path.join(ROOT, '.tests')).filter((f) => /^verify-ui-.*\.cjs$/.test(f)).sort();
 }
@@ -49,6 +58,7 @@ function poolCounts() {
     /* 原键名 `live_worlds` 名不符实：取的是 `visibleWorlds()`（status ≠ hidden），而 `status:'live'`
      * 只有一界 ⇒ 改名 visible_worlds，「可投生」这个词留给真按 status 数的场合。 */
     visible_worlds: SQ.visibleWorlds().length,
+    log_cats: logCatCount(),
     name_pool: ['prefix', 'middle', 'suffix'].map((k) => SQ.Worlds.xiuxian.nameParts[k].length).join(' × '),
     lex_keys: (function () { let n = 0; for (const w in SQ.LEX) n += Object.keys(SQ.LEX[w]).length; return n; })()
   };
@@ -109,7 +119,8 @@ function factsTable(v) {
     row('固定势力池', f(v.factions_fixed) + ' 处', '`D.FACTIONS_FIXED`'),
     row('行为成就', f(v.achv) + ' 条', '`D.CODEX.ACHV`'),
     row('材料 / 丹方 / 图纸', f(v.mats) + ' / ' + f(v.recipes) + ' / ' + f(v.blueprints), '`D.ALCHEMY.{MATS,RECIPES,BLUEPRINTS}`'),
-    row('世界名册', f(v.worlds) + ' 界（可见 ' + f(v.visible_worlds) + '）', '`SQ.Worlds` / `SQ.visibleWorlds()`'),
+    row('日志分类', f(v.log_cats) + ' 项', '`view/journal.js` LOG_CATS ‖ 对账关 = audit **D8**（项数与文案键；「每项有无写点」不在射程）'),
+  row('世界名册', f(v.worlds) + ' 界（可见 ' + f(v.visible_worlds) + '）', '`SQ.Worlds` / `SQ.visibleWorlds()`'),
     row('世界名命名池', f(v.name_pool), '`SQ.Worlds.xiuxian.nameParts` 各段长度'),
     row('词表唯一键', f(v.lex_keys), '沙箱装载后 `SQ.LEX` 各世界键数求和')
   ].join('\n');

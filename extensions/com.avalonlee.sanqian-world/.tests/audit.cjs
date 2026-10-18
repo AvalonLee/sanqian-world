@@ -22,6 +22,7 @@
  *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 的引擎段与 view 的 assets 段全等 ‖ 视图专属件必须在 view 下 ‖ smoke.html 与 view 的 assets 段全等 ‖ assets 无未挂载件）
  *   D3 世界专属别名封闭（通用层与视图直读 SQ.XDATA 必须挂册，例外失效同判；2026-10-14 批C 立）
  *   D7 视图外置件与内核桥 ctx() 的键集对账（第册五批 · N34 拆视图立：外置件用了 ctx 没给的键即判红）
+ *   D8 日志分类表对账（LOG_CATS 项数 ⇔ 在册清单双向相等 ‖ 每项文案键在词表在册；第册二十批 · N66 立）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
@@ -1208,6 +1209,49 @@ const SQ = sandbox.window.SQ;
   ok('D3', '世界专属全局别名封闭（通用层与视图的 SQ.XDATA 直读必须挂册 · 例外失效同判）',
     bad.length === 0, '通用层+视图命中 ' + total + ' 处 ‖ 在册例外 ' + Object.keys(EXC).length + ' 件 ' +
     (bad.length ? '‖ ' + bad.slice(0, 8).join(' ‖ ') : '‖ 逐件数合'));
+})();
+
+/* ── D8 日志分类表对账（第册二十批 2026-10-18 · N66 立）─────────────────────
+ * 立因：`LOG_CATS` 从 8 项长到 11 项（第册? N17 那批补了 历练/洞府/坊市 三类），但**没有任何一处钉住
+ *   「表里几项」与「每项的文案键在不在」**：UI 卷那句「八分类」停在 v2.20 的历史注、FACTS 表另有一条
+ *   滞后的人写读数行 ⇒ 三处各说一套。本关把这一量收成「表自己 + 在册钉值」，取数口 = `view/journal.js`。
+ * 判一：**项数与 id 集与在册清单双向相等** —— 多一项红（未登记的分类）、少一项红（分类被摘而关卡没跟）、
+ *   取不到数组也红（改名/搬走 ⇒ 本关失明，不许静默通过）。同 A9 在册死桩、D3 在册例外的「清单自己不许腐烂」。
+ * 判二：**每项的文案键都在词表在册**（`key:` 筛选标签 与 `sys:` 系统名 两族一起查，缺键直接判红）。
+ *   成因 = `SQ.t` 缺 key 时**把 key 原样返回**（`assets/lexicon.js` 的既有行为）⇒ 「分类有、文案无」的形状
+ *   是屏上出现 `log.cat.xxx` 这种裸英文，属玩家可见故障，而静态扫描按「键被拼出来」照样照不到。
+ * 射程边界（如实登记，不装作全覆盖）：本关**不判「每项有没有写点」**——动态 cat 传参（`log(cat, txt)` 里 cat
+ *   是变量）静态认不出，硬判会假阳（假阳教人关关卡，A9 前例）。那一维属判据射程扩展，另批先证假阳面再动。
+ * 反向取证 = 往表里加一项 `{ id: 'zzz', sys: 'zzz.tag' }` ⇒ 应红「多出未登记分类」+「文案键不在册」两处。 */
+(function () {
+  const CAT_IDS = ['all', 'event', 'combat', 'trib', 'karma', 'gear', 'arts', 'bond', 'cave', 'shop', 'sys'];
+  let src = '';
+  try { src = fs.readFileSync(path.join(ROOT, 'view/journal.js'), 'utf8'); } catch (e) { /* 取不到走下面判红 */ }
+  const m = src.match(/var LOG_CATS = \[([\s\S]*?)\n\s*\];/);
+  const items = m ? (m[1].match(/\{[^{}]*\}/g) || []) : [];
+  const bad = [];
+  if (!m) bad.push('view/journal.js 里取不到 LOG_CATS 数组（改名或搬走 ⇒ 本关失明）');
+  else {
+    const ids = items.map((x) => ((x.match(/id:\s*'([^']+)'/) || [])[1] || '?'));
+    CAT_IDS.forEach((id) => { if (ids.indexOf(id) < 0) bad.push('在册分类 ' + id + ' 不在表里（表被删项而关卡没跟）'); });
+    ids.forEach((id) => { if (CAT_IDS.indexOf(id) < 0) bad.push('表里多出未登记分类 ' + id); });
+    if (ids.length !== CAT_IDS.length) bad.push('项数 ' + ids.length + ' ≠ 在册 ' + CAT_IDS.length);
+  }
+  let boot = null;
+  try { boot = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; } catch (e) { /* 下面判红 */ }
+  if (!boot || !boot.LEX) bad.push('沙箱装载失败（词表对账没跑成 ⇒ 不当通过）');
+  else if (m) {
+    const have = {};
+    Object.keys(boot.LEX).forEach((w) => { Object.keys(boot.LEX[w] || {}).forEach((k) => { have[k] = 1; }); });
+    items.forEach((x) => {
+      const id = (x.match(/id:\s*'([^']+)'/) || [])[1] || '?';
+      const k = (x.match(/(?:key|sys):\s*'([^']+)'/) || [])[1];
+      if (!k) bad.push('分类 ' + id + ' 既无 key 也无 sys（屏上会是空标签）');
+      else if (!have[k]) bad.push('分类 ' + id + ' 的文案键 ' + k + ' 不在词表（缺 key 会把键名原样上屏）');
+    });
+  }
+  ok('D8', '日志分类表对账（LOG_CATS 项数 ⇔ 在册清单双向相等 ‖ 每项文案键都在词表在册；「每项有无写点」不在射程，见上注）',
+    bad.length === 0, '在册 ' + CAT_IDS.length + ' 项' + (bad.length ? ' ‖ ' + bad.slice(0, 5).join(' ‖ ') : ' ‖ id 集双向相等、键全在册'));
 })();
 
 /* ── 输出 ── */
