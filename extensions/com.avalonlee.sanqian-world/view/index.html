@@ -533,7 +533,7 @@
     feedExpand: false, lastFeedKey: '',     /* 奇遇页叙事流折叠态（F2）+ 未读判定基线（最新条标识） */
     seenOfflineAt: 0,                       /* 出关呈报 at 键控 · 会话一次（F4） */
     seenDeathAt: 0, deathPending: false,    /* 坐化呈报（寿元批）：同 at 键控 · 确定后进创角 */
-    ioErrSeen: null,                        /* 存档 I/O 失败提示去重（平台关卡 #89） */
+    ioErrSeen: null, tickErrSeen: null,                        /* 存档 I/O 失败提示去重（平台关卡 #89） */
     caveStory: {},                          /* 洞府叙事展开态（B3；未达资格者本就不给展开） */
     tribSnap: null,                         /* 渡劫前 {p, loss} 快照（F7 复盘行） */
     artsGroup: 'tier', artsGroupVal: null,  /* 功法页双维筛选（B4 + 体验批）：品阶|阵营 × 选中值（null=不筛，已学会与图鉴同受） */
@@ -5947,7 +5947,13 @@
         renderAll();
         var tb = document.querySelector('.tabbody');
         if (tb) tb.scrollTop = keep;
-      } catch (e) { /* 单次 tick 失败静默 */ }
+      } catch (e) {
+        /* C2（排期 C2 · 第册卅一批）：整段静默 catch ⇒ 渲染器**每秒抛一次也是零信号**（既不是 pageerror，
+         * `assets/**` 又零 `console.*`，任何门禁都照不到）。现按 checkIo 同形记一次人话提示：签名去重
+         * （同一枚错只播一次，不每秒刷屏），换一枚错才再播；打印面复用既有 `toast()`，不新开横幅。 */
+        var sigTick = 'render:' + ((e && (e.name + ':' + e.message)) || 'unknown');
+        if (ui.tickErrSeen !== sigTick) { ui.tickErrSeen = sigTick; toast(t('ui.error.render')); }
+      }
     }, 1000);
   }
   /* 回到前台立刻补一帧（tick 里 document.hidden 那支跳过的渲染在这里接回来）*/
