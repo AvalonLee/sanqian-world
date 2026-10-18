@@ -207,7 +207,7 @@
         if (rR && rR.ok) c.toast(c.t('toast.gear.salvage', {
           name: rR.item.name, tier: c.t('gear.tier.' + rR.item.tier), n: SQ.fmt(rR.value), cur: c.t('resource.currency')
         }));
-        else if (rR && rR.reason === 'stale') c.toast(c.t('shop.fail.other'));
+        else if (rR && rR.reason === 'stale') c.toast(c.t('shop.fail.stale'));   /* F15：祭炼撞上架已换货 = 独立拒因，不借兜底句 */
         c.renderAll();
       });
       return;

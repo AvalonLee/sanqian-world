@@ -1300,6 +1300,56 @@ const SQ = sandbox.window.SQ;
     bad.length === 0, '登记表 ' + rowN + ' 行' + (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 逐行三格、无续行'));
 })();
 
+/* ── A11 坊市拒因 ⇔ 词表在册 双向对账（第册廿八批 2026-10-18 · F15 / N33② 立）─────
+ * 立因：视图原先把六种拒因全兜到一枚 `shop.fail.other` ⇒ 那句「货已卖出，或手头不足」对半数拒因
+ *   会说谎。分键之后风险换向：**引擎新增一种 reason 而词表没跟 ⇒ 屏上退回兜底句（不裸拉丁，但仍然
+ *   在说谎）；词表多写一格 ⇒ 死键**。两头都得钉住。
+ * 判一：`assets/systems/shop.js` 剥注释后 `reason: 'x'` 与 `return 'x'` 的字面集 ⇔ 在册清单**双向相等**
+ *   （`undeliverable()` 的三种是裸 return，只认 `reason:` 会系统性漏掉 owned / shelffull ⇒ 两支一起扫）。
+ * 判二：每种在册 reason 的词表格 `shop.fail.<r>` 必须存在、非空、零拉丁与花括号、**且不等于兜底句**
+ *   （与兜底句同文 = 这一格等于没写，兜底形状会把它盖掉）。
+ * 判三：视图那枚 `failText` 的兜底形状必须在位 —— 缺了它，未知 reason 会把键名原样上屏（A4 越线）。
+ *   只认形状不执行：沙箱不装载 view/*.js，也不许在测试里 require 视图件。
+ * 射程边界：`undeliverable` 之外的其它系统（alchemy / legacy / faction）各自的 fail 族不在本关，
+ *   它们已有 alchemy.ui.fail.other / legacy.ui.fail.other 的兜底 + 冒烟 #272/#273 行为对表。
+ * 反向取证 = ① 往引擎塞 `reason: 'zzz'` ⇒ 判一红「多出未登记」；② 从词表删 `shop.fail.poor` ⇒ 判二红；
+ *   ③ 把 `failText` 的兜底表达式删掉 ⇒ 判三红。 */
+(function () {
+  const FAIL = ['sold', 'closed', 'stale', 'poor', 'pillfull', 'owned', 'shelffull'];
+  const bad = [];
+  let src = '';
+  try { src = stripComments(fs.readFileSync(path.join(ROOT, 'assets/systems/shop.js'), 'utf8')); }
+  catch (e) { bad.push('读不到 assets/systems/shop.js ⇒ 本关失明'); }
+  const em = [];
+  if (src) (src.match(/(?:reason:|return)\s*'([a-z]+)'/g) || []).forEach((m) => {
+    const r = (m.match(/'([a-z]+)'/) || [])[1];
+    if (r && em.indexOf(r) < 0) em.push(r);
+  });
+  FAIL.forEach((r) => { if (em.indexOf(r) < 0) bad.push('在册拒因 ' + r + ' 在源码里没写了（词表那一格变死键）'); });
+  em.forEach((r) => { if (FAIL.indexOf(r) < 0) bad.push('源码新增拒因 ' + r + ' 未登记（屏上会退回兜底句 = 谎话）'); });
+  let boot = null;
+  try { boot = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; } catch (e) { bad.push('沙箱装载失败（词表对账没跑成 ⇒ 不当通过）'); }
+  if (boot && boot.LEX) {
+    const lex = Object.assign({}, boot.LEX.common || {}, boot.LEX.xiuxian || {});
+    const other = lex['shop.fail.other'];
+    if (other == null) bad.push('兜底句 shop.fail.other 自己没了');
+    FAIL.forEach((r) => {
+      const v = lex['shop.fail.' + r];
+      if (v == null) bad.push('shop.fail.' + r + ' 不在词表');
+      else if (/[A-Za-z{}]/.test(v)) bad.push('shop.fail.' + r + ' 含拉丁或占位符（会裸上屏）');
+      else if (v === other) bad.push('shop.fail.' + r + ' 与兜底句同文（这格等于没写）');
+    });
+    let vsrc = '';
+    try { vsrc = stripComments(fs.readFileSync(path.join(ROOT, 'view/shop.js'), 'utf8')); } catch (e) { bad.push('读不到 view/shop.js'); }
+    if (vsrc && !(vsrc.indexOf("c.t('shop.fail.other')") >= 0 && vsrc.indexOf("'shop.fail.' + reason") >= 0)) {
+      bad.push('view/shop.js 的 failText 兜底形状没了');
+    }
+  }
+  ok('A11', '坊市拒因 ⇔ 词表在册 双向对账（源码字面 reason 集 ⇔ 在册清单 ‖ 每格中文存在且不退化成兜底句 ‖ 视图兜底形状在位）',
+    bad.length === 0, '在册 ' + FAIL.length + ' 种 ‖ 源码 ' + em.length + ' 种' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 双向相等、逐格取到中文、兜底在位'));
+})();
+
 /* ── 输出 ── */
 let fails = 0;
 for (const r of R) {

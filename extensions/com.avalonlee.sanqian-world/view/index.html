@@ -2924,7 +2924,7 @@
       }
       case 'dropGear': return t('log.eff.dropGear', { gear: t('gear.system') });
       case 'artsProgress': return t('log.eff.artsProgress', { n: Array.isArray(g.n) ? g.n[0] + '~' + g.n[1] : g.n });
-      case 'attrBonus': return t('log.eff.attrBonus', { attr: t('attr.' + g.attr), n: Array.isArray(g.n) ? g.n[0] + '~' + g.n[1] : g.n });
+      case 'attrBonus': return t('log.eff.attrBonus', { attr: t('attr.' + g.attr), n: Array.isArray(g.n) ? g.n[0] + '~' + g.n[1] : (g.n >= 0 ? '+' : '−') + Math.abs(g.n) });
       case 'tribNext': return t('log.eff.tribNext', { sign: '+', n: Array.isArray(g.n) ? g.n[1] : g.n });
       case 'eventShield': {
         var hh = g.hours != null ? g.hours : g.h;
@@ -3792,7 +3792,7 @@
       h += '<div class="detailbox"><div class="kv"><span>' + esc(t('attr.part.base')) + '</span><span>' + base + '</span></div>' +
            '<div class="kv"><span>' + esc(t('attr.part.arts')) + '</span><span>+' + nurture + '</span></div>' +
            '<div class="kv"><span>' + esc(t('attr.part.gear')) + '</span><span>+' + gearV + '</span></div>' +
-           '<div class="kv"><span>' + esc(t('attr.part.event')) + '</span><span>+' + evB + '</span></div>' +
+           '<div class="kv"><span>' + esc(t('attr.part.event')) + '</span><span>' + (evB >= 0 ? '+' : '−') + Math.abs(evB) + '</span></div>' +
            (buffV ? '<div class="kv"><span>' + esc(t('attr.part.buff')) + '</span><span>+' + buffV + '</span></div>' : '') +
            '<div class="kv hint"><span>' + esc(t('attr.dc', { n: SQ.Attrs.dcOf(w, d, 'medium') })) + '</span></div></div>';
     });

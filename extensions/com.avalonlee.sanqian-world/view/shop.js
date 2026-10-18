@@ -171,6 +171,13 @@
   }
 
   /* ── 属于本页的三条动作（第册六批随片搬出；分派处只留一行调用，顺序与早退语义不变）── */
+  /* 拒因分键（F15 · N33②）：此前一枚 shop.fail.other 盖住 sold / closed / stale / poor / owned / shelffull
+   * 六种 ⇒ 屏上那句「货已卖出，或手头不足」对其中半数会说谎。按 reason 取词；未知 reason 仍兜底成话，
+   * 绝不裸拉丁上屏（与 alchemy.ui.fail / legacy.ui.fail 同一条兜底形状）。 */
+  function failText(c, reason) {
+    var k = 'shop.fail.' + reason, s = c.t(k);
+    return s === k ? c.t('shop.fail.other') : s;
+  }
   async function actBuy(c, idx, black) {
     var it = (black ? c.w.shop.blackItems : c.w.shop.items)[idx];
     if (!it) { c.renderAll(); return; }
@@ -191,7 +198,7 @@
       /* 丹匣满 / 已拥有 / 待修习架已满 ⇒ 引擎在扣钱之前整笔拒单（先判后扣），屏上必须说一句 ——
        * 与 #272/#273 那条「失败不告警」同族，未知 reason 走 .other 兜底、不打内部字段名 */
       if (rBy && rBy.ok === false)
-        c.toast(c.t(rBy.reason === 'pillfull' ? 'shop.fail.pillfull' : 'shop.fail.other'));
+        c.toast(failText(c, (rBy && rBy.reason) || 'other'));
       c.renderAll();
     });
   }
@@ -203,13 +210,13 @@
     /* 特席拒因必须有中文回显（第十七批复核 M2）：匣满时扣钱前的拒单在屏上是静默的 */
     var rMc = await SQ.Actions.buyMerchant(c.s, idx);
     if (rMc && rMc.ok === false)
-      c.toast(c.t(rMc.reason === 'pillfull' ? 'shop.fail.pillfull' : 'shop.fail.other'));
+      c.toast(failText(c, (rMc && rMc.reason) || 'other'));
     c.renderAll();
   }
 
   SQ.UI = SQ.UI || {};
   SQ.UI.shop = {
     render: render, pillAffix: pillAffix, pillCat: pillCat,
-    actBuy: actBuy, actRefresh: actRefresh, actMerchant: actMerchant
+    actBuy: actBuy, actRefresh: actRefresh, actMerchant: actMerchant, failText: failText
   };
 })();
