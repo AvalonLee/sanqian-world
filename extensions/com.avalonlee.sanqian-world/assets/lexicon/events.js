@@ -31,7 +31,7 @@
     'log.eff.exclusiveGear': '得独占法器「{name}」',
     'log.eff.exclusiveArt': '得独占功法《{name}》',
     'log.eff.exclusiveLocked': '独占之珍缘悭一线，宝物不曾认主',
-    /* {n} 由 `MERCHANT_DURATION_MS` 换算（第卅九批：原文案写死「一炷香」，与实际 10 分钟不符且改表不带动） */
+    /* {n} 由 `MERCHANT_DURATION_MS` 换算（第卅九批：原文案写死「一炷香」，与实际席期分钟数不符且改表不带动） */
     'log.eff.merchant': '神秘商人已入坊市设席，只留 {n} 分钟——去坊市看他（下次再来不知何日）',
     'log.eff.merchantScout': '记下了那张斗篷下的脸——下次他带的货会更好',
     'log.eff.primeGear': '夺得不世出的极品法器！',
@@ -46,7 +46,7 @@
     'log.eff.eventShield': '获得护佑（{h}小时内抵消一次祸事）',
     'log.eff.combatProgress': '秘境进度受挫',
     'log.eff.gearScoreDown': '一件法器受损',
-    'log.eff.attrBonus': '{attr} 悟性永久 +{n}',
+    'log.eff.attrBonus': '{attr} 悟性永久 {n}',   /* F4：符号由值自带，模板不许写死 + */
     'log.eff.breakCost': '下次突破需求 -{p}%',
     'log.eff.bond': '{name} 好感 {sign}{n}',
     'log.eff.bond.tier': '♡ 与 {name} 的交情更深了（{title} {a}/{next}）',

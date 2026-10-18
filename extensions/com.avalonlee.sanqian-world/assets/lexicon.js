@@ -309,7 +309,10 @@
     'zone.cavelink': '福地「{name}」以此为凭', 'zone.cavelink.locked': '首通可开福地',
     'zone.pw.ok': '战力富余 {p}%', 'zone.pw.tight': '战力压线 {p}%', 'zone.pw.bad': '战力不足，差 {n}',
     /* 商店 */
-    'shop.refresh': '刷新（{n}）', 'shop.restock': '{t}后补货', 'shop.fail.other': '这一单没有成交（货已卖出，或手头不足）', 'shop.sold': '已售罄', 'shop.fail.pillfull': '丹匣已满（每种上限 99），先服几颗再来',
+    'shop.refresh': '刷新（{n}）', 'shop.restock': '{t}后补货', 'shop.fail.other': '这一单没有成交（原因不明，先刷新看看）', 'shop.sold': '已售罄',
+    'shop.fail.sold': '这一件已经被买走了', 'shop.fail.closed': '这一场已经收了（货已下架，或黑市未开）', 'shop.fail.stale': '货架刚换了新货，这一件不在了',
+    'shop.fail.poor': '手头不够，这一单买不下', 'shop.fail.owned': '这一件你已经有了', 'shop.fail.shelffull': '待修习的架子放满了，先装入或散功',
+    'arts.slotted': '已入槽', 'shop.fail.pillfull': '丹匣已满（每种上限 99），先服几颗再来',
     'shop.buy': '购入', 'shop.price': '{n}', 'shop.qiprice': '修为 {p}',
     'shop.confirm': '确认购入「{name}」？价格 {price}',
     /* 第卌六批：买的是要求未达的功法时，确认框要把去向说一句（原本只有成交后的日志，而日志里也没有这一条） */

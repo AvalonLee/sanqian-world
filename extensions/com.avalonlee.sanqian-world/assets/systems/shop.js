@@ -168,7 +168,7 @@
       return pack.worldSystems.karmaOf(ws) <= D.BLACKMARKET_KARMA;
     },
 
-    /* ── 神秘商人特席（势力批 v2.4 §8 · 交好分支）：10 分钟高级货架 ──
+    /* ── 神秘商人特席（势力批 v2.4 §8 · 交好分支）：席期 = D.MERCHANT_DURATION_MS（第册廿八批 F1 起 30 分钟）的高级货架 ──
      * 装备起步灵品（MERCHANT_GEAR_TIER）；「无视」 scouts 标记 → 品阶 +1（上探仙品）并消耗；
      * 功法出未持有的地/天阶（独占除外）；第三格高级丹药（破障丹）。 */
     openMerchant: function (ws, pack, D, mods, now, log) {
@@ -201,6 +201,8 @@
       var pill = null;
       for (var i = 0; i < D.PILLS.length; i++) if (D.PILLS[i].id === 'pozhang') pill = D.PILLS[i];
       if (pill) items.push({ kind: 'pill', ref: pill.id, sold: false,
+        /* 这枚 ×2 与门中供给的 D.FACTION_SUPPLY_PRICE_MULT 同值不同义（一边是特席稀缺加价、一边是
+         * 供给定价）。F9 定案 = 不合并、各留出处；要统一得先回答「特席是否跟随供给档」。 */
         price: priceOf(pill.price * 2, ws, D, mods, 0, false) });
       /* 双书扩容批 A5 + 二批 A5：特席先天法宝特位——scout 顶格时 50% 上架（MERCHANT_IDS 未持有随机一件，
        * x14 噬金虫王 / x15 护世之剑 / x16 玄青瓶；价格走 PRICE[grade] 基准无折扣） */
@@ -214,7 +216,7 @@
             price: priceOf((xtM.PRICE && mDef && xtM.PRICE[mDef.grade]) || 60000, ws, D, mods, 0, false) });
         }
       }
-      ws.shop.merchant = { until: now + (D.MERCHANT_DURATION_MS || 600000), items: items, scout: scout };
+      ws.shop.merchant = { until: now + (D.MERCHANT_DURATION_MS || 1800000), items: items, scout: scout };
       if (log) log('shop', SQ.t('shop.merchant.open', null, pack.worldId));
       return ws.shop.merchant;
     },

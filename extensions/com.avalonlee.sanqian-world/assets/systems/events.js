@@ -157,7 +157,7 @@
     if (e.treasure) parts.push(SQ.t('log.eff.treasure', { name: SQ.t('treasure.' + e.treasure + '.name', null, wid) }, wid));
     if (e.exclusiveLocked) parts.push(SQ.t('log.eff.exclusiveLocked', null, wid));
     /* 分钟数取表值：原文案写死「一炷香」，与 MERCHANT_DURATION_MS（10 分钟）不符，改表不带动屏上文案 */
-    if (e.merchant) parts.push(SQ.t('log.eff.merchant', { n: Math.max(1, Math.round(((D.MERCHANT_DURATION_MS || 600000) / 60000))) }, wid));
+    if (e.merchant) parts.push(SQ.t('log.eff.merchant', { n: Math.max(1, Math.round(((D.MERCHANT_DURATION_MS || 1800000) / 60000))) }, wid));
     if (e.merchantScout) parts.push(SQ.t('log.eff.merchantScout', null, wid));
     if (e.primeGear) parts.push(SQ.t('log.eff.primeGear', null, wid));
     if (e.primeArt) parts.push(SQ.t('log.eff.primeArt', null, wid));
@@ -332,7 +332,7 @@
         SQ.Gear.autoEquip(ws, pack, D, mods, item, ctx && ctx.log);
       }
       if (e.merchant) {
-        /* 神秘商人 · 交好（势力批 v2.4 §8）：坊市特席 10 分钟（无视标记 → 货 +1 阶并消耗） */
+        /* 神秘商人 · 交好（势力批 v2.4 §8）：坊市特席 30 分钟（第册廿八批 F1；无视标记 → 货 +1 阶并消耗） */
         if (SQ.Shop && SQ.Shop.openMerchant) {
           SQ.Shop.openMerchant(ws, pack, D, mods, now, ctx && ctx.log);
         }

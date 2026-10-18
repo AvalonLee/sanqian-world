@@ -380,9 +380,9 @@ async function buildSave() {
     await o26.p.click('#cf-ok');
     await o26.p.waitForTimeout(800);
     const end26 = await readShop26(o26.p);
-    T(/没有成交/.test(end26.toast) && !end26.soldFirst && !end26.knownChunyu,
-      'M29 序号已换 ⇒ 这一单不成交（旧写法：按旧序号买走另一件，春风化雨没入门、屏上还零提示）',
-      'toast=' + end26.toast.slice(0, 24) + ' 售罄=' + end26.soldFirst + ' 入门=' + end26.knownChunyu);
+    T(/换了新货/.test(end26.toast) && end26.toast.indexOf('原因不明') < 0 && !end26.soldFirst && !end26.knownChunyu,
+      'M29 序号已换 ⇒ 这一单不成交，且**屏上说的是「货架换了新货」这一种拒因**（F15 分键：旧判据认的正是那句兜底，等于没判）',
+      'toast=' + end26.toast.slice(0, 30) + ' 售罄=' + end26.soldFirst + ' 入门=' + end26.knownChunyu);
     T(end26.stones === mid26.stones,
       'M30 拒单分文不动（弹窗上写的 2,300 不会扣到别的货上）',
       mid26.stones + '→' + end26.stones);
@@ -396,9 +396,9 @@ async function buildSave() {
     await o27.p.click('#cf-ok');
     await o27.p.waitForTimeout(800);
     const st1 = await readShop26(o27.p);
-    T(/没有成交/.test(st1.toast) && !st1.soldFirst && st1.stones === st0,
-      'M31 已拥有的功法还挂在货架上：扣钱前先拒（旧实测形状 = 2,300 灵石打水漂、零收益、零日志）',
-      'toast=' + st1.toast.slice(0, 24) + ' 灵石=' + st0 + '→' + st1.stones + ' 售罄=' + st1.soldFirst);
+    T(/你已经有了/.test(st1.toast) && st1.toast.indexOf('原因不明') < 0 && !st1.soldFirst && st1.stones === st0,
+      'M31 已拥有的功法还挂在货架上：扣钱前先拒，且文案点名「这一件你已经有了」（F15 = 不再与「换架」共用一句兜底）',
+      'toast=' + st1.toast.slice(0, 30) + ' 灵石=' + st0 + '→' + st1.stones + ' 售罄=' + st1.soldFirst);
     await o27.c.close();
   }
 

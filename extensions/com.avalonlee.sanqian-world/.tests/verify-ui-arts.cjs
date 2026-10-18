@@ -335,10 +335,13 @@ async function buildSave() {
       cards: ids.map((id) => {
         const b0 = known.map((c) => c.querySelector('[data-v="' + id + '"]')).filter(Boolean)[0];
         const c = b0 ? b0.closest('.tcard') : null;
+        var bg = c.querySelector('.tierbadge.t1');
         return c ? { up: one(c), slot: !!c.querySelector('[data-act="slotArt"]'),
           unslot: !!c.querySelector('[data-act="unslotArt"]'), salv: !!c.querySelector('[data-act="salvageArt"]'),
-          fx: ((c.querySelector('.meta') || {}).textContent || '').trim() }
-          : { up: -1, slot: false, unslot: false, salv: false, fx: '' };
+          fx: ((c.querySelector('.meta') || {}).textContent || '').trim(),
+          bar: !!c.querySelector('.pbar'), badge: !!bg,
+          badgeTxt: bg ? bg.textContent.trim() : '' }
+          : { up: -1, slot: false, unslot: false, salv: false, fx: '', bar: false, badge: false, badgeTxt: '' };
       }),
       /* 槽卡那一行按 id 带回（槽序会变：autoSlot 补位、卸下再装会挪到尾部 ⇒ 钉序必假红） */
       slotFx: cells.reduce(function (o, c) {
@@ -351,6 +354,7 @@ async function buildSave() {
       slots: (w.artsSlots || []).slice()
     };
   }, ids);
+  const pageSlotTxt = await page.evaluate(() => SQ.t('arts.slotted', null, 'xiuxian'));
   const IDS = ['tuna', 'juling', 'emotionless'];
   const h1 = await slotRead(IDS);
   T(h1.n === 3 && h1.max.filter((x) => x).length === 1 &&
@@ -379,6 +383,16 @@ async function buildSave() {
   T(h2.n === 2 && ht.up === 0 && ht.slot === true && ht.unslot === false && h2.knownBtn === 0,
     'H2 槽外那一侧：卸下吐纳法后它的已学会卡**不给升级钮**（只留装入 + 弃置），槽里少一格',
     '槽=' + h2.n + ' 该卡升级钮=' + ht.up + ' 装入=' + ht.slot + ' 卸下=' + ht.unslot + ' 全文钮=' + h2.knownBtn);
+  /* H2b F3（N59）+ F16（N68）：**同一张卡**卸下前有精通条有角标、卸下后两者一起消失 ——
+   * 两判一起（只判「消失」会放过「两边都没条」那种假绿）。角标文本必须等于**引擎取数口**出来的
+   * `arts.slotted`（页内现算，不抄第二份），且不许再是借来的秘境洞天词。 */
+  T(h1.cards[0].bar === true && h1.cards[0].badge === true && h1.cards[0].badgeTxt.length > 0 &&
+    h2.cards[0].bar === false && h2.cards[0].badge === false,
+    'H2b 已学会卡：入槽时有精通条与角标 ‖ 卸下后条与角标一起消失（F3 = 槽外不再假在跑）',
+    '前 bar=' + h1.cards[0].bar + ' badge=' + h1.cards[0].badgeTxt + ' ‖ 后 bar=' + h2.cards[0].bar + ' badge=' + h2.cards[0].badge);
+  T(h1.cards[0].badgeTxt === pageSlotTxt && h1.cards[0].badgeTxt !== '进行中',
+    'H2c 角标走自己的键（屏上 === 词表 arts.slotted），且不再借 zone.current 那句「进行中」',
+    '屏上=' + h1.cards[0].badgeTxt);
   await page.evaluate(() => { const b = document.querySelector('#tab-arts .artgrid [data-act="slotArt"][data-v="tuna"]'); if (b) b.click(); });
   await page.waitForTimeout(250);
   const h3 = await slotRead(IDS);
