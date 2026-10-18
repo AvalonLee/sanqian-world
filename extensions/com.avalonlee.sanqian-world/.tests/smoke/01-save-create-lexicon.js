@@ -269,12 +269,17 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       fell29 === '主资源产出' && SQ.t('talent.field.qiRate', null, 'xiuxian') === '修为产出' &&
       SQ.t('ui.confirm', null, 'xiuxian') === '确认');
 
-    /* #30（4.3#25）插值占位替换正确（单占位/多占位/重复占位） */
+    /* #30（4.3#25）插值占位替换正确（单占位/多占位/重复占位）
+     * 🔧 第册十四批 2026-10-18：单占位那一支原用 `ui.error.storage` 证，本批该键改成**不带占位符**的白话句
+     *   （读档的 msg 是宿主原始错误文本，插进句子 = 裸英文上屏）⇒ 旧判据覆盖的那条支路搬到 `ui.error.save`
+     *   （同形单占位、值一字未动）重判，并另钉一条「读取这句零占位符、零拉丁字母」的新形状判据。 */
     var s30a = SQ.t('creation.talent.combo', { p: 2, n: 1 }, 'xiuxian');
     var s30b = SQ.t('idle.next', { realm: '筑基', n: '1,000', res: '灵气' }, 'xiuxian');
     ok(25, '插值占位替换',
       s30a === '2 正 1 负' && s30b.indexOf('{') < 0 && s30b.indexOf('筑基') >= 0 &&
-      s30b.indexOf('1,000') >= 0 && SQ.t('ui.error.storage', { msg: 'X' }) === '存档读取失败：X');
+      s30b.indexOf('1,000') >= 0 &&
+      SQ.t('ui.error.save', { msg: 'X' }) === '存档写入失败：X（本次进度恐未记下）' &&
+      /[A-Za-z{}]/.test(SQ.t('ui.error.storage', { msg: 'boom' })) === false);
 
     /* #31（4.3#26）切世界桩：注册 stub 世界词表 → 同 key 全量切换，不污染修仙词表 */
     SQ.lexRegister('__stub', { 'realm.0': 'STAGE0', 'resource.primary': 'MANA', 'world.__stub.name': '桩世界' });

@@ -6003,9 +6003,12 @@
       var ld0 = ((s.worlds || {})[s.profile.worldId] || {}).lastDeath;
       if (!hasProfile(s) && ld0 && ld0.at !== ui.seenDeathAt) { show('c1'); showDeathReport(); return; }
       if (hasProfile(s)) enterMain();
-      else show('c1');
+      /* 读档失败回落空档 ⇒ 屏上是一张干净的创角屏。不提示就是「无声以为档没了」，
+       * 而玩家此时顺手新建 = `SQ.mutate` 起手又读失败 → 拿空档落盘 → **盖掉盘上那份完好但读不动的载荷**。
+       * tick 只在 enterMain 后起（startTick 在那条路上），所以这两支是 checkIo 唯一的补位点。 */
+      else { show('c1'); checkIo(); }
     } catch (e) {
-      show('c1');
+      show('c1'); checkIo();
     }
   }
   boot();
