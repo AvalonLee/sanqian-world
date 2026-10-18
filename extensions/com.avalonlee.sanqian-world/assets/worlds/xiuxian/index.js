@@ -79,7 +79,7 @@
       karma: 0, karmaEventScore: 0, alignDrift: 0,
       attrs: { jing: 0, qi: 0, shen: 0 },
       attrEventBonus: { jing: 0, qi: 0, shen: 0 },
-      tribulation: { attempts: 0, success: 0, lastResult: null, next: 0, lastSuccessTs: null,
+      tribulation: { attempts: 0, success: 0, lastResult: null, next: 0,   /* F6 退役 lastSuccessTs（第册廿九批 · N32 ①）：第廿五批起全库零读者 */
         /* 系统深化批（数值详设 §8.3 / 势力全录卷 §8.6）：连败计数 + 门中护法一次性标记 */
         streak: 0, officeGuard: false },
       /* G14 护法结缘（引擎卷 §五 · v1.4）：好感只增（−1 = 绝交锁）/ 护法记录 / 冥佑计日锚
@@ -308,11 +308,9 @@
       SQ.Fusion.normalizeSpirits(out, D);
       SQ.Fusion.registerCustoms(out.fusion, D);
     }
-    /* lastSuccessTs 只认有限正数（脏值归 null；批 2·B4 立。🔧 第廿五批 2026-10-13：原消费者是
-       「待重修」金标 24h 横幅，随该横幅撤除现无消费者 ⇒ 字段与写口保留，见任务清单 N32 ①） */
-    out.tribulation.lastSuccessTs =
-      (typeof out.tribulation.lastSuccessTs === 'number' && isFinite(out.tribulation.lastSuccessTs) &&
-        out.tribulation.lastSuccessTs > 0) ? out.tribulation.lastSuccessTs : null;
+    /* 🔧 第册廿九批 F6（N32 ①）：`lastSuccessTs` 整族退役——第廿五批撤掉「待重修」24h 横幅后全库零读者，
+       本批按「退役 = 消失而不是留着等读者」处理：声明、写口、normalize 三支一起走。**旧档里那枚键不主动删**
+       （删玩家数据属产品裁定）⇒ 它只作为历史残留随档存活；新档不再声明，反证 = 冒烟 #126（改写）。 */
     /* 系统深化批（数值详设 §8.3.1 / 势力全录卷 §8.6）：streak 整数 ≥0（旧档补 0）+
      * officeGuard 只认 true（一次性标记，脏值归 false） */
     out.tribulation.streak = Math.max(0, Math.floor(num(out.tribulation.streak, 0)));

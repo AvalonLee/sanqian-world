@@ -49,7 +49,6 @@
         ws.qi = 0;
         /* 功法等级**保留**（第廿五批 2026-10-13 · 用户令「渡劫后功法等级保持不变」）：原此处
          * `ws.artsLevels = {}` 已删——等级 / 持有 / 槽位 / 精通从此全程连续（详设 §4.1 同批改口）。 */
-        ws.tribulation.lastSuccessTs = nowS; /* 渡劫成功时间戳（第廿五批起视图无消费者，字段与写口保留，见 N32 ①） */
         ws.tribulation.success++;
         ws.tribulation.lastResult = 'success';
         /* streak 清零 + 心魔层清零（心魔层数 = streak 派生值，无独立字段，§8.3.1） */

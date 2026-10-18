@@ -985,7 +985,7 @@ window.SQSmoke.frag('06-karma-bond-writes', async function () {
     SQ.Events.applyEffects(w295b, pack, D, M(mkProf(), w295b), e295b, { applied: ap295b, log: noop295, now: 1700000095000 });
     var a295 = w295a.attrEventBonus.gunt === undefined && !ap295a.attrBonus && e295a.attrBonus == null &&
       SQ.Events.effText(w295a, pack, D, e295a) === SQ.Events.effText(w295a, pack, D, {}) &&
-      w295b.attrEventBonus.gunt === 3 && !!ap295b.attrBonus;
+      w295b.attrEventBonus.gunt === 3 && !!ap295b.attrBonus;   /* (a) 恰满 CAP 仍整笔撤 */
     /* (a2) 🔧 复核返修：撤销条件原判成 `bn > 0`，连**负值**（减属性）一起撤了 ⇒ 「折寿 / 削悟性」类效果静默
      *   不生效而文案照印。负值在本仓是受支持的（`attrs.js:38` 直接加、normalize 不夹下界），现补一条负值判。 */
     var w295a2 = mkWs({}); w295a2.attrEventBonus = { mind: CAP295 };
@@ -993,6 +993,25 @@ window.SQSmoke.frag('06-karma-bond-writes', async function () {
     SQ.Events.applyEffects(w295a2, pack, D, M(mkProf(), w295a2), e295a2, { applied: ap295a2, log: noop295, now: 1700000095000 });
     var a295b = w295a2.attrEventBonus.gunt === -2 && !!ap295a2.attrBonus && e295a2.attrBonus != null;
 
+    /* (a3) F8 截到剩余：余 2 时掷 +5 ⇒ 实付 2、总额恰等于 CAP（旧口径 = 一分不得）；再掷一次 ⇒ room 0 ⇒
+     *   仍走撤销支（标签与 applied 一起没，文案不空转）。两判同挂 #295，防「改了新支、旧支没人看」。 */
+    var w295a3 = mkWs({}); w295a3.attrEventBonus = { mind: CAP295 - 2 };
+    var e295a3 = { attrBonus: { attr: 'gunt', n: 5 } }; var ap295a3 = { attrBonus: { attr: 'gunt', n: 5 } };
+    SQ.Events.applyEffects(w295a3, pack, D, M(mkProf(), w295a3), e295a3, { applied: ap295a3, log: noop295, now: 1700000095000 });
+    var sumA3 = w295a3.attrEventBonus.mind + (w295a3.attrEventBonus.gunt || 0);
+    var e295a3b = { attrBonus: { attr: 'gunt', n: 5 } }; var ap295a3b = { attrBonus: { attr: 'gunt', n: 5 } };
+    SQ.Events.applyEffects(w295a3, pack, D, M(mkProf(), w295a3), e295a3b, { applied: ap295a3b, log: noop295, now: 1700000095000 });
+    var a295a3 = w295a3.attrEventBonus.gunt === 2 && sumA3 === CAP295 &&
+      e295a3b.attrBonus === null && !ap295a3b.attrBonus && w295a3.attrEventBonus.gunt === 2;
+    ok('322', 'F8 截到剩余（第册廿九批 · N28 ①）：(a) 余 2 掷 +5 ⇒ 实付 2、`attrEventBonus` 总额恰等于 `ATTR_EVENT_BONUS_CAP`；(b) 同一态再掷一次 ⇒ room 0 ⇒ 仍走**撤销支**（标签与 applied 一起没，文案不许空转）；(c) 负值不截（与 `attrBonusAmp` 只放大正增益同口径）',
+      a295a3 && (function () {
+        var wn = mkWs({}); wn.attrEventBonus = { mind: CAP295 };
+        var en = { attrBonus: { attr: 'gunt', n: -3 } };
+        SQ.Events.applyEffects(wn, pack, D, M(mkProf(), wn), en, { applied: { attrBonus: { attr: 'gunt', n: -3 } }, log: noop295, now: 1700000095000 });
+        return wn.attrEventBonus.gunt === -3 && en.attrBonus != null;
+      })(),
+      'gunt=' + w295a3.attrEventBonus.gunt + ' 总额=' + sumA3 + ' 上限=' + CAP295 +
+      ' ‖ 第二次掷后标签=' + JSON.stringify(e295a3b.attrBonus) + ' applied=' + JSON.stringify(!!ap295a3b.attrBonus));
     var w295c = mkWs({}); w295c.artsSlots = []; w295c.artsKnown = []; w295c.artsLevels = {};
     var e295c = { artsProgress: 2 }; var ap295c = { artsProgress: 2 };
     SQ.Events.applyEffects(w295c, pack, D, M(mkProf(), w295c), e295c, { applied: ap295c, log: noop295, now: 1700000095000 });
