@@ -443,12 +443,16 @@ const SQ = sandbox.window.SQ;
  *   有登记无写点 = 死登记（与 A6 孤儿键同型，本仓已有先例）。
  *   二级结构（`st.spirit` 内部形状）不在本表，归器灵卷 §schema 与既有断言守。 */
 (function () {
-  var REG_F = 'assets/systems/treasures.js';
+  /* ⚠️ 第册廿一批（C6）：这两枚路径原本写**裸相对路径**（`'assets/systems/treasures.js'`），
+   * 于是本关跟着**进程 cwd** 走 —— 只有从扩展根跑才对，`cd .tests && node audit.cjs`
+   * 或从仓库根跑都会误报「登记表读不到 = 纪律失守」。修法 = 一律走 ROOT（与本件其余读点同法）。 */
+  var REG_REL = 'assets/systems/treasures.js';
+  var REG_F = path.join(ROOT, REG_REL);
   var regSrc = fs.existsSync(REG_F) ? fs.readFileSync(REG_F, 'utf8') : '';
   var m = regSrc.match(/ST_KEYS:\s*\[([^\]]*)\]/);
   if (!m) {
     ok('A7', '法宝运行态 st 键集登记对表', false,
-      '登记表读不到：' + REG_F + ' 内没有 `ST_KEYS: [...]` 字面量（登记表本身消失 = 纪律失守，不是放行理由）');
+      '登记表读不到：' + REG_REL + ' 内没有 `ST_KEYS: [...]` 字面量（登记表本身消失 = 纪律失守，不是放行理由）');
     return;
   }
   var reg = (m[1].match(/'[^']*'/g) || []).map(function (x) { return x.slice(1, -1); });
@@ -510,7 +514,8 @@ const SQ = sandbox.window.SQ;
  *   别名（`var w = ws; w.x = …`）、`Object.assign(ws, …)`、解构赋值仍在射程外；
  *   无 schema 透传面（`owned[].st`）归 A7。 */
 (function () {
-  var LED = 'assets/systems/ledger.js';
+  var LED_REL = 'assets/systems/ledger.js';
+  var LED = path.join(ROOT, LED_REL);   /* 同 A7：不许跟进程 cwd 走（C6 · 第册廿一批）*/
   var lsrc = fs.existsSync(LED) ? fs.readFileSync(LED, 'utf8') : '';
   function catList(name) {
     var m = lsrc.match(new RegExp('var\\s+' + name + '\\s*=\\s*\\[([^\\]]*)\\]'));
@@ -520,7 +525,7 @@ const SQ = sandbox.window.SQ;
   var INC = catList('IN_CATS'), OUTC = catList('OUT_CATS');
   if (!INC || !OUTC) {
     ok('A8', '「静默失效」普查（账本分类 ⇔ 调用点 · ws 写点 ⇔ normalize 声明集）', false,
-      '读不到 ' + LED + ' 里的 IN_CATS/OUT_CATS 字面量 = 白名单本身消失，属纪律失守而非放行理由');
+      '读不到 ' + LED_REL + ' 里的 IN_CATS/OUT_CATS 字面量 = 白名单本身消失，属纪律失守而非放行理由');
     return;
   }
   var bad = [];
@@ -558,7 +563,7 @@ const SQ = sandbox.window.SQ;
   }
   var noteSeen = 0, notePaired = 0;
   scanFiles.forEach(function (f) {
-    if (relOf(f) === LED) return;                        /* 白名单定义体自身不是调用点 */
+    if (relOf(f) === LED_REL) return;                   /* 白名单定义体自身不是调用点（比相对名 ⇒ 与 LED 改绝对路径无关）*/
     var src = srcOf(f), from = 0, idx;
     while ((idx = src.indexOf('SQ.Ledger.note(', from)) >= 0) {
       from = idx + 'SQ.Ledger.note('.length; noteSeen++;
