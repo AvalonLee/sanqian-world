@@ -513,6 +513,7 @@
 <script src="jianghu.js"></script>
 <script src="arts.js"></script>
 <script src="gear.js"></script>
+<script src="treasure.js"></script>
 <script>
 (function () {
   var SQ = window.SQ;
@@ -569,7 +570,9 @@
    * shortcut: 只放**已被外置件需要**的键；下一片要用新服务（toast / renderAll / mutate 之类）时在这里加一行、D7 自动跟。 */
   function ctx() {
     return { s: state, w: ws(), p: pack(), d: D(), ui: ui, $: $, t: t, esc: esc, date: gameDateStr,
-      mods: mods(), tierCls: tierCls, kindCls: treasureKindCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, timeAgo: timeAgo, fmtDate: fmtDate };
+      mods: mods(), tierCls: tierCls, kindCls: treasureKindCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, timeAgo: timeAgo, fmtDate: fmtDate,
+      /* 第册卅六批第七刀补两枚：`spiritPanel` = 器灵面板仍在内核、法宝页回头调用（件外调用 ⇒ 该进桥），`nudge` = 输入不合法时抖一下控件的内核助手（造化两路动作要用点击那一行的 el） */
+      spiritPanel: renderSpiritPanel, nudge: nudgeEl };
   }
 
   function show(name) {
@@ -1927,124 +1930,10 @@
     return parts.join(' · ');
   }
 
-  /* ── Tab · 法宝（灵宝 · 法宝全录）：法宝栏 3 槽 + 法宝库 + 祭炼/认主 + 造化 ──
-   * 法宝独立于四槽法器：无 atk/resist、不入自动择优、不可炼化，只带一条签名效果。 */
-  /* 法宝卡（卡片化批）：名号/品阶/品相 + 等级·签名效果 + 描述 + 缺项红字 + 祭出/收起/祭炼动作 */
-  function treasureCard(w, p, d, e, mode) {
-    var dd = SQ.Treasures.def(p, e.id);
-    if (!dd) return '';
-    var lv = SQ.Treasures.levelOf(e), max = SQ.Treasures.maxOf(p, dd);
-    var eq = SQ.Treasures.isEquipped(w, e.id);
-    var lacks = SQ.Treasures.lacksTexts(w, p, d, dd);
-    var h = '<div class="tcard' + (eq ? ' rare' : '') + '">';
-    h += '<div class="tname">' + esc(t('treasure.' + e.id + '.name')) +
-      ' <span class="tierbadge ' + treasureKindCls(dd.kind) + '">' + esc(t('treasure.kind.' + dd.kind)) + '</span>' +
-      ' <span class="align-sym">' + esc(t('treasure.grade.' + dd.grade)) + '</span>' +
-      (eq ? ' <span class="special-mark">' + esc(t('treasure.equip')) + '</span>' : '') + '</div>';
-    h += '<div class="teff">' + esc(t('treasure.lv.' + dd.kind, { n: lv, cap: max })) +
-      ' · ' + esc(SQ.Treasures.fxText(w, p, dd, e)) + '</div>';
-    h += '<div class="tdesc">' + esc(t('treasure.' + e.id + '.desc')) + '</div>';
-    if (dd.kind === 'xian') {
-      /* N52（第册十二批）：认主进度按件 ⇒ 这句只报「这件」的剩余，公式在引擎那一处（bondHoursLeft），视图不抄第二份 */
-      var bondLeft = SQ.Treasures.bondHoursLeft(p, e);
-      h += '<div class="tdesc">' + esc(t('treasure.bond.hint', { n: (p.treasures.BOND_COST || 3), h: (p.treasures.BOND_HOURS || 8) })) +
-        (bondLeft > 0 ? ' · ' + esc(t('treasure.bond.left', { n: bondLeft })) : '') + '</div>';
-    }
-    if (!eq && lacks.length) h += '<div class="tdesc" style="color:var(--danger)">' + esc(lacks.join(' · ')) + '</div>';
-    var acts = '';
-    if (eq) {
-      acts += '<button data-act="unequipTreasure" data-v="' + e.id + '">' + esc(t('treasure.unequip')) + '</button>';
-    } else if (mode === 'bag') {
-      acts += '<button class="primary" data-act="equipTreasure" data-v="' + e.id + '"' + (lacks.length ? ' disabled' : '') + '>' +
-        esc(t('treasure.equip')) + '</button>';
-    }
-    if (mode === 'bag' && dd.kind === 'hou') {
-      var cost = SQ.Treasures.refineCost(w, p, d, e.id);
-      if (cost != null) {
-        acts += '<button data-act="refineTreasure" data-v="' + e.id + '"' + (w.stones < cost ? ' disabled' : '') + '>' +
-          esc(t('treasure.refine')) + ' ' + SQ.fmt(cost) + '</button>';
-      } else {
-        acts += '<span class="tdesc">' + esc(t('treasure.refine.max')) + '</span>';
-      }
-    }
-    if (acts) h += '<div class="acts">' + acts + '</div>';
-    return h + '</div>';
-  }
-
-  /* 法宝图鉴卡：未得（owned=false）者名号 / 品阶 / 效果 / 描述全部以问号遮蔽 */
-  function treasureCodexCard(w, p, d, it) {
-    var dd = it.def;
-    var q = t('treasure.codex.mask'), qq = t('treasure.codex.unknown');
-    var h = '<div class="tcard' + (it.owned ? '' : ' dim') + '">';
-    if (!it.owned) {
-      h += '<div class="tname">' + esc(qq) +
-        ' <span class="tierbadge ' + treasureKindCls(dd.kind) + '">' + esc(q) + '</span>' +
-        ' <span class="align-sym">' + esc(q) + '</span></div>';
-      h += '<div class="teff">' + esc(q) + '</div>';
-      h += '<div class="tdesc">' + esc(q) + '</div>';
-      return h + '</div>';
-    }
-    h += '<div class="tname">' + esc(t('treasure.' + dd.id + '.name')) +
-      ' <span class="tierbadge ' + treasureKindCls(dd.kind) + '">' + esc(t('treasure.kind.' + dd.kind)) + '</span>' +
-      ' <span class="align-sym">' + esc(t('treasure.grade.' + dd.grade)) + '</span>' +
-      (it.equipped ? ' <span class="special-mark">' + esc(t('treasure.equip')) + '</span>' : '') + '</div>';
-    h += '<div class="teff">' + esc(t('treasure.lv.' + dd.kind, { n: it.level, cap: SQ.Treasures.maxOf(p, dd) })) +
-      ' · ' + esc(SQ.Treasures.fxText(w, p, dd, it.entry)) + '</div>';
-    h += '<div class="tdesc">' + esc(t('treasure.' + dd.id + '.desc')) + '</div>';
-    return h + '</div>';
-  }
-
-  function renderTreasure() {
-    var w = ws(), p = pack(), d = D();
-    var ts = p.treasures;
-    if (!ts) { $('tab-treasure').innerHTML = '<div class="lrow locked"><div class="meta">' + esc(t('treasure.empty')) + '</div></div>'; return; }
-    var tr = w.treasures || { owned: [], slots: [null, null, null] };
-    var slots = tr.slots || [];
-    var eqN = slots.filter(function (x) { return !!x; }).length;
-    var h = '';
-    /* 法宝栏 */
-    h += '<div class="sechead"><span class="t">' + esc(t('treasure.slots', { n: eqN, cap: ts.SLOTS })) +
-      '</span><span class="s">' + esc(t('treasure.hint')) + '</span></div>';
-    h += '<div class="cards trgrid">';
-    for (var i = 0; i < ts.SLOTS; i++) {
-      var id = slots[i];
-      var e = id ? SQ.Treasures.entryOf(w, id) : null;
-      if (!SQ.Treasures.slotUnlocked(w, p, i)) {
-        h += '<div class="tcard dim"><div class="tslot">' + esc(t('treasure.slot.n', { n: i + 1 })) + '</div><div class="tdesc">' +
-          esc(t('treasure.slot.locked', { realm: t('realm.' + ts.SLOT_UNLOCK[i]) })) + '</div></div>';
-      } else if (!e) {
-        h += '<div class="tcard dim"><div class="tslot">' + esc(t('treasure.slot.n', { n: i + 1 })) + '</div><div class="tdesc">' +
-          esc(t('treasure.empty')) + '</div></div>';
-      } else {
-        h += treasureCard(w, p, d, e, 'slot');
-      }
-    }
-    h += '</div>';
-    /* 法宝库 */
-    var owned = tr.owned || [];
-    h += '<div class="sechead"><span class="t">' + esc(t('treasure.bag', { n: owned.length })) + '</span></div>';
-    if (!owned.length) h += '<div class="lrow locked"><div class="meta">' + esc(t('treasure.bag.empty')) + '</div></div>';
-    else h += '<div class="cards trgrid">' + owned.map(function (e) { return treasureCard(w, p, d, e, 'bag'); }).join('') + '</div>';
-    /* 法宝图鉴：全录 30 件一览；未得者名号/品阶/效果/描述一律问号遮蔽 */
-    var cx = SQ.Treasures.codex(w, p);
-    var cxGot = cx.filter(function (x) { return x.owned; }).length;
-    h += '<div class="sechead"><span class="t">' + esc(t('treasure.codex.title')) +
-      '</span><span class="s">' + esc(t('treasure.codex.banner', { n: cxGot, total: cx.length })) + '</span></div>';
-    h += '<p class="hint" style="margin:2px 0 6px">' + esc(t('treasure.codex.hint')) + '</p>';
-    h += '<div class="cards trgrid">' + cx.map(function (it) { return treasureCodexCard(w, p, d, it); }).join('') + '</div>';
-    /* 造化（X11 阴阳乾坤鼎，须祭出） */
-    if (SQ.Treasures.isEquipped(w, 'x11')) {
-      h += '<div class="sechead"><span class="t">' + esc(t('treasure.convert.title')) + '</span></div>';
-      h += '<div class="lrow"><div class="meta hint">' + esc(t('treasure.x11.desc')) + '</div>' +
-        '<div class="row" style="margin-top:6px"><input class="trconv" type="number" min="0" step="1000" value="0" ' +
-        'placeholder="' + esc(t('treasure.convert.qi')) + '" style="flex:1;min-width:0">' +
-        '<button data-act="treasureConvert">' + esc(t('treasure.convert.qi')) + '</button></div>' +
-        '<div class="acts"><button data-act="treasurePill">' +
-        esc(t('treasure.convert.pill', { n: SQ.fmt(ts.PILL_COST), cur: t('resource.currency') })) + '</button></div></div>';
-    }
-    h += renderSpiritPanel();
-    $('tab-treasure').innerHTML = h;
-  }
+  /* ── Tab · 法宝（灵宝 · 法宝全录）── 第册卅六批整片外置 `view/treasure.js`（N34 第七刀）：
+   * 法宝栏 3 槽 + 法宝库 + 祭炼/认主 + 造化与五条动作都在那件里，内核只在 renderTab 与分派处直调
+   * `SQ.UI.treasure.*`（不留二次转发的壳）。桥多给的 `spiritPanel`（器灵面板仍在内核、法宝页回头调用）
+   * 与 `nudge` 的取舍口径见 ctx() 那两行注：一件键该不该进桥，只看它是件外调用还是件内互调。 */
   $('mgc-close').addEventListener('click', function () { $('modal-gearcodex').classList.add('hide'); });
 
   /* 奇遇回看浮层（批 2 · 交互说明 ★）：story 全文 + 首遇时间 + 上次选择与结果。
@@ -3217,7 +3106,7 @@
     if (ui.tab === 'idle') renderIdle();
     else if (ui.tab === 'combat') renderCombat();
     else if (ui.tab === 'arts') renderArts();
-    else if (ui.tab === 'treasure') renderTreasure();
+    else if (ui.tab === 'treasure') SQ.UI.treasure.render(ctx());
     else if (ui.tab === 'shop') SQ.UI.shop.render(ctx());
     else if (ui.tab === 'faction') renderFaction();
     else if (ui.tab === 'bonds') renderBonds('tab');
@@ -5725,53 +5614,12 @@
       await SQ.UI.gear.actRefine(ctx(), v);
       return;
     }
-    /* ── G15 法宝：祭出/收起/祭炼/造化 ── */
-    if (act === 'equipTreasure') {
-      var rET = await SQ.Actions.equipTreasure(state, v);
-      if (rET && rET.ok) toast(t('treasure.equipped', { name: t('treasure.' + v + '.name') }));
-      else if (rET) toast(t('treasure.locked'));
-      renderAll();
-      return;
-    }
-    if (act === 'unequipTreasure') {
-      var rUT = await SQ.Actions.unequipTreasure(state, v);
-      if (rUT && rUT.ok) toast(t('treasure.unequipped', { name: t('treasure.' + v + '.name') }));
-      renderAll();
-      return;
-    }
-    if (act === 'refineTreasure') {
-      var wTR = ws(), pTR = pack(), dTR = D();
-      var costTR = SQ.Treasures.refineCost(wTR, pTR, dTR, v);
-      if (costTR == null) return;
-      var bodyTR = t('treasure.refine.confirm', {
-        name: t('treasure.' + v + '.name'), lv: (SQ.Treasures.levelOf(SQ.Treasures.entryOf(wTR, v)) + 1),
-        n: SQ.fmt(costTR), cur: t('resource.currency')
-      });
-      askConfirm(t('treasure.refine'), bodyTR, async function () {
-        var rRT = await SQ.Actions.refineTreasure(state, v);
-        if (rRT && rRT.ok) toast(t(rRT.fail ? 'treasure.refine.fail' : 'treasure.refine.done', { name: t('treasure.' + v + '.name'), lv: rRT.lv }));
-        renderAll();
-      });
-      return;
-    }
-    if (act === 'treasureConvert') {
-      var inp = el.closest('.lrow') && el.closest('.lrow').querySelector('.trconv');
-      var amt = inp ? Math.floor(Number(inp.value) || 0) : 0;
-      if (amt <= 0) { nudgeEl(el); return; }
-      var rCT = await SQ.Actions.treasureConvertQi(state, amt);
-      if (rCT && rCT.ok) toast(t('treasure.convert.qiDone', { n: SQ.fmt(rCT.n) }));
-      else nudgeEl(el);
-      renderAll();
-      return;
-    }
-    if (act === 'treasurePill') {
-      var rPT = await SQ.Actions.treasureMakePill(state);
-      if (rPT && rPT.ok) toast(t('treasure.convert.pillDone'));
-      else if (rPT && rPT.reason === 'busy') toast(t('treasure.convert.pillBusy'));
-      else nudgeEl(el);
-      renderAll();
-      return;
-    }
+    /* ── G15 法宝：祭出/收起/祭炼/造化（第册卅六批整片外置 view/treasure.js · 分派顺序不动）── */
+    if (act === 'equipTreasure') { await SQ.UI.treasure.actEquip(ctx(), v); return; }
+    if (act === 'unequipTreasure') { await SQ.UI.treasure.actUnequip(ctx(), v); return; }
+    if (act === 'refineTreasure') { await SQ.UI.treasure.actRefine(ctx(), v); return; }
+    if (act === 'treasureConvert') { await SQ.UI.treasure.actConvert(ctx(), el); return; }
+    if (act === 'treasurePill') { await SQ.UI.treasure.actPill(ctx(), el); return; }
     if (act === 'logFilter') { ui.logFilter = v; SQ.UI.journal.render(ctx()); return; }
     if (act === 'resetSave') { askConfirm(t('settings.reset'), t('settings.reset.confirm'), resetSave); return; }
     if (act === 'clearBuffs') {

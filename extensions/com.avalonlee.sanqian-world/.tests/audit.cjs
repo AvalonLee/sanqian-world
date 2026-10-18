@@ -1078,7 +1078,10 @@ const SQ = sandbox.window.SQ;
   const dir = path.join(ROOT, 'view');
   const viewJs = fs.readdirSync(dir).filter((f) => f.endsWith('.js'));
   const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
-  const m = html.match(/function ctx\(\)[\s\S]{0,400}?return \{([\s\S]{0,400}?)\};/);
+  /* 扫描窗原为 400 字符 ⇒ 桥每长一行注释就整关失明（第册卅六批第七刀给 ctx() 补两枚键时当场照到：
+   * 报的是「找不到 ctx() 工厂」，看着像桥没了，其实是窗不够宽）。lazy 匹配仍停在第一个 `};`，
+   * 放宽上界只可能多收、不会跨过界，故取 1600。 */
+  const m = html.match(/function ctx\(\)[\s\S]{0,1600}?return \{([\s\S]{0,1600}?)\};/);
   const keys = m ? (m[1].match(/(^|[,{\s])([A-Za-z0-9_$]+)\s*:/g) || [])
     .map((x) => x.replace(/[^A-Za-z0-9_$]/g, '')) : [];
   const bad = [];

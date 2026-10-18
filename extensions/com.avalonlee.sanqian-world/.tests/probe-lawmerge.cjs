@@ -133,7 +133,8 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
      *    这里只剩还没搬的「器段」子渲染器用桩；桩形随现实改（承重结构不许在桩里简化）。 */
     gearCard: (g, _w, label, i) => '<div class="tcard gearcard" data-i="' + (i == null ? '' : i) + '"></div>',
     renderFuseAltar: CB.fuseAltar,
-    treasureCard: () => '',
+    /* treasureCard 的桩随第册卅六批第七刀删除：它已不是内核全局（整片进 view/treasure.js 的闭包），
+     * 留一枚没人调的桩 = 给未来真长出同名全局时提前发一张免检通行证。 */
     statLine: CB.statLine, specialEffText: CB.specialEff, gearHolder: CB.holder, gearHolderState: CB.holderState,
     tierCls: CB.tierCls, artTierCls: CB.artTier, carrierOf: CB.carrier,
     timeAgo: () => '3日前', fmtDate: () => '2026-10-14', gameDateStr: () => '罗云历1年1月1日',
