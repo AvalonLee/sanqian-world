@@ -78,18 +78,21 @@
       obtain: { type: 'custom' }, custom: true, gen: c.gen
     };
   }
-  function registerCustoms(fusion, D) {
+  function registerCustoms(fusion, D, worldId) {
+    /* shortcut: 不带 worldId 的调用点回落首发世界（SQ.WORLD_DEFAULT 单点，不再是字面量）；
+     * 第二界开工时逐点补真 worldId，散功那一路已从 actions 侧带进来作正面例。 */
+    var wid = worldId || SQ.WORLD_DEFAULT;
     if (!SQ.XARTS) return;
     for (var k in SQ.XARTS) {
       if (SQ.XARTS[k] && SQ.XARTS[k].custom) delete SQ.XARTS[k];
     }
-    var lex = SQ.LEX.xiuxian || (SQ.LEX.xiuxian = {});
+    var lex = SQ.LEX[wid] || (SQ.LEX[wid] = {});
     ((fusion || {}).customs || []).forEach(function (c) {
       SQ.XARTS[c.id] = toArt(c);
       lex['skill.' + c.id + '.name'] = c.name;
       lex['skill.' + c.id + '.desc'] = SQ.t('fuse.custom.desc', {
         gen: c.gen, a: (c.parents[0] || {}).name || '', b: (c.parents[1] || {}).name || ''
-      }, 'xiuxian');
+      }, wid);
     });
   }
   function ensure(ws, D) {
@@ -284,17 +287,17 @@
     /* 子部 Lv1 入持有（直接入门，学习要求不再校验——融合门槛已含资格；等级起点批同 gainArt） */
     if (ws.artsKnown.indexOf(cid) < 0) ws.artsKnown.push(cid);
     ws.artsLevels[cid] = 1;
-    registerCustoms(f, D);
+    registerCustoms(f, D, pack.worldId);
     if (log) log('arts', SQ.t('fuse.log.win', { name: nm, gen: gen, tier: SQ.t('skill.tier.' + TIER_NAME[tierI], null, pack.worldId) }, pack.worldId));
     return { ok: true, success: true, p: p, art: custom };
   }
 
   /* 自创部散功联动（actions.salvageArt 调用）：移出 customs + 重注册（返还走 Arts.salvage 既有口径） */
-  function dropCustom(ws, D, id) {
+  function dropCustom(ws, D, id, worldId) {
     var f = ws.fusion;
     if (!f || !customById(ws, id)) return false;
     f.customs = f.customs.filter(function (c) { return c.id !== id; });
-    registerCustoms(f, D);
+    registerCustoms(f, D, worldId);
     return true;
   }
 
@@ -349,7 +352,7 @@
     var grade = Math.max(0, Math.min(2, (c.gen || 1) - 1));
     if (c.special && c.special.pool === pool) grade = Math.max(grade, c.special.grade || 0);   /* 同池只升不降 */
     c.special = { pool: pool, grade: grade };
-    registerCustoms(f, D);                                 /* SQ.XARTS 运行时注册同步（mods 消费读点） */
+    registerCustoms(f, D, pack.worldId);                     /* SQ.XARTS 运行时注册同步（mods 消费读点） */
     if (log) log('arts', SQ.t('fuse.reforge.hit', {
       name: c.name, sig: SQ.t('special.' + pool + '.name', null, pack.worldId)
     }, pack.worldId));

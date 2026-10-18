@@ -32,7 +32,7 @@
   /* ── meta 层 schema（§8.1 唯一事实源）────────────────── */
   function metaBlank() {
     return {
-      unlockedWorlds: ['xiuxian'],
+      unlockedWorlds: [SQ.WORLD_DEFAULT],
       karma: 0, earnedKeys: {}, karmaLog: [], spent: {},
       codices: {}, achv: [], titles: [], biographies: [],
       unlocks: { alchemy: false, sect: false, prodigySlot: false, nemesis: false, bond: false },
@@ -60,7 +60,7 @@
     var d = metaBlank();
     if (!m || typeof m !== 'object') return d;
     var out = d;
-    out.unlockedWorlds = Array.isArray(m.unlockedWorlds) && m.unlockedWorlds.length ? m.unlockedWorlds : ['xiuxian'];
+    out.unlockedWorlds = Array.isArray(m.unlockedWorlds) && m.unlockedWorlds.length ? m.unlockedWorlds : [SQ.WORLD_DEFAULT];
     out.earnedKeys = obj(m.earnedKeys, {});
     for (var ek in out.earnedKeys) {
       var ev = out.earnedKeys[ek];

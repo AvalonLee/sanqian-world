@@ -158,7 +158,7 @@
     }
     /* 天赋 2 条：既有正面池 weight 口径抽取（纯展示，不进 mods.collect） */
     var posPool = [];
-    ['common', 'xiuxian'].forEach(function (w) {
+    ['common', (pack && pack.worldId) || SQ.WORLD_DEFAULT].forEach(function (w) {
       var t = (SQ.TALENTS || {})[w];
       if (t) (t.positive || []).forEach(function (el) { posPool.push(el); });
     });

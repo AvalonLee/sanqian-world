@@ -20,10 +20,10 @@
 
   /* 名称生成（走查 v2.5 §2 扩充纪律）：**前字与全名均一次一用**——
    * 同一世界内不出现「散人馆 / 散人行会」这类共享前字的近似名；组合空间 128/阵营，随机补足段必够。 */
-  function makeNamer() {
+  function makeNamer(wid) {
     var usedName = {}, usedA = {};
     return function (align) {
-      var pool = (SQ.NAMES.xiuxian && SQ.NAMES.xiuxian.factions && SQ.NAMES.xiuxian.factions[align]) ||
+      var pool = (SQ.NAMES[wid] && SQ.NAMES[wid].factions && SQ.NAMES[wid].factions[align]) ||
         { a: SQ.NAMES.common.given, b: SQ.NAMES.common.surname };   /* 兜底也走词表白名单数据 */
       for (var i = 0; i < 40; i++) {
         var a = pick(pool.a), nm = a + pick(pool.b);
@@ -50,7 +50,7 @@
       if (ws.factions && ws.factions.length) return ws.factions;
       var cfg = D.FACTIONS || {};
       var wid = pack.worldId;
-      var nameOf = makeNamer();
+      var nameOf = makeNamer(wid);
       var list = [];
       /* ① 固定池全量入档（不走随机名池与 30 条描述池； perk 仍按阵营池随机——正典无自定义数值） */
       (D.FACTIONS_FIXED || []).forEach(function (fx) {

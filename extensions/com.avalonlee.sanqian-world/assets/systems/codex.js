@@ -30,7 +30,8 @@
       case 'event': return pack && SQ.Events && SQ.Events.allIds ? SQ.Events.allIds(pack).length : 0;
       case 'talent': {
         var n = 0;
-        ['common', 'xiuxian'].forEach(function (w) {
+        /* 分母 = 通用池 + **本世界**池（D4：原先硬写 'xiuxian'，第二个世界装上会零报错地数错分母） */
+        ['common', (pack && pack.worldId) || SQ.WORLD_DEFAULT].forEach(function (w) {
           var t = (SQ.TALENTS || {})[w];
           if (t) n += (t.positive || []).length + (t.negative || []).length;
         });
