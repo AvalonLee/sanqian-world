@@ -25,7 +25,7 @@
       name: '',                /* 空 = 未入世；显示层走 t('profile.default_name')（P3 词表纪律） */
       talents: [],
       legacyTalents: [],       /* 转世天赋槽 ≤2（轮回卷 §3.3：独立于常规天赋、买断入池逐世换选） */
-      worldId: 'xiuxian',
+      worldId: SQ.WORLD_DEFAULT,
       worldName: '',
       createdAt: 0,
       alignBias: 'neutral',    /* 问道初心（创角屏 2，锁定态）：right|neutral|evil（工程规范 §3.1 v2.0） */
@@ -53,7 +53,7 @@
       profile: defaultProfile(),
       worlds: {},
       /* meta 层完整缺省（轮回卷 §8.1；Legacy 未装载时回落旧口径） */
-      meta: SQ.Legacy ? SQ.Legacy.metaBlank() : { unlockedWorlds: ['xiuxian'] },
+      meta: SQ.Legacy ? SQ.Legacy.metaBlank() : { unlockedWorlds: [SQ.WORLD_DEFAULT] },
       /* 玩家偏好（非角色数据）：autoTrib 关闭 = 修为圆满不自动突破，需手动点「渡劫」；
        * autoEvent 关闭 = 奇遇触发时弹窗由玩家抉择，开启 = 自动择一可用分支并结算；
        * eventPref = 自动奇遇的分支倾向（none 无倾向 / right 正道 / evil 魔道 / neutral 左道）——
@@ -86,7 +86,7 @@
         });
         return outL;
       })(),
-      worldId: typeof p.worldId === 'string' && p.worldId ? p.worldId : 'xiuxian',
+      worldId: typeof p.worldId === 'string' && p.worldId ? p.worldId : SQ.WORLD_DEFAULT,
       worldName: typeof p.worldName === 'string' ? p.worldName : '',
       createdAt: typeof p.createdAt === 'number' ? p.createdAt : 0,
       alignBias: BIAS[p.alignBias] ? p.alignBias : 'neutral',
@@ -110,7 +110,7 @@
      * earnedKeys、未知字段一律不带出，紧凑键 ekF 若不先展开回填就会连同条目一起丢档） */
     expandFoldedEarned(m);
     s.meta = SQ.Legacy ? SQ.Legacy.metaNormalize(m)
-      : { unlockedWorlds: Array.isArray(m.unlockedWorlds) ? m.unlockedWorlds : ['xiuxian'] };
+      : { unlockedWorlds: Array.isArray(m.unlockedWorlds) ? m.unlockedWorlds : [SQ.WORLD_DEFAULT] };
     /* 级⑧还原：codices.title 落盘被折叠为差集键 titleX → 还原 = titleX ++ titles（**溢出在前 = 原插入序**：
      * 差集恰为 addTitle 的 while(>80) shift 挤出的最旧称号，titles 存的是最新 80 条，故旧在前新在后）。
      * 置于 metaNormalize 之后 = titles 已去重去脏去非字符串。无条件无损，见 withFoldedTitle 注。 */
@@ -1345,6 +1345,10 @@
 
   SQ.KEY = KEY;
   SQ.CORRUPT_KEY = CORRUPT_KEY;   /* 读失败留底的第二键（测试与恢复取证按此名读，不许各处硬拼字符串）*/
+  /* 首发世界 id 的**唯一**点名处（第册卅五批 · 排期 D4）：缺省档 / 脏档回落 / Legacy 未装载回落都读它，
+   * 其余各处的世界 id 一律从 `pack.worldId`（世界自己带的）或 `s.profile.worldId`（玩家所在的）取。
+   * 审计 D12 按这条口径判红 ⇒ 第二个世界装上时只改这一行（或改 registry 的 default 标记），不许再长出六处。 */
+  SQ.WORLD_DEFAULT = 'xiuxian';
   SQ.V = V;
   /* 存档容量红线单一事实源（测试与走查一律读这两个值，禁止再各自硬编码 KB 数）
    * ⚠️ **存档瘦身批 2026-10-08 口径变更**：两值的度量对象由「编码前 JSON 字符串」改为

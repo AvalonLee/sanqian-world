@@ -124,7 +124,7 @@
           }, s.profile.worldId));
         }
         /* 自创部散功联动（融合器灵卷 §2.1）：移出 ws.fusion.customs + 重注册（返还走既有口径） */
-        if (out && SQ.Fusion && SQ.Fusion.dropCustom) SQ.Fusion.dropCustom(ws, dataOf(s), id);
+        if (out && SQ.Fusion && SQ.Fusion.dropCustom) SQ.Fusion.dropCustom(ws, dataOf(s), id, s.profile.worldId);
       });
       return out;
     },

@@ -26,6 +26,7 @@
  *   D9 FACTS 登记表行结构对账（哨兵段之外每条 | 行恰三格且首尾有格线 ‖ 无被硬换行切断的续行；第册廿六批 · N74 立）
  *   D10 module 卡片只读（禁一切写入口；第册三十批 · 排期 A2 立）
  *   D11 世界包双清单键集对账（initialState ⇔ normalize 双向相等；第册卅四批 · 排期 D2 立）
+ *   D12 世界 id 点名封闭（通用层/视图/卡片不许硬写世界 id；第册卅五批 · 排期 D4 立）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
@@ -1418,6 +1419,64 @@ const SQ = sandbox.window.SQ;
   ok('D11', '世界包双清单键集对账（initialState ⇔ normalize 顶层键集双向相等 ‖ 全缺档必须补齐；嵌套按表生成的映射不属射程，见上注）',
     bad.length === 0, '挂 pack 世界 ' + n + ' 个 ‖ 顶层声明集 ' + declN + ' 键' +
     (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 两向下行等、缺档全补齐'));
+})();
+
+/* ── D12 世界 id 点名封闭（第册卅五批 2026-10-18 · 排期 D4 立）──────────────────────
+ * 立因：「多世界框架」是对外卖点，而通用层此前**硬写** `xiuxian` 共 9 处（`['common','xiuxian'].forEach`
+ *   数池、`SQ.LEX.xiuxian` / `SQ.NAMES.xiuxian` 直取词与名池、缺省档写死首发界）——第二个世界装上时
+ *   这些支路**零报错地读到修仙的词与名**（D3 只封了 `SQ.XDATA` 直读，管不到词表 / 名池 / 字面量）。
+ *   同批已把各处改成从 `pack.worldId`（世界自己带的）‖ `s.profile.worldId`（玩家所在的）‖
+ *   `SQ.WORLD_DEFAULT`（首发界唯一落点，就在 core.js 那行声明）取数。本关把口径钉成门禁。
+ * 判 = 对射程内每件（剥注释后）数「世界 id 的**整串字面量** 'W'/\"W\" 与**命名空间点号直读** `SQ.LEX|NAMES|TALENTS|Worlds.W`，
+ *   **命中集与在册例外表双向相等**：多命中红（新旁路，点名到件与数）‖ 例外失效红（表里记了、实际零命中 ⇒ 删表项，
+ *   与 D3 例外同判法）。⚠️ 点号那一型**必须带根**：裸 `.W` 会把词表键 `'world.guwu.name'` 字符串内部的点号也算成旁路
+ *   （本关初版就中招，实测假阳 5 条 ⇒ 假阳教人关关卡，A9 前例）。
+ * 射程 = `assets/**.js` + `view/**` + `module/index.html`；**排除世界自己的数据件** ——
+ *   `assets/worlds/<id>/**` 与 `assets/talents/<id>.js`（文件名就是世界 id，认领自己是它的本职）。
+ * 在册例外三件（每件 1 处，含义各不相同）：`assets/core.js` = `SQ.WORLD_DEFAULT` 声明行（首发界落点）；
+ *   `assets/lexicon/events.js` ‖ `assets/lexicon/talents.js` = 词族分卷向自己那一界注册词表（`SQ.lexRegister`）,
+ *   即「按世界分的词表文件点名自己」，属词族契约要求的点名、不是旁路。
+ * 反向取证 = 往 `assets/systems/shop.js` 注一行 `var zz = 'xiuxian';` ⇒ 本关必红并点到该件；
+ *   往 `assets/core.js` 再补一处同值字面量 ⇒ 数合 1→2 也必红（证「例外逐件计数」不是只看有无）。 */
+(function () {
+  const EXC = { 'assets/core.js': 1, 'assets/lexicon/events.js': 1, 'assets/lexicon/talents.js': 1 };
+  let SQ3 = null;
+  try { SQ3 = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; } catch (e) { /* 下面判红 */ }
+  const ids = SQ3 && SQ3.Worlds ? Object.keys(SQ3.Worlds) : [];
+  if (!ids.length) { ok('D12', '世界 id 点名封闭（通用层/视图/卡片零硬写）', false, 'registry 取不到世界 id（本关失明，不许静默通过）'); return; } 
+  const seen = {}; let files = 0;
+  const walk = (dir) => {
+    fs.readdirSync(dir).forEach((f) => {
+      const abs = path.join(dir, f), rel = path.relative(ROOT, abs).replace(/\\/g, '/');
+      if (fs.statSync(abs).isDirectory()) { if (f !== 'node_modules' && f !== '.tests') walk(abs); return; }
+      if (!/\.(js|html)$/.test(f)) return;
+      if (/^assets\/worlds\//.test(rel) || /^assets\/talents\/[a-z0-9]+\.js$/.test(rel)) return;   /* 世界自己的件 */
+      files++;
+      let body = '';
+      try { body = stripComments(fs.readFileSync(abs, 'utf8')); } catch (e) { return; }
+      let n = 0;
+      ids.forEach((w) => {
+        n += body.split("'" + w + "'").length - 1;
+        n += body.split('"' + w + '"').length - 1;
+        /* 点号直读只认「世界命名空间」那四个根（`SQ.LEX.xiuxian` 那类）：裸 `.W` 会把词表键
+         * `'world.guwu.name'` 这类**字符串内部**的点号也算进来（本机实测假阳 5 条 ⇒ 假阳教人关关卡） */
+        const re = new RegExp('\\bSQ\\.(?:LEX|NAMES|TALENTS|Worlds)\\.' + w + '\\b', 'g');
+        n += (body.match(re) || []).length;
+      });
+      if (n) seen[rel] = n;
+    });
+  };
+  walk(ROOT);
+  const bad = [];
+  Object.keys(seen).forEach((rel) => {
+    if (!(rel in EXC)) bad.push(rel + ' 硬写世界 id ' + seen[rel] + ' 处（改走 pack.worldId / profile.worldId / SQ.WORLD_DEFAULT）');
+    else if (EXC[rel] !== seen[rel]) bad.push(rel + ' 命中 ' + seen[rel] + ' 处 ≠ 在册 ' + EXC[rel] + ' 处（例外表逐件计数，多一处也是新增点名）');
+  });
+  Object.keys(EXC).forEach((rel) => { if (!seen[rel]) bad.push(rel + ' 例外失效（在册 ' + EXC[rel] + ' 处、实际零命中 ⇒ 删表项）'); });
+  const total = Object.keys(seen).reduce((n, k) => n + seen[k], 0);
+  ok('D12', '世界 id 点名封闭（射程 = assets 通用层 + view + module，世界自己的数据件按文件名豁免；命中 ⇔ 在册例外双向相等、逐件数合，例外失效同判）',
+    bad.length === 0, '射程件 ' + files + ' ‖ 命中 ' + total + ' 处 ‖ 在册例外 ' + Object.keys(EXC).length + ' 件' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 8).join(' ‖ ') : ' ‖ 逐件数合'));
 })();
 
 /* ── 输出 ── */

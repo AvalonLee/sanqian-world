@@ -550,7 +550,7 @@
     karmaRank: ''                           /* 善恶名号段位基线（善恶名号批）：跨段即触发名号更迭演出 */
   };
 
-  function wid() { return state.profile ? state.profile.worldId : 'xiuxian'; }
+  function wid() { return state.profile ? state.profile.worldId : SQ.WORLD_DEFAULT; }
   function t(k, v) { return SQ.t(k, v, wid()); }
   /* 创角期取词：世界尚未写入 profile，按 draft.worldId 取（未择界时回落 common 词表） */
   function tc(k, v) { return SQ.t(k, v, draft.worldId); }
@@ -673,7 +673,7 @@
   }
 
   $('c1-random').addEventListener('click', function () {
-    $('c1-name').value = SQ.randomRoleName('xiuxian');
+    $('c1-name').value = SQ.randomRoleName(SQ.WORLD_DEFAULT);
     $('c1-err').classList.add('hide');
   });
   /* 屏 1 · 起名 → 屏 3 · 择界（步序 2） */
@@ -725,11 +725,11 @@
   }
   /* 天赋池由「屏 3 · 择界」所选世界决定（draft.worldId） */
   function rerollTalents() {
-    draft.roll = SQ.rollTalents(draft.worldId || 'xiuxian');
+    draft.roll = SQ.rollTalents(draft.worldId || SQ.WORLD_DEFAULT);
     renderC2();
   }
   function renderC2() {
-    var r = draft.roll, w = draft.worldId || 'xiuxian';
+    var r = draft.roll, w = draft.worldId || SQ.WORLD_DEFAULT;
     $('c2-combo').textContent = tc('creation.talent.combo', { p: r.combo.pos, n: r.combo.neg });
     var syns = matchedSynergies(r.talents, w);
     var synIds = {};
@@ -765,7 +765,7 @@
     });
   }
   function renderLockSummary() {
-    var w = draft.worldId || 'xiuxian';
+    var w = draft.worldId || SQ.WORLD_DEFAULT;
     var pills = (draft.roll ? draft.roll.talents : []).map(function (el) {
       return '<span class="pill">' + esc(SQ.t('talent.' + el.id + '.name', null, w)) + '</span>';
     });

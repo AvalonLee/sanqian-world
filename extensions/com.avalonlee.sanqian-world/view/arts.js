@@ -406,7 +406,7 @@
       h += '<div class="lrow"><div class="nm">' + c.esc(cu.name) + ' <span class="tierbadge t' + cu.tier + '">' + c.esc(c.t('skill.tier.' + ['huang', 'xuan', 'di', 'tian'][cu.tier])) + '</span>' +
         ' <span class="hint">' + c.esc(c.t('fuse.ui.gen', { n: cu.gen })) + '</span>' +
         (cu.special ? ' <span class="special-mark">' + c.esc(c.t('special.' + cu.special.pool + '.name') + '·' + c.t('special.grade.' + cu.special.grade)) + '</span>' : '') + '</div>' +
-        '<div class="meta">' + c.esc(SQ.effectsToText(cu.effects, 'xiuxian')) + '</div>' +
+        '<div class="meta">' + c.esc(SQ.effectsToText(cu.effects, c.p.worldId)) + '</div>' +
         '<div class="meta hint">' + c.esc(cu.parents.map(function (pp) { return pp.name; }).join(' + ')) + '</div>' +
         '<div class="acts"><button data-act="customReforge" data-v="' + cu.id + '"' + (canR ? '' : ' disabled') + '>' + c.esc(rBtnTxt) + '</button></div></div>';
     });

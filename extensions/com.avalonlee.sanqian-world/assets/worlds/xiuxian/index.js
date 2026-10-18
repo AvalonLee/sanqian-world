@@ -306,7 +306,7 @@
      * 清孤儿 custom 键——转世/散功后正典 70 部计数零漂移） */
     if (SQ.Fusion) {
       SQ.Fusion.normalizeSpirits(out, D);
-      SQ.Fusion.registerCustoms(out.fusion, D);
+      SQ.Fusion.registerCustoms(out.fusion, D, pack.worldId);
     }
     /* 🔧 第册廿九批 F6（N32 ①）：`lastSuccessTs` 整族退役——第廿五批撤掉「待重修」24h 横幅后全库零读者，
        本批按「退役 = 消失而不是留着等读者」处理：声明、写口、normalize 三支一起走。**旧档里那枚键不主动删**
