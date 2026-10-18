@@ -33,12 +33,12 @@ function run(label, rel, args, opts) {
   const t0 = Date.now();
   const r = spawnSync(process.execPath, [path.join(ROOT, rel)].concat(args || []),
     { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: Object.assign({}, process.env, o.env || {}) });
-  return judge(label, t0, (r.stdout || '') + (r.stderr || ''), r.status);
+  return judge(label, t0, (r.stdout || '') + (r.stderr || ''), r.status, rel);
 }
 
 /* 读数与打印只此一份（同步件与并发走查件共用）：件与件的区别只在「怎么起」，不在「怎么判」
  * ⇒ 判据口径绝不因为提速而分叉。 */
-function judge(label, t0, out, status) {
+function judge(label, t0, out, status, rel) {
   const lines = out.split(/\r?\n/).filter(Boolean);
   const tail = lines[lines.length - 1] || '';
   const m = out.match(new RegExp(GREEN.source, 'g')) || [];
@@ -52,6 +52,15 @@ function judge(label, t0, out, status) {
   console.log((red ? '  ✗ ' : '  ✓ ') + label.padEnd(26) +
     (pairs.length ? String(sum).padStart(6) + ' 断言 ' : '        ') +
     (tail.length > 60 ? tail.slice(-60) : tail) + '  [' + secs + 's]');
+  /* 红就把该件自己的 FAIL 行一并打出来（第册廿二批）：本件本来就握着完整 stdout，
+   * 以前只印末行 ⇒「33/34」这种红**拿不到案号**，只能另跑单件复现；而低概率偶发红常常复现不了
+   * （本轮 verify-ui-tiandao 就是这样：并发轮 1 红、单跑 4 次全绿、8 篇×6 轮并发也全绿）。
+   * 冒烟那一族早有 `run-smoke | grep ^FAIL` 的取证路子，走查此前没有等价物 —— 这三行补的就是这个缺口。 */
+  if (red) {
+    const det = lines.filter((x) => /^FAIL|^CRASH|Traceback/.test(x)).slice(0, 8);
+    det.forEach((x) => console.log('      ↳ ' + (x.length > 190 ? x.slice(0, 190) + '…' : x)));
+    if (!det.length) console.log('      ↳ 该件没打 FAIL 行 ⇒ 末行是唯一线索，单跑取详情：node ' + rel);
+  }
   return { label, ok: !red, sum, secs: Number(secs) };
 }
 
@@ -64,8 +73,8 @@ function runAsync(label, rel) {
     let out = '';
     p.stdout.on('data', (d) => { out += d; });
     p.stderr.on('data', (d) => { out += d; });
-    p.on('error', (e) => { resolve(judge(label, t0, 'CRASH ' + e.message, 1)); });
-    p.on('close', (code) => resolve(judge(label, t0, out, code)));
+    p.on('error', (e) => { resolve(judge(label, t0, 'CRASH ' + e.message, 1, rel)); });
+    p.on('close', (code) => resolve(judge(label, t0, out, code, rel)));
   });
 }
 
