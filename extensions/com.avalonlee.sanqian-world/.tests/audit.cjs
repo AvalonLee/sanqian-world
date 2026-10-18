@@ -23,6 +23,7 @@
  *   D3 世界专属别名封闭（通用层与视图直读 SQ.XDATA 必须挂册，例外失效同判；2026-10-14 批C 立）
  *   D7 视图外置件与内核桥 ctx() 的键集对账（第册五批 · N34 拆视图立：外置件用了 ctx 没给的键即判红）
  *   D8 日志分类表对账（LOG_CATS 项数 ⇔ 在册清单双向相等 ‖ 每项文案键在词表在册；第册二十批 · N66 立）
+ *   D9 FACTS 登记表行结构对账（哨兵段之外每条 | 行恰三格且首尾有格线 ‖ 无被硬换行切断的续行；第册廿六批 · N74 立）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
@@ -1257,6 +1258,46 @@ const SQ = sandbox.window.SQ;
   }
   ok('D8', '日志分类表对账（LOG_CATS 项数 ⇔ 在册清单双向相等 ‖ 每项文案键都在词表在册；「每项有无写点」不在射程，见上注）',
     bad.length === 0, '在册 ' + CAT_IDS.length + ' 项' + (bad.length ? ' ‖ ' + bad.slice(0, 5).join(' ‖ ') : ' ‖ id 集双向相等、键全在册'));
+})();
+
+/* ── D9 FACTS 登记表行结构对账（第册廿六批 2026-10-18 · N74 立）────────────────
+ * 立因：E3 逐行处置时照出这张表**列数参差**（表头三格而正文 1~4 格混排），且「存储分工」一条逻辑行
+ *   被硬换行切成两个物理行 ⇒ 渲染时续行掉出表外、多出来的格被吞，**读数会静默少一列**。这与 D6（挂点
+ *   id 全库唯一）、D8（分类表 ⇔ 在册清单）同族：都是"只有人眼看得见、机器一直没管"的账本结构面。
+ * 判一：**哨兵段之外**每条以 `|` 起头的行必须**恰三格且首尾都有 `|`**（表头行与 `|---|` 分隔行豁免，
+ *   转义竖线 `\|` 算格内文本）。
+ * 判二：**不许有"非表格行里含未转义竖线"** —— 那就是被切断的续行（本仓 2026-10-18 实测的这一条正是它）。
+ * 判三：登记表行数须 ≥ 10，整张表被搬走 = 本关失明，判红而不是静默通过（同 D8 取不到数组也红）。
+ * 射程边界：只判**行形状**，不判格内容对错（内容 = E3 的逐行裁定 + `gen-ledger` 判漂）。
+ * 反向取证 = 删掉某行末格线 ⇒ 判一红；表后插一条两空格起头的 `  **实测读数**：a | b |` ⇒ 判二红。 */
+(function () {
+  const REPO = require('./repo-root.cjs')();
+  const bad = [];
+  let lines = null;
+  try { lines = fs.readFileSync(path.join(REPO, 'docs/FACTS.md'), 'utf8').split('\n'); } catch (e) { bad.push('读不到 docs/FACTS.md ⇒ 本关失明'); }
+  let rowN = 0;
+  if (lines) {
+    const gs = lines.findIndex((x) => x.indexOf('SQ:LEDGER:BEGIN') >= 0);
+    const ge = lines.findIndex((x) => x.indexOf('SQ:LEDGER:END') >= 0);
+    const pipesOf = (L) => { let n = 0; for (let i = 0; i < L.length; i++) if (L[i] === '|' && L[i - 1] !== '\\') n++; return n; };
+    const cellsOf = (L) => pipesOf(L) - 1;
+    const isSep = (x) => /^\|\s*-{2,}/.test(x);
+    lines.forEach((L, i) => {
+      const no = i + 1;
+      if (i > gs && i < ge) return;
+      if (/^\|/.test(L)) {
+        if (isSep(L) || isSep(lines[i + 1] || '')) return;
+        rowN++;
+        const c = cellsOf(L);
+        if (c !== 3 || L[L.length - 1] !== '|') bad.push('L' + no + ' 格=' + c + (L[L.length - 1] !== '|' ? '（行尾无格线）' : ''));
+      } else if (pipesOf(L) >= 1 && !/^>/.test(L) && !/^#{1,3} /.test(L) && !/^---$/.test(L) && !/^```/.test(L)) {
+        bad.push('L' + no + ' 疑似被切断的续行: ' + L.slice(0, 28));
+      }
+    });
+    if (rowN < 10) bad.push('登记表只数到 ' + rowN + ' 行（<10 ⇒ 表被搬走或改名，本关失明）');
+  }
+  ok('D9', 'FACTS 登记表行结构对账（哨兵段之外每条 | 行恰三格且首尾有格线 ‖ 无被硬换行切断的续行 ‖ 表没整段消失；只判形状不判内容）',
+    bad.length === 0, '登记表 ' + rowN + ' 行' + (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 逐行三格、无续行'));
 })();
 
 /* ── 输出 ── */
