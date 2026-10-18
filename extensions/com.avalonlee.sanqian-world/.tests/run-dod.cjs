@@ -4,7 +4,8 @@
  *   手算总数正是 FACTS 里那条「十七篇却只列 16 篇、282+16=298 恰好闭合」勘误的成因。
  * 用法：
  *   node .tests/run-dod.cjs            快速预检（无浏览器依赖 · 件数与断言合计**只认末行** `DOD_ALL_GREEN n 件 / 断言合计 m`，注释不抄数）
- *   node .tests/run-dod.cjs --ui       追加界面走查（需 playwright-core + Edge，约 8~15 分钟：每篇各起一次浏览器）
+ *   node .tests/run-dod.cjs --ui       追加界面走查（需 playwright-core + Edge · 🆕 第册十六批起**同时在飞 3 篇**，
+ *                                      串行实测 8~15 分钟 → 并发 3 实测读数见本行末批注；逐篇末行口径一字未动）
  *   node .tests/run-dod.cjs --sim      追加 sim-playthrough 全量（约 10~20 分钟，收口必跑）
  *   node .tests/run-dod.cjs --full     = --ui --sim
  * 判据：末行 DOD_ALL_GREEN <件数>；任一子件红 ⇒ 末行 DOD_FAILED <清单> 且退码 1。
@@ -16,9 +17,10 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawnSync, spawn } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
+const BOOT_MS = Date.now();   /* 真实墙钟起点（并发后「累计墙钟」= 各件自身耗时之和，不再等于墙上时间）*/
 const argv = process.argv.slice(2);
 const wantUI = argv.indexOf('--ui') >= 0 || argv.indexOf('--full') >= 0;
 const wantSim = argv.indexOf('--sim') >= 0 || argv.indexOf('--full') >= 0;
@@ -31,7 +33,12 @@ function run(label, rel, args, opts) {
   const t0 = Date.now();
   const r = spawnSync(process.execPath, [path.join(ROOT, rel)].concat(args || []),
     { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: Object.assign({}, process.env, o.env || {}) });
-  const out = (r.stdout || '') + (r.stderr || '');
+  return judge(label, t0, (r.stdout || '') + (r.stderr || ''), r.status);
+}
+
+/* 读数与打印只此一份（同步件与并发走查件共用）：件与件的区别只在「怎么起」，不在「怎么判」
+ * ⇒ 判据口径绝不因为提速而分叉。 */
+function judge(label, t0, out, status) {
   const lines = out.split(/\r?\n/).filter(Boolean);
   const tail = lines[lines.length - 1] || '';
   const m = out.match(new RegExp(GREEN.source, 'g')) || [];
@@ -40,12 +47,26 @@ function run(label, rel, args, opts) {
     const g = seg.match(GREEN);
     if (g) { sum += Number(g[2]); pairs.push(g[2] + '/' + g[3]); }
   }
-  const red = /FAIL|CRASH|_ERR|Error|Traceback/.test(tail) || r.status !== 0;
+  const red = /FAIL|CRASH|_ERR|Error|Traceback/.test(tail) || status !== 0;
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
   console.log((red ? '  ✗ ' : '  ✓ ') + label.padEnd(26) +
     (pairs.length ? String(sum).padStart(6) + ' 断言 ' : '        ') +
     (tail.length > 60 ? tail.slice(-60) : tail) + '  [' + secs + 's]');
   return { label, ok: !red, sum, secs: Number(secs) };
+}
+
+/* 走查篇单独走异步：每篇各起一个浏览器，串行时 8~15 分钟几乎全花在等浏览器起来（N36）。
+ * 并发只是「同时在飞的篇数」，逐篇末行标记与断言求和的口径一字未动。 */
+function runAsync(label, rel) {
+  return new Promise((resolve) => {
+    const t0 = Date.now();
+    const p = spawn(process.execPath, [path.join(ROOT, rel)], { cwd: ROOT, env: process.env });
+    let out = '';
+    p.stdout.on('data', (d) => { out += d; });
+    p.stderr.on('data', (d) => { out += d; });
+    p.on('error', (e) => { resolve(judge(label, t0, 'CRASH ' + e.message, 1)); });
+    p.on('close', (code) => resolve(judge(label, t0, out, code)));
+  });
 }
 
 /* 逐件读数落盘 `.tests/dod-last.json`：按件名合并（快速预检不会抹掉上一次 --ui/--sim 的读数），
@@ -86,35 +107,68 @@ for (const p of ['probe-join', 'probe-sectwire', 'probe-heirchoice', 'probe-lawm
 }
 /* ④ 版本总账 ↔ 卷头对账（不 --fix：收口时应当是已同步态，漂了就红）*/
 step('versions-check', '.tests/versions-check.cjs');
-/* ⑤ 界面走查（逐篇末行求和，绝不手算）*/
+/* ⑤ 界面走查（逐篇末行求和，绝不手算）
+ *    N36：每篇各起一次浏览器，串行时 8~15 分钟 ⇒ 收口最慢的一段。改成**同时在飞 3 篇**
+ *    （裁定走「并发 2~3」这一案，不做「共享单浏览器」那一案——后者要动每一篇的建场代码）。
+ *    ⚠️ 口径未动：逐篇末行标记、断言求和、`dod-last.json` 逐件即时落盘全部照旧；
+ *    只有「同时在飞的篇数」变了。打印顺序 = 完成顺序（读数按件名入库，与顺序无关）。 */
+function uiPool(files, limit) {
+  const queue = files.slice();
+  const running = new Set();
+  return new Promise((resolve) => {
+    const tick = () => {
+      while (running.size < limit && queue.length) {
+        const f = queue.shift();
+        const label = '  ' + f.replace(/^verify-ui-|\.cjs$/g, '');
+        const p = runAsync(label, '.tests/' + f);
+        running.add(p);
+        p.then((x) => {
+          running.delete(p);
+          results.push(x);
+          persist(x);
+          if (!queue.length && !running.size) resolve(); else tick();
+        });
+      }
+      if (!queue.length && !running.size) resolve();
+    };
+    tick();
+  });
+}
+function finish() {
+  /* ⑥ 账本对账 + 反证（2026-10-14 结构整治批B）：只判漂、不代跑测试、不带 --fix。
+   *    它排在最后 = 前面各件本次运行的读数已经写进 dod-last.json，判的是本轮而不是上一轮。*/
+  step('gen-ledger', '.tests/gen-ledger.cjs');
+  step('ledger-selftest', '.tests/ledger-selftest.cjs');
+
+  const bad = results.filter((x) => !x.ok);
+  const totalAssertions = results.reduce((n, x) => n + (x.sum || 0), 0);
+  const wall = results.reduce((n, x) => n + x.secs, 0).toFixed(1);
+  const realWall = ((Date.now() - BOOT_MS) / 1000).toFixed(1);
+  console.log('件数=' + results.length + ' · 断言合计=' + totalAssertions +
+    ' · 累计墙钟=' + wall + 's' + (wantUI ? ' ‖ 真实墙钟=' + realWall + 's（走查并发 3 ⇒ 累计值含重叠，真实值才是等的时间）' : ''));
+
+  if (bad.length) {
+    console.log('DOD_FAILED ' + bad.length + ' 件: ' + bad.map((x) => x.label.trim()).sort().join(', '));
+    /* 失败归因：件 → 相关同动点（映射的正典在 gen-ledger 的 SPEC.attrib，随账本落盘）*/
+    let attrib = {};
+    try { attrib = JSON.parse(fs.readFileSync(path.join(require('./repo-root.cjs')() || ROOT, 'docs', 'ledger.json'), 'utf8')).attrib || {}; } catch (e) { /* 账本未生成时不给假指引 */ }
+    bad.forEach((x) => {
+      const k = x.label.trim();
+      const a = attrib[k];
+      if (!a) return;
+      console.log('  归因 [' + k + '] 事实源: ' + a.src);
+      if (a.touches && a.touches.length) console.log('           同动点: ' + a.touches.join(' · '));
+      if (a.repro) console.log('           最小复现: ' + a.repro);
+    });
+    process.exit(1);
+  }
+  console.log('DOD_ALL_GREEN ' + results.length + ' 件 / 断言合计 ' + totalAssertions);
+}
+
 if (wantUI) {
   const ui = fs.readdirSync(path.join(ROOT, '.tests')).filter((f) => /^verify-ui-.*\.cjs$/.test(f)).sort();
-  console.log('  ── 界面走查 ' + ui.length + ' 篇 ──');
-  for (const f of ui) step('  ' + f.replace(/^verify-ui-|\.cjs$/g, ''), '.tests/' + f);
+  console.log('  ── 界面走查 ' + ui.length + ' 篇（同时在飞 3 篇）──');
+  uiPool(ui, 3).then(finish);
+} else {
+  finish();
 }
-/* ⑥ 账本对账 + 反证（2026-10-14 结构整治批B）：只判漂、不代跑测试、不带 --fix。
- *    它排在最后 = 前面各件本次运行的读数已经写进 dod-last.json，判的是本轮而不是上一轮。*/
-step('gen-ledger', '.tests/gen-ledger.cjs');
-step('ledger-selftest', '.tests/ledger-selftest.cjs');
-
-const bad = results.filter((x) => !x.ok);
-const totalAssertions = results.reduce((n, x) => n + (x.sum || 0), 0);
-const wall = results.reduce((n, x) => n + x.secs, 0).toFixed(1);
-console.log('件数=' + results.length + ' · 断言合计=' + totalAssertions + ' · 累计墙钟=' + wall + 's');
-
-if (bad.length) {
-  console.log('DOD_FAILED ' + bad.length + ' 件: ' + bad.map((x) => x.label.trim()).join(', '));
-  /* 失败归因：件 → 相关同动点（映射的正典在 gen-ledger 的 SPEC.attrib，随账本落盘）*/
-  let attrib = {};
-  try { attrib = JSON.parse(fs.readFileSync(path.join(require('./repo-root.cjs')() || ROOT, 'docs', 'ledger.json'), 'utf8')).attrib || {}; } catch (e) { /* 账本未生成时不给假指引 */ }
-  bad.forEach((x) => {
-    const k = x.label.trim();
-    const a = attrib[k];
-    if (!a) return;
-    console.log('  归因 [' + k + '] 事实源: ' + a.src);
-    if (a.touches && a.touches.length) console.log('           同动点: ' + a.touches.join(' · '));
-    if (a.repro) console.log('           最小复现: ' + a.repro);
-  });
-  process.exit(1);
-}
-console.log('DOD_ALL_GREEN ' + results.length + ' 件 / 断言合计 ' + totalAssertions);
