@@ -2,7 +2,7 @@
  * 由 smoke.js 的 run() 体逐字切出（原第 4378~5408 行），正文一字未改。
  * 本件只注册正文、不执行：执行由 .tests/smoke.js 的壳把十片拼回同一个 async Function（同一作用域与提升语义）。
  * 装载序 = smoke.js（壳）→ 本片；单片不可独立跑（320 案顺序共享沙箱态）。
- * 断言编号：202 203 204 205 206 206 206 248 249 250 251 277 278 279 280 281 282 283 252
+ * 断言编号：202 203 204 205 206 206 206 248 249 250 251 277 278 279 280 281 282 283 252 324
 */
 window.SQSmoke.frag('05-codex-log-capacity', async function () {
     ok('202', 'meta normalize 幂等（旧档补默认/脏档逐项清理/恒等式自检修复）+ p 公式/CLAMP/REALMS/FIELDS 零改动回归 ‖ ARTS_COST 按等级起点批对表（八档）',
@@ -300,6 +300,8 @@ window.SQSmoke.frag('05-codex-log-capacity', async function () {
     var lvl7_206 = fac206disk.length >= 2 && relN206disk === fac206disk.length * (fac206disk.length - 1) / 2;
     var pm206disk = ((re206.worlds || {}).xiuxian || {}).prodMarks || {};
     var lvl9_206 = !Array.isArray(pm206disk.rankRows);                       /* 级⑨ rankRows 裁除 */
+    var w206disk = ((re206.worlds || {}).xiuxian) || {};
+    var lvl11_206 = !!w206disk.prodCols && Array.isArray(w206disk.prodCols.k) && !Array.isArray(w206disk.prodigies);
     var eh206disk = ((re206.worlds || {}).xiuxian || {}).eventHistory || {};
     var feed206disk = Array.isArray(eh206disk.feed) ? eh206disk.feed.length : -1;
     var lvl10_206 = feed206disk < 0;   /* 级⑩ 已随第十四批整族删除 ⇒ `stripSideFlows` 是 `delete ehc.feed`，键**根本不在档上**（= −1）；复核返修：原判 `=== 0` 把「空数组」当正证而键缺失时恒假 = 明细行永远打印「异常」，旧写法 (0<=5) 恒真 = 没判（审计 #13） */
@@ -318,7 +320,7 @@ window.SQSmoke.frag('05-codex-log-capacity', async function () {
       }
       return true;
     })();
-    ok('206', '容量红线：最坏态原账 ' + rawBytes206 + 'B 超触发线（SQ.SAVE_TRIGGER 单一事实源）→ 主档（剥离展示流 log + eventHistory.feed）压缩阶梯（就地级 ⓪~⑤ 已纯函数化：bios/karmaLog/trib并额/cooldowns/保底级 **只改落盘副本** + 副本级⑥codices 串接/⑦rel 上三角/⑧title 差集/⑨rankRows 裁除/⑩feed 裁剪〔侧档化后降级为保险，常态不触发〕）→ 落盘 ' + savedBytes206 + 'B ≤ SQ.SAVE_RED（' + SQ.SAVE_RED + 'B）且恒等式不破；日志全量落独立档 ' + logStoreN206 + ' 条（' + logBytes206 + 'B）；级⑥解压还原闭环（九面 split 后逐面全等、内存态零污染）',
+    ok('206', '容量红线：最坏态原账 ' + rawBytes206 + 'B 超触发线（SQ.SAVE_TRIGGER 单一事实源）→ 主档（剥离展示流 log + eventHistory.feed）压缩阶梯（就地级 ⓪~⑤ 已纯函数化：bios/karmaLog/trib并额/cooldowns/保底级 **只改落盘副本** + 副本级⑥codices 串接/⑦rel 上三角/⑧title 差集/⑨rankRows 裁除/⑩feed 裁剪〔侧档化后降级为保险，常态不触发〕/⑪prodigies 列存）→ 落盘 ' + savedBytes206 + 'B ≤ SQ.SAVE_RED（' + SQ.SAVE_RED + 'B）且恒等式不破；日志全量落独立档 ' + logStoreN206 + ' 条（' + logBytes206 + 'B）；级⑥解压还原闭环（九面 split 后逐面全等、内存态零污染）',
       rawBytes206 > SQ.SAVE_TRIGGER && savedBytes206 > 0 && savedBytes206 <= SQ.SAVE_RED && !mainHasLog206 &&
       logStoreN206 === 2000 && logBytes206 > 0 && w206.log.length === 2000 &&
       ((re206.meta || {}).biographies || {}).length <= 6 &&
@@ -330,7 +332,44 @@ window.SQSmoke.frag('05-codex-log-capacity', async function () {
       ' 级⑥=' + (joined206 ? '触发' : '未触发') + ' 级⑦=' + (lvl7_206 ? '触发' : '未触发') +
       ' 级⑧=' + (lvl8_206 ? '触发' : '未触发') + ' 级⑨=' + (lvl9_206 ? '触发' : '未触发') +
       ' 级⑩已删(feed 不落主档，盘上 ' + feed206disk + ' 条)=' + (lvl10_206 ? '判据成立' : '异常') + '(原满档 ' + (D.EVENT_FEED_CAP || 50) + ')' +
-      ' 九面还原=' + codexOk206 + ' ‖ 原账分解 ' + topRaw206 + ' ‖ 落盘分解 ' + topSaved206);
+      ' 级⑪=' + (lvl11_206 ? '触发' : '未触发') + ' 九面还原=' + codexOk206 + ' ‖ 原账分解 ' + topRaw206 + ' ‖ 落盘分解 ' + topSaved206);
+
+    /* #324 级⑪ prodigies 列存的无损闭环（第册卅三批 2026-10-18 · N70）：
+     * 判一 = 盘上确为列存形状（有 prodCols 且无 prodigies 数组）；
+     * 判二 = **同一 normalize 口径下**「走列存的盘上档」与「不走列存的等价档」还原结果逐字全等
+     *        —— 拿 normalize(原内存态) 当基线而不是拿内存态本身，否则 pack.normalize 自己的补齐
+     *        会混进差异，红了分不清是谁的锅（本级盲区 vs 既有清洗）；
+     * 判三 = 混合形状（第二条记录多出后加的键）⇒ 本级**整级不触发**、prodigies 原样落盘：
+     *        无损前提是证出来的，不是假定旧档也同形。旧档新增键正是这一支的真实来源。 */
+    var disk324 = JSON.parse(saved206);
+    var w324 = (disk324.worlds || {}).xiuxian || {};
+    var shape324 = !!w324.prodCols && Array.isArray(w324.prodCols.k) && !Array.isArray(w324.prodigies);
+    var n324 = SQ.normalize(disk324);
+    var b324 = SQ.normalize(JSON.parse(JSON.stringify(ref206)));
+    var got324 = (n324.worlds || {}).xiuxian.prodigies;
+    var exp324 = (b324.worlds || {}).xiuxian.prodigies;
+    var round324 = JSON.stringify(got324) === JSON.stringify(exp324);
+    var kOk324 = shape324 && w324.prodCols.k.length === Object.keys(ref206.worlds.xiuxian.prodigies[0]).length
+      && w324.prodCols.r.length === ref206.worlds.xiuxian.prodigies.length;
+    /* 混合形状 = **旧档的真实形状**（记录本体验证得通过，只是早期那条缺后来新增的键）：拿在册最坏态的
+     * 两条真记录、删掉第二条的一枚键来造，不拿手搓的残缺记录——pack.normalize 会整条丢掉不合格记录，
+     * 用它会验出「bail 后名录为空」这种与本级无关的假象（本机实测：`{id,rlm}` 两键记录直接被丢 ⇒ []）。 */
+    var ragSrc324 = JSON.parse(JSON.stringify(ref206.worlds.xiuxian.prodigies));
+    delete ragSrc324[1].feudBond;
+    var rag324 = pack.initialState();
+    rag324.prodigies = ragSrc324.slice(0, 2);
+    var rr324 = await SQ.compressForSave({ v: SQ.V, profile: mkProf([]), meta: {}, worlds: { xiuxian: rag324 } }, 1700000000000, 1);
+    var wRag324 = ((rr324.out || {}).worlds || {}).xiuxian || {};
+    var nRag324 = SQ.normalize({ v: SQ.V, profile: mkProf([]), meta: {}, worlds: { xiuxian: JSON.parse(JSON.stringify(wRag324)) } });
+    /* 判别的不是「引用没变」而是「本级真没触发」：触发时 out 是副本且 prodigies 被删 ⇒ 这里必须仍是数组 */
+    var bail324 = Array.isArray(wRag324.prodigies) && wRag324.prodigies.length === 2 && !wRag324.prodCols
+      && (function () { var p = (nRag324.worlds || {}).xiuxian.prodigies || [];
+        return p.length === 2 && p[0].id === ragSrc324[0].id && p[1].id === ragSrc324[1].id; })();
+    ok('324', '级⑪ prodigies 列存无损闭环（N70）：盘上确为 prodCols 形状 ‖ 同一 normalize 口径下列存档与不列存档还原结果逐字全等（30 条全回）‖ 混合形状记录 ⇒ 整级不触发、prodigies 原样落盘且照读（无损前提是证出来的，不是假定旧档同形）',
+      shape324 && round324 && kOk324 && bail324 && (got324 || []).length === ref206.worlds.xiuxian.prodigies.length,
+      '盘上k=' + (shape324 ? w324.prodCols.k.length : -1) + ' 行=' + (shape324 ? w324.prodCols.r.length : -1) +
+        ' 还原条数=' + ((got324 || []).length) + ' 逐字全等=' + round324 + ' 键数对表=' + kOk324 +
+        ' 混合形状不触发=' + bail324 + '（原样落盘' + (Array.isArray(wRag324.prodigies) ? wRag324.prodigies.length : 0) + '条）');
 
     /* #206b 日志存档：离线重开不丢早期日志（独立档 + 主档压缩阶梯不裁日志）+ 展示层每分类 200 上限 */
     localStorage.removeItem(SQ.KEY);
@@ -538,8 +577,10 @@ window.SQSmoke.frag('05-codex-log-capacity', async function () {
     var rr251 = await SQ.compressForSave(ins251, Date.now(), 1);
     var insEh251 = ((rr251.out.worlds || {}).xiuxian || {}).eventHistory || {};
     var insFeedArr251 = Array.isArray(insEh251.feed) ? insEh251.feed : [];
+    /* 判据改口（第册卅三批）：原靠 `stages.indexOf(11) < 0` 侧证「级⑩ 已删」⇒ 级号 11 现已由
+     * 级⑪ prodigies 列存借用，代理失效（写死级号当证据会被后续批咬）。直判落盘形状：feed 一条不裁。 */
     var insured251 = feedN0251 > 0 && insFeedArr251.length === feedN0251 &&
-      rr251.stages.indexOf(11) < 0 && insFeedArr251.every(function (e, i) {
+      insFeedArr251.every(function (e, i) {
         return JSON.stringify(e) === JSON.stringify(ins251.worlds.xiuxian.eventHistory.feed[i]); });
     /* (e) 侧档字节预算（feed 新在前 ⇒ 从尾部最旧挤起、首条恒为最新） */
     var big251 = [];
@@ -554,11 +595,11 @@ window.SQSmoke.frag('05-codex-log-capacity', async function () {
     var snap251b = (function () { var c = JSON.parse(JSON.stringify(ref251)); delete c.worlds.xiuxian.log; return JSON.stringify(c); })();
     var clean251 = snap251a === snap251b;                                          /* (f) */
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY);
-    ok('251', '展示流侧档化（原阶梯级⑩改口径 · 2026-10-09 存档治理批）：`eventHistory.feed` **恒常不进主档**、整体落侧档 `feed` 段 ⇒ 主档体积与实际游玩时长解耦。(a) 主档无 feed 而 `lastId`/`seen` 仍在主档（幂等键不属展示流）(b) 侧档 feed 满档 50 条逐条与源全等、新在前 (c) 真机 `SQ.load` 回填后历史**一条不丢**（原级⑩「重载只剩 5 条」的玩家可见代价被取消）(d) 级⑩ 降级为保险但仍活：直调 compressForSave 极小触发线 → 落盘 feed ≤5 且取的是最近 N 条 (e) 侧档按 `FEED_BYTE_BUDGET`(32KB) 裁、保最新挤最旧且条数 >5（非固定 5）(f) 内存态零污染。**动机**：feed 满档 ≈11~14KB 是真实存档最大单项（CAP_WATCH 10.5~11.2KB > codices/factions/prodigies），此前只在触发线之上才裁、且一刀裁到 5 条',
+    ok('251', '展示流侧档化（原阶梯级⑩改口径 · 2026-10-09 存档治理批）：`eventHistory.feed` **恒常不进主档**、整体落侧档 `feed` 段 ⇒ 主档体积与实际游玩时长解耦。(a) 主档无 feed 而 `lastId`/`seen` 仍在主档（幂等键不属展示流）(b) 侧档 feed 满档 50 条逐条与源全等、新在前 (c) 真机 `SQ.load` 回填后历史**一条不丢**（原级⑩「重载只剩 5 条」的玩家可见代价被取消）(d) 级⑩ 已整族删除（第十四批）：直调 compressForSave 极小触发线 → 落盘 feed 一条不裁 (e) 侧档按 `FEED_BYTE_BUDGET`(32KB) 裁、保最新挤最旧且条数 >5（非固定 5）(f) 内存态零污染。**动机**：feed 满档 ≈11~14KB 是真实存档最大单项（CAP_WATCH 10.5~11.2KB > codices/factions/prodigies），此前只在触发线之上才裁、且一刀裁到 5 条',
       noFeedOnDisk251 && idemOnDisk251 && sideFull251 && reloadKept251 && insured251 && budgetOk251 && bytesOk251 && clean251,
       '主档含feed=' + (Array.isArray(eh251disk.feed)) + ' 幂等键在主档=' + idemOnDisk251 +
       ' 侧档=' + sideFeed251.length + '/' + (D.EVENT_FEED_CAP || 50) + ' 逐条全等=' + sideFull251 +
-      ' 重载保留=' + reloadKept251 + '(' + backFeed251.length + '条) 级⑩已删(feed 全留 ' + insFeedArr251.length + '/' + feedN0251 + '，stage11 不再出现=' + (rr251.stages.indexOf(11) < 0) + ')=' + insured251 +
+      ' 重载保留=' + reloadKept251 + '(' + backFeed251.length + '条) 级⑩已删(feed 全留 ' + insFeedArr251.length + '/' + feedN0251 + ' 条、一条不裁)=' + insured251 +
       ' 预算裁=' + trimmed251.length + '/' + big251.length + '>5=' + (trimmed251.length > 5) +
       ' 内存零污染=' + clean251);
 
@@ -915,9 +956,9 @@ window.SQSmoke.frag('05-codex-log-capacity', async function () {
      * 🔧 复核返修（同日当晚）：原判「级 0 在场 + 级号 ⊆ 0..10 + 不含 11」与「另跑一份 normalize({}) 看级 7
      *   在列」在 trigger=1 下**两条都恒真**（每一级都无条件 push ⇒ 零鉴别力，还白花一次全阶梯）。改成
      *   **钉死全序**：加一级、删一级、改级号都会红；这条同时是「级⑩ 已整族删除」的直证（删除前全序 = 0..11）。 */
-    var LADDER283 = '0,1,2,3,4,5,6,7,8,9,10';
+    var LADDER283 = '0,1,2,3,4,5,6,7,8,9,10,11';
     var ladderVisible283 = forced283.stages.join(',') === LADDER283;
-    ok('283', '存档水位读数与盘上同源且不进存档：主档 ' + st283a.mainBytes + 'B === 落盘值字节数（度量线同 §3.5 编码后口径）· 日志 3000 条入侧档后主档仅动 ' + (st283b.mainBytes - st283a.mainBytes) + 'B 且有损级 ' + st283b.stageCount + ' 级 · 侧档 ' + sideBefore283 + '→' + st283b.sideBytes + 'B 亦与盘上相等 · 跳写沿用读数不归零 · 极小触发线跑满时级序**钉死** ' + LADDER283.split(',').join('→') + '（口径 = 阶梯执行到哪一级；级⑩ 已删 ⇒ 全序止于 10，加/删一级或改级号都红）',
+    ok('283', '存档水位读数与盘上同源且不进存档：主档 ' + st283a.mainBytes + 'B === 落盘值字节数（度量线同 §3.5 编码后口径）· 日志 3000 条入侧档后主档仅动 ' + (st283b.mainBytes - st283a.mainBytes) + 'B 且有损级 ' + st283b.stageCount + ' 级 · 侧档 ' + sideBefore283 + '→' + st283b.sideBytes + 'B 亦与盘上相等 · 跳写沿用读数不归零 · 极小触发线跑满时级序**钉死** ' + LADDER283.split(',').join('→') + '（口径 = 阶梯执行到哪一级；级⑩ 已删、级⑪ 列存补上该号 ⇒ 全序止于 11，加/删一级或改级号都红）',
       honest283 && notInSave283 && decoupled283 && sideTruth283 && skipKeeps283 && ladderVisible283,
       '顶层键=' + topKeys283 + ' 主档真值=' + truthMain283 + 'B 报=' + st283a.mainBytes + 'B · 涨日志后主档=' + st283b.mainBytes + 'B 侧档=' + st283b.sideBytes + 'B（真值=' + SQ.storedBytes(localStorage.getItem(SQ.Log.KEY)) + 'B）· 跳写后=' + st283c.sideBytes + 'B · codec=' + st283b.codec + ' · 跑满级=' + forced283.stages.join('/'));
     localStorage.removeItem(SQ.KEY); localStorage.removeItem(SQ.Log.KEY); SQ.Side.resetSig();

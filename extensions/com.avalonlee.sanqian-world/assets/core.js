@@ -136,7 +136,8 @@
     for (var id in w) {
       var entry = SQ.Worlds[id];
       if (entry && entry.pack && entry.pack.normalize) {
-        s.worlds[id] = entry.pack.normalize(w[id]);
+        /* 级⑪还原先行（prodCols → prodigies）：必须在 pack.normalize 之前，见 restoreColumnarProds 注 */
+        s.worlds[id] = entry.pack.normalize(restoreColumnarProds(w[id]));
       } else {
         s.worlds[id] = w[id]; /* 未知世界透传（只透传不解释） */
       }
@@ -743,6 +744,72 @@
   }
 
 
+  /* ══ 级⑪序列化副本：`ws.prodigies` 定长记录改列存（键名整档只出现一次），内存态零污染 ══
+   * 立因（第册卅三批 2026-10-18 · N70 落盘余量处置）：#206 最坏态落盘分解里 `ws.prodigies` = 7.96KB 是第二大项，
+   *   同批实测**同一份内容列存后落盘 4.49KB**（−3.47KB，#206 末行读数）⇒ 差值就是被重复 30 遍的键名表。
+   *   这是名录随 `COUNT_MAX` 线性变长后必然的形状：每多一名天骄就把相同的十八枚键名整份重写一遍。
+   * 范式沿用同级⑥（数组→逗号串）/⑦（rel 上三角）/⑧（title 差集）/⑧b（earnedKeys 紧凑容器）：**只改落盘副本的
+   *   编码形状，不改内存形状、不迁旧档**，读端 normalize 还原 ⇒ 全部消费者零侵染。
+   * 形状：`ws.prodigies` 整枚换成 `ws.prodCols = {k:[键名…], r:[[值…], …]}`（键名表在前、值按表对齐）。
+   * 无损前提（不满足就整级不触发，宁可不省字节也不许丢件）：① **每条记录的自有键名与首条逐字同序**；② 没有任何
+   *   自有键的值是 `undefined`（`undefined` 进 JSON 数组会被打成 `null` ⇒ 还原后形状不等）；③ 键名不含 `__proto__`
+   *   （读端是信任边界：玩家可改档，不能让一个自有键把原型链写穿）。
+   *   ⇒ 混合形状（旧档里早期记录缺后来新增的键）自动回落原样落盘：本级对它零作用、也零风险。
+   * shortcut: 只列存 `prodigies` 这一枚同形记录数组；`shop.items` / `sect.disciples` 那类内嵌 gear 的异构件不走
+   *   本级。同形记录数组若再长出第二枚大头，把本函数改成字段表驱动，别新造第二套形状。 */
+  function withColumnarProds(s) {
+    var ws = s && s.worlds;
+    if (!ws) return s;
+    var cp = {}, k, worlds = {}, touched = false;
+    for (k in s) cp[k] = s[k];
+    for (var wk in ws) {
+      var w = ws[wk], arr = w && w.prodigies;
+      if (!Array.isArray(arr) || !arr.length || w.prodCols || typeof arr[0] !== 'object'
+        || arr[0] === null || Array.isArray(arr[0])) { worlds[wk] = w; continue; }
+      var keys = Object.keys(arr[0]), sig = keys.join('\u0001'), fit = true, ki;
+      if (keys.indexOf('__proto__') >= 0) fit = false;
+      for (var ai = 0; fit && ai < arr.length; ai++) {
+        var r = arr[ai];
+        if (!r || typeof r !== 'object' || Array.isArray(r) || Object.keys(r).join('\u0001') !== sig) { fit = false; break; }
+        for (ki = 0; ki < keys.length; ki++) if (r[keys[ki]] === undefined) { fit = false; break; }
+      }
+      if (!fit) { worlds[wk] = w; continue; }
+      var wc = {}, f; for (f in w) wc[f] = w[f];
+      wc.prodCols = { k: keys, r: arr.map(function (rr) { return keys.map(function (kk) { return rr[kk]; }); }) };
+      delete wc.prodigies;
+      worlds[wk] = wc; touched = true;
+    }
+    if (!touched) return s;
+    cp.worlds = worlds;
+    return cp;
+  }
+
+  /* 级⑪还原（normalize 侧）：`ws.prodCols` → `ws.prodigies` 逐条按键名表重建 + 紧凑键摘除。
+   * ⚠️ 必须在 `entry.pack.normalize(w[id])` **之前**（同 级⑥ codices split / 级⑧b ekF 的「还原先行」点位）：
+   *   pack.normalize 只认 `prodigies` 数组，见到缺项会补成空名录 ⇒ 整份天骄档静默清零。
+   * 脏形状（键名表空/非串/含 __proto__/行宽不等于表宽/表与名录键并存）⇒ 只摘紧凑键、不造名录 = 按缺档
+   *   处理，与今天「`prodigies` 写了脏值」的既有回落同形，不新增第二种形状。 */
+  function restoreColumnarProds(wr) {
+    if (!wr || typeof wr !== 'object' || !wr.prodCols) return wr;
+    var cp = {}, f; for (f in wr) cp[f] = wr[f];
+    var pc = cp.prodCols; delete cp.prodCols;
+    if (Array.isArray(cp.prodigies) || !pc || typeof pc !== 'object'
+      || !Array.isArray(pc.k) || !Array.isArray(pc.r) || !pc.k.length) return cp;
+    var ks = pc.k.map(String);
+    if (ks.some(function (x) { return !x || x === '__proto__'; })) return cp;
+    var rows = [];
+    for (var i = 0; i < pc.r.length; i++) {
+      var row = pc.r[i];
+      if (!Array.isArray(row) || row.length !== ks.length) return cp;
+      var o = {};
+      for (var j = 0; j < ks.length; j++) o[ks[j]] = row[j];
+      rows.push(o);
+    }
+    cp.prodigies = rows;
+    return cp;
+  }
+
+
   /* ── 落盘无损压缩编解码（存档瘦身批 2026-10-08 · 正典 = 轮回卷 §8.4 级⑴无损前置）──────
    * 动机：主档与日志档都是「单文件随游玩单调变大」，此前唯一的对策是**有损**阶梯（裁传记 / 裁 feed /
    *   裁榜面快照），每批 +2KB 的内容增量都在侵蚀同一份余量。deflate 是**纯无损**：同一份对象、
@@ -828,7 +895,7 @@
    * 返回 {out, str, enc, stored, stages}——out = 落盘对象（降级态用）、str = 明文序列化（预览分支落盘）、
    * enc = 编码后字符串（有桥分支落盘）、stages = 实际触发的级号数组（判据读它，不读日志文案）。
    * 第三参 triggerOf 仅供断言注入更小的触发线来证明阶梯仍是活的保险，生产调用恒缺省。
-   * 就地级 ⓪~⑤ 改 s、序列化副本级 ⑥~⑩ 链式叠加。 */
+   * 就地级 ⓪~⑤ 改 s、序列化副本级 ⑥~⑪ 链式叠加（⑪ = 第册卅三批 prodigies 列存）。 */
   async function compressForSave(s, now, triggerOf) {
     var trig = triggerOf || SAVE_TRIGGER;
     var useCodec = hasBridge() && codecReady();
@@ -843,7 +910,8 @@
         enc = useCodec ? await encodePayload(str) : str;
         if (storedBytes(enc) <= trig) break;
       }
-      var copies = [withJoinedCodices, withTriangleRels, withFoldedTitle, withFoldedEarned, withoutRankRows];
+      var copies = [withJoinedCodices, withTriangleRels, withFoldedTitle, withFoldedEarned,
+        withoutRankRows, withColumnarProds];
       for (var ci = 0; ci < copies.length && storedBytes(enc) > trig; ci++) {
         out = copies[ci](out);
         stages.push(6 + ci);
