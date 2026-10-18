@@ -2861,7 +2861,12 @@
       toast(t('event.ambush.ui.timeout'));
       var res = await SQ.Actions.resolveChoice(state, 'right');
       if (res && res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) showExclusive(res.eff);
-      renderAll();
+      /* 超时也必须把这一屏**结清在屏上**：旧代码只 renderAll()，浮层还开着、分支排还在、挂起已清空
+       * ⇒ 三枚按钮点了都撞 `if (!pendC) return`，而抉择模态既不在遮罩可关族也不吃 ESC ⇒ 玩家被钉死在这一屏，
+       *   只能刷新页面逃出去（2026-10-18 用户报「魔道来犯无法点击选项、又关不掉」）。
+       *   出口 = 与手点同一条 renderChoiceResult（分支排收起、结果页与「确定」到位）。res 为空 = 引擎没结这一笔，
+       *   挂起原样留着，按钮照旧可用，不是死路。 */
+      if (res) { renderChoiceResult(res); renderTop(); }
     }, 1000);
   }
 
