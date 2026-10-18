@@ -244,7 +244,7 @@
     var h = '<div class="tcard ' + (a.alignment === 'evil' ? 'neg' : a.alignment === 'right' ? 'pos' : '') + '">';
     h += '<div class="tname">' + c.esc(c.t('skill.' + id + '.name')) +
       ' <span class="tierbadge ' + c.artTier(a) + '">' + c.esc(c.t('skill.tier.' + a.tier)) + '</span>' +
-      (slotted ? '<span class="tierbadge t1">' + c.esc(c.t('zone.current')) + '</span>' : '') + '</div>';
+      (slotted ? '<span class="tierbadge t1">' + c.esc(c.t('arts.slotted')) + '</span>' : '')   /* F16（N68）：不再借秘境洞天的 zone.current */ + '</div>';
     h += '<div class="hint">Lv' + lv + (lv >= d.ARTS_MAX_LV ? ' · ' + c.esc(c.t('arts.max')) : '') +
       /* 融合自创部**允许没有签名词条**（`fusion.js:243/272` 起 `special` 可为 null；真档实测：
        * 一部没继承到词条的 c1 就让整页抛 `reading 'pool'` 空白）⇒ 三处屏上读数全部认 null，
@@ -254,7 +254,9 @@
     /* 走查 v2.7 §3：功法带来的具体增益（当前等级实际生效值，多效果并列）——式子收在
      * `artFxLine` 一处，槽卡与已学会卡同读它（第卌九批：槽卡也要看得见加成，见该批注）。 */
     h += '<div class="meta">' + c.esc(artFxLine(c, a, lv)) + '</div>';
-    if (lv < d.ARTS_MAX_LV) {
+    /* F3（N59）：`SQ.Arts.tickPractice` 只遍历 `artsSlots` ⇒ 槽外那部的精通恒 0，这条进度条与「精通 0%」
+     * 是同一处假在跑（升级钮第卌七批④c 已移到槽卡，本条补齐另一半）。判据 = 走查 `verify-ui-arts` H2。 */
+    if (slotted && lv < d.ARTS_MAX_LV) {
       h += '<div class="pbar"><i style="width:' + pr.toFixed(0) + '%"></i></div>' +
         '<div class="hint">' + c.esc(c.t('arts.practice', { p: Math.floor(pr) })) + '</div>';
     }
@@ -404,7 +406,7 @@
       h += '<div class="lrow"><div class="nm">' + c.esc(cu.name) + ' <span class="tierbadge t' + cu.tier + '">' + c.esc(c.t('skill.tier.' + ['huang', 'xuan', 'di', 'tian'][cu.tier])) + '</span>' +
         ' <span class="hint">' + c.esc(c.t('fuse.ui.gen', { n: cu.gen })) + '</span>' +
         (cu.special ? ' <span class="special-mark">' + c.esc(c.t('special.' + cu.special.pool + '.name') + '·' + c.t('special.grade.' + cu.special.grade)) + '</span>' : '') + '</div>' +
-        '<div class="meta">' + c.esc(SQ.effectsToText(cu.effects, 'xiuxian')) + '</div>' +
+        '<div class="meta">' + c.esc(SQ.effectsToText(cu.effects, c.p.worldId)) + '</div>' +
         '<div class="meta hint">' + c.esc(cu.parents.map(function (pp) { return pp.name; }).join(' + ')) + '</div>' +
         '<div class="acts"><button data-act="customReforge" data-v="' + cu.id + '"' + (canR ? '' : ' disabled') + '>' + c.esc(rBtnTxt) + '</button></div></div>';
     });

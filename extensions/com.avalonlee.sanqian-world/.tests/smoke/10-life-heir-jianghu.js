@@ -1324,4 +1324,73 @@ window.SQSmoke.frag('10-life-heir-jianghu', async function () {
     ok(77, 'IIFE 挂载顺序完整', ['Mods', 'Talents', 'Attrs', 'Gear', 'Arts', 'Combat', 'Realm', 'Idle', 'Shop', 'Events', 'Actions']
       .every(function (n) { return !!SQ[n]; }));
 
+    /* #323 死名册上界 = 名录上限的派生值（B1 · N64 · 第册卅二批）两刀：
+     * (a) 钉表值：`deadCap(D)` 必等于 `D.PRODIGY.COUNT_MAX` 且严格大于旧口径 20（旧值 20 ⇒ 本判红）；
+     * (b) 挤不出最旧：先把 dead 预置成**旧上界满档 20 条**（哨兵 `zz_oldest` 在最旧位），再走唯一
+     *     出榜写口 `killOff` 杀一名真出场者 ⇒ 名册长到 21 条而最旧那条**仍在**（旧代码在此 shift 掉它，
+     *     于是那名死者能被 `fillOf` 当背景席位补回榜面 = 人死复生）。
+     * 两刀同挂 #323；反向 = 把 `deadCap` 改回常量 20 ⇒ 本判如实红。 */
+    var cap323 = SQ.Prodigy.deadCap(D);
+    var tab323 = cap323 === D.PRODIGY.COUNT_MAX && cap323 > 20;
+    w317.prodMarks = w317.prodMarks || {};
+    w317.prodMarks.dead = ['zz_oldest'];
+    for (var z323 = 0; z323 < 19; z323++) w317.prodMarks.dead.push('zz_fill' + z323);
+    var v323 = victim317 || w317.prodigies[0];
+    SQ.Prodigy.killOff(w317, { meta: {} }, pack, D, v323, 1700000323000, noopLog());
+    var d323 = w317.prodMarks.dead;
+    ok(323, '死名册按名录上限封顶：一世杀满 21 人也不挤掉最旧那名死者（B1 · 人死不复生的唯一依据）',
+      tab323 && d323.length === 21 && d323[0] === 'zz_oldest' && d323.indexOf(v323.rid) >= 0,
+      'cap=' + cap323 + ' COUNT_MAX=' + D.PRODIGY.COUNT_MAX + ' 长=' + d323.length + ' 最旧=' + d323[0] + ' 新死者在册=' + (d323.indexOf(v323.rid) >= 0));
+
+    /* ═══ #326 隐世间接得知的「一世只演一次」必须穿过**真实落盘往返**（2026-10-18 用户报
+     *      「奇遇『云外一声』固定每月触发一次，频率异常高」）═════════════════════════════
+     * 根因 = `worlds/xiuxian/index.js` 的 `fateSeen` 逐项校验原写「rl < 0 一律丢」，而这条钩子送的正是
+     *   **在册哨兵** `realm: -1`（`Prodigy.tick:506` 走 `fireTagged(…, 'jianghu_hid', -1, …)`，-1 的含义
+     *   = 与天道渡劫垂青池「按境界段分账」隔开、互不喂饱）⇒ 每次读档把哨兵静默抹掉，于是每月钩子重新
+     *   演一次、直到转世。**#319 那条判据全程只拿内存态 ⇒ 看不见这个丢失**：同一支钩子、同一条 once，
+     *   本判与它唯一的差别就是两次 tick 之间插了一次 JSON + normalize。
+     * 四判：① 演过之后**往返仍留着那枚 -1 记录**（旧代码在此丢 ⇒ 本判红）
+     *      ② 往返之后再走同一条钩子（连推四拍，保证跨过一个月）⇒ 池已被记空、不再演
+     *      ③ 放行哨兵不等于放大段号：越界 99 与空 id / 缺 id 照旧丢，留下的 realm 必须是合法整数
+     *      ④ 射程 = 一世：全新世界态（转世后）同一条钩子照演 ⇒ 去重没被做成永久
+     * 反证 = 把那行改回 `rl < 0` ⇒ 只红 #326（①②两判）。 */
+    var hidId326 = 'jianghu_hid_glimpse';
+    var mkHid326 = function (at) {
+      var w = pack.initialState();
+      w.realm = D.PRODIGY.HID_EVENT_REALM; w.zone = 9;   /* 出场者多在不同区 ⇒ 本拍只可能命中隐世那一条钩子 */
+      SQ.Prodigy.rollForNewLife(w, pack, D, mkMeta(), at);
+      return w;
+    };
+    var rst326 = stubRandom(function () { return 0.99; });
+    var w326 = mkHid326(1700000000000);
+    SQ.Prodigy.tick(w326, pack, D, M(mkProf([]), w326), 30000, 1700000000000, { log: noopLog() });
+    var fired326 = !!w326.pendingChoice && w326.pendingChoice.id === hidId326;
+    w326.pendingChoice = null;
+    var rt326 = pack.normalize(JSON.parse(JSON.stringify(w326)));      /* 写盘 → 读档清洗，旧代码在这一步丢哨兵 */
+    var keepNeg326 = (rt326.fateSeen || []).some(function (f) { return f.id === hidId326 && f.realm === -1; });
+    var reFired326 = false;
+    for (var k326 = 1; k326 <= 4; k326++) {
+      SQ.Prodigy.tick(rt326, pack, D, M(mkProf([]), rt326), 30000, 1700000000000 + k326 * 30000, { log: noopLog() });
+      if (rt326.pendingChoice) { reFired326 = true; rt326.pendingChoice = null; }
+    }
+    var dirty326 = pack.normalize({ fateSeen: [{ id: 'a', realm: 99 }, { id: 'b', realm: 3 },
+      { id: 'c' }, { id: '', realm: -1 }, { realm: -1 }, { id: 'd', realm: -1 }] });
+    var segOk326 = (function () {
+      var fs = dirty326.fateSeen || [];
+      return fs.length === 3 && fs.every(function (f) {
+        return typeof f.realm === 'number' && Number.isInteger(f.realm) &&
+          (f.realm === -1 || (f.realm >= 0 && f.realm < D.REALMS.length));
+      }) && fs.map(function (f) { return f.id; }).join(',') === 'b,c,d';
+    })();
+    var w326b = mkHid326(1700000000000);
+    SQ.Prodigy.tick(w326b, pack, D, M(mkProf([]), w326b), 30000, 1700000000000, { log: noopLog() });
+    var lifeScope326 = !!w326b.pendingChoice && w326b.pendingChoice.id === hidId326;
+    rst326();
+    ok(326, '隐世「云外一声」的一世只演一次穿过真实落盘往返（修「固定每月触发」）：演过之后往返仍留着 realm=-1 哨兵 ‖ ' +
+      '往返后连推四拍不再演 ‖ 放行哨兵不放大段号（越界 / 空 id / 缺 id 照旧丢，留下的是合法整数）‖ ' +
+      '新世界态照演（射程 = 一世，不是永久）',
+      fired326 && keepNeg326 && !reFired326 && segOk326 && lifeScope326,
+      '首演=' + fired326 + ' 往返留哨兵=' + keepNeg326 + ' 往返后再演=' + reFired326 +
+      ' 脏段号=' + segOk326 + '(留 ' + (dirty326.fateSeen || []).length + ' 条) 跨世可再演=' + lifeScope326);
+
 });

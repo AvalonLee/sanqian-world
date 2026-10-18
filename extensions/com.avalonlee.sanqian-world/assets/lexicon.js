@@ -21,7 +21,11 @@
     'ui.ok': '入定',
     'ui.number.wan': '万',
     'ui.number.yi': '亿',
-    'ui.error.storage': '存档读取失败：{msg}',
+    /* 读档提示刻意**不带 `{msg}`**（第册十四批 2026-10-18）：`ioError.msg` 在读取支路上是宿主抛的原始错误文本
+     * （JSON 解析失败会把整坨坏档内容带上来，压缩档读不动是 `codec-unavailable`）⇒ 插进句子就是裸英文上屏。
+     * 这句要办的只有一件事：让玩家知道**档没丢、别急着新建角色**（新建会落一份空档盖掉盘上那份）。 */
+    'ui.error.storage': '存档暂时读不出来，先关掉再重开一次，别急着新建角色',
+    'ui.error.render': '画面这一秒没刷出来，先关掉再重开一次',   /* C2：tick 抛异常时的那一次信号（去重，不每秒刷屏） */
     'ui.error.save': '存档写入失败：{msg}（本次进度恐未记下）',
     'ui.error.sideflow': '历史日志与奇遇记事没能保存（修为进度已保存）',
     'ui.error.short': '读取失败',
@@ -306,7 +310,10 @@
     'zone.cavelink': '福地「{name}」以此为凭', 'zone.cavelink.locked': '首通可开福地',
     'zone.pw.ok': '战力富余 {p}%', 'zone.pw.tight': '战力压线 {p}%', 'zone.pw.bad': '战力不足，差 {n}',
     /* 商店 */
-    'shop.refresh': '刷新（{n}）', 'shop.restock': '{t}后补货', 'shop.fail.other': '这一单没有成交（货已卖出，或手头不足）', 'shop.sold': '已售罄', 'shop.fail.pillfull': '丹匣已满（每种上限 99），先服几颗再来',
+    'shop.refresh': '刷新（{n}）', 'shop.restock': '{t}后补货', 'shop.fail.other': '这一单没有成交（原因不明，先刷新看看）', 'shop.sold': '已售罄',
+    'shop.fail.sold': '这一件已经被买走了', 'shop.fail.closed': '这一场已经收了（货已下架，或黑市未开）', 'shop.fail.stale': '货架刚换了新货，这一件不在了',
+    'shop.fail.poor': '手头不够，这一单买不下', 'shop.fail.owned': '这一件你已经有了', 'shop.fail.shelffull': '待修习的架子放满了，先装入或散功',
+    'arts.slotted': '已入槽', 'shop.fail.pillfull': '丹匣已满（每种上限 99），先服几颗再来',
     'shop.buy': '购入', 'shop.price': '{n}', 'shop.qiprice': '修为 {p}',
     'shop.confirm': '确认购入「{name}」？价格 {price}',
     /* 第卌六批：买的是要求未达的功法时，确认框要把去向说一句（原本只有成交后的日志，而日志里也没有这一条） */

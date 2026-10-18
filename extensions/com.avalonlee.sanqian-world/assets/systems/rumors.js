@@ -15,6 +15,15 @@
 
   var RID_SEED = 1;
   function nextRid(now) { return 'r' + (now || 0).toString(36) + (RID_SEED++).toString(36); }
+  /* 天骄/宗门展示卡的「同一句话」指纹（pushProdigy 去重专用，不落盘）：tpl + 参数字典序，
+   * 值一律 `String(…).slice(0,40)` —— 与 normalizeList 的清洗口径同形，否则「存前一次、读档后一次」比不中。 */
+  function prodSigOf(r) {
+    if (!r || typeof r !== 'object') return '';
+    var v = (r.v && typeof r.v === 'object') ? r.v : {};
+    return String(r.tpl || '') + '|' + Object.keys(v).sort().map(function (k) {
+      return k + '=' + String(v[k]).slice(0, 40);
+    }).join(',');
+  }
 
   function cfgOf(D) { return (D && D.RUMORS) || {}; }
 
@@ -191,6 +200,12 @@
       var ttl = ((D.PRODIGY || {}).RUMOR_TTL_MIN) || 40;
       /* 挤最旧（仅 prodigy 卡计数） */
       var prod = ws.rumors.filter(function (r) { return r.kind === 'prodigy'; });
+      /* 同话不重推（2026-10-18 用户报「江湖传闻里同代天骄那两条一模一样」）：`tpl` 与 `v` 全同 ⇒ 渲染逐字同文，
+       * 而板上限只有 2 格 ⇒ 重复一句 = 白占一格还多挂一个红点。var-free 模板（rivalry.1/3、eternal.1）本就同文，
+       * 带参模板要同人同参才判同。判据现算现比、**不新增落盘字段**（写一枚 `sig` 会被 normalizeList 剪掉，
+       * reload 后静默失效）；键序与数字/字符串之差按 normalizeList 的同一口径归一（`String(v).slice(0,40)`）。 */
+      var sig = prodSigOf({ tpl: tplKey, v: vars });
+      for (var di = 0; di < prod.length; di++) if (prodSigOf(prod[di]) === sig) return prod[di];
       while (prod.length >= cap) {
         var oldest = prod.shift();
         ws.rumors = ws.rumors.filter(function (r) { return r !== oldest; });

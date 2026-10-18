@@ -79,7 +79,7 @@
       karma: 0, karmaEventScore: 0, alignDrift: 0,
       attrs: { jing: 0, qi: 0, shen: 0 },
       attrEventBonus: { jing: 0, qi: 0, shen: 0 },
-      tribulation: { attempts: 0, success: 0, lastResult: null, next: 0, lastSuccessTs: null,
+      tribulation: { attempts: 0, success: 0, lastResult: null, next: 0,   /* F6 退役 lastSuccessTs（第册廿九批 · N32 ①）：第廿五批起全库零读者 */
         /* 系统深化批（数值详设 §8.3 / 势力全录卷 §8.6）：连败计数 + 门中护法一次性标记 */
         streak: 0, officeGuard: false },
       /* G14 护法结缘（引擎卷 §五 · v1.4）：好感只增（−1 = 绝交锁）/ 护法记录 / 冥佑计日锚
@@ -306,13 +306,11 @@
      * 清孤儿 custom 键——转世/散功后正典 70 部计数零漂移） */
     if (SQ.Fusion) {
       SQ.Fusion.normalizeSpirits(out, D);
-      SQ.Fusion.registerCustoms(out.fusion, D);
+      SQ.Fusion.registerCustoms(out.fusion, D, pack.worldId);
     }
-    /* lastSuccessTs 只认有限正数（脏值归 null；批 2·B4 立。🔧 第廿五批 2026-10-13：原消费者是
-       「待重修」金标 24h 横幅，随该横幅撤除现无消费者 ⇒ 字段与写口保留，见任务清单 N32 ①） */
-    out.tribulation.lastSuccessTs =
-      (typeof out.tribulation.lastSuccessTs === 'number' && isFinite(out.tribulation.lastSuccessTs) &&
-        out.tribulation.lastSuccessTs > 0) ? out.tribulation.lastSuccessTs : null;
+    /* 🔧 第册廿九批 F6（N32 ①）：`lastSuccessTs` 整族退役——第廿五批撤掉「待重修」24h 横幅后全库零读者，
+       本批按「退役 = 消失而不是留着等读者」处理：声明、写口、normalize 三支一起走。**旧档里那枚键不主动删**
+       （删玩家数据属产品裁定）⇒ 它只作为历史残留随档存活；新档不再声明，反证 = 冒烟 #126（改写）。 */
     /* 系统深化批（数值详设 §8.3.1 / 势力全录卷 §8.6）：streak 整数 ≥0（旧档补 0）+
      * officeGuard 只认 true（一次性标记，脏值归 false） */
     out.tribulation.streak = Math.max(0, Math.floor(num(out.tribulation.streak, 0)));
@@ -511,12 +509,15 @@
     for (var si = 0; si < D.ZONES.length; si++) {
       out.shards.push(Math.max(0, Math.floor(num(rawSh[si], 0))));
     }
-    /* 天道垂青 fateSeen：[{id, realm}] 结构逐项校验（同境界段排除数据源），cap 64 截尾 */
+    /* 天道垂青 fateSeen：[{id, realm}] 结构逐项校验（同境界段排除数据源），cap 64 截尾。
+     * ⚠️ `realm === -1` 是**在册哨兵**（隐世三席那条间接得知 `Prodigy.tick:506` 走 `fireTagged(…, 'jianghu_hid', -1, …)`，
+     *   -1 = 与渡劫垂青池「按境界段分账」隔开，一世只演一次）。本行原写 `rl < 0` 一律丢 ⇒ 哨兵每次读档被静默抹掉
+     *   ⇒ 每月钩子重新演一次（2026-10-18 用户报「云外一声固定每月触发」= 这一条；判据 #326 走真实落盘往返取证）。 */
     var fs = [];
     arr(raw.fateSeen, []).forEach(function (f) {
       if (!f || typeof f !== 'object' || typeof f.id !== 'string' || !f.id) return;
       var rl = Math.floor(num(f.realm, 0));
-      if (rl < 0 || rl >= D.REALMS.length) return;
+      if (rl !== -1 && (rl < 0 || rl >= D.REALMS.length)) return;
       if (fs.length < 64) fs.push({ id: f.id, realm: rl });
     });
     out.fateSeen = fs;

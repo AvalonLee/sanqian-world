@@ -158,7 +158,7 @@
     }
     /* 天赋 2 条：既有正面池 weight 口径抽取（纯展示，不进 mods.collect） */
     var posPool = [];
-    ['common', 'xiuxian'].forEach(function (w) {
+    ['common', (pack && pack.worldId) || SQ.WORLD_DEFAULT].forEach(function (w) {
       var t = (SQ.TALENTS || {})[w];
       if (t) (t.positive || []).forEach(function (el) { posPool.push(el); });
     });
@@ -659,13 +659,18 @@
     a.forEach(function (x) { if (typeof x === 'string' && x) o[x] = 1; });
     return o;
   }
-  function markDead(ws, rid) {
+  /* B1（N64 · 第册卅二批）：死名册上界原先写死 20，而一代出场者上限是 `COUNT_MAX = 30` ⇒ 一世袭杀
+   * 满 21 人后**最旧那名死者被挤出去**，他便重新具备「作为背景席位被补回榜面」的条件（人死不能复生，
+   * 而 `deadSet` 正是「不复生」的唯一依据）。⇒ 上界不是一枚护栏常数，而是名录上限的**派生值**：
+   * 一世最多出场 COUNT_MAX 人 ⇒ 按它封顶就永不挤旧。取数口 `deadCap` 导出，判据 = 冒烟 #323。 */
+  function deadCap(D) { return Math.max(20, P(D).COUNT_MAX || 30); }
+  function markDead(ws, rid, D) {
     if (!rid) return;
     ws.prodMarks = ws.prodMarks || {};
     if (!Array.isArray(ws.prodMarks.dead)) ws.prodMarks.dead = [];
     if (ws.prodMarks.dead.indexOf(rid) >= 0) return;
     ws.prodMarks.dead.push(rid);
-    while (ws.prodMarks.dead.length > 20) ws.prodMarks.dead.shift();
+    while (ws.prodMarks.dead.length > deadCap(D)) ws.prodMarks.dead.shift();
   }
 
   /* ── 身死即结的「夺宝」（第册三批 · 设计稿《江湖榜与角色库》§四 · 用户裁定「照设计稿全给」）───
@@ -738,7 +743,7 @@
     ws.prodigies = (ws.prodigies || []).filter(function (x) { return x.id !== p.id; });
     rumor(ws, pack, D, now, 'prodigy.rumor.kill', { name: nameOf(ws, p, pack) });
     killLoot(ws, pack, D, p, log);
-    markDead(ws, p.rid);
+    markDead(ws, p.rid, D);
     /* 空出来的一席由名库同带最高者**即时补位**并播报（设计稿 §二）：补位者是背景席位
      * （不入档、不可交互），所以这条只说「谁顶上来了」，不给战书入口 */
     if (p.rid && SQ.Jianghu) {
@@ -877,7 +882,7 @@
     ambush: ambush,
     sparStake: sparStake,
     startFeud: startFeud,
-    killOff: killOff,          /* 唯一出榜写口（第册一批③随判据外开，与 startFeud 同档） */
+    killOff: killOff, deadCap: deadCap,          /* 唯一出榜写口（第册一批③随判据外开，与 startFeud 同档） */
     tribModOf: tribModOf,
     onEventResolved: onEventResolved,
     saveEternal: saveEternal

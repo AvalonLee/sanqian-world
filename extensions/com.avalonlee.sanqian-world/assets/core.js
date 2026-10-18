@@ -25,7 +25,7 @@
       name: '',                /* 空 = 未入世；显示层走 t('profile.default_name')（P3 词表纪律） */
       talents: [],
       legacyTalents: [],       /* 转世天赋槽 ≤2（轮回卷 §3.3：独立于常规天赋、买断入池逐世换选） */
-      worldId: 'xiuxian',
+      worldId: SQ.WORLD_DEFAULT,
       worldName: '',
       createdAt: 0,
       alignBias: 'neutral',    /* 问道初心（创角屏 2，锁定态）：right|neutral|evil（工程规范 §3.1 v2.0） */
@@ -53,7 +53,7 @@
       profile: defaultProfile(),
       worlds: {},
       /* meta 层完整缺省（轮回卷 §8.1；Legacy 未装载时回落旧口径） */
-      meta: SQ.Legacy ? SQ.Legacy.metaBlank() : { unlockedWorlds: ['xiuxian'] },
+      meta: SQ.Legacy ? SQ.Legacy.metaBlank() : { unlockedWorlds: [SQ.WORLD_DEFAULT] },
       /* 玩家偏好（非角色数据）：autoTrib 关闭 = 修为圆满不自动突破，需手动点「渡劫」；
        * autoEvent 关闭 = 奇遇触发时弹窗由玩家抉择，开启 = 自动择一可用分支并结算；
        * eventPref = 自动奇遇的分支倾向（none 无倾向 / right 正道 / evil 魔道 / neutral 左道）——
@@ -86,7 +86,7 @@
         });
         return outL;
       })(),
-      worldId: typeof p.worldId === 'string' && p.worldId ? p.worldId : 'xiuxian',
+      worldId: typeof p.worldId === 'string' && p.worldId ? p.worldId : SQ.WORLD_DEFAULT,
       worldName: typeof p.worldName === 'string' ? p.worldName : '',
       createdAt: typeof p.createdAt === 'number' ? p.createdAt : 0,
       alignBias: BIAS[p.alignBias] ? p.alignBias : 'neutral',
@@ -110,7 +110,7 @@
      * earnedKeys、未知字段一律不带出，紧凑键 ekF 若不先展开回填就会连同条目一起丢档） */
     expandFoldedEarned(m);
     s.meta = SQ.Legacy ? SQ.Legacy.metaNormalize(m)
-      : { unlockedWorlds: Array.isArray(m.unlockedWorlds) ? m.unlockedWorlds : ['xiuxian'] };
+      : { unlockedWorlds: Array.isArray(m.unlockedWorlds) ? m.unlockedWorlds : [SQ.WORLD_DEFAULT] };
     /* 级⑧还原：codices.title 落盘被折叠为差集键 titleX → 还原 = titleX ++ titles（**溢出在前 = 原插入序**：
      * 差集恰为 addTitle 的 while(>80) shift 挤出的最旧称号，titles 存的是最新 80 条，故旧在前新在后）。
      * 置于 metaNormalize 之后 = titles 已去重去脏去非字符串。无条件无损，见 withFoldedTitle 注。 */
@@ -136,7 +136,8 @@
     for (var id in w) {
       var entry = SQ.Worlds[id];
       if (entry && entry.pack && entry.pack.normalize) {
-        s.worlds[id] = entry.pack.normalize(w[id]);
+        /* 级⑪还原先行（prodCols → prodigies）：必须在 pack.normalize 之前，见 restoreColumnarProds 注 */
+        s.worlds[id] = entry.pack.normalize(restoreColumnarProds(w[id]));
       } else {
         s.worlds[id] = w[id]; /* 未知世界透传（只透传不解释） */
       }
@@ -153,6 +154,38 @@
    * 任一写成功即清空。审计 #3：侧档读不动时跳写要能被 save 观察到（见 sideWriteSkipped）。 */
   var pendingSave = null;
   var sideWriteSkipped = false;
+  /* F5（N28 ⑪(c) · 第册廿九批）：原先 `catch (eSide)` 把异常对象整枚丢了 ⇒ 事后无从分辨「宿主配额拒绝」
+   * 与「编解码 TypeError」。屏上仍只走既有内部码 `sideflow`（不许把裸英文插上屏 = A4），诊断只进内存读数
+   * `SQ.SaveStats.get().sideErr`，由 probe-savecodec E5 与 measure-savecost 消费；不落盘、不做玩家界面。 */
+  var sideErr = '';
+
+  /* ── 第册十八批（2026-10-18 · 全仓审计 N71）读失败先留底 ─────────────────────
+   * `load()` 抛异常时会回落 `defaultState()`（#4 既有语义），而玩家若照旧新建角色，
+   * `mutate` 起手又读失败 ⇒ 空档落盘会把**盘上那份「完好但读不动」的载荷整份盖掉**（不可逆）。
+   * 修法刻意**不做「拒写」**：拒写在「档真坏」这一支会把玩家锁死（建号也不落盘 = 白玩，比原状更糟），
+   * 改为先把那份原始载荷原样备份到第二键（每会话一次），之后照常落盘 ⇒ 覆盖变成可恢复。
+   * ⚠️ 边界如实登记：只覆盖「读到了但解析不动」那一族；连 `storage.get` 都抛时 `raw` 取不到，
+   *   无从留底（判据 F2 钉这个边界，别误当全覆盖）。
+   *
+   * 同批**试过并撤掉**的另一半（审计待办 D1「主档降频落盘」）：想做「载荷逐字未变 ⇒ 跳过落盘」，
+   * 签名里排除每世界的 `lastSave`（否则 tick 每秒改它，闸永不触发）。**冒烟 #20c 当场反证它是错的**：
+   * 该案把 `lastSave` 手动拨回一天再 `SQ.save`，排除项正好把这次「时钟回拨」吞掉 ⇒ 落盘被跳过 ⇒
+   * 下一次 claim 结算 0 秒 ⇒ 漂移读数从 −12 变成 −1.4e-7。结论 = **`lastSave` 不是流水 timestamp，
+   * 它是离线结算的锚，「只有它变了」也是一次必须落盘的真实变更**。
+   * 要做成必须改成「这一拍没结算出任何东西 ⇒ 不推进 lastSave」，那是动结算锚语义 = 改机制批
+   * （`sim-pacing` 九画像与 `sim-playthrough` 轨迹锚都要重钉），不属顺手批 ⇒ 登记待排期。
+   * 与第十四批「条数 + 首末 ts 粗签名可撞、0.44ms 买不回这个风险」是同一条纪律的第二次兑现。
+   */
+  var CORRUPT_KEY = KEY + '.corrupt';
+  var corruptBackedUp = false;
+  async function backupUnreadable(raw) {
+    if (corruptBackedUp || raw == null || raw === '') return;
+    corruptBackedUp = true;
+    try {
+      if (hasBridge()) await window.xhub.storage.set(CORRUPT_KEY, raw);
+      else localStorage.setItem(CORRUPT_KEY, typeof raw === 'string' ? raw : JSON.stringify(raw));
+    } catch (e) { /* 留底只是备份，失败不再叠第二处故障（主链路的 ioError 出口照旧） */ }
+  }
 
   async function load() {
     try {
@@ -194,6 +227,7 @@
       return st;
     } catch (e) {
       ioError = { op: 'read', msg: (e && e.message) || String(e) };
+      await backupUnreadable(raw);   /* N71：先留底，再回落新档（回落本身是 #4 既有语义，不动它）*/
       return defaultState(); /* 读档失败不崩溃：回落新档（#4 语义） */
     }
   }
@@ -710,6 +744,72 @@
   }
 
 
+  /* ══ 级⑪序列化副本：`ws.prodigies` 定长记录改列存（键名整档只出现一次），内存态零污染 ══
+   * 立因（第册卅三批 2026-10-18 · N70 落盘余量处置）：#206 最坏态落盘分解里 `ws.prodigies` = 7.96KB 是第二大项，
+   *   同批实测**同一份内容列存后落盘 4.49KB**（−3.47KB，#206 末行读数）⇒ 差值就是被重复 30 遍的键名表。
+   *   这是名录随 `COUNT_MAX` 线性变长后必然的形状：每多一名天骄就把相同的十八枚键名整份重写一遍。
+   * 范式沿用同级⑥（数组→逗号串）/⑦（rel 上三角）/⑧（title 差集）/⑧b（earnedKeys 紧凑容器）：**只改落盘副本的
+   *   编码形状，不改内存形状、不迁旧档**，读端 normalize 还原 ⇒ 全部消费者零侵染。
+   * 形状：`ws.prodigies` 整枚换成 `ws.prodCols = {k:[键名…], r:[[值…], …]}`（键名表在前、值按表对齐）。
+   * 无损前提（不满足就整级不触发，宁可不省字节也不许丢件）：① **每条记录的自有键名与首条逐字同序**；② 没有任何
+   *   自有键的值是 `undefined`（`undefined` 进 JSON 数组会被打成 `null` ⇒ 还原后形状不等）；③ 键名不含 `__proto__`
+   *   （读端是信任边界：玩家可改档，不能让一个自有键把原型链写穿）。
+   *   ⇒ 混合形状（旧档里早期记录缺后来新增的键）自动回落原样落盘：本级对它零作用、也零风险。
+   * shortcut: 只列存 `prodigies` 这一枚同形记录数组；`shop.items` / `sect.disciples` 那类内嵌 gear 的异构件不走
+   *   本级。同形记录数组若再长出第二枚大头，把本函数改成字段表驱动，别新造第二套形状。 */
+  function withColumnarProds(s) {
+    var ws = s && s.worlds;
+    if (!ws) return s;
+    var cp = {}, k, worlds = {}, touched = false;
+    for (k in s) cp[k] = s[k];
+    for (var wk in ws) {
+      var w = ws[wk], arr = w && w.prodigies;
+      if (!Array.isArray(arr) || !arr.length || w.prodCols || typeof arr[0] !== 'object'
+        || arr[0] === null || Array.isArray(arr[0])) { worlds[wk] = w; continue; }
+      var keys = Object.keys(arr[0]), sig = keys.join('\u0001'), fit = true, ki;
+      if (keys.indexOf('__proto__') >= 0) fit = false;
+      for (var ai = 0; fit && ai < arr.length; ai++) {
+        var r = arr[ai];
+        if (!r || typeof r !== 'object' || Array.isArray(r) || Object.keys(r).join('\u0001') !== sig) { fit = false; break; }
+        for (ki = 0; ki < keys.length; ki++) if (r[keys[ki]] === undefined) { fit = false; break; }
+      }
+      if (!fit) { worlds[wk] = w; continue; }
+      var wc = {}, f; for (f in w) wc[f] = w[f];
+      wc.prodCols = { k: keys, r: arr.map(function (rr) { return keys.map(function (kk) { return rr[kk]; }); }) };
+      delete wc.prodigies;
+      worlds[wk] = wc; touched = true;
+    }
+    if (!touched) return s;
+    cp.worlds = worlds;
+    return cp;
+  }
+
+  /* 级⑪还原（normalize 侧）：`ws.prodCols` → `ws.prodigies` 逐条按键名表重建 + 紧凑键摘除。
+   * ⚠️ 必须在 `entry.pack.normalize(w[id])` **之前**（同 级⑥ codices split / 级⑧b ekF 的「还原先行」点位）：
+   *   pack.normalize 只认 `prodigies` 数组，见到缺项会补成空名录 ⇒ 整份天骄档静默清零。
+   * 脏形状（键名表空/非串/含 __proto__/行宽不等于表宽/表与名录键并存）⇒ 只摘紧凑键、不造名录 = 按缺档
+   *   处理，与今天「`prodigies` 写了脏值」的既有回落同形，不新增第二种形状。 */
+  function restoreColumnarProds(wr) {
+    if (!wr || typeof wr !== 'object' || !wr.prodCols) return wr;
+    var cp = {}, f; for (f in wr) cp[f] = wr[f];
+    var pc = cp.prodCols; delete cp.prodCols;
+    if (Array.isArray(cp.prodigies) || !pc || typeof pc !== 'object'
+      || !Array.isArray(pc.k) || !Array.isArray(pc.r) || !pc.k.length) return cp;
+    var ks = pc.k.map(String);
+    if (ks.some(function (x) { return !x || x === '__proto__'; })) return cp;
+    var rows = [];
+    for (var i = 0; i < pc.r.length; i++) {
+      var row = pc.r[i];
+      if (!Array.isArray(row) || row.length !== ks.length) return cp;
+      var o = {};
+      for (var j = 0; j < ks.length; j++) o[ks[j]] = row[j];
+      rows.push(o);
+    }
+    cp.prodigies = rows;
+    return cp;
+  }
+
+
   /* ── 落盘无损压缩编解码（存档瘦身批 2026-10-08 · 正典 = 轮回卷 §8.4 级⑴无损前置）──────
    * 动机：主档与日志档都是「单文件随游玩单调变大」，此前唯一的对策是**有损**阶梯（裁传记 / 裁 feed /
    *   裁榜面快照），每批 +2KB 的内容增量都在侵蚀同一份余量。deflate 是**纯无损**：同一份对象、
@@ -795,7 +895,7 @@
    * 返回 {out, str, enc, stored, stages}——out = 落盘对象（降级态用）、str = 明文序列化（预览分支落盘）、
    * enc = 编码后字符串（有桥分支落盘）、stages = 实际触发的级号数组（判据读它，不读日志文案）。
    * 第三参 triggerOf 仅供断言注入更小的触发线来证明阶梯仍是活的保险，生产调用恒缺省。
-   * 就地级 ⓪~⑤ 改 s、序列化副本级 ⑥~⑩ 链式叠加。 */
+   * 就地级 ⓪~⑤ 改 s、序列化副本级 ⑥~⑪ 链式叠加（⑪ = 第册卅三批 prodigies 列存）。 */
   async function compressForSave(s, now, triggerOf) {
     var trig = triggerOf || SAVE_TRIGGER;
     var useCodec = hasBridge() && codecReady();
@@ -810,7 +910,8 @@
         enc = useCodec ? await encodePayload(str) : str;
         if (storedBytes(enc) <= trig) break;
       }
-      var copies = [withJoinedCodices, withTriangleRels, withFoldedTitle, withFoldedEarned, withoutRankRows];
+      var copies = [withJoinedCodices, withTriangleRels, withFoldedTitle, withFoldedEarned,
+        withoutRankRows, withColumnarProds];
       for (var ci = 0; ci < copies.length && storedBytes(enc) > trig; ci++) {
         out = copies[ci](out);
         stages.push(6 + ci);
@@ -843,8 +944,10 @@
        * 拒写」这一族故障会让每次落盘都在主档写之前抛出 ⇒ 机制态永不再落盘、刷新即丢全部进度（比原缺陷
        * 更重）。吞掉侧档异常、把它折进下面那条跳写留痕，主档照写。 */
       var side;
+      sideErr = '';
       try { side = await writeLogsIfChanged(s); }
-      catch (eSide) { side = lastSideBytes; sideWriteSkipped = true; }   /* 日志独立落盘（内容未变则跳过）；返回侧档字节 */
+      catch (eSide) { side = lastSideBytes; sideWriteSkipped = true;
+        sideErr = (eSide && ((eSide.name || 'Error') + ': ' + (eSide.message || ''))) || 'unknown'; }   /* 日志独立落盘（内容未变则跳过）；返回侧档字节 */
       if (hasBridge()) {
         await window.xhub.storage.set(KEY, c.bridgeValue);
       } else {
@@ -983,6 +1086,7 @@
     return serialize(async function () {
       var s = defaultState();
       resetSideSig();                     /* 清档后侧档签名归零，否则「内容相同即跳过写」会把档留在缺失态 */
+      corruptBackedUp = false;            /* 清档后允许为下一次读失败再留一份底 */
       await save(s);
       replaceRef(stateRef, s);
       return s;
@@ -1240,6 +1344,11 @@
   SQ.COOL_MAX_HOURS = COOL_MAX_HOURS;
 
   SQ.KEY = KEY;
+  SQ.CORRUPT_KEY = CORRUPT_KEY;   /* 读失败留底的第二键（测试与恢复取证按此名读，不许各处硬拼字符串）*/
+  /* 首发世界 id 的**唯一**点名处（第册卅五批 · 排期 D4）：缺省档 / 脏档回落 / Legacy 未装载回落都读它，
+   * 其余各处的世界 id 一律从 `pack.worldId`（世界自己带的）或 `s.profile.worldId`（玩家所在的）取。
+   * 审计 D12 按这条口径判红 ⇒ 第二个世界装上时只改这一行（或改 registry 的 default 标记），不许再长出六处。 */
+  SQ.WORLD_DEFAULT = 'xiuxian';
   SQ.V = V;
   /* 存档容量红线单一事实源（测试与走查一律读这两个值，禁止再各自硬编码 KB 数）
    * ⚠️ **存档瘦身批 2026-10-08 口径变更**：两值的度量对象由「编码前 JSON 字符串」改为
@@ -1257,7 +1366,7 @@
         trigger: SAVE_TRIGGER, red: SAVE_RED,
         logBudget: LOG_BYTE_BUDGET, feedBudget: FEED_BYTE_BUDGET,
         mainKey: KEY, sideKey: LOG_KEY,
-        sideUnreadable: sideUnreadable
+        sideUnreadable: sideUnreadable, sideErr: sideErr
       };
     }
   };

@@ -1016,6 +1016,45 @@ window.SQSmoke.frag('03-bonds-spouse', async function () {
       'gen=' + genOk161 + ' card=' + cardOk161 + ' cap=' + capOk161 + ' sweep=' + sweepOk161 +
       ' trig=' + trigOk161 + ' busy=' + busy161 + ' norm=' + normOk161);
 
+    /* #325 天骄/宗门展示卡「同话不重推」（2026-10-18 用户报「江湖传闻里同代天骄那两条一模一样」）
+     * 唯一写口 `pushProdigy` 此前只判上限与 TTL、不判同文 ⇒ var-free 模板（rivalry.1 / rivalry.3 / eternal.1）
+     * 连中两次，屏上就是两条形同而神同的卡，还把 `RUMOR_CAP(2)` 的格子吃掉一格、红点多挂一次。
+     * 五判各起一张新板（互不污染）：① 同 tpl 同参连推两次 ⇒ 只剩一条，且第二次拿回的是**同一枚对象**
+     * ② 换 tpl 照推 ⇒ 去重没被做成熔断 ③ 同 tpl 不同人（vars 差一枚）照推两条 ⇒ 判的是「这句话」不是「这一类」
+     * ④ 连推 cap+1 条不同话 ⇒ 板上恒 cap 条且最旧那条被换掉（挤旧口径没被去重顺带改掉）
+     * ⑤ 数字参过一遍 `normalizeList`（`{n:5}` → `{n:'5'}`）再推同一条话 ⇒ 仍判同 ⇒ 存前/读档后是一个口径 */
+    var CAP325 = ((D.PRODIGY || {}).RUMOR_CAP || 2);
+    var t325 = 1700000000000;
+    var w325a = mkWs({});
+    var a1_325 = SQ.Rumors.pushProdigy(w325a, pack, D, t325, 'prodigy.rumor.rivalry.1', {});
+    var a2_325 = SQ.Rumors.pushProdigy(w325a, pack, D, t325 + 60000, 'prodigy.rumor.rivalry.1', {});
+    var dedupe325 = w325a.rumors.length === 1 && a2_325 === a1_325 && a1_325.bornAt === t325;
+    var w325b = mkWs({});
+    SQ.Rumors.pushProdigy(w325b, pack, D, t325, 'prodigy.rumor.rivalry.1', {});
+    SQ.Rumors.pushProdigy(w325b, pack, D, t325 + 60000, 'prodigy.rumor.rivalry.3', {});
+    var diffTpl325 = w325b.rumors.length === 2 && w325b.rumors[1].tpl === 'prodigy.rumor.rivalry.3';
+    var w325c = mkWs({});
+    SQ.Rumors.pushProdigy(w325c, pack, D, t325, 'prodigy.rumor.feud', { name: '甲' });
+    var c2_325 = SQ.Rumors.pushProdigy(w325c, pack, D, t325 + 60000, 'prodigy.rumor.feud', { name: '乙' });
+    var diffVar325 = w325c.rumors.length === 2 && c2_325.v.name === '乙' && w325c.rumors[0].v.name === '甲';
+    var w325d = mkWs({});
+    var dOldest325 = null;
+    for (var di325 = 0; di325 < CAP325 + 1; di325++) {
+      var pushed325 = SQ.Rumors.pushProdigy(w325d, pack, D, t325 + di325 * 1000,
+        'prodigy.rumor.kill', { name: '丙' + di325 });
+      if (di325 === 0) dOldest325 = pushed325;
+    }
+    var eject325 = w325d.rumors.length === CAP325 && w325d.rumors.indexOf(dOldest325) < 0;
+    var w325e = mkWs({});
+    SQ.Rumors.pushProdigy(w325e, pack, D, t325, 'prodigy.rumor.rank.up', { n: 5 });
+    w325e.rumors = SQ.Rumors.normalizeList(w325e.rumors, pack, D, t325);   /* 走一遍读档清洗：数字 → 字符串 */
+    var e2_325 = SQ.Rumors.pushProdigy(w325e, pack, D, t325 + 60000, 'prodigy.rumor.rank.up', { n: 5 });
+    var numKey325 = w325e.rumors.length === 1 && String(e2_325.v.n) === '5';
+    ok('325', '天骄/宗门展示卡同话不重推（传闻板 cap=2 不吃重复句）：同 tpl 同参只剩一条且拿回同一枚对象 ‖ 换 tpl 照推 ‖ 同 tpl 不同人照推两条 ‖ 连推 cap+1 仍挤最旧 ‖ 数字参经 normalizeList 后仍判同',
+      dedupe325 && diffTpl325 && diffVar325 && eject325 && numKey325,
+      '去重=' + dedupe325 + ' 换tpl=' + diffTpl325 + ' 换人=' + diffVar325 +
+      ' 挤旧=' + eject325 + '(cap=' + CAP325 + ' 板=' + w325d.rumors.length + ') 数字归一=' + numKey325);
+
     /* ═══ 体验手感批（数值详设 §4.4/§2.4 v1.26）═══ */
 
     /* #162 功法自动入槽：入世一次性回填 · 主修=第 1 槽 · 只补空槽不挤占 · 幂等 */

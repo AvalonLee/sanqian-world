@@ -82,6 +82,11 @@ const pend = (id, realm, k) => ({ id: id, at: T0, tier: id === 'ambush_revenge' 
       branches: Array.prototype.map.call(document.querySelectorAll('#mc-branches button'),
         (b) => ({ txt: (b.textContent || '').replace(/\s+/g, ' ').trim(), v: b.dataset.v, dis: !!b.disabled })),
       stones: w.stones || 0, dao: w.daoShang || 0, pend: w.pendingChoice || null,
+      /* 屏上出口三读（2026-10-18 用户报「魔道来犯点不动又关不掉」补）：抉择模态**不在遮罩可关族里**、
+       * ESC 也不关它 ⇒ 唯一出口是结果页那枚「确定」，所以「分支排收没收 / 结果页在不在」就是能不能关的判据 */
+      branchesHidden: !!(document.getElementById('mc-branches') || { classList: { contains: function () { return false; } } }).classList.contains('hide'),
+      resultShown: !!(document.getElementById('mc-result') || { classList: { contains: function () { return false; } } }).classList.contains('hide') === false,
+      okTxt: (document.getElementById('mc-ok') || {}).textContent || '',
       log: (w.log || []).slice(-4).map((l) => l.cat + '|' + String(l.text).replace(/\s+/g, ' ').slice(0, 46)),
       nProv: (w.prodigies || []).length, revenge: w.revenge || null,
       feed: (((w.eventHistory || {}).feed) || []).slice(0, 2),
@@ -122,6 +127,14 @@ const pend = (id, realm, k) => ({ id: id, at: T0, tier: id === 'ambush_revenge' 
       'T2 超时结算与手点同走一条 resolveBranch：奇遇叙事流落了 via=ambush / branch=right 一行（日志另在独立档，见 #206）',
       '侧档 ' + p2.side.length + 'B ‖ 主档 feed=' + JSON.stringify(p2.feed[0] || null).slice(0, 40));
     T(errors.length === 0, 'T3 遇袭全程零页面报错', errors.slice(0, 2).join(' | ') || 'clean');
+    /* T4 = 超时之后**屏上也得结清**：引擎侧 T1/T2 只证「账结了」，不证这一屏关得掉。
+     * 抉择模态既不吃遮罩也不吃 ESC ⇒ 分支排必须收起、结果页与「确定」必须到位。 */
+    T(p2.open === true && p2.branchesHidden === true && p2.resultShown === true && p2.okTxt !== '',
+      'T4 超时结算后浮层落到结果页（分支排已收 ‖ 结果页在位 ‖「确定」有字 ⇒ 关得掉，不是一排点了没反应的按钮）',
+      'open=' + p2.open + ' 分支收=' + p2.branchesHidden + ' 结果页=' + p2.resultShown + ' ok=' + JSON.stringify(p2.okTxt));
+    await page.click('#mc-ok');
+    const p3 = await state(page);
+    T(p3.open === false, 'T5 点「确定」浮层收起（玩家能从超时这一屏走出来）', 'open=' + p3.open);
     await ctx.close();
   }
 

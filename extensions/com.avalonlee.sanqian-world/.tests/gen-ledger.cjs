@@ -30,6 +30,15 @@ function readJSON(rel) {
   try { return JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8')); }
   catch (e) { return null; }
 }
+/* 日志分类项数（第册二十批 · N66）：这一族住在**视图侧件**里，沙箱不装载 view/*.js ⇒
+ * 只能按字面量数（与审计 D8 同一取法，两处取法一致才算同一口径；D8 另有在册清单双向相等）*/
+function logCatCount() {
+  try {
+    const src = fs.readFileSync(path.join(ROOT, 'view/journal.js'), 'utf8');
+    const m = src.match(/var LOG_CATS = \[([\s\S]*?)\n\s*\];/);
+    return m ? (m[1].match(/\{\s*id:/g) || []).length : null;
+  } catch (e) { return null; }
+}
 function uiFiles() {
   return fs.readdirSync(path.join(ROOT, '.tests')).filter((f) => /^verify-ui-.*\.cjs$/.test(f)).sort();
 }
@@ -39,14 +48,24 @@ function poolCounts() {
   const { SQ } = require('./sandbox.cjs').load([], { quiet: true });
   const D = SQ.XDATA, p = SQ.Worlds.xiuxian.pack;
   const len = (a) => (Array.isArray(a) ? a.length : null);
+  /* 第册廿七批 E3-b 补四键：这四族此前只在 FACTS 人写表里手抄，`gen-ledger` 照不到 ⇒ 已照出两漂
+   * （奇遇 125 vs 131 ‖ 账本十路 vs 十一路）。口径同其余池规模：**问数据表本身，不问文档**。 */
+  const talentN = (w) => (((SQ.TALENTS[w] || {}).positive) || []).length + (((SQ.TALENTS[w] || {}).negative) || []).length;
   return {
     arts: Object.keys(p.artsMap()).length,
+    events: SQ.Events.allIds(p).length,
+    talents: Object.keys(SQ.TALENTS).reduce((s, w) => s + talentN(w), 0),
+    treasures: len((p.treasures || {}).LIST),
+    ledger_cats: SQ.Ledger.IN_CATS.length + '+' + SQ.Ledger.OUT_CATS.length,
     zones: len(D.ZONES), realms: len(D.REALMS), companions: len(D.COMPANIONS),
     caves: len(D.CAVES), factions_fixed: len(D.FACTIONS_FIXED),
     achv: len(D.CODEX.ACHV), mats: len(D.ALCHEMY.MATS),
     recipes: len(D.ALCHEMY.RECIPES), blueprints: len(D.ALCHEMY.BLUEPRINTS),
     worlds: Object.keys(SQ.Worlds).length,
-    live_worlds: SQ.visibleWorlds().length,
+    /* 原键名 `live_worlds` 名不符实：取的是 `visibleWorlds()`（status ≠ hidden），而 `status:'live'`
+     * 只有一界 ⇒ 改名 visible_worlds，「可投生」这个词留给真按 status 数的场合。 */
+    visible_worlds: SQ.visibleWorlds().length,
+    log_cats: logCatCount(),
     name_pool: ['prefix', 'middle', 'suffix'].map((k) => SQ.Worlds.xiuxian.nameParts[k].length).join(' × '),
     lex_keys: (function () { let n = 0; for (const w in SQ.LEX) n += Object.keys(SQ.LEX[w]).length; return n; })()
   };
@@ -90,7 +109,7 @@ function oneLine(v) {
   return '- **现行读数**（本行由 `.tests/gen-ledger.cjs` 生成）：扩展版本 `' + f(v.ext_version) +
     '` · 冒烟 ' + f(v.smoke) + ' · 审计 ' + f(v.audit_gates) + ' 关 · 常驻探针 ' + f(v.probe_asserts) +
     ' 断言 · 界面走查 ' + f(v.ui_files) + ' 篇 / ' + f(v.ui_asserts) + ' 断言 · 词表键 ' + f(v.lex_keys) +
-    ' · 世界名册 ' + f(v.worlds) + ' 界（可见 ' + f(v.live_worlds) + '）。缺读数 = 「未跑」，不当 0 计。';
+    ' · 世界名册 ' + f(v.worlds) + ' 界（可见 ' + f(v.visible_worlds) + '）。缺读数 = 「未跑」，不当 0 计。';
 }
 function factsTable(v) {
   const row = (name, val, src) => '| ' + name + ' | ' + val + ' | ' + src + ' |';
@@ -101,13 +120,18 @@ function factsTable(v) {
     row('常驻探针合计', f(v.probe_asserts) + ' 断言', '`.tests/probe-*.cjs` 逐件末行求和（run-dod 求和，不手算）'),
     row('界面走查', f(v.ui_files) + ' 篇 / ' + f(v.ui_asserts) + ' 断言', '`.tests/verify-ui-*.cjs` 目录清单 + 逐篇末行'),
     row('功法（修仙）', f(v.arts) + ' 部', '`pack.artsMap()` 键数（拆分口径见下方人写表，文档为正典）'),
+    row('奇遇池（生效）', f(v.events) + ' 条', '`SQ.Events.allIds(pack)`（通用+专属+独立通道合计；拆分口径见下方人写表）'),
+    row('天赋池', f(v.talents) + ' 条', '`SQ.TALENTS[世界].{positive,negative}` 逐世界求和（含古武 0 条）'),
+    row('法宝', f(v.treasures) + ' 件', '`pack.treasures.LIST` 长度'),
+    row('账本分类', f(v.ledger_cats) + ' 路', '`SQ.Ledger.{IN_CATS,OUT_CATS}` 长度和 ‖ 对账关 = audit **A8 ①**'),
     row('境界 / 秘境', f(v.realms) + ' / ' + f(v.zones), '`SQ.XDATA.REALMS` / `D.ZONES`'),
     row('道友名录', f(v.companions) + ' 人', '`D.COMPANIONS`'),
     row('福地名录', f(v.caves) + ' 处', '`D.CAVES`'),
     row('固定势力池', f(v.factions_fixed) + ' 处', '`D.FACTIONS_FIXED`'),
     row('行为成就', f(v.achv) + ' 条', '`D.CODEX.ACHV`'),
     row('材料 / 丹方 / 图纸', f(v.mats) + ' / ' + f(v.recipes) + ' / ' + f(v.blueprints), '`D.ALCHEMY.{MATS,RECIPES,BLUEPRINTS}`'),
-    row('世界名册', f(v.worlds) + ' 界（可见 ' + f(v.live_worlds) + '）', '`SQ.Worlds` / `SQ.visibleWorlds()`'),
+    row('日志分类', f(v.log_cats) + ' 项', '`view/journal.js` LOG_CATS ‖ 对账关 = audit **D8**（项数与文案键；「每项有无写点」不在射程）'),
+  row('世界名册', f(v.worlds) + ' 界（可见 ' + f(v.visible_worlds) + '）', '`SQ.Worlds` / `SQ.visibleWorlds()`'),
     row('世界名命名池', f(v.name_pool), '`SQ.Worlds.xiuxian.nameParts` 各段长度'),
     row('词表唯一键', f(v.lex_keys), '沙箱装载后 `SQ.LEX` 各世界键数求和')
   ].join('\n');
@@ -142,9 +166,64 @@ function check(v) {
     const want = s.render(v), reg = region(text, s.name);
     if (reg.missing) { missing.push(s.file + ' [' + s.name + '] 缺哨兵段（先手工插 BEGIN/END 各一行）'); continue; }
     if (reg.body !== want) drift.push({ seg: s, text: text, want: want });
+    if (s.name === 'facts') inlineDrift(text, v).forEach((m) => drift.push({ seg: s, text: text, want: want, inline: m, bodyOk: reg.body === want }));
   }
   return { drift: drift, missing: missing };
 }
+
+/* ── 段外人写表的行首读数对表（第册廿七批 2026-10-18 · E3-b 的门禁化）──────────
+ * 立因：E3 逐行处置后二次对表照出两漂——奇遇行写 125 条而 `SQ.Events.allIds` 是 **131**（第册三批
+ *   №129~131 与第卌四批袭击三件没跟），六向行写「Ledger 十路」而 `IN_CATS+OUT_CATS` 是 **5+6**
+ *   （out.treasure 由耦合缺陷收口批加）。这两族当时**根本不在生成段里**，所以 `gen-ledger` 照不到；
+ *   补了键只是让「现行值」有个家，人写行本身仍会各说各话 ⇒ 这一判把「行首那一格」也钉到同源值上。
+ * 判：只取该行**第一个粗体串里的头一个整数**（`last` 档 = 最后一个粗体串，用于「72+124=196」那一类
+ *   组成式行首）。行找不到 / 抓不到数 ⇒ 判漂（不许静默当无漂）。
+ * 边界（如实）：**只判行首那一格**，组成式里的次级数（黄 14/玄 18、in 五路 out 六路、四座五型）
+ *   与段内其余格一律不判——它们要么文档为正典（拆分口径），要么该由别的关卡管。 */
+const INLINE_MAP = [
+  ['功法（修仙）', 'arts'], ['奇遇（生效池合计）', 'events'], ['道友名录', 'companions'],
+  ['福地名录', 'caves'], ['固定势力池', 'factions_fixed'], ['秘境', 'zones'],
+  ['天赋池', 'talents'], ['法宝', 'treasures'], ['六向长线批内容', 'achv'], ['世界名册', 'worlds']
+];
+function inlineDrift(text, v) {
+  const bad = [];
+  /* 只在生成段**之后**找人写行：段内同名行（如「功法（修仙）」）会把 find 抢走 ⇒ 抓不到粗体数假报漂 */
+  const cut = text.lastIndexOf(END);
+  const lines = (cut >= 0 ? text.slice(cut + END.length) : text).split('\n');
+  INLINE_MAP.forEach(([name, key, mode]) => {
+    const line = lines.find((L) => L.startsWith('| ' + name + ' ') || L.startsWith('| ' + name + '（') || L.startsWith('| ' + name + ' |'));
+    if (!line) { bad.push(name + ' 行找不到（表被改名或搬走 ⇒ 这一判失明）'); return; }
+    const bolds = line.match(/\*\*[^*]+\*\*/g) || [];
+    const one = mode === 'last' ? bolds[bolds.length - 1] : bolds[0];
+    const got = one && (one.match(/\d+/) || [])[0];
+    const want = String(v[key] == null ? '' : v[key]).match(/^\d+/);
+    if (!want) { bad.push(name + ' 生成段值 ' + v[key] + ' 取不到数（未跑 ≠ 对得上）'); return; }
+    if (got !== want[0]) bad.push(name + ' 行首 = ' + got + ' ‖ 生成段 = ' + want[0] + '（人写行漂了，`--fix` 不代人改行）');
+  });
+  return bad;
+}
+/* ── 拒写：证据不足的机器上不许把降级读数刷进正典（第册四一批 2026-10-18 · G2 恢复演练立）──────
+ * 立因：账本里两枚读数是**机器相关**的 —— `probe-realsave`（10 断言）与 `probe-savecodec` F 相（2 断言）
+ *   要读 gitignore 掉的 `.storage.json`，界面走查要显式跑过 `--ui`。裸 clone 上它们取不到，旧行为是
+ *   `--fix` 照样把压低的 238 和「未跑」当现行值写进 FACTS/README/DESIGN 四份文档 ⇒ **正典读数被静默改小，
+ *   而没有任何一关报错**（2026-10-18 演练实测：clone 里 `--fix` 产出 6 个脏文件，判漂只说了「漂」，
+ *   没说这漂是本机没证据、不是文档漂）。判漂仍照旧红（「未跑 ≠ 对得上」口径不动），本函数只拦**写**。
+ * 出口：真要压低在册值（删断言这类有意动作）⇒ 先把 `docs/ledger.json` 对应那格手工删掉再 `--fix`。
+ *   删格 = 故意动作的证明，比加开关便宜，也不给「顺手 --fix 掩盖」留后路。 */
+function refuseFix(v, prevIn) {
+  let prev = prevIn;
+  if (!prev) {
+    try { prev = JSON.parse(fs.readFileSync(path.join(REPO, 'docs', 'ledger.json'), 'utf8')).values || {}; }
+    catch (e) { prev = {}; }
+  }
+  const bad = [];
+  if (v.ui_asserts === null && prev.ui_asserts != null) bad.push('界面走查本机未跑（在册 ' + prev.ui_asserts + ' 断言）');
+  if (prev.probe_asserts != null && v.probe_asserts !== null && v.probe_asserts < prev.probe_asserts)
+    bad.push('探针合计 ' + v.probe_asserts + ' < 在册 ' + prev.probe_asserts +
+      '（probe-realsave 要 .storage.json ‖ savecodec F 相应平台档 ⇒ 本机缺真机档必然少这一截）');
+  return bad;
+}
+
 function applyFix(v, drift) {
   for (const d of drift) {
     const s = d.seg;
@@ -182,12 +261,20 @@ if (require.main === module) {
   if (v.pool_error) console.log('POOL_ERROR ' + v.pool_error);
   const r = check(v);
   r.missing.forEach((x) => console.log('MISSING ' + x));
-  r.drift.forEach((d) => console.log('DRIFT ' + d.seg.file + ' [' + d.seg.name + ']'));
+  r.drift.forEach((d) => console.log('DRIFT ' + d.seg.file + ' [' + d.seg.name + ']' + (d.inline ? ' 段外行内 ' + d.inline : '')));
   if (FIX) {
+    const refuse = refuseFix(v);
+    if (refuse.length) {
+      console.log('LEDGER_REFUSE 本机证据不足，拒写：' + refuse.join(' ‖ ') +
+        ' ⇒ 在带 .storage.json 的机器跑 npm run test:full 再 --fix（有意压低在册值见本件 refuseFix 注）');
+      process.exit(1);
+    }
     applyFix(v, r.drift);
-    console.log(r.drift.length ? 'LEDGER_FIXED ' + r.drift.length + ' (missing=' + r.missing.length + ')'
-      : 'LEDGER_IN_SYNC segments=' + SEGMENTS.length);
-    process.exit(r.missing.length ? 1 : 0);
+    /* 段体本来就对、漂在段外人写行 ⇒ `--fix` **不代人改行**（改了就是把口径写进文档），照旧判红 */
+    const left = r.drift.filter((d) => d.bodyOk).length;
+    console.log((r.drift.length ? 'LEDGER_FIXED ' + r.drift.length : 'LEDGER_IN_SYNC segments=' + SEGMENTS.length) +
+      (left ? ' INLINE_DRIFT ' + left : '') + ' (missing=' + r.missing.length + ')');
+    process.exit(r.missing.length || left ? 1 : 0);
   }
   console.log(r.drift.length || r.missing.length
     ? 'LEDGER_DRIFT ' + (r.drift.length + r.missing.length) + ' (drift=' + r.drift.length + ' missing=' + r.missing.length + ')'
@@ -195,4 +282,4 @@ if (require.main === module) {
   process.exit(r.drift.length || r.missing.length ? 1 : 0);
 }
 
-module.exports = { compute, check, region, SEGMENTS, BEGIN, END, oneLine, factsTable, ATTRIB, ROOT, REPO };
+module.exports = { compute, check, region, SEGMENTS, BEGIN, END, oneLine, factsTable, ATTRIB, ROOT, REPO, refuseFix };

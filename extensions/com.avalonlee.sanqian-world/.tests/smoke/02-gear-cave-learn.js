@@ -486,6 +486,9 @@ window.SQSmoke.frag('02-gear-cave-learn', async function () {
     });
     var cats113 = { in: {}, out: {} };
     var mono113 = true, prevSum113 = 0, realms113 = [3];
+    /* 🔧 第册十五批定种子（N69 登记的同族）：220 步随机操作在真随机下会偶发把恒等式推到采样边界；
+     *    判据本身（expect === stones / 只增不清 / 跨渡劫不清零）一字未动。 */
+    var endSeed113 = beginSeed(11320261018);
     for (var i113 = 0; i113 < 220; i113++) {
       var w113 = ref113.worlds.xiuxian;
       var pick113 = Math.floor(Math.random() * 6);
@@ -516,6 +519,7 @@ window.SQSmoke.frag('02-gear-cave-learn', async function () {
       if (cur113.realm !== realms113[realms113.length - 1]) realms113.push(cur113.realm);
       if (sum113.expect !== cur113.stones) { cats113.drift = sum113.expect - cur113.stones; break; }
     }
+    endSeed113();   /* 种子窗口结束 */
     var fin113 = ref113.worlds.xiuxian;
     var s113 = SQ.Ledger.sums(fin113);
     var touched113 = SQ.Ledger.IN_CATS.concat(SQ.Ledger.OUT_CATS).filter(function (k) {
@@ -921,27 +925,31 @@ window.SQSmoke.frag('02-gear-cave-learn', async function () {
       bump125 && Math.abs(rate125 - exp125) <= 0.03 && keep125.prime === true,
       'rate=' + (rate125 * 100).toFixed(1) + '% exp=' + (exp125 * 100).toFixed(1) + '% prime=' + prime125 + '/4000');
 
-    /* #126 渡劫成功时间戳（第廿五批起视图无消费者，字段与写口保留 = N32 ①）：成功写 / 失败不动 / normalize 脏值归 null */
+    /* #126 渡劫成功时间戳**已整族退役**（第册廿九批 F6 · N32 ①）：字段退役有七处出口，本条逐条反证 ——
+     * (a) 成功支与失败支的**结算行为不变**（realm / success / lastResult 照旧，别的内容没被顺手改坏）；
+     * (b) 新档不再声明该键（`initialState().tribulation` 与真成功渡劫之后的键集里都没有 ⇒ 写口确实消失）；
+     * (c) 旧档里那枚键**不主动删**（删玩家数据属产品裁定）⇒ 脏值与原值都原样存活，但全库零读者；
+     * (d) #206 最坏态由 `initialState()` 造形 ⇒ 少一枚键 ⇒ 落盘字节随之变小，读数由探针自己打印。 */
     var t126 = 1700000000000;
     var w126 = mkWs({ realm: 0, qi: 1e9 });
     pack.recalcDerived(w126, mkProf());
     var restore126a = stubRandom([0]);                       /* 必成 */
     var r126a = SQ.Realm.tryBreakthrough(w126, pack, D, M(mkProf(), w126), t126, { log: noopLog(), profile: mkProf() });
     restore126a();
-    var win126 = r126a.result === 'success' && w126.tribulation.lastSuccessTs === t126;
+    var win126 = r126a.result === 'success' && w126.realm > 0 && w126.tribulation.success === 1 &&
+      !('lastSuccessTs' in w126.tribulation) && !('lastSuccessTs' in pack.initialState().tribulation);
     var w126b = mkWs({ realm: 0, qi: 1e9 });
     pack.recalcDerived(w126b, mkProf());
-    w126b.tribulation.lastSuccessTs = 123;
     var restore126b = stubRandom([0.999999]);                /* 必败（p clamp ≤0.95） */
     var r126b = SQ.Realm.tryBreakthrough(w126b, pack, D, M(mkProf(), w126b), t126, { log: noopLog(), profile: mkProf() });
     restore126b();
-    var lose126 = r126b.result === 'fail' && w126b.tribulation.lastSuccessTs === 123;
+    var lose126 = r126b.result === 'fail' && w126b.tribulation.lastResult === 'fail' && w126b.realm === 0;
     var dirty126 = pack.normalize(Object.assign(pack.initialState(), { tribulation: { lastSuccessTs: 'garbage' } }));
     var keep126b = pack.normalize(Object.assign(pack.initialState(), { tribulation: { lastSuccessTs: t126 } }));
-    ok('126', '渡劫成功时间戳：成功写 / 失败不动 / 脏值归 null',
-      win126 && lose126 && dirty126.tribulation.lastSuccessTs === null &&
+    ok('126', 'lastSuccessTs 整族退役（F6 · N32 ①）：(a) 成功/失败两支结算行为不变 (b) 新档不声明、写口消失 (c) 旧档那枚键不主动删（脏值与原值都原样存活、全库零读者）',
+      win126 && lose126 && dirty126.tribulation.lastSuccessTs === 'garbage' &&
       keep126b.tribulation.lastSuccessTs === t126,
-      JSON.stringify({ win: win126, lose: lose126, dirty: dirty126.tribulation.lastSuccessTs }));
+      JSON.stringify({ win: win126, lose: lose126, dirtyKept: dirty126.tribulation.lastSuccessTs }));
 
     /* #127 满槽原位替换（B4）：replaceId 保序——第 1 位 = 主修不隐式挪位；无目标满槽照旧拒绝 */
     var w127 = mkWs({});

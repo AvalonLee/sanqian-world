@@ -22,6 +22,12 @@
  *   D2 加载顺序单源（view 为事实源 ⇔ 引用件存在 ⇔ module 的引擎段与 view 的 assets 段全等 ‖ 视图专属件必须在 view 下 ‖ smoke.html 与 view 的 assets 段全等 ‖ assets 无未挂载件）
  *   D3 世界专属别名封闭（通用层与视图直读 SQ.XDATA 必须挂册，例外失效同判；2026-10-14 批C 立）
  *   D7 视图外置件与内核桥 ctx() 的键集对账（第册五批 · N34 拆视图立：外置件用了 ctx 没给的键即判红）
+ *   D8 日志分类表对账（LOG_CATS 项数 ⇔ 在册清单双向相等 ‖ 每项文案键在词表在册；第册二十批 · N66 立）
+ *   D9 FACTS 登记表行结构对账（哨兵段之外每条 | 行恰三格且首尾有格线 ‖ 无被硬换行切断的续行；第册廿六批 · N74 立）
+ *   D10 module 卡片只读（禁一切写入口；第册三十批 · 排期 A2 立）
+ *   D11 世界包双清单键集对账（initialState ⇔ normalize 双向相等；第册卅四批 · 排期 D2 立）
+ *   D12 世界 id 点名封闭（通用层/视图/卡片不许硬写世界 id；第册卅五批 · 排期 D4 立）
+ *   D13 外置件件内互调的实参形状对表（区内声明的函数被同件调用 ⇒ 实参数 === 形参数；第册四十二批 · N34 第十刀自曝立，销 N31 那半条）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
@@ -442,12 +448,16 @@ const SQ = sandbox.window.SQ;
  *   有登记无写点 = 死登记（与 A6 孤儿键同型，本仓已有先例）。
  *   二级结构（`st.spirit` 内部形状）不在本表，归器灵卷 §schema 与既有断言守。 */
 (function () {
-  var REG_F = 'assets/systems/treasures.js';
+  /* ⚠️ 第册廿一批（C6）：这两枚路径原本写**裸相对路径**（`'assets/systems/treasures.js'`），
+   * 于是本关跟着**进程 cwd** 走 —— 只有从扩展根跑才对，`cd .tests && node audit.cjs`
+   * 或从仓库根跑都会误报「登记表读不到 = 纪律失守」。修法 = 一律走 ROOT（与本件其余读点同法）。 */
+  var REG_REL = 'assets/systems/treasures.js';
+  var REG_F = path.join(ROOT, REG_REL);
   var regSrc = fs.existsSync(REG_F) ? fs.readFileSync(REG_F, 'utf8') : '';
   var m = regSrc.match(/ST_KEYS:\s*\[([^\]]*)\]/);
   if (!m) {
     ok('A7', '法宝运行态 st 键集登记对表', false,
-      '登记表读不到：' + REG_F + ' 内没有 `ST_KEYS: [...]` 字面量（登记表本身消失 = 纪律失守，不是放行理由）');
+      '登记表读不到：' + REG_REL + ' 内没有 `ST_KEYS: [...]` 字面量（登记表本身消失 = 纪律失守，不是放行理由）');
     return;
   }
   var reg = (m[1].match(/'[^']*'/g) || []).map(function (x) { return x.slice(1, -1); });
@@ -509,7 +519,8 @@ const SQ = sandbox.window.SQ;
  *   别名（`var w = ws; w.x = …`）、`Object.assign(ws, …)`、解构赋值仍在射程外；
  *   无 schema 透传面（`owned[].st`）归 A7。 */
 (function () {
-  var LED = 'assets/systems/ledger.js';
+  var LED_REL = 'assets/systems/ledger.js';
+  var LED = path.join(ROOT, LED_REL);   /* 同 A7：不许跟进程 cwd 走（C6 · 第册廿一批）*/
   var lsrc = fs.existsSync(LED) ? fs.readFileSync(LED, 'utf8') : '';
   function catList(name) {
     var m = lsrc.match(new RegExp('var\\s+' + name + '\\s*=\\s*\\[([^\\]]*)\\]'));
@@ -519,7 +530,7 @@ const SQ = sandbox.window.SQ;
   var INC = catList('IN_CATS'), OUTC = catList('OUT_CATS');
   if (!INC || !OUTC) {
     ok('A8', '「静默失效」普查（账本分类 ⇔ 调用点 · ws 写点 ⇔ normalize 声明集）', false,
-      '读不到 ' + LED + ' 里的 IN_CATS/OUT_CATS 字面量 = 白名单本身消失，属纪律失守而非放行理由');
+      '读不到 ' + LED_REL + ' 里的 IN_CATS/OUT_CATS 字面量 = 白名单本身消失，属纪律失守而非放行理由');
     return;
   }
   var bad = [];
@@ -557,7 +568,7 @@ const SQ = sandbox.window.SQ;
   }
   var noteSeen = 0, notePaired = 0;
   scanFiles.forEach(function (f) {
-    if (relOf(f) === LED) return;                        /* 白名单定义体自身不是调用点 */
+    if (relOf(f) === LED_REL) return;                   /* 白名单定义体自身不是调用点（比相对名 ⇒ 与 LED 改绝对路径无关）*/
     var src = srcOf(f), from = 0, idx;
     while ((idx = src.indexOf('SQ.Ledger.note(', from)) >= 0) {
       from = idx + 'SQ.Ledger.note('.length; noteSeen++;
@@ -1068,7 +1079,10 @@ const SQ = sandbox.window.SQ;
   const dir = path.join(ROOT, 'view');
   const viewJs = fs.readdirSync(dir).filter((f) => f.endsWith('.js'));
   const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
-  const m = html.match(/function ctx\(\)[\s\S]{0,400}?return \{([\s\S]{0,400}?)\};/);
+  /* 扫描窗原为 400 字符 ⇒ 桥每长一行注释就整关失明（第册卅六批第七刀给 ctx() 补两枚键时当场照到：
+   * 报的是「找不到 ctx() 工厂」，看着像桥没了，其实是窗不够宽）。lazy 匹配仍停在第一个 `};`，
+   * 放宽上界只可能多收、不会跨过界，故取 1600。 */
+  const m = html.match(/function ctx\(\)[\s\S]{0,1600}?return \{([\s\S]{0,1600}?)\};/);
   const keys = m ? (m[1].match(/(^|[,{\s])([A-Za-z0-9_$]+)\s*:/g) || [])
     .map((x) => x.replace(/[^A-Za-z0-9_$]/g, '')) : [];
   const bad = [];
@@ -1103,6 +1117,64 @@ const SQ = sandbox.window.SQ;
   ok('D7', '视图外置件只用 ctx() 给过的键 ‖ 不裸读桥里换名的私名（少给一枚 = undefined，裸读一枚 = ReferenceError）',
     bad.length === 0, 'ctx 键 ' + keys.length + ' 枚 · 外置件 ' + viewJs.length + ' 件 · 引用点 ' + used + ' 处 · 私名 ' + priv.length + ' 枚' +
     (bad.length ? ' ‖ ' + [...new Set(bad)].slice(0, 6).join(' ‖ ') : ' ‖ 全部有源、零裸读'));
+})();
+
+/* ── D13 外置件「件内互调」的实参形状对表（第册四十二批 2026-10-18 · N34 第十刀自曝 · N31 那半条落地）────────
+ * 立因：本批机械改写把两枚**区内助手**的形参表漏加了桥参数（调用点已写成 `caveReqChips(c, cv, chk)`，定义仍是 `(cv, chk)`）
+ *   ⇒ 4 实参喂 3 形参、位置整体错移、`c` 落回裸引 ReferenceError、秘境页整页空白。D7 判的是「用了桥没给的键」，
+ *   判不到这种**位置错移**；而第册卅二批 N31 登记的正是同一形状（「4 实参喂 3 形参 ⇒ 整页空白」），当时只登记没落关。
+ *   ⇒ 十刀里前九刀都靠走查兜（5 分钟一轮、并发跑），这一类其实**静态就能判**，本关把它落下来。
+ * 判据 = 只认形状、不执行代码：件内每条 `function NAME(形参表)` 声明，凡被**同一件内**直接调用（`NAME(` 且前一字符不是 `.` / 词字符，
+ *   排除声明本身那一处），实参个数必须 === 形参个数；空表与空调用各按 0 计。
+ * 边界（如实）：① 只判**个数**，类型与顺序不管；② 跨件调用走 `SQ.UI.<件>.<名>(...)`，不在本关射程（那里由 D7 判键、由走查判形状）；
+ *   ③ 形参表里的默认值 / 解构会让「个数」含义变松 ⇒ 本仓视图件实测零默认值与解构，若出现则按逗号数计（会偏大、往红方向偏）；
+ *   ④ 名字出现在字符串字面量里（如日志键）会被当成一次调用 ⇒ 用剥注释后的源码扫，字符串这一支若真出现假阳再补引号跳过。 */
+(function () {
+  const dir13 = path.join(ROOT, 'view');
+  const files13 = fs.readdirSync(dir13).filter((f) => f.endsWith('.js'));
+  /* 剥注释但**保长度**（换行留着、其余字符换空白）⇒ 偏移与行号与原文件逐字对齐；
+   * 早先用 ' ' 顶掉整段注释，报出来的行号是剥后行号（本关第一击报 gear.js 106 而真身在 112 —— 假指称在册登记过同型面）。 */
+  const blank13 = (s) => s.replace(/[^\n]/g, ' ');
+  const strip13 = (s) => s.replace(/\/\*[\s\S]*?\*\//g, blank13)
+    .replace(/(\/\/[^\n]*)/g, blank13);
+  /* 从 open（'(' 的下标）扫到与之配对的 ')'，只数「深度 0」那一层的逗号 ⇒ 嵌套调用 / 数组字面量 / 模板串不参与计数 */
+  function shapeAt(src, open) {
+    let depth = 0, commas = 0, body = '', q = '';
+    for (let i = open + 1; i < src.length; i++) {
+      const ch = src[i];
+      if (q) { if (ch === '\\') { i++; continue; } if (ch === q) q = ''; continue; }
+      if (ch === '"' || ch === "'" || ch === '`') { q = ch; continue; }
+      if (ch === '(' || ch === '[' || ch === '{') { depth++; continue; }
+      if (ch === ')' || ch === ']' || ch === '}') { if (depth === 0) return commas + (body.trim() ? 1 : 0); depth--; continue; }
+      if (depth === 0) { if (ch === ',') commas++; else body += ch; }
+    }
+    return commas + (body.trim() ? 1 : 0);   /* 没闭合（D5 抓语法）⇒ 就按已见数判，不静默放过 */
+  }
+  const bad13 = []; let decls = 0, calls = 0;
+  files13.forEach((f) => {
+    const src = strip13(fs.readFileSync(path.join(dir13, f), 'utf8'));
+    const names = [];
+    [...src.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)].forEach((m) => {
+      const open = m.index + m[0].length - 1;
+      names.push({ nm: m[1], n: shapeAt(src, open), decl: m.index });
+    });
+    names.forEach((d) => {
+      decls++;
+      const re = new RegExp('(^|[^.$\\w])' + d.nm.replace(/\$/g, '\\$') + '\\s*\\(', 'g');
+      let m;
+      while ((m = re.exec(src))) {
+        const at = m.index + m[0].length - 1;
+        if (/function\s+$/.test(src.slice(0, m.index + m[1].length))) continue;   /* 声明本身那一处 */
+        calls++;
+        const a = shapeAt(src, at);
+        if (a !== d.n) bad13.push('view/' + f + ' ' + d.nm + '( 形参 ' + d.n + ' ‖ 实参 ' + a + ') 第 ' +
+          src.slice(0, m.index).split('\n').length + ' 行');
+      }
+    });
+  });
+  ok('D13', '外置件件内互调的实参形状对表（改写完形参表漏加桥参数 = 位置错移 = 整页空白，静态即可判，别留给走查）',
+    bad13.length === 0, '外置件 ' + files13.length + ' 件 · 区内声明 ' + decls + ' 枚 · 件内互调 ' + calls + ' 处' +
+    (bad13.length ? ' ‖ ' + bad13.slice(0, 6).join(' ‖ ') : ' ‖ 个数全对'));
 })();
 
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）
@@ -1208,6 +1280,265 @@ const SQ = sandbox.window.SQ;
   ok('D3', '世界专属全局别名封闭（通用层与视图的 SQ.XDATA 直读必须挂册 · 例外失效同判）',
     bad.length === 0, '通用层+视图命中 ' + total + ' 处 ‖ 在册例外 ' + Object.keys(EXC).length + ' 件 ' +
     (bad.length ? '‖ ' + bad.slice(0, 8).join(' ‖ ') : '‖ 逐件数合'));
+})();
+
+/* ── D8 日志分类表对账（第册二十批 2026-10-18 · N66 立）─────────────────────
+ * 立因：`LOG_CATS` 从 8 项长到 11 项（第册? N17 那批补了 历练/洞府/坊市 三类），但**没有任何一处钉住
+ *   「表里几项」与「每项的文案键在不在」**：UI 卷那句「八分类」停在 v2.20 的历史注、FACTS 表另有一条
+ *   滞后的人写读数行 ⇒ 三处各说一套。本关把这一量收成「表自己 + 在册钉值」，取数口 = `view/journal.js`。
+ * 判一：**项数与 id 集与在册清单双向相等** —— 多一项红（未登记的分类）、少一项红（分类被摘而关卡没跟）、
+ *   取不到数组也红（改名/搬走 ⇒ 本关失明，不许静默通过）。同 A9 在册死桩、D3 在册例外的「清单自己不许腐烂」。
+ * 判二：**每项的文案键都在词表在册**（`key:` 筛选标签 与 `sys:` 系统名 两族一起查，缺键直接判红）。
+ *   成因 = `SQ.t` 缺 key 时**把 key 原样返回**（`assets/lexicon.js` 的既有行为）⇒ 「分类有、文案无」的形状
+ *   是屏上出现 `log.cat.xxx` 这种裸英文，属玩家可见故障，而静态扫描按「键被拼出来」照样照不到。
+ * 射程边界（如实登记，不装作全覆盖）：本关**不判「每项有没有写点」**——动态 cat 传参（`log(cat, txt)` 里 cat
+ *   是变量）静态认不出，硬判会假阳（假阳教人关关卡，A9 前例）。那一维属判据射程扩展，另批先证假阳面再动。
+ * 反向取证 = 往表里加一项 `{ id: 'zzz', sys: 'zzz.tag' }` ⇒ 应红「多出未登记分类」+「文案键不在册」两处。 */
+(function () {
+  const CAT_IDS = ['all', 'event', 'combat', 'trib', 'karma', 'gear', 'arts', 'bond', 'cave', 'shop', 'sys'];
+  let src = '';
+  try { src = fs.readFileSync(path.join(ROOT, 'view/journal.js'), 'utf8'); } catch (e) { /* 取不到走下面判红 */ }
+  const m = src.match(/var LOG_CATS = \[([\s\S]*?)\n\s*\];/);
+  const items = m ? (m[1].match(/\{[^{}]*\}/g) || []) : [];
+  const bad = [];
+  if (!m) bad.push('view/journal.js 里取不到 LOG_CATS 数组（改名或搬走 ⇒ 本关失明）');
+  else {
+    const ids = items.map((x) => ((x.match(/id:\s*'([^']+)'/) || [])[1] || '?'));
+    CAT_IDS.forEach((id) => { if (ids.indexOf(id) < 0) bad.push('在册分类 ' + id + ' 不在表里（表被删项而关卡没跟）'); });
+    ids.forEach((id) => { if (CAT_IDS.indexOf(id) < 0) bad.push('表里多出未登记分类 ' + id); });
+    if (ids.length !== CAT_IDS.length) bad.push('项数 ' + ids.length + ' ≠ 在册 ' + CAT_IDS.length);
+  }
+  let boot = null;
+  try { boot = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; } catch (e) { /* 下面判红 */ }
+  if (!boot || !boot.LEX) bad.push('沙箱装载失败（词表对账没跑成 ⇒ 不当通过）');
+  else if (m) {
+    const have = {};
+    Object.keys(boot.LEX).forEach((w) => { Object.keys(boot.LEX[w] || {}).forEach((k) => { have[k] = 1; }); });
+    items.forEach((x) => {
+      const id = (x.match(/id:\s*'([^']+)'/) || [])[1] || '?';
+      const k = (x.match(/(?:key|sys):\s*'([^']+)'/) || [])[1];
+      if (!k) bad.push('分类 ' + id + ' 既无 key 也无 sys（屏上会是空标签）');
+      else if (!have[k]) bad.push('分类 ' + id + ' 的文案键 ' + k + ' 不在词表（缺 key 会把键名原样上屏）');
+    });
+  }
+  ok('D8', '日志分类表对账（LOG_CATS 项数 ⇔ 在册清单双向相等 ‖ 每项文案键都在词表在册；「每项有无写点」不在射程，见上注）',
+    bad.length === 0, '在册 ' + CAT_IDS.length + ' 项' + (bad.length ? ' ‖ ' + bad.slice(0, 5).join(' ‖ ') : ' ‖ id 集双向相等、键全在册'));
+})();
+
+/* ── D9 FACTS 登记表行结构对账（第册廿六批 2026-10-18 · N74 立）────────────────
+ * 立因：E3 逐行处置时照出这张表**列数参差**（表头三格而正文 1~4 格混排），且「存储分工」一条逻辑行
+ *   被硬换行切成两个物理行 ⇒ 渲染时续行掉出表外、多出来的格被吞，**读数会静默少一列**。这与 D6（挂点
+ *   id 全库唯一）、D8（分类表 ⇔ 在册清单）同族：都是"只有人眼看得见、机器一直没管"的账本结构面。
+ * 判一：**哨兵段之外**每条以 `|` 起头的行必须**恰三格且首尾都有 `|`**（表头行与 `|---|` 分隔行豁免，
+ *   转义竖线 `\|` 算格内文本）。
+ * 判二：**不许有"非表格行里含未转义竖线"** —— 那就是被切断的续行（本仓 2026-10-18 实测的这一条正是它）。
+ * 判三：登记表行数须 ≥ 10，整张表被搬走 = 本关失明，判红而不是静默通过（同 D8 取不到数组也红）。
+ * 射程边界：只判**行形状**，不判格内容对错（内容 = E3 的逐行裁定 + `gen-ledger` 判漂）。
+ * 反向取证 = 删掉某行末格线 ⇒ 判一红；表后插一条两空格起头的 `  **实测读数**：a | b |` ⇒ 判二红。 */
+(function () {
+  const REPO = require('./repo-root.cjs')();
+  const bad = [];
+  let lines = null;
+  try { lines = fs.readFileSync(path.join(REPO, 'docs/FACTS.md'), 'utf8').split('\n'); } catch (e) { bad.push('读不到 docs/FACTS.md ⇒ 本关失明'); }
+  let rowN = 0;
+  if (lines) {
+    const gs = lines.findIndex((x) => x.indexOf('SQ:LEDGER:BEGIN') >= 0);
+    const ge = lines.findIndex((x) => x.indexOf('SQ:LEDGER:END') >= 0);
+    const pipesOf = (L) => { let n = 0; for (let i = 0; i < L.length; i++) if (L[i] === '|' && L[i - 1] !== '\\') n++; return n; };
+    const cellsOf = (L) => pipesOf(L) - 1;
+    const isSep = (x) => /^\|\s*-{2,}/.test(x);
+    lines.forEach((L, i) => {
+      const no = i + 1;
+      if (i > gs && i < ge) return;
+      if (/^\|/.test(L)) {
+        if (isSep(L) || isSep(lines[i + 1] || '')) return;
+        rowN++;
+        const c = cellsOf(L);
+        if (c !== 3 || L[L.length - 1] !== '|') bad.push('L' + no + ' 格=' + c + (L[L.length - 1] !== '|' ? '（行尾无格线）' : ''));
+      } else if (pipesOf(L) >= 1 && !/^>/.test(L) && !/^#{1,3} /.test(L) && !/^---$/.test(L) && !/^```/.test(L)) {
+        bad.push('L' + no + ' 疑似被切断的续行: ' + L.slice(0, 28));
+      }
+    });
+    if (rowN < 10) bad.push('登记表只数到 ' + rowN + ' 行（<10 ⇒ 表被搬走或改名，本关失明）');
+  }
+  ok('D9', 'FACTS 登记表行结构对账（哨兵段之外每条 | 行恰三格且首尾有格线 ‖ 无被硬换行切断的续行 ‖ 表没整段消失；只判形状不判内容）',
+    bad.length === 0, '登记表 ' + rowN + ' 行' + (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 逐行三格、无续行'));
+})();
+
+/* ── A11 坊市拒因 ⇔ 词表在册 双向对账（第册廿八批 2026-10-18 · F15 / N33② 立）─────
+ * 立因：视图原先把六种拒因全兜到一枚 `shop.fail.other` ⇒ 那句「货已卖出，或手头不足」对半数拒因
+ *   会说谎。分键之后风险换向：**引擎新增一种 reason 而词表没跟 ⇒ 屏上退回兜底句（不裸拉丁，但仍然
+ *   在说谎）；词表多写一格 ⇒ 死键**。两头都得钉住。
+ * 判一：`assets/systems/shop.js` 剥注释后 `reason: 'x'` 与 `return 'x'` 的字面集 ⇔ 在册清单**双向相等**
+ *   （`undeliverable()` 的三种是裸 return，只认 `reason:` 会系统性漏掉 owned / shelffull ⇒ 两支一起扫）。
+ * 判二：每种在册 reason 的词表格 `shop.fail.<r>` 必须存在、非空、零拉丁与花括号、**且不等于兜底句**
+ *   （与兜底句同文 = 这一格等于没写，兜底形状会把它盖掉）。
+ * 判三：视图那枚 `failText` 的兜底形状必须在位 —— 缺了它，未知 reason 会把键名原样上屏（A4 越线）。
+ *   只认形状不执行：沙箱不装载 view/*.js，也不许在测试里 require 视图件。
+ * 射程边界：`undeliverable` 之外的其它系统（alchemy / legacy / faction）各自的 fail 族不在本关，
+ *   它们已有 alchemy.ui.fail.other / legacy.ui.fail.other 的兜底 + 冒烟 #272/#273 行为对表。
+ * 反向取证 = ① 往引擎塞 `reason: 'zzz'` ⇒ 判一红「多出未登记」；② 从词表删 `shop.fail.poor` ⇒ 判二红；
+ *   ③ 把 `failText` 的兜底表达式删掉 ⇒ 判三红。 */
+(function () {
+  const FAIL = ['sold', 'closed', 'stale', 'poor', 'pillfull', 'owned', 'shelffull'];
+  const bad = [];
+  let src = '';
+  try { src = stripComments(fs.readFileSync(path.join(ROOT, 'assets/systems/shop.js'), 'utf8')); }
+  catch (e) { bad.push('读不到 assets/systems/shop.js ⇒ 本关失明'); }
+  const em = [];
+  if (src) (src.match(/(?:reason:|return)\s*'([a-z]+)'/g) || []).forEach((m) => {
+    const r = (m.match(/'([a-z]+)'/) || [])[1];
+    if (r && em.indexOf(r) < 0) em.push(r);
+  });
+  FAIL.forEach((r) => { if (em.indexOf(r) < 0) bad.push('在册拒因 ' + r + ' 在源码里没写了（词表那一格变死键）'); });
+  em.forEach((r) => { if (FAIL.indexOf(r) < 0) bad.push('源码新增拒因 ' + r + ' 未登记（屏上会退回兜底句 = 谎话）'); });
+  let boot = null;
+  try { boot = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; } catch (e) { bad.push('沙箱装载失败（词表对账没跑成 ⇒ 不当通过）'); }
+  if (boot && boot.LEX) {
+    const lex = Object.assign({}, boot.LEX.common || {}, boot.LEX.xiuxian || {});
+    const other = lex['shop.fail.other'];
+    if (other == null) bad.push('兜底句 shop.fail.other 自己没了');
+    FAIL.forEach((r) => {
+      const v = lex['shop.fail.' + r];
+      if (v == null) bad.push('shop.fail.' + r + ' 不在词表');
+      else if (/[A-Za-z{}]/.test(v)) bad.push('shop.fail.' + r + ' 含拉丁或占位符（会裸上屏）');
+      else if (v === other) bad.push('shop.fail.' + r + ' 与兜底句同文（这格等于没写）');
+    });
+    let vsrc = '';
+    try { vsrc = stripComments(fs.readFileSync(path.join(ROOT, 'view/shop.js'), 'utf8')); } catch (e) { bad.push('读不到 view/shop.js'); }
+    if (vsrc && !(vsrc.indexOf("c.t('shop.fail.other')") >= 0 && vsrc.indexOf("'shop.fail.' + reason") >= 0)) {
+      bad.push('view/shop.js 的 failText 兜底形状没了');
+    }
+  }
+  ok('A11', '坊市拒因 ⇔ 词表在册 双向对账（源码字面 reason 集 ⇔ 在册清单 ‖ 每格中文存在且不退化成兜底句 ‖ 视图兜底形状在位）',
+    bad.length === 0, '在册 ' + FAIL.length + ' 种 ‖ 源码 ' + em.length + ' 种' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 双向相等、逐格取到中文、兜底在位'));
+})();
+
+/* ── D10 module 卡片只读（第册三十批 2026-10-18 · 排期 A2 立）──────────────────
+ * 立因：卡片每 30s `SQ.claim` 一次，与 view 每秒的 claim 争同一个存储键，而 `opChain` 那把写锁
+ *   **每个 JS 上下文各一把**（跨上下文互不可见）⇒ 跨上下文的「读-改-写」会互吞离线结算。
+ *   第二十一批已把卡片改成纯展示（删跳转），本批把「只读」这件事从口头口径变成门禁。
+ * 判：`module/index.html` 剥注释后不得出现 `SQ.claim(` ‖ `SQ.mutate(` ‖ `SQ.save(` ‖ `storage.set(`
+ *   ‖ `localStorage.setItem(` 任一写入口（注释里出现不算，与 B2 的「含注释」判法刻意相反：
+ *   本批就是在注释里留下了「原先做什么、现在改读」的说明，注释不许被惩罚）。
+ * 反向取证 = 往 module 件塞一行 `await SQ.claim(state);` ⇒ 本关必红。 */
+(function () {
+  const WRITE_API = ['SQ.claim(', 'SQ.mutate(', 'SQ.save(', 'storage.set(', 'localStorage.setItem('];
+  let src = '';
+  const bad = [];
+  try { src = stripComments(fs.readFileSync(path.join(ROOT, 'module/index.html'), 'utf8')); }
+  catch (e) { bad.push('读不到 module/index.html ⇒ 本关失明'); }
+  if (src) WRITE_API.forEach((k) => { if (src.indexOf(k) >= 0) bad.push('卡片出现写入口 ' + k); });
+  ok('D10', 'module 卡片只读（剥注释后零写入口：claim / mutate / save / storage.set / setItem；跨上下文两把 opChain 写锁互不可见，少一个写入者就少一类互吞结算）',
+    bad.length === 0, bad.length ? bad.join(' ‖ ') : '写入口 5 类零命中');
+})();
+
+/* ── D11 世界包双清单键集对账（第册卅四批 2026-10-18 · 排期 D2 立）─────────────────
+ * 立因：`initialState`（现 112 行）与 `normalize`（现 400 行）= **同一批字段的逐字段两份清单**，加新字段
+ *   只改一侧是这一族最常见的返工。既有射程各管一半、合起来恰好没管到中间那一半：
+ *     ‖ A8 判「代码写了 `ws.X` 而两份清单都没声明」（写点侧）；
+ *     ‖ `probe-normround` 判「读档往返值不丢」（值侧，样例世界、不是全键集）；
+ *     ‖ 而 **「声明了却没被 normalize 吐回来」/「normalize 造了 initialState 没声明的键」这一族零关卡** ⇒
+ *       前者 = 读一次档该字段被静默清零（玩家可见丢档），后者 = 落盘长出新档不覆盖的形状（下次读脏档缺字段）。
+ * 判一 = 对**每个挂了 pack 的世界**（现在只有修仙；第二界装上自动进射程，与 D3 同思路）跑
+ *   `keys(normalize(initialState()))` ⇔ `keys(initialState())` **双向相等**，两个方向各自点名；
+ * 判二 = `keys(normalize({}))` === 同一份声明集 ⇒ 「整份缺档 / 旧档升级」时每个声明字段都必须被补出，
+ *   少一枚就是读旧档拿到 `undefined`（补齐本是 `normalize` 的契约，这一判钉它自己）。
+ * 射程边界（如实登记，不装作全覆盖）：**只判顶层键集**。顶层以下不许按路径对表 —— `normalize` 合法地会按表
+ *   生成数据驱动映射（本机实测「清洗而未声明」86 条 = `factionNpcs.*` 58 枚 ‖ `factions[].rel.*` 16 枚 ‖
+ *   `tribMarks.*` 4 枚 ‖ 其余同类），拿顶层那套去咬嵌套**必假阳**（假阳教人关关卡 = A9 前例）。嵌套字段的
+ *   值级对表要的是「同一字段两份规则」的语义比对，属另一维、不属本批。
+ * 反向取证 = ① 往 `initialState` 加一枚假键（不动 normalize）⇒ 判一「声明而未清洗」+ 判二 同红；
+ *   ② 往 `normalize` 返回字面量加一枚假键 ⇒ 判一「清洗而未声明」红。两形各自独红、复原逐字节相同。 */
+(function () {
+  let SQ2 = null;
+  try { SQ2 = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; } catch (e) { /* 下面判红 */ }
+  if (!SQ2 || !SQ2.Worlds) {
+    ok('D11', '世界包双清单键集对账（initialState ⇔ normalize 双向相等）', false, '沙箱装载失败（本关失明，不许静默通过）');
+    return;
+  }
+  const bad = []; let n = 0, declN = 0;
+  Object.keys(SQ2.Worlds).forEach((id) => {
+    const e = SQ2.Worlds[id];
+    if (!e || !e.pack || typeof e.pack.initialState !== 'function') return;
+    n++;
+    const decl = Object.keys(e.pack.initialState());
+    if (id === 'xiuxian') declN = decl.length;
+    let back = [], full = [];
+    try { back = Object.keys(e.pack.normalize(e.pack.initialState())); }
+    catch (x) { bad.push(id + ' normalize(initialState()) 抛 ' + x.message); return; }
+    try { full = Object.keys(e.pack.normalize({})); }
+    catch (x) { bad.push(id + ' normalize({}) 抛 ' + x.message); return; }
+    const drop = decl.filter((k) => back.indexOf(k) < 0);
+    const invent = back.filter((k) => decl.indexOf(k) < 0);
+    const missRaw = decl.filter((k) => full.indexOf(k) < 0);
+    if (drop.length) bad.push(id + ' normalize 不吐声明键 ' + drop.join(',') + '（读一次档就被静默清零）');
+    if (invent.length) bad.push(id + ' normalize 造未声明键 ' + invent.join(',') + '（落盘长出新档不覆盖的形状）');
+    if (missRaw.length) bad.push(id + ' 全缺档未补齐 ' + missRaw.join(',') + '（读旧档拿到 undefined）');
+  });
+  if (!n) bad.push('一个挂 pack 的世界都没取到（本关失明）');
+  ok('D11', '世界包双清单键集对账（initialState ⇔ normalize 顶层键集双向相等 ‖ 全缺档必须补齐；嵌套按表生成的映射不属射程，见上注）',
+    bad.length === 0, '挂 pack 世界 ' + n + ' 个 ‖ 顶层声明集 ' + declN + ' 键' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 两向下行等、缺档全补齐'));
+})();
+
+/* ── D12 世界 id 点名封闭（第册卅五批 2026-10-18 · 排期 D4 立）──────────────────────
+ * 立因：「多世界框架」是对外卖点，而通用层此前**硬写** `xiuxian` 共 9 处（`['common','xiuxian'].forEach`
+ *   数池、`SQ.LEX.xiuxian` / `SQ.NAMES.xiuxian` 直取词与名池、缺省档写死首发界）——第二个世界装上时
+ *   这些支路**零报错地读到修仙的词与名**（D3 只封了 `SQ.XDATA` 直读，管不到词表 / 名池 / 字面量）。
+ *   同批已把各处改成从 `pack.worldId`（世界自己带的）‖ `s.profile.worldId`（玩家所在的）‖
+ *   `SQ.WORLD_DEFAULT`（首发界唯一落点，就在 core.js 那行声明）取数。本关把口径钉成门禁。
+ * 判 = 对射程内每件（剥注释后）数「世界 id 的**整串字面量** 'W'/\"W\" 与**命名空间点号直读** `SQ.LEX|NAMES|TALENTS|Worlds.W`，
+ *   **命中集与在册例外表双向相等**：多命中红（新旁路，点名到件与数）‖ 例外失效红（表里记了、实际零命中 ⇒ 删表项，
+ *   与 D3 例外同判法）。⚠️ 点号那一型**必须带根**：裸 `.W` 会把词表键 `'world.guwu.name'` 字符串内部的点号也算成旁路
+ *   （本关初版就中招，实测假阳 5 条 ⇒ 假阳教人关关卡，A9 前例）。
+ * 射程 = `assets/**.js` + `view/**` + `module/index.html`；**排除世界自己的数据件** ——
+ *   `assets/worlds/<id>/**` 与 `assets/talents/<id>.js`（文件名就是世界 id，认领自己是它的本职）。
+ * 在册例外三件（每件 1 处，含义各不相同）：`assets/core.js` = `SQ.WORLD_DEFAULT` 声明行（首发界落点）；
+ *   `assets/lexicon/events.js` ‖ `assets/lexicon/talents.js` = 词族分卷向自己那一界注册词表（`SQ.lexRegister`）,
+ *   即「按世界分的词表文件点名自己」，属词族契约要求的点名、不是旁路。
+ * 反向取证 = 往 `assets/systems/shop.js` 注一行 `var zz = 'xiuxian';` ⇒ 本关必红并点到该件；
+ *   往 `assets/core.js` 再补一处同值字面量 ⇒ 数合 1→2 也必红（证「例外逐件计数」不是只看有无）。 */
+(function () {
+  const EXC = { 'assets/core.js': 1, 'assets/lexicon/events.js': 1, 'assets/lexicon/talents.js': 1 };
+  let SQ3 = null;
+  try { SQ3 = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; } catch (e) { /* 下面判红 */ }
+  const ids = SQ3 && SQ3.Worlds ? Object.keys(SQ3.Worlds) : [];
+  if (!ids.length) { ok('D12', '世界 id 点名封闭（通用层/视图/卡片零硬写）', false, 'registry 取不到世界 id（本关失明，不许静默通过）'); return; } 
+  const seen = {}; let files = 0;
+  const walk = (dir) => {
+    fs.readdirSync(dir).forEach((f) => {
+      const abs = path.join(dir, f), rel = path.relative(ROOT, abs).replace(/\\/g, '/');
+      if (fs.statSync(abs).isDirectory()) { if (f !== 'node_modules' && f !== '.tests') walk(abs); return; }
+      if (!/\.(js|html)$/.test(f)) return;
+      if (/^assets\/worlds\//.test(rel) || /^assets\/talents\/[a-z0-9]+\.js$/.test(rel)) return;   /* 世界自己的件 */
+      files++;
+      let body = '';
+      try { body = stripComments(fs.readFileSync(abs, 'utf8')); } catch (e) { return; }
+      let n = 0;
+      ids.forEach((w) => {
+        n += body.split("'" + w + "'").length - 1;
+        n += body.split('"' + w + '"').length - 1;
+        /* 点号直读只认「世界命名空间」那四个根（`SQ.LEX.xiuxian` 那类）：裸 `.W` 会把词表键
+         * `'world.guwu.name'` 这类**字符串内部**的点号也算进来（本机实测假阳 5 条 ⇒ 假阳教人关关卡） */
+        const re = new RegExp('\\bSQ\\.(?:LEX|NAMES|TALENTS|Worlds)\\.' + w + '\\b', 'g');
+        n += (body.match(re) || []).length;
+      });
+      if (n) seen[rel] = n;
+    });
+  };
+  walk(ROOT);
+  const bad = [];
+  Object.keys(seen).forEach((rel) => {
+    if (!(rel in EXC)) bad.push(rel + ' 硬写世界 id ' + seen[rel] + ' 处（改走 pack.worldId / profile.worldId / SQ.WORLD_DEFAULT）');
+    else if (EXC[rel] !== seen[rel]) bad.push(rel + ' 命中 ' + seen[rel] + ' 处 ≠ 在册 ' + EXC[rel] + ' 处（例外表逐件计数，多一处也是新增点名）');
+  });
+  Object.keys(EXC).forEach((rel) => { if (!seen[rel]) bad.push(rel + ' 例外失效（在册 ' + EXC[rel] + ' 处、实际零命中 ⇒ 删表项）'); });
+  const total = Object.keys(seen).reduce((n, k) => n + seen[k], 0);
+  ok('D12', '世界 id 点名封闭（射程 = assets 通用层 + view + module，世界自己的数据件按文件名豁免；命中 ⇔ 在册例外双向相等、逐件数合，例外失效同判）',
+    bad.length === 0, '射程件 ' + files + ' ‖ 命中 ' + total + ' 处 ‖ 在册例外 ' + Object.keys(EXC).length + ' 件' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 8).join(' ‖ ') : ' ‖ 逐件数合'));
 })();
 
 /* ── 输出 ── */

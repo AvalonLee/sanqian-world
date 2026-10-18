@@ -109,7 +109,7 @@
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('gear.sec.worn')) + '</span><span class="s">' +
       c.esc(c.t('gear.sec.wornsub', { n: worn, total: d.GEAR_SLOTS.length, r: SQ.fmt(resSum) })) + '</span></div>';
     h += '<div class="cards geargrid">' + d.GEAR_SLOTS.map(function (slot) {
-      return gearCard(c, w.gear[slot], w, c.t('gear.slot.' + slot));
+      return gearCard(c, w.gear[slot], w, c.t('gear.slot.' + slot), null);
     }).join('') + '</div>';
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('gear.stash', { n: w.stash.length, cap: SQ.Gear.stashCap(w, d, c.mods) })) +
       '</span><span class="s">' + c.esc(c.t('gear.stash.hint')) + '</span></div>';
@@ -207,7 +207,7 @@
         if (rR && rR.ok) c.toast(c.t('toast.gear.salvage', {
           name: rR.item.name, tier: c.t('gear.tier.' + rR.item.tier), n: SQ.fmt(rR.value), cur: c.t('resource.currency')
         }));
-        else if (rR && rR.reason === 'stale') c.toast(c.t('shop.fail.other'));
+        else if (rR && rR.reason === 'stale') c.toast(c.t('shop.fail.stale'));   /* F15：祭炼撞上架已换货 = 独立拒因，不借兜底句 */
         c.renderAll();
       });
       return;
