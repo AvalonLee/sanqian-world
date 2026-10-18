@@ -556,7 +556,10 @@ window.SQSmoke.frag('07-ledger-economy', async function () {
       w207b.ledgerMat.in.materials === 5 && w207b.ledgerMat.out.materials === 5 &&
       JSON.stringify(Object.keys(w207b.ledger.in)) === JSON.stringify(SQ.Ledger.IN_CATS) && led207b !== JSON.stringify(w207b.ledger));
 
-    /* #208 材料三源口径（击杀独立掷判 / 采集历练自动轴 / 灵田在线一批离线不产） */
+    /* #208 材料三源口径（击杀独立掷判 / 采集历练自动轴 / 灵田在线一批离线不产）
+     * 🔧 第册十五批定种子（N69 登记件）：本段两处读数都是掷判产物（每周期 1~4 枚的材料数 + 200 抽的
+     *    悟道石次数），真随机下曾单跑出界；带（`GATHER_N_MIN/MAX`、4~36、`FARM_N_MIN/MAX`）一字不上调。 */
+    var endSeed208 = beginSeed(20820261018);
     var w208 = pack.initialState();
     w208.mode = 'seclude';
     SQ.Alchemy.ensure(w208, D);
@@ -591,6 +594,7 @@ window.SQSmoke.frag('07-ledger-economy', async function () {
     var f208c = SQ.Alchemy.farmTick(w208f, pack, D, 1000 + 2 * ALc.FARM_INTERVAL_MS, true, null);   /* 离线 */
     var f208d = SQ.Alchemy.farmTick(w208f, pack, D, 1000 + 2 * ALc.FARM_INTERVAL_MS + 1, false, null);  /* 锚点已被离线重置 → 不足周期不产 */
     var qr208b = SQ.Mods.collect(prof208, w208f, pack, D).sum.qiRate;
+    endSeed208();   /* 种子窗口结束 */
     ok('208', '材料三源口径：采集需历练（闭关/离线不产）、驻区每 1 游戏年 1~4 枚 + 10% 悟道石（统计 ' + wudao208 + '/200）；灵田首锚不产/在线跨 6 游戏月一批 ' + n208f + ' 枚（1~4）/离线不产不补；产出零 qiRate 侵入',
       g208mode === null && g208anchor === null && g208a.ok === true && n208 >= ALc.GATHER_N_MIN && n208 <= ALc.GATHER_N_MAX &&
       g208cd === null && g208off === null && wudao208 >= 4 && wudao208 <= 36 &&

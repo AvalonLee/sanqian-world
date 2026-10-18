@@ -583,7 +583,10 @@ window.SQSmoke.frag('06-karma-bond-writes', async function () {
      * (b) grantHeir 播种值 === `LEGACY.BOND_HEIR_BASE`（与视图旧直写逐字同值）；
      * (c) grantHeir 对绝交锁 / 心结锁**拒写**（原视图直写会硬盖过锁——创角态 bonds 为空集故实际不可达，
      *     但唯一写口的语义必须完整，否则下一个调用点又会踩）。 */
-    /* 势力是 normalize 时一次性生成的（initialState 留 null）⇒ 必须走 pack.normalize 才有 factions 表 */
+    /* 势力是 normalize 时一次性生成的（initialState 留 null）⇒ 必须走 pack.normalize 才有 factions 表
+     * 🔧 第册十五批定种子（N27① 在册件）：真随机下「八型全覆盖」会抽不齐（八个原型各要至少一个 NPC 命中，
+     *    而势力关系是掷出来的）⇒ 采样不到齐时判据假红。钉种子后覆盖面 = 那一条序列，八型判据本身一字未动。 */
+    var endSeed287 = beginSeed(28720261018);
     var w287 = pack.normalize(pack.initialState());
     w287.realm = 5;
     var facs287 = w287.factions;
@@ -657,6 +660,7 @@ window.SQSmoke.frag('06-karma-bond-writes', async function () {
     var ghS = SQ.Bonds.grantHeir(w287s, pack, D, heirId, SQ.XDATA.LEGACY.BOND_HEIR_BASE);
     var c287 = ghL.ok === false && ghL.blocked === 'lock' && w287l.bonds[heirId] === -99 &&
       ghS.ok === false && ghS.blocked === 'scar' && w287s.bonds[heirId] === 12;
+    endSeed287();   /* 种子窗口结束 */
     ok('287', '好感唯一写口收口（势力入门 + 承继播种）：(a) 同一份世界态下「改前手工算法」与「改后走 gain/lose」逐人 bonds 与 deltas **深度全等**，八型全覆盖（同门/友好/敌对/散人/道侣/绝交锁/心结锁/压线）；(b) grantHeir 播种值 === BOND_HEIR_BASE（与视图旧直写逐字同值）；(c) grantHeir 对锁/心结**拒写**（唯一写口语义完整，不留「下一个调用点又踩」的口子）',
       a287 && b287 && c287,
       '同 bonds=' + sameBonds287 + ' 同 deltas=' + sameDeltas287 + ' 覆盖=' + covered287 +

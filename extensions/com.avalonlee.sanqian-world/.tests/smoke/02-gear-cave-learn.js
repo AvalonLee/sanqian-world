@@ -486,6 +486,9 @@ window.SQSmoke.frag('02-gear-cave-learn', async function () {
     });
     var cats113 = { in: {}, out: {} };
     var mono113 = true, prevSum113 = 0, realms113 = [3];
+    /* 🔧 第册十五批定种子（N69 登记的同族）：220 步随机操作在真随机下会偶发把恒等式推到采样边界；
+     *    判据本身（expect === stones / 只增不清 / 跨渡劫不清零）一字未动。 */
+    var endSeed113 = beginSeed(11320261018);
     for (var i113 = 0; i113 < 220; i113++) {
       var w113 = ref113.worlds.xiuxian;
       var pick113 = Math.floor(Math.random() * 6);
@@ -516,6 +519,7 @@ window.SQSmoke.frag('02-gear-cave-learn', async function () {
       if (cur113.realm !== realms113[realms113.length - 1]) realms113.push(cur113.realm);
       if (sum113.expect !== cur113.stones) { cats113.drift = sum113.expect - cur113.stones; break; }
     }
+    endSeed113();   /* 种子窗口结束 */
     var fin113 = ref113.worlds.xiuxian;
     var s113 = SQ.Ledger.sums(fin113);
     var touched113 = SQ.Ledger.IN_CATS.concat(SQ.Ledger.OUT_CATS).filter(function (k) {
