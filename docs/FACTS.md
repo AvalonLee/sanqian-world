@@ -9,9 +9,9 @@
 <!-- SQ:LEDGER:BEGIN facts 现行读数由 .tests/gen-ledger.cjs 生成，手改即漂；段外不参与覆盖 -->
 | 现行读数 | 值 | 唯一事实源 |
 |---|---|---|
-| 扩展版本 | `0.5.44` | `manifest.json`（唯一事实源；D4 守仓库根不复活第二份副本） |
+| 扩展版本 | `0.5.45` | `manifest.json`（唯一事实源；D4 守仓库根不复活第二份副本） |
 | 冒烟断言 | 324 | `.tests/run-smoke.cjs` 末行 `SMOKE_ALL_GREEN` |
-| 静态审计关数 | 30 关 | `.tests/audit.cjs` 末行 `AUDIT_ALL_GREEN` |
+| 静态审计关数 | 31 关 | `.tests/audit.cjs` 末行 `AUDIT_ALL_GREEN` |
 | 常驻探针合计 | 250 断言 | `.tests/probe-*.cjs` 逐件末行求和（run-dod 求和，不手算） |
 | 界面走查 | 32 篇 / 776 断言 | `.tests/verify-ui-*.cjs` 目录清单 + 逐篇末行 |
 | 功法（修仙） | 70 部 | `pack.artsMap()` 键数（拆分口径见下方人写表，文档为正典） |

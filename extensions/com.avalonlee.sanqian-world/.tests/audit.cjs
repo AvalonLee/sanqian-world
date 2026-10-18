@@ -25,6 +25,7 @@
  *   D8 日志分类表对账（LOG_CATS 项数 ⇔ 在册清单双向相等 ‖ 每项文案键在词表在册；第册二十批 · N66 立）
  *   D9 FACTS 登记表行结构对账（哨兵段之外每条 | 行恰三格且首尾有格线 ‖ 无被硬换行切断的续行；第册廿六批 · N74 立）
  *   D10 module 卡片只读（禁一切写入口；第册三十批 · 排期 A2 立）
+ *   D11 世界包双清单键集对账（initialState ⇔ normalize 双向相等；第册卅四批 · 排期 D2 立）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
@@ -1368,6 +1369,55 @@ const SQ = sandbox.window.SQ;
   if (src) WRITE_API.forEach((k) => { if (src.indexOf(k) >= 0) bad.push('卡片出现写入口 ' + k); });
   ok('D10', 'module 卡片只读（剥注释后零写入口：claim / mutate / save / storage.set / setItem；跨上下文两把 opChain 写锁互不可见，少一个写入者就少一类互吞结算）',
     bad.length === 0, bad.length ? bad.join(' ‖ ') : '写入口 5 类零命中');
+})();
+
+/* ── D11 世界包双清单键集对账（第册卅四批 2026-10-18 · 排期 D2 立）─────────────────
+ * 立因：`initialState`（现 112 行）与 `normalize`（现 400 行）= **同一批字段的逐字段两份清单**，加新字段
+ *   只改一侧是这一族最常见的返工。既有射程各管一半、合起来恰好没管到中间那一半：
+ *     ‖ A8 判「代码写了 `ws.X` 而两份清单都没声明」（写点侧）；
+ *     ‖ `probe-normround` 判「读档往返值不丢」（值侧，样例世界、不是全键集）；
+ *     ‖ 而 **「声明了却没被 normalize 吐回来」/「normalize 造了 initialState 没声明的键」这一族零关卡** ⇒
+ *       前者 = 读一次档该字段被静默清零（玩家可见丢档），后者 = 落盘长出新档不覆盖的形状（下次读脏档缺字段）。
+ * 判一 = 对**每个挂了 pack 的世界**（现在只有修仙；第二界装上自动进射程，与 D3 同思路）跑
+ *   `keys(normalize(initialState()))` ⇔ `keys(initialState())` **双向相等**，两个方向各自点名；
+ * 判二 = `keys(normalize({}))` === 同一份声明集 ⇒ 「整份缺档 / 旧档升级」时每个声明字段都必须被补出，
+ *   少一枚就是读旧档拿到 `undefined`（补齐本是 `normalize` 的契约，这一判钉它自己）。
+ * 射程边界（如实登记，不装作全覆盖）：**只判顶层键集**。顶层以下不许按路径对表 —— `normalize` 合法地会按表
+ *   生成数据驱动映射（本机实测「清洗而未声明」86 条 = `factionNpcs.*` 58 枚 ‖ `factions[].rel.*` 16 枚 ‖
+ *   `tribMarks.*` 4 枚 ‖ 其余同类），拿顶层那套去咬嵌套**必假阳**（假阳教人关关卡 = A9 前例）。嵌套字段的
+ *   值级对表要的是「同一字段两份规则」的语义比对，属另一维、不属本批。
+ * 反向取证 = ① 往 `initialState` 加一枚假键（不动 normalize）⇒ 判一「声明而未清洗」+ 判二 同红；
+ *   ② 往 `normalize` 返回字面量加一枚假键 ⇒ 判一「清洗而未声明」红。两形各自独红、复原逐字节相同。 */
+(function () {
+  let SQ2 = null;
+  try { SQ2 = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; } catch (e) { /* 下面判红 */ }
+  if (!SQ2 || !SQ2.Worlds) {
+    ok('D11', '世界包双清单键集对账（initialState ⇔ normalize 双向相等）', false, '沙箱装载失败（本关失明，不许静默通过）');
+    return;
+  }
+  const bad = []; let n = 0, declN = 0;
+  Object.keys(SQ2.Worlds).forEach((id) => {
+    const e = SQ2.Worlds[id];
+    if (!e || !e.pack || typeof e.pack.initialState !== 'function') return;
+    n++;
+    const decl = Object.keys(e.pack.initialState());
+    if (id === 'xiuxian') declN = decl.length;
+    let back = [], full = [];
+    try { back = Object.keys(e.pack.normalize(e.pack.initialState())); }
+    catch (x) { bad.push(id + ' normalize(initialState()) 抛 ' + x.message); return; }
+    try { full = Object.keys(e.pack.normalize({})); }
+    catch (x) { bad.push(id + ' normalize({}) 抛 ' + x.message); return; }
+    const drop = decl.filter((k) => back.indexOf(k) < 0);
+    const invent = back.filter((k) => decl.indexOf(k) < 0);
+    const missRaw = decl.filter((k) => full.indexOf(k) < 0);
+    if (drop.length) bad.push(id + ' normalize 不吐声明键 ' + drop.join(',') + '（读一次档就被静默清零）');
+    if (invent.length) bad.push(id + ' normalize 造未声明键 ' + invent.join(',') + '（落盘长出新档不覆盖的形状）');
+    if (missRaw.length) bad.push(id + ' 全缺档未补齐 ' + missRaw.join(',') + '（读旧档拿到 undefined）');
+  });
+  if (!n) bad.push('一个挂 pack 的世界都没取到（本关失明）');
+  ok('D11', '世界包双清单键集对账（initialState ⇔ normalize 顶层键集双向相等 ‖ 全缺档必须补齐；嵌套按表生成的映射不属射程，见上注）',
+    bad.length === 0, '挂 pack 世界 ' + n + ' 个 ‖ 顶层声明集 ' + declN + ' 键' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 两向下行等、缺档全补齐'));
 })();
 
 /* ── 输出 ── */
