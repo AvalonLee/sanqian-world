@@ -6,7 +6,9 @@
  * 本篇口径（不是"任意烂档都必须自愈成可玩"，那是许愿）：
  *   · 能救的（normalize 缺省 / 名录白名单）就该救回来并**照常进主界面**；
  *   · 救不了至少要**退回创角且不崩**，绝不白屏、绝不 pageerror 死锁；
- *   · 未开放世界（无 pack 内容）的 id 绝不能把玩家带进空世界。
+ *   · 未开放世界（无 pack 内容）的 id 绝不能把玩家带进空世界；
+ *   · **退回创角那一支必须同时给出那句读档提示**（BS-Prompt，第册十四批）——否则玩家被引导着新建角色，
+ *     新建落盘会把盘上那份「完好但读不动」的载荷整份盖掉。
  * 纪律：页内 evaluate 里不存在 Node 闭包常量 ⇒ 存档内容经 addInitScript 的**参数**传进去。
  * 用法：NODE_PATH=<playwright-core 所在 node_modules> node .tests/verify-ui-badsave.cjs
  */
@@ -56,6 +58,10 @@ const KEY = 'sanqian-state-v1';
         bodyLen: bt.length,
         // 主界面若亮着，正文还得真有中文内容（不是空壳）
         bodyCjk: /[\u4e00-\u9fff]/.test(bt),
+        // 第册十四批：创角屏那一条出口也要有提示 ⇒ 逐枚读 toast 层的文本（不读引擎内部值，读屏上真字）
+        toastTxts: Array.prototype.map.call(document.querySelectorAll('#toasts .toast'), function (n) { return n.textContent || ''; }),
+        // 落创角有两种：真读档失败（该提示）与读成功但按 normalize 回创角（不该提示）⇒ 取引擎的读态分档
+        readFail: (() => { try { const e = window.SQ && SQ.storageError && SQ.storageError(); return !!(e && e.op === 'read'); } catch (x) { return false; } })(),
         savedBack: (() => { try { const s = JSON.parse(localStorage.getItem(k) || 'null'); return !!(s && s.profile); } catch (e) { return false; } })()
       };
     }, KEY);
@@ -97,6 +103,31 @@ const KEY = 'sanqian-state-v1';
   rows.forEach(([label, r]) => {
     if (r.st.main) T(r.st.bodyLen > 50 && r.st.bodyCjk,
       'BS-Body ' + label + ' 主界面正文非空壳（>50 字且含中文）', 'len=' + r.st.bodyLen + ' cjk=' + r.st.bodyCjk);
+  });
+
+  /* BS-Prompt（第册十四批 2026-10-18 · 审计待办 A1）：落创角屏分两种，判据要**双向都咬**。
+   * 立因 = boot 的两条 c1 出口原先不调 checkIo()（tick 只在 enterMain 后起），玩家面对的是**一张干净的创角屏**：
+   *   既不知道自己档还在、又会被引导着新建角色 ⇒ `SQ.mutate` 起手又读失败 ⇒ 拿空档落盘盖掉盘上那份。
+   * ① 真读档失败（`SQ.storageError().op === 'read'`）落 c1 ⇒ 那句提示必须在位，且**含中文、零拉丁字母**
+   *   （原 `ui.error.storage` 带 `{msg}`，插的是宿主原始错误文本 = 裸英文上屏，本批同批改成不带占位符的白话句）；
+   * ② 读成功但按 normalize 回 c1（例 B「worlds 整块缺失」/ 例 E「worldId 指向未开放世界」）⇒ 这句**不许出现**，
+   *   否则是把「档读不出来」谎报给档没坏的玩家。两类各至少一例，防空集恒真。 */
+  const promptRows = rows.filter(([label, r]) => r.st.c1 && !r.st.main);
+  const readFailRows = promptRows.filter(([label, r]) => r.st.readFail);
+  const readOkRows = promptRows.filter(([label, r]) => !r.st.readFail);
+  T(readFailRows.length >= 1 && readOkRows.length >= 1,
+    'BS-Prompt 分档护栏：c1 两类各至少一例（否则下面两判恒真空通过）',
+    'readFail=' + readFailRows.length + ' readOk=' + readOkRows.length);
+  readFailRows.forEach(([label, r]) => {
+    const txt = (r.st.toastTxts || []).join(' ');
+    T(/[\u4e00-\u9fff]/.test(txt) && /[A-Za-z]/.test(txt) === false,
+      'BS-Prompt ' + label + ' 读档失败落创角：提示在位（含中文且零拉丁字母）',
+      'toasts=' + JSON.stringify(r.st.toastTxts));
+  });
+  readOkRows.forEach(([label, r]) => {
+    T((r.st.toastTxts || []).length === 0,
+      'BS-Prompt ' + label + ' 读成功回创角：这句不许出现（防空报「档读不出来」）',
+      'toasts=' + JSON.stringify(r.st.toastTxts));
   });
 
   /* 逐例细则：能救的必须救回来（B / C / D / F / G / H 走 normalize 缺省重建） */

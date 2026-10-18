@@ -46,7 +46,9 @@ function poolCounts() {
     achv: len(D.CODEX.ACHV), mats: len(D.ALCHEMY.MATS),
     recipes: len(D.ALCHEMY.RECIPES), blueprints: len(D.ALCHEMY.BLUEPRINTS),
     worlds: Object.keys(SQ.Worlds).length,
-    live_worlds: SQ.visibleWorlds().length,
+    /* 原键名 `live_worlds` 名不符实：取的是 `visibleWorlds()`（status ≠ hidden），而 `status:'live'`
+     * 只有一界 ⇒ 改名 visible_worlds，「可投生」这个词留给真按 status 数的场合。 */
+    visible_worlds: SQ.visibleWorlds().length,
     name_pool: ['prefix', 'middle', 'suffix'].map((k) => SQ.Worlds.xiuxian.nameParts[k].length).join(' × '),
     lex_keys: (function () { let n = 0; for (const w in SQ.LEX) n += Object.keys(SQ.LEX[w]).length; return n; })()
   };
@@ -90,7 +92,7 @@ function oneLine(v) {
   return '- **现行读数**（本行由 `.tests/gen-ledger.cjs` 生成）：扩展版本 `' + f(v.ext_version) +
     '` · 冒烟 ' + f(v.smoke) + ' · 审计 ' + f(v.audit_gates) + ' 关 · 常驻探针 ' + f(v.probe_asserts) +
     ' 断言 · 界面走查 ' + f(v.ui_files) + ' 篇 / ' + f(v.ui_asserts) + ' 断言 · 词表键 ' + f(v.lex_keys) +
-    ' · 世界名册 ' + f(v.worlds) + ' 界（可见 ' + f(v.live_worlds) + '）。缺读数 = 「未跑」，不当 0 计。';
+    ' · 世界名册 ' + f(v.worlds) + ' 界（可见 ' + f(v.visible_worlds) + '）。缺读数 = 「未跑」，不当 0 计。';
 }
 function factsTable(v) {
   const row = (name, val, src) => '| ' + name + ' | ' + val + ' | ' + src + ' |';
@@ -107,7 +109,7 @@ function factsTable(v) {
     row('固定势力池', f(v.factions_fixed) + ' 处', '`D.FACTIONS_FIXED`'),
     row('行为成就', f(v.achv) + ' 条', '`D.CODEX.ACHV`'),
     row('材料 / 丹方 / 图纸', f(v.mats) + ' / ' + f(v.recipes) + ' / ' + f(v.blueprints), '`D.ALCHEMY.{MATS,RECIPES,BLUEPRINTS}`'),
-    row('世界名册', f(v.worlds) + ' 界（可见 ' + f(v.live_worlds) + '）', '`SQ.Worlds` / `SQ.visibleWorlds()`'),
+    row('世界名册', f(v.worlds) + ' 界（可见 ' + f(v.visible_worlds) + '）', '`SQ.Worlds` / `SQ.visibleWorlds()`'),
     row('世界名命名池', f(v.name_pool), '`SQ.Worlds.xiuxian.nameParts` 各段长度'),
     row('词表唯一键', f(v.lex_keys), '沙箱装载后 `SQ.LEX` 各世界键数求和')
   ].join('\n');
