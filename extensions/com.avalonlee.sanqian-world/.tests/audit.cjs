@@ -24,6 +24,7 @@
  *   D7 视图外置件与内核桥 ctx() 的键集对账（第册五批 · N34 拆视图立：外置件用了 ctx 没给的键即判红）
  *   D8 日志分类表对账（LOG_CATS 项数 ⇔ 在册清单双向相等 ‖ 每项文案键在词表在册；第册二十批 · N66 立）
  *   D9 FACTS 登记表行结构对账（哨兵段之外每条 | 行恰三格且首尾有格线 ‖ 无被硬换行切断的续行；第册廿六批 · N74 立）
+ *   D10 module 卡片只读（禁一切写入口；第册三十批 · 排期 A2 立）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
@@ -1348,6 +1349,25 @@ const SQ = sandbox.window.SQ;
   ok('A11', '坊市拒因 ⇔ 词表在册 双向对账（源码字面 reason 集 ⇔ 在册清单 ‖ 每格中文存在且不退化成兜底句 ‖ 视图兜底形状在位）',
     bad.length === 0, '在册 ' + FAIL.length + ' 种 ‖ 源码 ' + em.length + ' 种' +
     (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 双向相等、逐格取到中文、兜底在位'));
+})();
+
+/* ── D10 module 卡片只读（第册三十批 2026-10-18 · 排期 A2 立）──────────────────
+ * 立因：卡片每 30s `SQ.claim` 一次，与 view 每秒的 claim 争同一个存储键，而 `opChain` 那把写锁
+ *   **每个 JS 上下文各一把**（跨上下文互不可见）⇒ 跨上下文的「读-改-写」会互吞离线结算。
+ *   第二十一批已把卡片改成纯展示（删跳转），本批把「只读」这件事从口头口径变成门禁。
+ * 判：`module/index.html` 剥注释后不得出现 `SQ.claim(` ‖ `SQ.mutate(` ‖ `SQ.save(` ‖ `storage.set(`
+ *   ‖ `localStorage.setItem(` 任一写入口（注释里出现不算，与 B2 的「含注释」判法刻意相反：
+ *   本批就是在注释里留下了「原先做什么、现在改读」的说明，注释不许被惩罚）。
+ * 反向取证 = 往 module 件塞一行 `await SQ.claim(state);` ⇒ 本关必红。 */
+(function () {
+  const WRITE_API = ['SQ.claim(', 'SQ.mutate(', 'SQ.save(', 'storage.set(', 'localStorage.setItem('];
+  let src = '';
+  const bad = [];
+  try { src = stripComments(fs.readFileSync(path.join(ROOT, 'module/index.html'), 'utf8')); }
+  catch (e) { bad.push('读不到 module/index.html ⇒ 本关失明'); }
+  if (src) WRITE_API.forEach((k) => { if (src.indexOf(k) >= 0) bad.push('卡片出现写入口 ' + k); });
+  ok('D10', 'module 卡片只读（剥注释后零写入口：claim / mutate / save / storage.set / setItem；跨上下文两把 opChain 写锁互不可见，少一个写入者就少一类互吞结算）',
+    bad.length === 0, bad.length ? bad.join(' ‖ ') : '写入口 5 类零命中');
 })();
 
 /* ── 输出 ── */
