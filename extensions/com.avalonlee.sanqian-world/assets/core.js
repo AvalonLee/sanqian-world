@@ -153,6 +153,10 @@
    * 任一写成功即清空。审计 #3：侧档读不动时跳写要能被 save 观察到（见 sideWriteSkipped）。 */
   var pendingSave = null;
   var sideWriteSkipped = false;
+  /* F5（N28 ⑪(c) · 第册廿九批）：原先 `catch (eSide)` 把异常对象整枚丢了 ⇒ 事后无从分辨「宿主配额拒绝」
+   * 与「编解码 TypeError」。屏上仍只走既有内部码 `sideflow`（不许把裸英文插上屏 = A4），诊断只进内存读数
+   * `SQ.SaveStats.get().sideErr`，由 probe-savecodec E5 与 measure-savecost 消费；不落盘、不做玩家界面。 */
+  var sideErr = '';
 
   /* ── 第册十八批（2026-10-18 · 全仓审计 N71）读失败先留底 ─────────────────────
    * `load()` 抛异常时会回落 `defaultState()`（#4 既有语义），而玩家若照旧新建角色，
@@ -872,8 +876,10 @@
        * 拒写」这一族故障会让每次落盘都在主档写之前抛出 ⇒ 机制态永不再落盘、刷新即丢全部进度（比原缺陷
        * 更重）。吞掉侧档异常、把它折进下面那条跳写留痕，主档照写。 */
       var side;
+      sideErr = '';
       try { side = await writeLogsIfChanged(s); }
-      catch (eSide) { side = lastSideBytes; sideWriteSkipped = true; }   /* 日志独立落盘（内容未变则跳过）；返回侧档字节 */
+      catch (eSide) { side = lastSideBytes; sideWriteSkipped = true;
+        sideErr = (eSide && ((eSide.name || 'Error') + ': ' + (eSide.message || ''))) || 'unknown'; }   /* 日志独立落盘（内容未变则跳过）；返回侧档字节 */
       if (hasBridge()) {
         await window.xhub.storage.set(KEY, c.bridgeValue);
       } else {
@@ -1288,7 +1294,7 @@
         trigger: SAVE_TRIGGER, red: SAVE_RED,
         logBudget: LOG_BYTE_BUDGET, feedBudget: FEED_BYTE_BUDGET,
         mainKey: KEY, sideKey: LOG_KEY,
-        sideUnreadable: sideUnreadable
+        sideUnreadable: sideUnreadable, sideErr: sideErr
       };
     }
   };

@@ -438,8 +438,16 @@
         /* ⚠️ 复核返修：原判据写成 `bn > 0`，把**负值**（减属性，本函数与 `attrBonusAmp` 一直都支持负数、
          * `effText` 也带符号印）一并撤销了 ⇒ 「折寿/削悟性」类事件会静默不生效而文案照旧。撤销条件只该看
          * 「有没有真的落账」= `bn !== 0` 且未越上限。 */
-        if (bn !== 0 && total + bn <= D.ATTR_EVENT_BONUS_CAP) {
-          ws.attrEventBonus[e.attrBonus.attr] = (ws.attrEventBonus[e.attrBonus.attr] || 0) + bn;
+        /* F8（N28 ① · 第册廿九批）：正增益改成**截到剩余**——原 +5 撞上余 2 时一分不得，玩家明明做了这桩
+         * 奇遇却什么都没拿到；恰好满 CAP 时 room = 0 ⇒ 仍走下面那条撤销支（既有 #295(a) 的口径不变）。
+         * 负值不截：减属性永放行（与 `attrBonusAmp` 只放大正增益同口径），但**脏档 total > CAP** 时原式
+         * `total + bn <= CAP` 会把负值也撤掉，现按「负值一律入账」处理（把档拉回上限内才是想要的方向）。
+         * ⚠️ 已知未同源的一条（登记 N76，不在本批射程）：屏上那句走 `e.attrBonus.n`（表值），既不跟 amp
+         *   放大、也不跟本批的截断缩小 ⇒ 「文案 +5 / 实得 +2」这一族仍会说谎。 */
+        var room8 = D.ATTR_EVENT_BONUS_CAP - total;
+        var got8 = bn > 0 ? Math.max(0, Math.min(bn, room8)) : bn;
+        if (got8 !== 0) {
+          ws.attrEventBonus[e.attrBonus.attr] = (ws.attrEventBonus[e.attrBonus.attr] || 0) + got8;
         } else {
           /* 满上限被整笔丢弃（既有设计，改不改属产品裁定 ⇒ 转 N27/N28 登记）或取整后为 0 ⇒
            * 一律撤销标签与 applied（审计 #6）：否则文案写「悟性永久 +3」而玩家一分没拿到。 */

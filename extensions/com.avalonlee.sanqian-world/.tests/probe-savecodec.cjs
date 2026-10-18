@@ -200,6 +200,31 @@ function fatState(SQ) {
     'E4 覆盖发生后留底仍在：主键已是新档、第二键逐字还是那一份 ⇒ 丢档变可恢复',
     'mainChanged=' + (nc3.bridge[SQ.KEY] !== keep2));
 
+  /* ── E5/E6（第册廿九批 F5 · N28 ⑪(c)）侧档写失败的诊断不许被丢掉 ──
+   * 立因：`catch (eSide)` 原先只置一个跳写标志，异常对象整枚丢 ⇒ 事后无从分辨「宿主配额拒绝」与
+   *   「编解码 TypeError」。现把 name + message 折进内存读数 `SQ.SaveStats.get().sideErr`（屏上仍只走
+   *   既有内部码 `sideflow`，不许裸英文上屏 = A4；也不进存档 = 内部度量不做玩家界面）。
+   * 两支都要判：抛 ⇒ 诊断在；下一次成功落盘 ⇒ 诊断清空（常亮的诊断等于没有诊断）。 */
+  const e5 = load([], { bridge: true });
+  await e5.SQ.save(clone(fatFor));                                  /* 建立侧档基线（正常写一次） */
+  const set0 = e5.sandbox.window.xhub.storage.set;
+  const sideKey5 = e5.SQ.SaveStats.get().sideKey;
+  e5.sandbox.window.xhub.storage.set = async function (k, v) {
+    if (k === sideKey5) throw new TypeError('quota mocked');
+    return set0(k, v);
+  };
+  e5.SQ.Side.resetSig();                                            /* 签名复位 ⇒ 这一笔真去写侧档 */
+  await e5.SQ.save(clone(fatFor));
+  const se5 = e5.SQ.SaveStats.get().sideErr || '';
+  T(/^TypeError: quota mocked$/.test(se5) && e5.SQ.storageError() && e5.SQ.storageError().msg === 'sideflow',
+    'E5 侧档写抛：异常的名字与消息进了内存诊断，屏上仍只走内部码 sideflow',
+    'sideErr=' + JSON.stringify(se5) + ' ioError=' + JSON.stringify(e5.SQ.storageError()));
+  e5.sandbox.window.xhub.storage.set = set0;
+  e5.SQ.Side.resetSig();
+  await e5.SQ.save(clone(fatFor));                                  /* 恢复可写 ⇒ 下一笔成功落盘 */
+  T(e5.SQ.SaveStats.get().sideErr === '', 'E6 下一次成功落盘即清空诊断（常亮的诊断等于没有诊断）',
+    'sideErr=' + JSON.stringify(e5.SQ.SaveStats.get().sideErr));
+
   /* ── F 相：真实玩家档（宿主 .storage.json）──
    * 路径改用 `.tests/storage-read.cjs` 的**候选试探**（2026-10-09 版本控制纳管批：宿主移除平台安装目录、
    *   实时实例改在仓库镜像根跑 ⇒ 本件此前单条硬编码路径**静默 SKIP 了两个判据**，F 相在 DoD 里没真跑过）。
