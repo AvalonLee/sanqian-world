@@ -154,6 +154,34 @@
   var pendingSave = null;
   var sideWriteSkipped = false;
 
+  /* ── 第册十八批（2026-10-18 · 全仓审计 N71）读失败先留底 ─────────────────────
+   * `load()` 抛异常时会回落 `defaultState()`（#4 既有语义），而玩家若照旧新建角色，
+   * `mutate` 起手又读失败 ⇒ 空档落盘会把**盘上那份「完好但读不动」的载荷整份盖掉**（不可逆）。
+   * 修法刻意**不做「拒写」**：拒写在「档真坏」这一支会把玩家锁死（建号也不落盘 = 白玩，比原状更糟），
+   * 改为先把那份原始载荷原样备份到第二键（每会话一次），之后照常落盘 ⇒ 覆盖变成可恢复。
+   * ⚠️ 边界如实登记：只覆盖「读到了但解析不动」那一族；连 `storage.get` 都抛时 `raw` 取不到，
+   *   无从留底（判据 F2 钉这个边界，别误当全覆盖）。
+   *
+   * 同批**试过并撤掉**的另一半（审计待办 D1「主档降频落盘」）：想做「载荷逐字未变 ⇒ 跳过落盘」，
+   * 签名里排除每世界的 `lastSave`（否则 tick 每秒改它，闸永不触发）。**冒烟 #20c 当场反证它是错的**：
+   * 该案把 `lastSave` 手动拨回一天再 `SQ.save`，排除项正好把这次「时钟回拨」吞掉 ⇒ 落盘被跳过 ⇒
+   * 下一次 claim 结算 0 秒 ⇒ 漂移读数从 −12 变成 −1.4e-7。结论 = **`lastSave` 不是流水 timestamp，
+   * 它是离线结算的锚，「只有它变了」也是一次必须落盘的真实变更**。
+   * 要做成必须改成「这一拍没结算出任何东西 ⇒ 不推进 lastSave」，那是动结算锚语义 = 改机制批
+   * （`sim-pacing` 九画像与 `sim-playthrough` 轨迹锚都要重钉），不属顺手批 ⇒ 登记待排期。
+   * 与第十四批「条数 + 首末 ts 粗签名可撞、0.44ms 买不回这个风险」是同一条纪律的第二次兑现。
+   */
+  var CORRUPT_KEY = KEY + '.corrupt';
+  var corruptBackedUp = false;
+  async function backupUnreadable(raw) {
+    if (corruptBackedUp || raw == null || raw === '') return;
+    corruptBackedUp = true;
+    try {
+      if (hasBridge()) await window.xhub.storage.set(CORRUPT_KEY, raw);
+      else localStorage.setItem(CORRUPT_KEY, typeof raw === 'string' ? raw : JSON.stringify(raw));
+    } catch (e) { /* 留底只是备份，失败不再叠第二处故障（主链路的 ioError 出口照旧） */ }
+  }
+
   async function load() {
     try {
       var raw;
@@ -194,6 +222,7 @@
       return st;
     } catch (e) {
       ioError = { op: 'read', msg: (e && e.message) || String(e) };
+      await backupUnreadable(raw);   /* N71：先留底，再回落新档（回落本身是 #4 既有语义，不动它）*/
       return defaultState(); /* 读档失败不崩溃：回落新档（#4 语义） */
     }
   }
@@ -983,6 +1012,7 @@
     return serialize(async function () {
       var s = defaultState();
       resetSideSig();                     /* 清档后侧档签名归零，否则「内容相同即跳过写」会把档留在缺失态 */
+      corruptBackedUp = false;            /* 清档后允许为下一次读失败再留一份底 */
       await save(s);
       replaceRef(stateRef, s);
       return s;
@@ -1240,6 +1270,7 @@
   SQ.COOL_MAX_HOURS = COOL_MAX_HOURS;
 
   SQ.KEY = KEY;
+  SQ.CORRUPT_KEY = CORRUPT_KEY;   /* 读失败留底的第二键（测试与恢复取证按此名读，不许各处硬拼字符串）*/
   SQ.V = V;
   /* 存档容量红线单一事实源（测试与走查一律读这两个值，禁止再各自硬编码 KB 数）
    * ⚠️ **存档瘦身批 2026-10-08 口径变更**：两值的度量对象由「编码前 JSON 字符串」改为

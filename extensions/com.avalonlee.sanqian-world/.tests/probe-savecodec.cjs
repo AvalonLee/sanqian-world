@@ -177,6 +177,29 @@ function fatState(SQ) {
     'E2 且不静默把档当空：回落态与新档一致、玩家名不出现（可提示而非假装无事）');
   nc2.bridge[SQ.KEY] = null;
 
+  /* ── E3/E4（第册十八批 2026-10-18 · 审计待办 N71）读失败先留底 ──
+   * 立因：E1/E2 只证「报错 + 回落新档」，没证**回落之后玩家照新建会怎样** ——
+   *   `mutate` 起手又读失败 ⇒ 拿空档落盘 ⇒ 把盘上那份「完好但读不动」的载荷整份盖掉（不可逆）。
+   * 现在的口径 = 读失败先把那份原始载荷逐字备份到第二键（每会话一次），落盘照常 ⇒ 覆盖可恢复。
+   * ⚠️ 边界与代码注一致：只覆盖「读到了但解析不动」那一族；连 `storage.get` 都抛时无从留底。 */
+  const victim2 = load([], { bridge: true });
+  await victim2.SQ.save(clone(fatFor));
+  const keep2 = victim2.bridge[SQ.KEY];
+  const nc3 = load([], { bridge: true, noCodec: true });
+  nc3.bridge[SQ.KEY] = keep2;
+  await nc3.SQ.load();                                     /* 读失败 ⇒ 回落新档 + 留底 */
+  T(nc3.bridge[nc3.SQ.CORRUPT_KEY] === keep2,
+    'E3 读失败：那份读不动的载荷逐字留底到第二键（键名走 SQ.CORRUPT_KEY，不硬拼）',
+    /* 详情表达式必须**空值安全**：留底没发生时它是 undefined，直接喂 storedBytes 会抛 TypeError
+     * 把整件跑崩（反向取证实测踩过），那样连「如实打红」都做不到。 */
+    'kept=' + (typeof keep2) + ' backup=' + nc3.SQ.storedBytes(nc3.bridge[nc3.SQ.CORRUPT_KEY] || ''));
+  const fresh3 = nc3.SQ.defaultState();
+  fresh3.profile.name = '新号道人';
+  await nc3.SQ.save(fresh3);                               /* 玩家照新建 ⇒ 主档被覆盖 */
+  T(nc3.bridge[SQ.KEY] !== keep2 && nc3.bridge[nc3.SQ.CORRUPT_KEY] === keep2,
+    'E4 覆盖发生后留底仍在：主键已是新档、第二键逐字还是那一份 ⇒ 丢档变可恢复',
+    'mainChanged=' + (nc3.bridge[SQ.KEY] !== keep2));
+
   /* ── F 相：真实玩家档（宿主 .storage.json）──
    * 路径改用 `.tests/storage-read.cjs` 的**候选试探**（2026-10-09 版本控制纳管批：宿主移除平台安装目录、
    *   实时实例改在仓库镜像根跑 ⇒ 本件此前单条硬编码路径**静默 SKIP 了两个判据**，F 相在 DoD 里没真跑过）。
