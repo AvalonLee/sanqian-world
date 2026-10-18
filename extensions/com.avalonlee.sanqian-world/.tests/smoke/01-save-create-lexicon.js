@@ -300,6 +300,16 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       Math.random = function () { return (typeof vals === 'function') ? vals(i++) : (i < vals.length ? vals[i++] : 0.5); };
       return function () { Math.random = orig; };
     }
+    /* 定种子抽样窗口（N27① / N69 处置 · 第册十五批）：把这一段里的 `Math.random` 换成固定序列，返回还原函数。
+     * 写法照 #33 在册那一段（同一条 mulberry32），差别只在「成对括住」不用重排正文。
+     * ⚠️ 代价写在册：种子化后这几判只覆盖**那一条序列**（真随机的其余形状不再被抽到）；
+     *    换来的是「红灯不再等于重跑一次就好」——容差带与阈值一律不上调（工程规范 §4.42）。 */
+    function beginSeed(seed) { return stubRandom(function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }); }
 
     /* #27 挂机产出逐项对表：base × (1+天赋+功法+装备+buff) × ALIGN_EFFECTS.qiRateMult（正道 0.75） */
     var w27 = mkWs({ realm: 2, karmaEventScore: 300 });
@@ -481,14 +491,18 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       SQ.Gear.refineValue({ tier: 0 }, { realm: 0 }, D, { hooks: { huijin: 0.4 } }) === 7;
     ok(36, '炼化返还固定表（含炼余回生）', ok36);
 
-    /* #37 魔道词条 ×1.10 且 alignment='evil'（1600 次采样压方差，防边界抖动） */
+    /* #37 魔道词条 ×1.10 且 alignment='evil'（1600 次采样压方差，防边界抖动）
+     * 🔧 第册十五批定种子（N27① 在册那件的残量）：真随机下比值带 (1.03,1.18) 约 26 跑 1 红；
+     *    容差带一字未动，只是把抽样钉成固定序列。 */
     var sumE = 0, sumN = 0, evilAlign = true;
+    var endSeed37 = beginSeed(3720261018);
     for (var i37 = 0; i37 < 1600; i37++) {
       var ge = SQ.Gear.roll(mkWs(), pack, D, 0, { sum: { gearLuck: 0 } }, { tier: 0, align: 'evil' });
       var gn = SQ.Gear.roll(mkWs(), pack, D, 0, { sum: { gearLuck: 0 } }, { tier: 0, align: 'neutral' });
       sumE += ge.atk; sumN += gn.atk;
       if (ge.alignment !== 'evil') evilAlign = false;
     }
+    endSeed37();   /* 种子窗口结束 */
     var ratio37 = sumE / sumN;
     ok(37, '魔道 ×1.10 且 alignment=evil', ratio37 > 1.03 && ratio37 < 1.18 && evilAlign, 'ratio=' + ratio37.toFixed(3));
 
