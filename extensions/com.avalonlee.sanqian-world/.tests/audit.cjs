@@ -27,6 +27,7 @@
  *   D10 module 卡片只读（禁一切写入口；第册三十批 · 排期 A2 立）
  *   D11 世界包双清单键集对账（initialState ⇔ normalize 双向相等；第册卅四批 · 排期 D2 立）
  *   D12 世界 id 点名封闭（通用层/视图/卡片不许硬写世界 id；第册卅五批 · 排期 D4 立）
+ *   D13 外置件件内互调的实参形状对表（区内声明的函数被同件调用 ⇒ 实参数 === 形参数；第册四十二批 · N34 第十刀自曝立，销 N31 那半条）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
  *   反证常驻件 = `.tests/ledger-selftest.cjs`。
@@ -1116,6 +1117,64 @@ const SQ = sandbox.window.SQ;
   ok('D7', '视图外置件只用 ctx() 给过的键 ‖ 不裸读桥里换名的私名（少给一枚 = undefined，裸读一枚 = ReferenceError）',
     bad.length === 0, 'ctx 键 ' + keys.length + ' 枚 · 外置件 ' + viewJs.length + ' 件 · 引用点 ' + used + ' 处 · 私名 ' + priv.length + ' 枚' +
     (bad.length ? ' ‖ ' + [...new Set(bad)].slice(0, 6).join(' ‖ ') : ' ‖ 全部有源、零裸读'));
+})();
+
+/* ── D13 外置件「件内互调」的实参形状对表（第册四十二批 2026-10-18 · N34 第十刀自曝 · N31 那半条落地）────────
+ * 立因：本批机械改写把两枚**区内助手**的形参表漏加了桥参数（调用点已写成 `caveReqChips(c, cv, chk)`，定义仍是 `(cv, chk)`）
+ *   ⇒ 4 实参喂 3 形参、位置整体错移、`c` 落回裸引 ReferenceError、秘境页整页空白。D7 判的是「用了桥没给的键」，
+ *   判不到这种**位置错移**；而第册卅二批 N31 登记的正是同一形状（「4 实参喂 3 形参 ⇒ 整页空白」），当时只登记没落关。
+ *   ⇒ 十刀里前九刀都靠走查兜（5 分钟一轮、并发跑），这一类其实**静态就能判**，本关把它落下来。
+ * 判据 = 只认形状、不执行代码：件内每条 `function NAME(形参表)` 声明，凡被**同一件内**直接调用（`NAME(` 且前一字符不是 `.` / 词字符，
+ *   排除声明本身那一处），实参个数必须 === 形参个数；空表与空调用各按 0 计。
+ * 边界（如实）：① 只判**个数**，类型与顺序不管；② 跨件调用走 `SQ.UI.<件>.<名>(...)`，不在本关射程（那里由 D7 判键、由走查判形状）；
+ *   ③ 形参表里的默认值 / 解构会让「个数」含义变松 ⇒ 本仓视图件实测零默认值与解构，若出现则按逗号数计（会偏大、往红方向偏）；
+ *   ④ 名字出现在字符串字面量里（如日志键）会被当成一次调用 ⇒ 用剥注释后的源码扫，字符串这一支若真出现假阳再补引号跳过。 */
+(function () {
+  const dir13 = path.join(ROOT, 'view');
+  const files13 = fs.readdirSync(dir13).filter((f) => f.endsWith('.js'));
+  /* 剥注释但**保长度**（换行留着、其余字符换空白）⇒ 偏移与行号与原文件逐字对齐；
+   * 早先用 ' ' 顶掉整段注释，报出来的行号是剥后行号（本关第一击报 gear.js 106 而真身在 112 —— 假指称在册登记过同型面）。 */
+  const blank13 = (s) => s.replace(/[^\n]/g, ' ');
+  const strip13 = (s) => s.replace(/\/\*[\s\S]*?\*\//g, blank13)
+    .replace(/(\/\/[^\n]*)/g, blank13);
+  /* 从 open（'(' 的下标）扫到与之配对的 ')'，只数「深度 0」那一层的逗号 ⇒ 嵌套调用 / 数组字面量 / 模板串不参与计数 */
+  function shapeAt(src, open) {
+    let depth = 0, commas = 0, body = '', q = '';
+    for (let i = open + 1; i < src.length; i++) {
+      const ch = src[i];
+      if (q) { if (ch === '\\') { i++; continue; } if (ch === q) q = ''; continue; }
+      if (ch === '"' || ch === "'" || ch === '`') { q = ch; continue; }
+      if (ch === '(' || ch === '[' || ch === '{') { depth++; continue; }
+      if (ch === ')' || ch === ']' || ch === '}') { if (depth === 0) return commas + (body.trim() ? 1 : 0); depth--; continue; }
+      if (depth === 0) { if (ch === ',') commas++; else body += ch; }
+    }
+    return commas + (body.trim() ? 1 : 0);   /* 没闭合（D5 抓语法）⇒ 就按已见数判，不静默放过 */
+  }
+  const bad13 = []; let decls = 0, calls = 0;
+  files13.forEach((f) => {
+    const src = strip13(fs.readFileSync(path.join(dir13, f), 'utf8'));
+    const names = [];
+    [...src.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)].forEach((m) => {
+      const open = m.index + m[0].length - 1;
+      names.push({ nm: m[1], n: shapeAt(src, open), decl: m.index });
+    });
+    names.forEach((d) => {
+      decls++;
+      const re = new RegExp('(^|[^.$\\w])' + d.nm.replace(/\$/g, '\\$') + '\\s*\\(', 'g');
+      let m;
+      while ((m = re.exec(src))) {
+        const at = m.index + m[0].length - 1;
+        if (/function\s+$/.test(src.slice(0, m.index + m[1].length))) continue;   /* 声明本身那一处 */
+        calls++;
+        const a = shapeAt(src, at);
+        if (a !== d.n) bad13.push('view/' + f + ' ' + d.nm + '( 形参 ' + d.n + ' ‖ 实参 ' + a + ') 第 ' +
+          src.slice(0, m.index).split('\n').length + ' 行');
+      }
+    });
+  });
+  ok('D13', '外置件件内互调的实参形状对表（改写完形参表漏加桥参数 = 位置错移 = 整页空白，静态即可判，别留给走查）',
+    bad13.length === 0, '外置件 ' + files13.length + ' 件 · 区内声明 ' + decls + ' 枚 · 件内互调 ' + calls + ' 处' +
+    (bad13.length ? ' ‖ ' + bad13.slice(0, 6).join(' ‖ ') : ' ‖ 个数全对'));
 })();
 
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）
