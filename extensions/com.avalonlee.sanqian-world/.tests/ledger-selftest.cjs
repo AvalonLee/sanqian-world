@@ -1,7 +1,7 @@
 /* .tests/ledger-selftest.cjs — D1 账本门禁的常驻反证（2026-10-14 结构整治批B）
  * 立因：本仓纪律「回归锚先证它对本维有鉴别力」。生成器唯一的能力就是批量改写 157 KB 文档，
  *   判据写歪的破坏面比历批任何引擎缺陷都大，所以反证常驻而不是手工做一次。
- * 五判全部在内存里做，**不写工作树**（反证不该把仓库弄脏）。
+ * 判全部在内存里做，**不写工作树**（反证不该把仓库弄脏）；条数看末行 `LEDGER_SELFTEST_DONE n 判`，本行不抄数。
  * 用法：node .tests/ledger-selftest.cjs  → 末行 LEDGER_SELFTEST_DONE n 判 / 有红则 LEDGER_SELFTEST_FAILED 且退码 1
  */
 'use strict';
@@ -47,6 +47,16 @@ const next = real.slice(0, i + G.BEGIN(seg.name).length) + '\n' + '换掉的内�
 ok('⑤ 段外历史注逐字存活（生成器只动标记之间）',
   next.indexOf(histLine) >= 0 && next.slice(0, i) === real.slice(0, i) &&
   next.indexOf('换掉的内容') >= 0 && next.indexOf(regClean.body) < 0);
+
+/* ⑥ 拒写守卫（第册四一批 G2 演练立）：本机缺证据时 --fix 不许把降级读数写进正典 */
+const PREVD = { ui_asserts: 776, probe_asserts: 250 };
+const degraded = Object.assign({}, v, { ui_asserts: null, probe_asserts: 238 });
+const r6 = G.refuseFix(degraded, PREVD);
+ok('⑥ 未跑 / 探针被压低 ⇒ 拒写（两条都报）', r6.length === 2, r6.join(' ‖ '));
+ok('⑥ 读数齐且不低于在册 ⇒ 不拒写（正常收口不受影响）',
+  G.refuseFix(Object.assign({}, v, { ui_asserts: 776, probe_asserts: 250 }), PREVD).length === 0 &&
+    G.refuseFix(Object.assign({}, v, { ui_asserts: 776, probe_asserts: 251 }), PREVD).length === 0,
+  'degraded 判 ' + r6.length + ' 条');
 
 console.log(fails ? 'LEDGER_SELFTEST_FAILED ' + fails + '/' + n : 'LEDGER_SELFTEST_DONE ' + n + ' 判');
 process.exit(fails ? 1 : 0);

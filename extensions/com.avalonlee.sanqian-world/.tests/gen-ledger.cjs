@@ -202,6 +202,28 @@ function inlineDrift(text, v) {
   });
   return bad;
 }
+/* ── 拒写：证据不足的机器上不许把降级读数刷进正典（第册四一批 2026-10-18 · G2 恢复演练立）──────
+ * 立因：账本里两枚读数是**机器相关**的 —— `probe-realsave`（10 断言）与 `probe-savecodec` F 相（2 断言）
+ *   要读 gitignore 掉的 `.storage.json`，界面走查要显式跑过 `--ui`。裸 clone 上它们取不到，旧行为是
+ *   `--fix` 照样把压低的 238 和「未跑」当现行值写进 FACTS/README/DESIGN 四份文档 ⇒ **正典读数被静默改小，
+ *   而没有任何一关报错**（2026-10-18 演练实测：clone 里 `--fix` 产出 6 个脏文件，判漂只说了「漂」，
+ *   没说这漂是本机没证据、不是文档漂）。判漂仍照旧红（「未跑 ≠ 对得上」口径不动），本函数只拦**写**。
+ * 出口：真要压低在册值（删断言这类有意动作）⇒ 先把 `docs/ledger.json` 对应那格手工删掉再 `--fix`。
+ *   删格 = 故意动作的证明，比加开关便宜，也不给「顺手 --fix 掩盖」留后路。 */
+function refuseFix(v, prevIn) {
+  let prev = prevIn;
+  if (!prev) {
+    try { prev = JSON.parse(fs.readFileSync(path.join(REPO, 'docs', 'ledger.json'), 'utf8')).values || {}; }
+    catch (e) { prev = {}; }
+  }
+  const bad = [];
+  if (v.ui_asserts === null && prev.ui_asserts != null) bad.push('界面走查本机未跑（在册 ' + prev.ui_asserts + ' 断言）');
+  if (prev.probe_asserts != null && v.probe_asserts !== null && v.probe_asserts < prev.probe_asserts)
+    bad.push('探针合计 ' + v.probe_asserts + ' < 在册 ' + prev.probe_asserts +
+      '（probe-realsave 要 .storage.json ‖ savecodec F 相应平台档 ⇒ 本机缺真机档必然少这一截）');
+  return bad;
+}
+
 function applyFix(v, drift) {
   for (const d of drift) {
     const s = d.seg;
@@ -241,6 +263,12 @@ if (require.main === module) {
   r.missing.forEach((x) => console.log('MISSING ' + x));
   r.drift.forEach((d) => console.log('DRIFT ' + d.seg.file + ' [' + d.seg.name + ']' + (d.inline ? ' 段外行内 ' + d.inline : '')));
   if (FIX) {
+    const refuse = refuseFix(v);
+    if (refuse.length) {
+      console.log('LEDGER_REFUSE 本机证据不足，拒写：' + refuse.join(' ‖ ') +
+        ' ⇒ 在带 .storage.json 的机器跑 npm run test:full 再 --fix（有意压低在册值见本件 refuseFix 注）');
+      process.exit(1);
+    }
     applyFix(v, r.drift);
     /* 段体本来就对、漂在段外人写行 ⇒ `--fix` **不代人改行**（改了就是把口径写进文档），照旧判红 */
     const left = r.drift.filter((d) => d.bodyOk).length;
@@ -254,4 +282,4 @@ if (require.main === module) {
   process.exit(r.drift.length || r.missing.length ? 1 : 0);
 }
 
-module.exports = { compute, check, region, SEGMENTS, BEGIN, END, oneLine, factsTable, ATTRIB, ROOT, REPO };
+module.exports = { compute, check, region, SEGMENTS, BEGIN, END, oneLine, factsTable, ATTRIB, ROOT, REPO, refuseFix };
