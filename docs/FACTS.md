@@ -9,11 +9,11 @@
 <!-- SQ:LEDGER:BEGIN facts 现行读数由 .tests/gen-ledger.cjs 生成，手改即漂；段外不参与覆盖 -->
 | 现行读数 | 值 | 唯一事实源 |
 |---|---|---|
-| 扩展版本 | `0.5.41` | `manifest.json`（唯一事实源；D4 守仓库根不复活第二份副本） |
+| 扩展版本 | `0.5.42` | `manifest.json`（唯一事实源；D4 守仓库根不复活第二份副本） |
 | 冒烟断言 | 322 | `.tests/run-smoke.cjs` 末行 `SMOKE_ALL_GREEN` |
 | 静态审计关数 | 30 关 | `.tests/audit.cjs` 末行 `AUDIT_ALL_GREEN` |
 | 常驻探针合计 | 250 断言 | `.tests/probe-*.cjs` 逐件末行求和（run-dod 求和，不手算） |
-| 界面走查 | 32 篇 / 774 断言 | `.tests/verify-ui-*.cjs` 目录清单 + 逐篇末行 |
+| 界面走查 | 32 篇 / 776 断言 | `.tests/verify-ui-*.cjs` 目录清单 + 逐篇末行 |
 | 功法（修仙） | 70 部 | `pack.artsMap()` 键数（拆分口径见下方人写表，文档为正典） |
 | 奇遇池（生效） | 131 条 | `SQ.Events.allIds(pack)`（通用+专属+独立通道合计；拆分口径见下方人写表） |
 | 天赋池 | 196 条 | `SQ.TALENTS[世界].{positive,negative}` 逐世界求和（含古武 0 条） |
@@ -28,7 +28,7 @@
 | 日志分类 | 11 项 | `view/journal.js` LOG_CATS ‖ 对账关 = audit **D8**（项数与文案键；「每项有无写点」不在射程） |
 | 世界名册 | 6 界（可见 6） | `SQ.Worlds` / `SQ.visibleWorlds()` |
 | 世界名命名池 | 9 × 7 × 5 | `SQ.Worlds.xiuxian.nameParts` 各段长度 |
-| 词表唯一键 | 4804 | 沙箱装载后 `SQ.LEX` 各世界键数求和 |
+| 词表唯一键 | 4805 | 沙箱装载后 `SQ.LEX` 各世界键数求和 |
 <!-- SQ:LEDGER:END -->
 
 > ⚠️ **下表是各池的设计口径与历批登记原文**，其中计数属**登记当日读数**，可能滞后；

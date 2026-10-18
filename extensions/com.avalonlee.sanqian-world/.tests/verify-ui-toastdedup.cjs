@@ -90,7 +90,30 @@ const { chromium } = require('playwright-core');
   });
   T(slotNow === null, '收起已落档（slots[0]=null）', 'slot=' + slotNow);
 
-  T(errors.length === 0, '零页面报错', errors.join(' | ').slice(0, 200) || 'clean');
+  /* ── 组 C（第册卅一批 · 排期 C2）：tick 里抛异常 ⇒ 必须给一次人话信号，且同一枚错只播一次 ──
+   * 原先整段 `catch (e) { /* 静默 *\/ }`，渲染器每秒抛也是零信号（不是 pageerror、`assets/**` 零 console），
+   * 任何门禁都照不到。造法 = 页内把 `SQ.claim` 换成必抛（tick 每秒 `await` 它，走的就是那条 catch）；
+   * 文案对照走**页内取数口** `SQ.t('ui.error.render')`，不在测试里抄第二份文本。 */
+  await page.evaluate(() => {
+    window.__claim0 = SQ.claim;
+    SQ.claim = async function () { throw new TypeError('mocked tick failure'); };
+  });
+  await page.waitForTimeout(3200);
+  const c2a = await page.evaluate(() => {
+    var key = SQ.t('ui.error.render');
+    return { n: window.__toasts.filter(function (x) { return x.indexOf(key) >= 0; }).length, key: key };
+  });
+  T(c2a.n === 1 && c2a.key.indexOf('ui.error') < 0,
+    'C2a tick 抛异常时播**一次**人话提示（3.2s 内三个 tick 只播一次，且取到的是中文句不是裸键名）',
+    'n=' + c2a.n + ' · ' + c2a.key.slice(0, 24));
+  await page.evaluate(() => { SQ.claim = window.__claim0; });
+  await page.waitForTimeout(1600);
+  const c2b = await page.evaluate(() => {
+    var key = SQ.t('ui.error.render');
+    return window.__toasts.filter(function (x) { return x.indexOf(key) >= 0; }).length;
+  });
+  T(c2b === 1, 'C2b 恢复可跑后不再补播（签名去重：同一枚错只播一次，换错才重播）', 'n=' + c2b);
+  T(errors.length === 0, '零页面报错（含 C2 造的那次 tick 抛：异常被 catch 接住、不外溢成 pageerror）', errors.join(' | ').slice(0, 200) || 'clean');
   console.log(fail === 0 ? 'UI_TOASTDEDUP_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_TOASTDEDUP_FAILED ' + fail);
   await browser.close();
   process.exit(fail === 0 ? 0 : 1);
