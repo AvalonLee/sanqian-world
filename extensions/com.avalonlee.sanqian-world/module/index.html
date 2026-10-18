@@ -333,7 +333,13 @@
 
   async function refresh() {
     try {
-      await SQ.claim(state);   /* module 与 view 共享同一份存储：卡片上也已结算离线收益 */
+      /* A2（第册三十批 · 排期 A2）：卡片**只读**。原先每 30s 走一次 `SQ.claim`，与 view 侧每秒的
+       * claim 争同一个键，而 `core.js` 那把 `opChain` 写锁是**每 JS 上下文各一把**（跨上下文互不可见）
+       * ⇒ 两边的「读-改-写」会互吞离线结算。卡片本就是展示面（第二十一批已删跳转、只读），结算交回
+       * view 一侧 ⇒ 少一个写入者。原注那句「卡片上也已结算离线收益」随之作废（它描述的正是要撤的行为）。
+       * 判据 = 审计 **D10**（module 件里禁出现任何写入口），走查 `verify-ui-modulecard` 同源对表照跑。 */
+      var sRead = await SQ.load();
+      if (sRead) state = sRead;
       render();
     } catch (e) {
       document.body.classList.add('is-empty');
