@@ -1324,4 +1324,22 @@ window.SQSmoke.frag('10-life-heir-jianghu', async function () {
     ok(77, 'IIFE 挂载顺序完整', ['Mods', 'Talents', 'Attrs', 'Gear', 'Arts', 'Combat', 'Realm', 'Idle', 'Shop', 'Events', 'Actions']
       .every(function (n) { return !!SQ[n]; }));
 
+    /* #323 死名册上界 = 名录上限的派生值（B1 · N64 · 第册卅二批）两刀：
+     * (a) 钉表值：`deadCap(D)` 必等于 `D.PRODIGY.COUNT_MAX` 且严格大于旧口径 20（旧值 20 ⇒ 本判红）；
+     * (b) 挤不出最旧：先把 dead 预置成**旧上界满档 20 条**（哨兵 `zz_oldest` 在最旧位），再走唯一
+     *     出榜写口 `killOff` 杀一名真出场者 ⇒ 名册长到 21 条而最旧那条**仍在**（旧代码在此 shift 掉它，
+     *     于是那名死者能被 `fillOf` 当背景席位补回榜面 = 人死复生）。
+     * 两刀同挂 #323；反向 = 把 `deadCap` 改回常量 20 ⇒ 本判如实红。 */
+    var cap323 = SQ.Prodigy.deadCap(D);
+    var tab323 = cap323 === D.PRODIGY.COUNT_MAX && cap323 > 20;
+    w317.prodMarks = w317.prodMarks || {};
+    w317.prodMarks.dead = ['zz_oldest'];
+    for (var z323 = 0; z323 < 19; z323++) w317.prodMarks.dead.push('zz_fill' + z323);
+    var v323 = victim317 || w317.prodigies[0];
+    SQ.Prodigy.killOff(w317, { meta: {} }, pack, D, v323, 1700000323000, noopLog());
+    var d323 = w317.prodMarks.dead;
+    ok(323, '死名册按名录上限封顶：一世杀满 21 人也不挤掉最旧那名死者（B1 · 人死不复生的唯一依据）',
+      tab323 && d323.length === 21 && d323[0] === 'zz_oldest' && d323.indexOf(v323.rid) >= 0,
+      'cap=' + cap323 + ' COUNT_MAX=' + D.PRODIGY.COUNT_MAX + ' 长=' + d323.length + ' 最旧=' + d323[0] + ' 新死者在册=' + (d323.indexOf(v323.rid) >= 0));
+
 });

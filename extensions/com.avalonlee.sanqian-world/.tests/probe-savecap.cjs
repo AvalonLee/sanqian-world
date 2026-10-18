@@ -122,7 +122,7 @@ console.log('--- 身死掉落通道（第册三批）：全世 ' + dropBefore.n 
 console.log('  法宝 owned            = ' + dropBefore.tb + ' → ' + dropAfter.tb + ' 件（+' + (dropAfter.tb - dropBefore.tb) + '）');
 console.log('  功法 artsKnown + shelf = ' + (dropBefore.kn + dropBefore.sh) + ' → ' + (dropAfter.kn + dropAfter.sh) +
   ' 部（已学 ' + dropBefore.kn + '→' + dropAfter.kn + ' ‖ 架 ' + dropBefore.sh + '→' + dropAfter.sh + '，架 ' + D.SHELF_CAP + ' 位封顶）');
-console.log('  prodMarks.dead        = ' + dropAfter.dead + ' 条（≤20 封顶，超限挤最旧）');
+console.log('  prodMarks.dead        = ' + dropAfter.dead + ' 条（上界 = SQ.Prodigy.deadCap(D) = 名录上限 COUNT_MAX，第册卅二批 B1 起不再写死 20；超限挤最旧）');
 const sB = n => (n >= 0 ? '+' : '−') + Math.abs(n) + 'B';   /* 符号统一算：旧写法把 '+' 拼在负数前打成 '+-6205B' */
 console.log('  本通道净增（末态）    = ' + sB(dropAfter.b - dropBefore.b) + ' ≈ ' + ((dropAfter.b - dropBefore.b) / 1024).toFixed(2) + 'KB');
 console.log('  过程中最贵的一刻      = 杀掉第 ' + dropPeakAt + ' 人时 ' + sB(dropPeak - dropBefore.b) +
