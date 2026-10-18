@@ -509,12 +509,15 @@
     for (var si = 0; si < D.ZONES.length; si++) {
       out.shards.push(Math.max(0, Math.floor(num(rawSh[si], 0))));
     }
-    /* 天道垂青 fateSeen：[{id, realm}] 结构逐项校验（同境界段排除数据源），cap 64 截尾 */
+    /* 天道垂青 fateSeen：[{id, realm}] 结构逐项校验（同境界段排除数据源），cap 64 截尾。
+     * ⚠️ `realm === -1` 是**在册哨兵**（隐世三席那条间接得知 `Prodigy.tick:506` 走 `fireTagged(…, 'jianghu_hid', -1, …)`，
+     *   -1 = 与渡劫垂青池「按境界段分账」隔开，一世只演一次）。本行原写 `rl < 0` 一律丢 ⇒ 哨兵每次读档被静默抹掉
+     *   ⇒ 每月钩子重新演一次（2026-10-18 用户报「云外一声固定每月触发」= 这一条；判据 #326 走真实落盘往返取证）。 */
     var fs = [];
     arr(raw.fateSeen, []).forEach(function (f) {
       if (!f || typeof f !== 'object' || typeof f.id !== 'string' || !f.id) return;
       var rl = Math.floor(num(f.realm, 0));
-      if (rl < 0 || rl >= D.REALMS.length) return;
+      if (rl !== -1 && (rl < 0 || rl >= D.REALMS.length)) return;
       if (fs.length < 64) fs.push({ id: f.id, realm: rl });
     });
     out.fateSeen = fs;
