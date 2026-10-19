@@ -520,6 +520,7 @@
 <script src="alchemy.js"></script>
 <script src="bonds.js"></script>
 <script src="legacy.js"></script>
+<script src="show.js"></script>
 <script>
 (function () {
   var SQ = window.SQ;
@@ -2329,7 +2330,7 @@
       var res = await SQ.Actions.resolveChoice(state, bk);
       if (res) {
         toast(t('event.auto.resolved', { name: t('event.' + ev.id + '.name'), branch: t('branch.' + bk) }));
-        if (res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) showExclusive(res.eff);
+        if (res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) SQ.UI.show.exclusive(ctx(), res.eff);
         /* bond 升档 toast：与手动抉择同一白名单（交互说明 §2.3） */
         var bd = res.eff && res.eff.bond;
         if (bd && bd.tierUp && !bd.blocked) {
@@ -2426,7 +2427,7 @@
       ambushFoot(0);
       toast(t('event.ambush.ui.timeout'));
       var res = await SQ.Actions.resolveChoice(state, 'right');
-      if (res && res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) showExclusive(res.eff);
+      if (res && res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) SQ.UI.show.exclusive(ctx(), res.eff);
       /* 超时也必须把这一屏**结清在屏上**：旧代码只 renderAll()，浮层还开着、分支排还在、挂起已清空
        * ⇒ 三枚按钮点了都撞 `if (!pendC) return`，而抉择模态既不在遮罩可关族也不吃 ESC ⇒ 玩家被钉死在这一屏，
        *   只能刷新页面逃出去（2026-10-18 用户报「魔道来犯无法点击选项、又关不掉」）。
@@ -2436,51 +2437,11 @@
     }, 1000);
   }
 
-  /* 独占奖励全屏演出（获得即演；点击或 2.8s 自动收起） */
-  function showExclusive(eff) {
-    var isGear = !!eff.exclusiveGear;
-    var name = isGear ? t('gear.ex.' + eff.exclusiveGear) : t('skill.' + eff.exclusiveArt + '.name');
-    $('excl-t1').textContent = isGear ? t('event.exclusive.title') : t('event.exclusive.art');
-    $('excl-t2').textContent = name;
-    $('excl-t3').textContent = t('event.exclusive.hint');
-    $('excl-stage').classList.remove('hide');
-    setTimeout(function () { $('excl-stage').classList.add('hide'); }, 2800);
-  }
-  $('excl-stage').addEventListener('click', function () { $('excl-stage').classList.add('hide'); });
-
-  /* 名号更迭全屏演出（善恶名号批）：跨段瞬间弹，小标 + 大名号 + 尾注；点按或 3.2s 自动收。
-   * 与独占演出同「获得即演」纪律；轻幕 + 按档位着色（正/左/魔三色）。 */
-  var rankStageTimer = null;
-  function showKarmaRank(rankId, tier) {
-    $('rank-t1').textContent = t('karma.rank.show.t1');
-    $('rank-t2').textContent = t('karma.rank.' + rankId);
-    $('rank-t2').className = 'r2 ' + tier;
-    $('rank-t3').textContent = t('karma.rank.show.t3');
-    var st = $('rank-stage');
-    st.className = 'rank-mask ' + tier;
-    if (rankStageTimer) clearTimeout(rankStageTimer);
-    rankStageTimer = setTimeout(function () { st.classList.add('hide'); }, 3200);
-  }
-  $('rank-stage').addEventListener('click', function () { $('rank-stage').classList.add('hide'); });
-
-  /* 洞府入驻轻演出（批 2 · B3 · 稿三）：只给「第一次拥有」——洞府名 + caveMult + 灵气叙事全文，
-   * 点按跳过 / 4.2s 自动收；迁居（已持有间切换）不出本演出，只弹一行 toast。 */
-  var caveStageTimer = null;
-  function showCaveEnter(caveId, mult) {
-    $('cvs-t1').textContent = t('cave.system');
-    $('cvs-t2').textContent = t('cave.' + caveId + '.name');
-    $('cvs-t3').textContent = t('cave.show.mult', { mult: mult.toFixed(2) });
-    $('cvs-story').textContent = t('cave.' + caveId + '.desc');
-    $('cvs-skip').textContent = t('cave.show.skip');
-    var st = $('cave-stage');
-    st.classList.remove('hide');
-    clearTimeout(caveStageTimer);
-    caveStageTimer = setTimeout(function () { st.classList.add('hide'); }, 4200);
-  }
-  $('cave-stage').addEventListener('click', function () {
-    clearTimeout(caveStageTimer);
-    $('cave-stage').classList.add('hide');
-  });
+  /* ── 演出族三枚（独占 / 名号 / 洞府）已整片外置 `view/show.js`（N34 第十四刀 · 第册五十批）：
+   * 演出本体与三枚定时器都在件内，这里只留三个监听，监听体一律一行转发。 ── */
+  $('excl-stage').addEventListener('click', function () { SQ.UI.show.closeExcl(ctx()); });
+  $('rank-stage').addEventListener('click', function () { SQ.UI.show.closeRank(ctx()); });
+  $('cave-stage').addEventListener('click', function () { SQ.UI.show.closeCave(ctx()); });
 
   function renderChoiceResult(res) {
     choiceResult = res;
@@ -2570,35 +2531,9 @@
     $('mo-ok').textContent = t('offline.report.ok');
     $('modal-offline').classList.remove('hide');
   }
-  /* 坐化呈报（寿元批 2026-10-15 · §6.1A）：引擎在 claim 内已经判死、结完遗泽、把 ws 换成新世，
-   * 这里只交代「为什么死 + 这一世带走了什么」，确定即进创角——绝不做「无声被扔回创角屏」。
-   * 与出关呈报同一浮层组件（不加新 DOM id ⇒ A3 零新增面），at 键控会话一次。 */
-  function showDeathReport() {
-    var ld = ws().lastDeath;
-    if (!ld) return;
-    ui.seenDeathAt = ld.at;
-    ui.deathPending = true;
-    $('mo-title').textContent = t('life.death.title');
-    /* 死因取话（第卌八批）：旧写法是 `cause === 'daoshang' ? 道伤 : 寿尽` 的二元 ternary，
-     * 新增的 zhesou 会被静默归成「寿元耗尽」——那句谎话正是本仓登记过的「兜底键复用」那一形。
-     * 三个键名都按字面量写全：A6 的反向扫描只认字面量，动态拼串会把它判成孤儿。 */
-    $('mo-sub').textContent = t(ld.cause === 'daoshang' ? 'life.death.daoshang'
-      : (ld.cause === 'zhesou' ? 'life.death.zhesou' : 'life.death.shoujin'));
-    $('mo-stats').innerHTML = '';
-    $('mo-hint').textContent = t('life.death.stats', {
-      age: SQ.fmt(ld.age || 0),
-      realm: t('realm.' + Math.min(ld.realm || 0, D().REALMS.length - 1)),
-      dao: ld.dao || 0, n: SQ.fmt(ld.total || 0)
-    });
-    $('mo-ok').textContent = t('life.death.ok');
-    $('modal-offline').classList.remove('hide');
-  }
-  $('mo-ok').addEventListener('click', function () {
-    $('modal-offline').classList.add('hide');
-    /* 死后的「转世重生」= 进创角（与兵解/飞升收线同一条路）；出关呈报仍走原路重绘 */
-    if (ui.deathPending) { ui.deathPending = false; enterRebirthCreation(); playRecapLastBio(); return; }
-    renderAll();
-  });
+  /* 坐化呈报（`deathReport`）与确认收口（`okDeath`）已整片外置 `view/show.js`（N34 第十四刀 · 第册五十批）：
+   * 这里只留确认键的一行转发——`deathPending` 那条分支（进创角 + 盖棺之传）在件内走桥位。 */
+  $('mo-ok').addEventListener('click', function () { SQ.UI.show.okDeath(ctx()); });
 
   /* ── 角色浮层 ── */
   function showRole() {
@@ -3029,45 +2964,12 @@
     if (SQ.Tiandao.unseenOmens(w)) SQ.Actions.tdOmensSeen(state).then(renderAll);   /* 即开即消红点 */
   }
 
-  /* ── 兵解 · 盖棺之传（第册批）：逐字节奏抄接旨判词那一段（+3 字 / 24ms，500 字 ≈ 4 秒），
-   * reducedMotion 直出全文。定时器自查隐藏态自收 ⇒ 四条关法（入世钮 / 点遮罩 / ESC /
-   * enterRebirthCreation 的 MASKS 全关）都不会留下一个还在往暗处写字的 interval。
-   * shortcut: 中途按「入世」即离场，未写完的正文不在屏上补全——全文恒在轮回页「前世书」，无丢失。 ── */
-  var recapTimer = null;
-  function showRecap(title, text) {
-    var el = $('mrp-text');
-    $('mrp-title').textContent = title;
-    $('mrp-go').textContent = t('legacy.ui.recap.go');
-    el.textContent = '';
-    el.scrollTop = 0;
-    if (recapTimer) { clearInterval(recapTimer); recapTimer = null; }
-    if (reducedMotion()) el.textContent = text;
-    else {
-      var vi = 0;
-      recapTimer = setInterval(function () {
-        if ($('modal-recap').classList.contains('hide')) { clearInterval(recapTimer); recapTimer = null; return; }
-        vi += 3;
-        el.textContent = text.slice(0, vi);
-        el.scrollTop = el.scrollHeight;   /* 滚的是正文那一格：标题与「入世」钮都不跟着滚走 */
-        if (vi >= text.length) { clearInterval(recapTimer); recapTimer = null; }
-      }, 24);
-    }
-    $('modal-recap').classList.remove('hide');
-  }
-  $('mrp-go').addEventListener('click', function () {
-    if (recapTimer) { clearInterval(recapTimer); recapTimer = null; }
-    $('modal-recap').classList.add('hide');
-  });
-
-  /* ── 盖棺之传的通用出口（N61 · 第册十二批）：五条终局路（飞升 / 兵解 / 寿尽 / 道伤 / 折寿）
-     * 演的是同一句标题、同一份正文 = 引擎刚写进 `meta.biographies` 的那一世末条 ⇒ 视图零自造文本
-     * （第册批那条纪律沿用）。**必须在 enterRebirthCreation() 之后调用**：它会把 MASKS 全关一遍，
-     * 反序就把自己刚开的浮层关掉（兵解那一路第册批已踩过）。 ── */
-  function playRecapLastBio() {
-    var bs = state.meta.biographies || [];
-    var bio = bs[bs.length - 1];
-    if (bio && bio.text) showRecap(t('legacy.ui.recap.title'), bio.text);
-  }
+  /* ── 兵解 · 盖棺之传（第册批）已整片外置 `view/show.js`（N34 第十四刀 · 第册五十批）：
+   * 打字机节奏（+3 字 / 24ms）与「自查隐藏态自收」的 interval 随件搬走（`recap` / `closeRecap` / `playRecap`）。
+   * 这里只留两样：入世钮的一行转发 ‖ 桥位 `playRecap` 用的内核别名（`view/legacy.js` 与确认键都要它）。 ── */
+  $('mrp-go').addEventListener('click', function () { SQ.UI.show.closeRecap(ctx()); });
+  /* 桥位 `playRecap` 的取值：第十三刀起给 `view/legacy.js` 用，本刀起由它转发到件内实现 */
+  function playRecapLastBio() { return SQ.UI.show.playRecap(ctx()); }
 
   /* 复制奏疏：先走同步 execCommand（内嵌 webview 无剪贴板权限时唯一可用路径，
    * 且在全选态下必然复制全文），失败再试异步 clipboard；两条都失败则明示手动全选，
@@ -3589,7 +3491,7 @@
       askConfirm(t('cave.confirm.title', { name: t('cave.' + chkC.cave.id + '.name') }), bodyC, async function () {
         var res = await SQ.Actions.enterCave(state, v);
         if (res && res.ok) {
-          if (!wasOwned && !reducedMotion()) showCaveEnter(res.cave.id, toC);
+          if (!wasOwned && !reducedMotion()) SQ.UI.show.caveEnter(ctx(), res.cave.id, toC);
           else toast(t('cave.enter.ok', { name: t('cave.' + res.cave.id + '.name'), mult: toC.toFixed(2) }));
         } else if (res) {
           toast(t('cave.enter.fail.' + res.reason));
@@ -3915,7 +3817,7 @@
       var finishChoose = async function () {
         var res = await SQ.Actions.resolveChoice(state, bk);
         if (!res) return;
-        if (res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) showExclusive(res.eff);
+        if (res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) SQ.UI.show.exclusive(ctx(), res.eff);
         /* bond 升档 toast（B7 · 交互说明 §2.3 白名单）：达档 3 另弹「愿为你护法」 */
         var bd = res.eff && res.eff.bond;
         if (bd && bd.tierUp && !bd.blocked) {
@@ -3956,7 +3858,7 @@
     var w = ws();
     checkIo();
     /* 坐化呈报排在弹层栈首（寿元批）：人死在这一刻，抉择 / 出关 / 渡劫结果都属于上一世了 */
-    if (w.lastDeath && w.lastDeath.at !== ui.seenDeathAt) showDeathReport();
+    if (w.lastDeath && w.lastDeath.at !== ui.seenDeathAt) SQ.UI.show.deathReport(ctx());
     else if (w.pendingChoice) {
       /* 自动批：自动奇遇开启 → 不弹抉择模态，自动择分支结算；关闭 → 维持弹窗 */
       if (autoEventOn()) autoResolveChoice();
@@ -4007,7 +3909,7 @@
     var rankSys = pack().worldSystems;
     var rankNow = (rankSys && rankSys.rankOf) ? rankSys.rankOf(w) : '';
     if (ui.karmaRank && rankNow && rankNow !== ui.karmaRank && !overlayOpen()) {
-      showKarmaRank(rankNow, rankSys.tierOf(w));
+      SQ.UI.show.karmaRank(ctx(), rankNow, rankSys.tierOf(w));
       ui.karmaRank = rankNow;
     }
   }
@@ -4130,7 +4032,7 @@
       /* 死在门口（寿元批）：boot 那一次离线结算里就已完成强制转世 ⇒ 档案名已空、进不了主界面。
        * 不能把人无声扔在创角屏——先演坐化呈报，确定后仍是创角流程。 */
       var ld0 = ((s.worlds || {})[s.profile.worldId] || {}).lastDeath;
-      if (!hasProfile(s) && ld0 && ld0.at !== ui.seenDeathAt) { show('c1'); showDeathReport(); return; }
+      if (!hasProfile(s) && ld0 && ld0.at !== ui.seenDeathAt) { show('c1'); SQ.UI.show.deathReport(ctx()); return; }
       if (hasProfile(s)) enterMain();
       /* 读档失败回落空档 ⇒ 屏上是一张干净的创角屏。不提示就是「无声以为档没了」，
        * 而玩家此时顺手新建 = `SQ.mutate` 起手又读失败 → 拿空档落盘 → **盖掉盘上那份完好但读不动的载荷**。
