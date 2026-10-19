@@ -9,7 +9,7 @@
 <!-- SQ:LEDGER:BEGIN facts 现行读数由 .tests/gen-ledger.cjs 生成，手改即漂；段外不参与覆盖 -->
 | 现行读数 | 值 | 唯一事实源 |
 |---|---|---|
-| 扩展版本 | `0.5.63` | `manifest.json`（唯一事实源；D4 守仓库根不复活第二份副本） |
+| 扩展版本 | `0.5.64` | `manifest.json`（唯一事实源；D4 守仓库根不复活第二份副本） |
 | 冒烟断言 | 326 | `.tests/run-smoke.cjs` 末行 `SMOKE_ALL_GREEN` |
 | 静态审计关数 | 34 关 | `.tests/audit.cjs` 末行 `AUDIT_ALL_GREEN` |
 | 常驻探针合计 | 250 断言 | `.tests/probe-*.cjs` 逐件末行求和（run-dod 求和，不手算） |

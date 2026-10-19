@@ -525,6 +525,7 @@
 <script src="idle.js"></script>
 <script src="tiandao.js"></script>
 <script src="self.js"></script>
+<script src="event.js"></script>
 <script>
 (function () {
   var SQ = window.SQ;
@@ -610,7 +611,16 @@
        * 不能只信改写规则自己那份白名单（`pct` / `timeAgo` / `offlineDetail` 三枚就是这样漏的）。 */
       offlineDetail: offlineDetail,
       /* 第十八刀补一枚（自我浮层外置 `view/self.js`）：`identityParts` = 道号 / 世界 / 境界三段拼装（角色卡标题用） */
-      identityParts: identityParts };
+      identityParts: identityParts,
+      /* 第十九刀补八枚（奇遇族外置 `view/event.js`；这八枚家族外都有调用 ⇒ 只能留内核、经桥取）：
+       * `ambushHalt` / `ambushCountdown` = 袭击抉择倒计时（收口 / 读秒）‖ `mirrorWorn` = 照世镜是否佩戴 ‖
+       * `findEvent` / `allEventList` = 奇遇池取值 ‖ `exclusiveOf` = 专属奖励判定 ‖ `branchChecks` = 分支检查项 ‖
+       * `checkPreview` = 判定预览（88 行那件，核内三个调用点）。 */
+      ambushHalt: ambushHalt, ambushCountdown: ambushCountdown, mirrorWorn: mirrorWorn,
+      findEvent: findEvent, allEventList: allEventList, exclusiveOf: exclusiveOf,
+      branchChecks: branchChecks, checkPreview: checkPreview,
+      /* 同刀补一枚：clearJudging = 判定动画定时器清点（定时器数组仍在核内，件内只借这一枚） */
+      clearJudging: clearJudgingTimers };
   }
   /* `fresh` 桥位的取值别名（见上注：不许让 `ctx` 这个私名进 D7 的私名表） */
   function freshCtx() { return ctx(); }
@@ -1590,103 +1600,11 @@
     }
   }
 
-  function feedCard(f) {
-    /* 时间列（v2.3）：游戏历（叙事流同属日志流）；旧档无 createdAt 兜底回真实时刻 */
-    var ft = gameDateStr(f.ts);
-    if (!ft) {
-      var dt = new Date(f.ts);
-      ft = ('0' + dt.getHours()).slice(-2) + ':' + ('0' + dt.getMinutes()).slice(-2);
-    }
-    var grade = t('event.tier.' + f.tier) + '·' + t('event.nature.' + f.nature);
-    var k = f.karma >= 0 ? t('event.karma.pos', { n: f.karma }) : t('event.karma.neg', { n: f.karma });
-    var chk = '';
-    if (f.hadCheck) {
-      chk = f.pass ? ' <span style="color:var(--good)">' + esc(t('check.ok')) + '</span>'
-        : ' <span style="color:var(--bad)">' + esc(t('check.fail')) + '</span>';
-    }
-    /* 卡片整体可点 = 复用图鉴那套「奇遇回看」浮层（`openRecall`：story + 首遇 + 上次抉择 + 上次得失），
-     * 不再另造第二张详情卡（用户令「点击近来奇遇卡片应弹窗便于查阅」）。
-     * 卡内「未择之路」折叠区自带 `data-act="unwalked"`，委托走 `closest('[data-act]')` ⇒ 内层优先，不冲突。 */
-    var h = '<div class="fcard" data-act="recallEvent" data-v="' + esc(f.id) + '"><div class="fh">' +
-      '<span class="fn">' + esc(t('event.' + f.id + '.name')) +
-      (f.via === 'rumor' ? '<span class="ebadge">' + esc(t('rumor.badge.via')) + '</span>' : '') +
-      ' <span class="hint">[' + esc(grade) + ']</span></span><span class="ft">' + esc(ft) + '</span></div>';
-    h += '<div class="fg">' + esc(t('event.' + f.id + '.branch.' + f.branch)) + chk + ' · ' + esc(k) + '</div>';
-    h += '<div class="fe">' + esc(SQ.Events.effText(ws(), pack(), D(), f.eff || {})) + '</div>';
-    /* 未择之路折叠区（B8）：仅佩戴照世镜时渲染；卸下即隐藏、展开态复位（renderEvent 侧清 ui.unwalked） */
-    if (mirrorWorn()) {
-      var evU = findEvent(f.id);
-      var openU = !!ui.unwalked[f.ts];
-      h += '<div class="unwalked"><span class="uw-t" data-act="unwalked" data-v="' + f.ts + '">' +
-        (openU ? '▾ ' : '▸ ') + esc(t('event.unwalked.title')) + '</span>';
-      if (openU && evU) {
-        h += '<div class="uw-hint">' + esc(t('event.unwalked.hint')) + '</div><div class="uw-b">';
-        ['right', 'evil', 'neutral'].forEach(function (bk) {
-          if (bk === f.branch) return;
-          var br = evU.choices && evU.choices[bk];
-          if (!br) return;
-          var pre = (br.gain || []).map(gainPreview).filter(function (x) { return !!x; }).join(' · ');
-          h += '<div>' + esc(t('event.unwalked.line', { b: t('branch.' + bk), label: t('event.' + f.id + '.branch.' + bk) })) +
-            (pre ? ' · ' + esc(pre) : '') + '</div>';
-        });
-        h += '</div>';
-      }
-      h += '</div>';
-    }
-    return h + '</div>';
-  }
+  /* ── 叙事流卡 feedCard 已外置 `view/event.js`（N34 第十九刀 · 第册五十五批）：导出 feed，调用点改成 `SQ.UI.event.feed(ctx(), …)`。 ── */
   /* ── G17 江湖传闻卡族 ── 第册四十批整片外置 `view/rumor.js`（N34 第九刀）：卡体 / 传闻带 / 红点两助手
    * 都在那件里；内核四处（修行页顶栏 ‖ 奇遇页顶部 ‖ 页签红点 ‖ 进线基线）直调 `SQ.UI.rumor.*`，
    * 不留转发壳。`rumorGo` 那条动作仍在内核 —— 它接的是奇遇抉择那套机器，搬走会把机器一起拖出去。 */
-  function renderEvent() {
-    var w = ws();
-    if (!mirrorWorn()) ui.unwalked = {};   /* 卸下照世镜：折叠区隐藏且展开态复位（交互说明 §4.3） */
-    var feed = w.eventHistory.feed || [];
-    var seenN = Object.keys(w.eventHistory.seen || {}).length;
-    var all = allEventList();
-    var h = '<p class="hint" style="margin:0 0 10px">' + esc(t('event.page.progress', { n: seenN, total: all.length })) + '</p>';
-    /* G17 江湖传闻节（奇遇页顶部——传闻在上、亲历在下） */
-    h += SQ.UI.rumor.band(ctx(), Date.now());
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('event.feed.title')) + '</p>';
-    if (!feed.length) h += '<p class="hint" style="padding:8px 0">' + esc(t('event.feed.empty')) + '</p>';
-    /* 折叠 3 条 / 展开只到最近 10 条（用户令「展开的条数太多了」）；
-     * 存储上限仍是 `D.EVENT_FEED_CAP`（50），这条只管屏上给看多少 ⇒ 不改档、不裁流。 */
-    var shown = ui.feedExpand ? feed.slice(0, 10) : feed.slice(0, 3);
-    shown.forEach(function (f) { h += feedCard(f); });
-    if (feed.length > 3) {
-      h += '<div class="row"><button style="flex:1" data-act="feedMore">' +
-        esc(ui.feedExpand ? t('event.feed.less') : t('event.feed.more', { n: Math.min(10, feed.length) })) + '</button></div>';
-    }
-    h += '<p class="hint" style="margin:14px 0 2px;font-weight:650">' + esc(t('event.codex.title')) + '</p>';
-    ['tian', 'di', 'ren'].forEach(function (tier) {
-      /* 三节分计数与页首总数自洽（走查稿③ 第 1 项）：天 a/A + 地 b/B + 人 c/C = 页首 n */
-      var tierAll = all.filter(function (ev) { return ev.tier === tier; });
-      var tierSeen = tierAll.filter(function (ev) { return w.eventHistory.seen[ev.id] != null; }).length;
-      h += '<div class="codex-sec">' + esc(t('event.codex.sec', {
-        tier: t('event.tier.' + tier), n: tierSeen, total: tierAll.length })) + '</div><div class="codexgrid">';
-      tierAll.forEach(function (ev) {
-        var seen = w.eventHistory.seen[ev.id] != null;
-        var badges = '';
-        if (ev.special) badges += '<span class="ebadge">' + esc(t('event.badge.special')) + '</span>';
-        if (ev.once) badges += '<span class="ebadge">' + esc(t('event.badge.once')) + '</span>';
-        var ex = exclusiveOf(ev);
-        if (ex) {
-          /* 宝/法角标灰→金随获得切换（批 2 · 交互说明 ★）：gear 查 gearSeen 'ex_' 键，art 查持有 */
-          var got = ex.kind === 'gear'
-            ? (w.gearSeen || {})['ex_' + ex.id] != null
-            : SQ.Arts.owned(w, ex.id);
-          badges += '<span class="ebadge ' + (got ? 'gold' : 'gray') + '">' +
-            esc(t(ex.kind === 'gear' ? 'event.badge.exGear' : 'event.badge.exArt')) + '</span>';
-        }
-        /* 已解锁格点按 = 回看浮层（story + 首遇 + 上次抉择）；未解锁格点按 = 轻震（★） */
-        h += '<div class="cslot ' + (seen ? 'seen' : 'unseen') + '"' +
-          (seen ? ' data-act="recallEvent" data-v="' + ev.id + '"' : ' data-act="codexNudge"') + '>' +
-          esc(seen ? t('event.' + ev.id + '.name') : t('event.codex.unknown')) + badges + '</div>';
-      });
-      h += '</div>';
-    });
-    $('tab-event').innerHTML = h;
-  }
+  /* ── 奇遇页 renderEvent 已外置 `view/event.js`（N34 第十九刀 · 第册五十五批）：导出 render，调用点改成 `SQ.UI.event.render(ctx(), …)`。 ── */
 
 
   /* 日志页整段（LOG_CATS / journalLines / renderJournal）已外置成 view/journal.js（第册五批） */
@@ -1792,7 +1710,7 @@
     else if (ui.tab === 'shop') SQ.UI.shop.render(ctx());
     else if (ui.tab === 'faction') SQ.UI.faction.render(ctx());
     else if (ui.tab === 'bonds') SQ.UI.bonds.render(ctx(), 'tab');
-    else if (ui.tab === 'event') renderEvent();
+    else if (ui.tab === 'event') SQ.UI.event.render(ctx());
     else if (ui.tab === 'alchemy') SQ.UI.alchemy.render(ctx());
     else if (ui.tab === 'prodigy') SQ.UI.jianghu.render(ctx());
     else if (ui.tab === 'sect') SQ.UI.sect.render(ctx());
@@ -1911,8 +1829,9 @@
 
   /* ── 抉择模态（F3）：三分支 + 信息层（成算/花费/缺项置灰）+ 判定演出 + 结果页 + 独占全屏演出。
    * karma 不预告（按钮无道心数值）；确定性判定不满足 → 置灰；attr/power 类给出成算或可预判结果。── */
-  var choiceResult = null;
   var judgingTimers = [];
+  /* 判定动画的定时器数组（内核作答流 push，奇遇族每次开抉择前清）⇒ 清点收在这里一枚 */
+  function clearJudgingTimers() { judgingTimers.forEach(function (t) { clearTimeout(t); }); judgingTimers = []; }
   function findEvent(id) { return SQ.Events.findById(pack(), id); }
   function branchChecks(br) { return br.check ? (Array.isArray(br.check) ? br.check : [br.check]) : []; }
 
@@ -2066,58 +1985,7 @@
     } finally { autoEventBusy = false; }
   }
 
-  function showChoice() {
-    var pend = ws().pendingChoice;
-    if (!pend) return;
-    var ev = findEvent(pend.id);
-    if (!ev) return;
-    choiceResult = null;
-    judgingTimers.forEach(function (tm) { clearTimeout(tm); });
-    judgingTimers = [];
-    $('mc-badges').innerHTML =
-      '<span class="mbadge">' + esc(t('event.tier.' + ev.tier)) + '</span>' +
-      '<span class="mbadge ' + (ev.nature === 'good' ? 'good' : 'bad') + '">' + esc(t('event.nature.' + ev.nature)) + '</span>' +
-      (ev.special ? '<span class="mbadge sp">' + esc(t('event.badge.special')) + '</span>' : '') +
-      (ev.once ? '<span class="mbadge sp">' + esc(t('event.badge.once')) + '</span>' : '');
-    $('mc-title').textContent = t('event.' + ev.id + '.name');
-    $('mc-story').textContent = t('event.' + ev.id + '.story') +
-      /* 敌手快照（第卌四批 · 袭击/寻仇）：名号与战力在触发时刻已定，屏上如实报——
-       * 名录里那人此刻可能已绝交/已出榜，但**那一刀是真的冲你来过**，不回填成别人 */
-      (pend.foe ? '\n' + t('event.ambush.ui.foe', { name: pend.foe.nm, p: SQ.fmt(pend.foe.power) }) : '');
-    var bh = '';
-    var tac = ev.tactical === true;   /* 战术抉择（迎战 / 避战 / 认输）与善恶无关：不打「正道/魔道」前缀 */
-    ['right', 'evil', 'neutral'].forEach(function (bk) {
-      var br = ev.choices[bk];
-      if (!br) return;
-      var infos = [], disabled = false, lackParts = [];
-      branchChecks(br).forEach(function (chk) {
-        var pv = checkPreview(chk);
-        infos.push(pv.text || pv.label);
-        if (pv.kind === 'det' && !pv.ok) { disabled = true; lackParts.push(pv.lack || pv.label); }
-      });
-      if (disabled) infos.push(t('event.branch.lack', { req: lackParts.join(' · ') }));
-      var hasLock = (br.gain || []).some(function (g) { return g.type === 'bondLock'; });
-      /* 情谊生裂角标（缘尽收敛批）：轻中度背叛分支的预告——措辞比「绝缘」轻，明示不致缘尽 */
-      var hasDrain = (br.gain || []).some(function (g) { return g.type === 'bondDrain'; });
-      bh += '<button class="branch ' + bk + '-b" data-act="choose" data-v="' + bk + '"' + (disabled ? ' disabled' : '') + '>' +
-        '<span class="bk">' + (tac ? '' : esc(t('branch.' + bk)) + ' · ') + esc(t('event.' + ev.id + '.branch.' + bk)) +
-        (hasLock ? ' <span class="ebadge gray">' + esc(t('event.badge.bondlock')) + '</span>' : '') +
-        (!hasLock && hasDrain ? ' <span class="ebadge gray">' + esc(t('event.badge.bonddrain')) + '</span>' : '') + '</span>' +
-        (infos.length ? '<span class="bi">' + esc(infos.join(' · ')) + '</span>' : '') +
-        '</button>';
-    });
-    $('mc-branches').innerHTML = bh;
-    $('mc-branches').classList.remove('hide');
-    if (tac) ambushCountdown();
-    else {
-      ambushHalt();
-      $('mc-foot').textContent = t('event.modal.foot');
-      $('mc-foot').classList.remove('hide');
-    }
-    $('mc-judging').classList.add('hide');
-    $('mc-result').classList.add('hide');
-    $('modal-choice').classList.remove('hide');
-  }
+  /* ── 抉择浮层 showChoice 已外置 `view/event.js`（N34 第十九刀 · 第册五十五批）：导出 choice，调用点改成 `SQ.UI.event.choice(ctx(), …)`。 ── */
 
   /* ── 限时抉择（第卌四批 · 数值详设 §6.1B）：袭击 / 族中寻仇必须手动择，超时默认迎战。
    * 计时器归浮层自己养：秒级 tick 在「抉择浮层开着」时整段让路（见 startTick 首行那句 return），
@@ -2157,7 +2025,7 @@
        *   只能刷新页面逃出去（2026-10-18 用户报「魔道来犯无法点击选项、又关不掉」）。
        *   出口 = 与手点同一条 renderChoiceResult（分支排收起、结果页与「确定」到位）。res 为空 = 引擎没结这一笔，
        *   挂起原样留着，按钮照旧可用，不是死路。 */
-      if (res) { renderChoiceResult(res); renderTop(); }
+      if (res) { SQ.UI.event.choiceResult(ctx(), res); renderTop(); }
     }, 1000);
   }
 
@@ -2167,48 +2035,7 @@
   $('rank-stage').addEventListener('click', function () { SQ.UI.show.closeRank(ctx()); });
   $('cave-stage').addEventListener('click', function () { SQ.UI.show.closeCave(ctx()); });
 
-  function renderChoiceResult(res) {
-    choiceResult = res;
-    $('mc-branches').classList.add('hide');
-    $('mc-foot').classList.add('hide');
-    $('mc-judging').classList.add('hide');
-    $('mc-result').classList.remove('hide');
-    var br = res.ev && res.ev.choices ? res.ev.choices[res.branch] : null;
-    var checks = br ? branchChecks(br) : [];
-    var ck = $('mc-check');
-    if (checks.length) {
-      ck.textContent = res.pass ? t('event.result.pass') : t('event.result.fail');
-      ck.className = 'res-check ' + (res.pass ? 'pass' : 'fail');
-    } else {
-      ck.textContent = '';
-      ck.className = 'res-check';
-    }
-    $('mc-karma').textContent = res.karmaTxt;
-    $('mc-karma').className = 'res-karma ' + (res.karma >= 0 ? 'pos' : 'neg');
-    $('mc-eff').textContent = SQ.Events.effText(ws(), pack(), D(), res.eff || {});
-    var exEl = $('mc-excl');
-    if (res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) {
-      /* 独占已入手：全屏演出之外，结果页留一行豁免规则提示（UI §3.5） */
-      exEl.textContent = t('event.exclusive.hint');
-      exEl.classList.remove('hide');
-    } else {
-      exEl.classList.add('hide');
-    }
-    /* 绝交锁结果页末行灰字（B7）：「有些事做了，就再没有回头路」
-     * 缘尽收敛批（引擎卷 v1.10 §3.6）：门槛不合已降级为情谊生裂 → 换软措辞末行，
-     * 明确告知「未至恩断义绝、尚可挽回」，与 res.eff.bondLock 互斥（events.js 已同步撤销）。 */
-    var blEl = $('mc-bondlock');
-    if (res.eff && res.eff.bondLock) {
-      blEl.textContent = t('log.eff.bondLock', { name: t('bond.' + res.eff.bondLock + '.name') });
-      blEl.classList.remove('hide');
-    } else if (res.eff && res.eff.bondDrain) {
-      blEl.textContent = t('log.eff.bondDrain.hint', { name: t('bond.' + res.eff.bondDrain + '.name') });
-      blEl.classList.remove('hide');
-    } else {
-      blEl.classList.add('hide');
-    }
-    $('mc-ok').textContent = t('ui.confirm');
-  }
+  /* ── 结果页 renderChoiceResult 已外置 `view/event.js`（N34 第十九刀 · 第册五十五批）：导出 choiceResult，调用点改成 `SQ.UI.event.choiceResult(ctx(), …)`。 ── */
   $('mc-ok').addEventListener('click', function () { $('modal-choice').classList.add('hide'); renderAll(); });
 
   /* 闭关明细行（面板与出关呈报同源同数，走查稿② 第 4/6 项）：
@@ -2414,7 +2241,7 @@
       else toast(t('tiandao.log.accept', { type: t('tiandao.type.' + dec.type) }));
       renderAll();
       /* 敕赐奇遇落地 → 同样遵守「自动奇遇」设定：开启自动结算，关闭才弹抉择层 */
-      if (ws().pendingChoice) { if (autoEventOn()) autoResolveChoice(); else showChoice(); }
+      if (ws().pendingChoice) { if (autoEventOn()) autoResolveChoice(); else SQ.UI.event.choice(ctx()); }
     } else if (r && r.reason === 'seen') toast(t('tiandao.seen'));
     else if (r && r.reason === 'busy') toast(t('tiandao.busy'));
     else toast(t('tiandao.invalid'));
@@ -2853,7 +2680,7 @@
        * 关闭 → 维持抉择模态。与 afterClaim 的 tick 侧口径一致。 */
       if (rRm && rRm.ok && rRm.pending) {
         if (autoEventOn()) autoResolveChoice();
-        else showChoice();
+        else SQ.UI.event.choice(ctx());
       }
       else if (rRm && !rRm.ok) { toast(t('rumor.gone')); }
       renderAll();
@@ -3078,7 +2905,7 @@
           toast(t('bond.toast.tier', { name: t('bond.' + bd.npc + '.name'), title: t('bond.' + bd.npc + '.title.' + bd.tier) }));
           if (bd.tier === 3) toast(t('bond.toast.guardian', { name: t('bond.' + bd.npc + '.name') }));
         }
-        renderChoiceResult(res);
+        SQ.UI.event.choiceResult(ctx(), res);
         renderTop();
       };
       if (chks.length && !reducedMotion()) {
@@ -3116,7 +2943,7 @@
     else if (w.pendingChoice) {
       /* 自动批：自动奇遇开启 → 不弹抉择模态，自动择分支结算；关闭 → 维持弹窗 */
       if (autoEventOn()) autoResolveChoice();
-      else showChoice();
+      else SQ.UI.event.choice(ctx());
     }
     else if (w.lastOffline && w.lastOffline.at !== ui.seenOfflineAt) showOfflineReport();
     else if (w.tribulation.attempts > prevAttempts) showTrib();
@@ -3268,7 +3095,7 @@
     var w0 = ws();
     if (w0.pendingChoice) {
       if (autoEventOn()) autoResolveChoice();   /* 自动批：进线即自动结算，不弹窗 */
-      else showChoice();
+      else SQ.UI.event.choice(ctx());
     }
     else if (w0.lastOffline && w0.lastOffline.at !== ui.seenOfflineAt) showOfflineReport();
     /* 更新公告（第册四批 · 判定与渲染全在 view/updatenote.js）：排在遇袭抉择与出关呈报**之后**，
