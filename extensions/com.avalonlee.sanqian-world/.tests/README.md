@@ -154,7 +154,7 @@ node .tests/verify-ui-modals.cjs
 | --- | --- | --- |
 | `sim-pacing.cjs` | §6.4.1 全程节奏比值带复跑（引擎常量驱动，锚 ≈9.12 天） | `node .tests/sim-pacing.cjs` |
 | `sim-event-economy.cjs` | 在线事件经济观测（密度/主轴，登记不阻塞）· 🆕 **2026-10-07 种子批**：加 `[轮数] [种子]` / `SQ_SEED` 确定性随机（mulberry32 覆写宿主 `Math.random`，同 `sim-playthrough` 形态），给定种子 → **输出逐字节可复现**，「观察项」随之升为可复现判据（此前裸随机、v2.33 起只能登记「不作判据」）。收口双证据同 playthrough = 固定种子双跑逐字节相同 + 随机种子复跑。⚠️ 轮数 > 200 直接 `FAIL arg-repeats` 退 2（防把种子写进第一位跑出天文级循环，实测挂死过一次）；只给种子用 `SQ_SEED=<种子> node …` | `node .tests/sim-event-economy.cjs [轮数，缺省 12] [种子，缺省随机]` |
-| `sim-playthrough.cjs` | 真机模拟走查：A 新手 / B 全系统 / C 随机 fuzz 三路线，走真实事务通道 | `node .tests/sim-playthrough.cjs [轮数，缺省 2]` |
+| `sim-playthrough.cjs` | 真机模拟走查：A 新手 / B 全系统 / C 随机 fuzz 三路线，走真实事务通道 ‖ 🆕 **轨迹锚（第册四十五批 · N79 代裁）= 件内自算**：`SQ_ANCHOR=1 node .tests/sim-playthrough.cjs 1`（强制在册种子 `20261008`、不许带 `SQ_DAYS` 缩放）⇒ 末行 `PLAYTHROUGH_ALL_GREEN 7 路线 + fuzz ‖ 锚对表相同 d93d11d0`，漂了打 `FAIL 轨迹锚漂移 …` 且退码 1；钉值 `d93d11d01f419b9235c68ead54a9d45e` 在件内，**改它要写归因**（§4.42）。不设该开关则末行逐字不变（门禁链那一跑不判锚）** | `node .tests/sim-playthrough.cjs [轮数，缺省 2]` |
 | `probe-deepbatch.cjs` | 系统深化批数值探针（**一次性校准脚本，非 CI 断言**） | `node .tests/probe-deepbatch.cjs` |
 | `probe-selflearn.cjs` | 自悟（自行领悟）速率探针：读真实存档跑虚拟时间，输出首部耗时分布 / 在线 8h 收获 / 单次离线回归收获（**一次性调查脚本，非 CI 断言**） | `node .tests/probe-selflearn.cjs` |
 | `probe-tdmemo.cjs` | 问天奏疏**内容**探针：读 `.storage.json` 真实存档 → 旁路冷却与灵石 → 调 `SQ.Tiandao.ask` 生成奏疏，打印全文与契约四行（卦位 / 档位 / 旨意清单 / 编年史）命中情况（**一次性调查脚本，非 CI 断言**） | `node .tests/probe-tdmemo.cjs [hexId] [incenseIdx]` |

@@ -12,6 +12,7 @@
  * 输出：逐路线统计 + 容量水位（save 越 45KB 触发线即附字段分解）+ PLAYTHROUGH_ALL_GREEN / PLAYTHROUGH_FAILED n。
  */
 'use strict';
+const crypto = require('crypto');
 const { load } = require('./sandbox.cjs');
 const { sandbox } = load([]);
 const SQ = sandbox.window.SQ;
@@ -23,6 +24,10 @@ const ROUNDS = parseInt(process.argv[2] || '2', 10);
  * 再放开预算跑全量——整轮 5+4 条路线全量近 20 分钟，逐条试错等不起。种子模式请勿改动本值。 */
 const DAY_SCALE = parseFloat(process.env.SQ_DAYS || '1') || 1;
 const dOf = d => Math.max(1, Math.round(d * DAY_SCALE));
+/* 锚跑开关必须在**下面种子解析之前**落定（`SQ_ANCHOR=1` ⇒ 强制走在册锚种子），细则见 `const violations` 之后那块注。 */
+const ANCHOR_ON = process.env.SQ_ANCHOR === '1';
+const ANCHOR_SEED = '20261008';
+if (ANCHOR_ON) process.env.SQ_SEED = ANCHOR_SEED;
 /* ── 可复现种子（2026-10-05 存档容量防线批）：argv[3] 或 SQ_SEED；缺省/0 = 保持原随机行为 ──
  * mulberry32。覆写宿主 Math.random 即可全链受控：sandbox.cjs 把宿主 Math 对象原样注入 vm 上下文
  * （sandbox = { ..., Math, ... }），引擎与走查两侧掷判同源同对象，一处覆写逐位可复现。 */
@@ -38,6 +43,24 @@ if (SEED) {
   };
 }
 const violations = [];
+/* ── 轨迹锚 = 件内自算的机器判据（第册四十五批 2026-10-19 · N79 代裁走「做成真判据」那一支）──────
+ * 立因：AGENTS.md 一直写「轨迹锚是判据：改了结算/掉率类代码会换 md5，必须先复跑再改锚」，但 2026-10-19 实测：
+ *   ① 复算口径只活在 `run-dod.cjs:111` 那一行里（传轮数 1 ‖ 种子 20261008），文档从没写过「锚 = 这条命令 stdout 的 md5」
+ *      ⇒ 取证第一轮按 `SQ_SEED` 不带轮数复算，得到 14,397B 的另一形状，差点上报「锚不可复现」；
+ *   ② `.tests/**` 全域 `createHash` 零命中 ⇒ **没有任何件在算它**，而在册锚 `56573788…`（11,203B，第册十二批钉）自那以后
+ *      卅余批无人重钉、无一关报过 ⇒ 那条「判据」在机器层面是假的。
+ * 判：**锚态由显式开关 `SQ_ANCHOR=1` 说了算**（不由「有没有传种子」推——门禁链的随机跑、换种子的探路跑、
+ *   `SQ_DAYS` 开发跑都要保持原样绿，靠种子推会把绿跑判红）。开了锚开关就：① 强制走在册种子 `20261008`
+ *   （锚 = 这条种子下的那份逐路线读数）；② 把每一行读数同时收进数组；③ 在打末行 marker **之前**对数组
+ *   `join('\n')` 求 md5 与 `ANCHOR_MD5` 对表，漂了就打 FAIL 行并判红。末行 marker 不参与哈希（避免自指）。
+ * 用法：`SQ_ANCHOR=1 node .tests/sim-playthrough.cjs 1` ⇒ 末行 `PLAYTHROUGH_ALL_GREEN … ‖ 锚对表相同 d93d11d0`。
+ * 改锚纪律照 §4.42：换值要写归因（哪一批改了结算 / 掉率 / 呈现计数），不许顺手把锚改成新值。 */
+const ANCHOR_MD5 = 'd93d11d01f419b9235c68ead54a9d45e';
+const TRAJ = [];
+if (ANCHOR_ON) {
+  const logRaw = console.log;
+  console.log = function () { TRAJ.push(Array.prototype.join.call(arguments, ' ')); logRaw.apply(console, arguments); };
+}
 const crashes = [];
 /* 容量红线/触发线读 core.js 导出的单一事实源（旧版三处硬编码 50/45，与 smoke、probe 各自为政） */
 const RED_KB = SQ.SAVE_RED / 1024;
@@ -1324,8 +1347,25 @@ async function playFuzz(round) {
 
   const anyAscend = reports.some(r => r.ascended);
   const anyLife2 = reports.some(r => r.lives >= 1);
-  const pass = crashes.length === 0 && violations.length === 0 && anyAscend && anyLife2 && fuzzRep.realm >= 0;
-  console.log(pass ? 'PLAYTHROUGH_ALL_GREEN ' + reports.length + ' 路线 + fuzz'
-    : 'PLAYTHROUGH_FAILED crashes=' + crashes.length + ' violations=' + violations.length + ' ascend=' + anyAscend + ' life2=' + anyLife2);
+  /* 锚判：只在锚跑上判（`SQ_ANCHOR=1` 且实跑种子 === 在册锚种子）⇒ 门禁链与开发跑末行逐字不变 */
+  const ANCHOR_SEED_NUM = (parseInt(ANCHOR_SEED, 10) || 0) >>> 0;
+  let anchorDrift = false, anchorTxt = '';
+  if (ANCHOR_ON) {
+    const got = crypto.createHash('md5').update(TRAJ.join('\n')).digest('hex');
+    if (DAY_SCALE !== 1 || SEED !== ANCHOR_SEED_NUM) {
+      anchorDrift = true;
+      anchorTxt = '锚跑参数不对（种子 ' + SEED + ' ‖ 日预算 ' + DAY_SCALE + '）';
+      console.log('FAIL 锚跑必须种子 ' + ANCHOR_SEED_NUM + ' 且不带 SQ_DAYS 缩放，本次种子=' + SEED + ' SQ_DAYS=' + DAY_SCALE);
+    } else if (got !== ANCHOR_MD5) {
+      anchorDrift = true;
+      anchorTxt = '锚漂移 ' + got.slice(0, 8);
+      console.log('FAIL 轨迹锚漂移：本次逐路线读数 md5=' + got + ' ‖ 在册锚=' + ANCHOR_MD5 +
+        ' ⇒ 结算 / 掉率 / 呈现计数换了形状。改锚要写归因（§4.42），不许顺手把锚改成新值');
+    } else anchorTxt = '锚对表相同 ' + got.slice(0, 8);
+  }
+  const pass = crashes.length === 0 && violations.length === 0 && anyAscend && anyLife2 && fuzzRep.realm >= 0 && !anchorDrift;
+  console.log((pass ? 'PLAYTHROUGH_ALL_GREEN ' + reports.length + ' 路线 + fuzz'
+    : 'PLAYTHROUGH_FAILED crashes=' + crashes.length + ' violations=' + violations.length + ' ascend=' + anyAscend + ' life2=' + anyLife2)
+    + (ANCHOR_ON ? ' ‖ ' + anchorTxt : ''));
   process.exit(pass ? 0 : 1);
 })();
