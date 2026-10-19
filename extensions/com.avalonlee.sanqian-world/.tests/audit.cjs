@@ -27,6 +27,7 @@
  *   D10 module 卡片只读（禁一切写入口；第册三十批 · 排期 A2 立）
  *   D11 世界包双清单键集对账（initialState ⇔ normalize 双向相等；第册卅四批 · 排期 D2 立）
  *   D12 世界 id 点名封闭（通用层/视图/卡片不许硬写世界 id；第册卅五批 · 排期 D4 立）
+ *   D14 视图件导出面 ⇔ 引用面双向对表（导出没人读 = 入口丢了 ‖ 读点没出口 = 真机 undefined；第册四十六批 · 第十一刀自曝立）
  *   D13 外置件件内互调的实参形状对表（区内声明的函数被同件调用 ⇒ 实参数 === 形参数；第册四十二批 · N34 第十刀自曝立，销 N31 那半条）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
@@ -1175,6 +1176,63 @@ const SQ = sandbox.window.SQ;
   ok('D13', '外置件件内互调的实参形状对表（改写完形参表漏加桥参数 = 位置错移 = 整页空白，静态即可判，别留给走查）',
     bad13.length === 0, '外置件 ' + files13.length + ' 件 · 区内声明 ' + decls + ' 枚 · 件内互调 ' + calls + ' 处' +
     (bad13.length ? ' ‖ ' + bad13.slice(0, 6).join(' ‖ ') : ' ‖ 个数全对'));
+})();
+
+/* ── D14 视图件导出面 ⇔ 引用面 双向对表（第册四十六批 2026-10-19 · 第十一刀自曝立）──────────────
+ * 立因：本批把炼丹页委托里的八枚动作分支整块搬进 `view/alchemy.js` 并导出，却**忘了把调用点接回内核**
+ *   ⇒ 静态四关全绿（件在、桥对、形状对），三篇走查（chains / market / talentswap）才照出来：点了「开炉」「服用」没反应。
+ *   D7 判「件用了桥没给的键」、D13 判「件内互调的实参个数」，**「导出了却没人调」这一维谁都不管**，
+ *   而它恰是搬片最容易犯的形状（删干净了 = 屏上少一条活路，零报错）。
+ * 判（双向）：① 件内 `SQ.UI.<ns> = { key: fn, … }` 的**每一枚 key** 都要在「视图全体件 + 内核 HTML + `.tests/**`」里被
+ *   `SQ.UI.<ns>.<key>` 引到一次以上（引不到 = 这片功能的入口没了）；② 反过来，凡出现 `SQ.UI.<ns>.<key>` 的引用，
+ *   `key` 必须真在那枚导出表里（打错的引用 = 真机 undefined 抛错）。
+ * 边界（如实）：只判**存在性**，不判调了几次、也不判参数（那是 D13）；导出表按**深度 1 的 `key:`** 取（本仓导出面实测全为平表）；
+ *   `.tests/**` 计入引用面 —— 走查直接驱动 `SQ.UI.*` 也算真消费者，别把它判成死面。 */
+(function () {
+  const dir14 = path.join(ROOT, 'view');
+  const files14 = fs.readdirSync(dir14).filter((f) => f.endsWith('.js'));
+  const srcOf = (p) => { try { return fs.readFileSync(p, 'utf8'); } catch (e) { return ''; } };
+  let pool = srcOf(path.join(dir14, 'index.html'));
+  files14.forEach((f) => { pool += '\n' + srcOf(path.join(dir14, f)); });
+  fs.readdirSync(ROOT).filter((f) => f.startsWith('module')).forEach(() => {});
+  pool += '\n' + srcOf(path.join(ROOT, 'module', 'index.html'));
+  const tdir = path.join(ROOT, '.tests');
+  fs.readdirSync(tdir).filter((f) => /\.(cjs|js|html)$/.test(f)).forEach((f) => { pool += '\n' + srcOf(path.join(tdir, f)); });
+  const exports14 = {};
+  let nExp = 0;
+  files14.forEach((f) => {
+    const s = srcOf(path.join(dir14, f));
+    [...s.matchAll(/SQ\.UI\.([A-Za-z_$][\w$]*)\s*=\s*\{/g)].forEach((m) => {
+      let i = m.index + m[0].length - 1, depth = 0, body = '';
+      for (; i < s.length; i++) {
+        const ch = s[i];
+        if (ch === '{') { depth++; if (depth === 1) continue; }
+        if (ch === '}') { depth--; if (depth === 0) break; }
+        if (depth === 1) body += ch;
+      }
+      const keys = (body.replace(/\{[\s\S]*?\}/g, '').match(/(^|,)\s*([A-Za-z_$][\w$]*)\s*:/g) || [])
+        .map((x) => x.replace(/[^A-Za-z_$0-9]/g, ''));
+      exports14[m[1]] = exports14[m[1]] || [];
+      keys.forEach((k) => { if (exports14[m[1]].indexOf(k) < 0) { exports14[m[1]].push(k); nExp++; } });
+    });
+  });
+  const refs = {};
+  /* 引用面**剥注释后**再扫：`view/faction.js:318` 的注释里写着散文式占位 `SQ.UI.faction.actXxx(ctx(), v)`，
+   * 不剥就会把「讲道理的一句注」判成「内核在叫一个不存在的出口」= 假阳（假阳教人关关卡，A9 前例）。 */
+  [...stripComments(pool).matchAll(/\bSQ\.UI\.([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)/g)]
+    .forEach((m) => { const id = m[1] + '.' + m[2]; refs[id] = (refs[id] || 0) + 1; });
+  const bad14 = [];
+  Object.keys(exports14).forEach((ns) => {
+    exports14[ns].forEach((k) => { if (!refs[ns + '.' + k]) bad14.push('导出没人引用 SQ.UI.' + ns + '.' + k + '（入口丢了或导出是死面）'); });
+  });
+  Object.keys(refs).forEach((id) => {
+    const ns = id.split('.')[0], k = id.split('.')[1];
+    if (exports14[ns] && exports14[ns].indexOf(k) < 0) bad14.push('引用了不存在的出口 SQ.UI.' + ns + '.' + k);
+  });
+  if (nExp < 20) bad14.push('导出面只抽到 ' + nExp + ' 枚（<20 ⇒ 本关失明，不许在空集上恒绿）');
+  ok('D14', '视图件导出面 ⇔ 引用面双向对表（搬片把调用点整块删掉而静态全绿 = 本批真实失败模式）',
+    bad14.length === 0, '导出 ' + nExp + ' 枚 · 引用点 ' + Object.keys(refs).length + ' 处 · 视图件 ' + files14.length + ' 件' +
+    (bad14.length ? ' ‖ ' + bad14.slice(0, 6).join(' ‖ ') : ' ‖ 枚枚有人读、处处有出口'));
 })();
 
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）

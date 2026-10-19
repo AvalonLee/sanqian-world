@@ -173,6 +173,7 @@
     h += '<p class="hint" style="margin-top:10px;line-height:1.7">' + c.esc(c.t('gear.codex.note')) + '</p>';
     c.$('mgc-body').innerHTML = h;
   }
+
   function openGearCodex(c) { renderGearCodex(c); c.$('modal-gearcodex').classList.remove('hide'); }
 
   /* act「openGearCodex」分支体（第册十批随片搬出，分派处留一行调用）*/
@@ -214,6 +215,6 @@
   }
 
   SQ.UI = SQ.UI || {};
-  SQ.UI.gear = { body: gearBody, card: gearCard, codex: renderGearCodex, openCodex: openGearCodex,
+  SQ.UI.gear = { body: gearBody, 
     actOpenCodex: actOpenGearCodex, actGcDetail: actGcDetail, actRefine: actRefineGear };
 })();

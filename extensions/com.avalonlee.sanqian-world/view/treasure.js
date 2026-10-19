@@ -169,6 +169,6 @@
   }
 
   SQ.UI = SQ.UI || {};
-  SQ.UI.treasure = { render: render, card: treasureCard, codexCard: treasureCodexCard,
+  SQ.UI.treasure = { render: render, 
     actEquip: actEquip, actUnequip: actUnequip, actRefine: actRefine, actConvert: actConvert, actPill: actPill };
 })();

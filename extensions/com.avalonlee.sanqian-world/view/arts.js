@@ -484,8 +484,8 @@
 
   SQ.UI = SQ.UI || {};
   SQ.UI.arts = {
-    body: artsBody, fuse: renderFuseAltar,
-    actMatWudao: actMatWudao, actFusePick: actFusePick, actFuseStart: actFuseStart, actCustomReforge: actCustomReforge, lack: artLackTexts, fxLine: artFxLine,
+    body: artsBody,
+    actMatWudao: actMatWudao, actFusePick: actFusePick, actFuseStart: actFuseStart, actCustomReforge: actCustomReforge,
     actSlot: actSlot, actReplace: actReplace, actSetMain: actSetMain, actSalvage: actSalvage
   };
 })();

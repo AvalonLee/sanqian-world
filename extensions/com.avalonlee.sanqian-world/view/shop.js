@@ -217,6 +217,6 @@
   SQ.UI = SQ.UI || {};
   SQ.UI.shop = {
     render: render, pillAffix: pillAffix, pillCat: pillCat,
-    actBuy: actBuy, actRefresh: actRefresh, actMerchant: actMerchant, failText: failText
+    actBuy: actBuy, actRefresh: actRefresh, actMerchant: actMerchant
   };
 })();
