@@ -523,6 +523,7 @@
 <script src="show.js"></script>
 <script src="sect.js"></script>
 <script src="idle.js"></script>
+<script src="tiandao.js"></script>
 <script>
 (function () {
   var SQ = window.SQ;
@@ -2487,202 +2488,10 @@
     if (cb) cb();
   });
 
-  /* ══════════ 天道系统（天道系统批 B1~B4 · 天道设计 v1.1）══════════
-   * 问天浮层：卦位六选 + 香火四档 + 奏疏生成/一键复制（V1 人工中继）+ 自问自卜（V1.5 本地模拟）
-   * + 接旨粘贴解析；圣旨揭晓：卷轴展开 + 判词逐字 + 领旨/抗旨（抗旨 CONFIRM 明示逆天值收益与档位后果）；
-   * 天象浮层：即开即消红点；逆天大劫入口在渡劫预估浮层（detailTrib 段）。 */
-  var tdTypeTimer = null;
-  var GIFT_N = 6, GIFT_ROLL_MS = 600000;   /* 六款页游贴片 · 10 现实分钟换一张（会话态，不入存档） */
-
-  /* 恶搞彩蛋：修行页右侧那张贴在墙上的「充值大礼包」。
-   * 零机制是本条的底线——点击只出一句提示，不发资源、不写档、不入 Ledger、不碰 cooldown。 */
-  function renderGiftPack() {
-    var now = Date.now();
-    if (ui.giftI < 0 || now >= ui.giftUntil) {
-      ui.giftI = Math.floor(Math.random() * GIFT_N);
-      ui.giftUntil = now + GIFT_ROLL_MS;
-    }
-    var gk = 'eggs.gift.p' + ui.giftI + '.';   /* 前缀先落变量：内联在 t(' 里会被 A2 当成整键静态引用（本仓同款先例 = legacy.shop.qirate） */
-    return '<span class="giftcard" data-act="giftBuy">' +
-      '<span class="gtag">' + esc(t('eggs.gift.tag')) + '</span>' +
-      '<span class="gname">' + esc(t(gk + 'name')) + '</span>' +
-      '<span class="goffer">' + esc(t(gk + 'offer')) + '</span>' +
-      '<span class="gbtn">' + esc(t('eggs.gift.btn')) + '</span></span>';
-  }
-
-  function renderTiandaoRow() {
-    var w = ws(), d = D();
-    if (!SQ.Tiandao || !w.tiandao) return '';
-    var td = w.tiandao;
-    var unseen = SQ.Tiandao.unseenOmens(w);
-    var stage = SQ.Tiandao.stageOf(w, d);
-    var h = '<div class="tdrow">';
-    /* 问天入口（第卅九批 · 用户令「隐藏游戏问天功能」）：**用既有 .hide 工具类收掉，不删代码**——
-     * 引擎（Tiandao.ask / 奏疏 / 圣旨浮层）与词表键原样留着，恢复只需去掉这一个类名；
-     * 判据 = 走查 `verify-ui-tiandao` B1（在 DOM 但 `offsetParent === null` ⇒ 玩家看不见也点不着），
-     * 后续链路仍由该篇以 dispatchEvent 驱动（委托挂在 document 上，隐藏元素被合成点击照跑）。 */
-    h += '<button class="tdbtn hide" data-act="openTiandao">' + esc(t('tiandao.entry')) +
-      (unseen ? '<i class="pdot"></i>' : '') + '</button>';
-    h += '<button class="tdbtn plain" data-act="openOmens">' + esc(t('tiandao.omen.chip')) +
-      (unseen ? '<i class="pdot"></i>' : '') + '</button>';
-    if (td.defy > 0 || stage) h += '<span class="tddefy">' + esc(t('tiandao.defy.val', { n: td.defy })) + '</span>';
-    if (stage) h += '<span class="tdstage' + (stage === 'nijie' ? ' nijie' : '') + '">' + esc(t('tiandao.stage.' + stage)) + '</span>';
-    if (td.title) h += '<span class="tdtitle">' + esc(t('tiandao.title')) + '</span>';
-    /* N20 接线：盾此前只有名、语义（用后即失 / 只保修为）全靠玩家自己猜；正典在天道卷 line253/325 */
-    if (td.shield) h += '<span class="tdtitle">' + esc(t('tiandao.shield')) + '</span>' +
-      '<span class="hint">' + esc(t('tiandao.shield.desc')) + '</span>';
-    if (w.realm >= ((d.LEGACY || {}).BINGJIE_MIN_REALM || 4) && SQ.Legacy) {
-      h += '<button class="tdbtn plain" data-act="dissolve">' + esc(t('legacy.ui.bingjie.btn')) + '</button>';
-    }
-    h += renderGiftPack();   /* 页游充值贴片彩蛋（恶搞，零机制） */
-    h += '</div>';
-    return h;
-  }
-
-  function openTiandao() {
-    var d = D();
-    ui.tdHex = ui.tdHex || 'wenjie';
-    ui.tdIncense = ui.tdIncense || 0;
-    $('mtd-title').textContent = t('tiandao.modal.title');
-    $('mtd-hexlabel').textContent = t('tiandao.modal.hex');
-    $('mtd-inclabel').textContent = t('tiandao.modal.incense');
-    $('mtd-localhint').textContent = t('tiandao.local.hint');
-    $('mtd-reclabel').textContent = t('tiandao.receive.ph');
-    $('mtd-memo').textContent = t('tiandao.btn.memo');
-    $('mtd-local').textContent = t('tiandao.btn.local');
-    $('mtd-copy').textContent = t('tiandao.btn.copy');
-    $('mtd-parse').textContent = t('tiandao.btn.receive');
-    $('mtd-close').textContent = t('ui.close');
-    $('mtd-free').placeholder = t('tiandao.free.ph');
-    $('mtd-memoout').placeholder = t('tiandao.memo.ph');
-    renderTdModal();
-    $('modal-tiandao').classList.remove('hide');
-  }
-
-  function renderTdModal() {
-    var w = ws(), d = D();
-    var td = w.tiandao || { defy: 0, lastAskAt: 0 };
-    var hx = '';
-    (d.TIANDAO.HEXAGRAMS || []).forEach(function (id) {
-      hx += '<button class="' + (ui.tdHex === id ? 'on' : '') + '" data-act="tdHex" data-v="' + id + '">' +
-        esc(t('tiandao.hex.' + id)) + '<span class="hx">' + esc(t('tiandao.hexdesc.' + id)) + '</span></button>';
-    });
-    $('mtd-hex').innerHTML = hx;
-    var inc = '';
-    (d.TIANDAO.INCENSE_RANKS || []).forEach(function (n, i) {
-      inc += '<button class="' + (ui.tdIncense === i ? 'on' : '') + '" data-act="tdIncense" data-v="' + i + '">' +
-        esc(n === 0 ? t('tiandao.incense.0') : t('tiandao.incense.n', { n: SQ.fmt(n) })) + '</button>';
-    });
-    $('mtd-incense').innerHTML = inc;
-    $('mtd-free').classList.toggle('hide', ui.tdHex !== 'blank');
-    var left = (td.lastAskAt || 0) + d.TIANDAO.ASK_CD_MS - Date.now();
-    var cooling = left > 0;
-    $('mtd-cd').textContent = cooling ? t('tiandao.cd', { t: timeLeftText(left) }) : '';
-    $('mtd-memo').disabled = cooling;
-    $('mtd-local').disabled = cooling;
-    var stage = SQ.Tiandao.stageOf(w, d);
-    $('mtd-defy').innerHTML = '<span>' + esc(t('tiandao.defy.val', { n: td.defy || 0 })) +
-      (stage ? ' · ' + esc(t('tiandao.stage.' + stage)) + ' — ' + esc(t('tiandao.stage.' + stage + '.desc')) : '') + '</span>';
-  }
-
-  /* 奏疏文本框自适应高度：按内容撑开（上限六成屏高，超出由浮层滚动承接），
-   * 避免用户只框选到可见首段就复制——「复制不全」的直接诱因 */
-  function fitMemoOut(ta) {
-    ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight + 2, Math.round(window.innerHeight * 0.6)) + 'px';
-  }
-
-  /* 领旨 / 抗旨后清空本轮问天残留（奏疏文本框 + 复制按钮 + 接旨粘贴框 + 圣旨缓存）：
-   * 一轮问天已了结，下次打开问天不应再显示上一轮奏疏（用户反馈：领完旨后重开问天仍留着旧奏疏） */
-  function resetTdMemo() {
-    var ta = $('mtd-memoout');
-    ta.value = '';
-    ta.classList.add('hide');
-    $('mtd-copy').classList.add('hide');
-    $('mtd-receive').value = '';
-    ui.tdDec = null;
-  }
-
-  async function tdRunAsk(local) {
-    var free = ui.tdHex === 'blank' ? $('mtd-free').value : '';
-    var r = await SQ.Actions.tdAsk(state, ui.tdHex, ui.tdIncense, free);
-    if (r && r.ok) {
-      if (local) {
-        var dec = SQ.Tiandao.localDecree(ws(), pack(), D(), Date.now());
-        showDecree(dec);
-      } else {
-        var taM = $('mtd-memoout');
-        taM.value = r.text;
-        taM.classList.remove('hide');
-        fitMemoOut(taM);
-        $('mtd-copy').classList.remove('hide');
-        toast(t('tiandao.memo.ready', { n: r.text.length }));
-      }
-    } else if (r && r.reason === 'cooldown') {
-      toast(t('tiandao.cd', { t: timeLeftText(Math.max(0, r.until - Date.now())) }));
-    } else if (r && r.reason === 'stones') {
-      toast(t('tiandao.stones.lack'));
-    }
-    renderTdModal();
-    renderAll();
-  }
-
-  function decreeEffText(dec) {
-    var p = dec.payload || {};
-    switch (dec.type) {
-      case 'bless': return t('tiandao.eff.bless', { n: '+' + (p.tribBonus || 0).toFixed(2) });
-      case 'curse': return t('tiandao.eff.curse', { n: (p.tribBonus || 0).toFixed(2) });
-      case 'gift': return t('tiandao.eff.gift', { n: SQ.fmt(p.stones || 0) });
-      case 'punish': return t('tiandao.eff.punish', { n: Math.round((p.mult || 0) * 100), h: p.hours || 24 });
-      case 'karma': return t('tiandao.eff.karma', { n: (p.karma >= 0 ? '+' : '') + (p.karma || 0) });
-      case 'bond': return t('tiandao.eff.bond', { name: p.target ? t('bond.' + p.target + '.name') : t('tiandao.eff.bond.any'), n: p.bond || 0 });
-      case 'affix': return t('tiandao.eff.affix', { name: p.affixId ? t('affix.' + p.affixId + '.name') : t('tiandao.eff.affix.any') });
-      default: return t('tiandao.eff.' + dec.type);
-    }
-  }
-
-  function showDecree(dec) {
-    ui.tdDec = dec;
-    var w = ws();
-    $('mdc-type').textContent = t('tiandao.decree.type', { type: t('tiandao.type.' + dec.type) });
-    $('mdc-meta').innerHTML =
-      '<span>' + esc(t('tiandao.decree.hex', { hex: t('tiandao.hex.' + dec.hexagram) })) + '</span>' +
-      '<span>' + esc(t('tiandao.decree.tier', { tier: t('tiandao.tier.' + dec.tier) })) + '</span>';
-    $('mdc-eff').textContent = decreeEffText(dec);
-    $('mdc-omen').textContent = t('tiandao.omen.wrap', { s: dec.omen || '' });
-    var vd = $('mdc-verdict');
-    vd.textContent = '';
-    if (tdTypeTimer) { clearInterval(tdTypeTimer); tdTypeTimer = null; }
-    if (reducedMotion() || !dec.verdict) {
-      vd.textContent = dec.verdict || '';
-    } else {
-      var vi = 0;
-      tdTypeTimer = setInterval(function () {
-        vi += 2;
-        vd.textContent = dec.verdict.slice(0, vi);
-        if (vi >= dec.verdict.length) { clearInterval(tdTypeTimer); tdTypeTimer = null; }
-      }, 40);
-    }
-    var isSeen = SQ.Tiandao.seen(w, dec);
-    $('mdc-btns').classList.toggle('hide', isSeen);
-    $('mdc-seen').textContent = isSeen ? t('tiandao.seen') : '';
-    $('mdc-accept').textContent = t('tiandao.btn.accept');
-    $('mdc-defy').textContent = t('tiandao.btn.defy');
-    $('mdc-close').textContent = t('ui.close');
-    $('modal-decree').classList.remove('hide');
-  }
-
-  function openOmens() {
-    var w = ws();
-    $('mom-title').textContent = t('tiandao.omen.title');
-    var q = ((w.tiandao || {}).omenQueue || []).slice().reverse();
-    $('mom-body').innerHTML = q.length ? q.map(function (o) {
-      return '<div class="omenitem"><div class="ot">' + esc(t('tiandao.omen.node.' + o.node)) + '</div>' + esc(o.text) + '</div>';
-    }).join('') : '<p class="hint">' + esc(t('tiandao.omen.empty')) + '</p>';
-    $('mom-close').textContent = t('ui.close');
-    $('modal-omens').classList.remove('hide');
-    if (SQ.Tiandao.unseenOmens(w)) SQ.Actions.tdOmensSeen(state).then(renderAll);   /* 即开即消红点 */
-  }
+  /* ── 天道族（问天 / 圣旨 / 天象 / 天道行 / 页游贴片）已整片外置 `view/tiandao.js`（N34 第十七刀 · 第册五十三批）：
+   * 八个监听留在这里、监听体一行转发到 `SQ.UI.tiandao.*`；天道行仍由桥位 `renderTiandaoRow` 供 `view/idle.js`，
+   * 取值走下面那枚一行转发别名（导出面 ⇔ 引用面因此仍对得上）。 ── */
+  function renderTiandaoRow() { return SQ.UI.tiandao.row(ctx()); }
 
   /* ── 兵解 · 盖棺之传（第册批）已整片外置 `view/show.js`（N34 第十四刀 · 第册五十批）：
    * 打字机节奏（+3 字 / 24ms）与「自查隐藏态自收」的 interval 随件搬走（`recap` / `closeRecap` / `playRecap`）。
@@ -2711,19 +2520,17 @@
     toast(t('tiandao.memo.manual'));
   }
 
-  $('mtd-memo').addEventListener('click', function () { tdRunAsk(false); });
-  $('mtd-local').addEventListener('click', function () { tdRunAsk(true); });
+  $('mtd-memo').addEventListener('click', function () { SQ.UI.tiandao.runAsk(ctx(), false); });
+  $('mtd-local').addEventListener('click', function () { SQ.UI.tiandao.runAsk(ctx(), true); });
   $('mtd-copy').addEventListener('click', copyMemoOut);
   $('mtd-parse').addEventListener('click', function () {
     var raw = $('mtd-receive').value;
     if (!raw || !raw.trim()) return;
-    showDecree(SQ.Tiandao.parseReply(raw, ws(), pack(), D(), Date.now()));
+    SQ.UI.tiandao.decree(ctx(), SQ.Tiandao.parseReply(raw, ws(), pack(), D(), Date.now()));
   });
   $('mtd-close').addEventListener('click', function () { $('modal-tiandao').classList.add('hide'); });
-  $('mdc-close').addEventListener('click', function () {
-    if (tdTypeTimer) { clearInterval(tdTypeTimer); tdTypeTimer = null; }
-    $('modal-decree').classList.add('hide');
-  });
+  /* 关圣旨：清打字机定时器 + 收浮层都在件内（导出 closeDecree 是那枚定时器的唯一收口） */
+  $('mdc-close').addEventListener('click', function () { SQ.UI.tiandao.closeDecree(ctx()); });
   $('mom-close').addEventListener('click', function () { $('modal-omens').classList.add('hide'); });
   $('mdc-accept').addEventListener('click', async function () {
     var dec = ui.tdDec;
@@ -2731,7 +2538,7 @@
     var r = await SQ.Actions.tdAccept(state, dec);
     if (r && r.ok) {
       $('modal-decree').classList.add('hide');
-      resetTdMemo();
+      SQ.UI.tiandao.resetMemo(ctx());
       var gt = r.gains || {};
       if (gt.stones) toast(t('tiandao.log.gift', { n: SQ.fmt(gt.stones), cur: t('resource.currency') }));
       else if (gt.bond && !gt.bond.blocked && gt.bond.n) toast(t('tiandao.eff.bond', { name: t('bond.' + gt.bond.npc + '.name'), n: gt.bond.n }));
@@ -2753,7 +2560,7 @@
       var r = await SQ.Actions.tdDefy(state, dec);
       if (r && r.ok) {
         $('modal-decree').classList.add('hide');
-        resetTdMemo();
+        SQ.UI.tiandao.resetMemo(ctx());
         toast(t('tiandao.log.defy', { n: r.gain, total: r.defy }));
         if (r.unlocked) toast(t('tiandao.stage.nijie.desc'));
         renderAll();
@@ -3184,14 +2991,14 @@
       return;
     }
     /* ── 天道系统（天道系统批 B1~B4）：问天/天象浮层 + 卦位香火选择 + 逆天大劫挑战 ── */
-    if (act === 'openTiandao') { openTiandao(); return; }
+    if (act === 'openTiandao') { SQ.UI.tiandao.open(ctx()); return; }
     /* 页游充值贴片彩蛋：只回一句拒绝，零发放 / 零落档 / 零账（判据 = 走查 G 组「点完存档字节不变」）。
      * 刻意不碰 ui.announcedLogKey——那是「动作自己就同一条日志弹过提示」的去重位，本动作不写日志，
      * 认领它会把当时恰好新增的那条日志呈报吞掉（红点仍亮、toast 却不弹）。 */
     if (act === 'giftBuy') { toast(t('eggs.gift.deny')); return; }
-    if (act === 'openOmens') { openOmens(); return; }
-    if (act === 'tdHex') { ui.tdHex = v; renderTdModal(); return; }
-    if (act === 'tdIncense') { ui.tdIncense = parseInt(v, 10); renderTdModal(); return; }
+    if (act === 'openOmens') { SQ.UI.tiandao.omen(ctx()); return; }
+    if (act === 'tdHex') { ui.tdHex = v; SQ.UI.tiandao.modal(ctx()); return; }
+    if (act === 'tdIncense') { ui.tdIncense = parseInt(v, 10); SQ.UI.tiandao.modal(ctx()); return; }
     /* ── 六向长线批委托：轮回/图鉴/炼丹/天骄/融合/宗门 ── */
     if (act === 'lgRealm') { draft.legacy = draft.legacy || { startRealm: 0, talents: [], bond: null }; draft.legacy.startRealm = parseInt(v, 10); renderLegacyGifts(); return; }
     if (act === 'lgTalent') {
