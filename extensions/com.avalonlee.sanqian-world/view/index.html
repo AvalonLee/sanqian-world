@@ -518,6 +518,8 @@
 <script src="rumor.js"></script>
 <script src="zone.js"></script>
 <script src="alchemy.js"></script>
+<script src="bonds.js"></script>
+<script src="legacy.js"></script>
 <script>
 (function () {
   var SQ = window.SQ;
@@ -580,8 +582,20 @@
       /* 第八刀补三枚（都是「件外调用」才进桥）：fmtLeft = 沙漏剩余时长 ‖ fmtDur = 游戏历时长 ‖ bondTier = 好感档汉字数字 */
       fmtLeft: fmtLeft, fmtDur: fmtGameDur, bondTier: bondTierNum,
       /* 第十一刀补一枚：showWash = 洗髓浮层的内核入口（服丹成功即开 = 件外调用才进桥） */
-      showWash: showWash };
+      showWash: showWash,
+      /* 第十二刀补三枚：`toastAction` = 带动作的提示（拜访 / 赠丹 / 缘尽赎回三处成功态）‖ `reducedMotion` =
+       * 结契轻演出的时长分支 ‖ `bondDotSig` = 侣 chip 红点签名（页签机器留内核，浮层 opener 要拿它记基线）。
+       * 再补 `fresh`：取一份**新的**桥快照——`SQ.mutate` 会深拷贝 world（core.js `cpWorld`），
+       * 动作处若拿动作开始时的快照重渲浮层，读到的是改前的 `w`（本批 D2/C1 两红即此形）。
+       * ⚠️ 值必须走 `freshCtx` 这个别名、不许直接写 `ctx`：D7 的私名表按「桥字面量里的值名」现推，
+       * 写成 `fresh: ctx` 会让 `ctx` 进私名表 ⇒ 六件外置件注释里那句 `ctx()` 全部连带判红（实测 6 件）。 */
+      toastAction: toastAction, reducedMotion: reducedMotion, bondDotSig: bondRedDotSig, fresh: freshCtx,
+      /* 第十三刀补两枚：`enterRebirth` = 创角屏重入（飞升 / 兵解成功后由件内回调，MASKS / draft 那套机器在核内）
+       * ‖ `playRecap` = 盖棺之传演出入口（演出族，第十四刀才搬） */
+      enterRebirth: enterRebirthCreation, playRecap: playRecapLastBio };
   }
+  /* `fresh` 桥位的取值别名（见上注：不许让 `ctx` 这个私名进 D7 的私名表） */
+  function freshCtx() { return ctx(); }
 
   function show(name) {
     ['loading', 'c1', 'c2', 'c3', 'main'].forEach(function (s) {
@@ -1710,10 +1724,6 @@
 
   /* ══ 批 3 · 侣柱 G14（B1~B4/B7~B9）══ */
   function bondTierNum(n) { return t('bond.tiernum.' + n); }
-  function nextBondThreshold(tier) {
-    var ts = D().BOND_TIERS;
-    return tier >= ts.length ? (D().BOND_MAX || 100) : ts[tier];
-  }
   function bondRedDotSig() {
     /* 侣 chip 红点（B1 · §2.2）：有人升档 或 候选可提亲——签名变化即亮，进浮层重置 */
     var w = ws(), p = pack(), d = D();
@@ -1747,317 +1757,10 @@
     var a = (meta && meta.achv) || [];
     return a.length ? (a.length + ':' + a[a.length - 1]) : '';
   }
-  /* 个体助力当前值文案：channel 型各自单位（判定 pp / 冥佑描述），field 与其余走百分比 */
-  function perkValueRaw(c, tier) {
-    var pk = c.perk || {};
-    var v = pk.perTier != null ? pk.perTier * tier : 0;
-    if (pk.channel === 'checkPp') return '+' + (Math.round(v * 1000) / 10) + 'pp';
-    if (pk.channel === 'shield') return t('bond.perk.shieldval');
-    return (v < 0 ? '−' : '+') + pct(Math.abs(v));
-  }
-  function perkValueText(c, tier) {
-    var pk = c.perk || {};
-    if (pk.channel === 'shield') return t('bond.perk.shieldval');
-    var vm = pk.perTier != null ? pk.perTier * maxBondTier() : 0;
-    var maxTxt = pk.channel === 'checkPp' ? '+' + (Math.round(vm * 1000) / 10) + 'pp' : (vm < 0 ? '−' : '+') + pct(Math.abs(vm));
-    return t('bond.perk.cur', { v: perkValueRaw(c, tier), n: bondTierNum(tier), max: maxTxt });
-  }
-  function palCell(c, w, d) {
-    var p = pack();
-    var tier = SQ.Bonds.tierOf(w, c.id, d);
-    var aff = Math.max(0, SQ.Bonds.affinityOf(w, c.id));
-    var g = SQ.Bonds.guardianOf(w, p, d);
-    var isGuard = !!(g && g.npcId === c.id && g.bonus > 0);
-    var isSpouse = !!(w.spouse && w.spouse.npcId === c.id);
-    if (SQ.Bonds.locked(w, c.id)) {
-      /* 缘尽格：身份永不揭示（稿一批注）——赎回成功才揭名，故 data-v 只作动作载荷不进可见文本。
-       * 可赎者（未赎过 + 遗泽足）挂「赎」角标提示可点；不可赎者点按出原因 toast + 轻震。 */
-      var costR = (d.BOND_REDEEM_COST != null ? d.BOND_REDEEM_COST : 30);
-      var doneR = (w.redeemedIds || []).indexOf(c.id) >= 0;
-      var canR = !doneR && ((state.meta && state.meta.karma) || 0) >= costR;
-      return '<div class="pal dead" data-act="bondDead" data-v="' + c.id + '">' +
-        (canR ? '<span class="pcorner rd">' + esc(t('bond.redeem.badge')) + '</span>' : '') +
-        '<div class="ava">' + esc(t('bond.deadava')) + '</div>' +
-        '<div class="nm">' + esc(t('event.codex.unknown')) + '</div>' +
-        '<div class="deadtag">' + esc(t('bond.locked')) + '</div></div>';
-    }
-    /* 候选「双」角标无论结缘与否都挂（收集牵引：有一位可结道侣的人藏在？） */
-    var corner = (c.category === 'spouse' ? '<span class="pcorner sh">' + esc(t('bond.badge.spouse')) + '</span>' : '') +
-      (isGuard ? '<span class="pcorner um"' + (c.category === 'spouse' ? ' style="right:17px"' : '') + '>☂</span>' : '');
-    if (tier < 1) {
-      /* 势力批 v2.4 §6：负好感（−20~−2）= 厌恶——剪影格上加红字标签，与「未结缘」区分 */
-      var rawAff = SQ.Bonds.affinityOf(w, c.id);
-      var hateTag = (rawAff < 0 && !SQ.Bonds.locked(w, c.id))
-        ? '<div class="tier hate">' + esc(t('bond.negative') + ' ' + rawAff) + '</div>'
-        : '<div class="tier">' + esc(t('bond.unmet')) + '</div>';
-      /* 未识格改为可点开（好感三渠道批）：此前只轻震、无任何出路，结识唯一途径是抽到出身事件；
-       * 现点开进「隐匿详情」（renderBondUnknown，身份仍不揭示），内含渠道 A 拜访按钮 = 主动结识口。 */
-      return '<div class="pal lock' + (c.category === 'spouse' ? ' sp' : '') + '" data-act="bondOpen" data-v="' + c.id + '">' + corner +
-        '<div class="ava">' + esc(t('ui.qmark')) + '</div><div class="nm">' + esc(t('event.codex.unknown')) + '</div>' +
-        hateTag + '</div>';
-    }
-    var canP = c.category === 'spouse' && SQ.Bonds.canPropose(w, p, d, c.id, Date.now()).ok;
-    var tierTxt = t('bond.' + c.id + '.title.' + tier) + bondTierNum(tier) +
-      (isSpouse && w.spouse.form === 'luding' ? ' · ' + t('bond.spouse.form.luding') : '') +
-      (canP ? ' · ' + t('bond.propose.ready') : '');
-    return '<div class="pal' + (c.category === 'spouse' ? ' sp' : '') + '" data-act="bondOpen" data-v="' + c.id + '">' + corner +
-      '<div class="ava">' + esc(t('bond.' + c.id + '.ava')) + '</div>' +
-      '<div class="nm">' + esc(t('bond.' + c.id + '.name')) + '</div>' +
-      '<div class="tier"' + (isSpouse && w.spouse.form === 'luding' ? ' style="color:var(--bad)"' : '') + '>' + esc(tierTxt) + '</div>' +
-      '<div class="pb"><i style="width:' + Math.min(100, aff) + '%;' + (isSpouse && w.spouse.form === 'luding' ? 'background:var(--bad)' : '') + '"></i></div>' +
-      '<div class="fv">' + esc(tier >= maxBondTier() ? t('bond.fv.max', { n: aff }) : t('bond.fv.next', { n: aff, next: nextBondThreshold(tier) })) + '</div></div>';
-  }
-  /* 道友名录：浮层（openBonds）与「道友」页（势力批 v2.4 §9）共用同一套渲染；
-   * dest = 'tab' 渲染进 #tab-bonds，缺省 = 浮层 #mbd-body。 */
-  function renderBonds(dest) {
-    /* dest = 「用户最后打开的是哪一个容器」，只由用户动作改写：`renderTab()` 的秒级 tick 也带 'tab'
-     * 走进这里，若让它顺手改写 ui.bondsDest，**浮层开着时容器就被偷换成 'tab'** ⇒ 拜访 / 赠丹成功后
-     * 重渲渲到背后的道友页上，屏上那颗按钮停在旧态（第十九批 · 用户报「点完还亮着，关掉重开才显冷却」）。
-     * 浮层可见期间不夺。 */
-    if (dest && (dest !== 'tab' || $('modal-bonds').classList.contains('hide'))) ui.bondsDest = dest;
-    /* 容器由**本次调用的 dest** 决定，不由归属决定：否则 tick 带着 'tab' 进来时，
-     * 归属被守住（仍 = 'modal'）却把名录渲进浮层里，等于把 bug 换了个方向（走查 A4 即此形）*/
-    var isTab = (dest || ui.bondsDest) === 'tab';
-    var w = ws(), p = pack(), d = D();
-    var g = SQ.Bonds.guardianOf(w, p, d);
-    var evil = p.worldSystems.tierOf(w) === 'evil';
-    if (!isTab) {
-      $('mbd-title').textContent = ui.bondDetail ? t('bond.detail.back') : t('bond.title');
-      $('mbd-title').style.cursor = ui.bondDetail ? 'pointer' : '';
-      $('mbd-close').textContent = t('ui.close');
-    }
-    /* 详情五段式只属于名录浮层（浮层走查修复）：道友页自身永远保持名录——
-     * 否则秒级 tick 的 renderBonds('tab') 会因共享的 ui.bondDetail 把背后的道友页一并切成详情 */
-    if (!isTab && ui.bondDetail) { renderBondDetail(); return; }
-    var h = '';
-    /* 护法位摘要行三态（稿一/稿四）：魔道整块置灰独行 / 生效带加项 / 档不足或无人。
-     * 择选批：非魔道三态均可点开「择护法」浮层，由玩家自选在任护法 */
-    if (evil) {
-      h += '<div class="guardline dead"><span>' + esc(t('bond.guard.none')) + '</span><span class="g">' + esc(t('bond.guard.evil')) + '</span></div>';
-    } else if (g && g.bonus > 0) {
-      h += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + esc(t('bond.guard.line', {
-        name: t('bond.' + g.npcId + '.name'), title: t('bond.' + g.npcId + '.title.' + g.tier), num: bondTierNum(g.tier)
-      })) + '</span><span class="g">' + esc(t('bond.guard.eff', { b: g.bonus.toFixed(2) })) + '</span></div>';
-    } else if (g) {
-      h += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + esc(t('bond.guard.line', {
-        name: t('bond.' + g.npcId + '.name'), title: t('bond.' + g.npcId + '.title.' + g.tier), num: bondTierNum(g.tier)
-      })) + '</span><span class="g">' + esc(t('bond.guard.low')) + '</span></div>';
-    } else {
-      h += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + esc(t('bond.guard.none')) + '</span><span class="g">' + esc(t('bond.guard.low')) + '</span></div>';
-    }
-    /* 双修状态行：未结缘虚线灰 / 生效 / 炉鼎暗红「回头即散」——择选批：两态均可点开「择道侣」浮层 */
-    if (w.spouse) {
-      var sf = w.spouse.form;
-      h += '<div class="spouserow' + (sf === 'luding' ? ' luding' : '') + ' pickable" data-act="spousePickOpen"><span>' + esc(t('bond.spouse.active', {
-        form: t('bond.spouse.form.' + sf), name: t('bond.' + w.spouse.npcId + '.name'),
-        eff: t('bond.form.eff.' + sf).split(' · ')[0]
-      })) + '</span>' + (sf === 'luding' ? '<span>' + esc(t('bond.spouse.luding.warn')) + '</span>' : '') + '</div>';
-    } else {
-      h += '<div class="spouserow none pickable" data-act="spousePickOpen"><span>' + esc(t('bond.spouse.none')) + '</span><span>' + esc(t('bond.spouse.nonetip')) + '</span></div>';
-    }
-    var friends = SQ.Bonds.list(p).filter(function (c) { return c.category !== 'spouse'; });
-    var spouses = SQ.Bonds.list(p).filter(function (c) { return c.category === 'spouse'; });
-    var fKnown = friends.filter(function (c) { return SQ.Bonds.tierOf(w, c.id, d) >= 1; }).length;
-    var fDead = friends.filter(function (c) { return SQ.Bonds.locked(w, c.id); }).length;
-    h += '<div class="sechead"><span class="t">' + esc(t('bond.sec.friend')) + ' · ' + friends.length + '</span><span class="s">' +
-      esc(t(fDead ? 'bond.sec.countdead' : 'bond.sec.count', { n: fKnown, total: friends.length, d: fDead })) + '</span></div><div class="palgrid">';
-    friends.forEach(function (c) { h += palCell(c, w, d); });
-    h += '</div>';
-    h += '<div class="sechead"><span class="t">' + esc(t('bond.sec.spouse')) + ' · ' + spouses.length + '</span><span class="s">' +
-      esc(w.spouse ? t('bond.sec.spdoing', { n: 1 }) : t('bond.sec.sptip')) + '</span></div><div class="palgrid">';
-    spouses.forEach(function (c) { h += palCell(c, w, d); });
-    h += '</div>';
-    if (isTab) $('tab-bonds').innerHTML = h;
-    else $('mbd-body').innerHTML = h;
-  }
-  /* 格位详情五段式（B3 · 稿二）：头部 / 好感进度尺四档刻度 / 个体助力 / 小传正典 / 出身事件或结缘条件 */
-  function renderBondDetail() {
-    var w = ws(), p = pack(), d = D();
-    var id = ui.bondDetail;
-    var c = SQ.Bonds.byId(p, id);
-    if (!c) { ui.bondDetail = null; renderBonds('modal'); return; }
-    var tier = SQ.Bonds.tierOf(w, id, d);
-    var rawAff = SQ.Bonds.affinityOf(w, id);
-    var hate = rawAff < 0 && !SQ.Bonds.locked(w, id);
-    var aff = Math.max(0, rawAff);
-    var g = SQ.Bonds.guardianOf(w, p, d);
-    var isGuard = !!(g && g.npcId === id && g.bonus > 0);
-    var isSpouse = !!(w.spouse && w.spouse.npcId === id);
-    var luOff = isSpouse && w.spouse.form === 'luding';
-    /* 未识（含厌恶 −20~−2）→ 隐匿详情：身份不揭示（沿用名录格「？」口径），只给渠道 A 一条主动结识口。
-     * 缘尽格（−99）不走此支——它由 palCell 的 bondDead 承接赎回，身份「赎回成功才揭名」。 */
-    if (tier < 1 && !SQ.Bonds.locked(w, id)) { renderBondUnknown(id, rawAff); return; }
-    var h = '<div class="bd-head' + (c.category === 'spouse' ? ' sp' : '') + '">' +
-      '<div class="ava">' + esc(t('bond.' + id + '.ava')) + '</div><div class="id"><b>' + esc(t('bond.' + id + '.name')) +
-      (isGuard ? ' <span class="gmark">☂ ' + esc(t('bond.guard.tag')) + '</span>' : '') + '</b>' +
-      '<div class="sub">' + esc(t('bond.' + id + '.kind')) + ' · ' +
-      esc(t('bond.' + id + '.title.' + Math.max(1, tier))) + ' ' + bondTierNum(Math.max(1, tier)) + '<br>' +
-      esc(tier >= maxBondTier() ? t('bond.perk.maxed')
-        : t('bond.perk.active', { title: t('bond.' + id + '.title.' + Math.min(maxBondTier(), tier + 1)), n: Math.max(0, nextBondThreshold(tier) - aff) })) +
-      '</div></div></div>';
-    h += '<div class="fbar"><div class="lab"><span>' + esc(t('bond.fav.label')) + '</span><b>' +
-      esc(hate ? t('bond.negative') + ' ' + rawAff : String(aff)) + ' / ' + (d.BOND_MAX || 100) + '</b></div>' +
-      '<div class="tr"><i style="width:' + Math.min(100, aff) + '%"></i></div><div class="marks">' +
-      (d.BOND_TIERS).map(function (th, i) {
-        return '<span>' + esc(t('bond.' + id + '.title.' + (i + 1))) + ' ' + th + '</span>';
-      }).join('') + '</div></div>';
-    /* 往来（好感三渠道批 · UI 卷 §3.4c）：置于好感尺之后、个体助力之前——它改的正是上面那根尺 */
-    h += bondActSection(id);
-    /* 个体助力：炉鼎期划断态 + 「鼎炉被采，何暇助你」 */
-    h += '<div class="dsec"><div class="dt">' + esc(t('bond.detail.perk')) + '</div>' +
-      '<div class="perk' + (luOff ? ' off' : '') + '"><span>' + esc(t('bond.' + id + '.perk')) + ' · ' + esc(t('bond.' + id + '.perk.desc')) +
-      (luOff ? '<span class="why">' + esc(t('bond.perk.why.luding')) + '</span>' : '') + '</span>' +
-      '<span class="pv">' + esc(luOff ? t('bond.perk.off', { v: perkValueRaw(c, tier) }) : perkValueText(c, tier)) + '</span></div></div>';
-    /* 所属势力（势力批 v2.4 §3）：随世界生成动态归属，散人/在册皆明示 */
-    var nf = SQ.Factions.npcFactionOf(w, id);
-    h += '<div class="dsec"><div class="dt">' + esc(t('bond.detail.flavor')) + '</div>' +
-      '<div class="dd"><span class="facsig' + (nf ? (' fac-' + nf.align) : '') + '">' +
-      esc(nf ? t('faction.bond.line', { name: nf.name, align: t('align.' + nf.align) }) : t('faction.bond.none')) +
-      '</span>' + esc(t('bond.' + id + '.flavor')) + '</div></div>';
-    if (c.category === 'spouse') {
-      /* 候选：出身事件段替换为结缘条件段 + 满档「提亲 ♡」主按钮（稿二批注） */
-      h += '<div class="dsec"><div class="dt">' + esc(t('bond.detail.spousecond')) + '</div><div class="dd">' + esc(t('bond.spousecond.text')) + '</div>';
-      var chk = SQ.Bonds.canPropose(w, p, d, id, Date.now());
-      if (isSpouse) {
-        h += '<div class="dd" style="color:var(--spouse);margin-top:8px">' + esc(t('bond.spouse.active', {
-          form: t('bond.spouse.form.' + w.spouse.form), name: t('bond.' + id + '.name'),
-          eff: t('bond.form.eff.' + w.spouse.form).split(' · ')[0]
-        })) + (w.spouse.form === 'luding' ? ' · ' + esc(t('bond.spouse.luding.warn')) : '') + '</div>';
-      } else if (chk.ok) {
-        h += '<button class="primary" style="width:100%;margin-top:10px" data-act="proposeOpen" data-v="' + id + '">' + esc(t('bond.propose.btn')) + '</button>';
-      } else {
-        var whyKey = 'bond.propose.fail.' + chk.reason;
-        var whyVars = chk.reason === 'cooldown' ? { t: timeLeftText(Math.max(0, (w.spouseCdUntil || 0) - Date.now())) } : {};
-        h += '<div class="dd hint" style="margin-top:8px">' + esc(t(whyKey, whyVars)) + '</div>';
-      }
-      h += '</div>';
-    } else {
-      var carEv = (c.carrierEvents || [])[0];
-      if (carEv) {
-        var seen = (w.eventHistory.seen || {})[carEv] != null;
-        h += '<div class="dsec"><div class="dt">' + esc(t('bond.detail.origin')) + '</div>' +
-          '<div class="srcline"' + (seen ? ' data-act="recallEvent" data-v="' + carEv + '"' : '') + '><span>' +
-          esc(t('bond.origin.via', { ev: seen ? t('event.' + carEv + '.name') : t('event.codex.unknown') })) + '</span>' +
-          (seen ? '<span class="go">' + esc(t('bond.origin.go')) + '</span>' : '') + '</div></div>';
-      }
-      if (isGuard && w.guardLog && w.guardLog.count > 0) {
-        h += '<div class="dsec"><div class="dt">' + esc(t('bond.detail.guardlog')) + '</div><div class="dd" style="font-size:11.5px">' +
-          esc(t('bond.guard.record', { n: w.guardLog.count, s: w.guardLog.success })) + '</div></div>';
-      }
-    }
-    if (ui.bondsDest === 'tab') $('tab-bonds').innerHTML = h;
-    else $('mbd-body').innerHTML = h;
-  }
-  /* ── 好感三渠道批（2026-10-06 · 引擎卷 v1.11 §3.2a / UI 卷 §3.4c）──────────────────
-   * 渠道 A 拜访论道 + 渠道 B 赠丹 的视图侧：两个纯拼接渲染器 + 三个只读取数助手。
-   * 口径纪律：① 按钮上标出的增量 = **引擎会真给的数**（拜访按档位递减 + 同向加成；赠丹按丹方 tier
-   * × 丹纹倍率，再对「距满档余量」取 min，绝不显示会被 clamp 吃掉的虚数）；② 未识者的「同道相投」
-   * 角标**不显示**（阵营属身份信息，结识后才可见，与「？」剪影口径一致）；③ 双特例丹（破障 / 镇劫）
-   * 不进赠丹列表——引擎侧同样拒（reason 'once'），两层同口径。 */
-  function maxBondTier() { return D().BOND_TIERS.length; }
-  function visitGainOf(id, tier) {
-    var w = ws(), p = pack(), d = D();
-    var tbl = d.BOND_VISIT_BY_TIER || [3, 3, 2, 1, 0];
-    var base = tbl[Math.min(Math.max(0, tier), tbl.length - 1)] || 0;
-    if (!(base > 0)) return { n: 0, align: false };
-    /* 同向加成只对**已相识**生效（引擎同口径）：未识者阵营未揭，不给加成也不显示角标 */
-    if (tier < 1) return { n: base, align: false };
-    var c = SQ.Bonds.byId(p, id);
-    var kd = (p.worldSystems && p.worldSystems.tierOf) ? p.worldSystems.tierOf(w) : 'neutral';
-    var sameDir = !!(c && c.align && c.align === kd);
-    return { n: base + (sameDir ? (d.BOND_VISIT_ALIGN_BONUS != null ? d.BOND_VISIT_ALIGN_BONUS : 1) : 0), align: sameDir };
-  }
-  function visitBtn(id, tier) {
-    var w = ws(), d = D();
-    if (SQ.Bonds.locked(w, id)) return '<div class="dd hint">' + esc(t('bond.fail.lock')) + '</div>';
-    if (SQ.Bonds.scarred(w, id)) return '<div class="dd hint">' + esc(t('bond.fail.scar')) + '</div>';
-    if (tier >= maxBondTier()) return '<div class="dd hint">' + esc(t('bond.visit.fail.max')) + '</div>';
-    var g = visitGainOf(id, tier);
-    var cd = d.BOND_VISIT_CD_MS;   /* 表值直取（审计 #10）：兜底字面量就是第二事实源；缺键由审计 A10 拦，视图不编数 */
-    var wait = (w.bondVisitAt || 0) + cd - Date.now();
-    if (wait > 0) {
-      return '<button class="actbtn" type="button" disabled><span class="an">' + esc(t('bond.visit.btn')) +
-        '</span><span class="cd">' + esc(t('bond.visit.cd', { t: timeLeftText(wait) })) + '</span></button>';
-    }
-    return '<button class="actbtn" type="button" data-act="bondVisit" data-v="' + id + '"><span class="an">' +
-      esc(t('bond.visit.btn')) + '</span>' +
-      (g.align ? '<span class="ab">' + esc(t('bond.visit.align')) + '</span>' : '') +
-      (tier < 1 ? '<span class="mt">' + esc(t('bond.visit.met')) + '</span>' : '') +
-      '<span class="gv">' + esc(t('bond.visit.gain', { n: g.n })) + '</span></button>';
-  }
-  /* 可赠丹药清单：库存 >0 且非双特例（once）；丹纹版（尾 _rw）单列一颗 */
-  function giftablePills(w, d) {
-    var al = w && w.alchemy, out = [];
-    if (!al || !al.pills) return out;
-    for (var k in al.pills) {
-      if (!(al.pills[k] > 0)) continue;
-      /* 两族合一（第十七批）：可赠与否只认引擎那一个判据（pillDefOf.nogift）——
-       * 底牌族 = 自产破障 / 镇劫 / 洗髓 + 成品破障，视图不再自带一份名单（两份名单必然漂） */
-      var pd = SQ.Alchemy.pillDefOf(D(), k);
-      if (!pd || pd.nogift) continue;
-      out.push({ key: k, n: al.pills[k], rune: pd.rune });
-    }
-    return out;
-  }
-  /* 赠丹名义增量：档次一律问引擎那一个判据 `SQ.Alchemy.pillDefOf`（两族合一 · 第十七批）。
-   * 旧写法在这里**另摆了一份只查 RECIPES 的名单** ⇒ 成品丹（D.PILLS）查不到 tier ⇒ 增量 0 ⇒ 赠丹 chip
-   * 被整颗跳过；引擎侧 bonds.js 用 pd.tier 是给的，#297(f) 因此全绿 —— 又是一处「引擎对、屏上错」。 */
-  function pillGiftGain(d, key) {
-    var pd = SQ.Alchemy.pillDefOf(d, key);
-    if (!pd) return 0;
-    var tierName = pd.tier || null;
-    if (!tierName) (((d.ALCHEMY || {}).RECIPES) || []).forEach(function (r) {
-      if (r && r.pill === pd.id && r.tier) tierName = r.tier;
-    });
-    var tbl = d.BOND_GIFT_BY_TIER || {};
-    var n0 = tbl[tierName] != null ? tbl[tierName] : 0;
-    return pd.rune ? Math.round(n0 * (d.BOND_GIFT_RUNE_MULT != null ? d.BOND_GIFT_RUNE_MULT : 1.5)) : n0;
-  }
-  /* 赠丹段（GitHub issue #4）：无日次上限，能送几颗只看丹匣库存 ⇒ 这里不再算「今日 n/cap」*/
-  function bondActSection(id) {
-    var w = ws(), d = D();
-    var tier = SQ.Bonds.tierOf(w, id, d);
-    var h = '<div class="dsec"><div class="dt">' + esc(t('bond.detail.act')) + '</div>' +
-      '<div class="dd hint" style="margin-bottom:8px">' + esc(t('bond.act.tip')) + '</div>' + visitBtn(id, tier);
-    h += '<div class="kv" style="margin-top:12px"><span class="hint">' +
-      esc(t('bond.gift.head')) + '</span></div>';
-    if (SQ.Bonds.locked(w, id) || SQ.Bonds.scarred(w, id)) return h + '</div>';
-    if (tier >= maxBondTier()) return h + '<div class="dd hint">' + esc(t('bond.gift.fail.max')) + '</div></div>';
-    var pills = giftablePills(w, d);
-    if (!pills.length) return h + '<div class="dd hint">' + esc(t('bond.gift.empty')) + '</div></div>';
-    var head = Math.max(0, (d.BOND_MAX || 100) - Math.max(0, SQ.Bonds.affinityOf(w, id)));
-    var chips = '';
-    pills.forEach(function (pl) {
-      var g = Math.min(pillGiftGain(d, pl.key), head);
-      if (!(g > 0)) return;
-      chips += '<button type="button" data-act="bondGift" data-v="' + id + '" data-c="' + pl.key + '">' +
-        esc(t((SQ.Alchemy.pillDefOf(d, pl.key) || {}).nameKey ||
-          'alchemy.pill.' + pl.key + '.name')) +   /* 两族名各按本族键族（成品丹是 `pill.*`，M4）*/
-        '<span class="gv">+' + g + '</span><span class="st">' + esc(t('bond.gift.stock', { n: pl.n })) + '</span></button>';
-    });
-    if (!chips) return h + '<div class="dd hint">' + esc(t('bond.gift.fail.max')) + '</div></div>';
-    h += '<div class="chips">' + chips + '</div>';
-    return h + '</div>';
-  }
-  /* 未识 / 厌恶者的隐匿详情：身份不揭示（「？」+ 未结缘或厌恶值），只给渠道 A 主动结识口 */
-  function renderBondUnknown(id, rawAff) {
-    var h = '<div class="bd-head"><div class="ava">' + esc(t('ui.qmark')) + '</div><div class="id"><b>' +
-      esc(t('event.codex.unknown')) + '</b><div class="sub">' +
-      esc(rawAff < 0 ? (t('bond.negative') + ' ' + rawAff) : t('bond.unmet')) + '</div></div></div>' +
-      '<div class="dsec"><div class="dt">' + esc(t('bond.detail.act')) + '</div>' +
-      '<div class="dd hint" style="margin-bottom:8px">' + esc(t('bond.act.tip')) + '</div>' +
-      visitBtn(id, 0) + '</div>';
-    if (ui.bondsDest === 'tab') $('tab-bonds').innerHTML = h;
-    else $('mbd-body').innerHTML = h;
-  }
-  /* 拒绝原因 → 文案：按 visit / gift / 共用三组前缀依次探键（SQ.t 缺键回传键名本身，据此判存在）*/
-  function bondFailText(r) {
-    var why = (r && r.reason) || 'unknown';
-    if (why === 'cooldown') return t('bond.visit.fail.cooldown', { t: timeLeftText(Math.max(0, (r && r.waitMs) || 0)) });
-    var ks = ['bond.visit.fail.' + why, 'bond.gift.fail.' + why, 'bond.fail.' + why];
-    for (var i = 0; i < ks.length; i++) if (SQ.t(ks[i], null, wid()) !== ks[i]) return t(ks[i]);
-    return t('bond.fail.unknown');
-  }
+  /* ── 道友名录渲染族已随第册四十八批整片搬进 view/bonds.js（N34 第十二刀）：`perkValueRaw` / `perkValueText` /
+   * `palCell` / `renderBonds` / `renderBondDetail` / `maxBondTier` / `nextBondThreshold` / `visitGainOf` / `visitBtn` /
+   * `giftablePills` / `pillGiftGain` / `bondActSection` / `renderBondUnknown` / `bondFailText` 十四件全在 `SQ.UI.bonds.*`。
+   * 分派与页签处直调外置件，不留二次转发的壳（faction 判例）。── */
 
   /* 冷却剩余时差文案（提亲冷却复用洞府时分秒口径） */
   function timeLeftText(ms) {
@@ -2072,158 +1775,18 @@
      * 分钟**向上取整且至少 1**：最后 40 秒显示「1分钟」而不是「0分钟」，免得看着像已经结束。 */
     return t('ui.time.m', { m: Math.max(1, Math.ceil(s / 60)) });
   }
-  function openBonds() {
-    ui.bondDetail = null;
-    renderBonds('modal');
-    $('modal-bonds').classList.remove('hide');
-    ui.bondSnap = bondRedDotSig();     /* 进浮层即消红点（§2.2） */
-    if (ui.tab === 'idle') renderTab();
-  }
-  $('mbd-close').addEventListener('click', function () {
-    $('modal-bonds').classList.add('hide');
-    ui.bondDetail = null;
-    if (ui.tab === 'bonds') renderBonds('tab');   /* 从道友页点开的详情：关浮层后还原名录页（此刻浮层已 hide，容器归属可以交还给 tab） */
-  });
-  $('mbd-title').addEventListener('click', function () {
-    /* 显式指明浮层容器：秒级 tick 会把 bondsDest 翻成 'tab'，无参调用会误渲到道友页 */
-    if (ui.bondDetail) { ui.bondDetail = null; renderBonds('modal'); }
-  });
-
-  /* ── 择选批：护法位/道侣位择选浮层（道友页顶部两位置点开；仅列当前满足条件者，不满足不显示）── */
-  function openGuardPick() {
-    var w = ws(), p = pack(), d = D();
-    $('msp-title').textContent = t('bond.guard.pick');
-    $('msp-hint').textContent = t('bond.guard.pick.hint');
-    $('msp-close').textContent = t('ui.close');
-    var g = SQ.Bonds.guardianOf(w, p, d);
-    var cands = SQ.Bonds.list(p).filter(function (c) {
-      return !SQ.Bonds.locked(w, c.id) && !SQ.Bonds.scarred(w, c.id) && SQ.Bonds.tierOf(w, c.id, d) >= 1;
-    });
-    var h = '';
-    /* 恢复自动行：清空手选，回落「好感最高者」默认规则 */
-    h += '<div class="lrow' + (w.guardianPick ? '' : ' cur') + '"><div class="kv"><span class="ct">' +
-      esc(t('bond.guard.auto')) + '</span></div><div class="acts">' +
-      (w.guardianPick ? '<button data-act="guardSet" data-v="">' + esc(t('ui.confirm')) + '</button>'
-        : '<span class="meta hint">✓</span>') + '</div></div>';
-    cands.forEach(function (c) {
-      var tier = SQ.Bonds.tierOf(w, c.id, d);
-      var isCur = !!(g && g.npcId === c.id);
-      h += '<div class="lrow' + (isCur ? ' cur' : '') + '"><div class="kv"><span class="ct">' +
-        esc(t('bond.' + c.id + '.ava') + ' ' + t('bond.' + c.id + '.name')) + ' · ' +
-        esc(t('bond.' + c.id + '.title.' + tier) + bondTierNum(tier)) + '</span>' +
-        '<span class="s">' + esc(t('bond.' + c.id + '.perk')) + '</span></div>' +
-        '<div class="acts">' + (isCur ? '<span class="meta hint">✓</span>'
-          : '<button data-act="guardSet" data-v="' + c.id + '">' + esc(t('ui.confirm')) + '</button>') + '</div></div>';
-    });
-    $('msp-body').innerHTML = h;
-    $('modal-slotpick').classList.remove('hide');
-  }
-  async function guardSet(npcId) {
-    await SQ.Actions.setGuardian(state, npcId || null);
-    $('modal-slotpick').classList.add('hide');
-    if (npcId) toast(t('bond.toast.guardian', { name: t('bond.' + npcId + '.name') }));
-    renderAll();
-  }
-  function openSpousePick() {
-    var w = ws(), p = pack(), d = D();
-    $('msp-title').textContent = t('bond.spouse.pick');
-    $('msp-hint').textContent = t('bond.spouse.pick.hint');
-    $('msp-close').textContent = t('ui.close');
-    var h = '';
-    if (w.spouse) {
-      /* 已有道侣：先呈现状（解除走详情页/叙事，不在此处） */
-      h += '<div class="spouserow"><span>' + esc(t('bond.spouse.active', {
-        form: t('bond.spouse.form.' + w.spouse.form), name: t('bond.' + w.spouse.npcId + '.name'),
-        eff: t('bond.form.eff.' + w.spouse.form).split(' · ')[0]
-      })) + '</span>' + (w.spouse.form === 'luding' ? '<span>' + esc(t('bond.spouse.luding.warn')) + '</span>' : '') + '</div>';
-    }
-    /* 候选 = canPropose 全链通过者（满档 + 无心结 + 未结缘 + 无冷却）；不满足者不显示 */
-    var cands = SQ.Bonds.list(p).filter(function (c) {
-      return c.category === 'spouse' && SQ.Bonds.canPropose(w, p, d, c.id, Date.now()).ok;
-    });
-    if (!cands.length) {
-      h += '<p class="hint" style="margin-top:8px">' + esc(t('bond.spouse.pick.empty')) + '</p>';
-    } else {
-      cands.forEach(function (c) {
-        var aff = SQ.Bonds.affinityOf(w, c.id);
-        h += '<div class="lrow"><div class="kv"><span class="ct">' +
-          esc(t('bond.' + c.id + '.ava') + ' ' + t('bond.' + c.id + '.name')) + '</span>' +
-          '<span class="s">' + esc(t('bond.fav.label') + ' ' + aff + ' / ' + (d.BOND_MAX || 100)) + '</span></div>' +
-          '<div class="acts"><button class="primary" data-act="spousePickPropose" data-v="' + c.id + '">' +
-          esc(t('bond.propose.btn')) + '</button></div></div>';
-      });
-    }
-    $('msp-body').innerHTML = h;
-    $('modal-slotpick').classList.remove('hide');
-  }
-  $('msp-close').addEventListener('click', function () { $('modal-slotpick').classList.add('hide'); });
-
-  /* 提亲 CONFIRM 三形态（B4 · 稿三）：当前档位描金、其余置灰全文可见、炉鼎代价红字三重明示 */
-  var proposeTarget = null;
-  function openPropose(npcId) {
-    var w = ws(), p = pack(), d = D();
-    var chk = SQ.Bonds.canPropose(w, p, d, npcId, Date.now());
-    if (!chk.ok) {
-      var vars = chk.reason === 'cooldown' ? { t: timeLeftText(Math.max(0, (w.spouseCdUntil || 0) - Date.now())) } : {};
-      toast(t('bond.propose.fail.' + chk.reason, vars));
-      return;
-    }
-    proposeTarget = npcId;
-    $('mpr-title').textContent = t('bond.propose.title');
-    $('mpr-sub').textContent = t('bond.propose.sub', { name: t('bond.' + npcId + '.name') });
-    var fh = '';
-    ['yinyang', 'huzhu', 'luding'].forEach(function (f) {
-      var def = (d.SPOUSE_FORMS || {})[f] || {};
-      var cur = f === chk.form;
-      fh += '<div class="formcard ' + (cur ? 'cur' : 'off') + '">' +
-        '<div class="fn"' + (f === 'luding' ? ' style="color:var(--bad)"' : '') + '>' + esc(t('bond.spouse.form.' + f)) +
-        ' <span class="st">' + esc(t(cur ? 'bond.form.cur' : 'bond.form.off', { align: t('align.' + def.tier) })) + '</span></div>' +
-        '<div class="cond">' + esc(t('bond.form.cond.' + f)) + '</div>' +
-        '<div class="eff">' + esc(t('bond.form.eff.' + f)) + '</div>' +
-        (f === 'luding' ? '<div class="cost">' + esc(t('bond.form.cost.luding')) + '</div>' : '') + '</div>';
-    });
-    $('mpr-forms').innerHTML = fh;
-    $('mpr-no').textContent = t('bond.propose.no');
-    $('mpr-ok').textContent = t('bond.propose.go', { form: t('bond.spouse.form.' + chk.form) });
-    $('mpr-foot').textContent = t('bond.propose.foot');
-    $('modal-propose').classList.remove('hide');
-  }
-  $('mpr-no').addEventListener('click', function () { $('modal-propose').classList.add('hide'); proposeTarget = null; });
-  $('mpr-ok').addEventListener('click', async function () {
-    var npcId = proposeTarget;
-    $('modal-propose').classList.add('hide');
-    proposeTarget = null;
-    if (!npcId) return;
-    var res = await SQ.Actions.proposeSpouse(state, npcId);
-    if (res && res.ok) showSpouse(npcId, res.form);
-    else if (res) toast(t('bond.propose.fail.' + (res.reason || 'unknown')));
-    renderAll();
-    if (!$('modal-bonds').classList.contains('hide')) renderBonds('modal');   /* 显式指明浮层容器（浮层走查修复） */
-  });
-  /* 结契轻演出（结缘词全屏 2s，点按跳过；文案写意留白红线——文本全在词表正典） */
-  var spouseStageTimer = null;
-  function showSpouse(npcId, form) {
-    $('sps-t1').textContent = t('bond.show.title', { form: t('bond.spouse.form.' + form) });
-    $('sps-t2').textContent = t('spouse.' + npcId + '.' + form);
-    $('sps-t3').textContent = t('bond.show.skip');
-    var st = $('spouse-stage');
-    st.classList.remove('hide');
-    clearTimeout(spouseStageTimer);
-    spouseStageTimer = setTimeout(function () { st.classList.add('hide'); }, reducedMotion() ? 1200 : 2600);
-  }
-  $('spouse-stage').addEventListener('click', function () {
-    clearTimeout(spouseStageTimer);
-    $('spouse-stage').classList.add('hide');
-  });
-  /* 双修解除叙事（B4 · v1.4 口径4）：spouseLog.at 键控会话消费一次；炉鼎文案自带缘锁提示 */
-  function checkSpouseLog() {
-    var w = ws();
-    if (!w || !w.spouseLog) return;
-    var sl = w.spouseLog;
-    if (ui.spouseLogSeen === sl.at) return;
-    ui.spouseLogSeen = sl.at;
-    toast(t('bond.spouse.dissolve.' + sl.reason, { name: t('bond.' + sl.npcId + '.name') }));
-  }
+  /* ── 侣柱浮层与动作族已随第册四十八批整片搬进 view/bonds.js（N34 第十二刀）：`openBonds` ‖ `openGuardPick` ‖
+   * `openSpousePick` ‖ `openPropose` ‖ `showSpouse` ‖ `checkSpouseLog` 及其六条动作分支全在 `SQ.UI.bonds.*`。
+   * 内核只留：页签红点三件（bondRedDotSig / caveRedDotSig / achvRedDotSig）、`bondTierNum`、`timeLeftText`，
+   * 以及下面六个 DOM 监听（外置件不绑监听 = 既有纪律，监听体只留一行转发）。── */
+  $('mbd-close').addEventListener('click', function () { SQ.UI.bonds.closeModal(ctx()); });
+  /* 标题点按 = 详情返回名录；显式指明浮层容器（秒级 tick 会把 bondsDest 翻成 'tab'） */
+  $('mbd-title').addEventListener('click', function () { SQ.UI.bonds.backToList(ctx()); });
+  $('msp-close').addEventListener('click', function () { SQ.UI.bonds.closePick(ctx()); });
+  $('mpr-no').addEventListener('click', function () { SQ.UI.bonds.cancelPropose(ctx()); });
+  $('mpr-ok').addEventListener('click', async function () { await SQ.UI.bonds.confirmPropose(ctx()); });
+  /* 结契轻演出（结缘词全屏）：点按跳过 */
+  $('spouse-stage').addEventListener('click', function () { SQ.UI.bonds.skipSpouseStage(ctx()); });
 
   /* ── Tab 5 坊市 ── */
   /* 坊市那族标签 / 件名 / 计价 / 货架卡已随第册六批整段搬进 view/shop.js（`SQ.UI.shop.*`）；
@@ -2503,13 +2066,13 @@
     else if (ui.tab === 'treasure') SQ.UI.treasure.render(ctx());
     else if (ui.tab === 'shop') SQ.UI.shop.render(ctx());
     else if (ui.tab === 'faction') SQ.UI.faction.render(ctx());
-    else if (ui.tab === 'bonds') renderBonds('tab');
+    else if (ui.tab === 'bonds') SQ.UI.bonds.render(ctx(), 'tab');
     else if (ui.tab === 'event') renderEvent();
     else if (ui.tab === 'alchemy') SQ.UI.alchemy.render(ctx());
     else if (ui.tab === 'prodigy') SQ.UI.jianghu.render(ctx());
     else if (ui.tab === 'sect') renderSect();
     else if (ui.tab === 'achv') SQ.UI.achv.render(ctx());
-    else if (ui.tab === 'legacy') renderLegacy();
+    else if (ui.tab === 'legacy') SQ.UI.legacy.render(ctx());
     else if (ui.tab === 'journal') SQ.UI.journal.render(ctx());
     else if (ui.tab === 'settings') renderSettings();
   }
@@ -2522,7 +2085,7 @@
     $('tab-journal').innerHTML = '';
     $('tab-settings').innerHTML = '';
     renderTab();
-    checkSpouseLog();   /* 双修解除叙事（B4）：spouseLog.at 键控会话一次 */
+    SQ.UI.bonds.checkSpouseLog(ctx());   /* 双修解除叙事（B4）：spouseLog.at 键控会话一次 */
   }
 
   /* ── 渡劫演出（F7：悬念 1s 不可跳 → 成败帧：损失明细 + 成算复盘 + 计数；reduced-motion 直出）── */
@@ -3634,114 +3197,9 @@
 
   /* ══════════ 六向长线批视图（轮回/图鉴/炼丹/天骄/融合器灵/宗门 六页）══════════ */
 
-  /* ── 真灵承继选择（轮回卷 §3.4「可选一件」玩家入口 · 器灵卷 §九）───────────────
-   * 判据全部取自引擎同源口 SQ.Legacy.heirEligible / heirCandidates（视图零自造规则）：
-   *   · 未持 shop.heir 资格 ⇒ 不弹层、直过（零打扰，转世链与改造前逐字同径）；
-   *   · 持格但本世零觉醒候选 ⇒ 不弹层、直过（**无浮层亦无死链**：不摆一个点不动的按钮）；
-   *   · 候选 ≥1（含恰好 1 件）⇒ 一律弹层，选中态预标；一次转世只弹一次（择定即落 meta.heirChoice，
-   *     由 finishRebirth 消费后清空）；改主意走轮回页「换一件」入口重开。
-   * 择定落库走 SQ.mutate 事务口（与购买/转世同纪律，直写内存态会被下一次 claim 覆盖）。*/
-  function heirNameOf(id) { return id ? t('treasure.' + id + '.name') : ''; }
-  /* 承继态一行（浮层与轮回页复用）：择定 > 显式不带 > 在档续带 > 未择定
-   * （空串 ⇒ 由 sub 行说明「自动带入第一件已觉醒者」口径，不另立键）
-   * N18：择定件**已失**（既不在候选、也不是在档续带件）时不再谎报「已择定」，
-   * 改说失效原因——引擎侧 legacy.js:438-439 对脏选降级为「取第一件已觉醒者 / 原样续带」，
-   * 玩家侧此前零解释且零改选入口（候选为空时整块连「换一件」都不出）。 */
-  function heirStatusText(meta, cands) {
-    if (meta.heirChoice === SQ.Legacy.HEIR_NONE) return t('spirit.ui.heir.skipped');
-    if (meta.heirChoice) {
-      var cs = cands || SQ.Legacy.heirCandidates(ws(), pack());
-      var hit = false, ci = 0;
-      for (; ci < cs.length; ci++) if (cs[ci].id === meta.heirChoice) { hit = true; break; }
-      if (!hit && meta.heirTreasure !== meta.heirChoice) {
-        return t('spirit.ui.heir.lost', { name: heirNameOf(meta.heirChoice) });
-      }
-      return t('spirit.ui.heir.picked', { name: heirNameOf(meta.heirChoice) });
-    }
-    if (meta.heirTreasure) return t('spirit.ui.heir.carry', { name: heirNameOf(meta.heirTreasure) });
-    return '';
-  }
-  function renderHeirChoice() {
-    var w = ws(), p = pack(), d = D();
-    var meta = state.meta || {};
-    var cands = SQ.Legacy.heirCandidates(w, p);
-    var sel = meta.heirChoice || meta.heirTreasure || (cands[0] || {}).id || '';
-    $('hc-title').textContent = t('spirit.ui.heir.title');
-    $('hc-sub').textContent = t('spirit.ui.heir.sub');
-    $('hc-carry').textContent = heirStatusText(meta, cands);
-    var h = '';
-    cands.forEach(function (c) {
-      var on = c.id === sel;
-      h += '<div class="lrow' + (on ? ' cur' : '') + '"><div class="nm">' + esc(heirNameOf(c.id)) +
-        ' <span class="special-mark">' + esc(t('spirit.ui.awake')) + '</span></div>' +
-        '<div class="meta">' + esc(t('spirit.ui.persona', { p: c.sp.p ? t('spirit.persona.' + c.sp.p + '.name') : t('spirit.ui.gray') })) +
-        ' · ' + esc(t('spirit.ui.warm', { w: Math.floor(c.sp.w || 0), need: SQ.Fusion ? SQ.Fusion.needOf(d, c.def) : 0 })) +
-        '</div><div class="acts"><button class="' + (on ? 'primary' : '') + '" data-act="heirPick" data-v="' + c.id + '">' +
-        esc(t('spirit.ui.heir.pick')) + '</button></div></div>';
-    });
-    $('hc-list').innerHTML = h || ('<p class="hint">' + esc(t('spirit.ui.heir.empty')) + '</p>');
-    $('hc-verdict').textContent = t('spirit.ui.verdict') + ' · ' + t('spirit.ui.heir.note');
-    $('hc-cancel').textContent = t('ui.cancel');
-    $('hc-none').textContent = t('spirit.ui.heir.skip');
-  }
-  /* onPick(choice) — choice = 法宝 id / 'none'（引擎哨兵 HEIR_NONE）/ null（取消，不落库） */
-  function openHeirPicker(onPick) {
-    ui.heirPick = onPick;
-    renderHeirChoice();
-    $('modal-heirchoice').classList.remove('hide');
-  }
-  async function commitHeirChoice(ch) {
-    var cb = ui.heirPick; ui.heirPick = null;
-    $('modal-heirchoice').classList.add('hide');
-    if (!cb) return;
-    if (ch == null) { cb(null); return; }
-    await SQ.mutate(state, function (s) { s.meta.heirChoice = ch; });
-    cb(ch);
-  }
-  $('hc-cancel').addEventListener('click', function () { commitHeirChoice(null); });
-  $('hc-none').addEventListener('click', function () { commitHeirChoice(SQ.Legacy.HEIR_NONE); });
-  /* 转世前置门：不需要问就直过（回调同帧执行，转世链零改动） */
-  function askHeirChoice(cont) {
-    var meta = state.meta || {};
-    if (!SQ.Legacy || !SQ.Legacy.heirEligible(meta)) { cont(); return; }
-    if (!SQ.Legacy.heirCandidates(ws(), pack()).length) { cont(); return; }
-    if (meta.heirChoice) { cont(); return; }          /* 本世已择定：一次转世只弹一次 */
-    openHeirPicker(function (ch) { if (ch == null) return; toast(heirToastText(ch)); cont(); });
-  }
-  /* 「换一件」重开入口（轮回页常驻）：转世后改主意 / 择定后反悔，覆写 meta.heirChoice 即可 */
-  function openHeirSwitch() {
-    openHeirPicker(function (ch) {
-      if (ch == null) return;
-      toast(heirToastText(ch));
-      renderAll();
-    });
-  }
-  function heirToastText(ch) {
-    return ch === SQ.Legacy.HEIR_NONE ? t('spirit.ui.heir.skipped')
-      : t('spirit.ui.heir.done', { name: heirNameOf(ch) });
-  }
-
-  /* ── §5.2 结算浮层分项行（兵解预估预览复用）：逐行只渲染 preview() 产物，视图零自造数 ──
-   * 总结区（境界/渡劫成败/首通区数/结缘人数）由 preview.summary 供数 → 预览与实结同源。*/
-  function settlePreviewText(pv) {
-    var rows = [t('legacy.ui.preview.title') + ' · ' + t('legacy.ui.preview.life', { n: pv.life })];
-    var sm = pv.summary || {};
-    rows.push(t('legacy.ui.preview.realm') + ' · ' + t('realm.' + (sm.realm || 0)));
-    rows.push(t('legacy.ui.preview.trib', { w: sm.tribWin || 0, l: sm.tribFail || 0 }));
-    rows.push(t('legacy.ui.preview.zones', { n: sm.zones || 0 }));
-    rows.push(t('legacy.ui.preview.bonds', { n: sm.bonds || 0 }));
-    (pv.lines || []).forEach(function (ln) {
-      if (ln.nominal <= 0) return;
-      rows.push(t('legacy.score.' + ln.key.replace(/\..*$/, '')) + ' ' + SQ.fmt(ln.got) +
-        (ln.owned && ln.got === 0 ? ' · ' + t('legacy.score.owned') : ''));
-    });
-    rows.push(t('legacy.ui.preview.subtotal') + ' ' + SQ.fmt(pv.subtotal));
-    rows.push(t('legacy.ui.preview.mult') + ' ×' + pv.mult.toFixed(1));
-    rows.push(t('legacy.ui.preview.total') + ' ' + SQ.fmt(pv.total));
-    rows.push(t('legacy.ui.preview.imm') + ' ' + SQ.fmt(pv.immediate));
-    rows.push(t('legacy.ui.preview.balance') + ' ' + SQ.fmt(pv.balanceAfter));
-    return rows.join('\n');
-  }
+  /* ── 真灵承继选择一族已随第册四十九批搬进 view/legacy.js（N34 第十三刀）；内核只留两个监听、一行转发 ── */
+  $('hc-cancel').addEventListener('click', function () { SQ.UI.legacy.commitHeir(ctx(), null); });
+  $('hc-none').addEventListener('click', function () { SQ.UI.legacy.commitHeir(ctx(), SQ.Legacy.HEIR_NONE); });
 
   function enterRebirthCreation() {
     MASKS.forEach(function (id) { $(id).classList.add('hide'); });
@@ -3753,137 +3211,12 @@
     show('c1');
   }
 
-  function legacyReasonText(r) {
-    if (!r || !r.reason) return '';
-    if (r.reason === 'cd' && r.until) return t('legacy.ui.feisheng.cd', { t: timeLeftText(Math.max(0, r.until - Date.now())) });
-    /* 飞升门槛原因（真仙未满 / 修为未盈满，轮回卷 §1.1）先取本族正典行——此前 `qi` 一路穿透，
-     * 拼出的 legacy.ui.fail.qi 全库无键 ⇒ 裸拉丁内部字段名直接上屏（A4 精神越线 + 玩家读不懂） */
-    var kl = 'legacy.ui.feisheng.lock.' + r.reason;
-    if (t(kl) !== kl) return t(kl);
-    var k = 'legacy.ui.fail.' + r.reason;
-    return t(k) !== k ? t(k) : t('legacy.ui.fail.other');
-  }
-
-
-  /* 成就页整段（achvCard / codexFaceCard / renderAchv）已外置成 view/achv.js（第册五批 · N34 第二刀） */
-
-  /* ── 轮回页（SYS · 轮回卷 B1 + 图鉴卷 B2：余额/商店/九面图鉴/称号墙/前世书/飞升兵解）── */
-  function renderLegacy() {
-    var w = ws(), d = D(), p = pack(), m = mods();
-    var meta = state.meta || {};
-    var st = meta.stats || {};
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + esc(t('legacy.system')) + '</button></div>' +
-      '<span class="tdtitle">' + esc(t('legacy.ui.balance', { n: SQ.fmt(meta.karma || 0) })) + '</span></div>';
-    h += '<div class="kv"><span class="hint">' + esc(t('legacy.ui.stats', {
-      lives: st.lives || 0, asc: st.ascensions || 0, dis: st.dissolutions || 0,
-      death: st.deaths || 0,   /* 身死 = 被动了结（寿尽 / 道伤）计数，与玩家主动兵解分列（寿元批） */
-      realm: t('realm.' + Math.min(st.realmMax || 0, d.REALMS.length - 1))
-    })) + '</span></div>';
-    /* 飞升 / 兵解入口 */
-    if (w.realm >= d.REALMS.length - 1 && SQ.Legacy) {
-      var fsChk = SQ.Legacy.canFeisheng(w, p, d, meta, Date.now(), state.profile);
-      var fsInfo = SQ.Legacy.feishengInfo(w, p, d, m);
-      h += '<div class="tribready" style="margin-top:8px"><div class="tr-t">' + esc(t('legacy.ui.feisheng.btn')) + '</div>' +
-        (fsInfo ? '<div class="hint">' + esc(t('legacy.ui.feisheng.p', { p: Math.round(fsInfo.p * 100) })) + '</div>' : '') +
-        '<div class="hint">' + esc(fsChk.ok ? t('legacy.ui.feisheng.confirm') : legacyReasonText(fsChk)) + '</div>' +
-        (fsChk.ok ? '<button class="primary" data-act="ascend" style="width:100%;margin-top:6px">' + esc(t('legacy.ui.feisheng')) + '</button>' : '') +
-        '</div>';
-    }
-    if (w.realm >= ((d.LEGACY || {}).BINGJIE_MIN_REALM || 4) && SQ.Legacy) {
-      h += '<button data-act="dissolve" style="width:100%;margin:8px 0">' + esc(t('legacy.ui.bingjie.btn')) + '</button>';
-    }
-    /* 真灵承继常驻态 +「换一件」入口（轮回卷 §3.4 · 器灵卷 §九）：
-     * 未持 shop.heir 资格整块不出现（零打扰）；持格且本世零觉醒候选**且无失效择定**时整块不出现——
-     * **不留一个点不开的按钮**。N18 例外：择定件已失时**必须留入口**，否则那条脏择定永远清不掉
-     *（浮层内候选为空有专项说明 +「本次不带」可清除，见 spirit.ui.heir.empty）。 */
-    var heirCands = SQ.Legacy && SQ.Legacy.heirEligible(meta) ? SQ.Legacy.heirCandidates(w, p) : [];
-    if (heirCands.length || (SQ.Legacy && SQ.Legacy.heirEligible(meta) && meta.heirChoice && meta.heirChoice !== SQ.Legacy.HEIR_NONE)) {
-      var heirLine = heirStatusText(meta, heirCands);
-      h += '<div class="tribready" style="margin-top:8px"><div class="tr-t">' + esc(t('spirit.ui.heir.title')) + '</div>' +
-        '<div class="hint">' + esc(t('spirit.ui.heir.sub')) + '</div>' +
-        (heirLine ? '<div class="hint" style="font-weight:650">' + esc(heirLine) + '</div>' : '') +
-        '<button data-act="heirSwitch" style="width:100%;margin-top:6px">' + esc(t('spirit.ui.heir.switch')) + '</button></div>';
-    }
-    /* 遗泽商店（价目总表 6800 · 已购置灰不隐藏） */
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + esc(t('legacy.ui.shop')) + '</p>';
-    h += '<p class="hint" style="margin:0 0 6px">' + esc(t('legacy.ui.shop.hint')) + '</p>';
-    h += '<div class="shopgrid">';
-    SQ.Legacy.shopItems(d).forEach(function (it) {
-      var owned = (meta.spent || {})[it.key] != null;
-      var descKey = it.kind === 'talent' ? ('legacy.talent.' + it.talent.id + '.desc')
-        : it.kind === 'qirate' ? 'legacy.shopdesc.qirate'
-        : it.kind === 'startRealm' ? 'legacy.shopdesc.startRealm'
-        : ('legacy.shopdesc.' + it.id);
-      h += '<div class="lrow shopcard' + (owned ? ' locked' : '') + '"><div class="nm">' + esc(t(it.nameKey)) + '</div>' +
-        '<div class="meta">' + esc(t(descKey)) + '</div>' +
-        '<div class="acts">' + (owned
-          ? '<button disabled>' + esc(t('legacy.ui.owned')) + '</button>'
-          : '<button data-act="lgBuy" data-v="' + it.id + '"' + ((meta.karma || 0) < it.price ? ' disabled' : '') + '>' +
-            esc(t('legacy.ui.buy')) + ' · ' + it.price + '</button>') + '</div></div>';
-    });
-    h += '</div>';
-    /* ── 遗泽收支流水（绿灯不等于链通批 · C2）──────────────────────────
-     * `meta.karmaLog` 由 legacy.js 的唯一写口 logPush 落账（achv / milestone / buy / settle
-     * 四路 + normalize 兜底 fix），条目 {ts, delta, reason, balance}，写口留 20 条、
-     * core.js 容量级① 裁到 10 条——**全库此前零读点**：玩家看得见余额、看不见钱怎么来怎么去。
-     * 本节即该账本的常驻面，沿用页内 .lrow 行语域 + 既有 legacy.reason.* 五键，零新键。 */
-    var klog = (meta.karmaLog || []).slice().reverse();
-    /* 一次转世结算会以**同一个 ts** 推入十几行（`legacy.js` 的 `applyPreview` 逐明细行 logPush），
-     * 于是轮回页出现整屏一模一样的「转世结算」（2026-10-13 用户报，真机档实测 20 行全是它，
-     * 还把别的 reason 全挤出 20 条窗口）。账本按明细留痕是对的（可复算 ⇒ #197/#295），
-     * **呈现按事件合并**：同 reason + 同 ts 折成一行、金额相加、末尾标 ×N。
-     * shortcut: 合并身份 = reason+ts（同一毫秒的两笔不同结算会被并；结算由玩家点击发起且有
-     * 转世 CD，不成立）。若将来要逐行摆明细，得在 `meta.karmaLog` 里带上明细 key（新增存档
-     * 字段 + 容量 re-anchor），那时再改判据，别现在先写。 */
-    var kgrp = [];
-    klog.forEach(function (l) {
-      var g = kgrp[kgrp.length - 1];
-      if (g && g.reason === l.reason && g.ts === l.ts) {
-        g.delta += l.delta; g.n++;   /* 余额留「先遇见的那条」= 倒序里的最新一笔（链尾），不覆写成链首 */
-        return;
-      }
-      kgrp.push({ ts: l.ts, delta: l.delta, reason: l.reason, balance: l.balance, n: 1 });
-    });
-    h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' +
-      esc(t('legacy.ui.balance', { n: '' })) + '</p>';
-    if (!kgrp.length) h += '<p class="hint">' + esc(t('log.empty')) + '</p>';
-    h += '<div data-karmalog="1">';
-    kgrp.forEach(function (l) {
-      var rk = 'legacy.reason.' + l.reason;
-      var rl = t(rk);
-      if (rl === rk) rl = t('legacy.reason.fix');   /* 未知 reason 兜底「账本修复」，绝不上屏裸拉丁 */
-      var kgt = gameDateStr(l.ts);
-      if (!kgt && l.ts) {
-        var kdt = new Date(l.ts);
-        kgt = ('0' + kdt.getHours()).slice(-2) + ':' + ('0' + kdt.getMinutes()).slice(-2);
-      }
-      h += '<div class="lrow" data-karmalog-row="' + esc(l.reason) + '" data-karmalog-n="' + l.n +
-        '"><div class="nm">' + esc(rl) + (l.n > 1 ? esc(' ×' + l.n) : '') +
-        (kgt ? ' <span class="hint">' + esc(kgt) + '</span>' : '') + '</div>' +
-        '<div class="meta">' + esc((l.delta >= 0 ? '+' : '−') + SQ.fmt(Math.abs(l.delta)) + ' · ' +
-          t('legacy.ui.balance', { n: SQ.fmt(l.balance) })) + '</div></div>';
-    });
-    h += '</div>';
-    /* 图鉴九面 / 称号墙 / 成就图鉴入口已迁至独立「成就」页顶（图鉴与成就同页），轮回页只留转世机制 */
-    /* 前世书（≤9 世 · 展开全文）
-     * ⚠️ 「烧表请天道作传」那一族入口已于第册批整族下线（按钮 / 粘贴框 / 采纳钮 + `Codex.bioMemo`
-     *    / `Codex.adoptBio` / `Actions.adoptBio` / `BIO_MEMO_LEN` / 五条词条 + 作传提示词一起删）：这条通道要玩家
-     *    自己粘回一段外部文本，实机上没人真用它，留着只让前世书看起来像个待办清单。
-     *    来源小标**保留**——老档里确有 `source:'tiandao'` 的条目，抹掉小标等于把它们的来路抹了。 */
-    h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + esc(t('legacy.ui.bios')) + '</p>';
-    var bios = meta.biographies || [];
-    if (!bios.length) h += '<p class="hint">' + esc(t('legacy.ui.bios.empty')) + '</p>';
-    bios.slice().reverse().forEach(function (b, ri) {
-      var idx = bios.length - 1 - ri;
-      var open = ui.bioOpen === idx;
-      h += '<div class="lrow"><div class="nm"><button class="linkbtn" data-act="bioOpen" data-v="' + idx + '">' +
-        esc(t('codex.bio.head', { name: b.name, life: b.life })) + '</button> <span class="hint">' +
-        esc(t('legacy.ui.bio.source.' + (b.source || 'local'))) + '</span></div>' +
-        (open ? '<div class="biobox"><div class="meta" style="white-space:pre-wrap">' + esc(b.text) + '</div></div>' : '') +
-        '</div>';
-    });
-    $('tab-legacy').innerHTML = h;
-  }
+  /* ── 轮回页与飞升 / 兵解两族已随第册四十九批整片搬进 view/legacy.js（N34 第十三刀）：`legacyReasonText` ‖
+   * `renderLegacy` ‖ `settlePreviewText` ‖ 真灵承继一族（`heirNameOf` / `heirStatusText` / `renderHeirChoice` /
+   * `openHeirPicker` / `commitHeirChoice` / `askHeirChoice` / `openHeirSwitch` / `heirToastText`）及其五条动作分支
+   * （`ascend` / `dissolve` / `lgBuy` / `heirPick` / `heirSwitch`）全在 `SQ.UI.legacy.*`。
+   * 内核只留 `enterRebirthCreation`（创角屏机器：MASKS / confirmCb / draft / show）与 `playRecapLastBio`
+   * （演出族，第十四刀），件内经桥位 `enterRebirth` / `playRecap` 回调。── */
 
   /* ── 天骄页（天骄卷 B4：同代榜 + 详情 + 切磋）── */
   /* 江湖榜（天骄页）整片已外置成 view/jianghu.js：渲染族 + 换榜 / 切磋 / 袭杀三条动作（第册七批） */
@@ -4395,68 +3728,12 @@
       return;
     }
     if (act === 'lgBond') { draft.legacy = draft.legacy || { startRealm: 0, talents: [], bond: null }; draft.legacy.bond = v || null; renderLegacyGifts(); return; }
-    if (act === 'ascend') {
-      /* 承继择定前置（轮回卷 §3.4）：飞升大劫掷判前先问「带哪件真灵下世」，
-       * 择定落 meta.heirChoice → 由 finishRebirth 消费；败劫不入转世，择定留在本世（再叩天门不重问）。 */
-      askHeirChoice(function () {
-        askConfirm(t('legacy.ui.feisheng'), t('legacy.ui.feisheng.confirm'), async function () {
-          var rA = await SQ.Actions.ascend(state);
-          if (rA && rA.ok && rA.success) {
-            toast(t('legacy.ui.settle.title') + ' · ' + t('legacy.ui.settle.gain', { n: SQ.fmt((rA.preview || {}).total || 0) }));
-            /* N61（第册十二批）：飞升这条终局也演盖棺之传。取证点 = 飞升路上**没有**独占奖励全屏演出
-             * （`showExclusive` 的三个调用点都在奇遇结算支路），故不与 `#excl-stage` 争屏；
-             * 由 verify-ui-life F2 量几何（rect 高 > 0 且 excl-stage 隐藏）坐实这句。 */
-            enterRebirthCreation();
-            playRecapLastBio();
-          } else if (rA && rA.ok) {
-            toast(t('legacy.log.feisheng.fail'));
-          } else if (rA) {
-            toast(legacyReasonText(rA));
-          }
-          renderAll();
-        });
-      });
-      return;
-    }
-    if (act === 'dissolve') {
-      askHeirChoice(function () {
-        var pvD = SQ.Legacy.preview(ws(), state.meta, pack(), D(), 'bingjie', Date.now());
-        /* §5.2 结算浮层分项行：兵解二次确认前可见将损失多少（预估预览与实结同源同组件） */
-        askConfirm(t('legacy.ui.bingjie.btn'),
-          t('legacy.ui.bingjie.confirm') + '\n' + settlePreviewText(pvD),
-          async function () {
-            var rB = await SQ.Actions.dissolve(state);
-            if (rB && rB.ok) {
-              toast(t('legacy.ui.settle.title') + ' · ' + t('legacy.ui.settle.gain', { n: SQ.fmt((rB.preview || {}).total || 0) }));
-              /* 盖棺之传（第册批立、N61 归口）：先 enterRebirthCreation 再开演（顺序不能反，见 playRecapLastBio 注） */
-              enterRebirthCreation();
-              playRecapLastBio();
-            }
-            renderAll();
-          });
-      });
-      return;
-    }
-    if (act === 'lgBuy') {
-      var itBuy = SQ.Legacy.itemById(D(), v);
-      if (!itBuy) return;
-      /* 永久资格一次确认（不逐世扣、但一次扣到底不退款 ⇒ CONFIRM 纪律与创角赠礼消耗确认同级） */
-      askConfirm(t('legacy.ui.buy'), t('legacy.ui.confirmBuy', { n: itBuy.price, name: t(itBuy.nameKey) }), async function () {
-        var rBuy = await SQ.Actions.legacyBuy(state, v);
-        if (rBuy && rBuy.ok) toast(t('legacy.log.buy', { name: t(rBuy.item.nameKey) }));
-        else if (rBuy && rBuy.reason === 'dup') toast(t('legacy.ui.owned'));
-        else if (rBuy && rBuy.reason === 'poor') toast(t('legacy.ui.poor'));
-        else if (rBuy && rBuy.reason === 'swapfull') toast(t('legacy.ui.buy.swapfull'));
-        /* 其余因（'unknown' = 名录与商店两张表背离）原为**静默无提示** ⇒ 点了没反应，
-         * 属「失败不告警」缺陷：一律给一句中文，绝不静默、也绝不裸英文 */
-        else if (rBuy) toast(t('legacy.ui.buy.fail'));
-        renderAll();
-      });
-      return;
-    }
-    /* ── 真灵承继选择浮层委托 ── */
-    if (act === 'heirPick') { commitHeirChoice(v); return; }
-    if (act === 'heirSwitch') { openHeirSwitch(); return; }
+    /* ── 飞升 / 兵解 / 遗泽购买 + 真灵承继两入口（第册四十九批第十三刀：全在 view/legacy.js）── */
+    if (act === 'ascend') { await SQ.UI.legacy.actAscend(ctx()); return; }
+    if (act === 'dissolve') { await SQ.UI.legacy.actDissolve(ctx()); return; }
+    if (act === 'lgBuy') { await SQ.UI.legacy.actBuy(ctx(), v); return; }
+    if (act === 'heirPick') { SQ.UI.legacy.actHeirPick(ctx(), v); return; }
+    if (act === 'heirSwitch') { SQ.UI.legacy.actHeirSwitch(ctx()); return; }
     if (act === 'bioOpen') { ui.bioOpen = (ui.bioOpen === parseInt(v, 10)) ? null : parseInt(v, 10); renderTab(); return; }
     /* 第册批：`bioAsk` / `bioAdopt` 两个处理器随「烧表请天道作传」整族下线
      * （`Codex.bioMemo` / `Codex.adoptBio` / `Actions.adoptBio` 同批删，不留死枝）。 */
@@ -4576,72 +3853,17 @@
     if (act === 'gcDetail') { SQ.UI.gear.actGcDetail(ctx(), v, el); return; }
     if (act === 'codexNudge') { nudgeEl(el); return; }   /* 未录格点按 = 轻震回弹（★） */
     if (act === 'recallEvent') { openRecall(v); return; }
-    /* ── 批 3 · 侣柱委托（B1~B4/B8）── */
-    if (act === 'openBonds') { openBonds(); return; }
-    if (act === 'bondOpen') {
-      /* 择选批（需求 4）：道友页点解锁卡 → 弹出名录浮层（内呈详情五段式）；名录浮层内则原位二级页。
-       * 两支都显式渲染进浮层容器——背后道友页保持名录原状（秒级 tick 重渲也不跟跳） */
-      ui.bondDetail = v;
-      renderBonds('modal');
-      $('modal-bonds').classList.remove('hide');
-      return;
-    }
-    /* 缘尽赎回（引擎卷 v1.10 §3.6 · 阵营名号联动批）：以遗泽换回一段断缘。
-     * 身份在赎回成功前不揭示——确认框只讲代价与规则，成功 toast 才点名。 */
-    if (act === 'bondDead') {
-      var idD = el.dataset.v || '';
-      var wD = ws(), dD = D();
-      var costD = (dD.BOND_REDEEM_COST != null ? dD.BOND_REDEEM_COST : 30);
-      var haveD = (state.meta && state.meta.karma) || 0;
-      if (!idD) { toast(t('bond.dead.hint')); nudgeEl(el); return; }
-      if ((wD.redeemedIds || []).indexOf(idD) >= 0) { toast(t('bond.redeem.dup')); nudgeEl(el); return; }
-      if (haveD < costD) { toast(t('bond.redeem.poor', { need: costD, have: SQ.fmt(haveD) })); nudgeEl(el); return; }
-      askConfirm(t('bond.redeem.btn'), t('bond.redeem.tip', { cost: costD }), async function () {
-        var rD = await SQ.Actions.redeemBond(state, idD);
-        if (rD && rD.ok) {
-          toastAction(t('bond.redeem.ok', { name: t('bond.' + idD + '.name'), aff: rD.aff }));
-          renderBonds(ui.bondsDest); renderTab();
-        } else if (rD && rD.reason === 'poor') {
-          toast(t('bond.redeem.poor', { need: costD, have: SQ.fmt((state.meta && state.meta.karma) || 0) }));
-        } else { toast(t('bond.redeem.none')); }
-      });
-      return;
-    }
-    /* 拜访论道（渠道 A）：主动、零消耗、全局单冷却。成功 toast 分四态——结识 / 升档 / 同道相投 / 常规。
-     * 结识态放首位：0 → 3 的同时名录格由剪影转实名，是本渠道最有感的一次反馈。 */
-    if (act === 'bondVisit') {
-      var rvV = await SQ.Actions.visitBond(state, v);
-      if (rvV && rvV.ok) {
-        var nmV = t('bond.' + v + '.name');
-        toastAction(rvV.met ? t('bond.visit.ok.met', { name: nmV, n: rvV.gain })
-          : (rvV.tierUp ? t('bond.visit.ok.tier', { name: nmV, title: t('bond.' + v + '.title.' + rvV.tier) })
-            : (rvV.align ? t('bond.visit.ok.align', { name: nmV, n: rvV.gain })
-              : t('bond.visit.ok', { name: nmV, n: rvV.gain }))));
-      } else { toast(bondFailText(rvV)); nudgeEl(el); }
-      renderBonds(ui.bondsDest); renderTab();
-      return;
-    }
-    /* 赠丹（渠道 B）：data-v = 道友 id、data-c = 丹药 key（含 _rw 丹纹版）。
-     * 引擎侧「入账成功才扣丹」，故失败态绝无白扣——视图不做乐观更新。 */
-    if (act === 'bondGift') {
-      var pkG = el.dataset.c || '';
-      var rvG = await SQ.Actions.giftBond(state, v, pkG);
-      if (rvG && rvG.ok) {
-        var nmG = t('bond.' + v + '.name');
-        var pdG = SQ.Alchemy.pillDefOf(D(), pkG);
-        var pnG = t(pdG ? pdG.nameKey : 'alchemy.pill.' + pkG + '.name');   /* 同上（M4）*/
-        toastAction(rvG.tierUp
-          ? t('bond.gift.ok.tier', { name: nmG, pill: pnG, title: t('bond.' + v + '.title.' + rvG.tier) })
-          : t('bond.gift.ok', { name: nmG, pill: pnG, n: rvG.gain }));
-      } else { toast(bondFailText(rvG)); nudgeEl(el); }
-      renderBonds(ui.bondsDest); renderTab();
-      return;
-    }
-    if (act === 'guardPickOpen') { openGuardPick(); return; }
-    if (act === 'guardSet') { await guardSet(v); return; }
-    if (act === 'spousePickOpen') { openSpousePick(); return; }
-    if (act === 'spousePickPropose') { $('modal-slotpick').classList.add('hide'); openPropose(v); return; }
-    if (act === 'proposeOpen') { openPropose(v); return; }
+    /* ── 批 3 · 侣柱委托（B1~B4/B8）‖ 第册四十八批第十二刀：九条分支全在 view/bonds.js ── */
+    if (act === 'openBonds') { SQ.UI.bonds.open(ctx()); return; }
+    if (act === 'bondOpen') { SQ.UI.bonds.actOpen(ctx(), v); return; }
+    if (act === 'bondDead') { SQ.UI.bonds.actDead(ctx(), v, el); return; }
+    if (act === 'bondVisit') { await SQ.UI.bonds.actVisit(ctx(), v, el); return; }
+    if (act === 'bondGift') { await SQ.UI.bonds.actGift(ctx(), v, el); return; }
+    if (act === 'guardPickOpen') { SQ.UI.bonds.openGuardPick(ctx()); return; }
+    if (act === 'guardSet') { await SQ.UI.bonds.guardSet(ctx(), v); return; }
+    if (act === 'spousePickOpen') { SQ.UI.bonds.openSpousePick(ctx()); return; }
+    if (act === 'spousePickPropose') { SQ.UI.bonds.actSpousePickPropose(ctx(), v); return; }
+    if (act === 'proposeOpen') { SQ.UI.bonds.openPropose(ctx(), v); return; }
     if (act === 'unwalked') { ui.unwalked[v] = !ui.unwalked[v]; renderTab(); return; }
     if (act === 'swapGear') {
       var idxG = parseInt(v, 10), wG = ws();

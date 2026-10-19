@@ -275,7 +275,26 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
     'G4b 礼包 15 枚词表键全部可解析（含 deny）', keysG.filter((x) => !x || /\{|undefined/.test(x)).slice(0, 2).join('|'));
   const save0 = await page.evaluate(() => localStorage.getItem('sanqian-state-v1') || '');
   await clearToasts();
-  await page.click('[data-act="giftBuy"]');
+  /* G5b 取数窗口（第册四十九批 2026-10-19 改口径 · 原口径在并发轮里 7 跑 4 红）：
+   * 旧写法 = 「读 save0 → page.click → 等 400ms → 读 save → 逐字节比」——窗口横跨两次 evaluate，
+   * 页内 tick 的落盘随时会插进来（实测 `len 15456→15450` 这类几字节差，产品侧零缺陷），负载越高越必红。
+   * 新写法 = 点击与两枚快照收进**同一次 evaluate**，且中途只 `await Promise.resolve()` 冲微任务、
+   * **一步也不进宏任务** ⇒ 页内秒级 tick（宏任务）不可能落进窗口；而 `SQ.save` 这条 async 写链的
+   * `localStorage.setItem` 恰好全在微任务层 ⇒ 真落档照样抓得住。另把 `Storage.prototype.setItem`
+   * 在窗口内计一次数（writes 必须 = 0），比「字节没变」更贴近「根本没有写动作」这件事。
+   * 这是**收紧**不是放宽：判据从「400ms 里字节没变」变成「点击这一下没有任何写动作」。 */
+  const g5b = await page.evaluate(async () => {
+    var SP = Object.getPrototypeOf(localStorage);
+    var orig = SP.setItem, writes = 0;
+    SP.setItem = function (k, v) { writes++; return orig.call(this, k, v); };
+    try {
+      var before = localStorage.getItem('sanqian-state-v1') || '';
+      document.querySelector('[data-act="giftBuy"]').click();
+      for (var i = 0; i < 12; i++) await Promise.resolve();
+      var after = localStorage.getItem('sanqian-state-v1') || '';
+      return { before: before, after: after, writes: writes };
+    } finally { SP.setItem = orig; }
+  });
   await page.waitForTimeout(400);
   const afterG = await page.evaluate(() => ({
     toasts: Array.prototype.map.call(document.querySelectorAll('#toasts .toast'), (x) => x.textContent),
@@ -283,7 +302,7 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
     qi: (document.querySelector('.stathero') || {}).textContent || ''
   }));
   T(afterG.toasts.length === 1 && /不通金银|苦修|彩蛋/.test(afterG.toasts[0]), 'G5 点「立即充值」只出一句拒绝提示', afterG.toasts.join('|').slice(0, 60));
-  T(afterG.save === save0, 'G5b 点彩蛋**零落档**：localStorage 逐字节不变', 'len ' + save0.length + '→' + afterG.save.length);
+  T(g5b.before === g5b.after && g5b.writes === 0, 'G5b 点彩蛋**零落档**：点击同步段 + 微任务冲干后零写动作（第册四十九批改口径：窗口不再横跨 tick）', 'len ' + g5b.before.length + '→' + g5b.after.length + ' writes=' + g5b.writes + '（窗口外 save0=' + save0.length + '）');
   const seen = new Set();
   for (let i = 0; i < 12 && seen.size < 2; i++) {
     await page.reload();
