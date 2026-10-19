@@ -404,7 +404,16 @@ const SQ = sandbox.window.SQ;
      * 否则「脚本引用的 id 必须静态存在」这条对账会随搬家出现盲区。 */
     const here = path.dirname(f);
     if (fs.existsSync(here)) fs.readdirSync(here).filter((x) => x.endsWith('.js'))
-      .forEach((x) => code.push(fs.readFileSync(path.join(here, x), 'utf8')));
+      .forEach((x) => {
+        const js = fs.readFileSync(path.join(here, x), 'utf8');
+        code.push(js);
+        /* 第册五十一批（N34 第十五刀 2026-10-19）：动态节点（`innerHTML` 字符串里的 `id="..."`）随视图件一起
+         * 搬出后，「创建侧」也跟着离开了本页 ⇒ 同目录 js 里的 id 字面量必须与引用侧**同源采集**，否则本判会把
+         * 「件内自己创建、自己取」这种合法形态判红（本批 `sect-name-input` 即此形，红得没有道理）。
+         * 判据方向一字未改：仍要求 id 在**源码里静态出现**，只是把「源码」的射程与引用侧对齐（引用侧从第册四批起
+         * 就已含同目录 js，创建侧是这处漏配）。 */
+        for (const mm of js.matchAll(/\bid="([^"]+)"/g)) ids.add(mm[1]);
+      });
     const body = code.join('\n');
     const refs = [...body.matchAll(/\$\('([^']+)'\)|getElementById\(\s*'([^']+)'\s*\)/g)]
       .map((x) => x[1] || x[2]);
