@@ -281,5 +281,5 @@
 
 
   SQ.UI = SQ.UI || {};
-  SQ.UI.zone = { render: render, caveDex: caveDexHTML, realmInfo: realmInfo };
+  SQ.UI.zone = { render: render, realmInfo: realmInfo };
 })();

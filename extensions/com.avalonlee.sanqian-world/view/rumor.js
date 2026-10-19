@@ -94,5 +94,5 @@
     return (w.rumors || []).some(function (r) { return r.expireAt > now && r.bornAt > c.ui.rumorSeenAt; });
   }
   SQ.UI = SQ.UI || {};
-  SQ.UI.rumor = { band: renderRumors, card: rumorCard, maxBorn: maxRumorBornAt, dotOn: rumorDotOn };
+  SQ.UI.rumor = { band: renderRumors, maxBorn: maxRumorBornAt, dotOn: rumorDotOn };
 })();
