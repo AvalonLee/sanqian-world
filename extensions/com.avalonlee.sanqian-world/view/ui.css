@@ -1346,3 +1346,62 @@
   #tab-legacy .shopcard { grid-template-columns: 1fr; }
   #tab-legacy .shopcard .acts { grid-column: 1; grid-row: auto; margin-top: 6px; }
 }
+
+/* ── UI v2 B10：创角三屏纸面化（立名 / 择界 / 观天赋；顺序与判定未动）── */
+#sc-c1, #sc-c2, #sc-c3 {
+  background: var(--sq2-paper); border: 1px solid var(--sq2-line); border-radius: 2px;
+}
+#sc-c1 h1, #sc-c2 h1, #sc-c3 h1 {
+  font-family: var(--sq2-serif); letter-spacing: .16em; font-weight: 650;
+}
+#sc-c1 h1 { margin: 4px 0 14px; }
+#sc-c1 input {
+  width: 100%; box-sizing: border-box; background: var(--sq2-paper-2);
+  border: 1px solid var(--sq2-line); border-radius: 2px; padding: 10px 12px;
+  color: var(--sq2-ink); font-family: var(--sq2-serif); font-size: 18px; letter-spacing: .08em;
+}
+#sc-c1 input:focus { outline: none; border-color: var(--sq2-cinnabar); }
+#sc-c1 .primary, #sc-c2 .primary, #sc-c3 .primary,
+#sc-c1 button, #sc-c2 button, #sc-c3 button {
+  border-radius: 2px; font-family: var(--sq2-serif); letter-spacing: .08em;
+}
+#sc-c1 .primary, #sc-c3 .primary, #sc-c2 .primary {
+  background: var(--sq2-cinnabar); border-color: var(--sq2-cinnabar); color: var(--sq2-paper);
+}
+
+.stepper { justify-content: flex-start; margin: 0 0 14px; }
+.stepper .step { font-family: var(--sq2-serif); letter-spacing: .08em; }
+.stepper .step .n { border-radius: 2px; border-color: var(--sq2-line); }
+.stepper .step.on { color: var(--sq2-cinnabar); }
+.stepper .step.on .n { background: var(--sq2-cinnabar); border-color: var(--sq2-cinnabar); color: var(--sq2-paper); }
+.stepper .step.done .n { border-color: var(--sq2-cinnabar); color: var(--sq2-cinnabar); }
+.stepper .stepline { background: var(--sq2-line); }
+
+#sc-c3 .wcard {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px;
+}
+#sc-c3 .wcard.sel { border-color: var(--sq2-cinnabar); box-shadow: none; background: var(--sq2-paper-3); }
+#sc-c3 .wcard .wname { font-family: var(--sq2-serif); letter-spacing: .05em; }
+#sc-c3 .wcard.coming { opacity: .5; }
+#sc-c3 .wstatus {
+  background: transparent; border: 1px solid var(--sq2-jade); color: var(--sq2-jade); border-radius: 2px;
+}
+#sc-c3 .wcard.coming .wstatus { border-color: var(--sq2-line); color: var(--sq2-ink-3); }
+
+#sc-c2 .tcard {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px;
+}
+#sc-c2 .tcard .tname { font-family: var(--sq2-serif); }
+#sc-c2 .corner { border-radius: 2px; background: var(--sq2-cinnabar); color: var(--sq2-paper); }
+#sc-c2 .corner.amp { background: var(--sq2-jade); }
+#sc-c2 .corner.mech { background: var(--sq2-ink-2); }
+#sc-c2 .combo-badge {
+  background: transparent; border: 1px solid var(--sq2-cinnabar); color: var(--sq2-cinnabar);
+  border-radius: 2px; font-family: var(--sq2-serif);
+}
+#sc-c2 .synnote { background: var(--sq2-paper-2); border-radius: 2px; }
+#sc-c2 .biascard {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px;
+}
+#sc-c2 .biascard.sel { border-color: var(--sq2-cinnabar); background: var(--sq2-paper-3); box-shadow: none; }
+#sc-c2 .biascard .bn { font-family: var(--sq2-serif); }
