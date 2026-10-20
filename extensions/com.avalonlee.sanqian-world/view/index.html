@@ -77,6 +77,7 @@
       <div id="tab-idle" class="panel"></div>
       <div id="tab-combat" class="panel hide"></div>
       <div id="tab-arts" class="panel hide"></div>
+      <div id="tab-gear" class="panel hide"></div>
       <div id="tab-treasure" class="panel hide"></div>
       <div id="tab-shop" class="panel hide"></div>
       <div id="tab-faction" class="panel hide"></div>
@@ -556,7 +557,6 @@
     caveStory: {},                          /* 洞府叙事展开态（B3；未达资格者本就不给展开） */
     tribSnap: null,                         /* 渡劫前 {p, loss} 快照（F7 复盘行） */
     artsGroup: 'tier', artsGroupVal: null,  /* 功法页双维筛选（B4 + 体验批）：品阶|阵营 × 选中值（null=不筛，已学会与图鉴同受） */
-    lawChip: 'fa',                          /* 法与器页顶部标签（标签化批 2026-10-09）：'fa' 功法段 | 'qi' 法器段，两段互斥；纯 UI 态不入存档 */
     slotPickFor: null,                      /* 满槽替换选择模式（B4）：待入槽的功法 id */
     bondDetail: null,                       /* 名录浮层二级页（B3）：当前查看的 npcId */
     unwalked: {},                           /* 未择之路展开态（B8）：feed ts 键控；卸下照世镜即复位 */
@@ -973,16 +973,15 @@
    * 引擎侧天骄 gate 与渡劫解锁播报同表同源）。
    * 阶梯：炼气起点 5 页（修行/历练/法与器/奇遇/成就）→ 筑基 +坊市/势力/炼丹/道友
    *   → 金丹 +天骄 → 元婴 +法宝 → 化神 +宗门。
-   * 页面整合批 2026-10-06（UI 卷 §3.4a）：原「功法」「法器」两页并为「法与器」一页 →
-   *   游戏页 13 → **12** 项。tab id 沿用 `arts`（不新造 id），故 newArtsDot 红点键、
-   *   lastArtsSig 签名、TAB_UNLOCK（二者本就无境界门槛）三处零改动；`gear` 条目删除后，
-   *   旧档 `settings.tabOrder` 里的 'gear' 不参与导航（B1 起固定五区），无需迁移。
-   *   导航标签改取 `arts.system`（法与器）；`skill.system`/`gear.system` 保留不动——
-   *   二者仍是日志页分类筛选标签，改它们会连带改日志分类语义。 */
+   * 页面整合批 2026-10-06（UI 卷 §3.4a）：原「功法」「法器」两页并为「法与器」一页 → 游戏页 12 项。
+   * **UI v2 B3（2026-10-20）拆回两页**：`arts` = 功法（skill.system）、新增 `gear` = 百器（gear.system）；
+   *   导航 12 → **13** 项（五区共 16 项），`arts.system` / `arts.seg.*` / `arts.ov.*` 词表键退役。
+   *   `newArtsDot` / `lastArtsSig` 仍只跟功法；百器侧无红点。 */
   var GAME_TABS = [
     { id: 'idle', key: 'tab.idle' },
     { id: 'combat', key: null, sys: 'combat.system' },
-    { id: 'arts', key: null, sys: 'arts.system' },
+    { id: 'arts', key: null, sys: 'skill.system' },
+    { id: 'gear', key: null, sys: 'gear.system' },
     { id: 'treasure', key: null, sys: 'treasure.system', lock: 3 },
     { id: 'shop', key: null, sys: 'shop.system', lock: 1 },
     { id: 'faction', key: null, sys: 'faction.system', lock: 1 },
@@ -1008,7 +1007,7 @@
   var SECTIONS = [
     { id: 'idle', key: 'nav.sec.idle', items: ['idle'] },
     { id: 'zone', key: 'nav.sec.zone', items: ['combat', 'event'] },
-    { id: 'arts', key: 'nav.sec.arts', items: ['arts', 'treasure', 'alchemy', 'shop'] },
+    { id: 'arts', key: 'nav.sec.arts', items: ['arts', 'gear', 'treasure', 'alchemy', 'shop'] },
     { id: 'bonds', key: 'nav.sec.bonds', items: ['bonds', 'faction', 'prodigy', 'sect'] },
     { id: 'life', key: 'nav.sec.life', items: ['achv', 'legacy', 'journal', 'settings'] }
   ];
@@ -1386,83 +1385,18 @@
   /* 法宝「先天 / 后天」→ 色阶：同一套 t 类，映射只这一处（原四处逐字抄 `xian ? 4 : 2`）*/
   function treasureKindCls(kind) { return 't' + (kind === 'xian' ? 4 : 2); }
   /* 未获得行（B4：获取途径教学行 + 缺项红字；系统深化批 B4：情报角标 + 豁免提示行） */
-  /* ══════════ Tab · 法与器（页面整合批 2026-10-06 · UI 卷 §3.4a；标签化批 2026-10-09 改顶部标签）══════════
-   * 原「功法」「法器」两页并为一页（tab id 沿用 `arts`，导航 13 → **12** 项）。
-   * 标签化批：并页后实测**单页太长**（功法段 = 6 槽 + 待修习架 + 图鉴横幅 + 融合坛，法器段 = 百器录
-   * 横幅 + 4 槽 + 库藏阁，一屏放不下、看一半要滚到底再滚回来），故把「单页纵向五段」改成
-   * **顶部 chip 二枚 + 只渲染选中段**：① chip 行（吸顶）② 概览条（跨轴摘要，两段之间恒在）
-   * ③ 段标 ④ 段体。段体本身仍**逐段照搬**（元素与交互零删改）：`artsBody()`（原 renderArts 主体）
-   * / `gearBody()`（原 renderGear），都是返回 HTML 串的纯渲染器（实测两者只做读侧计算，无落状态副作用）。
-   * 红点键 `newArtsDot` 与签名 `lastArtsSig` 零改动——只换承载页，法器侧本无红点。
-   * 🔧 第册八批（N34 第五刀）`artsBody` 及其四条动作外置 `view/arts.js` ‖ 第册十批（第六刀）`gearBody`
-   * 与器段渲染族、百器录外置 `view/gear.js`，融合坛与悟道石并进 `view/arts.js`（就渲染在「法」段里）。
-   * 下面那行因此两侧都按 `SQ.UI.arts.body(ctx())` / `SQ.UI.gear.body(ctx())` 调用；本页只剩页框三件
-   * （chip 行 / 概览条 / 段标）在内核。 */
+  /* ══════════ Tab · 功法（UI v2 B3：法与器拆页后的功法页）══════════
+   * 合并页、顶部 chip、概览条与段标随 B3 退役；本页只渲染功法段（六槽 / 待修习架 / 图鉴 / 融合坛 /
+   * 悟道石），百器独立成页。词表 `arts.system` / `arts.seg.*` / `arts.ov.*` 同批退役。
+   * 法段实现仍在 view/arts.js（N34 第五刀外置），本页只留一句调用。 */
   function renderArts() {
-    var c = lawChipOf();
-    $('tab-arts').innerHTML =
-      lawChipBar() +
-      lawareBar() +
-      (c === 'qi'
-        ? secDiv('arts.seg.qi', 'arts.seg.qi.sub', 'qi') + SQ.UI.gear.body(ctx())
-        : secDiv('arts.seg.fa', 'arts.seg.fa.sub', 'fa') + SQ.UI.arts.body(ctx()));
+    $('tab-arts').innerHTML = SQ.UI.arts.body(ctx());
   }
 
-  /* 顶部标签表（标签化批）：**词表零新键**——两枚 chip 复用既有系统名键 `skill.system`（功法）/
-   * `gear.system`（法器）。这二键在 UI 卷 §3.4a 早已注明还兼着日志页分类标签，同词复用不破那处语义。
-   * 容器类名 = `chips lawchips`：`chips` 取全局 chip 样式，`lawchips` 是**吸顶规则的专名挂点**
-   * （段内融合坛那排 `.chips` 与本行同为 `#tab-arts` 直接子代，只靠 `>` 区不开——真机走查 N4 抓到）。 */
-  var LAW_CHIPS = [{ id: 'fa', sys: 'skill.system' }, { id: 'qi', sys: 'gear.system' }];
-  function lawChipOf() { return ui.lawChip === 'qi' ? 'qi' : 'fa'; }
-  function lawChipBar() {
-    var cur = lawChipOf();
-    return '<div class="chips lawchips">' + LAW_CHIPS.map(function (c) {
-      return '<button type="button" class="' + (cur === c.id ? 'on' : '') + '" data-act="lawChip" data-v="' +
-        c.id + '">' + esc(t(c.sys)) + '</button>';
-    }).join('') + '</div>';
+  /* Tab · 百器（B3 拆页）：百器录 + 四槽 + 库藏阁，全部在 view/gear.js（N34 第六刀外置）。 */
+  function renderGear() {
+    $('tab-gear').innerHTML = SQ.UI.gear.body(ctx());
   }
-  /* 切标签 = 换渲染主体 + 滚动归零（等价于换页：留在原 scrollY 会把新段的**中间**当成开头）。
-   * `ui.lawChip` 只在内存（与 `ui.logFilter` / `ui.artsGroup` 同纪律）——选看哪一段不是角色状态，
-   * 写进存档等于给主档加一个与游玩时长相关的增长项（同「度量只活在内存」那条裁定）。
-   * tick 侧 renderTab() 复用当前 chip ⇒ 每秒重渲染不会把用户选的标签抢回去。 */
-  function lawChipTo(v) {
-    ui.lawChip = v === 'qi' ? 'qi' : 'fa';
-    renderArts();
-    var b = document.querySelector('.tabbody');
-    if (b) b.scrollTop = 0;
-  }
-
-  /* ① 概览条：主修 / 佩器 / 战力 三格，点格切到对应段（`lawJump` 在标签化批的语义见委托处）——
-   * **合并页存在的理由**：进页一眼看到「法」「器」两条轴的当前态，切段时摘要不跟着滚走。 */
-  function lawareBar() {
-    var w = ws(), m = mods(), d = D(), p = pack();
-    var mainId = SQ.Arts.mainArt(w);
-    var mainTxt = mainId
-      ? t('arts.ov.main.val', { name: t('skill.' + mainId + '.name'), lv: w.artsLevels[mainId] || 0 })
-      : t('arts.ov.main.none');
-    var slots = d.GEAR_SLOTS || [];
-    var worn = 0, resSum = 0;
-    slots.forEach(function (s) { if (w.gear[s]) { worn++; resSum += w.gear[s].resist || 0; } });
-    return '<div class="laware">' +
-      '<button type="button" data-act="lawJump" data-v="fa"><span class="k">' + esc(t('arts.ov.main')) +
-        '</span><span class="v' + (mainId ? '' : ' none') + '">' + esc(mainTxt) + '</span></button>' +
-      '<button type="button" data-act="lawJump" data-v="qi"><span class="k">' + esc(t('arts.ov.gear')) +
-        '</span><span class="v">' + esc(t('arts.ov.gear.val',
-          { n: worn, total: slots.length, r: SQ.fmt(resSum) })) + '</span></button>' +
-      '<button type="button" data-act="lawJump" data-v="fa"><span class="k">' + esc(t('arts.ov.power')) +
-        '</span><span class="v">' + esc(SQ.fmt(SQ.Mods.powerOf(w, p, d, m))) + '</span></button>' +
-      '</div>';
-  }
-
-  /* ②④ 段标：单字大字 + 一句副标 + 锚点 id（概览条 lawJump 滚到这里） */
-  function secDiv(nameKey, subKey, anchor) {
-    return '<div class="secdiv" id="lawsec-' + anchor + '"><span class="zi">' + esc(t(nameKey)) +
-      '</span><span class="sub">' + esc(t(subKey)) + '</span></div>';
-  }
-
-
-
-
 
   /* ── Tab 4 法器（批 2 · B5：百器录横幅+浮层 / 4 槽来源行 / 独占替换 CONFIRM / 极品 ※）── */
   function statLine(it) {
@@ -1767,6 +1701,7 @@
     if (ui.tab === 'idle') SQ.UI.idle.render(ctx());
     else if (ui.tab === 'combat') SQ.UI.zone.render(ctx());
     else if (ui.tab === 'arts') renderArts();
+    else if (ui.tab === 'gear') renderGear();
     else if (ui.tab === 'treasure') SQ.UI.treasure.render(ctx());
     else if (ui.tab === 'shop') SQ.UI.shop.render(ctx());
     else if (ui.tab === 'faction') SQ.UI.faction.render(ctx());
@@ -2345,31 +2280,11 @@
       }
       return;
     }
-    /* 法与器合并页（页面整合批 2026-10-06 · UI 卷 §3.4a；标签化批 2026-10-09 改顶部标签）：
-     * `lawChip` = 页顶两枚标签（功法 / 法器），互斥显示，切一枚就只渲染那一段。
-     * `lawJump` = 概览条三格，语义随标签化改：**目标段没选中 → 切过去并回顶**（原来「锚跳到看不见的段」
-     * 在无滚动可依托的标签态下等于没反应）；**目标段已选中 → 仍滚到该段段标**（长段内回段首，
-     * 滚动容器是 `.tabbody` 而非 window，`prefers-reduced-motion` 直出——与渡劫演出同口径）。
-     * 两条都必须 `return`：委托尾部会把 `.tabbody.scrollTop` 复原成动作前的值（keepScroll），
-     * 不 return 就切完标签又被拽回原处——与 `logFilter` 同口径。 */
-    if (act === 'lawChip') { lawChipTo(v); return; }
-    /* 江湖榜换榜（第册一批③）：`ui.jhb` 只在内存（与 `ui.lawChip` 同纪律——选看哪一榜不是角色状态，
+    /* 法与器合并页已随 UI v2 B3 拆成「功法」「百器」两页：`lawChip` / `lawJump` 旧入口一并退役。 */
+    /* 江湖榜换榜（第册一批③）：`ui.jhb` 只在内存（与 `ui.logFilter` / `ui.artsGroup` 同纪律——选看哪一榜不是角色状态，
      * 写进存档等于给主档加一个与游玩时长相关的增长项）；切榜等价换页 ⇒ 滚动归零。 */
     if (act === 'jbChip') {
       SQ.UI.jianghu.actChip(ctx(), v);
-      return;
-    }
-    if (act === 'lawJump') {
-      if (lawChipOf() !== (v === 'qi' ? 'qi' : 'fa')) { lawChipTo(v); return; }
-      var lawT = document.getElementById('lawsec-' + v);
-      var lawB = document.querySelector('.tabbody');
-      if (lawT && lawB) {
-        var lawTop = lawB.scrollTop + (lawT.getBoundingClientRect().top - lawB.getBoundingClientRect().top) - 8;
-        if (lawTop < 0) lawTop = 0;
-        if (reducedMotion()) lawB.scrollTop = lawTop;
-        else if (lawB.scrollTo) lawB.scrollTo({ top: lawTop, behavior: 'smooth' });
-        else lawB.scrollTop = lawTop;
-      }
       return;
     }
     if (act === 'claim') {

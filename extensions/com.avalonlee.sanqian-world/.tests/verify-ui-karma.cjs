@@ -227,10 +227,10 @@ const { chromium } = require('playwright-core');
   await page.waitForTimeout(400);
   const catHit = await page.evaluate(() => {
     const btns = Array.from(document.querySelectorAll('#tab-journal .chips button'));
-    const b = btns.filter(x => (x.textContent || '').trim() === '善恶')[0];
+    const b = btns.filter(x => (x.textContent || '').trim() === '道心')[0];
     return b ? { found: true, id: b.getAttribute('data-v') } : { found: false };
   });
-  T(catHit.found && catHit.id === 'karma', '日志页「善恶」分类筛选在位（id=karma）', JSON.stringify(catHit));
+  T(catHit.found && catHit.id === 'karma', '日志页「道心」分类筛选在位（id=karma）', JSON.stringify(catHit));
   await page.click('#tab-journal .chips button[data-v="karma"]');
   await page.waitForTimeout(300);
   const logText = await page.evaluate(() => (document.getElementById('tab-journal') || {}).innerText || '');
