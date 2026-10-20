@@ -1,11 +1,11 @@
 {
  "generated_by": ".tests/gen-ledger.cjs",
- "at": "2026-10-20T04:50:26.634Z",
+ "at": "2026-10-20T05:02:56.090Z",
  "values": {
-  "ext_version": "0.5.66",
+  "ext_version": "0.5.67",
   "dod_items": 52,
   "dod_asserts": 1421,
-  "dod_secs": 321.7,
+  "dod_secs": 302.8,
   "smoke": 326,
   "audit_gates": 34,
   "versions_rows": null,
@@ -31,7 +31,7 @@
   "visible_worlds": 6,
   "log_cats": 11,
   "name_pool": "9 × 7 × 5",
-  "lex_keys": 4810
+  "lex_keys": 4806
  },
  "segments": [
   {

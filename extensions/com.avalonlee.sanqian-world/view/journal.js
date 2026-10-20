@@ -67,7 +67,7 @@
         /* N20 接线：「全部」筛选下行内不显分类（11 个分类标签键都在用，只是没进日志行）⇒ 仅在该筛选下加 `[分类]` 前缀，         * 其余筛选由选中态自身表达，不重复 */
         var catC = ((c.ui.logFilter || 'all') === 'all') ? LOG_CATS.filter(function (cc) { return cc.id === l.cat; })[0] : null;
         h += '<div class="logline' + (l.cat === 'event' ? ' ev' : '') + '"><span class="ts">' + c.esc(gt) + '</span>' +
-          c.esc(catC ? c.t('log.catted', { cat: catC.key ? c.t(catC.key) : c.t(catC.sys), text: l.text }) : l.text) + '</div>';
+          '<span class="tx">' + c.esc(catC ? c.t('log.catted', { cat: catC.key ? c.t(catC.key) : c.t(catC.sys), text: l.text }) : l.text) + '</span></div>';
       });
       h += '</div>';
     }
