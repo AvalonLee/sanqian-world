@@ -147,15 +147,26 @@ async function buildSave() {
   /* ── 窄屏退单列 ── */
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);
-  await page.click('#m-tabbar button[data-v="shop"]');
+  /* B13：<720px 用五区底栏切区、子导航切页（16 项侧栏收起） */
+  const zoneTo = async (label) => {
+    await page.evaluate((l) => {
+      const b = Array.prototype.slice.call(document.querySelectorAll('#m-zonebar button'))
+        .filter((x) => x.textContent.trim() === l)[0];
+      if (b) b.click();
+    }, label);
+    await page.waitForTimeout(250);
+  };
+  await zoneTo('道器');
+  await page.click('#m-subnav button[data-v="shop"]');
   await page.waitForTimeout(300);
   const shopNarrow = await colsOf('#tab-shop .shopgrid');
-  await page.click('#m-tabbar button[data-v="faction"]');
-  await page.waitForTimeout(300);
-  const facNarrow = await colsOf('#tab-faction .cardgrid');
-  await page.click('#m-tabbar button[data-v="alchemy"]');
+  await page.click('#m-subnav button[data-v="alchemy"]');
   await page.waitForTimeout(300);
   const alNarrow = await colsOf('#tab-alchemy .cardgrid');
+  await zoneTo('江湖');
+  await page.click('#m-subnav button[data-v="faction"]');
+  await page.waitForTimeout(300);
+  const facNarrow = await colsOf('#tab-faction .cardgrid');
   T(shopNarrow === 1, 'M12 窄屏坊市退单列', 'cols=' + shopNarrow);
   T(facNarrow === 1, 'M13 窄屏门中供给退单列', 'cols=' + facNarrow);
   T(alNarrow === 1, 'M14 窄屏炼丹炼器退单列', 'cols=' + alNarrow);
@@ -163,7 +174,7 @@ async function buildSave() {
   /* M23 同型面第二处：门中供给（势力页）卖的就是 D.PILLS 那四颗丹，必须挂**同一对标签**
    * （坊市加了而那里不加 = 造一处新的不一致，正是本批在特席上刚修掉的毛病）。
    * 主存档已入势力、声望满 ⇒ 四档供给全解锁，卡片必为四张，逐张量 .fh 内的 chip。 */
-  await page.click('#m-tabbar button[data-v="faction"]');
+  /* 已停在势力页（窄屏那一步刚切过来）⇒ M23 直接量，不再重复点导航 */
   await page.waitForTimeout(500);
   const sup = await page.evaluate(() => Array.prototype.map.call(
     document.querySelectorAll('#tab-faction .faccard.carditem'), (c) => {
@@ -306,7 +317,6 @@ async function buildSave() {
       stones: w.stones
     };
   });
-  await page.click('#m-tabbar button[data-v="faction"]');
   await page.waitForSelector('[data-act="supplyBuy"][data-v="cuiti"]', { timeout: 8000 });
   const bD = await readPill();
   await page.click('[data-act="supplyBuy"][data-v="cuiti"]');
@@ -315,7 +325,8 @@ async function buildSave() {
   T(aD.pills === bD.pills + 1 && aD.buffs === bD.buffs && aD.stones < bD.stones,
     'M25 门中供给买丹：入丹匣且**不当场生效**（战力 buff 数不变、灵石照扣；🔧 N43 起「丹毒计数不占」那半随日限退役）',
     '匣 ' + bD.pills + '→' + aD.pills + ' buff ' + bD.buffs + '→' + aD.buffs + ' 灵石 ' + bD.stones + '→' + aD.stones);
-  await page.click('#m-tabbar button[data-v="alchemy"]');
+  await zoneTo('道器');
+  await page.click('#m-subnav button[data-v="alchemy"]');
   await page.waitForSelector('[data-act="alDrink"][data-v="cuiti"]', { timeout: 8000 });
   const rowD = await page.evaluate(() => {
     const el = document.querySelector('[data-act="alDrink"][data-v="cuiti"]').closest('.carditem');

@@ -72,7 +72,7 @@ const { chromium } = require('playwright-core');
   T(back.gearHidden && back.artsShown, 'G7 切回功法页后百器容器隐藏（互不串页）');
 
   await page.setViewportSize({ width: 380, height: 720 });
-  await page.click('#m-tabbar button[data-v="gear"]');
+  await page.click('#m-subnav button[data-v="gear"]');   /* B13：<720px 走子导航（16 项侧栏已收起） */
   await page.waitForTimeout(300);
   const narrow = await page.evaluate(() => {
     const grid = document.querySelector('#tab-gear .geargrid');

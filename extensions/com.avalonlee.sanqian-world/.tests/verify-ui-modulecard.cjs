@@ -58,6 +58,17 @@ const { chromium } = require('playwright-core');
   T(/^×\d/.test(caveM), '灵脉倍率形如 ×N.NN（批C 改路的落点）', caveM);
   T(caveM !== '×1.00', '倍率不是常数 1（否则下一条同源判据恒等）', caveM);
 
+  /* UI v2 B13：卡片令牌对齐（宋体字面 + 朱砂语义色 + 纸面直角） */
+  const style = await page.evaluate(() => ({
+    font: getComputedStyle(document.getElementById('c-role')).fontFamily,
+    realm: getComputedStyle(document.getElementById('c-realm')).color,
+    bar: getComputedStyle(document.getElementById('c-bar')).backgroundImage,
+    kb: getComputedStyle(document.getElementById('c-karma')).borderRadius
+  }));
+  T(/Songti|STSong|SimSun/.test(style.font) && style.realm === 'rgb(165, 54, 44)' &&
+    /165, 54, 44/.test(style.bar) && style.kb === '2px',
+    'M8 卡片令牌对齐：宋体道号 / 朱砂境界与进度 / 徽标直角', JSON.stringify(style));
+
   /* 同源对表：卡片上那个数必须等于引擎同一个函数用同一份档现算的值 */
   const engMult = await page.evaluate(() => {
     var st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
