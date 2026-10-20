@@ -58,6 +58,15 @@
     (meta.achv || []).forEach(function (id) { got[id] = 1; });
     var h = '<div class="pagehead split"><div class="chips"><button class="on">' + c.esc(c.t('achv.system')) + '</button></div>' +
       '<span class="tdtitle">' + c.esc(c.t('codex.ui.achv.done', { n: (meta.achv || []).length })) + '</span></div>';
+    /* 三格摘要（B15-h · 设计稿 .sum3）：已得 / 遗泽 / 九面在录 —— 三个数都取存档现算，不写死 */
+    var facesAll = (d.CODEX.FACES || []);
+    var faceIn = facesAll.filter(function (f) { return SQ.Codex.faceCount(meta, f) > 0; }).length;
+    h += '<div class="sum3">' +
+      '<div><div class="k">' + c.esc(c.t('achv.ui.sum.got')) + '</div><div class="v">' +
+      c.esc(c.t('codex.ui.collected', { n: (meta.achv || []).length, total: (d.CODEX.ACHV || []).length })) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('achv.ui.sum.karma')) + '</div><div class="v">' + SQ.fmt(meta.karma || 0) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('achv.ui.sum.faces')) + '</div><div class="v">' +
+      c.esc(c.t('achv.ui.sum.facesv', { n: faceIn, total: facesAll.length })) + '</div></div></div>';
     /* 图鉴九面（自轮回页迁入）：收集率 + 里程碑，卡片网格置顶 */
     h += '<div class="secbar"><span>' + c.esc(c.t('codex.system')) + '</span>' +
       '<span class="secnote">' + c.esc(c.t('codex.ui.codexnote')) + '</span></div>';

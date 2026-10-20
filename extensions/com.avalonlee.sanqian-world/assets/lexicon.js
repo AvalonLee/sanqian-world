@@ -265,6 +265,10 @@
     /* 域主精英战（数值详设 §2.6 · 系统深化批 A4）：首通 → 现世 → 挑战 → 胜利才推进 */
     'zone.boss.appear': '域主现世——「{zone}」之主察觉了秘境之变',
     'zone.boss.tag': '域主现世',
+    /* UI v2 B15-d：秘境页改行式清单后新增的标签（域主行 / 词缀行 / 洞天行 / 未解锁角标） */
+    'zone.boss.name': '域 主', 'zone.boss.none': '此区暂无域主现世',
+    'affix.title': '本区词缀', 'cave.link.none': '本区暂无可开福地',
+    'zone.lockedtag': '未解锁',
     'zone.boss.dead': '域主已斩',
     'zone.boss.challenge': '挑战域主',
     'zone.boss.need': '域主线：战力 {need}（{m}×）',
@@ -299,6 +303,16 @@
     'rail.fire': '炉火', 'rail.restock': '坊市补货', 'rail.left': '余 {t}',
     /* UI v2 B8：右栏（江湖区）块标题 */
     'rail.jianghu': '江湖近况', 'rail.sect': '宗门', 'rail.none': '无',
+    /* UI v2 B15-b：右栏（修行区）三块标题 —— 四柱 / 天象传闻 / 离线所得 */
+    'rail.pillars': '四柱', 'rail.tiandao': '天象 · 传闻', 'rail.offline': '离线所得',
+    'rail.offline.none': '本次上线暂无离线结算',
+    'offline.rail.line': '修为 +{qi} · 灵石 +{stones}',
+    /* UI v2 B15-c：修行页页尾段标（设计稿「天 命」小节；自动区已迁设置，见 D6） */
+    'idle.talent.title': '天 命',
+    /* UI v2 B15-f：道友页两张卡右下角的动作提示（设计稿 .bs-x） */
+    'bond.guard.swap': '换护法 ›', 'bond.spouse.cand': '查看候选 ›',
+    /* UI v2 B15-h：成就页三格摘要（已得 / 遗泽 / 九面） */
+    'achv.ui.sum.got': '已 得', 'achv.ui.sum.karma': '遗 泽', 'achv.ui.sum.faces': '九 面', 'achv.ui.sum.facesv': '{n} ／ {total} 面在录',
     'zone.cavelink': '福地「{name}」以此为凭', 'zone.cavelink.locked': '首通可开福地',
     'zone.pw.ok': '战力富余 {p}%', 'zone.pw.tight': '战力压线 {p}%', 'zone.pw.bad': '战力不足，差 {n}',
     /* 商店 */

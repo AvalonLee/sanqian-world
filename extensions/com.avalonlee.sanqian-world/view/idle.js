@@ -23,68 +23,50 @@
     /* 游戏历（v2.3）：修行页顶栏——罗云历XXX年X月X日（1 游戏日 = 1 现实秒，每秒 tick 随之日进） */
     var calNow = c.date(Date.now());
     if (calNow) h += '<div class="calrow">' + c.esc(calNow) + '</div>';
-    /* 江湖传闻区（传闻同步批）：紧随游戏时间之下，与奇遇页顶部同源渲染（renderRumors），
-     * 信息两边完全一致——卡片/倒计时/前往查证/势力战卡全部复用，秒级 tick 自然刷新 */
-    h += SQ.UI.rumor.band(c.fresh(), Date.now());
-    h += c.renderPillars();                       /* 四柱 chip 行（B1）：财/法/地 激活 + 侣位灰置 */
-    h += c.renderTiandaoRow();                    /* 天道系统批 B1/B3：问天入口 + 天象红点 + 逆天值/档位/称号/逆天盾 */
-    /* 角色总览（UI v2 B4）：战力置于圆相中央，环 = 修为进度（只读派生，不新开状态）；
-     * 右侧保持精/气/神三格。圆相里的数字仍是 SQ.fmt 真值，不走演示值。 */
+    /* 传闻 / 四柱 / 天道行先攒着，等身元信息之后再落（B15-b 版面序：圆相 → 四格 → 身元 → 传闻 → 四柱 → 天道） */
+    var rumorHtml = SQ.UI.rumor.band(c.fresh(), Date.now());   /* 江湖传闻区：与奇遇页顶部同源渲染 */
+    var pillarsHtml = c.renderPillars();                       /* 四柱 chip 行（B1）：财/法/地 激活 + 侣位灰置 */
+    var tiandaoHtml = c.renderTiandaoRow();                    /* 天道系统批 B1/B3：问天入口 + 天象红点 + 逆天值 */
+    /* 圆相 hero（UI v2 B15-b · 设计稿 .enso）：环 = 修为进度（只读派生），环心 = 修为全位数字（1 秒一跳），
+     * 环下 = 吐纳速率 + 明细。修行数字从此只在这里出现一处，不再另挂 `.big` 行与进度条（环就是进度条）。
+     * 几何取设计稿原值：218×218 容器 / viewBox 236 / r99 / 周长 622.035。 */
     var ringP = Math.max(0, Math.min(100, cap > 0 ? (w.qi / cap) * 100 : 0));
-    var RING_C = 339.292;   /* 2π × r54 */
-    h += '<div class="stathero"><div class="shmain">' +
-      '<svg class="shring" viewBox="0 0 120 120" aria-hidden="true">' +
-      '<circle class="ring-bg" cx="60" cy="60" r="54"></circle>' +
-      '<circle class="ring-fg" cx="60" cy="60" r="54" style="stroke-dasharray:' + RING_C +
-      ';stroke-dashoffset:' + (RING_C * (1 - ringP / 100)).toFixed(1) + '"></circle></svg>' +
-      '<span class="shv">' + SQ.fmt(SQ.Mods.powerOf(w, p, d, m)) + '</span>' +
-      '<span class="shl">' + c.esc(c.t('resource.power')) + '</span></div><div class="shattr">' +
+    var RING_C = 622.035;   /* 2π × r99 */
+    var subLine;
+    if (need != null) {
+      subLine = c.esc(c.t('idle.next', { realm: c.t('realm.' + (w.realm + 1)), n: SQ.fmt(Math.max(0, need - w.qi)), res: c.t('resource.primary') }));
+      /* 渡劫倒计时（第十八批）：差额取 needEffOf、增速取 effRate，与 settle 同一式子；增速为 0 不印 */
+      if (need > w.qi && rate > 0) {
+        subLine += ' · ' + c.esc(c.t('idle.trib.eta', { time: c.timeLeft((need - w.qi) / rate * 1000) }));
+      }
+    } else {
+      subLine = c.esc(c.t('idle.maxed'));
+    }
+    /* 数字自适应字号：环内可用宽度约 198px（260 容器 / r99 经 236 viewBox 缩放后的内径），
+     * 衬线数字按 0.62em 估宽 ⇒ 位数越多字越小。上限 42（短数字与设计稿 40 同档）、下限 20。
+     * 回应实测反馈「修为过亿后数字贴近环线」——不再用固定 40px。 */
+    var qiTxt = c.fmtFull(w.qi);
+    var qiFs = Math.max(20, Math.min(42, Math.round(198 / (qiTxt.length * 0.62))));
+    h += '<div class="stathero"><div class="enso">' +
+      '<svg viewBox="0 0 236 236" aria-hidden="true">' +
+      /* 几何照设计稿：刻度圈 r113（在外），轨道与进度环 r99（在内）——同一半径会叠在一起 */
+      '<circle class="ticks" cx="118" cy="118" r="113"></circle>' +
+      '<circle class="track" cx="118" cy="118" r="99"></circle>' +
+      '<circle class="prog" cx="118" cy="118" r="99" stroke-dasharray="' + RING_C +
+      '" stroke-dashoffset="' + (RING_C * (1 - ringP / 100)).toFixed(1) + '"></circle></svg>' +
+      '<div class="enso-core"><div class="lab">' + c.esc(c.t('resource.primary')) + '</div>' +
+      '<div class="val num-full" style="font-size:' + qiFs + 'px">' + qiTxt + '</div>' +
+      '<div class="sub">' + subLine + '</div></div></div>' +
+      '<div class="rate">' + c.esc(c.t('idle.rate', { n: rate.toFixed(1) })) +
+      '<button class="linkbtn chip" data-act="detailRate">' + c.esc(c.t('idle.detail')) + '</button></div></div>' +
+      /* 四格修为身元（设计稿 .statrow）：战力 / 精 / 气 / 神 —— 战力从环心挪到这里 */
+      '<div class="statrow">' +
+      '<div><div class="k">' + c.esc(c.t('resource.power')) + '</div><div class="v">' + SQ.fmt(SQ.Mods.powerOf(w, p, d, m)) + '</div></div>' +
       (d.ATTRS || []).map(function (id) {
-        return '<div class="sha"><span class="an">' + c.esc(c.t('attr.' + id)) + '</span>' +
-          '<span class="av">' + Math.floor((w.attrs || {})[id] || 0) + '</span></div>';
-      }).join('') + '</div></div>';
-    h += '<div class="kv"><span class="hint">' + c.esc(c.t('realm.info.cur', { realm: c.t('realm.' + w.realm) })) + '</span>' +
-      '<button class="linkbtn chip" data-act="openRealm">' + c.esc(c.t('realm.info.link')) + '</button></div>';
-    /* 寿元 / 道伤两行（寿元批 §6.1A · 第卌八批改显示口径）：一律取世界包 lifeInfo 的派生数，视图零自拼口径
-     * （第廿五批「同源」纪律沿用）。大限将至整行转红——引擎侧刻意**不写日志**：每秒 tick
-     * 重绘会刷屏（第廿八批「转世结算刷屏」同族坑），警示只在这一屏。道伤满 1 层才报，
-     * 岁月疗养中的零点几层不占行。
-     * 用户令「寿元：111岁，尚余约1111年」⇒ `li.age`（= floor(lifeUsed)，含创角生年）报岁、
-     * 只报剩余，不再摆「X/Y」分数：上界会随累加阶梯与 lifeBonus 动，摆出来只诱导误算。 */
-    var li = p.worldSystems.lifeInfo(w);
-    /* N58 定案（第册十二批落地）：历练态在寿元行旁补一句**按当前模式折算**的等效可用年——
-     * 寿元阶梯按「全部闭关」定标，而历练产出只有闭关的 42% ⇒ 同一境要烧 2.4 倍岁月。
-     * 不改表、不改节奏（那两案第册三批已否），只把这件事摆到屏上。折算率现取 `MODES`，不写死 2.4。 */
-    var ventSpan = '';
-    if (!li.eternal && w.mode === 'venture') {
-      var MSv = p.data.MODES || {};
-      var skv = (MSv.seclude || {}).qiMult || 1, vkv = (MSv.venture || {}).qiMult || 1;
-      ventSpan = '<span class="hint"> · ' + c.esc(c.t('life.venture.warn', { n: SQ.fmt(Math.max(0, Math.floor(li.left * vkv / skv))) })) + '</span>';
-    }
-    h += '<div class="kv"><span' + (li.near ? ' class="bad"' : '') + '>' + c.esc(
-      li.eternal ? c.t('life.row.eternal', { age: SQ.fmt(li.age) })
-        : c.t('life.row', { age: SQ.fmt(li.age), left: SQ.fmt(Math.max(0, Math.ceil(li.left))) })
-      ) + '</span>' + (li.near ? '<span class="bad">' + c.esc(c.t('life.near', { left: SQ.fmt(Math.ceil(li.left)) })) + '</span>' : '') + ventSpan + '</div>';
-    if (li.daoLv >= 1) {
-      h += '<div class="kv"><span' + (li.daoNear ? ' class="bad"' : '') + '>' +
-        c.esc(c.t('daoshang.row', { n: li.daoLv, cap: li.daoMax })) + '</span>' +
-        (li.daoNear ? '<span class="bad">' + c.esc(c.t('daoshang.near')) + '</span>' : '') + '</div>';
-    }
-    /* 洞府一行（UI v2 B4 · 设计稿 metaline）：洞府名 + 独立乘区倍率，取 engine 现算，不写死。 */
-    var caveNow = SQ.Cave.current(w, p);
-    if (caveNow) {
-      var caveMNow = SQ.Cave.multOf(w, p, d, m);
-      h += '<div class="idlemeta"><span>' + c.esc(c.t('idle.cave')) + ' ' +
-        c.esc(c.t('cave.' + caveNow.id + '.name')) + ' ×' + caveMNow.toFixed(2) + '</span></div>';
-    }
-    /* 修为大数字（修行状态批 v2.1）：**全位数字逐秒跳动**——不带 万/亿 缩放（缩放会把
-     * 低境界产出量化到 0.1万/步，数字长时间纹丝不动）、不带「修为」单位字，只留 / 上限；
-     * 每秒 tick 由 renderAll 重绘，配合全位数字形成最直观的增长动效 */
-    h += '<div class="kv"><span class="big">' + c.fmtFull(w.qi) + '</span><span class="hint">/ ' + c.fmtFull(cap) + '</span></div>';
-    h += '<div class="bar"><i style="width:' + Math.min(100, (w.qi / cap) * 100).toFixed(1) + '%"></i></div>';
-    if (full) h += '<p class="fullcap">' + c.esc(c.t('idle.maxed')) + '</p>';
-    h += '<div class="kv"><span>' + c.esc(c.t('idle.rate', { n: rate.toFixed(1) })) + '</span>' +
-         '<button class="linkbtn chip" data-act="detailRate">' + c.esc(c.t('idle.detail')) + '</button></div>';
+        return '<div><div class="k">' + c.esc(c.t('attr.' + id)) + '</div><div class="v">' +
+          Math.floor((w.attrs || {})[id] || 0) + '</div></div>';
+      }).join('') + '</div>';
+    /* 修为数字与进度条已收进圆相（B15-b）：环心全位数字 + 环即进度，这里只留「明细」入口 */
     if (c.ui.detailRate) {
       h += '<div class="detailbox">';
       h += '<div class="kv"><span>' + c.esc(c.t('idle.base')) + '</span><span>' + d.REALMS[w.realm].baseQi + '/s</span></div>';
@@ -113,14 +95,7 @@
       h += '</div>';
     }
     if (need != null) {
-      h += '<div class="kv"><span>' + c.esc(c.t('idle.next', { realm: c.t('realm.' + (w.realm + 1)), n: SQ.fmt(Math.max(0, need - w.qi)), res: c.t('resource.primary') })) + '</span></div>';
-      /* 渡劫倒计时（第十八批 · 用户令「修行页要让人知道大约多久后可以渡劫」）：**纯派生显示量**——
-       * 差额取 `needEffOf`（与手动渡劫按钮同一口径，不是 capOf 那个修为上限），增速取 `effRate`（与 settle 同一个式子），
-       * 格式复用拜访/飞升冷却那一个时差文案（走桥名 timeLeft）；不入存档、不改任何结算。增速为 0（如离线效率算不进在线口径）时不印。 */
-      if (need > w.qi && rate > 0) {
-        h += '<div class="kv hint"><span>' + c.esc(c.t('idle.trib.eta',
-          { time: c.timeLeft((need - w.qi) / rate * 1000) })) + '</span></div>';
-      }
+      /* 「距下一境界 / 渡劫倒计时」已并入圆相 sub 行（B15-b），此处不再重复印一遍 */
       var ti = p.worldSystems.tribInfo(w, p, d, m);
       if (ti) {
         h += '<div class="kv"><span>' + c.esc(c.t('tribulation.estimate', { p: Math.round(ti.p * 100) })) + '</span>' +
@@ -202,7 +177,7 @@
         h += '<div class="tribready">' +
           '<div class="tr-t">' + c.esc(c.t('trib.manual.ready')) + '</div>' +
           '<div class="hint">' + c.esc(c.t('trib.manual.hint')) + '</div>' +
-          '<button class="primary" data-act="trib" style="width:100%;margin-top:8px">' + c.esc(c.t('trib.manual.btn')) + '</button>' +
+          '<button class="primary" data-act="trib">' + c.esc(c.t('trib.manual.btn')) + '</button>' +
           '</div>';
       }
     } else {
@@ -219,6 +194,44 @@
         h += '<div class="kv hint"><span>' + c.esc(c.t('legacy.ui.feisheng.cd', { t: c.timeLeft(Math.max(0, fsChk.until - Date.now())) })) + '</span></div>';
       }
     }
+    h += '<div class="kv"><span class="hint">' + c.esc(c.t('realm.info.cur', { realm: c.t('realm.' + w.realm) })) + '</span>' +
+      '<button class="linkbtn chip" data-act="openRealm">' + c.esc(c.t('realm.info.link')) + '</button></div>';
+    /* 寿元 / 道伤两行（寿元批 §6.1A · 第卌八批改显示口径）：一律取世界包 lifeInfo 的派生数，视图零自拼口径
+     * （第廿五批「同源」纪律沿用）。大限将至整行转红——引擎侧刻意**不写日志**：每秒 tick
+     * 重绘会刷屏（第廿八批「转世结算刷屏」同族坑），警示只在这一屏。道伤满 1 层才报，
+     * 岁月疗养中的零点几层不占行。
+     * 用户令「寿元：111岁，尚余约1111年」⇒ `li.age`（= floor(lifeUsed)，含创角生年）报岁、
+     * 只报剩余，不再摆「X/Y」分数：上界会随累加阶梯与 lifeBonus 动，摆出来只诱导误算。 */
+    var li = p.worldSystems.lifeInfo(w);
+    /* N58 定案（第册十二批落地）：历练态在寿元行旁补一句**按当前模式折算**的等效可用年——
+     * 寿元阶梯按「全部闭关」定标，而历练产出只有闭关的 42% ⇒ 同一境要烧 2.4 倍岁月。
+     * 不改表、不改节奏（那两案第册三批已否），只把这件事摆到屏上。折算率现取 `MODES`，不写死 2.4。 */
+    var ventSpan = '';
+    if (!li.eternal && w.mode === 'venture') {
+      var MSv = p.data.MODES || {};
+      var skv = (MSv.seclude || {}).qiMult || 1, vkv = (MSv.venture || {}).qiMult || 1;
+      ventSpan = '<span class="hint"> · ' + c.esc(c.t('life.venture.warn', { n: SQ.fmt(Math.max(0, Math.floor(li.left * vkv / skv))) })) + '</span>';
+    }
+    h += '<div class="kv"><span' + (li.near ? ' class="bad"' : '') + '>' + c.esc(
+      li.eternal ? c.t('life.row.eternal', { age: SQ.fmt(li.age) })
+        : c.t('life.row', { age: SQ.fmt(li.age), left: SQ.fmt(Math.max(0, Math.ceil(li.left))) })
+      ) + '</span>' + (li.near ? '<span class="bad">' + c.esc(c.t('life.near', { left: SQ.fmt(Math.ceil(li.left)) })) + '</span>' : '') + ventSpan + '</div>';
+    if (li.daoLv >= 1) {
+      h += '<div class="kv"><span' + (li.daoNear ? ' class="bad"' : '') + '>' +
+        c.esc(c.t('daoshang.row', { n: li.daoLv, cap: li.daoMax })) + '</span>' +
+        (li.daoNear ? '<span class="bad">' + c.esc(c.t('daoshang.near')) + '</span>' : '') + '</div>';
+    }
+    /* 洞府一行（UI v2 B4 · 设计稿 metaline）：洞府名 + 独立乘区倍率，取 engine 现算，不写死。 */
+    var caveNow = SQ.Cave.current(w, p);
+    if (caveNow) {
+      var caveMNow = SQ.Cave.multOf(w, p, d, m);
+      h += '<div class="idlemeta"><span>' + c.esc(c.t('idle.cave')) + ' ' +
+        c.esc(c.t('cave.' + caveNow.id + '.name')) + ' ×' + caveMNow.toFixed(2) + '</span></div>';
+    }
+    /* B15-b 版面序：身元信息之后落传闻 → 四柱 → 天道行（圆相已在页首） */
+    h += rumorHtml;
+    h += pillarsHtml;
+    h += tiandaoHtml;
     /* ── 临时增益图标行（系统深化批 B2）：破境高光 / 道伤封固 / 声威大振 / 同门来助等来源溯源展示；
      * eventShield 为「护佑」层数 chip（冥佑层语义）。词表未登记的来源只显示字段与数值。 ── */
     var nowB = Date.now();
@@ -287,6 +300,8 @@
     }
     /* 收功按钮已移除（v2.2）：自动心跳每秒做同一套结算+落盘，手动按钮语义重复——
      * 结算区收敛为「修行状态 → 修行所得」纯展示区块 */
+    /* B15-c：天赋卡归并到「天命」段标之下（设计稿 .shelf-head；自动区已随 D6 迁设置页，不在本页） */
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('idle.talent.title')) + '</span></div>';
     h += '<div class="cards" style="margin-top:12px">' + (c.s.profile.talents || []).map(function (el) {
       var ch = c.talentCard(el, c.wid());
       return '<div class="' + ch.className + '">' + ch.innerHTML + '</div>';

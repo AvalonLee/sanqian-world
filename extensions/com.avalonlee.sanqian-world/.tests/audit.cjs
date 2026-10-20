@@ -919,11 +919,16 @@ const SQ = sandbox.window.SQ;
   /* UI v2 B1（D1=B）：view 页面底由「宿主透明」改为「不透明宣纸」，两段分别判：
    *   ① view 必须有 --sq2-paper 定义 + body 用它铺底 + 暗色有覆盖（自带的墨夜）；
    *   ② module 卡仍必须透明（卡片嵌在宿主桌面里，不铺纸）。
-   * `var(--xhub-surface` 仍是面/字/线的映射证据，保留。 */
-  if (!viewSrc.includes('--sq2-paper:')) b4.push('view 缺 --sq2-paper 纸面令牌');
-  if (!/background:\s*var\(--sq2-paper\)/.test(viewSrc)) b4.push('view 页面底未铺 --sq2-paper 纸面');
-  if (!/data-xhub-theme="dark"[^}]*--sq2-paper:/.test(viewSrc)) b4.push('view 缺墨夜纸面覆盖（--sq2-paper 暗色声明）');
-  if (!viewSrc.includes('var(--xhub-surface')) b4.push('view 缺 --xhub-surface');
+   * UI v2 B14（2026-10-20 · 用户报「浏览器预览正常、宿主里显旧 UI 配色」）**判据改口**：
+   *   原 `var(--xhub-surface` 那条「面/字/线仍映射宿主」的正向证据**反向**——view 全域不许再引用
+   *   `--xhub-*`。根因 = 旧令牌别名写成 `var(--xhub-*, 兜底)`，宿主注入后 accent（靛紫）/玻璃面 /
+   *   radius-lg 接管纸面配色。module 卡仍读宿主文字/线色（透明卡叠在宿主玻璃上，属正常，不在此判）。 */
+  /* 剥注释再扫：说明性注释里出现令牌名不算实现（本关第一次改口就是被自己的注释绊红的） */
+  const viewScan = viewSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+  if (!viewScan.includes('--sq2-paper:')) b4.push('view 缺 --sq2-paper 纸面令牌');
+  if (!/background(-color)?:\s*var\(--sq2-paper\)/.test(viewScan)) b4.push('view 页面底未铺 --sq2-paper 纸面');
+  if (!/data-xhub-theme="dark"[^}]*--sq2-paper:/.test(viewScan)) b4.push('view 缺墨夜纸面覆盖（--sq2-paper 暗色声明）');
+  if (/--xhub-/.test(viewScan)) b4.push('view 仍引用宿主 --xhub-* 令牌（B14 起纸面自成一套，宿主 accent 不许接管）');
   if (!/background:\s*transparent/.test(modSrc)) b4.push('module 卡底非透明');
   for (const [n, s] of [['view', viewSrc], ['module', modSrc]]) {
     if (!s.includes(':root[data-xhub-theme="dark"]')) b4.push(n + ' 缺深色双声明');

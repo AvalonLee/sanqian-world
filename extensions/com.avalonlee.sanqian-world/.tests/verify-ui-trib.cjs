@@ -271,7 +271,9 @@ const { chromium } = require('playwright-core');
       const rate = SQ.Idle.effRate(w, pack, D, m, false);
       const tmpl = (SQ.LEX.xiuxian || {})['idle.trib.eta'] || '';
       const suffix = tmpl.split('{time}')[1] || '';
-      const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-idle .kv'))
+      /* B15-b 改口：倒计时与「距下一境界」一起并进了圆相 sub 行（设计稿 .enso-core .sub），
+       * 不再是一条独立 .kv 行 ⇒ 取数面扩到 `.sub`，仍要求**恰一处**（多印一遍同样算红）。 */
+      const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-idle .kv, #tab-idle .enso-core .sub'))
         .map(r => (r.innerText || '').replace(/\s+/g, ' ')).filter(x => suffix && x.indexOf(suffix) >= 0);
       const sec = rate > 0 ? (need - w.qi) / rate : -1;
       return { n: rows.length, text: rows[0] || '', need: need, qi: w.qi, rate: rate, sec: Math.round(sec),
