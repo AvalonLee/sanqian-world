@@ -1114,6 +1114,23 @@
     var main = $('sc-main');
     if (!rail || !main) return;
     var h = '';
+    try {
+      /* B5 起填块：历练区 = 本区词缀 + 最近 3 条战报（全部读侧派生，无数据不显示、不造数） */
+      if (ws() && sectionOf(ui.tab).id === 'zone') {
+        var wR = ws(), dR = D();
+        var affR = SQ.Combat.affixDef(wR, dR);
+        if (affR) {
+          h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.affix')) + '</div>' +
+            '<div class="rb-b"><b>' + esc(t('affix.' + affR.id + '.name')) + '</b>' +
+            '<span>' + esc(t('affix.' + affR.id + '.desc')) + '</span></div></div>';
+        }
+        var logsR = (wR.log || []).filter(function (l) { return l.cat === 'combat'; }).slice(-3).reverse();
+        if (logsR.length) {
+          h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.war')) + '</div>' +
+            logsR.map(function (l) { return '<div class="rb-log">' + esc(l.text) + '</div>'; }).join('') + '</div>';
+        }
+      }
+    } catch (e) { h = ''; }
     rail.innerHTML = h;
     main.classList.toggle('hasrail', !!h);
   }

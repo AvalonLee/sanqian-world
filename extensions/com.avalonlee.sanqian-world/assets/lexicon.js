@@ -294,6 +294,8 @@
     'zone.affix.left': '余 {t}',
     'zone.affix.none': '天时平平',
     'zone.affix.seclude': '闭关不涉天时（词缀只作用历练战斗）',
+    /* UI v2 B5：右栏（历练区）块标题 */
+    'rail.affix': '本区词缀', 'rail.war': '战报',
     'zone.cavelink': '福地「{name}」以此为凭', 'zone.cavelink.locked': '首通可开福地',
     'zone.pw.ok': '战力富余 {p}%', 'zone.pw.tight': '战力压线 {p}%', 'zone.pw.bad': '战力不足，差 {n}',
     /* 商店 */
