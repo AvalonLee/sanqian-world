@@ -52,10 +52,10 @@ const { chromium } = require('playwright-core');
       secs: kids.filter((x) => x.classList.contains('sq2-navsec')).map((x) => x.textContent.trim())
     };
   });
-  T(bar.n === 15, 'SH1 左带 15 项（B1 未拆 gear）', 'n=' + bar.n);
+  T(bar.n === 16, 'SH1 左带 16 项（B3 拆页后）', 'n=' + bar.n);
   T(bar.secs.join(',') === '修行,历练,道器,江湖,生平', 'SH2 五区标题齐全且顺序固定', bar.secs.join('/'));
-  T(bar.ids.join(',') === 'idle,combat,event,arts,treasure,alchemy,shop,bonds,faction,prodigy,sect,achv,legacy,journal,settings',
-    'SH3 按钮顺序 = 五区固定序', bar.ids.join(','));
+  T(bar.ids.join(',') === 'idle,combat,event,arts,gear,treasure,alchemy,shop,bonds,faction,prodigy,sect,achv,legacy,journal,settings',
+    'SH3 按钮顺序 = 五区固定序（含百器）', bar.ids.join(','));
 
   /* ② 子导航 = 当前区 */
   const sub0 = await page.evaluate(() => {

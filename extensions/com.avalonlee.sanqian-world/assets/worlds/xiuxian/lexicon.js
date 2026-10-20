@@ -33,9 +33,9 @@
 
     /* ── 修行状态（模式）：闭关修炼（v2.2 曾名「潜心问道」）/ 外出历练；离线回归 = 潜心悟道 ── */
     'idle.mode.title': '修行状态',
-    'idle.mode.seclude': '闭关修炼',
+    'idle.mode.seclude': '闭关',
     'idle.mode.seclude.desc': '修为增速 +30%，不产灵石；悟法加倍，奇遇减半，不出装备。',
-    'idle.mode.venture': '外出历练',
+    'idle.mode.venture': '历练',
     'idle.mode.venture.desc': '前往秘境历练：修为放缓，灵石与掉落全开；奇遇加倍，悟法放缓。',
     'idle.mode.seclude.at': '正在洞府潜心静修',
     'idle.mode.venture.at': '正在「{zone}」历练',
@@ -84,7 +84,7 @@
     'nav.sec.bonds': '江湖', 'nav.sec.life': '生平',
 
     /* ── G3 秘境 ── */
-    'combat.system': '秘境洞天',
+    'combat.system': '秘境',
     'combat.zone.0': '青云试炼地', 'combat.zone.1': '黑风寨', 'combat.zone.2': '万兽谷',
     'combat.zone.3': '焦土遗迹', 'combat.zone.4': '雷池禁地', 'combat.zone.5': '乱星秘窟',
     'combat.zone.6': '修罗战场', 'combat.zone.7': '天渊龙墟', 'combat.zone.8': '混沌雷海',
@@ -103,7 +103,7 @@
     'combat.tag': '历练',
 
     /* ── G4 法器（装备）── */
-    'gear.system': '法器',
+    'gear.system': '百器',
     'gear.slot.weapon': '兵刃', 'gear.slot.treasure': '灵器',
     'gear.slot.armor': '甲衣', 'gear.slot.accessory': '佩饰',
     'gear.tier.0': '凡品', 'gear.tier.1': '良品', 'gear.tier.2': '上品',
@@ -157,13 +157,13 @@
     'tribulation.reset': '功法不失，等级依旧',
     'tribulation.estimate': '渡劫成功率预估 {p}%',
     'tribulation.detail': '明细',
-    'tribulation.base': '境界基础', 'tribulation.resist': '法器抗性',
+    'tribulation.base': '境界基础', 'tribulation.resist': '百器抗性',
     'tribulation.power': '战力富余', 'tribulation.talent': '天赋/功法',
-    'tribulation.karma': '善恶', 'tribulation.next': '一次性修正',
+    'tribulation.karma': '道心', 'tribulation.next': '一次性修正',
     'tribulation.alignFlat': '正道光环', 'tribulation.guardian': '护法加持 · 虚位以待',
 
     /* ── 善恶 karma ── */
-    'karma.system': '善恶',
+    'karma.system': '道心',
     'karma.tier.right': '正道光环', 'karma.tier.neutral': '左道', 'karma.tier.evil': '魔道气息',
     'karma.part.arts': '功法', 'karma.part.gear': '装备', 'karma.part.events': '平生所为',
     'karma.part.drift': '初心倾向',
