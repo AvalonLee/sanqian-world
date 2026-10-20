@@ -25,6 +25,10 @@ const { chromium } = require('playwright-core');
   Object.values(fx.worlds).forEach((w) => {
     w.lastSave = now0; w.lastOffline = null; w.pendingChoice = null;
   });
+  /* B5 右栏非空前提：给一条 combat 日志（战报块取 w.log 最近 3 条；空集上的“有块”不成立） */
+  fx.worlds.xiuxian.log = (fx.worlds.xiuxian.log || []).concat([
+    { cat: 'combat', text: '走查战报 · 击杀一头妖物', ts: now0 }
+  ]);
   const save = JSON.stringify(fx);
 
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
@@ -83,6 +87,22 @@ const { chromium } = require('playwright-core');
   await page.click('#m-subnav button[data-v="bonds"]');
   await page.waitForTimeout(250);
   T(await page.evaluate(() => !document.getElementById('tab-bonds').classList.contains('hide')), 'SH6 点子导航能换页（data-act=tab 分派）');
+
+  /* B5：历练区右栏填块（本区词缀；有战报再加一块）——无数据不显示，有数据必须开第三列 */
+  await page.click('#m-tabbar button[data-v="combat"]');
+  await page.waitForTimeout(300);
+  const railZ = await page.evaluate(() => {
+    const r = document.getElementById('m-rail');
+    return {
+      has: document.getElementById('sc-main').classList.contains('hasrail'),
+      blocks: r.querySelectorAll('.sq2-rb').length,
+      titles: Array.prototype.map.call(r.querySelectorAll('.rb-t'), (x) => x.textContent.trim())
+    };
+  });
+  T(railZ.has && railZ.blocks >= 1 && (railZ.titles.indexOf('战报') >= 0 || railZ.titles.indexOf('本区词缀') >= 0),
+    'SH6b 历练区右栏有块（战报 / 本区词缀；有块才开第三列）', JSON.stringify(railZ));
+  await page.click('#m-tabbar button[data-v="idle"]');
+  await page.waitForTimeout(300);
 
   /* ③ 纸面 + 墨夜 */
   const light = await page.evaluate(() => {
