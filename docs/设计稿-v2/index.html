@@ -1,0 +1,3503 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>三千世界 · UI 重设计 v2 · 宣纸水墨</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<!-- ════════ 原型工具条 ════════ -->
+<div class="chrome">
+  <div class="chrome-brand">
+    <span class="seal">三千</span>
+    <div>
+      <b>三千世界 · UI 重设计</b>
+      <em>宣纸水墨 · 桌面优先 · 16 页全量 · 手机预留</em>
+    </div>
+  </div>
+  <div class="chrome-tools">
+    <select class="selscreen" id="selScreen">
+      <optgroup label="修行">
+        <option value="idle">修行</option>
+      </optgroup>
+      <optgroup label="历练">
+        <option value="zone">秘境</option>
+        <option value="event">奇遇</option>
+      </optgroup>
+      <optgroup label="道器">
+        <option value="arts">功法</option>
+        <option value="gear">百器</option>
+        <option value="treasure">法宝</option>
+        <option value="alchemy">炼丹炼器</option>
+        <option value="shop">坊市</option>
+      </optgroup>
+      <optgroup label="江湖">
+        <option value="bonds">道友</option>
+        <option value="faction">势力</option>
+        <option value="prodigy">江湖榜</option>
+        <option value="sect">宗门</option>
+      </optgroup>
+      <optgroup label="生平">
+        <option value="achv">成就</option>
+        <option value="legacy">轮回</option>
+        <option value="journal">日志</option>
+        <option value="settings">设置</option>
+      </optgroup>
+      <optgroup label="创角">
+        <option value="creat1">屏一 立名</option>
+        <option value="creat3">屏二 择界</option>
+        <option value="creat2">屏三 观天赋</option>
+      </optgroup>
+    </select>
+    <div class="seg" id="segStep" hidden>
+      <button data-go="creat1" class="on">一 立名</button>
+      <button data-go="creat3">二 择界</button>
+      <button data-go="creat2">三 观天赋</button>
+    </div>
+    <div class="seg" id="segDevice">
+      <button data-dev="desktop" class="on">桌面</button>
+      <button data-dev="mobile">手机（预留）</button>
+    </div>
+    <button class="tbtn" data-sheet="update">更新公告</button>
+    <button class="tbtn" id="btnTribDemo">渡劫演出</button>
+    <button class="tbtn" id="btnChoiceDemo">抉择模态</button>
+    <button class="tbtn" id="btnTheme">墨夜</button>
+  </div>
+</div>
+
+<!-- ════════ 应用 ════════ -->
+<div class="stage">
+<div class="app" id="app" data-device="desktop">
+
+  <!-- 桌面左侧导航 -->
+  <nav class="railnav">
+    <div class="rn-brand">
+      <span class="seal">三千</span>
+      <div class="rn-title">三千世界<small>SANQIAN WORLD</small></div>
+    </div>
+
+    <div class="band solo on" data-sec="idle">
+      <button class="band-h" data-sec="idle" data-go="idle">修行</button>
+    </div>
+
+    <div class="band" data-sec="zone">
+      <div class="band-h">历练</div>
+      <button class="rn-i" data-go="zone">秘境</button>
+      <button class="rn-i" data-go="event">奇遇 <span class="cnt">3</span></button>
+    </div>
+
+    <div class="band" data-sec="arts">
+      <div class="band-h">道器</div>
+      <button class="rn-i" data-go="arts">功法</button>
+      <button class="rn-i" data-go="gear">百器</button>
+      <button class="rn-i" data-go="treasure">法宝</button>
+      <button class="rn-i" data-go="alchemy">炼丹炼器</button>
+      <button class="rn-i" data-go="shop">坊市 <span class="cnt">补货</span></button>
+    </div>
+
+    <div class="band" data-sec="bonds">
+      <div class="band-h">江湖</div>
+      <button class="rn-i" data-go="bonds">道友</button>
+      <button class="rn-i" data-go="faction">势力</button>
+      <button class="rn-i" data-go="prodigy">江湖榜</button>
+      <button class="rn-i" data-go="sect">宗门</button>
+    </div>
+
+    <div class="band" data-sec="life">
+      <div class="band-h">生平</div>
+      <button class="rn-i" data-go="achv">成就</button>
+      <button class="rn-i" data-go="legacy">轮回</button>
+      <button class="rn-i" data-go="journal">日志</button>
+      <button class="rn-i" data-go="settings">设置</button>
+    </div>
+  </nav>
+
+  <!-- 主区 -->
+  <main class="main" id="main">
+
+    <header class="hd" id="hd">
+      <div class="hd-l">
+        <div class="hd-name" data-sheet="role" style="cursor:pointer">陆沉舟 <span class="seal sm">渡劫</span></div>
+        <div class="hd-sub"><span>罗云州</span><span>·</span><span>罗云历 9601 年 1 月 4 日</span></div>
+      </div>
+      <div class="hd-r">
+        <div class="hd-stone">灵石 <b>85.0</b> 万</div>
+        <div class="karma" data-sheet="karma" style="cursor:pointer">正道 · 道心 +12</div>
+      </div>
+    </header>
+
+    <div class="subnav" id="subnav"></div>
+
+    <!-- ───────── 修行 ───────── -->
+    <section class="screen" id="s-idle">
+      <div class="mode">
+        <button class="on">闭关</button>
+        <button>历练</button>
+      </div>
+      <div class="metaline" style="padding-top:2px">
+        <span>闭关：修为增速 +30%，不产灵石</span>
+        <span>历练：天渊龙墟 · 词缀「渊」</span>
+      </div>
+      <p class="hintline" style="text-align:center;margin:2px 0 0">闭关悟法加倍、奇遇减半；历练修为放缓，灵石与掉落全开 · 当前战力富余 115%</p>
+
+      <div class="enso-wrap">
+        <div class="enso">
+          <svg viewBox="0 0 236 236">
+            <circle class="ticks" cx="118" cy="118" r="113"></circle>
+            <circle class="track" cx="118" cy="118" r="99"></circle>
+            <circle class="prog" cx="118" cy="118" r="99"
+                    stroke-dasharray="622" stroke-dashoffset="9.3"></circle>
+          </svg>
+          <div class="enso-core">
+            <div class="lab">修 为</div>
+            <div class="val num-full">852,413,760</div>
+            <div class="sub">距真仙 1,280 万 · 约 3 时 12 分</div>
+          </div>
+        </div>
+        <div class="rate">吐纳 <b>11,449</b> ／ 秒 · <button class="btn text" data-sheet="rate">明细 ›</button></div>
+      </div>
+
+      <div class="hero-cta">
+        <div class="cta-note" style="color:var(--ink-2)">修为圆满 · 可叩天门</div>
+        <button class="btn sealbtn" id="btnTrib">渡 劫</button>
+        <div class="cta-note">成算 <b>29%</b> · 护法苏晚 +0.06 · <button class="btn text" data-sheet="tribdetail">明细 ›</button></div>
+      </div>
+
+      <div class="statrow">
+        <div><div class="k">战 力</div><div class="v">13.6<small>万</small></div></div>
+        <div><div class="k">精</div><div class="v">54</div></div>
+        <div><div class="k">气</div><div class="v">81</div></div>
+        <div><div class="k">神</div><div class="v">60</div></div>
+      </div>
+
+      <div class="buffrow">
+        <span class="buffchip">破境高光 · 修为 +50% · 余 28 分</span>
+        <span class="buffchip deb">雷劫道伤 · 产出 −15% · 余 11 时</span>
+        <span class="buffchip">护佑 ×2</span>
+      </div>
+
+      <div class="kv" style="padding:6px 2px 0">
+        <span class="hint">当前境界：渡劫 · 真仙未至</span>
+        <button class="btn text" data-sheet="realm">境界说明 ›</button>
+      </div>
+      <div class="metaline" style="padding-top:4px">
+        <span>寿元 27 岁 · 尚余约 5,140 年</span>
+        <span>洞府 市井别院 ×1.00</span>
+      </div>
+      <div class="metaline" style="padding-top:2px">
+        <span class="warnline">道伤 1 层 · 距心魔 1 层</span>
+        <span>历练态约折 2.4 倍岁月</span>
+      </div>
+
+      <div class="pillars">
+        <button class="has-dot" data-sheet="ledger">
+          <div class="p-k"><i></i>财</div>
+          <div class="p-v">85.0 万</div>
+          <div class="p-s">收 837 · 支 0</div>
+        </button>
+        <button>
+          <div class="p-k">侣</div>
+          <div class="p-v">苏晚</div>
+          <div class="p-s">护法 ④</div>
+        </button>
+        <button>
+          <div class="p-k">法</div>
+          <div class="p-v">吐纳法</div>
+          <div class="p-s">主修 Lv7</div>
+        </button>
+        <button>
+          <div class="p-k">地</div>
+          <div class="p-v">别院</div>
+          <div class="p-s">×1.00</div>
+        </button>
+      </div>
+
+      <div class="rumor">江湖最近风平浪静——茶楼里说书人都懒得开工。</div>
+
+      <div class="shelf-head" style="margin-top:20px">
+        <h2 class="sect">天 命</h2>
+        <span class="hint" data-sheet="wash">洗髓可换 3 枚 ›</span>
+      </div>
+      <button class="lrow" data-sheet="role">
+        <span><div class="l-n">灵台通明 <span class="tag jade">稀有</span></div><div class="l-d">悟性 +20% · 功法升级消耗 −15%</div></span>
+        <span class="l-r">查看 ›</span>
+      </button>
+      <button class="lrow" data-sheet="role">
+        <span><div class="l-n">厚土载物 <span class="tag jade">稀有</span></div><div class="l-d">修为上限 +12% · 遁速 −8%</div></span>
+        <span class="l-r">查看 ›</span>
+      </button>
+      <button class="lrow" data-sheet="role">
+        <span><div class="l-n">市井机敏 <span class="tag">寻常</span></div><div class="l-d">坊市购入 −6% · 委托收益 +9%</div></span>
+        <span class="l-r">查看 ›</span>
+      </button>
+
+      <div class="shelf-head" style="margin-top:20px">
+        <h2 class="sect">自 动</h2>
+        <span class="hint">页尾统一挂靠</span>
+      </div>
+      <div class="setrow">
+        <span><div class="s-k">自动渡劫</div><div class="s-d">圆满即自动掷判；关闭后由你在修行页手动叩天门</div></span>
+        <span class="s-r"><span class="sw off" data-switch="自动渡劫"></span></span>
+      </div>
+      <div class="setrow">
+        <span><div class="s-k">自动奇遇</div><div class="s-d">奇遇不弹抉择，按倾向在可选分支中择一结算</div></span>
+        <span class="s-r"><span class="sw off" data-switch="自动奇遇"></span></span>
+      </div>
+      <div class="setrow">
+        <span><div class="s-k">自动炼化</div><div class="s-d">换下的旧件先入库藏阁，库满才炼化腾位</div></span>
+        <span class="s-r"><span class="sw" data-switch="自动炼化"></span></span>
+      </div>
+      <p class="hintline">奇遇倾向：开启自动奇遇后可设（当前：无）· 倾向优先选同道分支，不可用则随机其他。</p>
+
+      <div class="strip">
+        <span class="t">离 线</span>
+        <span class="v">12 时 · 修为 +2.8 亿 · 灵石 +837.7 万 · 渡劫 0 次</span>
+        <span class="more" data-sheet="offline">明细 ›</span>
+      </div>
+    </section>
+
+    <!-- ───────── 秘境 ───────── -->
+    <section class="screen" id="s-zone">
+      <div class="curzone">
+        <svg class="cz-ink" viewBox="0 0 150 110" aria-hidden="true">
+          <path d="M0 110V74l18-22 12 10 16-32 16 28 12-14 18 26 12-12 16 20 30-16v48z" fill="currentColor"></path>
+        </svg>
+        <div class="cz-top">
+          <div>
+            <div class="cz-name">天渊龙墟</div>
+            <div class="cz-meta">需求战力 6.3 万 · 击杀 2,000 · 词缀「渊」</div>
+          </div>
+          <span class="tag jade">进行中</span>
+        </div>
+        <div class="cz-prog">
+          <div class="lab"><span>首通进度 38%</span><span class="good">战力富余 115%</span></div>
+          <div class="bar"><i style="width:38%"></i></div>
+        </div>
+        <div class="cz-acts">
+          <button class="btn ink" style="flex:1">继续历练</button>
+          <button class="btn" data-confirm="已兑换残片">残片 12/20 · 兑换</button>
+        </div>
+        <div class="kv" style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px">
+          <span>域主 · 渊鳞蛟</span>
+          <b class="bad" data-sheet="boss">需战力 11.3 万 · 挑战 ›</b>
+        </div>
+        <div class="kv">
+          <span>本区词缀「渊」</span>
+          <b>敌速 +15% · 灵石 +20% · 余 2 时</b>
+        </div>
+        <div class="kv">
+          <span>洞天「止水精舍」</span>
+          <b class="good" data-sheet="cave">×1.18 · 查看 ›</b>
+        </div>
+      </div>
+
+      <div class="zlist">
+        <h2 class="sect" style="margin:22px 0 2px">可 入 秘 境</h2>
+
+        <button class="zrow">
+          <div>
+            <div class="z-n">修罗战场</div>
+            <div class="z-d">需求战力 2.1 万 · 750 杀</div>
+          </div>
+          <div class="z-r"><div class="s good">富余 545%</div><div class="p">已解锁</div></div>
+        </button>
+
+        <button class="zrow">
+          <div>
+            <div class="z-n">混沌雷海</div>
+            <div class="z-d">需求战力 18.8 万 · 5,000 杀</div>
+          </div>
+          <div class="z-r"><div class="s warn">不足 · 差 5.2 万</div><div class="p">建议先破境</div></div>
+        </button>
+
+        <button class="zrow locked">
+          <div>
+            <div class="z-n">？？？</div>
+            <div class="z-d">真仙可入</div>
+          </div>
+          <div class="z-r"><div class="p">未解锁</div></div>
+        </button>
+
+        <h2 class="sect" style="margin:24px 0 2px">已 首 通 · 可 回 访</h2>
+
+        <button class="zrow">
+          <div>
+            <div class="z-n">乱星秘境</div>
+            <div class="z-d">需求战力 7,200 · 300 杀</div>
+          </div>
+          <div class="z-r"><div class="s good">富余 1,782%</div><div class="p">洞天「止水精舍」</div></div>
+        </button>
+
+        <button class="zrow">
+          <div>
+            <div class="z-n">雷池禁地</div>
+            <div class="z-d">需求战力 2,400 · 120 杀</div>
+          </div>
+          <div class="z-r"><div class="s good">富余 5,546%</div><div class="p" data-sheet="cave">洞天「正水精舍」›</div></div>
+        </button>
+      </div>
+
+      <div class="shelf-head" style="margin-top:26px">
+        <h2 class="sect">洞 天 福 地 · 13 处</h2>
+        <span class="hint">当前驻留：止水精舍 ×1.18</span>
+      </div>
+      <p class="hintline">洞天是家不是战场：首通秘境可开福地；入驻给修为倍率，附属设施给材料、炼丹与产出。迁居冷却 1 游戏年，已入驻的福地不会掉。</p>
+
+      <div class="statestrip">
+        <span class="s-k">当前驻留</span>
+        <span class="s-v">止水精舍 · ×1.18</span>
+        <span class="s-x">设施 3 / 4 生效 · 迁居冷却 0</span>
+      </div>
+
+      <div id="caveList"></div>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">当 前 驻 留 设 施</h2>
+        <span class="hint">0~3 级 · 仅驻留生效</span>
+      </div>
+      <div id="caveFac"></div>
+      <p class="hintline">设施随福地所有权永久保留，搬离即失效；灵石投入记入洞府支出。灵田每 6 游戏月产本区材料，丹房加参悟，藏书阁加奇遇机缘，聚灵阵加离线效率。</p>
+    </section>
+
+    <!-- ───────── 功法 ───────── -->
+    <section class="screen wide" id="s-arts">
+      <div class="chipsrow" style="margin-top:4px">
+        <button class="on">全部 70</button>
+        <button>黄阶 14</button>
+        <button>玄阶 26</button>
+        <button>地阶 18</button>
+        <button>天阶 12</button>
+      </div>
+      <div class="sum3">
+        <div><div class="k">主 修</div><div class="v">吐纳法 Lv7</div></div>
+        <div><div class="k">在 修</div><div class="v">4 ／ 6 槽</div></div>
+        <div><div class="k">产 出</div><div class="v">+57.8%</div></div>
+      </div>
+
+      <div class="slots">
+        <button class="slot main">
+          <span class="s-main">主修</span>
+          <div class="s-name">吐纳法</div>
+          <div class="s-lv">Lv 7 · 黄阶</div>
+          <div class="s-eff">修为产出 <em>+35%</em></div>
+          <div class="s-foot"><span>升级 <b>200.0 万</b> 修为</span><span>›</span></div>
+        </button>
+
+        <button class="slot">
+          <div class="s-name">聚灵诀</div>
+          <div class="s-lv">Lv 5 · 玄阶</div>
+          <div class="s-eff">修为上限 <em>+50%</em></div>
+          <div class="s-foot"><span>升级 <b>18.0 万</b> 修为</span><span>›</span></div>
+        </button>
+
+        <button class="slot">
+          <div class="s-name">清心咒</div>
+          <div class="s-lv">Lv 3 · 玄阶</div>
+          <div class="s-eff">离线收益 <em>+18%</em></div>
+          <div class="s-foot"><span>升级 <b>1.6 万</b> 修为</span><span>›</span></div>
+        </button>
+
+        <button class="slot">
+          <div class="s-name">百川诀</div>
+          <div class="s-lv">Lv 1 · 黄阶</div>
+          <div class="s-eff">产出 <em>+4.8%</em> · 上限 <em>+8%</em></div>
+          <div class="s-foot"><span>升级 <b>3,600</b> 修为</span><span>›</span></div>
+        </button>
+
+        <div class="slot empty">虚 位</div>
+        <div class="slot empty">虚 位</div>
+      </div>
+
+      <div class="shelf-head">
+        <h2 class="sect">待修习架 · 24 部</h2>
+        <span class="hint">全部 ›</span>
+      </div>
+
+      <div class="shelf-row">
+        <span class="n">烈火诀</span><span class="tag">玄阶</span>
+        <span class="e">每级产出 +5.5%</span><span class="go">入槽 ›</span>
+      </div>
+      <div class="shelf-row">
+        <span class="n">太一玄经</span><span class="tag gold">地阶</span>
+        <span class="e">修为上限 +12% · 需 元婴</span><span class="go">缺项 ›</span>
+      </div>
+      <div class="shelf-row">
+        <span class="n">无名残卷</span><span class="tag">独占</span>
+        <span class="e">大道方向 · 载体「雨夜叩门」</span><span class="go">›</span>
+      </div>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">自 行 领 悟</h2>
+        <span class="hint">可领悟 3 部 · 进度 42%</span>
+      </div>
+      <div class="strip">
+        <span class="t">静 修</span>
+        <span class="v">修持中随机领悟市面传承功法（黄/玄阶）；闭关易悟、历练难悟，越悟越难</span>
+        <span class="more">查看 ›</span>
+      </div>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">融 合 坛</h2>
+        <span class="hint">两部同阶功法合一</span>
+      </div>
+      <div class="fusealtar">
+        <div class="fuse-slots">
+          <div class="slot"><div class="s-name">聚灵诀</div><div class="s-lv">玄阶 · Lv5</div></div>
+          <span class="fuse-arrow">＋</span>
+          <div class="slot"><div class="s-name">清心咒</div><div class="s-lv">玄阶 · Lv3</div></div>
+          <span class="fuse-arrow">→</span>
+          <div class="slot"><div class="s-name">？</div><div class="s-lv">预览待定</div></div>
+        </div>
+        <div class="fuse-acts">
+          <input placeholder="为融合功法取名（2~8 字）">
+          <button class="btn" data-confirm="已入融合坛">入 坛</button>
+          <button class="btn" data-confirm="已融合：清心聚灵诀">融 合</button>
+        </div>
+        <p class="hintline">融合消耗两部功法与一笔修为；产物取父母词条，品阶不高于较高者。自定义名只在本对父母内有效。</p>
+      </div>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">悟 道 石</h2>
+        <span class="hint">材料供奉 · 换功法进境</span>
+      </div>
+      <div class="strip">
+        <span class="t">供 奉</span>
+        <span class="v">玄铁残片 ×2 · 灵露草 ×4 → 主修功法精通 +8%</span>
+        <span class="more" data-confirm="已供奉悟道石">供奉 ›</span>
+      </div>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">功 法 图 鉴 · 4 ／ 70</h2>
+        <span class="hint" data-sheet="artscodex">全部 ›</span>
+      </div>
+      <div class="codexgrid">
+        <div class="codexcell on">吐纳</div><div class="codexcell on">聚灵</div>
+        <div class="codexcell on">清心</div><div class="codexcell on">百川</div>
+        <div class="codexcell special">独</div><div class="codexcell locked">？</div>
+        <div class="codexcell locked">？</div><div class="codexcell locked">？</div>
+      </div>
+      <p class="hintline">已学会的功法可在修习槽与图鉴里点开详情：升级、入槽、换槽、设为主修、散功、弃置；散功会返还修为，弃置只返还少量灵石。</p>
+
+      <div class="shelf-head" style="margin-top:20px">
+        <h2 class="sect">已 学 会 · 4</h2>
+        <span class="hint">点开可升级 / 散功</span>
+      </div>
+      <button class="lrow" data-sheet="artdetail">
+        <span><div class="l-n">吐纳法 <span class="tag gold">主修</span></div><div class="l-d">Lv7 · 黄阶 · 修为产出 +35%</div></span>
+        <span class="l-r"><b>升级 · 200.0 万</b><br>详情 ›</span>
+      </button>
+      <button class="lrow" data-sheet="artdetail">
+        <span><div class="l-n">聚灵诀</div><div class="l-d">Lv5 · 玄阶 · 修为上限 +50%</div></span>
+        <span class="l-r"><b>升级 · 18.0 万</b><br>详情 ›</span>
+      </button>
+      <button class="lrow" data-sheet="artdetail">
+        <span><div class="l-n">清心咒</div><div class="l-d">Lv3 · 玄阶 · 离线收益 +18%</div></span>
+        <span class="l-r"><b>升级 · 1.6 万</b><br>详情 ›</span>
+      </button>
+      <button class="lrow" data-sheet="artdetail">
+        <span><div class="l-n">百川诀</div><div class="l-d">Lv1 · 黄阶 · 产出 +4.8% · 上限 +8%</div></span>
+        <span class="l-r"><b>升级 · 3,600</b><br>详情 ›</span>
+      </button>
+    </section>
+
+    <!-- ───────── 百器 ───────── -->
+    <section class="screen wide" id="s-gear">
+      <div class="sum3">
+        <div><div class="k">在 身</div><div class="v">2 ／ 4</div></div>
+        <div><div class="k">攻 伐</div><div class="v">9.8 万</div></div>
+        <div><div class="k">守 御</div><div class="v">4.1 万</div></div>
+      </div>
+
+      <p class="hint" style="margin-top:10px;line-height:1.8">百器随身穿戴、入战生效，可炼化为材料；法宝另立一页，只带一条签名效果，不介入战斗。</p>
+
+      <div class="gear4">
+        <button class="gslot on">
+          <div class="g-k">兵 刃</div>
+          <div class="g-n">断水</div>
+          <div class="g-t"><span class="tag gold">地阶</span></div>
+          <div class="g-e">攻伐 <em>+3.2 万</em> · 破甲 <em>+12%</em></div>
+        </button>
+        <button class="gslot on">
+          <div class="g-k">灵 器</div>
+          <div class="g-n">青玉符</div>
+          <div class="g-t"><span class="tag">玄阶</span></div>
+          <div class="g-e">守御 <em>+1.4 万</em></div>
+        </button>
+        <button class="gslot">
+          <div class="g-k">甲 衣</div>
+          <div class="g-n dim">空</div>
+          <div class="g-t"></div>
+          <div class="g-e dim">未着甲</div>
+        </button>
+        <button class="gslot">
+          <div class="g-k">佩 饰</div>
+          <div class="g-n dim">空</div>
+          <div class="g-t"></div>
+          <div class="g-e dim">未佩饰</div>
+        </button>
+      </div>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">百器录 · 18 ／ 96</h2>
+        <span class="hint" data-sheet="gearcodex">全部 ›</span>
+      </div>
+
+      <button class="lrow">
+        <span style="flex:1">
+          <div class="l-n">兵 刃 <span class="hint">7 ／ 32</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:22%"></i></div>
+        </span>
+        <span class="l-r">已录 7 · 在身 1</span>
+      </button>
+      <button class="lrow">
+        <span style="flex:1">
+          <div class="l-n">灵 器 <span class="hint">5 ／ 24</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:21%"></i></div>
+        </span>
+        <span class="l-r">已录 5 · 在身 1</span>
+      </button>
+      <button class="lrow">
+        <span style="flex:1">
+          <div class="l-n">甲 衣 <span class="hint">4 ／ 22</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:18%"></i></div>
+        </span>
+        <span class="l-r">已录 4 · 在身 0</span>
+      </button>
+      <button class="lrow">
+        <span style="flex:1">
+          <div class="l-n">佩 饰 <span class="hint">2 ／ 18</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:11%"></i></div>
+        </span>
+        <span class="l-r">已录 2 · 在身 0</span>
+      </button>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">库 藏 阁 · 3 ／ 12</h2>
+        <span class="hint">换下的旧件先进这里</span>
+      </div>
+      <button class="lrow" data-confirm="已换上「寒铁枪」">
+        <span><div class="l-n">寒铁枪 <span class="tag">玄阶</span></div><div class="l-d">攻伐 +1.8 万 · 破甲 +6%</div></span>
+        <span class="l-r"><b>换 上</b><br>炼化 ›</span>
+      </button>
+      <button class="lrow" data-confirm="已换上「云纹甲」">
+        <span><div class="l-n">云纹甲 <span class="tag gold">地阶</span></div><div class="l-d">守御 +2.2 万 · 抗性 +42</div></span>
+        <span class="l-r"><b>换 上</b><br>炼化 ›</span>
+      </button>
+      <button class="lrow" data-confirm="已炼化「旧玉符」">
+        <span><div class="l-n">旧玉符 <span class="tag">黄阶</span></div><div class="l-d">守御 +3,200 · 不如在件</div></span>
+        <span class="l-r"><b>炼 化</b><br>得玄铁残片 ×1</span>
+      </button>
+
+      <div class="setrow" style="margin-top:14px">
+        <span><div class="s-k">自动炼化</div><div class="s-d">换下的旧件先入库藏阁；库满才炼化腾位</div></span>
+        <span class="s-r"><span class="sw" data-switch="自动炼化"></span></span>
+      </div>
+      <div class="strip" style="margin-top:14px">
+        <span class="t">炼 化</span>
+        <span class="v">弃置的百器可炼为材料，已录格子不会消失</span>
+      </div>
+    </section>
+
+    <!-- ───────── 奇遇 ───────── -->
+    <section class="screen" id="s-event">
+      <div class="strip">
+        <span class="t">江 湖 传 闻</span>
+        <span class="v">茶楼说书人今日开讲「渊鳞蛟」· 3 条未览</span>
+        <span class="more" data-sheet="recall">查看 ›</span>
+      </div>
+      <div class="warstrip" style="margin-top:9px">
+        <span class="w-t">魔道来犯</span>
+        <span class="w-v">鬼灵宗 屠夜游 已至洞府外 · 余 10 回合</span>
+        <button class="btn ink" data-sheet="ambush">迎 战</button>
+      </div>
+
+      <div class="feed" style="margin-top:18px">
+        <article class="fitem live" id="evLive">
+          <div class="f-top">
+            <span class="f-title">三尸夜话</span>
+            <span class="tag red">天级</span>
+            <span class="tag gold">特殊</span>
+            <span class="f-time">9601·1·4 · 子时</span>
+          </div>
+          <div class="f-body">子夜，静室里多出三道呼吸声。三个与你面目相同的人分坐三方——善尸、恶尸，和一个不说话的你自己。</div>
+          <div class="f-res">
+            <span class="tag wait">待 决</span>
+            <span class="f-hint">三者齐声：今夜，你打算如何处置我们？</span>
+          </div>
+        </article>
+
+        <article class="fitem" data-sheet="recall" style="cursor:pointer">
+          <div class="f-top">
+            <span class="f-title">雨夜叩门</span>
+            <span class="tag red">天级</span>
+            <span class="tag">机缘</span>
+            <span class="tag plain">一次性</span>
+            <span class="f-time">9601·1·3</span>
+          </div>
+          <div class="f-body">子时三刻，有人叩你的柴门。开门时只见一柄断剑插在阶前，剑穗上系着半枚玉珏，雨水顺着剑脊往下淌。</div>
+          <div class="f-res">
+            <span class="tag jade">道心 +15</span>
+            <span class="tag">灵石 +1,200</span>
+            <span class="tag gold" data-sheet="exclusive" style="cursor:pointer">得「断水」残片 ›</span>
+          </div>
+        </article>
+
+        <article class="fitem old" data-sheet="recall" style="cursor:pointer">
+          <div class="f-top">
+            <span class="f-title">茶棚赌局</span>
+            <span class="tag">地级</span>
+            <span class="f-time">9601·1·2</span>
+          </div>
+          <div class="f-body">茶棚里三个散修在掷骰，见你落座，推过来一只空碗。你押了三枚灵石——</div>
+          <div class="f-res">
+            <span class="tag">灵石 +90</span>
+            <span class="tag">结识 · 陈九</span>
+          </div>
+        </article>
+
+        <article class="fitem old" data-sheet="recall" style="cursor:pointer">
+          <div class="f-top">
+            <span class="f-title">碑前问心</span>
+            <span class="tag">玄级</span>
+            <span class="f-time">9600·12·28</span>
+          </div>
+          <div class="f-old">你选择了「不答」 · 道心 +5</div>
+        </article>
+      </div>
+
+      <div class="shelf-head" style="margin-top:20px">
+        <h2 class="sect">未 择 之 路 · 3</h2>
+        <span class="hint">已错过，不可回头</span>
+      </div>
+      <div class="strip">
+        <span class="t">雨夜叩门</span>
+        <span class="v">未选：转身闭门 · 道心 −5</span>
+        <span class="more" data-sheet="recall">回看 ›</span>
+      </div>
+      <div class="strip" style="margin-top:8px">
+        <span class="t">茶棚赌局</span>
+        <span class="v">未选：掀桌而去 · 结识陈九的机会</span>
+        <span class="more" data-sheet="recall">回看 ›</span>
+      </div>
+      <div class="strip" style="margin-top:8px">
+        <span class="t">碑前问心</span>
+        <span class="v">未选：据实以答 · 道心 +8</span>
+        <span class="more" data-sheet="recall">回看 ›</span>
+      </div>
+
+      <div class="codex">
+        <h2 class="sect" style="margin:10px 0 4px">奇 遇 图 鉴 · 12 ／ 131 <span class="hint" style="margin-left:auto" data-sheet="recall">全部 ›</span></h2>
+
+        <button class="cx-row">
+          <span class="cx-n">天</span>
+          <span class="cx-b"><span class="bar thin"><i style="width:11%"></i></span><span class="cx-p">3 ／ 26</span></span>
+          <span class="cx-a">›</span>
+        </button>
+        <button class="cx-row open">
+          <span class="cx-n">地</span>
+          <span class="cx-b"><span class="bar thin"><i style="width:11%"></i></span><span class="cx-p">5 ／ 45</span></span>
+          <span class="cx-a">›</span>
+        </button>
+        <div class="cx-grid">
+          <div class="cx-cell on">雨</div><div class="cx-cell on">茶</div><div class="cx-cell on">碑</div>
+          <div class="cx-cell on">灯</div><div class="cx-cell on">渡</div>
+          <div class="cx-cell">？</div><div class="cx-cell">？</div><div class="cx-cell">？</div>
+          <div class="cx-cell">？</div><div class="cx-cell">？</div><div class="cx-cell">？</div>
+          <div class="cx-cell">？</div>
+        </div>
+        <button class="cx-row">
+          <span class="cx-n">玄</span>
+          <span class="cx-b"><span class="bar thin"><i style="width:10%"></i></span><span class="cx-p">4 ／ 40</span></span>
+          <span class="cx-a">›</span>
+        </button>
+        <button class="cx-row">
+          <span class="cx-n">黄</span>
+          <span class="cx-b"><span class="bar thin"><i style="width:0%"></i></span><span class="cx-p">0 ／ 20</span></span>
+          <span class="cx-a">›</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ───────── 道友 ───────── -->
+    <section class="screen" id="s-bonds">
+      <div class="slots2">
+        <div class="bondslot filled" data-sheet="bond" data-bond="suwan">
+          <div class="bs-k">护 法 位</div>
+          <div class="bs-v">苏晚</div>
+          <div class="bs-d">道护 ④ · 剑修</div>
+          <div class="bs-x">渡劫成算 +0.06 · 换护法 ›</div>
+        </div>
+        <div class="bondslot empty" data-sheet="slots">
+          <div class="bs-k">道 侣 位</div>
+          <div class="bs-v">尚未结缘</div>
+          <div class="bs-d">好感满档可结双修</div>
+          <div class="bs-x dim">查看候选 ›</div>
+        </div>
+      </div>
+
+      <h2 class="sect" style="margin:22px 0 4px">已 结 缘 · 3 ／ 58</h2>
+
+      <button class="brow" data-sheet="bond" data-bond="suwan">
+        <span class="b-av">晚</span>
+        <span>
+          <div class="b-n">苏晚</div>
+          <div class="b-d">剑修 · 出身「雨夜叩门」</div>
+        </span>
+        <span class="b-r">
+          <div class="bar jade"><i style="width:82%"></i></div>
+          <div class="t">好感 82 · 道护 ④</div>
+        </span>
+      </button>
+
+      <button class="brow" data-sheet="bond" data-bond="chenjiu">
+        <span class="b-av">九</span>
+        <span>
+          <div class="b-n">陈九</div>
+          <div class="b-d">散修 · 出身「茶棚赌局」</div>
+        </span>
+        <span class="b-r">
+          <div class="bar jade"><i style="width:46%"></i></div>
+          <div class="t">好感 46 · 道友</div>
+        </span>
+      </button>
+
+      <button class="brow" data-sheet="bond" data-bond="baihe">
+        <span class="b-av">鹤</span>
+        <span>
+          <div class="b-n">白鹤道人</div>
+          <div class="b-d">丹修 · 同门</div>
+        </span>
+        <span class="b-r">
+          <div class="bar jade"><i style="width:24%"></i></div>
+          <div class="t">好感 24 · 道友</div>
+        </span>
+      </button>
+
+      <button class="lockedline" data-sheet="bondroster">
+        <span><b>55</b> 位道友 · 缘分未至</span>
+        <span>按境界查看 ›</span>
+      </button>
+
+      <h2 class="sect" style="margin:22px 0 4px">缘 尽 · 1</h2>
+      <button class="brow" data-sheet="bond" data-bond="qinshuang" style="opacity:.6">
+        <span class="b-av">霜</span>
+        <span>
+          <div class="b-n">秦霜 <span class="tag red">缘尽</span></div>
+          <div class="b-d">旧识 · 恩断义绝，不再往来</div>
+        </span>
+        <span class="b-r"><div class="t">好感 0 · 不可再访</div></span>
+      </button>
+    </section>
+
+    <!-- ───────── 创角 · 屏一 ───────── -->
+    <section class="screen" id="s-creat1">
+      <div class="creat">
+        <div class="stepbar">
+          <span class="st on"><b>一</b>立名</span><i class="ln"></i>
+          <span class="st"><b>二</b>择界</span><i class="ln"></i>
+          <span class="st"><b>三</b>观天赋</span>
+        </div>
+
+        <h1>道名初定</h1>
+        <p class="lead">三千世界，各有其名。<br>你此世的名字，会写进最后的传记。</p>
+
+        <div class="inkfield">
+          <input id="nameInput" maxlength="8" placeholder="请输入道名">
+          <div class="fl"><span>2 ~ 8 字</span><span>0 / 8</span></div>
+        </div>
+
+        <div class="acts">
+          <button class="btn block" id="btnNameRandom">掷杯问名</button>
+          <button class="btn ink block" id="btnNameNext">下一步 · 择界</button>
+          <p class="hint" id="nameErr" style="text-align:center;margin:0">道名 2 ~ 8 字，不可留空</p>
+        </div>
+
+        <svg class="inkfoot" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 120V88l40-32 28 22 36-50 32 42 24-17 38 38 28-21 42 32 38-19 74 28v49z" fill="currentColor"></path>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ───────── 创角 · 屏二 ───────── -->
+    <section class="screen" id="s-creat2">
+      <div class="creat">
+        <div class="stepbar">
+          <span class="st done"><b>一</b>立名</span><i class="ln"></i>
+          <span class="st done"><b>二</b>择界</span><i class="ln"></i>
+          <span class="st on"><b>三</b>观天赋</span>
+        </div>
+
+        <h1 style="font-size:24px;letter-spacing:.22em">天命三枚</h1>
+        <p class="lead" style="margin-bottom:18px">已择「<span id="talentWorld">罗云州</span>」· 天赋池取自玄幻修仙。<br>天生如此，无可更改——除非洗髓。</p>
+
+        <div class="talents">
+          <div class="tcard">
+            <div class="t-tier" style="color:var(--jade)"><b>稀</b>有</div>
+            <div>
+              <div class="t-n">灵台通明</div>
+              <div class="t-d">悟性 <i>+20%</i>，功法升级消耗 <i>−15%</i></div>
+            </div>
+          </div>
+          <div class="tcard">
+            <div class="t-tier" style="color:var(--jade)"><b>稀</b>有</div>
+            <div>
+              <div class="t-n">厚土载物</div>
+              <div class="t-d">修为上限 <i>+12%</i>，但遁速 <em>−8%</em></div>
+            </div>
+          </div>
+          <div class="tcard">
+            <div class="t-tier" style="color:var(--ink-3)"><b>寻</b>常</div>
+            <div>
+              <div class="t-n">市井机敏</div>
+              <div class="t-d">坊市购入 <i>−6%</i>，委托收益 <i>+9%</i></div>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="sect" style="margin:24px 0 0">问 道 初 心</h2>
+        <div class="align">
+          <button class="on"><b>正道</b><small>守序 · 护法加成</small></button>
+          <button><b>中立</b><small>两不相帮</small></button>
+          <button><b>左道</b><small>魔道 · 速成</small></button>
+        </div>
+
+        <div class="acts">
+          <button class="btn block" data-go="creat3">返回 · 择界</button>
+          <button class="btn block" id="btnRerollTalent">重抽天命</button>
+          <button class="btn ink block" data-sheet="lock">入 定</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── 创角 · 屏三 ───────── -->
+    <section class="screen" id="s-creat3">
+      <div class="creat">
+        <div class="stepbar">
+          <span class="st done"><b>一</b>立名</span><i class="ln"></i>
+          <span class="st on"><b>二</b>择界</span><i class="ln"></i>
+          <span class="st"><b>三</b>观天赋</span>
+        </div>
+
+        <h1 style="font-size:24px;letter-spacing:.22em">择一界投生</h1>
+        <p class="lead" style="margin-bottom:18px">天赋池取自所择之界；此界尚在混沌者，未可投生。</p>
+
+        <div class="worlds">
+          <button class="world on">
+            <span class="w-th">
+              <svg viewBox="0 0 54 54"><path d="M0 54V36l9-11 6 6 8-15 8 13 6-6 7 11 10-7v27z" fill="currentColor" opacity=".7"></path></svg>
+            </span>
+            <span>
+              <div class="w-n">玄幻修仙</div>
+              <div class="w-d">十境十秘境 · 财侣法地 · 已开放</div>
+            </span>
+            <span class="tag jade" style="margin-left:auto">可投生</span>
+          </button>
+
+          <button class="world off">
+            <span class="w-th"></span>
+            <span>
+              <div class="w-n">古武军势</div>
+              <div class="w-d">江湖庙堂 · 兵锋所指</div>
+            </span>
+            <span class="tag" style="margin-left:auto">混沌</span>
+          </button>
+
+          <button class="world off">
+            <span class="w-th"></span>
+            <span>
+              <div class="w-n">星海遗民</div>
+              <div class="w-d">舰船与残骸之间</div>
+            </span>
+            <span class="tag" style="margin-left:auto">混沌</span>
+          </button>
+
+          <button class="world off">
+            <span class="w-th"></span>
+            <span>
+              <div class="w-n">幽冥司命</div>
+              <div class="w-d">掌一册生死簿</div>
+            </span>
+            <span class="tag" style="margin-left:auto">混沌</span>
+          </button>
+
+          <button class="world off">
+            <span class="w-th"></span>
+            <span>
+              <div class="w-n">山海异闻</div>
+              <div class="w-d">异兽行走于人间</div>
+            </span>
+            <span class="tag" style="margin-left:auto">混沌</span>
+          </button>
+
+          <button class="world off">
+            <span class="w-th"></span>
+            <span>
+              <div class="w-n">太虚幻境</div>
+              <div class="w-d">一梦一世</div>
+            </span>
+            <span class="tag" style="margin-left:auto">混沌</span>
+          </button>
+        </div>
+
+        <div class="acts">
+          <button class="btn block" data-go="creat1">返回 · 立名</button>
+          <button class="btn ink block" data-go="creat2">下一步 · 观天赋</button>
+          <p class="hint" id="worldErr" style="text-align:center;margin:0">请择一界；未开放的世界只可远观</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── 法宝 ───────── -->
+    <section class="screen wide" id="s-treasure">
+      <div class="slots three">
+        <div class="slot empty">法宝位 一</div>
+        <div class="slot empty">法宝位 二</div>
+        <div class="slot empty">法宝位 三</div>
+      </div>
+      <p class="hint" style="margin-top:10px;line-height:1.8">法宝独立于百器：只带一条签名效果，不入自动择优，不可炼化。</p>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">法宝库 · 2</h2><span class="hint">全部 ›</span>
+      </div>
+
+      <button class="lrow" data-confirm="已祭出御风灵舟">
+        <span>
+          <div class="l-n">御风灵舟</div>
+          <div class="l-d">后天 · 离线结算上限延长，离线收益提升</div>
+        </span>
+        <span class="l-r"><b>祭炼 2</b><br>未佩戴 · 祭出 ›</span>
+      </button>
+
+      <button class="lrow" data-confirm="已佩戴寒潭镜">
+        <span>
+          <div class="l-n">寒潭镜</div>
+          <div class="l-d">先天 · 渡劫成算 +0.03，遇水属性敌手再 +0.02</div>
+        </span>
+        <span class="l-r"><b>已认主</b><br>未佩戴 · 佩戴 ›</span>
+      </button>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">造 化 换</h2>
+        <span class="hint">灵石 → 灵气 → 丹</span>
+      </div>
+      <div class="strip">
+        <span class="t">换 灵</span>
+        <span class="v">1 万灵石 → 10 灵气 · 灵气满 100 可换一枚造化丹</span>
+        <span class="more" data-confirm="已换 10 灵气">换 灵 ›</span>
+      </div>
+      <div class="strip" style="margin-top:8px">
+        <span class="t">换 丹</span>
+        <span class="v">100 灵气 → 造化丹 ×1（永久属性 +1）</span>
+        <span class="more" data-confirm="已换造化丹 ×1">换 丹 ›</span>
+      </div>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">器 灵 · 1</h2>
+        <span class="hint">寒潭镜 · 已觉醒</span>
+      </div>
+      <div class="strip">
+        <span class="t">镜 灵</span>
+        <span class="v">「照影」：渡劫时可重掷一次判定 · 冷却 24 时</span>
+        <span class="more" data-sheet="spirit">查看 ›</span>
+      </div>
+
+      <h2 class="sect" style="margin:24px 0 4px">法宝图鉴 · 12 ／ 46 <span class="hint" style="margin-left:auto" data-sheet="treasurecodex">全部 ›</span></h2>
+
+      <button class="cx-row">
+        <span class="cx-n">先天</span>
+        <span class="cx-b"><span class="bar thin"><i style="width:33%"></i></span><span class="cx-p">4 ／ 12</span></span>
+        <span class="cx-a">›</span>
+      </button>
+      <button class="cx-row">
+        <span class="cx-n">后天</span>
+        <span class="cx-b"><span class="bar thin"><i style="width:24%"></i></span><span class="cx-p">8 ／ 34</span></span>
+        <span class="cx-a">›</span>
+      </button>
+      <p class="hint" style="margin-top:10px;line-height:1.8">未得之宝，名号、品阶与效果皆为谜——亲手得之，方显真容。</p>
+    </section>
+
+    <!-- ───────── 炼丹炼器 ───────── -->
+    <section class="screen" id="s-alchemy">
+      <div class="seg2">
+        <button class="on" id="alTabDan">丹房</button>
+        <button id="alTabQi">器台</button>
+      </div>
+
+      <div class="sum3">
+        <div><div class="k">熟 练</div><div class="v">学徒 · 12 次</div></div>
+        <div><div class="k">丹 炉</div><div class="v">青纹小炉</div></div>
+        <div><div class="k">在 炼</div><div class="v">1 炉</div></div>
+      </div>
+
+      <div id="alDan">
+      <h2 class="sect" style="margin:6px 0 2px">丹 方</h2>
+
+      <button class="lrow">
+        <span>
+          <div class="l-n">聚气丹</div>
+          <div class="l-d">灵露草 ×2 · 青木屑 ×1 · 成算 85%</div>
+        </span>
+        <span class="l-r"><b>库存 3</b><br>开炉 ›</span>
+      </button>
+
+      <button class="lrow">
+        <span>
+          <div class="l-n">凝神丹</div>
+          <div class="l-d">青木屑 ×3 · 寒潭水 ×1 · 成算 62%</div>
+        </span>
+        <span class="l-r"><b>库存 0</b><br>开炉 ›</span>
+      </button>
+
+      <button class="lrow">
+        <span>
+          <div class="l-n">破境丹</div>
+          <div class="l-d">紫芝 ×1 · 灵露草 ×4 · 成算 28%</div>
+        </span>
+        <span class="l-r"><span class="warn">缺 紫芝</span><br>查看 ›</span>
+      </button>
+
+      <h2 class="sect" style="margin:24px 0 2px">炉 中</h2>
+      <div class="strip" style="margin-top:8px">
+        <span class="t">聚气丹</span>
+        <span class="v">余 1 时 12 分 · 出丹 2 枚</span>
+        <span class="more" data-confirm="已取出聚气丹 ×2">取出 ›</span>
+      </div>
+      <p class="hintline">丹道 · 学徒 12 次｜器道 · 入门 5 次。两套熟练度各自涨，互不折算。</p>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">丹 匣</h2>
+        <span class="hint">3 种 · 7 枚</span>
+      </div>
+      <div class="matgrid">
+        <div class="matrow"><span class="m-n">聚气丹</span><span class="m-c">×3</span><button class="btn text" data-confirm="已服聚气丹">服</button></div>
+        <div class="matrow"><span class="m-n">凝神丹</span><span class="m-c">×2</span><button class="btn text" data-confirm="已服凝神丹">服</button></div>
+        <div class="matrow"><span class="m-n">洗髓丹</span><span class="m-c">×2</span><button class="btn text" data-sheet="wash">服</button></div>
+      </div>
+
+      </div>
+
+      <div id="alQi" style="display:none">
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">器 台 · 图 纸</h2>
+        <span class="hint">精制 +1 · 不高于同期掉落</span>
+      </div>
+      <button class="lrow" data-sheet="gearforged" data-bp="hantie">
+        <span><div class="l-n">寒铁枪图纸 <span class="tag">玄阶</span></div><div class="l-d">兵刃 · 攻伐 / 破甲 · 耗玄铁残片 ×6</div></span>
+        <span class="l-r"><b>开 炉</b><br>查看 ›</span>
+      </button>
+      <button class="lrow" data-sheet="gearforged" data-bp="yunwen">
+        <span><div class="l-n">云纹甲图纸 <span class="tag gold">地阶</span></div><div class="l-d">甲衣 · 守御 / 抗性 · 需元婴</div></span>
+        <span class="l-r"><b>需 元婴</b><br>查看 ›</span>
+      </button>
+      <div class="chipsrow" style="margin-top:6px">
+        <button class="on">攻伐</button><button>守御</button><button>破甲</button><button>抗性</button>
+        <button>精</button><button>气</button><button>神</button>
+      </div>
+
+      </div>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">材 料 背 包</h2>
+        <span class="hint">6 种 · 23 件</span>
+      </div>
+      <div class="matgrid">
+        <div class="matrow"><span class="m-n">灵露草</span><span class="m-c">×8</span></div>
+        <div class="matrow"><span class="m-n">青木屑</span><span class="m-c">×6</span></div>
+        <div class="matrow"><span class="m-n">寒潭水</span><span class="m-c">×3</span></div>
+        <div class="matrow"><span class="m-n">紫芝</span><span class="m-c">×0</span></div>
+        <div class="matrow"><span class="m-n">玄铁残片</span><span class="m-c">×4</span></div>
+        <div class="matrow"><span class="m-n">雷纹木</span><span class="m-c">×2</span></div>
+      </div>
+      <div class="strip" style="margin-top:10px">
+        <span class="t">提 炼</span>
+        <span class="v">同组材料可提炼为更高一档；已录格子不会消失</span>
+        <span class="more" data-confirm="已提炼：青木屑 ×2">提炼 ›</span>
+      </div>
+    </section>
+
+    <!-- ───────── 坊市 ───────── -->
+    <section class="screen wide" id="s-shop">
+      <div class="pagehead">
+        <div class="segmini">
+          <button class="on" id="shopTabMarket">坊市</button>
+          <button id="shopTabBlack">黑市</button>
+        </div>
+        <button class="btn refreshbtn" data-confirm="已刷新货架">刷新 · 20 灵石</button>
+      </div>
+      <div class="hint" style="margin-top:6px">3 时 59 分后补货 · 货架每次 10~16 件，两架独立掷</div>
+
+      <div class="warstrip">
+        <span class="w-t">神秘商人</span>
+        <span class="w-v">特席开张 · 余 9 分 · 只此一席，售罄即收</span>
+        <button class="btn ink" data-confirm="已在特席购入「春风化雨篇」">入 席</button>
+      </div>
+
+      <div class="shopgrid" id="shopMarket">
+        <button class="goods" data-confirm="已购入镇岳诀，已入待修习架">
+          <div class="g-n">镇岳诀 <span class="tag">玄阶</span></div>
+          <div class="g-e">每级 修为上限 +10% · 战力 +7.2%</div>
+          <div class="g-p">3,570 灵石</div>
+        </button>
+
+        <button class="goods" data-confirm="已购入青霜飞剑">
+          <div class="g-n">青霜飞剑 <span class="tag gold">后天</span></div>
+          <div class="g-e">斗法速度提升</div>
+          <div class="g-p">2.5 万 灵石</div>
+        </button>
+
+        <button class="goods" data-confirm="已购入凝神丹，已入丹匣">
+          <div class="g-n">凝神丹 <span class="tag">玄阶</span></div>
+          <div class="g-e">修为产出 +25%，持续 2 小时</div>
+          <div class="g-p">630 灵石</div>
+        </button>
+
+        <button class="goods" data-confirm="已购入寒铜珠，已入百器">
+          <div class="g-n">寒铜珠 <span class="tag red">仙品</span></div>
+          <div class="g-e">攻击 3.9 万 · 渡劫抗性 234 · 精 +25</div>
+          <div class="g-p">6.3 万 灵石</div>
+        </button>
+
+        <button class="goods" data-confirm="已购入烈火诀，已入待修习架">
+          <div class="g-n">烈火诀 <span class="tag">玄阶</span></div>
+          <div class="g-e">每级 修为产出 +5.5%</div>
+          <div class="g-p">3,360 灵石</div>
+        </button>
+
+        <button class="goods sold">
+          <div class="g-n">紫霄珠 <span class="tag red">仙品</span></div>
+          <div class="g-e">攻击 3.5 万 · 渡劫抗性 253</div>
+          <div class="g-p">已售罄</div>
+        </button>
+
+        <button class="goods" data-confirm="已购入材料包 ×3">
+          <div class="g-n">材料包 ×3</div>
+          <div class="g-e">当前历练区材料，开箱即入背包</div>
+          <div class="g-p">1,200 灵石</div>
+        </button>
+
+        <button class="goods" data-confirm="已用修为换得 1 万灵石">
+          <div class="g-n">灵石包 <span class="tag plain">修为兑</span></div>
+          <div class="g-e">8.6 万 修为 换 1 万 灵石</div>
+          <div class="g-p">8.6 万 修为</div>
+        </button>
+
+        <button class="goods" data-confirm="已购入聚气丹 ×3，已入丹匣">
+          <div class="g-n">聚气丹 ×3 <span class="tag">丹药</span><span class="tag plain">修为</span></div>
+          <div class="g-e">服后修为产出 +25%，持续 2 小时</div>
+          <div class="g-p">630 灵石</div>
+        </button>
+
+        <button class="goods" data-confirm="已购入玄铁残片 ×10">
+          <div class="g-n">玄铁残片 ×10 <span class="tag">材料</span></div>
+          <div class="g-e">百器炼化 / 器台打造 / 悟道石供奉</div>
+          <div class="g-p">1,800 灵石</div>
+        </button>
+
+        <button class="goods" data-confirm="已购入洗髓丹">
+          <div class="g-n">洗髓丹 <span class="tag red">地阶</span><span class="tag plain">洗髓</span></div>
+          <div class="g-e">服下即可洗髓，本世还可换 2 枚天赋</div>
+          <div class="g-p">6,800 灵石</div>
+        </button>
+
+        <button class="goods" data-confirm="已购入定风珠">
+          <div class="g-n">定风珠 <span class="tag gold">灵品</span></div>
+          <div class="g-e">佩饰 · 守御 +2.4 万 · 渡劫抗性 +88</div>
+          <div class="g-p">4.2 万 灵石</div>
+        </button>
+      </div>
+
+      <div id="shopBlack" style="display:none">
+        <div class="strip" style="margin-top:12px">
+          <span class="t">黑 市</span>
+          <span class="v">道心 ≤ −200 可见 · 价格随道心浮动 · 不记名</span>
+        </div>
+        <div class="shopgrid" style="margin-top:10px">
+          <button class="goods" data-confirm="已在黑市购入「蚀骨钉」">
+            <div class="g-n">蚀骨钉 <span class="tag red">魔道</span></div>
+            <div class="g-e">攻伐 +4.1 万 · 每次出手自损修为</div>
+            <div class="g-p">7.8 万 灵石</div>
+          </button>
+          <button class="goods" data-confirm="已在黑市购入「忘忧散」">
+            <div class="g-n">忘忧散 <span class="tag red">魔道</span></div>
+            <div class="g-e">道心 −15 · 修为产出 +40%／12 时</div>
+            <div class="g-p">3.2 万 灵石</div>
+          </button>
+          <button class="goods" data-confirm="已在黑市购入「夺灵幡」">
+            <div class="g-n">夺灵幡 <span class="tag red">魔道</span></div>
+            <div class="g-e">击杀额外夺灵石 · 道心持续下沉</div>
+            <div class="g-p">5.5 万 灵石</div>
+          </button>
+          <button class="goods sold">
+            <div class="g-n">炉鼎契 <span class="tag red">魔道</span></div>
+            <div class="g-e">道侣形态 · 双修产出 +30%，好感不再上涨</div>
+            <div class="g-p">已售罄</div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── 势力 ───────── -->
+    <section class="screen" id="s-faction">
+      <div class="chipsrow" style="margin-top:4px">
+        <button class="on" id="facStateEmpty">未入 · 空态</button>
+        <button id="facStateJoined">已入 · 示例</button>
+      </div>
+
+      <div id="facEmptyTop">
+        <div class="strip">
+          <span class="t">未 入 势 力</span>
+          <span class="v">乱世之中，孤身行走</span>
+        </div>
+        <p class="hint" style="margin-top:9px;line-height:1.8">加入势力可得其增益；与势力交好的道友好感 +10，敌对 −20。加入后职位随声望升，可领门中供给与委托。</p>
+      </div>
+
+      <div id="facJoinedTop" style="display:none">
+        <div class="statestrip">
+          <span class="s-k">当前效力</span>
+          <span class="s-v">掩月宗 · 外门执事</span>
+          <span class="s-x">贡献 320 · 叛离冷却 7 日</span>
+        </div>
+        <div class="hintline">同道 3 · 掌门 秦挽螭（渡劫）· 离线收益 +8% · 与鬼灵宗交恶 3。</div>
+      </div>
+
+      <div class="chipsrow" style="margin-top:14px" id="facChips">
+        <button class="on" data-camp="all">全部 16</button>
+        <button data-camp="right">正道 4</button>
+        <button data-camp="neutral">中立 7</button>
+        <button data-camp="evil">魔道 5</button>
+      </div>
+
+      <div id="facList"></div>
+
+      <div id="facJoinedExtra" style="display:none">
+        <div class="shelf-head" style="margin-top:22px">
+          <h2 class="sect">职 级 · 双 技 能</h2>
+          <span class="hint">执事 · 可派任 / 可护法</span>
+        </div>
+        <button class="lrow" data-confirm="已派任外门巡守">
+          <span><div class="l-n">派任 · 外门巡守</div><div class="l-d">每日得贡献 30 · 势力声望 +2</div></span>
+          <span class="l-r"><b>派 任</b><br>冷却 1 日</span>
+        </button>
+        <button class="lrow" data-confirm="已挂名护法">
+          <span><div class="l-n">挂名 · 职司护法</div><div class="l-d">渡劫成算 +0.02 · 不占道友护法位</div></span>
+          <span class="l-r"><b>挂 名</b><br>可取消</span>
+        </button>
+
+        <div class="shelf-head" style="margin-top:18px">
+          <h2 class="sect">捐 献</h2>
+          <span class="hint">2 小时上限 300 声望</span>
+        </div>
+        <div class="chipsrow">
+          <button data-confirm="已捐 1 万灵石">捐 1 万 · +10 声望</button>
+          <button data-confirm="已捐 10 万灵石">捐 10 万 · +100 声望</button>
+          <button data-confirm="已捐 100 万灵石">捐 100 万 · +1000 声望</button>
+        </div>
+
+        <div class="shelf-head" style="margin-top:18px">
+          <h2 class="sect">门 中 供 给</h2>
+          <span class="hint">按职位每月发</span>
+        </div>
+        <div class="matgrid">
+          <div class="matrow"><span class="m-n">聚气丹</span><span class="m-c">×2</span><button class="btn text" data-confirm="已请回聚气丹">请</button></div>
+          <div class="matrow"><span class="m-n">凝神丹</span><span class="m-c">×1</span><button class="btn text" data-confirm="已请回凝神丹">请</button></div>
+          <div class="matrow"><span class="m-n">玄铁残片</span><span class="m-c">×3</span><button class="btn text" data-confirm="已请回玄铁残片">请</button></div>
+        </div>
+
+        <div class="shelf-head" style="margin-top:18px">
+          <h2 class="sect">委 托 · 3</h2>
+          <span class="hint">赏金随声望涨</span>
+        </div>
+        <button class="lrow" data-confirm="已交付委托：清剿山匪">
+          <span><div class="l-n">清剿山匪 <span class="tag">可领</span></div><div class="l-d">修为 8.2 万 · 贡献 20 · 灵石 1,800</div></span>
+          <span class="l-r"><b>交 付</b><br>无冷却</span>
+        </button>
+        <button class="lrow" data-confirm="已接取委托：护送商队">
+          <span><div class="l-n">护送商队 <span class="tag plain">进行中</span></div><div class="l-d">余 2 时 · 完成后贡献 35</div></span>
+          <span class="l-r"><b>查 看</b><br>不可重复</span>
+        </button>
+        <button class="lrow" data-confirm="已交付委托：闭关进益">
+          <span><div class="l-n">闭关进益 <span class="tag">可领</span></div><div class="l-d">修为增长 120 万 · 贡献 20</div></span>
+          <span class="l-r"><b>交 付</b><br>无冷却</span>
+        </button>
+
+        <div class="warstrip">
+          <span class="w-t">势力战</span>
+          <span class="w-v">掩月宗 对 鬼灵宗 · 余 1 时 20 分 · 你可应战</span>
+          <button class="btn" data-confirm="已观望此战">观 望</button>
+          <button class="btn ink" data-confirm="已应战">应 战</button>
+        </div>
+        <div class="strip" style="margin-top:10px">
+          <span class="t">叛 离</span>
+          <span class="v">叛离后 1 游戏年不可入新势力；掌门与太上不可叛离</span>
+          <span class="more" data-confirm="已叛离掩月宗">叛离 ›</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────── 江湖榜 ───────── -->
+    <section class="screen" id="s-prodigy">
+      <div class="chipsrow" style="margin-top:4px">
+        <button class="on">天榜</button>
+        <button>地榜</button>
+        <button>玄榜</button>
+        <button>黄榜</button>
+      </div>
+
+      <div class="warstrip">
+        <span class="w-t">寻仇链</span>
+        <span class="w-v">鬼灵宗 屠夜游 · 第 2 / 3 环 · 老祖将至 · 余 2 时</span>
+        <button class="btn ink" data-sheet="ambush">迎 战</button>
+      </div>
+
+      <div class="selfrank">
+        <span class="rankno top">11</span>
+        <span>你 · 陆沉舟 · 渡劫</span>
+        <span class="hint" style="margin-left:auto">名次播报每 10 游戏年一次</span>
+      </div>
+
+      <button class="lrow">
+        <span class="rankno">1</span>
+        <span>
+          <div class="l-n">？？？ <span class="tag">隐世</span></div>
+          <div class="l-d">？？？ · ？？？ · ？？？</div>
+        </span>
+        <span class="l-r">素不相识</span>
+      </button>
+
+      <button class="lrow">
+        <span class="rankno">2</span>
+        <span>
+          <div class="l-n">？？？ <span class="tag">隐世</span></div>
+          <div class="l-d">？？？ · ？？？ · ？？？</div>
+        </span>
+        <span class="l-r">素不相识</span>
+      </button>
+
+      <button class="lrow">
+        <span class="rankno">3</span>
+        <span>
+          <div class="l-n">？？？ <span class="tag">隐世</span></div>
+          <div class="l-d">？？？ · ？？？ · ？？？</div>
+        </span>
+        <span class="l-r">素不相识</span>
+      </button>
+
+      <button class="lrow" data-sheet="prodigy" data-rank="hanzhishan">
+        <span class="rankno">4</span>
+        <span>
+          <div class="l-n">韩纸山 <span class="tag red">悬殊</span></div>
+          <div class="l-d">大隋书院太上 · 量天尺 · 玉玺</div>
+        </span>
+        <span class="l-r">素不相识<br>查看 ›</span>
+      </button>
+
+      <button class="lrow" data-sheet="prodigy" data-rank="yusulu">
+        <span class="rankno">5</span>
+        <span>
+          <div class="l-n">虞素庐 <span class="tag red">悬殊</span></div>
+          <div class="l-d">大隋书院太上 · 聚宝金盆 · 破锋枪</div>
+        </span>
+        <span class="l-r">素不相识<br>查看 ›</span>
+      </button>
+
+      <button class="lrow" data-sheet="prodigy" data-rank="minggu">
+        <span class="rankno">6</span>
+        <span>
+          <div class="l-n">冥骨夫人 <span class="tag red">悬殊</span></div>
+          <div class="l-d">鬼灵宗太上 · 锁灵囊 · 机关傀儡</div>
+        </span>
+        <span class="l-r">素不相识<br>查看 ›</span>
+      </button>
+
+      <button class="lrow" data-sheet="prodigy" data-rank="zhonglisuo">
+        <span class="rankno">7</span>
+        <span>
+          <div class="l-n">钟离朔 <span class="tag gold">相当</span></div>
+          <div class="l-d">黄枫谷太上 · 照业宝镜 · 千竹剑典</div>
+        </span>
+        <span class="l-r">切磋过 1 次<br>查看 ›</span>
+      </button>
+
+      <button class="lrow" data-sheet="prodigy" data-rank="shenguanlan">
+        <span class="rankno">8</span>
+        <span>
+          <div class="l-n">沈观澜 <span class="tag gold">相当</span></div>
+          <div class="l-d">大隋书院山长 · 吞川瓢 · 养魂木</div>
+        </span>
+        <span class="l-r">相善 1<br>查看 ›</span>
+      </button>
+
+      <button class="lrow" data-sheet="prodigy" data-rank="baihe">
+        <span class="rankno">9</span>
+        <span>
+          <div class="l-n">白鹤道人 <span class="tag jade">可压</span></div>
+          <div class="l-d">同门 · 丹修 · 青纹小炉</div>
+        </span>
+        <span class="l-r">好感 24<br>查看 ›</span>
+      </button>
+
+      <button class="lrow" data-sheet="prodigy" data-rank="chenjiu">
+        <span class="rankno">10</span>
+        <span>
+          <div class="l-n">陈九 <span class="tag jade">可压</span></div>
+          <div class="l-d">散修 · 游侠 · 一柄旧刀</div>
+        </span>
+        <span class="l-r">好感 46<br>查看 ›</span>
+      </button>
+
+      <p class="hint" style="margin-top:12px;line-height:1.8">榜面不写战力，只给「可压 / 相当 / 悬殊」三档。</p>
+    </section>
+
+    <!-- ───────── 宗门 ───────── -->
+    <section class="screen" id="s-sect">
+      <div class="chipsrow" style="margin-top:4px">
+        <button class="on" id="sectStateEmpty">未立 · 空态</button>
+        <button id="sectStateJoined">已立 · 示例</button>
+      </div>
+      <div id="sectEmpty">
+      <div class="curzone" style="padding:16px 16px 14px">
+        <div class="cz-top">
+          <div>
+            <div class="cz-name" style="font-size:20px">尚未开宗</div>
+            <div class="cz-meta">四门槛达成后，此处亮起「开宗立派」</div>
+          </div>
+          <span class="tag">未立</span>
+        </div>
+      </div>
+
+      <h2 class="sect" style="margin:22px 0 2px">四 门 槛</h2>
+
+      <div class="gate ok">
+        <span class="g-mark">✓</span>
+        <span class="g-t">境界 ≥ 化神</span>
+        <span class="g-v">渡劫 ✓</span>
+      </div>
+      <div class="gate">
+        <span class="g-mark">·</span>
+        <span class="g-t">身份 · 长老在任 或 叛离经历</span>
+        <span class="g-v">散人</span>
+      </div>
+      <div class="gate">
+        <span class="g-mark">·</span>
+        <span class="g-t">声望峰值 ≥ 2,000</span>
+        <span class="g-v">现 0</span>
+      </div>
+      <div class="gate">
+        <span class="g-mark">·</span>
+        <span class="g-t">开宗资格</span>
+        <span class="g-v">遗泽商店 · 800</span>
+      </div>
+
+      <div style="margin-top:18px">
+        <button class="btn ink block" disabled style="opacity:.4">开 宗 立 派</button>
+        <p class="hintline" style="text-align:center"><span data-sheet="sectfound" style="color:var(--cinnabar);cursor:pointer">预览开宗三定 ›</span></p>
+      </div>
+
+      <h2 class="sect" style="margin:26px 0 2px">立 派 之 后</h2>
+      <div class="lrow" style="cursor:default">
+        <span><div class="l-n">门规三定</div><div class="l-d">定道统 · 定门风 · 定收徒门槛，决定门中供给与弟子资质</div></span>
+      </div>
+      <div class="lrow" style="cursor:default">
+        <span><div class="l-n">门中供给</div><div class="l-d">按门规定期发放灵石、丹药与功法</div></span>
+      </div>
+      <div class="lrow" style="cursor:default">
+        <span><div class="l-n">传位</div><div class="l-d">转世前可指定继承人，宗门不随你身死而散</div></span>
+      </div>
+
+      </div>
+
+      <div id="sectJoined" style="display:none">
+      <div class="shelf-head" style="margin-top:4px">
+        <h2 class="sect">已 开 宗</h2>
+        <span class="hint">听雨宗 · 守序剑修</span>
+      </div>
+      <div class="statestrip">
+        <span class="s-k">当前宗门</span>
+        <span class="s-v">听雨宗 · 山门 云梦泽听雨峰</span>
+        <span class="s-x">弟子 12 / 20 · 声望 2,340</span>
+      </div>
+      <div class="sum4">
+        <div><div class="k">战 绩</div><div class="v">4 胜 1 负</div></div>
+        <div><div class="k">设 施</div><div class="v">3 处</div></div>
+        <div><div class="k">门 规</div><div class="v">守序 · 剑修</div></div>
+        <div><div class="k">传 位</div><div class="v">未立</div></div>
+      </div>
+
+      <div class="shelf-head" style="margin-top:16px">
+        <h2 class="sect">弟 子 · 12</h2>
+        <span class="hint">招收冷却 1 日 · 供奉上限 2</span>
+      </div>
+      <button class="lrow" data-confirm="已传位给沈青梧">
+        <span><div class="l-n">沈青梧 <span class="tag">亲传</span></div><div class="l-d">金丹 · 剑修 · 资质 上 · 供奉中</div></span>
+        <span class="l-r"><b>传 位</b><br>详情 ›</span>
+      </button>
+      <button class="lrow" data-confirm="已让陈九供奉">
+        <span><div class="l-n">陈九 <span class="tag plain">内门</span></div><div class="l-d">筑基 · 散修 · 资质 中 · 未供奉</div></span>
+        <span class="l-r"><b>供 奉</b><br>好感 46</span>
+      </button>
+      <button class="lrow" data-confirm="已招收新弟子">
+        <span><div class="l-n">新弟子 <span class="tag plain">外门</span></div><div class="l-d">本次可招 3 人 · 资质随机</div></span>
+        <span class="l-r"><b>招 收</b><br>冷却 1 日</span>
+      </button>
+
+      <div class="shelf-head" style="margin-top:16px">
+        <h2 class="sect">设 施</h2>
+        <span class="hint">灵石投入 · 门中共享</span>
+      </div>
+      <button class="lrow" data-confirm="已升级演武场 Lv3">
+        <span><div class="l-n">演武场 Lv2</div><div class="l-d">弟子战力 +8% · 升级 18 万灵石</div></span>
+        <span class="l-r"><b>升 级</b><br>查看 ›</span>
+      </button>
+      <button class="lrow" data-confirm="已升级丹房 Lv2">
+        <span><div class="l-n">丹房 Lv1</div><div class="l-d">门中炼丹成功率 +4% · 升级 12 万灵石</div></span>
+        <span class="l-r"><b>升 级</b><br>查看 ›</span>
+      </button>
+      <button class="lrow" data-confirm="已升级灵田 Lv2">
+        <span><div class="l-n">灵田 Lv1</div><div class="l-d">门中材料产出 +10% · 升级 10 万灵石</div></span>
+        <span class="l-r"><b>升 级</b><br>查看 ›</span>
+      </button>
+
+      <div class="warstrip">
+        <span class="w-t">宗门战</span>
+        <span class="w-v">听雨宗 对 千竹派 · 可宣战 · 冷却 7 日</span>
+        <button class="btn ink" data-confirm="已宣战千竹派">宣 战</button>
+      </div>
+      </div>
+    </section>
+
+    <!-- ───────── 成就 ───────── -->
+    <section class="screen" id="s-achv">
+      <div class="sum3">
+        <div><div class="k">已 得</div><div class="v">12 ／ 60</div></div>
+        <div><div class="k">遗 泽</div><div class="v">44</div></div>
+        <div><div class="k">九 面</div><div class="v">8 面在录</div></div>
+      </div>
+      <p class="hint" style="line-height:1.8">跨世永不消。每面三个里程碑，达 50%／80%／100% 时入账遗泽。</p>
+
+      <button class="lrow" data-face="event">
+        <span style="flex:1">
+          <div class="l-n">奇遇 <span class="hint">12 ／ 131</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:9%"></i></div>
+        </span>
+        <span class="l-r row"><span class="mile"><i></i><i></i><i></i></span><span class="mile-t">0 ／ 3</span></span>
+      </button>
+
+      <button class="lrow" data-face="talent">
+        <span style="flex:1">
+          <div class="l-n">天赋 <span class="hint">0 ／ 196</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:0%"></i></div>
+        </span>
+        <span class="l-r row"><span class="mile"><i></i><i></i><i></i></span><span class="mile-t">0 ／ 3</span></span>
+      </button>
+
+      <button class="lrow" data-face="treasure">
+        <span style="flex:1">
+          <div class="l-n">法宝 <span class="hint">12 ／ 46</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:26%"></i></div>
+        </span>
+        <span class="l-r row"><span class="mile"><i></i><i></i><i></i></span><span class="mile-t">0 ／ 3</span></span>
+      </button>
+
+      <button class="lrow" data-face="art">
+        <span style="flex:1">
+          <div class="l-n">功法 <span class="hint">4 ／ 70</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:6%"></i></div>
+        </span>
+        <span class="l-r row"><span class="mile"><i></i><i></i><i></i></span><span class="mile-t">0 ／ 3</span></span>
+      </button>
+
+      <button class="lrow" data-face="bond">
+        <span style="flex:1">
+          <div class="l-n">道友 <span class="hint">3 ／ 58</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:5%"></i></div>
+        </span>
+        <span class="l-r row"><span class="mile"><i></i><i></i><i></i></span><span class="mile-t">0 ／ 3</span></span>
+      </button>
+
+      <button class="lrow" data-face="zone">
+        <span style="flex:1">
+          <div class="l-n">秘境 <span class="hint">5 ／ 28</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:18%"></i></div>
+        </span>
+        <span class="l-r row"><span class="mile-t">首通 5／10</span><span class="mile-t">域主 0／10</span></span>
+      </button>
+
+      <button class="lrow" data-face="faction">
+        <span style="flex:1">
+          <div class="l-n">势力 <span class="hint">7 ／ 16</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:44%"></i></div>
+        </span>
+        <span class="l-r row"><span class="mile"><i></i><i></i><i></i></span><span class="mile-t">0 ／ 3</span></span>
+      </button>
+      <button class="lrow" data-face="title">
+        <span style="flex:1">
+          <div class="l-n">称号 <span class="hint">4 ／ 80</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:5%"></i></div>
+        </span>
+        <span class="l-r row"><span class="mile"><i></i><i></i><i></i></span><span class="mile-t">0 ／ 3</span></span>
+      </button>
+      <button class="lrow" data-face="selfart">
+        <span style="flex:1">
+          <div class="l-n">自创与器灵 <span class="hint">1 ／ 12</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:8%"></i></div>
+        </span>
+        <span class="l-r row"><span class="mile"><i></i><i></i><i></i></span><span class="mile-t">0 ／ 3</span></span>
+      </button>
+      <button class="lrow" data-face="talentLegacy">
+        <span style="flex:1">
+          <div class="l-n">转世天赋 <span class="hint">0 ／ 8</span></div>
+          <div class="bar thin" style="margin-top:6px"><i style="width:0%"></i></div>
+        </span>
+        <span class="l-r row"><span class="mile"><i></i><i></i><i></i></span><span class="mile-t">0 ／ 3</span></span>
+      </button>
+
+      <div class="shelf-head" style="margin-top:24px">
+        <h2 class="sect">行 为 成 就 · 12 ／ 60</h2>
+        <span class="hint" data-sheet="achvAll">全部 60 条 ›</span>
+      </div>
+      <div class="chipsrow" id="achvChips">
+        <button class="on" data-g="xiu">修行 3/10</button>
+        <button data-g="jie">劫数 1/10</button>
+        <button data-g="chen">尘缘 2/10</button>
+        <button data-g="men">门庭 2/10</button>
+        <button data-g="mi">秘藏 3/10</button>
+        <button data-g="ni">逆天 1/10</button>
+      </div>
+      <div class="achvgrid" id="achvGrid"></div>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">称 号 墙 · 4 ／ 80</h2>
+        <span class="hint" data-sheet="titles">全部称号 ›</span>
+      </div>
+      <div class="chipsrow">
+        <button class="on">道基初立</button><button>金丹映日</button><button>元婴显圣</button><button>雷下留人</button>
+      </div>
+      <p class="hintline">九面图鉴跨世永不清；每面三个里程碑，达 50% / 80% / 100% 时入账遗泽。行为成就与称号墙同页，但不占九面分母。</p>
+    </section>
+
+    <!-- ───────── 轮回 ───────── -->
+    <section class="screen" id="s-legacy">
+      <div class="statrow" style="margin-top:4px">
+        <div><div class="k">跨 世</div><div class="v">0</div></div>
+        <div><div class="k">飞 升</div><div class="v">0</div></div>
+        <div><div class="k">兵 解</div><div class="v">0</div></div>
+        <div><div class="k">身 死</div><div class="v">0</div></div>
+      </div>
+
+      <div style="margin:22px 0 6px;display:flex;flex-direction:column;align-items:center;gap:9px">
+        <button class="btn sealbtn" style="min-width:200px" data-sheet="heir">兵 解 转 世</button>
+        <p class="hint" style="text-align:center;margin:0">此世所得折分 ×0.7 入遗泽 · 转世后重走创角三屏</p>
+        <div class="acts" style="display:flex;gap:8px">
+          <button class="btn" data-sheet="heir">真灵承继 · 携一件</button>
+          <button class="btn" data-sheet="recap">盖棺之传</button>
+        </div>
+      </div>
+
+      <div class="warstrip">
+        <span class="w-t">飞 升</span>
+        <span class="w-v">真仙盈满后可飞升 · 满额遗泽转世 · 失败 24 时重试</span>
+        <button class="btn ink" data-confirm="已叩天门，等待飞升">飞 升</button>
+      </div>
+      <p class="hintline" style="text-align:center"><span data-sheet="death" style="color:var(--cinnabar);cursor:pointer">坐化呈报预览 ›</span></p>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">兵 解 结 算 预 览</h2>
+        <span class="hint">与实结同源</span>
+      </div>
+      <div class="detailbox">
+        <div class="kv"><span>此世境界</span><b>渡劫</b></div>
+        <div class="kv"><span>渡劫</span><b>成 3 · 败 1</b></div>
+        <div class="kv"><span>首通秘境</span><b>5 处</b></div>
+        <div class="kv"><span>结缘</span><b>3 人</b></div>
+        <div class="kv"><span>折算遗泽</span><b class="good">+44</b></div>
+      </div>
+
+      <div class="shelf-head" style="margin-top:22px">
+        <h2 class="sect">真 灵 承 继</h2>
+        <span class="hint">可选一件已觉醒法宝</span>
+      </div>
+      <div class="strip">
+        <span class="t">寒 潭 镜</span>
+        <span class="v">已觉醒 · 渡劫成算 +0.03 · 可携入下世</span>
+        <span class="more" data-sheet="heir">选择 ›</span>
+      </div>
+
+      <div class="shelf-head" style="margin-top:26px">
+        <h2 class="sect">遗泽商店 · 44</h2>
+        <span class="hint">永久资格 · 跨世生效</span>
+      </div>
+
+      <button class="lrow">
+        <span><div class="l-n">起步 · 筑基</div><div class="l-d">新周目创角可选此起步境界（跳档不跳渡劫）</div></span>
+        <span class="l-r"><b>100</b><br>请回 ›</span>
+      </button>
+      <button class="lrow">
+        <span><div class="l-n">起步 · 金丹</div><div class="l-d">新周目创角可选此起步境界</div></span>
+        <span class="l-r"><b>300</b><br>请回 ›</span>
+      </button>
+      <button class="lrow">
+        <span><div class="l-n">残卷重生</div><div class="l-d">前世残卷犹温——修为产出 +8%</div></span>
+        <span class="l-r"><b>250</b><br>请回 ›</span>
+      </button>
+      <button class="lrow">
+        <span><div class="l-n">前世剑骨</div><div class="l-d">剑骨天成——战力 +6%，装备幸运 +4%</div></span>
+        <span class="l-r"><b>250</b><br>请回 ›</span>
+      </button>
+      <button class="lrow">
+        <span><div class="l-n">先天道胎</div><div class="l-d">道胎宿慧——突破消耗 −5%</div></span>
+        <span class="l-r"><b>500</b><br>请回 ›</span>
+      </button>
+
+      <p class="hint" style="margin-top:12px;line-height:1.8">价目总表 6,800 遗泽。已请回 0 项。</p>
+    </section>
+
+    <!-- ───────── 日志 ───────── -->
+    <section class="screen" id="s-journal">
+      <div class="chipsrow" style="margin-top:4px">
+        <button class="on">全部</button>
+        <button>奇遇</button>
+        <button>历练</button>
+        <button>渡劫</button>
+        <button>道心</button>
+        <button>拾得</button>
+        <button>功法</button>
+        <button>道友</button>
+        <button>洞府</button>
+        <button>坊市</button>
+        <button>系统</button>
+      </div>
+
+      <div class="logline">
+        <span class="lt">9601·1·4</span>
+        <span class="lx"><b>系统</b>闭关 12 小时 0 分，得修为 2.8 亿，渡劫 0 次（成 0 败 0）</span>
+      </div>
+      <div class="logline">
+        <span class="lt">9601·1·4</span>
+        <span class="lx"><b>功法</b>于静修中自行领悟《百川诀》</span>
+      </div>
+      <div class="logline">
+        <span class="lt">9601·1·4</span>
+        <span class="lx"><b>功法</b>百川诀 已自动入修习槽</span>
+      </div>
+      <div class="logline">
+        <span class="lt">9601·1·3</span>
+        <span class="lx"><b>奇遇</b>雨夜叩门——你收下了那柄断剑，道心 +15</span>
+      </div>
+      <div class="logline">
+        <span class="lt">9601·1·3</span>
+        <span class="lx"><b>拾得</b>断水残片 ×1，已入背包</span>
+      </div>
+      <div class="logline">
+        <span class="lt">9601·1·2</span>
+        <span class="lx"><b>道友</b>陈九 好感升至 46，愿为你护法</span>
+      </div>
+      <div class="logline">
+        <span class="lt">9601·1·2</span>
+        <span class="lx"><b>渡劫</b>渡劫失败，道伤 +1（累计 1），六槽功法待重修</span>
+      </div>
+      <div class="logline">
+        <span class="lt">9601·1·1</span>
+        <span class="lx"><b>系统</b>成就达成 · 半壁山河</span>
+      </div>
+      <div class="logline">
+        <span class="lt">9601·1·1</span>
+        <span class="lx"><b>洞府</b>迁居「市井别院」，倍率 ×1.00</span>
+      </div>
+      <p class="hint" id="logEmpty" style="display:none;text-align:center;margin-top:14px">此类暂无记录</p>
+      <p class="hint" style="margin-top:14px;text-align:center">每类上限 200 条，全局 2,000 条</p>
+    </section>
+
+    <!-- ───────── 设置 ───────── -->
+    <section class="screen" id="s-settings">
+      <h2 class="sect" style="margin-top:6px">存 档</h2>
+
+      <div class="setrow">
+        <span>
+          <div class="s-k">当前档</div>
+          <div class="s-d">陆沉舟 · 罗云州 · 渡劫 · 罗云历 9601 年</div>
+        </span>
+      </div>
+
+      <div class="setrow">
+        <span>
+          <div class="s-k">清除临时增益</div>
+          <div class="s-d">清掉破境高光、道伤、封固等限时增益；已入账的永久效果不动。</div>
+        </span>
+        <span class="s-r"><button class="btn mini" data-confirm="已清除临时增益">清 除</button></span>
+      </div>
+      <div class="setrow">
+        <span>
+          <div class="s-k">重置存档</div>
+          <div class="s-d">清空当前世的角色、境界、洞府、百器与日志，回到创角。不可撤销。</div>
+        </span>
+        <span class="s-r"><button class="btn danger mini" data-sheet="confirm">重置</button></span>
+      </div>
+
+      <h2 class="sect" style="margin:26px 0 0">自 动</h2>
+
+      <div class="setrow">
+        <span>
+          <div class="s-k">自动渡劫</div>
+          <div class="s-d">圆满即自动掷判；关闭后由你在修行页手动叩天门</div>
+        </span>
+        <span class="s-r"><span class="sw off" data-switch="自动渡劫"></span></span>
+      </div>
+      <div class="setrow">
+        <span>
+          <div class="s-k">自动奇遇</div>
+          <div class="s-d">奇遇不弹抉择，按倾向在可选分支中择一结算</div>
+        </span>
+        <span class="s-r"><span class="sw off" data-switch="自动奇遇"></span></span>
+      </div>
+      <div class="setrow">
+        <span>
+          <div class="s-k">自动炼化</div>
+          <div class="s-d">换下的旧件先入库藏阁；库满才炼化腾位</div>
+        </span>
+        <span class="s-r"><span class="sw" data-switch="自动炼化"></span></span>
+      </div>
+      <div class="chipsrow" style="margin-top:10px">
+        <button class="on">倾向：无</button><button>正道</button><button>魔道</button><button>左道</button>
+      </div>
+      <p class="hintline">倾向只在自动奇遇开启时有意义；优先选倾向分支，不可用则随机其他。</p>
+
+      <h2 class="sect" style="margin:26px 0 0">显 示</h2>
+
+      <div class="setrow">
+        <span>
+          <div class="s-k">动效</div>
+          <div class="s-d">关闭后呼吸、射线、震屏、数字滚动全部降为瞬时切换</div>
+        </span>
+        <span class="s-r"><span class="sw" data-switch="动效"></span></span>
+      </div>
+
+      <h2 class="sect" style="margin:26px 0 0">关 于</h2>
+
+      <div class="setrow">
+        <span>
+          <div class="s-k">三千世界 · 0.5.64</div>
+          <div class="s-d">多世界框架的放置修仙人生模拟。现开放玄幻修仙一界。</div>
+        </span>
+      </div>
+
+      <p class="hint" style="margin-top:16px;line-height:1.85">菜单顺序已取消——导航固定为「修行 / 历练 / 道器 / 江湖 / 生平」五区，不再由玩家排序。</p>
+    </section>
+
+    <!-- ───────── 待续 ───────── -->
+    <section class="screen" id="s-todo">
+      <div class="todo">
+        <span class="seal" style="font-size:14px;padding:8px 9px">待续</span>
+        <div class="t" id="todoTitle">此页</div>
+        <div class="d">本稿只交付核心六屏。此页沿用既有信息架构，待主屏方向确认后按同一套语言铺开。</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 桌面右栏 -->
+  <aside class="rail" id="rail">
+    <div class="railblock" data-rail="idle">
+      <div class="eyebrow">四 柱</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="bondslot"><div class="bs-k">财</div><div class="bs-v" style="font-size:15px">85.0 万</div><div class="bs-d">收 837 · 支 0</div></div>
+        <div class="bondslot"><div class="bs-k">侣</div><div class="bs-v" style="font-size:15px">苏晚</div><div class="bs-d">护法 ④</div></div>
+        <div class="bondslot"><div class="bs-k">法</div><div class="bs-v" style="font-size:15px">吐纳法</div><div class="bs-d">主修 Lv7</div></div>
+        <div class="bondslot"><div class="bs-k">地</div><div class="bs-v" style="font-size:15px">市井别院</div><div class="bs-d">×1.00</div></div>
+      </div>
+    </div>
+
+    <div class="railblock" data-rail="idle">
+      <div class="eyebrow">天 象 · 传 闻</div>
+      <div style="font-family:var(--serif);font-size:12.5px;line-height:2;color:var(--ink-2)">
+        江湖最近风平浪静——茶楼里说书人都懒得开工。
+        <div style="margin-top:10px;font-family:var(--sans);font-size:10.5px;color:var(--ink-3);letter-spacing:.08em">天象队列 · 2 条未览 ›</div>
+      </div>
+    </div>
+
+    <div class="railblock" data-rail="idle">
+      <div class="eyebrow">天 道</div>
+      <div style="font-size:11.5px;line-height:2;color:var(--ink-2)">
+        天象「劫云低垂」· 逆天 37 · 天怒<br>
+        <span class="dim">逆天盾 0 / 3 · 称号「逆天者」</span>
+        <div style="margin-top:10px"><button class="btn" style="min-height:34px;padding:5px 13px;font-size:11px" data-sheet="tiandao">天象详情</button></div>
+      </div>
+    </div>
+
+    <div class="railblock" data-rail="idle">
+      <div class="eyebrow">页 游 彩 蛋</div>
+      <div class="giftcard">
+        <span class="g-t"><b>648 元 · 必出天品至宝</b><br>概率 0.0001%，出货以实际为准</span>
+        <button class="btn" data-confirm="此间不售，去修行吧">领取</button>
+      </div>
+    </div>
+
+    <div class="railblock" data-rail="idle">
+      <div class="eyebrow">离 线 所 得</div>
+      <div style="font-size:11.5px;line-height:2;color:var(--ink-2)">
+        12 时 · 修为 +2.8 亿<br>灵石 +837.7 万 · 渡劫 0 次
+        <div style="margin-top:10px"><button class="btn" style="min-height:36px;padding:6px 14px;font-size:11.5px" data-sheet="offline">明细</button></div>
+      </div>
+    </div>
+
+    <div class="railblock" data-rail="zone">
+      <div class="eyebrow">本 区 词 缀</div>
+      <div style="font-size:11.5px;line-height:2;color:var(--ink-2)">
+        「渊」· 敌速 +15%，灵石 +20%<br>
+        <span class="dim">域主未挑战</span>
+      </div>
+    </div>
+
+    <div class="railblock" data-rail="zone">
+      <div class="eyebrow">战 报</div>
+      <div style="font-size:11px;line-height:2;color:var(--ink-3)">
+        刚 · 斩杀 渊鳞蛟 · 修为 +3,120<br>
+        刚 · 拾得 玄铁残片 ×2<br>
+        2 分前 · 首通牵引 · 前往 天渊龙墟
+      </div>
+    </div>
+
+    <!-- 道器区：跨子页常驻的炉火与补货状态 -->
+    <div class="railblock" data-rail="arts">
+      <div class="eyebrow">炉 火</div>
+      <div style="font-size:11.5px;line-height:2;color:var(--ink-2)">
+        青纹小炉 · 炼丹中<br>
+        <span class="dim">聚气丹 · 余 1 时 12 分 · 出丹 2 枚</span>
+        <div style="margin-top:9px"><button class="btn" style="min-height:34px;padding:5px 13px;font-size:11px">取出</button></div>
+      </div>
+    </div>
+
+    <div class="railblock" data-rail="arts">
+      <div class="eyebrow">坊 市 补 货</div>
+      <div style="font-size:11.5px;line-height:2;color:var(--ink-2)">
+        3 时 59 分后补货<br>
+        <span class="dim">刷新费用随次数递增</span>
+      </div>
+    </div>
+
+    <!-- 江湖区：关系与宗门进度摘要 -->
+    <div class="railblock" data-rail="bonds">
+      <div class="eyebrow">江 湖 近 况</div>
+      <div style="font-size:11.5px;line-height:2;color:var(--ink-2)">
+        已结缘 3 ／ 58 · 护法 苏晚<br>
+        势力 <span class="dim" id="railFac">未入</span> · 江湖榜 <span class="dim">第 11</span><br>
+        宗门 <span class="dim" id="railSect">未开</span>
+      </div>
+    </div>
+
+    <div class="railblock" data-rail="bonds">
+      <div class="eyebrow">宗 门 四 门 槛</div>
+      <div id="railGates" style="font-size:11px;line-height:2;color:var(--ink-3)">
+        <span style="color:var(--jade)">✓</span> 境界 ≥ 化神<br>
+        <span class="dim">○</span> 身份 · 长老在任或叛离<br>
+        <span class="dim">○</span> 声望峰值 ≥ 2,000（现 0）<br>
+        <span class="dim">○</span> 开宗资格 · 遗泽 800
+      </div>
+    </div>
+
+    <!-- 生平区：跨世资产与存档摘要 -->
+    <div class="railblock" data-rail="life">
+      <div class="eyebrow">跨 世 遗 泽</div>
+      <div style="font-size:11.5px;line-height:2;color:var(--ink-2)">
+        44 点 · 已请回 0 项<br>
+        <span class="dim">价目总表 6,800 遗泽</span>
+      </div>
+    </div>
+
+    <div class="railblock" data-rail="life">
+      <div class="eyebrow">存 档</div>
+      <div style="font-size:11.5px;line-height:2;color:var(--ink-2)">
+        本世 罗云历 9601 年<br>
+        <span class="dim">轮回 0 · 飞升 0 · 兵解 0</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 手机底部导航 -->
+  <nav class="tabbar" id="tabbar">
+    <button data-sec="idle" data-go="idle" class="on">修行</button>
+    <button data-sec="zone" data-go="zone">历练<span class="dot"></span></button>
+    <button data-sec="arts" data-go="arts">道器</button>
+    <button data-sec="bonds" data-go="bonds">江湖</button>
+    <button data-sec="life" data-go="achv">生平</button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ════════ 通用详情浮层（原型用；落码时按页拆成各自浮层） ════════ -->
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-card">
+      <div class="sheet-head">
+        <span class="eyebrow" id="sheetKicker">详 情</span>
+        <button class="sheet-x" id="sheetClose" aria-label="关闭">×</button>
+      </div>
+      <h2 id="sheetTitle"></h2>
+      <div class="sheet-body" id="sheetBody"></div>
+    </div>
+  </div>
+
+  <!-- ════════ 渡劫演出 ════════ -->
+  <div class="trib" id="trib" hidden>
+    <div class="trib-sky" aria-hidden="true">
+      <svg class="trib-cloud c1" viewBox="0 0 1200 300" preserveAspectRatio="none">
+        <path fill="currentColor" d="M0 0H1200V132C1140 158 1078 118 1010 146C942 174 878 130 800 156C722 182 660 138 584 164C508 190 444 146 368 172C292 198 228 152 152 178C96 197 44 166 0 184Z"/>
+      </svg>
+      <svg class="trib-cloud c2" viewBox="0 0 1200 300" preserveAspectRatio="none">
+        <path fill="currentColor" d="M0 0H1200V96C1150 130 1088 92 1020 122C952 152 884 108 812 138C740 168 672 124 596 152C520 180 456 136 380 164C304 192 236 146 160 172C104 191 48 160 0 178Z"/>
+      </svg>
+      <svg class="trib-cloud c3" viewBox="0 0 1200 300" preserveAspectRatio="none">
+        <path fill="currentColor" d="M0 0H1200V72C1146 104 1082 70 1014 98C946 126 878 84 804 112C730 140 664 98 588 126C512 154 448 112 372 138C296 164 232 120 156 146C100 164 46 136 0 152Z"/>
+      </svg>
+      <svg class="trib-bolt" viewBox="0 0 1200 900" preserveAspectRatio="none">
+        <path class="fork" d="M548 402L470 468L492 486"/>
+        <path class="fork" d="M520 640L448 704"/>
+        <path class="main" d="M596 -10L560 190L618 182L548 402L610 392L520 640L578 630L508 762"/>
+      </svg>
+    </div>
+
+    <div class="trib-body">
+      <!-- 段一：清算 -->
+      <section class="tstage" data-st="clear">
+        <div class="t-eyebrow">罗 云 历 九 六 〇 一 年 · 正 月 初 四</div>
+        <div class="t-titles">
+          <span class="t-from">化神</span>
+          <span class="t-arrow">→</span>
+          <span class="t-to">炼虚</span>
+        </div>
+
+        <div class="t-p"><span class="t-num" id="tribP">29</span><span class="t-pct">%</span></div>
+        <div class="t-p-lab">成 算</div>
+
+        <ul class="t-bill">
+          <li><span>境界基础</span><b class="up">+16%</b></li>
+          <li><span>百器抗性<em>兵刃 · 灵器</em></span><b class="up">+3%</b></li>
+          <li><span>战力富余<em>13.6 万 / 需 11.2 万</em></span><b class="up">+1%</b></li>
+          <li><span>天赋 · 功法</span><b class="up">+2%</b></li>
+          <li><span>道心<em>+12</em></span><b class="up">+1%</b></li>
+          <li><span>正道光环</span><b class="zero">—</b></li>
+          <li><span>护法<em>苏晚 · 道护 ④</em></span><b class="up">+6%</b></li>
+          <li class="t-sum"><span>成 算</span><b>29%</b></li>
+        </ul>
+
+        <div class="t-acts">
+          <button class="btn sealbtn" id="tribGo">引 雷</button>
+          <button class="t-ghost" id="tribOut">退</button>
+        </div>
+      </section>
+
+      <!-- 段三：定数 -->
+      <section class="tstage" data-st="verdict" hidden>
+        <div class="t-verdict" id="tribV">
+          <div class="t-vmark" id="tribMark">成</div>
+          <h2 id="tribTitle">渡 劫 成 功</h2>
+          <div class="t-vsub" id="tribSub">化神 —→ 炼虚</div>
+        </div>
+        <ul class="t-gains" id="tribGains"></ul>
+        <div class="t-acts">
+          <button class="btn sealbtn" id="tribClose">收 下</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="t-demo">
+      <span>原型</span>
+      <button data-force="ok">看成功</button>
+      <button data-force="bad">看失败</button>
+    </div>
+  </div>
+
+  <!-- ════════ 抉择模态 ════════ -->
+  <div class="choice" id="choice" hidden>
+    <div class="ch-mist" aria-hidden="true"></div>
+
+    <div class="ch-body">
+      <!-- 段一：问 -->
+      <section class="chstage" data-st="ask">
+        <div class="ch-head">
+          <span class="tag red">天级</span>
+          <span class="ch-time">罗云历 9601 · 正月初四 · 子时</span>
+        </div>
+
+        <h2 class="ch-name">三 尸 夜 话</h2>
+        <p class="ch-story">子夜，你在静室打坐，忽觉室内多出三道呼吸声。睁眼——三个与你面目相同的人分坐三方：一个慈眉善目，一个獠牙戾气，一个面无表情。善尸先开口：「斩了我，你得清净。」恶尸冷笑：「斩了我，你得自在。」第三个不说话的，是你自己。窗外一道紫电劈下，照亮四张相同的脸。你忽然明白这不是幻觉——这是传说中斩三尸证道的入门关口，无数修士一辈子都等不到这一夜，而等到的，多半也没能走出去。三者齐声：「今夜，你打算如何处置我们？」</p>
+
+        <div class="ch-opts">
+          <button class="opt" data-b="right">
+            <span class="opt-mark">正</span>
+            <span class="opt-main">
+              <span class="opt-t">护住三尸，以善念温养化解</span>
+              <span class="opt-c">判定 <b>神</b> <span class="hard">难</span> · 过则修为产出 +40%／24 时</span>
+            </span>
+            <span class="opt-k pos">+24</span>
+          </button>
+
+          <button class="opt" data-b="evil">
+            <span class="opt-mark">魔</span>
+            <span class="opt-main">
+              <span class="opt-t">反夺其道，强行炼三尸为傀</span>
+              <span class="opt-c">判定 <b>精</b> <span class="hard">难</span> · <b>神</b> <span class="hard">难</span> · 过则灵石 1,800–2,800</span>
+            </span>
+            <span class="opt-k neg">−24</span>
+          </button>
+
+          <button class="opt" data-b="neutral">
+            <span class="opt-mark">中</span>
+            <span class="opt-main">
+              <span class="opt-t">与三尸对坐论道，各斩其一</span>
+              <span class="opt-c">判定 <b>神</b> <span class="hard">难</span> · 耗修为 15% · 过则得《斩三尸诀》</span>
+            </span>
+            <span class="opt-k sml">+2</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 段二：应 -->
+      <section class="chstage" data-st="res" hidden>
+        <div class="ch-res" id="chRes">
+          <div class="ch-mark" id="chMark">成</div>
+          <h2 id="chTitle">事 成</h2>
+          <div class="ch-sub" id="chSub">与三尸对坐论道，各斩其一</div>
+        </div>
+        <ul class="ch-list" id="chList"></ul>
+        <div class="ch-acts">
+          <button class="btn sealbtn" id="chClose">退 出 此 夜</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="ch-demo">
+      <span>原型</span>
+      <button data-pass="1">看通过</button>
+      <button data-pass="0">看失败</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ════════ 设计说明 ════════ -->
+<div class="notes" id="notes"></div>
+
+<script>
+/* ── 屏幕定义 ───────────────────────────────────────────── */
+const SUBNAV = {
+  idle:  null,
+  zone:  [['秘境', 'zone'], ['奇遇', 'event']],
+  arts:  [['功法', 'arts'], ['百器', 'gear'], ['法宝', 'treasure'], ['炼丹炼器', 'alchemy'], ['坊市', 'shop']],
+  bonds: [['道友', 'bonds'], ['势力', 'faction'], ['江湖榜', 'prodigy'], ['宗门', 'sect']],
+  life:  [['成就', 'achv'], ['轮回', 'legacy'], ['日志', 'journal'], ['设置', 'settings']],
+};
+const SECTION = {
+  idle: 'idle',
+  zone: 'zone', event: 'zone',
+  arts: 'arts', gear: 'arts', treasure: 'arts', alchemy: 'arts', shop: 'arts',
+  bonds: 'bonds', faction: 'bonds', prodigy: 'bonds', sect: 'bonds',
+  achv: 'life', legacy: 'life', journal: 'life', settings: 'life',
+  creat1: null, creat2: null, creat3: null,
+};
+
+const NOTES = {
+  idle: [
+    ['一屏一主事', '整屏只留一个视觉重心：修为环相。境界、产出、渡劫全部围绕它，其余信息降为细线与小字。原来 12 张等重卡片压成 1 个主区 + 3 个次级区。'],
+    ['动作只有两个', '圆满时「渡劫」是唯一朱砂实心按钮，成算与护法加成写在按钮下方——决策依据和动作在同一视线内，不用再点「明细」才知道值不值。'],
+    ['四柱不占版面', '财侣法地由四张卡改为四格细线，一屏内可扫完；点开才是浮层。红点只留一个小朱砂点。'],
+    ['离线是条不是卡', '离线所得压成一条，默认不展开。挂机游戏每次回线都弹卡，是最容易打断沉浸的地方。'],
+    ['渡劫是一次判定，不是九道雷', '演出按 tribulation.js 的真实公式走：七项加总后 clamp 到 5%–95%，所以先给你一张能读的账（境界基础 / 百器抗性 / 战力富余 / 天赋功法 / 道心 / 正道光环 / 护法），再让你按引雷。失败按连败阶梯挂惩罚（道伤 → 心魔 → 封固），成功则云开、盖「成」印。'],
+    ['右栏跟大区走，不跟页走', '桌面右栏是常驻上下文：道器区永远是炉火与补货，江湖区永远是关系与宗门门槛。子页切换时右栏不动，眼睛不用重新找位置，也不会空出 302px 白板。'],
+  ],
+  zone: [
+    ['当前秘境占主位', '进行中的秘境用纸面浮雕 + 水墨山影强调，进度条与「战力富余/不足」并排，一眼判断能不能打。'],
+    ['列表只留三件事', '秘境名、需求战力、状态。原来的解释长句（「修为不足，举步维艰——建议：更换装备…」）收进点开后的详情，列表因此从 5 行 900px 压到 5 行 380px。'],
+    ['战力对比用颜色说话', '富余=青、压线=墨、不足=朱砂。三色是全稿唯一的语义色，不再用金/绿/红混排。'],
+  ],
+  arts: [
+    ['一页只养功', '「法与器」原来一半是功法养成、一半是穿戴配装，两种玩家意图挤在一页，还要靠页内分段来回切。现在这页只管功法：槽位、主修、待修习架。'],
+    ['槽位可整块点击', '原稿把「升级」按钮塞进卡片，长文案折成三行。现在整张槽位即入口，卡片底部只留一行「升级 · 200.0 万修为」，信息完整且不折行。'],
+    ['主修用印章标记', '「主」角标用朱砂小印，不抢标题；空槽用虚线，明确表达「可填」而不是「没内容」。'],
+    ['架上降级为行', '待修习 24 部不再铺卡片，改为三行摘要 + 「全部」。列表页负责发现，详情页负责决策。'],
+  ],
+
+  gear: [
+    ['器归一处', '百器（四槽 · 可炼化 · 入战）与法宝（三槽 · 一条签名效果 · 不介入战斗）在原数据里就是两套系统，词表里也各有正式名。设计稿把「器」从功法页拆出来单独成页，三个词不再打架。'],
+    ['四槽按穿戴顺序排', '兵刃 / 灵器 / 甲衣 / 佩饰，跟着「先拿武器、再护身」的直觉走，不是按数据键排序。空槽用虚线，一眼看出还差两件。'],
+    ['百器录按类分行', '不铺 96 个格子，四类各一行「已录 / 总数 + 进度 + 在身几件」。图鉴是查漏用的，不是逛的。'],
+    ['炼化说清代价', '页脚一句：弃置的百器可炼为材料，已录格子不会消失。玩家最怕的是「分解了图鉴会不会掉」，这里先答。'],
+  ],
+  event: [
+    ['叙事流有脊椎', '左侧一条墨线串起事件点，新事件朱砂描边、旧事件褪墨。时间从右对齐小字，读起来像年表而不是列表。'],
+    ['图鉴默认收起', '131 格「？？？」是全项目最大的空态灾难。改为四行品阶进度条，默认收起；展开后一格只占 1/6 宽，已解锁显字、未解锁留白点。'],
+    ['结果即标签', '道心、灵石、拾得用三种标签收尾，不再写整句「你获得了…」。'],
+  ],
+  bonds: [
+    ['两个位置先摆出来', '护法位与道侣位是这一页的真正目的，置顶成两张牌位，加成直接写在牌上。'],
+    ['已结缘才铺开', '只渲染已结缘的人（带头像字与好感条）。未结缘的 55 人收成一条「缘分未至」，不再铺 58 个问号格。'],
+    ['头像用单字', '无美术资源约束下，用道号首字 + 细圆框做头像，比问号剪影有信息、也更像名册。'],
+  ],
+  creat1: [
+    ['起名是一张纸', '去掉卡片边框，标题、输入线、印章按钮直接落在纸面上。输入框只留一条底线，聚焦时变朱砂。'],
+    ['步骤条是三个字', '「一 二 三」汉字节点 + 细线连接，不用圆点进度条——这是中式卷轴的语言。'],
+    ['掷杯问名降级', '随机取名是辅助动作，做成描边按钮；「下一步」才是朱砂/墨实心。'],
+  ],
+  creat2: [
+    ['天赋用竖排品阶', '稀有 / 寻常两档竖排在左（现行数据只有 common / rare；转世赠礼另有 epic），正负效果同句内用青/朱两色区分。'],
+    ['倾向三选一', '正道/中立/左道做成三格，选中即朱砂描边，不需要确认按钮。'],
+  ],
+  creat3: [
+    ['可投生与混沌分开', '已开放世界给水墨缩略图与「可投生」青标；未开放世界降到 50% 透明并标「混沌」，点了有反馈但不误导。'],
+    ['一屏看完六界', '六界竖排，不用横滑。世界选择是低频但高仪式感的动作，不该藏在滑动里。'],
+  ],
+
+  treasure: [
+    ['三个法宝位一行', '原来三张全宽空卡吃掉半屏。现在一行三格，空就是空，不假装有内容。'],
+    ['图鉴只留两行', '46 件问号卡全部收起，只给「先天 / 后天」两条进度；展开才逐格看。'],
+    ['法宝库用行', '祭炼次数、认主状态写在右侧，点整行进详情——不在列表里塞按钮。'],
+  ],
+
+  alchemy: [
+    ['丹房 / 器台分开', '原来炼丹、炼器、队列、材料全挤在一张卡里，现在是两段。'],
+    ['一个丹方一行', '材料、成算、库存、开炉全在右端；缺料只标红缺什么，不整行置灰。'],
+    ['炉中单独一条', '正在炼的那炉用一条常驻，带剩余时间，不占丹方列表。'],
+  ],
+
+  shop: [
+    ['货架改两列', '10~16 件货一屏扫完。原来单列大卡，每件都配一个整行「购入」按钮，滑三屏才看完。'],
+    ['价格贴卡底', '整卡可点即购买确认，价格是卡内唯一强调色，不再是按钮文案的一部分。'],
+    ['刷新与补货分开', '刷新按钮带递增费用，补货倒计时单独一行——一个是动作，一个是状态。'],
+  ],
+
+  faction: [
+    ['16 处不再是 16 张大卡', '一行一处：名号 + 类型 + 同道数 + 一条功效 + 关系。'],
+    ['关系收成两个数', '「善 2 · 恶 3」并排一行代替十几个关系 chip，点进详情才展开完整关系网。恶值超过 3 才转朱砂，多数行保持安静。'],
+    ['加入是行尾动作', '不在列表里直接加入，避免误触；点整行进详情再决定。'],
+  ],
+
+  prodigy: [
+    ['自己的名次置顶', '不用在十行里找自己。这条常驻，带名次播报周期。'],
+    ['隐世保留名次', '名字可以是问号，但第 1、2 名的位置要在——榜单结构不能断。'],
+    ['只给三档', '「可压 / 相当 / 悬殊」代替具体战力，符合原设计「榜面不写战力」。'],
+  ],
+
+  sect: [
+    ['空态变清单', '四门槛逐条列出并给出缺口数值（现 0 / 需 2000），玩家知道下一步做什么。'],
+    ['按钮留在原位', '开宗按钮置灰但不隐藏，达成门槛即亮——预期明确。'],
+    ['补一段「立派之后」', '空页也要有期待：门规三定、门中供给、传位三行预览。'],
+  ],
+
+  achv: [
+    ['九面改九行', '进度条 + 里程碑在右侧，九面一屏扫完；60 条行为成就与称号墙作为第二段。'],
+    ['里程碑回归点阵', '原稿每行写「里程碑 1/3 · 下一档 50%」，六行全是 50%——那是规则不是数据。规则提到页首说一次，行内只留三点 + 计数，右列一竖排可整列扫读。'],
+    ['顶部三格', '已得 / 遗泽 / 在录面数，一进页就知道总账。'],
+  ],
+
+  legacy: [
+    ['跨世统计压成一行', '世数、飞升、兵解、身死四格，不再散在正文里。'],
+    ['兵解是唯一朱砂按钮', '这是不可逆动作，必须比「请回」更重；代价 ×0.7 写在按钮下方。'],
+    ['商店改行', '名 + 效果 + 价格，一屏五件；原来是六张大卡，每张一个按钮。'],
+  ],
+
+  journal: [
+    ['分类单行横滑', '11 个分类不再折成两行挤在顶部。'],
+    ['时间独占左列', '左列日期、右列正文，扫读时先定位到哪一天。'],
+    ['分类用小字标签', '去掉「[系统]」方括号，改成淡色小字，正文才是主角。'],
+  ],
+
+  settings: [
+    ['删掉「菜单顺序」', '导航已固定为五区，让玩家排序等于允许他破坏 IA。这一整块可以下线。'],
+    ['只剩四块', '存档 / 自动 / 显示 / 关于。设置页不该有十几个「上移下移」；自动三开关从修行页迁入。'],
+    ['动效开关前置', 'prefers-reduced-motion 之外，给一个手动开关，放在显示里。'],
+  ],
+};
+
+/* ── 状态 ───────────────────────────────────────────────── */
+let cur = 'idle';
+let dev = 'desktop';
+let manualDev = false;
+
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+function show(id) {
+  cur = id;
+  // 显示时清空内联 display，交给 CSS 决定 block / grid（桌面修行页是双栏）
+  $$('.screen').forEach(s => {
+    const on = s.id === 's-' + id;
+    s.classList.toggle('on', on);
+    s.style.display = on ? '' : 'none';
+  });
+
+  const isCreat = id.startsWith('creat');
+  $('#hd').style.display = isCreat ? 'none' : 'flex';
+  $('#app').classList.toggle('solo', isCreat);
+
+  // 子导航（按大区取）
+  const sn = $('#subnav');
+  const sec = SECTION[id];
+  const list = SUBNAV[sec];
+  if (list && !isCreat) {
+    sn.style.display = 'flex';
+    sn.innerHTML = list.map(([label, go, todo]) => {
+      const on = go && go === id;
+      const attr = go ? `data-go="${go}"` : `data-todo="${todo}"`;
+      return `<button class="${on ? 'on' : ''}" ${attr}>${label}</button>`;
+    }).join('');
+  } else {
+    sn.style.display = 'none';
+    sn.innerHTML = '';
+  }
+
+  // 导航高亮（按大区，而非按页）
+  $$('.tabbar button').forEach(b => b.classList.toggle('on', b.dataset.sec === sec));
+  $$('.band').forEach(b => b.classList.toggle('on', b.dataset.sec === sec));
+  $$('.rn-i').forEach(b => b.classList.toggle('on', b.dataset.go === id));
+
+  // 右栏：按「大区」挂载，而非按页。子页切换时右栏内容不变，
+  // 形成常驻上下文（炉火、江湖近况、跨世遗泽），避免右侧空出 302px。
+  const railKey = SECTION[id] || id;
+  const railBlocks = $$('.railblock');
+  railBlocks.forEach(b => { b.style.display = (b.dataset.rail === railKey) ? 'block' : 'none'; });
+  const anyRail = railBlocks.some(b => b.style.display !== 'none');
+  $('#app').classList.toggle('no-rail', !anyRail);
+
+  // 工具条
+  $('#selScreen').value = id;
+  $('#segStep').hidden = !isCreat;
+  if (isCreat) $$('#segStep button').forEach(b => b.classList.toggle('on', b.dataset.go === id));
+
+  // 说明
+  renderNotes(id);
+
+  $('#main').scrollTop = 0;
+}
+
+function renderNotes(id) {
+  const arr = NOTES[id] || [['此页待续', '本稿只交付核心六屏，其余页面在主屏方向确认后按同一套语言铺开。']];
+  $('#notes').innerHTML = arr.map(([t, p], i) =>
+    `<div class="note"><h4>${String(i + 1).padStart(2, '0')} · ${t}</h4><p>${p}</p></div>`).join('');
+}
+
+function todo(name, sec) {
+  $('#todoTitle').textContent = name;
+  $$('.screen').forEach(s => s.style.display = 'none');
+  $('#s-todo').style.display = 'block';
+  $('#hd').style.display = 'flex';
+  $('#subnav').style.display = 'none';
+  const k = sec || SECTION[cur] || null;
+  $$('.tabbar button').forEach(b => b.classList.toggle('on', b.dataset.sec === k));
+  $$('.band').forEach(b => b.classList.toggle('on', b.dataset.sec === k));
+  $('#app').classList.remove('no-rail');
+  renderNotes('todo');
+  $('#main').scrollTop = 0;
+}
+
+/* ── 绑定 ───────────────────────────────────────────────── */
+document.addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if (go) { show(go.dataset.go); return; }
+  const td = e.target.closest('[data-todo]');
+  if (td) { todo(td.dataset.todo, td.dataset.sec || null); return; }
+});
+
+$('#selScreen').addEventListener('change', e => show(e.target.value));
+
+$$('#segDevice button').forEach(b => b.addEventListener('click', () => {
+  manualDev = true;
+  dev = b.dataset.dev;
+  $$('#segDevice button').forEach(x => x.classList.toggle('on', x === b));
+  $('#app').dataset.device = dev;
+  show(cur);
+}));
+
+/* 窄窗口自动落手机形态；手动切过之后不再抢 */
+window.addEventListener('resize', () => {
+  if (manualDev) return;
+  const want = window.innerWidth < 900 ? 'mobile' : 'desktop';
+  if (want === dev) return;
+  dev = want;
+  $('#app').dataset.device = dev;
+  $$('#segDevice button').forEach((b) => b.classList.toggle('on', b.dataset.dev === dev));
+  show(cur);
+});
+
+$('#btnTheme').addEventListener('click', e => {
+  const dark = document.documentElement.dataset.theme !== 'dark';
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  e.currentTarget.textContent = dark ? '宣纸' : '墨夜';
+});
+
+/* ════ 渡劫演出 ════════════════════════════════════════════
+   机制对齐 worlds/xiuxian/tribulation.js：
+   p = clamp(base + 百器抗性 + 战力富余 + 天赋功法 + 道心 + 正道光环 + 护法, .05, .95)
+   失败按 streak 三级阶梯（道伤 ≥1 / 心魔 ≥2 / 封固 ≥3），成功给破境高光 + 天道馈赏，
+   且此前 streak=0 时追加「无漏道基」。演出只做一次判定，不拆多道雷。 */
+const TRIB_P = 0.29;
+
+const TRIB_OK = [
+  ['高光', '破境高光 · 修为产出 +50%', '持续 30 分钟 · 与道伤、封固分通道，正负互不吞'],
+  ['馈赏', '天道馈赏 · 灵石 +1,200,000', '按新境界灵石基数 ×300 折算'],
+  ['无漏', '无漏道基 · 一击即中', '此前无连败，天道无从挑剔 · 业力 +3'],
+  ['功法', '功法不失，等级依旧', '境界跃迁不清功法等级、不拆槽位'],
+];
+
+const TRIB_BAD = [
+  ['道伤', '雷劫道伤入体 · 修为产出 −15%', '持续 12 小时 · 下次破境成功可涤除'],
+  ['心魔', '心魔滋生 1 层 · 下次渡劫 −1%', '连败第二次起计，最多叠 3 层'],
+];
+
+let tribBusy = false;
+
+function tribOpen() {
+  const t = $('#trib');
+  t.hidden = false;
+  t.classList.remove('striking', 'staging', 'ok', 'bad');
+  $$('.tstage', t).forEach(s => { s.hidden = s.dataset.st !== 'clear'; });
+  $('#tribGains').innerHTML = '';
+  $('#tribV').classList.remove('bad');
+}
+
+function tribClose() {
+  const t = $('#trib');
+  t.hidden = true;
+  t.classList.remove('striking', 'staging', 'ok', 'bad');
+  $('#app').classList.remove('shake');
+  tribBusy = false;
+}
+
+function tribStrike(force) {
+  if (tribBusy) return;
+  const t = $('#trib');
+  // 已在定数段：直接换结果，不重演雷
+  if (!$$('.tstage', t).find(s => s.dataset.st === 'verdict').hidden) {
+    tribShow(force === 'ok' ? true : force === 'bad' ? false : Math.random() < TRIB_P);
+    return;
+  }
+  tribBusy = true;
+  t.classList.add('striking', 'staging');
+  setTimeout(() => $('#app').classList.add('shake'), 540);
+  setTimeout(() => $('#app').classList.remove('shake'), 1160);
+  setTimeout(() => {
+    const ok = force === 'ok' ? true : force === 'bad' ? false : Math.random() < TRIB_P;
+    tribShow(ok);
+    tribBusy = false;
+  }, 1520);
+}
+
+function tribShow(ok) {
+  const t = $('#trib');
+  $$('.tstage', t).forEach(s => { s.hidden = s.dataset.st !== 'verdict'; });
+  t.classList.remove('staging');
+  t.classList.toggle('ok', ok);
+  t.classList.toggle('bad', !ok);
+  $('#tribV').classList.toggle('bad', !ok);
+  $('#tribMark').textContent = ok ? '成' : '劫';
+  $('#tribTitle').textContent = ok ? '渡 劫 成 功' : '天 雷 落 下';
+  $('#tribSub').textContent = ok ? '化神 → 炼虚' : '渡劫失败 · 修为 −35% · 连败 2 次';
+  // 失败不该给一个朱砂实心的「收下」——那是庆祝动作
+  const cb = $('#tribClose');
+  cb.textContent = ok ? '收 下' : '再 候 时 机';
+  cb.className = ok ? 'btn sealbtn' : 'btn ink';
+  $('#tribGains').innerHTML = (ok ? TRIB_OK : TRIB_BAD).map(([k, a, b]) =>
+    `<li class="${ok ? (k === '无漏' ? 'rare' : '') : 'bad'}">` +
+    `<span class="gk">${k}</span>` +
+    `<span>${a}<br><span class="dim">${b}</span></span></li>`).join('');
+}
+
+$('#btnTrib').addEventListener('click', tribOpen);
+$('#btnTribDemo').addEventListener('click', tribOpen);
+$('#tribGo').addEventListener('click', () => tribStrike());
+$('#tribOut').addEventListener('click', tribClose);
+$('#tribClose').addEventListener('click', tribClose);
+$$('.t-demo button').forEach(b => b.addEventListener('click', () => tribStrike(b.dataset.force)));
+
+/* ════ 抉择模态 ════════════════════════════════════════════
+   机制对齐 assets/systems/events.js resolveBranch：
+   - karma 是分支定值，**判定成败照记**（判定只影响物质收益）
+   - 判定失败 = 正向收益减半 + failE 全额追加
+   - 独占奖励（exclusiveArt / exclusiveGear）判定失败不落袋，只解锁图鉴
+   - 代价型判定项（耗灵石 / 耗修为）不因失败而免除，照扣
+   演示数据取真实事件 slay_three_corpses（三尸夜话）。 */
+const CH = {
+  right: {
+    name: '护住三尸，以善念温养化解',
+    pass: [
+      ['道心', '道心 +24', '分支定值，判定成败照记', 'pos'],
+      ['收益', '修为产出 +40%', '持续 24 时 · 判定通过，收益全额', 'pos'],
+    ],
+    fail: [
+      ['道心', '道心 +24', '分支定值，判定成败照记', 'keep'],
+      ['收益', '修为产出 +20%', '判定失败，正向收益减半', 'neg'],
+    ],
+  },
+  evil: {
+    name: '反夺其道，强行炼三尸为傀',
+    pass: [
+      ['道心', '道心 −24', '分支定值，判定成败照记', 'neg'],
+      ['收益', '灵石 2,300', '区间 1,800–2,800 实掷', 'pos'],
+      ['收益', '战力 +40%', '持续 12 时', 'pos'],
+    ],
+    fail: [
+      ['道心', '道心 −24', '分支定值，判定成败照记', 'keep'],
+      ['收益', '灵石 1,150', '判定失败，正向收益减半', 'neg'],
+      ['罚', '修为 −12%', 'failE 全额追加，不减半', 'neg'],
+    ],
+  },
+  neutral: {
+    name: '与三尸对坐论道，各斩其一',
+    pass: [
+      ['代价', '修为 −15%', '判定链第二项，代价型照扣', 'neg'],
+      ['道心', '道心 +2', '分支定值，判定成败照记', 'keep'],
+      ['独占', '得《斩三尸诀》', '独占奖励需判定链全过', 'pos'],
+      ['属性', '神 +2', '永久', 'pos'],
+    ],
+    fail: [
+      ['代价', '修为 −15%', '代价型判定不因失败免除，照扣', 'neg'],
+      ['道心', '道心 +2', '分支定值，判定成败照记', 'keep'],
+      ['图鉴', '《斩三尸诀》只入图鉴', '独占奖励判定失败即锁，不落袋', 'neg'],
+    ],
+  },
+};
+
+function chOpen() {
+  const c = $('#choice');
+  c.hidden = false;
+  c.classList.remove('picking');
+  $$('.chstage', c).forEach(s => { s.hidden = s.dataset.st !== 'ask'; });
+  $('#chList').innerHTML = '';
+}
+
+function chClose() {
+  const c = $('#choice');
+  c.hidden = true;
+  c.classList.remove('picking');
+}
+
+function chPick(branch, pass) {
+  const c = $('#choice');
+  const ok = pass === undefined ? true : !!pass;
+  // 已在结果段：直接换结果
+  if (!$$('.chstage', c).find(s => s.dataset.st === 'res').hidden) {
+    chShow(branch, ok);
+    return;
+  }
+  c.classList.add('picking');
+  setTimeout(() => chShow(branch, ok), 480);
+}
+
+function chShow(branch, ok) {
+  const c = $('#choice');
+  const b = CH[branch];
+  $$('.chstage', c).forEach(s => { s.hidden = s.dataset.st !== 'res'; });
+  c.classList.remove('picking');
+  $('#chRes').classList.toggle('bad', !ok);
+  // 失败不该给朱砂实心按钮，那是「成了」的权重
+  $('#chClose').className = ok ? 'btn sealbtn' : 'btn ink';
+  $('#chMark').textContent = ok ? '成' : '未';
+  $('#chTitle').textContent = ok ? '事 成' : '事 未 成';
+  $('#chSub').textContent = b.name;
+  $('#chList').innerHTML = (ok ? b.pass : b.fail).map(([k, a, n, cls]) =>
+    `<li class="${cls}"><span class="gk">${k}</span>` +
+    `<span>${a}<br><span class="dim">${n}</span></span></li>`).join('');
+}
+
+$('#btnChoiceDemo').addEventListener('click', chOpen);
+$('#evLive').addEventListener('click', chOpen);
+$('#chClose').addEventListener('click', chClose);
+$$('.ch-opts .opt').forEach(o => o.addEventListener('click', () => chPick(o.dataset.b)));
+$$('.ch-demo button').forEach(b => b.addEventListener('click', () => chPick('neutral', b.dataset.pass === '1')));
+
+/* 创角输入计数 */
+const ni = $('#nameInput');
+if (ni) ni.addEventListener('input', () => {
+  ni.parentElement.querySelector('.fl span:last-child').textContent = ni.value.length + ' / 8';
+  if (ni.value.trim().length >= 2) $('#nameErr').textContent = '道名 2 ~ 8 字，不可留空';
+});
+
+/* ── 创角：顺序按项目现行口径「立名 → 择界 → 观天赋」 ───────────── */
+const NAME_POOL = ['陆沉舟', '沈观澜', '苏晚', '陈九', '白鹤', '宋长贫', '秦挽螭', '虞素庐'];
+const WORLD_NAMES = { xiuxian: '罗云州', guwu: '雁回关', xinghai: '烬海', youming: '幽都', shanhai: '苍梧', taixu: '大梦' };
+let chosenWorld = 'xiuxian';
+let chosenWorldName = '罗云州';
+
+/* 创角 · 立名校验：2~8 字才放行 */
+$('#btnNameNext').addEventListener('click', () => {
+  const v = ni.value.trim();
+  if (v.length < 2 || v.length > 8) {
+    $('#nameErr').textContent = v ? '道名需 2 ~ 8 字' : '道名不可留空';
+    ni.focus();
+    return;
+  }
+  $('#nameErr').textContent = '道名 2 ~ 8 字，不可留空';
+  show('creat3');
+});
+
+$('#btnNameRandom').addEventListener('click', () => {
+  const nm = NAME_POOL[Math.floor(Math.random() * NAME_POOL.length)];
+  ni.value = nm;
+  ni.dispatchEvent(new Event('input'));
+  $('#nameErr').textContent = '';
+});
+
+const WORLD_KEY = { '玄幻修仙': 'xiuxian', '古武军势': 'guwu', '星海遗民': 'xinghai', '幽冥司命': 'youming', '山海异闻': 'shanhai', '太虚幻境': 'taixu' };
+
+$$('.world').forEach((w) => w.addEventListener('click', () => {
+  if (w.classList.contains('off')) {
+    $('#worldErr').textContent = '此界尚在混沌，未可投生。';
+    return;
+  }
+  $$('.world').forEach((x) => x.classList.remove('on'));
+  w.classList.add('on');
+  const title = w.querySelector('.w-n').textContent.trim();
+  chosenWorld = WORLD_KEY[title] || 'other';
+  chosenWorldName = WORLD_NAMES[chosenWorld] || title;
+  $('#worldErr').textContent = '';
+  $('#talentWorld').textContent = chosenWorldName;
+}));
+
+$$('.align button').forEach((b) => b.addEventListener('click', () => {
+  $$('.align button').forEach((x) => x.classList.remove('on'));
+  b.classList.add('on');
+}));
+
+$('#btnRerollTalent').addEventListener('click', () => {
+  const pool = [
+    ['灵台通明', '悟性 +20%，功法升级消耗 −15%', '稀有'],
+    ['厚土载物', '修为上限 +12%，但遁速 −8%', '稀有'],
+    ['市井机敏', '坊市购入 −6%，委托收益 +9%', '寻常'],
+    ['剑骨天成', '战力 +15%，装备幸运 +6%', '稀有'],
+    ['紫气东来', '修为产出 +12%，奇遇机缘 +10%', '稀有'],
+    ['丹心妙手', '炼丹成功率 +8%，丹药效果 +5%', '寻常']
+  ];
+  const picks = pool.slice().sort(() => Math.random() - 0.5).slice(0, 3);
+  $$('.tcard').forEach((card, i) => {
+    const [nm, desc, tier] = picks[i];
+    card.querySelector('.t-n').textContent = nm;
+    card.querySelector('.t-d').innerHTML = desc.replace(/([+−]\d+%)/g, '<i>$1</i>');
+    const th = card.querySelector('.t-tier');
+    th.innerHTML = '<b>' + tier[0] + '</b>' + tier.slice(1);
+    th.style.color = tier === '稀有' ? 'var(--jade)' : 'var(--ink-3)';
+  });
+  $('#nameErr').textContent = '';
+});
+
+/* 图鉴折叠 */
+$$('.cx-row').forEach(r => r.addEventListener('click', () => {
+  const g = r.nextElementSibling;
+  if (g && g.classList.contains('cx-grid')) {
+    const open = g.style.display !== 'none';
+    g.style.display = open ? 'none' : 'grid';
+    r.classList.toggle('open', !open);
+  }
+}));
+
+/* ════════ 通用详情浮层 ══════════════════════════════════════
+   原型里用一张通用纸页承载「现行项目已有、第一版没画」的浮层；
+   落码时按页拆回各自的 modal id（角色 / 道心 / 境界 / 总账 / 出关 …）。 */
+const toastEl = $('#toast');
+let toastTimer = null;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('on'), 1800);
+}
+
+function kv(label, value, cls) {
+  return `<div class="kv"><span>${label}</span><b class="${cls || ''}">${value}</b></div>`;
+}
+function barRow(label, pct, tone) {
+  return `<div style="margin:7px 0 10px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);margin-bottom:4px"><span>${label}</span><span>${pct}%</span></div><div class="bar ${tone || ''}"><i style="width:${pct}%"></i></div></div>`;
+}
+
+/* ── 洞天福地 13 处（数据取现行 D.CAVES；状态为演示档）────────────── */
+const CAVES = [
+  { id:'market_yard', name:'市井别院', mult:1.00, sig:'无签名 · 人间烟火气', state:'owned',
+    reqs:[['初始自带',true]], desc:'坊市后巷的独立小院，灵气薄得可怜，胜在推门就是人间烟火、竖耳就是满城消息。散修十个里有九个，是在这样的院子里攒出第一缕道基的。' },
+  { id:'green_peak', name:'青峰灵穴', mult:1.08, sig:'灵泉眼 · 离线效率 +8%', state:'owned',
+    reqs:[['需炼气',true],['2 万灵石',true]], desc:'半山腰的灵穴，碗口大的泉眼沁出丝丝灵气，夜半听得到泉声入梦。在这里修行像温水泡茶——慢，但泡得开。' },
+  { id:'bamboo_hut', name:'竹海庐', mult:1.08, sig:'竹韵养道 · 功法速度 +5%', state:'owned',
+    reqs:[['需炼气',true],['2 万灵石',true]], desc:'万竿修竹围出的三间草庐，风过时竹叶相击，声声都合着吐纳的节拍。山中无历日，听竹便知秋——功法在这里练一遍，抵得旁处悟三遍。' },
+  { id:'sword_cliff', name:'剑崖禅房', mult:1.12, sig:'剑气淬体 · 战力 +6%', state:'available',
+    reqs:[['需筑基',true],['首通第 4 区',true]], desc:'上古剑修面壁处的崖顶禅房，石壁剑痕百年风雨不磨。入夜剑鸣如潮，梦里有人与你喂剑——赢了是修行，输了也是。' },
+  { id:'danxia_cave', name:'丹霞洞天', mult:1.12, sig:'地脉温养 · 离线效率 +10%', state:'available',
+    reqs:[['需筑基',true],['首通第 4 区',true]], desc:'赤岩深处的天然洞府，石壁终年温热，如大地吐纳。人在洞中打坐，地脉替你行功——离开多久，它都替你温着这一炉火。' },
+  { id:'thunder_pool', name:'雷池精庐', mult:1.18, sig:'雷蕴 · 渡劫成算 +0.02', state:'owned',
+    reqs:[['需元婴',true],['首通第 5 区',true]], desc:'雷池余脉正好从精庐地底穿过，青砖缝里透着隐隐雷音。住在这里如同枕着劫云入睡，天雷之气日夜入体，炼体，也炼胆。' },
+  { id:'stillwater_hut', name:'止水精舍', mult:1.18, sig:'心镜止悟 · 功法速度 +8%', state:'current',
+    reqs:[['需元婴',true],['首通第 5 区',true]], desc:'一泓不起波澜的深潭边筑起的精舍，潭水澄澈能照见须发。对着它枯坐，杂念自沉——功法里的晦涩句读，往往就在某次照水的恍惚里忽然懂了。' },
+  { id:'mirror_lake', name:'水镜山庄', mult:1.20, sig:'镜湖澄心 · 渡劫成算 +0.02', state:'locked',
+    reqs:[['任一势力职级达执事',false]], desc:'藏在镜湖湖心岛上的山庄，湖面平得像一面磨好的铜镜，照得出云，也照得出心魔。山庄历代只收一种客人：在江湖里熬出了名分的人。' },
+  { id:'sword_mound', name:'剑冢守庐', mult:1.22, sig:'冢灵护持 · 战力 +6%', state:'locked',
+    reqs:[['奇遇图鉴录满 20 格',false]], desc:'剑冢最深处的一间守庐，冢里万剑夜夜低鸣，唯独绕开这一间屋子。住进来的人会被剑冢认作守陵人——万剑既然受过你的香火，也就认了你这份战力。' },
+  { id:'star_fall', name:'星陨福地', mult:1.25, sig:'星髓滋养 · 离线效率 +15%', state:'locked',
+    reqs:[['需化神',true],['首通第 6 区',false],['50 万灵石',false]], desc:'昔年流星坠出的谷地，星髓余韵百年不散，夜里谷中星光比天上还亮。在这里连打坐都省了——睡一觉，也算修了一夜。' },
+  { id:'fallen_star_court', name:'陨星剑冢', mult:1.25, sig:'残剑淬锋 · 战力 +6%', state:'locked',
+    reqs:[['需化神',true],['首通第 6 区',false],['50 万灵石',false]], desc:'星陨谷边缘的剑冢，历代剑修把断剑葬在这里，冢上剑气经年不散。入驻者每夜都被剑气叩门——不是恶意，是千万柄无主之剑在找人续完最后一式。' },
+  { id:'cloud_herd', name:'云隐仙庐', mult:1.30, sig:'云髓沁骨 · 离线效率 +15%', state:'locked',
+    reqs:[['任一势力职级达长老',false]], desc:'浮在云海之上的半座仙庐，无梯可登，无路可寻——势力把你的名分奏到天上，云就自己让开一条路。庐中岁月比山下慢，睡一觉，人间已过了好几天。' },
+  { id:'immortal_abode', name:'古仙人府', mult:1.35, sig:'道韵余音 · 功法速度 +15%', state:'locked',
+    reqs:[['需炼虚',false],['首通第 7 区',false],['500 万灵石',false]], desc:'不知哪位仙人飞升前的旧府，门没有锁，案上浮尘千年不落。墙上道痕犹湿——看它是笔画，悟它是惊雷。读懂一分，便受用一分；读不懂，满府寂然。' }
+];
+const CAVE_FACS = [
+  { id:'lingtian', name:'灵田', lv:2, effect:'材料产出 +2% / 级', cost:120000 },
+  { id:'danfang', name:'丹房', lv:1, effect:'功法参悟 +1.5% / 级', cost:80000 },
+  { id:'shuge', name:'藏书阁', lv:0, effect:'奇遇机缘 +2% / 级', cost:60000 },
+  { id:'julingzhen', name:'聚灵阵', lv:1, effect:'离线效率 +2% / 级', cost:150000 }
+];
+let lastCaveId = 'stillwater_hut';
+
+const CAVE_STATE = {
+  current: { label: '驻留', cls: 'cur' },
+  owned: { label: '已拥有', cls: '' },
+  available: { label: '可入驻', cls: '' },
+  locked: { label: '未解锁', cls: 'locked' }
+};
+
+function caveCard(cv) {
+  const st = CAVE_STATE[cv.state];
+  return `<button class="cavecard ${st.cls}" data-cave="${cv.id}">
+    <div class="cv-n">${cv.name} <span class="tag ${cv.state === 'current' ? 'jade' : (cv.state === 'locked' ? 'plain' : '')}">${st.label}</span></div>
+    <div class="cv-d">×${cv.mult.toFixed(2)} 修为产出 · ${cv.sig}</div>
+    <div class="reqchips">${cv.reqs.map(([t, ok]) => `<span class="${ok ? 'ok' : 'bad'}">${t}</span>`).join('')}</div>
+  </button>`;
+}
+
+function renderCaves() {
+  const box = $('#caveList');
+  if (box) {
+    const groups = [
+      ['current', '当前驻留'], ['owned', '已拥有 · 未驻留'],
+      ['available', '可入驻'], ['locked', '未解锁']
+    ];
+    box.innerHTML = groups.map(([st, label]) => {
+      const arr = CAVES.filter((x) => x.state === st);
+      if (!arr.length) return '';
+      return `<p class="subhead" style="margin-top:16px"><span class="sl">${label} · ${arr.length}</span><span class="sr">${st === 'locked' ? '按境界 / 缘法逐处开' : '点开看资格与设施'}</span></p><div class="cavegrid${arr.length === 1 ? ' solo' : ''}">${arr.map(caveCard).join('')}</div>`;
+    }).join('');
+  }
+  const fac = $('#caveFac');
+  if (fac) {
+    fac.innerHTML = CAVE_FACS.map((f) => {
+      const active = f.lv > 0;
+      return `<button class="lrow" data-confirm="${active ? '已扩建' + f.name : '已营建' + f.name}">
+        <span><div class="l-n">${f.name} ${active ? 'Lv' + f.lv : '未营建'}</div>
+        <div class="l-d">${f.effect} · ${active ? '生效中' : '未营建 · 可营建'}</div></span>
+        <span class="l-r"><b>${active ? '扩建' : '营建'} · ${(f.cost / 10000).toFixed(0)} 万</b><br>${active ? '至 Lv' + (f.lv + 1) : '首建'}</span>
+      </button>`;
+    }).join('');
+  }
+}
+
+/* ACHV_DATA_START */
+const ACHV_DATA = [{"id":"achv_jichu","g":"xiu","karma":2,"name":"初窥门径","desc":"首次突破至筑基"},{"id":"achv_jindan","g":"xiu","karma":2,"name":"金丹有成","desc":"首破金丹"},{"id":"achv_yuanying","g":"xiu","karma":2,"name":"元婴出窍","desc":"首破元婴"},{"id":"achv_huashen","g":"xiu","karma":3,"name":"化神化形","desc":"首破化神"},{"id":"achv_lianxu","g":"xiu","karma":3,"name":"炼虚窥道","desc":"首破炼虚"},{"id":"achv_heti","g":"xiu","karma":3,"name":"合体归一","desc":"首破合体"},{"id":"achv_dacheng","g":"xiu","karma":4,"name":"大乘在望","desc":"首破大乘"},{"id":"achv_dujie","g":"xiu","karma":4,"name":"渡劫称尊","desc":"首破渡劫境"},{"id":"achv_zhenxian","g":"xiu","karma":5,"name":"真仙之躯","desc":"首破真仙"},{"id":"achv_feisheng","g":"xiu","karma":5,"name":"举霞飞升","desc":"飞升大劫成功"},{"id":"achv_chujie","g":"jie","karma":1,"name":"初次历雷","desc":"首次渡劫成功"},{"id":"achv_wulou","g":"jie","karma":2,"name":"无漏三连","desc":"连续 3 次渡劫一击即中"},{"id":"achv_kudu","g":"jie","karma":3,"name":"苦渡余生","desc":"在成算 ≤15% 的渡劫中成功"},{"id":"achv_lianbai","g":"jie","karma":3,"name":"连败不灭","desc":"渡劫 5 连败后首次成功"},{"id":"achv_baizhan","g":"jie","karma":3,"name":"雷池常客","desc":"跨世累计渡劫成功 30 次"},{"id":"achv_nitian","g":"jie","karma":5,"name":"逆天行事","desc":"逆天大劫成功（称号承天道卷）"},{"id":"achv_fanpan","g":"jie","karma":3,"name":"败中求胜","desc":"逆天大劫失败后重积逆天值再挑战并成功"},{"id":"achv_leiting","g":"jie","karma":2,"name":"身经百战","desc":"跨世累计渡劫尝试 100 次"},{"id":"achv_yuanman","g":"jie","karma":4,"name":"圆满飞升","desc":"以成算顶满 95% 的飞升大劫成功"},{"id":"achv_bingjie","g":"jie","karma":1,"name":"舍身证道","desc":"首次兵解转世"},{"id":"achv_chuyuan","g":"chen","karma":1,"name":"红尘初缘","desc":"首次与道友结缘"},{"id":"achv_guangjie","g":"chen","karma":2,"name":"广结善缘","desc":"单世结缘满 20 人"},{"id":"achv_renhou","g":"chen","karma":3,"name":"仁护一方","desc":"单世结缘满 40 人"},{"id":"achv_daolv","g":"chen","karma":3,"name":"道侣同尘","desc":"首次结成道侣"},{"id":"achv_hufa","g":"chen","karma":2,"name":"护法在侧","desc":"首次启用档 3 以上护法位"},{"id":"achv_juefeng","g":"chen","karma":2,"name":"绝而复续","desc":"绝交后经事件恢复好感"},{"id":"achv_xinjie","g":"chen","karma":1,"name":"心结曾系","desc":"心结锁触发（炉鼎采补解除等）"},{"id":"achv_kuashi","g":"chen","karma":3,"name":"缘定三生","desc":"使用跨世之缘赎回道友"},{"id":"achv_shuangxiu","g":"chen","karma":2,"name":"双修有成","desc":"双修满档维持 30 天"},{"id":"achv_fudi","g":"chen","karma":2,"name":"福地安家","desc":"驻留福地且护法在位"},{"id":"achv_rumen","g":"men","karma":1,"name":"拜入山门","desc":"首次加入势力"},{"id":"achv_zhishi","g":"men","karma":2,"name":"执事之权","desc":"职位达档 3"},{"id":"achv_zhangjiao","g":"men","karma":3,"name":"位极人臣","desc":"职位达最高档"},{"id":"achv_panzong","g":"men","karma":1,"name":"叛出山门","desc":"首次叛离势力"},{"id":"achv_zhangong","g":"men","karma":2,"name":"战功初立","desc":"首次获得势力战功"},{"id":"achv_xuanzhan","g":"men","karma":1,"name":"见证宣战","desc":"目击所在势力宣战或被宣战"},{"id":"achv_kaizong","g":"men","karma":5,"name":"开宗立派","desc":"自立门户成功"},{"id":"achv_danfang","g":"men","karma":3,"name":"丹房开炉","desc":"丹房资格落地后首次开炉"},{"id":"achv_jiuzhuan","g":"men","karma":5,"name":"丹成九转","desc":"炼出九转丹纹丹药"},{"id":"achv_lianqi","g":"men","karma":3,"name":"器成通灵","desc":"首次炼器成功"},{"id":"achv_chutong","g":"mi","karma":1,"name":"初探秘境","desc":"首次秘境首通"},{"id":"achv_bantu","g":"mi","karma":2,"name":"半壁山河","desc":"累计首通 5 区"},{"id":"achv_quantong","g":"mi","karma":4,"name":"十境全通","desc":"累计首通 10 区（跨世）"},{"id":"achv_yuzhu","g":"mi","karma":2,"name":"域主之殇","desc":"首次击杀域主"},{"id":"achv_shizhu","g":"mi","karma":4,"name":"十区共主","desc":"全部 10 区域主首杀"},{"id":"achv_chubao","g":"mi","karma":1,"name":"法宝入手","desc":"首件法宝获得"},{"id":"achv_cangbao","g":"mi","karma":2,"name":"藏宝二十","desc":"法宝图鉴收录 20 件"},{"id":"achv_baoquan","g":"mi","karma":4,"name":"万宝齐备","desc":"法宝图鉴 46 件全录"},{"id":"achv_yifa","g":"mi","karma":2,"name":"一法通神","desc":"首部功法满级"},{"id":"achv_wanfa","g":"mi","karma":3,"name":"万法归一","desc":"累计 10 部功法满级（跨世）"},{"id":"achv_rumo","g":"ni","karma":2,"name":"一念入魔","desc":"业力首次跌破 −500"},{"id":"achv_shenmo","g":"ni","karma":3,"name":"魔道巨擘","desc":"业力首次跌破 −900"},{"id":"achv_lingzhi","g":"ni","karma":1,"name":"初领天旨","desc":"首次领旨"},{"id":"achv_kangzhi","g":"ni","karma":2,"name":"敢驳天颜","desc":"首次抗旨"},{"id":"achv_niman","g":"ni","karma":3,"name":"逆天值满","desc":"逆天值首次达 100"},{"id":"achv_guantian","g":"ni","karma":1,"name":"坐观天象","desc":"累计览天象 20 条"},{"id":"achv_sanshi","g":"ni","karma":3,"name":"三生有幸","desc":"累计转世满 3 世"},{"id":"achv_sudi","g":"ni","karma":2,"name":"宿敌初逢","desc":"跨世宿敌首次同场"},{"id":"achv_zhandi","g":"ni","karma":4,"name":"手斩宿敌","desc":"击败跨世宿敌"},{"id":"achv_bushou","g":"ni","karma":3,"name":"天敕难拘","desc":"累计抗旨满 10 道"}];
+const TITLES = [{"id":"title_daoji","name":"道基初立"},{"id":"title_jindan","name":"金丹映日"},{"id":"title_yuanying","name":"元婴显圣"},{"id":"title_huashen","name":"神游太虚"},{"id":"title_lianxu","name":"虚目窥天"},{"id":"title_heti","name":"身与道合"},{"id":"title_dacheng","name":"半步仙途"},{"id":"title_dujie","name":"渡劫称尊"},{"id":"title_zhenxian","name":"真仙临世"},{"id":"title_feisheng","name":"霞举飞升"},{"id":"title_chujie","name":"雷下留人"},{"id":"title_wulou","name":"无漏道体"},{"id":"title_kudu","name":"命悬一线"},{"id":"title_lianbai","name":"百折不摧"},{"id":"title_baizhan","name":"雷炼筋骨"},{"id":"title_nitian","name":"我命由我不由天"},{"id":"title_fanpan","name":"逆而能胜"},{"id":"title_leiting","name":"雷池常客"},{"id":"title_yuanman","name":"功德圆满"},{"id":"title_bingjie","name":"身舍道存"},{"id":"title_chuyuan","name":"红尘初缘"},{"id":"title_guangjie","name":"善缘广结"},{"id":"title_renhou","name":"仁护一方"},{"id":"title_daolv","name":"红尘道侣"},{"id":"title_hufa","name":"护法在侧"},{"id":"title_juefeng","name":"破镜重圆"},{"id":"title_xinjie","name":"各有其道"},{"id":"title_kuashi","name":"缘跨三世"},{"id":"title_shuangxiu","name":"琴瑟和鸣"},{"id":"title_fudi","name":"安居福地"},{"id":"title_rumen","name":"门下有徒"},{"id":"title_zhishi","name":"执掌一堂"},{"id":"title_zhangjiao","name":"一宗之主"},{"id":"title_panzong","name":"孤身叛道"},{"id":"title_zhangong","name":"战功赫赫"},{"id":"title_xuanzhan","name":"风云见证"},{"id":"title_kaizong","name":"开山祖师"},{"id":"title_danfang","name":"丹房主人"},{"id":"title_jiuzhuan","name":"九转丹师"},{"id":"title_lianqi","name":"百炼成器"},{"id":"title_chutong","name":"初探锋芒"},{"id":"title_bantu","name":"踏破五境"},{"id":"title_quantong","name":"万境皆通"},{"id":"title_yuzhu","name":"弑主之名"},{"id":"title_shizhu","name":"十境共主"},{"id":"title_chubao","name":"宝光初现"},{"id":"title_cangbao","name":"藏宝之家"},{"id":"title_baoquan","name":"宝斋主人"},{"id":"title_yifa","name":"一法通神"},{"id":"title_wanfa","name":"万法归宗"},{"id":"title_rumo","name":"魔根深种"},{"id":"title_shenmo","name":"魔焰滔天"},{"id":"title_lingzhi","name":"天恩亲承"},{"id":"title_kangzhi","name":"敢驳天颜"},{"id":"title_niman","name":"逆天之徒"},{"id":"title_guantian","name":"坐看云起"},{"id":"title_sanshi","name":"三世尘缘"},{"id":"title_sudi","name":"宿命之敌"},{"id":"title_zhandi","name":"斩却宿敌"},{"id":"title_bangshou","name":"同代夺魁"},{"id":"title_bushou","name":"天敕难拘"}];
+/* ACHV_DATA_END */
+
+const ACHV_GOT = new Set(['achv_jichu','achv_jindan','achv_yuanying','achv_chujie','achv_chuyuan','achv_hufa','achv_rumen','achv_zhangong','achv_chutong','achv_bantu','achv_chubao','achv_rumo']);
+const TITLE_GOT = new Set(['title_daoji','title_jindan','title_yuanying','title_chujie']);
+const ACHV_GROUP = {
+  xiu: '修行 · 入道', jie: '劫数 · 历雷', chen: '尘缘 · 结缘',
+  men: '门庭 · 立派', mi: '秘藏 · 探幽', ni: '逆天 · 逆流'
+};
+const FACES = [
+  { id:'event', name:'奇遇', got:0, total:131, note:'' },
+  { id:'talent', name:'天赋', got:0, total:196, note:'' },
+  { id:'treasure', name:'法宝', got:12, total:46, note:'' },
+  { id:'art', name:'功法', got:4, total:70, note:'' },
+  { id:'bond', name:'道友', got:3, total:58, note:'' },
+  { id:'zone', name:'秘境', got:5, total:28, note:'首通 5/10 · 域主 0/10 · 词缀 0/8' },
+  { id:'faction', name:'势力', got:7, total:16, note:'' },
+  { id:'title', name:'称号', got:4, total:80, note:'' },
+  { id:'selfart', name:'自创与器灵', got:1, total:12, note:'' },
+  { id:'talentLegacy', name:'转世天赋', got:0, total:8, note:'跨世赠礼池' }
+];
+let lastFaceId = 'event';
+
+function renderAchvGroup(g) {
+  const box = $('#achvGrid');
+  if (!box) return;
+  box.innerHTML = ACHV_DATA.filter((a) => a.g === g).map((a) => {
+    const got = ACHV_GOT.has(a.id);
+    return `<div class="achvcard${got ? '' : ' off'}">
+      <div class="a-n">${a.name} <span class="tag ${got ? 'jade' : 'plain'}">${got ? '已达成' : '未达成'}</span></div>
+      <div class="a-d">${a.desc}</div>
+      <div class="a-r">遗泽 +${a.karma}${got ? ' · 已入账' : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── 势力全录 16 处（数据取现行 D.FACTIONS_FIXED；状态为演示档）────── */
+const FACTIONS = [
+  { id:'huangfeng', name:'黄枫谷', align:'neutral', leader:'谷主 云麓（化神）', perk:'坊市购入 −6%', rel:[3,2],
+    desc:'小国山峦里的老门派，谷中遍植黄枫，秋深叶落，弟子扫而不焚——说扫地也是修行。清苦时守山门，得势时放弟子远游，谷规只有一句：人不弃谷，谷不弃人。' },
+  { id:'yanue', name:'掩月宗', align:'right', leader:'掌门 秦挽螭（渡劫）', perk:'离线收益 +8%', rel:[2,3],
+    desc:'山门临海，春潮立起的夜里能看见一轮圆月悬在海面之上，故名。规矩严而不冷：外门弟子人手一枚令符，符背刻着四个字——莫欺弱小。' },
+  { id:'xinggong', name:'星宫', align:'neutral', leader:'宫主 星槎（渡劫）', perk:'奇遇机缘 +8%', rel:[1,1],
+    desc:'坐拥海商枢纽，万船纳双税而仍争相悬挂星宫旗——旗下，连黑风浪都要绕开三里。宫中规矩只有一条：价钱既出，仙人不改。' },
+  { id:'qixuan', name:'七玄门', align:'evil', leader:'门主 墨大夫（炼虚）', perk:'战力 +10%', rel:[0,4],
+    desc:'藏在凡人国度的后山，明面上行医济世，暗地里研习「过秤根骨」的秘术。收徒铁律只一句：先称根骨，称清楚了，再谈传艺。' },
+  { id:'luopo', name:'落魄山', align:'right', leader:'山主 宋长贫（渡劫）', perk:'渡劫成算 +0.02', rel:[3,2],
+    desc:'边陲一座小山，山上几间屋、一块磨剑石。山规稀疏，只一条最重：住在山上的人，护着山下的人。晨钟暮鼓，剑鸣稀疏，声声都送到山下镇子里。' },
+  { id:'jianqi', name:'剑气长城', align:'neutral', leader:'剑主 陈隐（渡劫）', perk:'装备幸运 +6%', rel:[1,1],
+    desc:'天下尽头一座倒悬剑光的长城，城头不问出身，只问你手中的剑。万年守城只做一件事：让想翻墙的，都翻不过去。城墙沿线的无名剑冢——殁者葬在城上，剑留在城上。' },
+  { id:'qianzhu', name:'千竹派', align:'right', leader:'掌门 苏灵溪（渡劫）', perk:'修为产出 +5%', rel:[1,1],
+    desc:'竹海深处的剑竹门派，万竿皆剑，风过海而剑意自鸣。门规清正：弟子入海养竹，出海守关，竹不倒，人不退。' },
+  { id:'yanwu', name:'燕家堡', align:'evil', leader:'堡主 燕归（炼虚）', perk:'灵石产出 +6%', rel:[0,3],
+    desc:'越国修行豪族，堡墙高三丈，堡规比墙更严。行事只问利弊，不问是非——得罪过燕家堡的人，坊市里、荒郊里，都没人敢认。' },
+  { id:'miaoyin', name:'妙音门', align:'neutral', leader:'门主 妙音（化神）', perk:'奇遇机缘 +8%', rel:[2,1],
+    desc:'乱星海商盟的门户，以音讯为业：一句话送到，比剑光还快；一条船平安过境，靠的是海图与面子。门中不问货色黑白，只问定金真假。' },
+  { id:'liumo', name:'六魔盟', align:'evil', leader:'盟主 血河（渡劫）', perk:'战力 +10%', rel:[0,4],
+    desc:'魔道六家巨擘的合纵之盟，盟约设在一杆秤上——秤平则同坐，利尽则散，散时不告别。可盟威犹在，令旗一举，连正道也要掂量三分言语。' },
+  { id:'kunwu', name:'昆吾山', align:'neutral', leader:'山主 昆吾（渡劫）', perk:'装备幸运 +6%', rel:[1,2],
+    desc:'镇封上古凶物的名山，山体里沉埋着锁链，风过时隐隐有锁响。山顶无人敢登，山下过路的人，都不自觉放轻了脚步。' },
+  { id:'guisu', name:'鬼灵宗', align:'evil', leader:'宗主 屠夜游（渡劫）', perk:'掉落率 +8%', rel:[0,4],
+    desc:'鬼修宗门，弟子入门先学问灵，再学做人。鬼市开在子夜，终年幽气不散，香烛不断——去问卜的人，先掂量自己还剩几两阳气。' },
+  { id:'shuyuan', name:'大骊书院', align:'right', leader:'祭酒 沈观澜（渡劫）', perk:'离线收益 +8%', rel:[1,2],
+    desc:'儒门书院，讲学明理，讲堂面山，读书声与泉声相和。院规不多，最重一条：先明理，再谈术。一方气运，凭此文脉镇压。' },
+  { id:'suiyuan', name:'大隋书院', align:'neutral', leader:'山长 沈观澜（渡劫）', perk:'坊市购入 −6%', rel:[2,1],
+    desc:'山中老书院，规矩极严，戒尺打得极亮。可书院出来的读书人，行走天下最有胆气——遇见不平事，敢第一个拔剑的，多半出自此门。' },
+  { id:'longquan', name:'龙泉县', align:'neutral', leader:'县令 李剑（元婴）', perk:'装备幸运 +6%', rel:[1,1],
+    desc:'边陲小县，铸剑的炉火昼夜不熄，全县生计半系于此火。市井店面看着寒酸，掌柜们看剑的眼光，却比京里的剑师还毒。' },
+  { id:'laolong', name:'老龙城', align:'evil', leader:'城主 敖寒（渡劫）', perk:'战力 +10%', rel:[0,3],
+    desc:'老龙盘踞过的废弃城窟，龙气未散，草木皆带煞气。凶名在外，城中机缘也在外——敢进城的，十个里有九个没再出来，剩下的那个发了财。' }
+];
+let facCamp = 'all';
+let facJoined = false;
+let lastFacId = 'yanue';
+
+const FAC_ALIGN = { right: '正道', neutral: '中立', evil: '魔道' };
+
+function renderFactions() {
+  const box = $('#facList');
+  if (!box) return;
+  const arr = FACTIONS.filter((f) => facCamp === 'all' || f.align === facCamp);
+  box.innerHTML = arr.map((f) => {
+    const tag = f.align === 'evil' ? 'tag red' : (f.align === 'right' ? 'tag jade' : 'tag');
+    let right = `<span class="rel"><i>善 ${f.rel[0]}</i><i class="bad${f.rel[1] >= 4 ? ' has' : ''}">恶 ${f.rel[1]}</i></span>`;
+    if (facJoined && f.id === 'yanue') right += '<b>当前 · 详情 ›</b>';
+    else if (facJoined && f.id === 'liumo') right += '<b>交恶 · 详情 ›</b>';
+    else if (facJoined && f.id === 'guisu') right += '<b>叛离冷却 · 详情 ›</b>';
+    else right += facJoined ? '<b>详情 ›</b>' : '<b>加入 ›</b>';
+    return `<button class="lrow" data-fac="${f.id}">
+      <span><div class="l-n">${f.name} <span class="${tag}">${FAC_ALIGN[f.align]}</span></div>
+      <div class="l-d">${f.leader}</div>
+      <div class="l-d" style="color:${f.align === 'evil' ? 'var(--cinnabar)' : 'var(--jade)'}">${f.perk}</div></span>
+      <span class="l-r">${right}</span>
+    </button>`;
+  }).join('');
+}
+
+function setFacJoined(on) {
+  facJoined = !!on;
+  $('#facStateEmpty').classList.toggle('on', !facJoined);
+  $('#facStateJoined').classList.toggle('on', facJoined);
+  $('#facEmptyTop').style.display = facJoined ? 'none' : 'block';
+  $('#facJoinedTop').style.display = facJoined ? 'block' : 'none';
+  $('#facJoinedExtra').style.display = facJoined ? 'block' : 'none';
+  const rf = $('#railFac');
+  if (rf) rf.textContent = facJoined ? '掩月宗' : '未入';
+  renderFactions();
+}
+
+let lastBpId = 'hantie';
+const BP_DEMO = {
+  hantie: { title: '寒铁枪 · 玄阶', part: '兵刃', dir: '攻伐 / 破甲', attr: '精', mats: '玄铁残片 ×6', rate: '78%' },
+  yunwen: { title: '云纹甲 · 地阶', part: '甲衣', dir: '守御 / 抗性', attr: '气', mats: '玄铁残片 ×6 · 雷纹木 ×2', rate: '—（需元婴，暂不可开炉）' }
+};
+
+let lastBondId = 'suwan';
+const BONDS_DEMO = {
+  suwan: { name: '苏晚', role: '剑修', aff: '82 · 道护 ④', origin: '雨夜叩门', gift: '剑心通明：渡劫成算 +0.06',
+    note: '剑修，话少。雨夜叩门那晚，她只问了一句「剑往哪放」，便在你的洞府住下了。',
+    guard: '随你渡劫 3 次 · 成 2 败 1', visit: '已拜访苏晚' },
+  chenjiu: { name: '陈九', role: '散修', aff: '46 · 道友', origin: '茶棚赌局', gift: '听风辨路：奇遇机缘 +2%',
+    note: '散修，赌性不改。茶棚那局你赢了他半袋灵石，他输得心服口服，从此逢人便说欠你一顿酒。',
+    guard: '', visit: '已拜访陈九' },
+  baihe: { name: '白鹤道人', role: '丹修', aff: '24 · 道友', origin: '同门', gift: '丹火温养：炼丹成算 +3%',
+    note: '丹修，好清静。同门一场，他替你守过三次丹炉，只收一句「火候对了」。',
+    guard: '', visit: '已拜访白鹤道人' },
+  qinshuang: { name: '秦霜', role: '旧识', aff: '0 · 缘尽', origin: '旧识', gift: '',
+    note: '旧识，恩断义绝，不再往来。', guard: '', visit: '' }
+};
+
+let lastRankId = 'hanzhishan';
+const PRODIGY_DEMO = {
+  hanzhishan: { rank: 4, name: '韩纸山', who: '大隋书院太上', tone: '悬殊 · 不可压', gear: '量天尺 · 玉玺', rel: '素不相识' },
+  yusulu: { rank: 5, name: '虞素庐', who: '大隋书院太上', tone: '悬殊 · 不可压', gear: '聚宝金盆 · 破锋枪', rel: '素不相识' },
+  minggu: { rank: 6, name: '冥骨夫人', who: '鬼灵宗太上', tone: '悬殊 · 不可压', gear: '锁灵囊 · 机关傀儡', rel: '素不相识' },
+  zhonglisuo: { rank: 7, name: '钟离朔', who: '黄枫谷太上', tone: '相当', gear: '照业宝镜 · 千竹剑典', rel: '切磋过 1 次' },
+  shenguanlan: { rank: 8, name: '沈观澜', who: '大隋书院山长', tone: '相当', gear: '吞川瓢 · 养魂木', rel: '相善 1' },
+  baihe: { rank: 9, name: '白鹤道人', who: '同门 · 丹修', tone: '可压', gear: '青纹小炉', rel: '好感 24' },
+  chenjiu: { rank: 10, name: '陈九', who: '散修 · 游侠', tone: '可压', gear: '一柄旧刀', rel: '好感 46' }
+};
+
+const SHEETS = {
+  lock: () => {
+    const nm = (ni.value || '').trim();
+    const okName = nm.length >= 2 && nm.length <= 8;
+    const talents = $$('.tcard .t-n').map((e) => e.textContent.trim()).join(' · ');
+    return {
+    kicker: '入 定 · 天 命 已 定',
+    title: '道名「' + (nm || '未定') + '」',
+    body: `
+      ${kv('所择之界', chosenWorldName)}
+      ${kv('天赋', talents)}
+      ${kv('问道初心', $('.align button.on') ? $('.align button.on b').textContent : '正道')}
+      ${kv('转世赠礼', '无（首世）')}
+      ${okName ? '' : '<p class="hintline" style="color:var(--cinnabar)">道名未定：回屏一填 2 ~ 8 字后再入定。</p>'}
+      <p class="hintline">入定后此世开始：每秒结算一次；离线也会按上一次离开的时刻结算。天赋一世内可通过洗髓更换 3 枚。</p>
+      <div class="acts"><button class="btn" data-close>再想想</button><button class="btn ink" data-close data-confirm data-go="idle"${okName ? '' : ' disabled'}>确认入定</button></div>`
+    };
+  },
+  realm: () => ({
+    kicker: '境 界 一 览',
+    title: '十境 · 由凡入仙',
+    body: ['炼气', '筑基', '金丹', '元婴', '化神', '炼虚', '合体', '大乘', '渡劫', '真仙'].map((r, i) =>
+      `<div class="kv"><span>${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][i]} · ${r}</span><b class="${i < 8 ? 'good' : ''}">${i < 7 ? '已过' : (i === 7 ? '当前' : '未至')}</b></div>`).join('') +
+      `<p class="hintline">境界只写名称；修炼速度、基础战力、突破需求与渡劫成算在落码时由 <code>D.REALMS</code> 供数。</p>`
+  }),
+  role: () => ({
+    kicker: '角 色',
+    title: '陆沉舟 · 渡劫' + (facJoined ? ' · 掩月宗' : ' · 散人'),
+    body: `
+      <div class="sum3" style="margin:8px 0 12px"><div><div class="k">战 力</div><div class="v">13.6 万</div></div><div><div class="k">精 / 气 / 神</div><div class="v">54 / 81 / 60</div></div><div><div class="k">寿 元</div><div class="v">27 岁 · 尚余 5,140 年</div></div></div>
+      ${kv('道心', '正道 · +12')}
+      ${kv('护法', '苏晚 · 道护 ④')}
+      <p class="subhead" style="margin-top:14px"><span class="sl">天 命</span><span class="sr">洗髓可换 3 枚</span></p>
+      ${kv('灵台通明', '悟性 +20% · 功法升级 −15%')}
+      ${kv('厚土载物', '修为上限 +12% · 遁速 −8%')}
+      ${kv('市井机敏', '坊市购入 −6% · 委托收益 +9%')}
+      <div class="acts"><button class="btn" data-sheet="karma">道心详情</button><button class="btn" data-sheet="wash">洗髓</button><button class="btn ink" data-close>关闭</button></div>`
+  }),
+  karma: () => ({
+    kicker: '道 心',
+    title: '正道 · 道心 +12',
+    body: `
+      <div style="font-family:var(--serif);font-size:28px;color:var(--jade);margin:4px 0 2px">+12</div>
+      ${barRow('距「侠名」还差 38', 24, 'jade')}
+      ${kv('行善积德', '+26')}
+      ${kv('斩妖除魔', '+9')}
+      ${kv('魔道行径', '−18')}
+      ${kv('因果回响', '−5')}
+      <p class="subhead"><span class="sl">档 位</span><span class="sr">九段名号</span></p>
+      ${kv('正道 · 侠名', '当前')}
+      ${kv('正道 · 名宿', '需 +50')}
+      ${kv('中立 · 无咎', '—')}
+      ${kv('魔道 · 凶名', '需 −50')}
+      <p class="hintline">道心是分支定值：判定成败照记；判定只影响物质收益。名号徽章在顶栏，点开即此页。</p>
+      <div class="acts"><button class="btn ink" data-close>关闭</button></div>`
+  }),
+  ledger: () => ({
+    kicker: '财 · 此 生 总 账',
+    title: '收支一览',
+    body: `
+      ${kv('总收入', '837.4 万 灵石', 'good')}
+      ${kv('总支出', '86.2 万 灵石', 'bad')}
+      ${kv('净额', '+751.2 万 灵石', 'good')}
+      <p class="subhead"><span class="sl">收 入</span><span class="sr">按机制分路</span></p>
+      ${kv('击杀', '402.1 万')}
+      ${kv('奇遇', '188.0 万')}
+      ${kv('炼化', '96.3 万')}
+      ${kv('离线', '151.0 万')}
+      <p class="subhead"><span class="sl">支 出</span><span class="sr">按机制分路</span></p>
+      ${kv('洞府', '52.0 万')}
+      ${kv('功法', '18.2 万')}
+      ${kv('坊市', '16.0 万')}
+      <p class="hintline">结语印章按累计收入分三档；初档「白手起家」不再展示。</p>
+      <div class="acts"><button class="btn ink" data-close>关闭</button></div>`
+  }),
+  offline: () => ({
+    kicker: '出 关 呈 报',
+    title: '离线所得',
+    body: `
+      ${kv('离线时长', '12 时 0 分')}
+      ${kv('修为', '+2.8 亿', 'good')}
+      ${kv('灵石', '+837.7 万', 'good')}
+      ${kv('渡劫', '0 次（成 0 败 0）')}
+      ${kv('离线效率', '×0.85 · 12 时上限截断')}
+      <p class="hintline">一次离线结算只弹一次；离线 ≤5 分钟不打扰。修行页常驻一条「离线所得」可随时回看。</p>
+      <div class="acts"><button class="btn ink" data-close>收 下</button></div>`
+  }),
+  heir: () => ({
+    kicker: '真 灵 承 继',
+    title: '择一件带入下世',
+    body: `
+      <p class="hintline">只能携一件已觉醒器灵的法宝；零候选时整层不弹，直接转世。</p>
+      ${kv('寒潭镜', '已觉醒 · 渡劫成算 +0.03', 'good')}
+      ${kv('御风灵舟', '未觉醒 · 不可携', '')}
+      <div class="acts"><button class="btn" data-close>不带了</button><button class="btn ink" data-close data-confirm data-go="creat1">携「寒潭镜」转世</button></div>`
+  }),
+  recap: () => ({
+    kicker: '盖 棺 之 传',
+    title: '陆沉舟 · 一生',
+    body: `
+      <p style="font-family:var(--serif);font-size:12px;line-height:2;color:var(--ink-2)">罗云历九六〇一年，陆沉舟生于罗云州。少年入山，得《吐纳法》，闭关三十载，破炼气、筑基、金丹。后入掩月宗，执剑护法，斩渊鳞蛟于天渊龙墟，结缘苏晚。渡劫之夜，雷云压城，他一步踏入炼虚。此世未竟，兵解转世，遗泽四十四点。</p>
+      ${kv('此世', '罗云历 9601 年 · 渡劫')}
+      ${kv('渡劫', '成 3 · 败 1')}
+      ${kv('首通', '5 处秘境')}
+      ${kv('结缘', '3 人 · 护法 1')}
+      <div class="acts"><button class="btn ink" data-close>收 下</button></div>`
+  }),
+  update: () => ({
+    kicker: '更 新 公 告',
+    title: '这一版多了什么',
+    body: `
+      <p style="font-family:var(--serif);font-size:12px;line-height:2;color:var(--ink-2)">· 修行页换成圆相，修为数字逐秒跳动。<br>· 秘境页把域主、残片与洞天福地收进同一页。<br>· 功法与百器拆成两页，各管各的。<br>· 江湖榜加了寻仇链，道友页首屏先看护法位与道侣位。<br>· 渡劫演出按真实成算走：先清算，再落雷，最后定数。</p>
+      <p class="hintline">公告只认按钮关闭；已读号随档保存，换世不会重弹同一版。</p>
+      <div class="acts"><button class="btn ink" data-close>知道了</button></div>`
+  }),
+  gearcodex: () => ({
+    kicker: '百 器 录',
+    title: '已录 18 / 96',
+    body: `<div class="codexgrid">${Array.from({length: 32}, (_, i) => `<div class="codexcell ${i < 7 ? 'on' : (i === 9 ? 'special' : 'locked')}">${i < 7 ? ['断水','青玉','玄铁','赤铜','寒珠','雷纹','云履'][i] : (i === 9 ? '独' : '？')}</div>`).join('')}</div><p class="hintline">兵刃 7/32 · 灵器 5/24 · 甲衣 4/22 · 佩饰 2/18。弃置的百器可炼为材料，已录格子不会消失。</p>`
+  }),
+  treasurecodex: () => ({
+    kicker: '法 宝 图 鉴',
+    title: '已录 12 / 46',
+    body: `<div class="codexgrid">${Array.from({length: 24}, (_, i) => `<div class="codexcell ${i < 8 ? 'on' : (i === 11 ? 'special' : 'locked')}">${i < 8 ? ['镜','舟','灯','印','铃','幡','珠','剑'][i] : (i === 11 ? '独' : '？')}</div>`).join('')}</div><p class="hintline">先天 4/12 · 后天 8/34。未得之宝，名号、品阶与效果皆为谜；亲手得之，方显真容。</p>`
+  }),
+  bond: () => {
+    const b = BONDS_DEMO[lastBondId] || BONDS_DEMO.suwan;
+    return {
+    kicker: '道 友 详 情',
+    title: b.name + ' · ' + b.role,
+    body: `
+      ${kv('好感', b.aff)}
+      ${kv('出身', b.origin)}
+      ${b.gift ? kv('禀赋', b.gift) : ''}
+      <p class="hintline">${b.note}</p>
+      ${b.guard ? kv('护法记录', b.guard) : ''}
+      ${b.visit ? `<p class="subhead"><span class="sl">往 来</span><span class="sr">拜访冷却 5 分钟</span></p>
+      ${kv('拜访', '好感 +2 · 可拜访', 'good')}
+      ${kv('赠丹', '聚气丹 · 好感 +6', 'good')}
+      ${kv('提亲', '好感满档可结双修', '')}` : kv('往来', '恩断义绝 · 不可再访')}
+      <div class="acts"><button class="btn" data-close>返回</button>${b.visit ? `<button class="btn ink" data-confirm="${b.visit}">拜 访</button>` : ''}</div>`
+    };
+  },
+  recall: () => ({
+    kicker: '奇 遇 回 看',
+    title: '雨夜叩门',
+    body: `
+      ${kv('首遇', '罗云历 9601 年 1 月 3 日')}
+      ${kv('品阶', '天级 · 机缘')}
+      <p style="font-family:var(--serif);font-size:12px;line-height:2;color:var(--ink-2)">子时三刻，有人叩你的柴门。开门时只见一柄断剑插在阶前，剑穗上系着半枚玉珏，雨水顺着剑脊往下淌。</p>
+      ${kv('上次选择', '收下断剑 · 道心 +15')}
+      ${kv('所得', '断水残片 ×1 · 灵石 1,200')}
+      <div class="acts"><button class="btn ink" data-close>关 闭</button></div>`
+  }),
+  cave: () => {
+    const cv = CAVES.find((x) => x.id === lastCaveId) || CAVES[6];
+    const st = CAVE_STATE[cv.state];
+    const fac = cv.state === 'current' ? CAVE_FACS : [];
+    return {
+      kicker: '洞 天 福 地',
+      title: cv.name + ' · ' + st.label,
+      body: `
+        ${kv('倍率', '×' + cv.mult.toFixed(2) + ' 修为产出')}
+        ${kv('签名', cv.sig, cv.state === 'locked' ? '' : 'good')}
+        ${kv('资格', cv.reqs.map(([t, ok]) => (ok ? '✓ ' : '缺 ') + t).join(' · '), cv.reqs.every((x) => x[1]) ? 'good' : 'bad')}
+        ${kv('迁居', cv.state === 'current' ? '当前驻留 · 冷却 0' : '冷却 1 游戏年')}
+        <p style="font-family:var(--serif);font-size:12px;line-height:2;color:var(--ink-2);margin:10px 0 0">${cv.desc}</p>
+        ${fac.length ? `<p class="subhead"><span class="sl">附 属 设 施</span><span class="sr">仅驻留生效</span></p>` + fac.map((f) => kv(f.name + (f.lv ? ' Lv' + f.lv : ' 未营建'), f.effect + (f.lv ? ' · 生效中' : ' · 可营建'), f.lv ? 'good' : '')).join('') : ''}
+        <div class="acts"><button class="btn" data-close>关闭</button>${cv.state === 'locked' ? '' : `<button class="btn ink" data-confirm="${cv.state === 'current' ? '已扩建当前福地设施' : '已入驻' + cv.name}">${cv.state === 'current' ? '营 建' : '入 驻'}</button>`}</div>`
+    };
+  },
+  sectfound: () => ({
+    kicker: '开 宗 立 派',
+    title: '三定',
+    body: `
+      ${kv('山门', '云梦泽 · 听雨峰')}
+      ${kv('宗名', '听雨宗')}
+      ${kv('门规', '道统 · 剑修｜门风 · 守序｜收徒 · 筑基')}
+      <p class="hintline">四门槛达成后才可开宗；开宗后门中供给按门规定期发放，转世前可指定继承人。</p>
+      <div class="acts"><button class="btn" data-close>再想想</button><button class="btn ink" data-close data-confirm="听雨宗已开宗">开 宗</button></div>`
+  }),
+  prodigy: () => {
+    const r = PRODIGY_DEMO[lastRankId] || PRODIGY_DEMO.hanzhishan;
+    return {
+    kicker: '江 湖 榜 · 天 榜',
+    title: r.name + ' · 第 ' + r.rank + ' 席',
+    body: `
+      ${kv('身份', r.who)}
+      ${kv('战力档', r.tone, r.tone.charAt(0) === '可' ? 'good' : (r.tone.charAt(0) === '悬' ? 'bad' : ''))}
+      ${kv('所携', r.gear)}
+      ${kv('关系', r.rel)}
+      ${kv('切磋', '冷却 10 分钟')}
+      <p class="hintline">榜面不写战力，只给「可压 / 相当 / 悬殊」三档；袭杀会结寻仇链，败则道伤、道心受损。</p>
+      <div class="acts"><button class="btn" data-close>关闭</button><button class="btn" data-confirm="已递上切磋帖">切 磋</button><button class="btn ink" data-confirm="已记下这一刀">袭 杀</button></div>`
+    };
+  },
+  ambush: () => ({
+    kicker: '寻 仇 · 迎 战',
+    title: '屠夜游 · 第 2 环',
+    body: `
+      ${kv('来由', '袭杀鬼灵宗弟子，寻仇链第 2 环')}
+      ${kv('敌手', '鬼灵宗宗主 屠夜游（渡劫）')}
+      ${kv('判定', '只掷我方一侧 ±10%')}
+      ${kv('胜', '进下一环 · 冷却 10 分钟', 'good')}
+      ${kv('败', '链断 · 道伤 +1，不进冷却', 'bad')}
+      <p class="hintline">第 3 环起由高两境的族中老祖当关，战力另有抬升；寻仇没有避战出口，只能迎战。</p>
+      <div class="acts"><button class="btn" data-close>关闭</button><button class="btn ink" data-confirm="已迎战：屠夜游（第 2 环）">迎 战</button></div>`
+  }),
+  wash: () => ({
+    kicker: '洗 髓',
+    title: '本世还可换 2 枚',
+    body: `
+      <p class="hintline">择一枚旧天赋替换；三候选择一，换骨后不可撤回。</p>
+      ${kv('旧 · 市井机敏', '坊市购入 −6% · 委托收益 +9%')}
+      <p class="subhead"><span class="sl">三 候</span><span class="sr">洗髓丹 ×1</span></p>
+      ${kv('剑骨天成', '战力 +15% · 装备幸运 +6%', 'good')}
+      ${kv('紫气东来', '修为产出 +12% · 奇遇机缘 +10%', 'good')}
+      ${kv('丹心妙手', '炼丹成功率 +8% · 丹药效果 +5%', 'good')}
+      <div class="acts"><button class="btn" data-close>取消</button><button class="btn ink" data-close data-confirm="已换骨：剑骨天成">换 骨</button></div>`
+  }),
+  rate: () => ({
+    kicker: '吐 纳 明 细',
+    title: '11,449 ／ 秒',
+    body: `
+      ${kv('基础吐纳', '3,200 / 秒')}
+      ${kv('天赋', '+18%')}
+      ${kv('功法', '+57.8%')}
+      ${kv('百器', '+12.4%')}
+      ${kv('洞府 · 市井别院', '×1.00')}
+      ${kv('模式 · 闭关', '×1.30')}
+      ${kv('初境加速', '—')}
+      ${kv('阵营', '×1.05')}
+      <p class="hintline">明细逐项相乘后与顶部速率同源；每秒 tick 重绘。修为数字用全位千分位，不做「万/亿」缩放，才能看见逐秒增长。</p>
+      <div class="acts"><button class="btn ink" data-close>关闭</button></div>`
+  }),
+  tribdetail: () => ({
+    kicker: '渡 劫 明 细',
+    title: '成算 29%',
+    body: `
+      ${kv('境界基础', '+16%', 'good')}
+      ${kv('百器抗性', '+3%', 'good')}
+      ${kv('战力富余', '13.6 万 / 需 11.2 万 · +1%', 'good')}
+      ${kv('天赋 · 功法', '+2%', 'good')}
+      ${kv('道心', '+12 · +1%', 'good')}
+      ${kv('正道光环', '—')}
+      ${kv('护法 · 苏晚 道护 ④', '+6%', 'good')}
+      ${kv('封顶', '5% ~ 95%')}
+      <p class="hintline">七项加总后 clamp；失败损失按连败阶梯：道伤 → 心魔 → 封固。成算只影响这一掷，不影响结算后的道心。</p>
+      <div class="acts"><button class="btn ink" data-close>关闭</button></div>`
+  }),
+  tiandao: () => ({
+    kicker: '天 道',
+    title: '天象 · 劫云低垂',
+    body: `
+      ${kv('天象', '劫云低垂 · 下次渡劫 −0.03', 'bad')}
+      ${kv('逆天值', '37 · 天怒')}
+      ${kv('称号', '逆天者')}
+      ${kv('逆天盾', '0 / 3')}
+      ${kv('逆天大劫', '逆天 ≥100 可挑战 · 不推进境界')}
+      <p class="hintline">问天入口默认隐藏；天象、逆天值与称号仍在页面上可读。逆天大劫可无限期推迟。</p>
+      <div class="acts"><button class="btn ink" data-close>关闭</button></div>`
+  }),
+  boss: () => ({
+    kicker: '域 主 · 天 渊 龙 墟',
+    title: '渊鳞蛟',
+    body: `
+      ${kv('需求战力', '11.3 万（本区 ×1.8）')}
+      ${kv('你当前战力', '13.6 万', 'good')}
+      ${kv('词缀', '「渊」· 敌速 +15% · 灵石 +20%')}
+      ${kv('已挑战', '1 次 · 未斩')}
+      ${kv('冷却', '败后 1 时方可再战')}
+      <p class="hintline">域主现世后才可挑战；斩首给首通牵引与福地资格，不推进境界。</p>
+      <div class="acts"><button class="btn" data-close>退</button><button class="btn ink" data-confirm="已向渊鳞蛟递出战帖">挑 战</button></div>`
+  }),
+  artscodex: () => ({
+    kicker: '功 法 图 鉴',
+    title: '已录 4 / 70',
+    body: `<div class="codexgrid">${Array.from({length: 32}, (_, i) => `<div class="codexcell ${i < 4 ? 'on' : (i === 5 ? 'special' : 'locked')}">${i < 4 ? ['吐纳','聚灵','清心','百川'][i] : (i === 5 ? '独' : '？')}</div>`).join('')}</div><p class="hintline">黄阶 14 · 玄阶 26 · 地阶 18 · 天阶 12；独占残卷只从奇遇来，图鉴里以金框标出。</p>`
+  }),
+  artdetail: () => ({
+    kicker: '功 法 详 情',
+    title: '吐纳法 · Lv7',
+    body: `
+      ${kv('品阶', '黄阶 · 主修')}
+      ${kv('效果', '修为产出 +35%')}
+      ${kv('升级', '200.0 万 修为')}
+      ${kv('精通', '68% · 低阶领悟快、高阶领悟慢', 'good')}
+      ${kv('槽位', '已入第 1 槽')}
+      <p class="hintline">主修修持最快；散功返还修为并抹去此功法，弃置只返还少量灵石。初始自带功法不可散功。</p>
+      <div class="acts"><button class="btn" data-confirm="已移出修习槽">移 出</button><button class="btn" data-confirm="已散功：吐纳法">散 功</button><button class="btn ink" data-confirm="已升级：吐纳法 Lv8">升 级</button></div>`
+  }),
+  gearforged: () => {
+    const b = BP_DEMO[lastBpId] || BP_DEMO.hantie;
+    return {
+    kicker: '器 台 · 图 纸',
+    title: b.title,
+    body: `
+      ${kv('部位', b.part)}
+      ${kv('方向', b.dir)}
+      ${kv('属性指向', b.attr)}
+      ${kv('材料', b.mats)}
+      ${kv('精制', '+1 品阶（不高于同期掉落）')}
+      ${kv('成算', b.rate)}
+      <p class="hintline">图纸选好后仍要材料、方向、属性三项齐备才可开炉；缺项在行上直接写缺什么，不靠置灰猜。</p>
+      <div class="acts"><button class="btn" data-close>取消</button><button class="btn ink" ${b.rate.charAt(0) === '—' ? 'disabled' : 'data-confirm="已开炉：' + b.title.split(' · ')[0] + '"'}>开 炉</button></div>`
+    };
+  },
+  spirit: () => ({
+    kicker: '器 灵',
+    title: '寒潭镜 · 照影',
+    body: `
+      ${kv('觉醒', '已觉醒 · 第 1 阶')}
+      ${kv('签名', '渡劫时可重掷一次判定')}
+      ${kv('冷却', '24 时')}
+      ${kv('羁绊', '与「御风灵舟」同佩：离线收益 +4%')}
+      <p class="hintline">器灵只随法宝走，不占百器槽；转世时可选一件已觉醒法宝带入下世。</p>
+      <div class="acts"><button class="btn" data-sheet="heir">真灵承继</button><button class="btn ink" data-close>关闭</button></div>`
+  }),
+  bondroster: () => ({
+    kicker: '道 友 名 录',
+    title: '已结缘 3 · 未结缘 55',
+    body: `
+      <p class="hintline">未结缘者只显轮廓与「缘分未至」；按境界查看，不铺 58 个问号格。</p>
+      <div class="codexgrid">${Array.from({length: 24}, (_, i) => `<div class="codexcell ${i < 3 ? 'on' : 'locked'}">${i < 3 ? ['晚','九','鹤'][i] : '？'}</div>`).join('')}</div>
+      ${kv('缘分未至', '55 人 · 随境界与奇遇逐步相识')}
+      ${kv('已缘尽', '1 人 · 秦霜')}
+      <div class="acts"><button class="btn ink" data-close>关闭</button></div>`
+  }),
+  slots: () => ({
+    kicker: '择 位',
+    title: '护法位 / 道侣位',
+    body: `
+      <p class="hintline">护法位手选后随档保存；资格失效回落自动。道侣位候选 = 提亲全链通过者。</p>
+      <p class="subhead"><span class="sl">护 法 候 选</span><span class="sr">按道护档</span></p>
+      ${kv('苏晚 · 道护 ④', '渡劫 +0.06 · 当前', 'good')}
+      ${kv('白鹤道人 · 道护 ③', '渡劫 +0.04')}
+      ${kv('陈九 · 道护 ②', '渡劫 +0.02')}
+      <p class="subhead"><span class="sl">道 侣 候 选</span><span class="sr">好感满档可结</span></p>
+      ${kv('苏晚 · 好感 82', '可提亲 · 双修形态')}
+      ${kv('白鹤道人 · 好感 64', '未满档', '')}
+      <div class="acts"><button class="btn" data-close>取消</button><button class="btn ink" data-confirm="已定苏晚为护法">定 护 法</button></div>`
+  }),
+  faction: () => {
+    const f = FACTIONS.find((x) => x.id === lastFacId) || FACTIONS[1];
+    const isCurrent = facJoined && f.id === 'yanue';
+    return {
+      kicker: '势 力 详 情',
+      title: f.name + ' · ' + FAC_ALIGN[f.align],
+      body: `
+        ${kv('阵营', FAC_ALIGN[f.align] + (f.align === 'right' ? ' · 名门' : (f.align === 'evil' ? ' · 魔道' : ' · 中立')))}
+        ${kv('掌门', f.leader)}
+        ${kv('势力增益', f.perk, 'good')}
+        ${kv('关系', '善 ' + f.rel[0] + ' · 恶 ' + f.rel[1], f.rel[1] >= 4 ? 'bad' : '')}
+        ${kv('状态', isCurrent ? '当前效力' : (facJoined ? '未入 / 可改投' : '未入'), isCurrent ? 'good' : '')}
+        <p style="font-family:var(--serif);font-size:12px;line-height:2;color:var(--ink-2);margin:10px 0 0">${f.desc}</p>
+        <p class="hintline">加入势力可得其增益；与势力交好的道友好感 +10，敌对 −20。玩家所属的才叫宗门，世界里其他组织叫势力。</p>
+        <div class="acts"><button class="btn" data-close>关闭</button>${isCurrent ? '<button class="btn danger" data-confirm="已叛离掩月宗">叛 离</button>' : '<button class="btn ink" data-confirm="已拜入' + f.name + '">' + (facJoined ? '改 投' : '加 入') + '</button>'}</div>`
+    };
+  },
+  death: () => ({
+    kicker: '坐 化 呈 报',
+    title: '寿元已尽',
+    body: `
+      ${kv('道名', '陆沉舟')}
+      ${kv('享年', '27 岁 · 罗云历 9601 年')}
+      ${kv('境界', '渡劫')}
+      ${kv('死因', '寿尽 · 大限已至')}
+      ${kv('此生', '渡劫 3 成 1 败 · 首通 5 处 · 结缘 3 人')}
+      <p class="hintline">坐化后此生结算入遗泽；兵解与飞升另走轮回页。此屏只报一次，转世后重走创角三屏。</p>
+      <div class="acts"><button class="btn ink" data-close data-confirm="已入轮回" data-go="creat1">转 世</button></div>`
+  }),
+  exclusive: () => ({
+    kicker: '独 占 奖 励',
+    title: '得「断水」残片',
+    body: `
+      <p style="font-family:var(--serif);font-size:12px;line-height:2;color:var(--ink-2)">雨夜那柄断剑的剑穗上，半枚玉珏温润。你把它收进袖中，剑身残片在你掌心轻轻震了一下——像认主，也像告别。</p>
+      ${kv('品阶', '天级 · 独占', 'good')}
+      ${kv('去向', '已入百器录 · 可炼化为「断水」')}
+      ${kv('图鉴', '首次得之，真容已录')}
+      <div class="acts"><button class="btn ink" data-close>收 下</button></div>`
+  }),
+  face: () => {
+    const f = FACES.find((x) => x.id === lastFaceId) || FACES[0];
+    const pct = Math.min(100, f.got / f.total * 100);
+    const next = pct < 50 ? 50 : (pct < 80 ? 80 : (pct < 100 ? 100 : 0));
+    return {
+      kicker: '图 鉴 一 面',
+      title: f.name + ' · ' + f.got + ' / ' + f.total,
+      body: `
+        ${barRow('收录进度', pct.toFixed(1), 'jade')}
+        ${kv('已录', f.got + ' / ' + f.total)}
+        ${kv('下一档', next ? next + '% · 还差 ' + Math.max(0, Math.ceil(f.total * next / 100) - f.got) + ' 条' : '已满')}
+        ${f.note ? `<div class="hintline">${f.note}</div>` : ''}
+        <p class="subhead"><span class="sl">里 程 碑</span><span class="sr">遗泽 15 / 30 / 50</span></p>
+        ${kv('50% 档', '遗泽 +15', pct >= 50 ? 'good' : '')}
+        ${kv('80% 档', '遗泽 +30', pct >= 80 ? 'good' : '')}
+        ${kv('100% 档', '遗泽 +50 · 永久修为 +0.3%', pct >= 100 ? 'good' : '')}
+        <p class="hintline">九面主面满 100% 另给永久 qiRate（仅九面主面，cap +3%）；转世天赋子区只发遗泽。</p>
+        <div class="acts"><button class="btn ink" data-close>关闭</button></div>`
+    };
+  },
+  achvAll: () => ({
+    kicker: '行 为 成 就',
+    title: '60 条 · 已达成 12',
+    body: Object.keys(ACHV_GROUP).map((g) => `
+      <p class="subhead"><span class="sl">${ACHV_GROUP[g]}</span><span class="sr">${ACHV_DATA.filter((a) => a.g === g && ACHV_GOT.has(a.id)).length} / 10</span></p>
+      ${ACHV_DATA.filter((a) => a.g === g).map((a) => {
+        const got = ACHV_GOT.has(a.id);
+        return `<div class="kv"><span>${a.name}<br><span class="hint">${a.desc}</span></span><b class="${got ? 'good' : ''}">遗泽 +${a.karma}${got ? ' · 已得' : ''}</b></div>`;
+      }).join('')}`).join('') +
+      `<div class="acts"><button class="btn ink" data-close>关闭</button></div>`
+  }),
+  titles: () => ({
+    kicker: '称 号 墙',
+    title: '已得 4 ／ 80',
+    body: `
+      <p class="hintline">称号跨世不消；行为成就与行为称号同源，重复获得不重发。下列 61 个为在册称号名，余 19 个未开。</p>
+      ${TITLES.map((t) => `<div class="kv"><span>${t.name}</span><b class="${TITLE_GOT.has(t.id) ? 'good' : ''}">${TITLE_GOT.has(t.id) ? '已得' : '未得'}</b></div>`).join('')}
+      <div class="acts"><button class="btn ink" data-close>关闭</button></div>`
+  }),
+  confirm: () => ({ kicker: '确 认', title: '重置存档？', body: `<p class="hintline">清空当前世的角色、境界、洞府、百器与日志，回到创角。此操作不可撤销。</p><div class="acts"><button class="btn" data-close>取消</button><button class="btn danger" data-close data-confirm="已重置存档">重置</button></div>` })
+};
+
+function openSheet(kind) {
+  const s = SHEETS[kind] ? SHEETS[kind]() : SHEETS.confirm();
+  $('#sheetKicker').textContent = s.kicker;
+  $('#sheetTitle').textContent = s.title;
+  $('#sheetBody').innerHTML = s.body;
+  $('#sheet').hidden = false;
+}
+function closeSheet() { $('#sheet').hidden = true; }
+
+document.addEventListener('click', (e) => {
+  const fa = e.target.closest('[data-face]');
+  if (fa) { lastFaceId = fa.dataset.face; openSheet('face'); return; }
+  const fc = e.target.closest('[data-fac]');
+  if (fc) { lastFacId = fc.dataset.fac; openSheet('faction'); return; }
+  const cv = e.target.closest('[data-cave]');
+  if (cv) { lastCaveId = cv.dataset.cave; openSheet('cave'); return; }
+  const sh = e.target.closest('[data-sheet]');
+  if (sh) {
+    if (sh.dataset.bp) lastBpId = sh.dataset.bp;
+    if (sh.dataset.bond) lastBondId = sh.dataset.bond;
+    if (sh.dataset.rank) lastRankId = sh.dataset.rank;
+    openSheet(sh.dataset.sheet); return;
+  }
+  if (e.target.closest('[data-close]')) {
+    const c = e.target.closest('[data-confirm]');
+    if (c) toast(c.dataset.confirm || '已确认');
+    closeSheet();
+    return;
+  }
+  const cf = e.target.closest('[data-confirm]');
+  if (cf) {
+    toast(cf.dataset.confirm || '已确认');
+    closeSheet();
+  }
+});
+$('#sheetClose').addEventListener('click', closeSheet);
+$('#sheet').addEventListener('click', (e) => { if (e.target === $('#sheet')) closeSheet(); });
+
+/* 开关：只做视觉与 toast；落码时走各自 settings/ws 写口 */
+document.addEventListener('click', (e) => {
+  const sw = e.target.closest('[data-switch]');
+  if (!sw) return;
+  sw.classList.toggle('off');
+  toast(sw.dataset.switch + (sw.classList.contains('off') ? ' 已关' : ' 已开'));
+});
+
+/* 坊市 / 黑市切换 */
+$('#shopTabBlack').addEventListener('click', () => {
+  $('#shopTabMarket').classList.remove('on');
+  $('#shopTabBlack').classList.add('on');
+  $('#shopMarket').style.display = 'none';
+  $('#shopBlack').style.display = 'block';
+});
+$('#shopTabMarket').addEventListener('click', () => {
+  $('#shopTabBlack').classList.remove('on');
+  $('#shopTabMarket').classList.add('on');
+  $('#shopBlack').style.display = 'none';
+  $('#shopMarket').style.display = 'grid';
+});
+
+/* 成就六组切换 */
+$$('#achvChips button').forEach((b) => b.addEventListener('click', () => {
+  $$('#achvChips button').forEach((x) => x.classList.toggle('on', x === b));
+  renderAchvGroup(b.dataset.g);
+}));
+
+/* 设置：奇遇倾向三选一（选中即描边，无需确认） */
+$$('#s-settings .chipsrow button').forEach((b) => b.addEventListener('click', () => {
+  $$('#s-settings .chipsrow button').forEach((x) => x.classList.toggle('on', x === b));
+}));
+
+/* 日志：分类筛选 */
+$$('#s-journal .logline').forEach((l) => {
+  const tag = l.querySelector('.lx b');
+  if (tag) l.dataset.cat = tag.textContent.trim();
+});
+$$('#s-journal .chipsrow button').forEach((b) => b.addEventListener('click', () => {
+  $$('#s-journal .chipsrow button').forEach((x) => x.classList.toggle('on', x === b));
+  const cat = b.textContent.trim();
+  let shown = 0;
+  $$('#s-journal .logline').forEach((l) => {
+    const ok = cat === '全部' || l.dataset.cat === cat;
+    l.style.display = ok ? '' : 'none';
+    if (ok) shown++;
+  });
+  const empty = $('#logEmpty');
+  if (empty) empty.style.display = shown ? 'none' : 'block';
+}));
+
+/* 宗门：空态 / 已立态 */
+function setSectJoined(on) {
+  $('#sectStateEmpty').classList.toggle('on', !on);
+  $('#sectStateJoined').classList.toggle('on', !!on);
+  $('#sectEmpty').style.display = on ? 'none' : 'block';
+  $('#sectJoined').style.display = on ? 'block' : 'none';
+  const rs = $('#railSect');
+  if (rs) rs.textContent = on ? '听雨宗' : '未开';
+  const gates = $('#railGates');
+  if (gates) {
+    const ok = (t) => '<span style="color:var(--jade)">✓</span> ' + t + '<br>';
+    const no = (t) => '<span class="dim">○</span> ' + t + '<br>';
+    gates.innerHTML = on
+      ? ok('境界 ≥ 化神') + ok('身份 · 宗主在任') + ok('声望峰值 ≥ 2,000（现 2,340）') + ok('开宗资格 · 已达成')
+      : ok('境界 ≥ 化神') + no('身份 · 长老在任或叛离') + no('声望峰值 ≥ 2,000（现 0）') + no('开宗资格 · 遗泽 800');
+  }
+}
+$('#sectStateEmpty').addEventListener('click', () => setSectJoined(false));
+$('#sectStateJoined').addEventListener('click', () => setSectJoined(true));
+
+/* 势力：空态 / 已入态 + 阵营筛选 */
+$('#facStateEmpty').addEventListener('click', () => setFacJoined(false));
+$('#facStateJoined').addEventListener('click', () => setFacJoined(true));
+$$('#facChips button').forEach((b) => b.addEventListener('click', () => {
+  facCamp = b.dataset.camp;
+  $$('#facChips button').forEach((x) => x.classList.toggle('on', x === b));
+  renderFactions();
+}));
+
+/* 炼丹 / 炼器两段切换（材料背包两段共用） */
+$('#alTabDan').addEventListener('click', () => {
+  $('#alTabQi').classList.remove('on');
+  $('#alTabDan').classList.add('on');
+  $('#alQi').style.display = 'none';
+  $('#alDan').style.display = 'block';
+});
+$('#alTabQi').addEventListener('click', () => {
+  $('#alTabDan').classList.remove('on');
+  $('#alTabQi').classList.add('on');
+  $('#alDan').style.display = 'none';
+  $('#alQi').style.display = 'block';
+});
+
+renderCaves();
+renderAchvGroup('xiu');
+setFacJoined(false);
+setSectJoined(false);
+
+/* 窄窗口自动落到手机形态；桌面/手机切换仍可手动覆盖 */
+if (window.innerWidth < 900) {
+  dev = 'mobile';
+  $('#app').dataset.device = 'mobile';
+  $$('#segDevice button').forEach((b) => b.classList.toggle('on', b.dataset.dev === 'mobile'));
+}
+
+show('idle');
+</script>
+</body>
+</html>
