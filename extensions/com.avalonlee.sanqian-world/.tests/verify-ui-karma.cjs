@@ -2,8 +2,8 @@
  * 依赖：playwright-core（需先安装）；用法：NODE_PATH=<playwright-core 所在 node_modules> node .tests/verify-ui-karma.cjs
  *
  * 覆盖「九段名号」四处呈现：
- *   ① 顶栏第一行：元信息（角色名称 · 境界 · 势力，点按开角色浮层）；第二行最左：名号徽章（按档位着色，兼善恶浮层入口）；原第二行档位徽章（#m-karma）已撤；
- *   ② 世界名水印（方案 B3 · 右上竖排落款）：世界名移作 #m-wm 半透明竖排大字，位于面板底色与文字层之间（absolute 贴右上 / 20px / 800 / opacity .30 / writing-mode vertical-rl / 面板裁切 / 不拦点击）；v4 位置互换后第一行不再重复世界名（改显角色名称）；
+ *   ① 顶栏 = 设计稿 .hd（B16-b）：hd-name = 角色名 + 境界印章（seal sm）；hd-sub = 世界名 · 世界历日期；
+ *      右列 = 灵石（衬线数字）+ 名号行（按档位着色，兼善恶浮层入口）；世界名水印（B3）与战力修为行已撤；
  *   ③ 善恶浮层：九段天梯全列（九行）、当前段高亮、区间标注由 KARMA_RANKS 下界推导；
  *   ④ 跨段演出：karma 跨段瞬间弹全屏「名号更迭」，点按或 3.2s 自动收；
  *   ⑤ 日志入档：跨段写 'karma' 分类（日志页「善恶」筛选可见起讫双名号）；
@@ -21,7 +21,7 @@ const { chromium } = require('playwright-core');
   const s0 = JSON.parse(fs.readFileSync(path.join(ROOT, '.tests/fixture-save.json'), 'utf8'));
   const now0 = Date.now();
   const wid = s0.profile.worldId;
-  const WNAME = s0.profile.worldName;   /* 世界名（v4 位置互换后由 #m-wm 水印承载） */
+  const WNAME = s0.profile.worldName;   /* 世界名（B16-b 起入顶栏 hd-sub 副行首） */
   const CNAME = s0.profile.name;        /* 角色名称（v4 位置互换后顶栏第一行正文） */
   s0.profile.createdAt = now0;
   Object.values(s0.worlds).forEach(w => {
@@ -85,43 +85,31 @@ const { chromium } = require('playwright-core');
   await page.waitForSelector('#m-who .who-meta', { timeout: 8000 });
   await page.waitForTimeout(300);
 
-  /* ① 世界名水印（方案 B3 · 右上竖排落款）：夹在面板底色与文字层之间 */
-  const wm = await page.evaluate(() => {
-    const el = document.getElementById('m-wm');
+  /* ① 顶栏 = 设计稿 .hd（B16-b）：hd-name = 角色名 + 境界印章；hd-sub = 世界名 · 世界历日期；
+   * 世界名水印（B3）退役（#m-wm 不存在）；战力/修为行撤出顶栏（#m-sub 不存在） */
+  const hd = await page.evaluate(() => {
+    const name = document.getElementById('m-name');
+    const realm = document.getElementById('m-realm');
+    const meta = document.getElementById('m-meta');
     const who = document.getElementById('m-who');
-    const cs = getComputedStyle(el);
-    const box = el.getBoundingClientRect();
-    const pbox = el.parentElement.getBoundingClientRect();
     return {
-      text: (el.textContent || '').trim(),
-      opacity: cs.opacity,
-      fontSize: cs.fontSize,
-      weight: cs.fontWeight,
-      z: cs.zIndex,
-      pos: cs.position,
-      pe: cs.pointerEvents,
-      wmMode: cs.writingMode,
-      right: cs.right,
-      top: cs.top,
-      nearRight: (pbox.right - box.right) <= 24,
-      nearTop: (box.top - pbox.top) <= 16,
-      overflow: getComputedStyle(el.parentElement).overflow,
-      lineZ: getComputedStyle(who).zIndex,
+      name: (name || {}).textContent || '',
+      realmTxt: (realm || {}).textContent || '',
+      realmSeal: !!realm && /(^|\s)seal(\s|$)/.test(realm.className) && /\bsm\b/.test(realm.className),
+      meta: (meta || {}).textContent || '',
+      metaEll: meta ? getComputedStyle(meta).textOverflow : '',
+      wmGone: document.getElementById('m-wm') === null,
+      subGone: document.getElementById('m-sub') === null,
       whoText: (who.textContent || '').trim()
     };
   });
-  T(wm.text === WNAME, '世界名水印渲染（取世界名文本）', 'text=' + wm.text + ' expect=' + WNAME);
-  T(wm.pos === 'absolute' && wm.pe === 'none', '水印绝对定位且不拦截点击', 'pos=' + wm.pos + ' pe=' + wm.pe);
-  T(Math.abs(parseFloat(wm.opacity) - 0.30) < 1e-6 && wm.fontSize === '20px' && wm.weight === '800' && wm.wmMode.indexOf('vertical') >= 0,
-    '水印参数（20px · 粗体 800 · opacity .30 · 竖排）',
-    'size=' + wm.fontSize + ' weight=' + wm.weight + ' opacity=' + wm.opacity + ' wm=' + wm.wmMode);
-  T(wm.nearRight && wm.nearTop, '水印贴右上落款（right=' + wm.right + ' top=' + wm.top + '）',
-    'nearRight=' + wm.nearRight + ' nearTop=' + wm.nearTop);
-  T(wm.overflow === 'hidden' && Number(wm.z) < Number(wm.lineZ),
-    '水印被面板裁切且位于文字层之下（z ' + wm.z + ' < 文字 ' + wm.lineZ + '）',
-    'overflow=' + wm.overflow + ' z=' + wm.z + ' lineZ=' + wm.lineZ);
-  T(wm.whoText.indexOf(CNAME) >= 0 && wm.whoText.indexOf(WNAME) < 0 && wm.whoText.indexOf('@') < 0,
-    '第一行显示角色名称且不含世界名/@（v4 位置互换）', 'who=' + wm.whoText + ' name=' + CNAME + ' world=' + WNAME);
+  T(hd.wmGone, '世界名水印退役（B16-b 对齐设计稿：世界名入 hd-sub）', 'wm=' + (hd.wmGone ? 'null' : 'still-present'));
+  T(hd.name === CNAME, '顶栏衬线大名 = 角色名', 'name=' + hd.name + ' expect=' + CNAME);
+  T(hd.realmSeal && hd.realmTxt.length > 0, '境界印章在位（seal sm · 境界名非空）', 'realm=' + hd.realmTxt + ' cls-seal=' + hd.realmSeal);
+  T(hd.meta.indexOf(WNAME) === 0 && /历\s*\d+\s*年\s*\d+\s*月\s*\d+\s*日/.test(hd.meta),
+    '副行 = 世界名 · 世界历日期（设计稿 hd-sub 口径）', 'meta=' + hd.meta);
+  T(hd.subGone, '战力/修为行撤出顶栏（修行页 statrow/圆相承载）', 'sub=' + (hd.subGone ? 'null' : 'still-present'));
+  T(hd.whoText.indexOf(CNAME) >= 0 && hd.whoText.indexOf('@') < 0, '顶栏无「@」残留（v4 口径沿用）', 'who=' + hd.whoText);
 
   /* ①b 顶栏右列名号行（B16-a 对齐设计稿 .hd：右列 = 灵石上 · 名号下；基线：左道散人 · 中性色） */
   const c0 = await chipInfo();
@@ -149,7 +137,7 @@ const { chromium } = require('playwright-core');
     'act=' + rankPos.act + ' inLine2=' + rankPos.inLine2 + ' belowStone=' + rankPos.belowStone + ' whoHasChip=' + rankPos.whoHasChip);
 
   /* ②b 加入势力后顶栏不溢出：右列固定不缩、元信息（左列 .hd-sub）省略号收尾（宽屏左栏仅 264px） */
-  const whoBox = await page.evaluate(() => {
+  const whoBox = await page.evaluate((wn) => {
     const who = document.getElementById('m-who');
     const rk = document.getElementById('m-rank');
     const line2 = rk ? rk.parentElement : null;
@@ -160,10 +148,11 @@ const { chromium } = require('playwright-core');
       line2Ov: line2.scrollWidth - line2.clientWidth,
       metaOv: meta.scrollWidth - meta.clientWidth,
       metaEll: getComputedStyle(meta).textOverflow,
-      hasFac: /掩月宗/.test(meta.textContent || '')
+      metaTxt: (meta.textContent || '').trim(),
+      hasFac: (meta.textContent || '').indexOf(wn) === 0
     };
-  });
-  T(whoBox.hasFac, '元信息含势力名（加入掩月宗后）', 'meta 含掩月宗=' + whoBox.hasFac);
+  }, WNAME);
+  T(whoBox.hasFac, '副行以世界名开头（B16-b：hd-sub = 世界名 · 历日；势力撤出顶栏）', 'meta=' + whoBox.metaTxt);
   T(whoBox.rkOv <= 1 && whoBox.line2Ov <= 1,
     '右列不溢出（灵石 + 名号行完整可见）',
     'rkOv=' + whoBox.rkOv + ' line2Ov=' + whoBox.line2Ov);

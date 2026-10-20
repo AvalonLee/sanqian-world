@@ -368,7 +368,7 @@ async function buildSave() {
     const btns = Array.prototype.slice.call(zBar.querySelectorAll('button'));
     return {
       gearCols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').length : 0,
-      tabbar: getComputedStyle(document.getElementById('m-tabbar')).display,
+      tabbar: getComputedStyle(document.getElementById('m-nav')).display,   /* B16-b：16 项导航连品牌区整体收进 #m-nav，判据读容器（display:none 父下子元素 computed 仍是自身值） */
       zone: getComputedStyle(zBar).display,
       clipped: btns.filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent.trim()),
       zones: btns.length,

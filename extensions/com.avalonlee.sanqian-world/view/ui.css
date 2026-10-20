@@ -15,6 +15,7 @@
     --sq2-line: rgba(31, 28, 22, 0.16);
     --sq2-line-2: rgba(31, 28, 22, 0.32);
     --sq2-cinnabar: #A5362C;
+    --sq2-cinnabar-2: rgba(165, 54, 44, 0.10);
     --sq2-jade: #3E6B58;
     --sq2-gold: #8E6E2F;
     --sq2-serif: "Songti SC", "STSong", SimSun, serif;
@@ -78,6 +79,7 @@
     --sq2-line: rgba(232, 225, 210, 0.14);
     --sq2-line-2: rgba(232, 225, 210, 0.28);
     --sq2-cinnabar: #D0604F;
+    --sq2-cinnabar-2: rgba(208, 96, 79, 0.15);
     --sq2-jade: #7FAE97;
     --sq2-gold: #C9A75D;
   }
@@ -264,44 +266,42 @@
   #sc-main > .topbar { grid-area: top; }
   #sc-main > .sq2-subnav { grid-area: sub; }
   #sc-main > .tabbody { grid-area: body; min-height: 0; }
-  #sc-main > .tabbar { grid-area: tabs; }
+  /* B16-b：桌面左栏导航容器（品牌区 + 分组导航）整体藏于 <720（手机用 #m-zonebar 底栏，
+     原 16 项导航在手机本就 display:none——见 719px 媒体块，选择器同步改为 .sq2-nav） */
+  #sc-main > .sq2-nav { display: none; }
   /* UI v2 B1：右栏骨架。B1 不造数据，空时整列收起（hasrail 由 renderRail 在真有块时加） */
   #sc-main > .sq2-rail { grid-area: rail; display: none; min-width: 0; overflow-y: auto; }
-  /* UI v2 B16-a（对齐设计稿 .hd，docs/设计稿-v2/style.css §5）：顶栏左右两栏——
-   * 左 = 衬线角色名 + 元信息（境界·势力）+ 战力修为；右 = 灵石（衬线数字）+ 名号行（善恶入口）。
-   * 世界名水印（方案 B3）仍夹在面板底色与文字层之间；两列文字层 z-index 1（走查 ① 断言）。 */
+  /* UI v2 B16-b（对齐设计稿 .hd 标记）：顶栏左右两栏——
+   * 左 = 衬线角色名 + 境界印章；副行 = 世界名 · 世界历日期。
+   * 右 = 灵石（衬线数字，万/亿后缀在外）+ 名号行（善恶入口）。
+   * 世界名水印（B3）退役：世界名入 hd-sub（用户拍板完全对齐设计稿）。 */
   .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-    padding: 14px 14px 12px; position: relative; overflow: hidden; }
-  /* 世界名水印（方案 B3 · 右上竖排落款）：夹在面板底色与文字层之间——absolute 贴右上，文字行抬到 z-index 1。
-   * 竖排字号取 20px（3 字约 60px 高），避免竖排大字被 .topbar 裁切。
-   * opacity 由 .06 → .10 → .30（用户逐次要求更明显，现为较高墨色）。 */
-  .topbar .wm {
-    position: absolute; right: 12px; top: 6px; z-index: 0;
-    writing-mode: vertical-rl;
-    font-size: 20px; font-weight: 800; letter-spacing: .06em; line-height: 1;
-    color: var(--ink); opacity: .30; white-space: nowrap;
-    pointer-events: none; user-select: none;
-  }
+    padding: 14px 14px 12px; position: relative; }
   /* 左列（.hd-l = #m-who，保留 .topline.name 走查锚点；点击开角色浮层） */
-  .topbar .hd-l { flex: 1 1 auto; min-width: 0; position: relative; z-index: 1; cursor: pointer; }
-  /* 角色名：设计稿 .hd-name——衬线 16px · 字距 .14em（原 13px sans 加粗按稿退役） */
-  .topbar .hd-name { font-family: var(--sq2-serif); font-size: 16px; font-weight: 500; letter-spacing: .14em;
-    color: var(--sq2-ink); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  /* 元信息行：设计稿 .hd-sub——11px · 墨三 · 字距 .06em（境界 · 势力） */
+  .topbar .hd-l { flex: 1 1 auto; min-width: 0; cursor: pointer; }
+  /* 角色名行：设计稿 .hd-name——衬线 16px · 字距 .14em + 境界印章（seal sm，gap 8px） */
+  .topbar .hd-name { display: flex; align-items: center; gap: 8px; font-family: var(--sq2-serif);
+    font-size: 16px; font-weight: 500; letter-spacing: .14em; color: var(--sq2-ink); line-height: 1.4;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 副行：设计稿 .hd-sub——11px · 墨三 · 字距 .06em（世界名 · 世界历日期） */
   .topbar .hd-sub { display: flex; align-items: center; gap: 7px; margin-top: 3px; font-size: 11px;
     color: var(--sq2-ink-3); letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  /* 战力修为行（走查 v2.7 §1 功能保留，取 .hd-sub 更小一档） */
-  .topbar .hd-sub2 { margin-top: 2px; font-size: 10.5px; letter-spacing: .04em; color: var(--sq2-ink-3);
-    font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  /* 右列（.hd-r）：灵石在上、名号行在下；右对齐不缩（防长势力名挤压 = 原 who-meta 语义由左列承接） */
+  /* 右列（.hd-r）：灵石在上、名号行在下；右对齐不缩 */
   .topbar .hd-r { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
-    position: relative; z-index: 1; text-align: right; }
-  /* 灵石：设计稿 .hd-stone——标签 11.5px 墨三 + 衬线数字 14px 墨一 */
+    text-align: right; }
+  /* 灵石：设计稿 .hd-stone——标签 11.5px 墨三 + 衬线数字 14px 墨一（万/亿后缀在 b 外） */
   .topbar .hd-stone { font-size: 11.5px; color: var(--sq2-ink-3); letter-spacing: .04em;
     font-variant-numeric: tabular-nums; white-space: nowrap; }
   .topbar .hd-stone b { font-family: var(--sq2-serif); font-size: 14px; font-weight: 500; color: var(--sq2-ink); }
   /* 走查锚点保留：.who-meta 省略号收尾（②b 防溢出断言读它） */
   .topbar .who-meta { display: block; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 印章（设计稿 .seal）：朱砂描边小方章 · 微旋转；顶栏境界章（seal sm）与左栏品牌章共用 */
+  .seal { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+    font-family: var(--sq2-serif); color: var(--sq2-cinnabar);
+    border: 1.5px solid var(--sq2-cinnabar); border-radius: 2px; letter-spacing: .1em;
+    padding: 3px 5px; font-size: 11px; line-height: 1.15; transform: rotate(-2deg);
+    background: var(--sq2-cinnabar-2); }
+  .seal.sm { padding: 2px 4px; font-size: 9.5px; letter-spacing: .06em; }
   .tabbody { overflow-y: auto; }
   /* 导航条（页面整合批 2026-10-06 顺手修）：窄屏 <720px 为横向滚动条而非 flex:1 等分——
    * 等分时 12 项每项仅 ≈25px，而两字标签需 ≈24px + 左右 padding 4px，配合下方 button 的
@@ -380,23 +380,30 @@
   button.mini { min-height: 30px; padding: 3px 10px; font-size: 12px; }
   button.mini:disabled { opacity: .35; cursor: default; }
 
-  /* ── 宽屏（≥720px）：左栏 264px 常驻（顶栏摘要 + 纵向 Tab），右栏内容铺满剩余宽度 ──
-     创角三屏不受影响——它们在 .wrap 里，始终保持 480px 居中窄栏。 */
+  /* ── 宽屏（≥720px）：设计稿桌面壳（B16-b 重构）——左栏 232px = 品牌区 + 分带导航；
+     内容列 = 顶栏 .hd（横跨内容列顶）+ 子导航 + 正文；创角三屏不受影响（.wrap 480px 居中窄栏）。
+     ≥1200 且有区情块时再升三栏（右栏 316px，见下方 hasrail 块）。 ── */
   @media (min-width: 720px) {
     #sc-main {
-      grid-template-columns: 264px minmax(0, 1fr);
-      grid-template-rows: auto minmax(0, 1fr);
-      grid-template-areas: "top sub" "tabs body";
-      column-gap: 14px;
+      grid-template-columns: 232px minmax(0, 1fr);
+      grid-template-rows: auto auto minmax(0, 1fr);
+      grid-template-areas:
+        "nav top"
+        "nav sub"
+        "nav body";
     }
-    /* B16-a 修正（用户实测反馈：桌面 264px 左栏里左右两栏互挤错位）：
-       顶栏在窄左栏改纵向堆叠——hd-l 独占整行，hd-r（灵石 + 名号）整行右对齐落其下；
-       左右两栏形态只在手机全宽（.hd 原生 392）成立。水印（top 6px，约 66px 高）也随堆叠
-       与 hd-r 行自然错开，不再叠在灵石/名号文字上。 */
-    #sc-main > .topbar { flex-direction: column; align-items: stretch; gap: 7px; margin-bottom: 12px; }
-    .topbar .hd-l { width: 100%; }
-    #sc-main > .sq2-subnav { max-width: 980px; width: 100%; margin: 0 auto; }
-
+    /* 左栏 = 设计稿 .railnav：品牌区（印章「三千」+ 三千世界/SANQIAN WORLD）+ 分带导航，全高滚动 */
+    #sc-main > .sq2-nav {
+      grid-area: nav; display: flex; flex-direction: column; min-height: 0;
+      border-right: 1px solid var(--sq2-line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, .18), transparent 40%);
+    }
+    .sq2-nav .rn-brand { display: flex; align-items: center; gap: 11px; padding: 22px 20px 16px; flex: 0 0 auto; }
+    .sq2-nav .rn-title { font-family: var(--sq2-serif); font-size: 15px; letter-spacing: .28em; color: var(--sq2-ink); }
+    .sq2-nav .rn-title small { display: block; font-family: var(--sans); font-size: 9.5px; letter-spacing: .18em;
+      color: var(--sq2-ink-3); margin-top: 2px; }
+    /* 导航体占满余高滚动；行样式沿用既有 .tabbar 桌面口径 */
+    .sq2-nav .tabbar { flex: 1 1 auto; min-height: 0; padding-bottom: 20px; }
     .tabbar { flex-direction: column; align-items: stretch; padding: 0; overflow-y: auto; }
     .tabbar button { flex: 0 0 auto; text-align: left; padding: 9px 12px; font-size: 13px; min-height: 40px; }
     .tabbar .dot { top: 50%; right: 12px; margin-top: -3.5px; }
@@ -409,10 +416,17 @@
     .tabbar button.on { background: var(--sq2-paper-3); color: var(--sq2-cinnabar); border-left-color: var(--sq2-cinnabar); }
     .tabbar .sq2-navsec { border-top: 1px solid var(--sq2-line); margin-top: 6px; padding-top: 10px; }
     .tabbar .sq2-navsec:first-child { border-top: 0; margin-top: 0; padding-top: 2px; }
-    /* 顶栏在桌面融进纸面（不再是一张玻璃卡） */
-    #sc-main > .topbar { background: transparent; border-color: transparent; box-shadow: none; border-radius: 0; }
-    /* 内容卡限宽居中：宽屏下叙事段落一行别拉太长（中文字距舒适区 ~40 字/行） */
-    #sc-main > .tabbody > .panel { max-width: 980px; margin-left: auto; margin-right: auto; }
+
+    /* 内容列顶 = 设计稿 .hd 横跨内容列（左：名+境界章 / 世界名·历日；右：灵石 / 名号），
+       融进纸面（不再是一张玻璃卡），左右内距与正文同一起始线 */
+    #sc-main > .topbar {
+      background: transparent; border-color: transparent; box-shadow: none; border-radius: 0;
+      padding: 16px 26px 10px; margin-bottom: 0;
+    }
+    #sc-main > .sq2-subnav { padding: 0 26px; }
+    #sc-main > .tabbody { padding: 0 26px 40px; }
+    /* 内容限宽 780 一律左对齐（设计稿 §3：与顶栏、子导航同一起始线，右侧留白整齐） */
+    #sc-main > .tabbody > .panel { max-width: 780px; margin-left: 0; margin-right: 0; }
   }
 
   /* ── UI v2 B1：五区导航标题 + 子导航 + 右栏（§4.3 的块在 B2+ 逐区填；空则整列收起）── */
@@ -445,7 +459,10 @@
   @media (min-width: 1200px) {
     #sc-main.hasrail {
       grid-template-columns: 232px minmax(0, 1fr) 316px;
-      grid-template-areas: "top sub rail" "tabs body rail";
+      grid-template-areas:
+        "nav top rail"
+        "nav sub rail"
+        "nav body rail";
     }
     #sc-main.hasrail > .sq2-rail { display: block; }
   }
@@ -1500,7 +1517,7 @@
 /* ── UI v2 B13：手机五区底部 tab（<720px 取代 16 项横滑；区内换页走顶部子导航）── */
 .sq2-zonebar { display: none; grid-area: tabs; }
 @media (max-width: 719px) {
-  #sc-main > .tabbar { display: none; }
+  #sc-main > .sq2-nav { display: none; }
   .sq2-zonebar {
     display: flex; align-items: stretch; gap: 2px;
     border-top: 1px solid var(--sq2-line); background: var(--sq2-paper);

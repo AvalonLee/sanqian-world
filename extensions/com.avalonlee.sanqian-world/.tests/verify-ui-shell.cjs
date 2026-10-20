@@ -200,9 +200,11 @@ const { chromium } = require('playwright-core');
   const nw2 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   T(!nw1 && !nw2, 'SH14b 380 宽下江湖榜 / 道友页无横向溢出', 'prodigy=' + nw1 + ' bonds=' + nw2);
 
-  /* B13：手机五区底部 tab 取代 16 项横滑；点区落该区首页，区内换页走顶部子导航 */
+  /* B13：手机五区底部 tab 取代 16 项横滑；点区落该区首页，区内换页走顶部子导航。
+   * B16-b：16 项导航（含品牌区）收进 #m-nav 容器整体隐藏 ⇒ 判据读容器 display（
+   * 子元素在 display:none 父下的 computed display 仍报告自身值，不可作收起证据）。 */
   const zb0 = await page.evaluate(() => ({
-    tabbar: getComputedStyle(document.getElementById('m-tabbar')).display,
+    tabbar: getComputedStyle(document.getElementById('m-nav')).display,
     zone: getComputedStyle(document.getElementById('m-zonebar')).display,
     btns: Array.prototype.map.call(document.querySelectorAll('#m-zonebar button'), (b) => b.textContent.trim()),
     on: Array.prototype.map.call(document.querySelectorAll('#m-zonebar button'), (b) => b.classList.contains('on'))

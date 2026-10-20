@@ -62,15 +62,14 @@
 <!-- MAIN：顶栏 + 六 Tab + 底栏（窄屏单栏；≥720px 左栏导航 + 右栏内容。
      放在 .wrap 之外，才不会被创角三屏的 480px 窄栏限宽） -->
 <div id="sc-main" class="hide">
-    <!-- UI v2 B16-a：顶栏对齐设计稿 .hd（docs/设计稿-v2/style.css §5）——左右两栏：
-         左 = 衬线角色名 + 元信息（境界·势力）+ 战力修为；右 = 灵石（衬线数字）+ 名号行（善恶入口）。
-         走查锚点全保留：#m-who/.who-meta、#m-rank、#m-stones 同父、data-act=role/karma。 -->
+    <!-- UI v2 B16-b：顶栏 = 设计稿 .hd（index.html §hd）——左：衬线角色名 + 境界印章（seal sm），
+         副行 = 世界名 · 世界历日期（calendar.date 口径）；右：灵石（衬线数字，万/亿后缀在外）
+         + 名号行（善恶入口）。战力/修为撤出顶栏（修行页 statrow/圆相已有）；世界名水印（B3）
+         退役——世界名入 hd-sub（用户拍板对齐设计稿）。走查锚点：#m-who/.who-meta、#m-rank、#m-stones 同父。 -->
     <div class="panel topbar sq2-hd">
-      <div class="wm" id="m-wm" aria-hidden="true"></div>
       <div class="hd-l topline name" id="m-who" data-act="role">
-        <div class="hd-name" id="m-name"></div>
+        <div class="hd-name"><span id="m-name"></span><span class="seal sm" id="m-realm"></span></div>
         <div class="hd-sub who-meta" id="m-meta"></div>
-        <div class="hd-sub2" id="m-sub"></div>
       </div>
       <div class="hd-r">
         <span class="stones hd-stone" id="m-stones"></span>
@@ -97,7 +96,15 @@
       <div id="tab-journal" class="panel hide"></div>
       <div id="tab-settings" class="panel hide"></div>
     </div>
-    <div class="tabbar" id="m-tabbar"></div>
+    <!-- UI v2 B16-b：桌面左栏 = 设计稿 .railnav——顶部品牌区（印章「三千」+ 三千世界/SANQIAN WORLD）
+         + 分组分带导航（band-h/rn-i 形态）；<720 整体隐藏（手机用五区底栏 #m-zonebar）。 -->
+    <nav class="sq2-nav" id="m-nav" aria-label="分区导航">
+      <div class="rn-brand">
+        <span class="seal">三千</span>
+        <div class="rn-title">三千世界<small>SANQIAN WORLD</small></div>
+      </div>
+      <div class="tabbar" id="m-tabbar"></div>
+    </nav>
     <!-- UI v2 B13：手机五区底部 tab（<720px 取代 16 项横滑；点区落该区首页，区内换页走顶部子导航） -->
     <div class="sq2-zonebar" id="m-zonebar"></div>
     <!-- UI v2 B1：右栏骨架（≥1200px 第三列）。B1 只立容器，不造数据；空时 CSS 收起 -->
@@ -1816,27 +1823,30 @@
     var w = ws(), p = pack();
     var sys = p.worldSystems;
     var tier = sys ? sys.tierOf(w) : 'neutral';
-    /* UI v2 B16-a（对齐设计稿 .hd，docs/设计稿-v2/style.css §5）：顶栏左右两栏——
-     * 左 = 角色名（衬线 16px）+ 元信息行（境界 · 势力，未加入不显示势力）+ 战力修为行；
-     * 右 = 灵石（标签 11.5px + 衬线数字）+ 名号行（善恶入口，点按开善恶浮层）。
-     * 世界名仍由 #m-wm 水印承载（方案 B3 不变，v4 互换结论沿用：正文不重复世界名、不加「@」）。
-     * 名号行沿用 .rankchip + tier 着色与 karma 浮层入口（走查锚点不变）。 */
+    /* UI v2 B16-b（对齐设计稿 .hd 标记，docs/设计稿-v2/index.html §hd）：
+     * 左：hd-name = 角色名 + 境界印章（seal sm）；hd-sub = 世界名 · 世界历日期
+     *   （SQ.gameDateStr：{世界名去尾字}历{y}年{m}月{d}日，兜底空串 ⇒ 只显世界名）。
+     * 右：灵石（fmt 缩放，万/亿后缀在衬线数字外 = 设计稿「灵石 85.0 万」口径）
+     *   + 名号行（善恶入口，点按开善恶浮层）。
+     * 战力/修为撤出顶栏（修行页 statrow/圆相承载）；世界名水印（B3）退役。 */
     var idp = identityParts();
-    var fac = SQ.Factions.current(w);
     var rankId = (sys && sys.rankOf) ? sys.rankOf(w) : 'zuodao';
-    $('m-wm').textContent = idp.world;
     $('m-name').textContent = idp.name;
-    $('m-meta').textContent = idp.realm + (fac ? ' · ' + fac.name : '');
-    /* 右列上行 = 灵石：标签 + 衬线数字（设计稿 .hd-stone 形态） */
-    $('m-stones').innerHTML = esc(t('resource.currency')) + ' <b>' + SQ.fmt(w.stones) + '</b>';
-    /* 右列下行 = 名号徽章（善恶入口） */
+    $('m-realm').textContent = idp.realm;
+    var gd = SQ.gameDateStr(state.profile, w, Date.now(), state.profile.worldId);
+    $('m-meta').textContent = gd ? (idp.world + ' · ' + gd) : idp.world;
+    /* 右列上行 = 灵石：fmt 缩放（≥1万 X.X{万} / ≥1亿 X.X{亿}），后缀留在 b 外走 sans。
+     * 单位字取自词表（audit A1：源码白名单外零裸 CJK，正则/字面量也不许）。 */
+    var st = SQ.fmt(w.stones);
+    var uWan = SQ.t('ui.number.wan'), uYi = SQ.t('ui.number.yi');
+    var unit = st.slice(-1) === uWan ? uWan : (st.slice(-1) === uYi ? uYi : '');
+    $('m-stones').innerHTML = esc(t('resource.currency')) + (unit
+      ? ' <b>' + esc(st.slice(0, -1)) + '</b> ' + esc(unit)
+      : ' <b>' + esc(st) + '</b>');
+    /* 右列下行 = 名号行（善恶入口） */
     var rk = $('m-rank');
     rk.className = 'rankchip ' + tier;
     rk.textContent = t('karma.rank.' + rankId);
-    /* 左列末行 = 战力 + 修为（走查 v2.7 §1：修为以「万」为单位，SQ.fmt 缩放） */
-    var m3 = SQ.Mods.collect(state.profile || { talents: [] }, w, p, p.data);
-    $('m-sub').textContent = t('resource.power') + ' ' + SQ.fmt(SQ.Mods.powerOf(w, p, p.data, m3)) +
-      ' · ' + t('resource.primary') + ' ' + SQ.fmt(w.qi) + ' / ' + SQ.fmt(SQ.Idle.capOf(w, p, p.data, m3));
   }
 
   function renderTab() {
