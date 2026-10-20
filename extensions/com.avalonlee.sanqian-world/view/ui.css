@@ -1171,3 +1171,98 @@
 #tab-shop .goods.sold, #tab-shop .goods[disabled] { opacity: .55; }
 #tab-alchemy .lrow, #tab-treasure .lrow { background: var(--sq2-paper-2); border-radius: 2px; }
 #tab-alchemy .bar > i, #tab-treasure .bar > i { background: var(--sq2-cinnabar); }
+
+/* ── UI v2 B8：道友 / 势力 / 江湖榜 / 宗门纸面化 + 右栏江湖区块（动作、判定与可达性未动）── */
+#tab-bonds .bondslots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 16px; }
+@media (max-width: 719px) { #tab-bonds .bondslots { grid-template-columns: 1fr; } }
+#tab-bonds .guardline, #tab-bonds .spouserow {
+  margin: 0; padding: 12px 14px; border: 1px solid var(--sq2-line); border-radius: 2px;
+  background: var(--sq2-paper-2); align-items: flex-start; flex-direction: column; gap: 4px;
+}
+#tab-bonds .spouserow.none { border-style: dashed; }
+#tab-bonds .guardline .g { color: var(--sq2-cinnabar); }
+#tab-bonds .sechead .t, #tab-faction .sechead .t, #tab-sect .sechead .t {
+  font-family: var(--sq2-serif); letter-spacing: .16em; color: var(--sq2-ink-2);
+}
+#tab-bonds .browlist { border-top: 1px solid var(--sq2-line); }
+#tab-bonds .brow {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  background: transparent; border: 0; border-bottom: 1px solid var(--sq2-line);
+  border-radius: 0; padding: 12px 2px; color: var(--sq2-ink); cursor: pointer;
+}
+#tab-bonds .brow:hover { background: var(--sq2-paper-2); }
+#tab-bonds .br-av {
+  width: 36px; height: 36px; flex: 0 0 auto; border-radius: 50%; background: var(--sq2-paper-3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--sq2-serif); font-size: 15px; color: var(--sq2-ink);
+}
+#tab-bonds .brow.sp .br-av { color: var(--spouse); }
+#tab-bonds .br-b { flex: 1; min-width: 0; }
+#tab-bonds .br-b b { display: block; font-family: var(--sq2-serif); font-size: 14px; font-weight: 650; }
+#tab-bonds .br-d { font-size: 11.5px; color: var(--sq2-ink-3); line-height: 1.7; }
+#tab-bonds .br-r { flex: 0 0 auto; width: 150px; text-align: right; }
+#tab-bonds .brow .pb { display: block; height: 4px; background: var(--sq2-line); overflow: hidden; }
+#tab-bonds .brow .pb > i { display: block; height: 100%; background: var(--sq2-cinnabar); }
+#tab-bonds .br-t { display: block; margin-top: 4px; font-size: 10.5px; color: var(--sq2-ink-3); }
+#tab-bonds .brow.dead { opacity: .62; }
+#tab-bonds .br-go { flex: 0 0 auto; color: var(--sq2-cinnabar); font-size: 11px; font-weight: 650; }
+#tab-bonds .lockedline {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%;
+  margin: 10px 0; padding: 10px 12px; border: 1px dashed var(--sq2-line); border-radius: 2px;
+  background: transparent; color: var(--sq2-ink-3); font-size: 12px; cursor: pointer;
+}
+#tab-bonds .lockedline span:last-child { color: var(--sq2-cinnabar); }
+
+#tab-faction .facbanner { background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px; }
+#tab-faction .facbanner.none { background: transparent; }
+#tab-faction .faccols { display: block; }
+#tab-faction .faccol { margin-bottom: 16px; }
+#tab-faction .faccolhead {
+  text-align: left; font-family: var(--sq2-serif); letter-spacing: .16em; color: var(--sq2-ink-3);
+  border-bottom: 1px solid var(--sq2-line); padding-bottom: 6px; margin: 10px 0 2px;
+}
+#tab-faction .faccard {
+  border: 0; border-bottom: 1px solid var(--sq2-line); border-radius: 0;
+  background: transparent; padding: 12px 2px; margin: 0;
+}
+#tab-faction .faccard.cur { background: var(--sq2-paper-2); border-left: 2px solid var(--sq2-cinnabar); padding-left: 10px; }
+#tab-faction .faccard .fn { font-family: var(--sq2-serif); }
+#tab-faction .chipsx .relchip { border-radius: 2px; }
+
+#tab-prodigy .jbchips button {
+  border-radius: 2px; background: transparent; color: var(--sq2-ink-2);
+}
+#tab-prodigy .jbchips button.on { border-color: var(--sq2-cinnabar); color: var(--sq2-cinnabar); background: transparent; }
+#tab-prodigy .selfrank {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 10px 12px; margin: 8px 0 10px;
+  border-top: 1px solid var(--sq2-line); border-bottom: 1px solid var(--sq2-line);
+}
+#tab-prodigy .selfrank .rankno {
+  flex: 0 0 auto; min-width: 1.4em; font-family: var(--sq2-serif);
+  font-size: 26px; line-height: 1; color: var(--sq2-cinnabar);
+}
+#tab-prodigy .selfrank.off .rankno, #tab-prodigy .selfrank.off .sr-n { color: var(--sq2-ink-3); }
+#tab-prodigy .selfrank .sr-n { font-size: 12.5px; color: var(--sq2-ink-2); }
+#tab-prodigy .selfrank .sr-x { margin-left: auto; }
+#tab-prodigy .lrow {
+  background: transparent; border: 0; border-bottom: 1px solid var(--sq2-line);
+  border-radius: 0; padding: 10px 2px;
+}
+#tab-prodigy .lrow.cur {
+  background: var(--sq2-paper-2); box-shadow: none;
+  border-left: 2px solid var(--sq2-cinnabar); padding-left: 8px;
+}
+#tab-prodigy .lrow .nm { font-family: var(--sq2-serif); }
+#tab-prodigy .lrow .rankno { color: var(--sq2-ink-3); font-variant-numeric: tabular-nums; }
+#tab-prodigy .detailbox { background: var(--sq2-paper-2); border-radius: 2px; }
+
+#tab-sect .reqchips span { border-radius: 2px; }
+#tab-sect .kv { border-bottom: 1px solid var(--sq2-line); padding: 6px 0; }
+#tab-sect .lrow { background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px; }
+#tab-sect .lrow .nm { font-family: var(--sq2-serif); }
+#tab-sect .chips button { border-radius: 2px; }
+#tab-sect .sectnamebox input { background: var(--sq2-paper-2); border-radius: 2px; }
+.sq2-rail .rb-gate { font-size: 11px; line-height: 1.7; color: var(--sq2-ink-2); padding: 3px 0; }
+.sq2-rail .rb-gate.ok { color: var(--sq2-jade); }
+.sq2-rail .rb-gate.no { color: var(--sq2-cinnabar); }

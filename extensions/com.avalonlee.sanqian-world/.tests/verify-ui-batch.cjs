@@ -124,14 +124,14 @@ const { chromium } = require('playwright-core');
 
   /* 需求 4：道友页点解锁卡片 → 弹出详情浮层 */
   const cardVisibleBefore = await page.$eval('#modal-bonds', el => el.classList.contains('hide'));
-  await page.click('#tab-bonds .pal[data-act="bondOpen"]');
+  await page.click('#tab-bonds .brow[data-act="bondOpen"]');
   await page.waitForTimeout(300);
   const modalShown = await page.$eval('#modal-bonds', el => !el.classList.contains('hide'));
   const hasDetail = await page.$eval('#mbd-body .bd-head', el => !!el);
   T(modalShown && hasDetail, 'R4 点卡片弹出详情叠加层', 'wasHidden=' + cardVisibleBefore + ' detail=' + hasDetail);
   /* 浮层走查修复：跨至少一次秒级 tick，背后道友页必须保持名录、浮层保持详情 */
   await page.waitForTimeout(1600);
-  const tabStillRoster = await page.$eval('#tab-bonds', el => !!el.querySelector('.palgrid'));
+  const tabStillRoster = await page.$eval('#tab-bonds', el => !!el.querySelector('.browlist'));
   const modalStillDetail = await page.$eval('#mbd-body .bd-head', el => !!el);
   T(tabStillRoster && modalStillDetail, 'R4+ 秒级 tick 后背后道友页保持名录不跟跳', 'roster=' + tabStillRoster + ' detail=' + modalStillDetail);
   /* 浮层内返回名录 → 浮层回列表，道友页不受影响 */
@@ -141,7 +141,7 @@ const { chromium } = require('playwright-core');
   T(backRoster, 'R4+ 浮层内「返回名录」回到列表');
   await page.click('#mbd-close');
   await page.waitForTimeout(300);
-  const tabRestored = await page.$eval('#tab-bonds .palgrid', el => !!el);
+  const tabRestored = await page.$eval('#tab-bonds .browlist', el => !!el);
   T(tabRestored, 'R4 关闭浮层后道友页名录还原');
 
   /* 需求 3：势力页加入按钮置灰（先加入一个）*/

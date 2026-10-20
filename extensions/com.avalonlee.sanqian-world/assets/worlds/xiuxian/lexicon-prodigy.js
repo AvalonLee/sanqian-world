@@ -127,6 +127,7 @@
    * 新口径下这一态不存在（新建角色也看得见四十个名字），留着就是一枚永远取不到的孤儿键。 */
   K['prodigy.board.hint'] = '一榜十席：相识者、名录补位与天榜前三的隐世高人同张榜；榜面不写战力，只给可压 / 相当 / 悬殊三档';
   K['prodigy.board.myrank'] = '你当前位列{band}第 {n} 位';
+  K['prodigy.board.norank'] = '本榜十席暂未见你';
   K['prodigy.board.refresh'] = '名次播报每 {y} 游戏年一次';
   K['prodigy.detail.apt'] = '资质';
   K['prodigy.detail.faction'] = '归属';
