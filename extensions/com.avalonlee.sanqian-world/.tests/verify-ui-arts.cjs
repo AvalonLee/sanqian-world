@@ -359,28 +359,31 @@ async function buildSave() {
   /* ── A8 窄屏：器段退单列 + **导航零截断**（横向滚动修复的验收点）── */
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
-  await page.click('#m-tabbar button[data-v="gear"]');
+  /* UI v2 B13：<720px 用五区底栏 + 子导航；16 项 `#m-tabbar` 收起 */
+  await page.click('#m-subnav button[data-v="gear"]');
   await page.waitForTimeout(300);
   const narrow = await page.evaluate(() => {
     const g = document.querySelector('#tab-gear .geargrid');
-    const btns = Array.prototype.slice.call(document.querySelectorAll('#m-tabbar button'));
-    const bar = document.getElementById('m-tabbar');
+    const zBar = document.getElementById('m-zonebar');
+    const btns = Array.prototype.slice.call(zBar.querySelectorAll('button'));
     return {
       gearCols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').length : 0,
-      /* 截断判据：内容宽 > 可视宽即被 ellipsis 截（旧 flex:1 布局下 12 项每项 ≈25px，两字标签 ≈24px + padding 必截） */
+      tabbar: getComputedStyle(document.getElementById('m-tabbar')).display,
+      zone: getComputedStyle(zBar).display,
       clipped: btns.filter((b) => b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent.trim()),
-      scrollable: bar.scrollWidth > bar.clientWidth,
-      barOverflowX: getComputedStyle(bar).overflowX
+      zones: btns.length,
+      scrollable: zBar.scrollWidth > zBar.clientWidth
     };
   });
   T(narrow.gearCols === 1, 'A8 窄屏器段网格退单列', 'cols=' + narrow.gearCols);
-  T(narrow.clipped.length === 0, 'A8d 窄屏导航**零标签截断**（横向滚动修复生效；旧 flex:1 布局下此处必挂）',
+  T(narrow.clipped.length === 0, 'A8d 窄屏五区底栏**零标签截断**（B13 起 16 项横滑已收起）',
     narrow.clipped.length ? '被截: ' + narrow.clipped.join(',') : 'clean');
-  T(narrow.barOverflowX === 'auto' && narrow.scrollable, 'A8e 窄屏导航条为横向滚动容器且确有可滚内容',
-    'overflow-x=' + narrow.barOverflowX + ' scrollable=' + narrow.scrollable);
+  T(narrow.tabbar === 'none' && narrow.zone === 'flex' && narrow.zones === 5 && !narrow.scrollable,
+    'A8e 窄屏导航 = 五区底栏（16 项侧栏隐藏、底栏五钮且不横向滚动）',
+    'tabbar=' + narrow.tabbar + ' zone=' + narrow.zone + ' n=' + narrow.zones + ' scrollable=' + narrow.scrollable);
 
   /* ── A9 窄屏法宝页退单列（切回激活再量：隐藏面板无法解析网格列）── */
-  await page.click('#m-tabbar button:has-text("法宝")');
+  await page.click('#m-subnav button[data-v="treasure"]');
   await page.waitForTimeout(300);
   const narrowTr = await page.evaluate(() => {
     const t = document.querySelector('#tab-treasure .trgrid');

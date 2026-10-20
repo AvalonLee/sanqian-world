@@ -17,10 +17,14 @@
     --ink-2: var(--xhub-text-2, #5b6070);
     --ink-3: var(--xhub-text-3, #8a8f9e);
     --line: var(--xhub-border, rgba(0, 0, 0, 0.1));
-    --primary: var(--xhub-accent, #a8842c);
+    /* UI v2 令牌对齐（B13）：语义色固定朱砂 / 青，字面走宋体；面仍透明（宿主玻璃卡） */
+    --sq2-cinnabar: #A5362C;
+    --sq2-jade: #3E6B58;
+    --sq2-serif: "Songti SC", "STSong", SimSun, serif;
+    --primary: var(--sq2-cinnabar);
     --track: rgba(20, 24, 40, 0.10);
-    --fill-a: #e6cd7e;
-    --fill-b: #b8933a;
+    --fill-a: #C05548;
+    --fill-b: #A5362C;
   }
   :root[data-xhub-theme="dark"] {
     color-scheme: dark;
@@ -31,10 +35,12 @@
     --ink-2: var(--xhub-text-2, #a2a7b8);
     --ink-3: var(--xhub-text-3, #7d8294);
     --line: var(--xhub-border, rgba(255, 255, 255, 0.12));
-    --primary: var(--xhub-accent, #d9b45e);
+    --sq2-cinnabar: #D0604F;
+    --sq2-jade: #7FAE97;
+    --primary: var(--sq2-cinnabar);
     --track: rgba(255, 255, 255, 0.16);
-    --fill-a: #d9b45e;
-    --fill-b: #a8842c;
+    --fill-a: #D0604F;
+    --fill-b: #A5362C;
   }
 
   html, body { height: 100%; }
@@ -68,6 +74,7 @@
     min-width: 0;
   }
   .world {
+    font-family: var(--sq2-serif);
     font-size: clamp(10px, 7.5cqh, 12px);
     line-height: 1.35;
     color: var(--ink-2);
@@ -78,12 +85,14 @@
     min-width: 0;
   }
   .name > b {
+    font-family: var(--sq2-serif);
     font-size: clamp(15px, 15cqh, 24px);
     font-weight: 650; line-height: 1.15;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .realm {
     flex: 0 0 auto;
+    font-family: var(--sq2-serif);
     font-size: clamp(9px, 6.5cqh, 12px);
     font-weight: 600;
     color: var(--primary);
@@ -94,7 +103,7 @@
     grid-area: karma;
     align-self: start;
     padding: 1px clamp(5px, 2.2cqw, 9px);
-    border-radius: 999px;
+    border-radius: 2px;
     border: 1px solid var(--line);
     font-size: clamp(8px, 5.8cqh, 11px);
     line-height: 1.5;
@@ -108,13 +117,13 @@
   .prog {
     grid-area: prog;
     height: clamp(4px, 3.2cqh, 8px);
-    border-radius: 999px;
+    border-radius: 0;
     background: var(--track);
     overflow: hidden;
   }
   .prog > i {
     display: block; height: 100%; width: 0%;
-    border-radius: 999px;
+    border-radius: 0;
     background: linear-gradient(90deg, var(--fill-a), var(--fill-b));
     transition: width .3s ease;
   }

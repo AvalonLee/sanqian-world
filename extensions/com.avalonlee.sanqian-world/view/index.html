@@ -92,6 +92,8 @@
       <div id="tab-settings" class="panel hide"></div>
     </div>
     <div class="tabbar" id="m-tabbar"></div>
+    <!-- UI v2 B13：手机五区底部 tab（<720px 取代 16 项横滑；点区落该区首页，区内换页走顶部子导航） -->
+    <div class="sq2-zonebar" id="m-zonebar"></div>
     <!-- UI v2 B1：右栏骨架（≥1200px 第三列）。B1 只立容器，不造数据；空时 CSS 收起 -->
     <aside id="m-rail" class="sq2-rail" aria-label="区情"></aside>
 </div>
@@ -1106,7 +1108,28 @@
       });
     });
     renderSubnav();
+    renderZonebar();
     renderRail();
+  }
+
+  /* UI v2 B13：手机五区底部 tab。点一区落到该区首个可进入的页面；
+   * 区内换页仍走顶部子导航（`#m-subnav`），不把 16 项塞回底栏。 */
+  function renderZonebar() {
+    var bar = $('m-zonebar');
+    if (!bar) return;
+    var w0 = ws();
+    bar.innerHTML = SECTIONS.map(function (sec) {
+      var target = null;
+      for (var i = 0; i < sec.items.length; i++) {
+        var tb = tabById(sec.items[i]);
+        if (!tb) continue;
+        var lk = tabLock(tb);
+        if (!lk || (w0 && w0.realm >= lk)) { target = tb.id; break; }
+      }
+      var on = sectionOf(ui.tab).id === sec.id;
+      return '<button type="button" class="' + (on ? 'on' : '') + '"' +
+        (target ? ' data-act="tab" data-v="' + target + '"' : ' disabled') + '>' + esc(t(sec.key)) + '</button>';
+    }).join('');
   }
 
   /* UI v2 B1：右栏骨架。B1 只立容器与「有块才开列」的约定；B2+ 按区填块（块内数字必须与页同源）。
