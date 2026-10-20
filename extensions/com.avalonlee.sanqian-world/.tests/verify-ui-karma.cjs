@@ -123,13 +123,13 @@ const { chromium } = require('playwright-core');
   T(wm.whoText.indexOf(CNAME) >= 0 && wm.whoText.indexOf(WNAME) < 0 && wm.whoText.indexOf('@') < 0,
     '第一行显示角色名称且不含世界名/@（v4 位置互换）', 'who=' + wm.whoText + ' name=' + CNAME + ' world=' + WNAME);
 
-  /* ①b 顶栏第二行名号徽章（基线：左道散人 · 中性色） */
+  /* ①b 顶栏右列名号行（B16-a 对齐设计稿 .hd：右列 = 灵石上 · 名号下；基线：左道散人 · 中性色） */
   const c0 = await chipInfo();
   T(!!c0 && c0.text === '左道散人' && /neutral/.test(c0.cls),
-    '顶栏第二行名号徽章渲染（左道散人 · 中性色）',
+    '顶栏右列名号行渲染（左道散人 · 中性色）',
     c0 ? 'text=' + c0.text + ' cls=' + c0.cls : 'null');
 
-  /* ② 名号徽章（如「极道魔尊」）位于第二行最左、为善恶入口；第一行只留元信息 */
+  /* ② 名号行（如「极道魔尊」）位于右栏灵石之下、为善恶入口；左列只留元信息 */
   const kb0 = await page.evaluate(() => document.getElementById('m-karma'));
   T(kb0 === null, '原第二行档位徽章已撤（无 #m-karma 残留）', 'kb=' + (kb0 ? 'still-present' : 'null'));
   const rankPos = await page.evaluate(() => {
@@ -140,15 +140,15 @@ const { chromium } = require('playwright-core');
     return {
       act: rk ? rk.getAttribute('data-act') : null,
       inLine2: !!(rk && stones && rk.parentElement === stones.parentElement),
-      isLeftmost: !!(rk && line2 && line2.firstElementChild === rk),
+      belowStone: !!(rk && line2 && line2.firstElementChild === stones && stones.nextElementSibling === rk),
       whoHasChip: !!(who && who.querySelector('.rankchip'))
     };
   });
-  T(rankPos.act === 'karma' && rankPos.inLine2 && rankPos.isLeftmost && !rankPos.whoHasChip,
-    '名号徽章移至第二行最左（承接善恶入口 · 第一行不再含徽章）',
-    'act=' + rankPos.act + ' inLine2=' + rankPos.inLine2 + ' leftmost=' + rankPos.isLeftmost + ' whoHasChip=' + rankPos.whoHasChip);
+  T(rankPos.act === 'karma' && rankPos.inLine2 && rankPos.belowStone && !rankPos.whoHasChip,
+    '名号行位于右栏灵石之下（B16 对齐设计稿 .hd：右列 = 灵石上 · 名号下 · 左列不含徽章）',
+    'act=' + rankPos.act + ' inLine2=' + rankPos.inLine2 + ' belowStone=' + rankPos.belowStone + ' whoHasChip=' + rankPos.whoHasChip);
 
-  /* ②b 加入势力后顶栏不溢出：徽章固定不缩、元信息省略号收尾（宽屏左栏仅 264px） */
+  /* ②b 加入势力后顶栏不溢出：右列固定不缩、元信息（左列 .hd-sub）省略号收尾（宽屏左栏仅 264px） */
   const whoBox = await page.evaluate(() => {
     const who = document.getElementById('m-who');
     const rk = document.getElementById('m-rank');
@@ -165,7 +165,7 @@ const { chromium } = require('playwright-core');
   });
   T(whoBox.hasFac, '元信息含势力名（加入掩月宗后）', 'meta 含掩月宗=' + whoBox.hasFac);
   T(whoBox.rkOv <= 1 && whoBox.line2Ov <= 1,
-    '第二行不溢出（名号徽章固定不缩 · 完整可见）',
+    '右列不溢出（灵石 + 名号行完整可见）',
     'rkOv=' + whoBox.rkOv + ' line2Ov=' + whoBox.line2Ov);
   T(whoBox.metaEll === 'ellipsis', '元信息过长时省略号收尾（不裁切硬截）',
     'text-overflow=' + whoBox.metaEll + ' metaOv=' + whoBox.metaOv);

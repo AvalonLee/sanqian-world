@@ -267,8 +267,11 @@
   #sc-main > .tabbar { grid-area: tabs; }
   /* UI v2 B1：右栏骨架。B1 不造数据，空时整列收起（hasrail 由 renderRail 在真有块时加） */
   #sc-main > .sq2-rail { grid-area: rail; display: none; min-width: 0; overflow-y: auto; }
-  /* 走查 v2.7 §1：三行——①名字 ②善恶徽章 + 灵石 ③战力 + 修为；二三行字号样式一致 */
-  .topbar { display: block; padding: 10px 14px; position: relative; overflow: hidden; }
+  /* UI v2 B16-a（对齐设计稿 .hd，docs/设计稿-v2/style.css §5）：顶栏左右两栏——
+   * 左 = 衬线角色名 + 元信息（境界·势力）+ 战力修为；右 = 灵石（衬线数字）+ 名号行（善恶入口）。
+   * 世界名水印（方案 B3）仍夹在面板底色与文字层之间；两列文字层 z-index 1（走查 ① 断言）。 */
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    padding: 14px 14px 12px; position: relative; overflow: hidden; }
   /* 世界名水印（方案 B3 · 右上竖排落款）：夹在面板底色与文字层之间——absolute 贴右上，文字行抬到 z-index 1。
    * 竖排字号取 20px（3 字约 60px 高），避免竖排大字被 .topbar 裁切。
    * opacity 由 .06 → .10 → .30（用户逐次要求更明显，现为较高墨色）。 */
@@ -279,14 +282,26 @@
     color: var(--ink); opacity: .30; white-space: nowrap;
     pointer-events: none; user-select: none;
   }
-  .topbar .topline { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); position: relative; z-index: 1; }
-  .topbar .topline + .topline { margin-top: 4px; }
-  .topbar .topline.name { font-weight: 650; font-size: 13px; color: var(--ink); cursor: pointer; min-width: 0; }
-  /* 名号徽章（第二行最左 · 善恶入口）固定不缩；元信息 / 灵石可缩省略号（防势力名过长溢出） */
-  .topbar .topline .rankchip { flex: 0 0 auto; white-space: nowrap; }
-  .topbar .topline .who-meta { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .topbar .who { font-weight: 650; cursor: pointer; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .stones { font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
+  /* 左列（.hd-l = #m-who，保留 .topline.name 走查锚点；点击开角色浮层） */
+  .topbar .hd-l { flex: 1 1 auto; min-width: 0; position: relative; z-index: 1; cursor: pointer; }
+  /* 角色名：设计稿 .hd-name——衬线 16px · 字距 .14em（原 13px sans 加粗按稿退役） */
+  .topbar .hd-name { font-family: var(--sq2-serif); font-size: 16px; font-weight: 500; letter-spacing: .14em;
+    color: var(--sq2-ink); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 元信息行：设计稿 .hd-sub——11px · 墨三 · 字距 .06em（境界 · 势力） */
+  .topbar .hd-sub { display: flex; align-items: center; gap: 7px; margin-top: 3px; font-size: 11px;
+    color: var(--sq2-ink-3); letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 战力修为行（走查 v2.7 §1 功能保留，取 .hd-sub 更小一档） */
+  .topbar .hd-sub2 { margin-top: 2px; font-size: 10.5px; letter-spacing: .04em; color: var(--sq2-ink-3);
+    font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 右列（.hd-r）：灵石在上、名号行在下；右对齐不缩（防长势力名挤压 = 原 who-meta 语义由左列承接） */
+  .topbar .hd-r { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+    position: relative; z-index: 1; text-align: right; }
+  /* 灵石：设计稿 .hd-stone——标签 11.5px 墨三 + 衬线数字 14px 墨一 */
+  .topbar .hd-stone { font-size: 11.5px; color: var(--sq2-ink-3); letter-spacing: .04em;
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .topbar .hd-stone b { font-family: var(--sq2-serif); font-size: 14px; font-weight: 500; color: var(--sq2-ink); }
+  /* 走查锚点保留：.who-meta 省略号收尾（②b 防溢出断言读它） */
+  .topbar .who-meta { display: block; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tabbody { overflow-y: auto; }
   /* 导航条（页面整合批 2026-10-06 顺手修）：窄屏 <720px 为横向滚动条而非 flex:1 等分——
    * 等分时 12 项每项仅 ≈25px，而两字标签需 ≈24px + 左右 padding 4px，配合下方 button 的
@@ -374,7 +389,8 @@
       grid-template-areas: "top sub" "tabs body";
       column-gap: 14px;
     }
-    #sc-main > .topbar { flex-wrap: wrap; row-gap: 6px; margin-bottom: 12px; }
+    /* B16-a：顶栏已是 .hd 左右两栏，窄左栏（264px）靠 hd-l 省略号收缩，不再换行 */
+    #sc-main > .topbar { margin-bottom: 12px; }
     #sc-main > .sq2-subnav { max-width: 980px; width: 100%; margin: 0 auto; }
 
     .tabbar { flex-direction: column; align-items: stretch; padding: 0; overflow-y: auto; }
@@ -1041,13 +1057,15 @@
   .excl-box .e3 { font-size: 12px; color: rgba(255,255,255,.65); }
   @keyframes exclIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
 
-  /* ── 善恶名号（善恶名号批）：顶栏头衔徽章 + 浮层九段天梯 + 名号更迭全屏演出 ── */
-  /* 名号徽章：顶栏第一行唯一的善恶入口（点按开善恶浮层）——第二行档位徽章已撤 */
-  .rankchip { display: inline-block; padding: 1px 9px; border-radius: 999px; cursor: pointer;
-    font-size: 12px; font-weight: 700; letter-spacing: .04em; border: 1px solid currentColor; vertical-align: 1px; }
-  .rankchip.right { color: var(--sq-karma-right); background: var(--brand-soft); }
-  .rankchip.evil { color: var(--sq-karma-evil); background: rgba(192, 57, 43, 0.10); }
-  .rankchip.neutral { color: var(--sq-karma-neutral); background: var(--well); }
+  /* ── 善恶名号（善恶名号批）：顶栏名号行 + 浮层九段天梯 + 名号更迭全屏演出 ── */
+  /* 名号行（B16-a 对齐设计稿 .karma 行式）：圆点 + 名号文字，色随档位；顶栏唯一善恶入口（点按开善恶浮层）。
+   * 原 999px 药丸徽章按稿退役（浮层内语义不变）；走查锚点 .rankchip + tier 类名保留。 */
+  .rankchip { display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+    font-size: 10.5px; font-weight: 500; letter-spacing: .12em; border: 0; padding: 0; background: none; }
+  .rankchip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+  .rankchip.right { color: var(--sq-karma-right); }
+  .rankchip.evil { color: var(--sq-karma-evil); }
+  .rankchip.neutral { color: var(--sq-karma-neutral); }
   .rankladder { display: flex; flex-direction: column; gap: 3px; margin: 8px 0; }
   .rankladder .rrow { display: flex; align-items: center; justify-content: space-between; gap: 10px;
     padding: 3px 10px; border-radius: var(--sq2-r); border: 1px solid transparent; font-size: 12px; color: var(--ink-2); }

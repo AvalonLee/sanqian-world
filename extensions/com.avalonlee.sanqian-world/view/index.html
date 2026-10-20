@@ -62,14 +62,20 @@
 <!-- MAIN：顶栏 + 六 Tab + 底栏（窄屏单栏；≥720px 左栏导航 + 右栏内容。
      放在 .wrap 之外，才不会被创角三屏的 480px 窄栏限宽） -->
 <div id="sc-main" class="hide">
-    <div class="panel topbar">
+    <!-- UI v2 B16-a：顶栏对齐设计稿 .hd（docs/设计稿-v2/style.css §5）——左右两栏：
+         左 = 衬线角色名 + 元信息（境界·势力）+ 战力修为；右 = 灵石（衬线数字）+ 名号行（善恶入口）。
+         走查锚点全保留：#m-who/.who-meta、#m-rank、#m-stones 同父、data-act=role/karma。 -->
+    <div class="panel topbar sq2-hd">
       <div class="wm" id="m-wm" aria-hidden="true"></div>
-      <div class="topline name" id="m-who" data-act="role"></div>
-      <div class="topline">
-        <span class="rankchip" id="m-rank" data-act="karma"></span>
-        <span class="stones" id="m-stones"></span>
+      <div class="hd-l topline name" id="m-who" data-act="role">
+        <div class="hd-name" id="m-name"></div>
+        <div class="hd-sub who-meta" id="m-meta"></div>
+        <div class="hd-sub2" id="m-sub"></div>
       </div>
-      <div class="topline" id="m-sub"></div>
+      <div class="hd-r">
+        <span class="stones hd-stone" id="m-stones"></span>
+        <span class="rankchip" id="m-rank" data-act="karma"></span>
+      </div>
     </div>
     <!-- UI v2 B1：当前区子导航（桌面与手机同一条；点击复用 data-act="tab" 分派） -->
     <div id="m-subnav" class="sq2-subnav"></div>
@@ -1810,23 +1816,24 @@
     var w = ws(), p = pack();
     var sys = p.worldSystems;
     var tier = sys ? sys.tierOf(w) : 'neutral';
-    /* 走查 v2.7 §1：第一行 = 角色名称 · 境界 · 势力（未加入不显示势力）；第二行 = 名号徽章 + 灵石。
-     * 位置互换（v4）：角色名称移到第一行正文，世界名改由 #m-wm 水印承载；世界名前不再加「@」。
-     * 善恶名号批 v3：名号徽章（如「极道魔尊」）位于第二行最左侧，为顶栏唯一善恶入口（点按开善恶浮层）。
-     * 水印（方案 B3）：水印改作世界名——半透明竖排大字，位于面板底色与文字层之间。
-     * 布局：徽章为 flex:0 0 auto（固定不缩），灵石与元信息可缩省略号，防势力名过长溢出。 */
+    /* UI v2 B16-a（对齐设计稿 .hd，docs/设计稿-v2/style.css §5）：顶栏左右两栏——
+     * 左 = 角色名（衬线 16px）+ 元信息行（境界 · 势力，未加入不显示势力）+ 战力修为行；
+     * 右 = 灵石（标签 11.5px + 衬线数字）+ 名号行（善恶入口，点按开善恶浮层）。
+     * 世界名仍由 #m-wm 水印承载（方案 B3 不变，v4 互换结论沿用：正文不重复世界名、不加「@」）。
+     * 名号行沿用 .rankchip + tier 着色与 karma 浮层入口（走查锚点不变）。 */
     var idp = identityParts();
     var fac = SQ.Factions.current(w);
     var rankId = (sys && sys.rankOf) ? sys.rankOf(w) : 'zuodao';
     $('m-wm').textContent = idp.world;
-    $('m-who').innerHTML =
-      '<span class="who-meta">' + esc(idp.name) + ' · ' + esc(idp.realm) + (fac ? ' · ' + esc(fac.name) : '') + '</span>';
-    /* 第二行最左 = 名号徽章（data-act="karma" → 善恶浮层）；其后 = 灵石 */
+    $('m-name').textContent = idp.name;
+    $('m-meta').textContent = idp.realm + (fac ? ' · ' + fac.name : '');
+    /* 右列上行 = 灵石：标签 + 衬线数字（设计稿 .hd-stone 形态） */
+    $('m-stones').innerHTML = esc(t('resource.currency')) + ' <b>' + SQ.fmt(w.stones) + '</b>';
+    /* 右列下行 = 名号徽章（善恶入口） */
     var rk = $('m-rank');
     rk.className = 'rankchip ' + tier;
     rk.textContent = t('karma.rank.' + rankId);
-    $('m-stones').textContent = t('resource.currency') + ' ' + SQ.fmt(w.stones);
-    /* 第三行 = 战力 + 修为（走查 v2.7 §1：修为以「万」为单位，SQ.fmt 缩放） */
+    /* 左列末行 = 战力 + 修为（走查 v2.7 §1：修为以「万」为单位，SQ.fmt 缩放） */
     var m3 = SQ.Mods.collect(state.profile || { talents: [] }, w, p, p.data);
     $('m-sub').textContent = t('resource.power') + ' ' + SQ.fmt(SQ.Mods.powerOf(w, p, p.data, m3)) +
       ' · ' + t('resource.primary') + ' ' + SQ.fmt(w.qi) + ' / ' + SQ.fmt(SQ.Idle.capOf(w, p, p.data, m3));
