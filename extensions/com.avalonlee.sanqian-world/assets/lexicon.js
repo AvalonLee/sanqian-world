@@ -159,9 +159,7 @@
     'settings.eventpref.desc': '自动抉择时优先选该倾向的分支；该分支不可选则随机其他分支。',
     'event.pref.none': '无倾向',
     'event.pref.right': '正道', 'event.pref.evil': '魔道', 'event.pref.neutral': '左道',
-    'settings.taborder.title': '菜单顺序',
-    'settings.taborder.desc': '「日志」「设置」固定在底部；其余游戏页可上下调整。',
-    'settings.taborder.up': '上移', 'settings.taborder.down': '下移',
+    /* 菜单顺序四键已随 UI v2 B2 退役（D5：字段 settings.tabOrder 保留但不再读；导航固定五区） */
     'settings.about.title': '关于',
     'settings.about.body': '三千世界 · 多世界放置修仙。离线照常结算，回来收功即可。',
     'sys.tag': '系统', 
