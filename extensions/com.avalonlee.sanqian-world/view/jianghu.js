@@ -79,10 +79,13 @@
     /* 玩家只在一个榜上有名次：看别的榜时那一格**不渲染**（早版在此显「第 0 位」，是截图目检抓到的谎）；
      * 右侧节律行改口成「名次播报每 N 游戏年一次」——榜面本身已是实时装配，再说「榜每 10 年一刷」
      * 就与「跨带即时换榜、出榜即时递补」两条播报互相打脸（那两条走的是同一枚 RANK_REFRESH_MS 之外的即时路径）。 */
-    h += '<div class="kv">' + (myRank > 0
-        ? '<span class="hint">' + c.esc(c.t('prodigy.board.myrank', { band: c.t('jianghu.band.' + cur), n: myRank })) + '</span>'
-        : '<span></span>') +
-      '<span class="hint">' + c.esc(c.t('prodigy.board.refresh', { y: Math.round((d.PRODIGY.RANK_REFRESH_MS) / 360000) })) + '</span></div>';
+    /* UI v2 B8：自己的名次条置顶（大号名次 + 名次播报周期）；本榜无名次时不写「第 0 位」 */
+    h += '<div class="selfrank' + (myRank > 0 ? '' : ' off') + '">' +
+      '<span class="rankno">' + (myRank > 0 ? myRank : '·') + '</span>' +
+      '<span class="sr-n">' + c.esc(myRank > 0
+        ? c.t('prodigy.board.myrank', { band: c.t('jianghu.band.' + cur), n: myRank })
+        : c.t('prodigy.board.norank')) + '</span>' +
+      '<span class="hint sr-x">' + c.esc(c.t('prodigy.board.refresh', { y: Math.round((d.PRODIGY.RANK_REFRESH_MS) / 360000) })) + '</span></div>';
     bb.rows.forEach(function (r, rank) {
       if (r === null) { h += '<p class="hint" style="text-align:center;margin:2px 0">⋯</p>'; return; }
       var isMe = !!r.me;
@@ -110,7 +113,7 @@
         if (srvSet[pr.id]) relTxt += ' <span class="tierbadge t3">' + c.esc(c.t('prodigy.detail.serving')) + '</span>';
       }
       /* 玩家跌出十席时榜尾那一行显**真实名次**（`bb.myRank`），不是尾行的行号（旧榜面同一条口径） */
-      h += '<div class="lrow' + (isMe ? ' cur' : '') + '"><div class="nm">' + (isMe ? myRank : rank + 1) + '. ' +
+      h += '<div class="lrow' + (isMe ? ' cur' : '') + '"><div class="nm"><span class="rankno">' + (isMe ? myRank : rank + 1) + '.</span> ' +
         (isMe ? '<b>' + c.esc(nm) + '</b>'
           : (pr ? '<button class="linkbtn" data-act="prodDetail" data-v="' + r.pid + '">' + c.esc(nm) + '</button>' : c.esc(nm))) +
         (jp && jp.ti && !r.hid && !isMe ? ' <span class="hint">' + c.esc(jp.ti) + '</span>' : '') +

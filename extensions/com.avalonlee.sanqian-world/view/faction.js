@@ -177,7 +177,7 @@
     /* 门中委托（势力全录卷 §四）——第卅九批改形：单槽 → **板面最多 3 张不同类型**
      * （`w.factionQuests` 数组，交付按 type 寻址；补单仍吃 factionQuestCd 30 分钟闸）。 */
     if (cur) {
-      h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('faction.quest.title')) + '</p>';
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('faction.quest.title')) + '</span></div>';
       var qlist = (w.factionQuests || []).filter(function (q) { return q && q.expireAt > Date.now(); });
       if (qlist.length) {
         qlist.forEach(function (q) {
@@ -194,7 +194,7 @@
         h += '<p class="hint" style="padding:6px 0">' + c.esc(c.t('faction.quest.none')) + '</p>';
       }
       /* 门中供给（势力全录卷 §六） */
-      h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('faction.supply.title')) + '</p>';
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('faction.supply.title')) + '</span></div>';
       var rankC = SQ.Factions.rankOf(w, d, cur.id);
       var repC = SQ.Factions.repOf(w, cur.id);
       h += '<div class="cardgrid">';

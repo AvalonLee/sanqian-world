@@ -88,6 +88,23 @@ const { chromium } = require('playwright-core');
   await page.waitForTimeout(250);
   T(await page.evaluate(() => !document.getElementById('tab-bonds').classList.contains('hide')), 'SH6 点子导航能换页（data-act=tab 分派）');
 
+  /* B8：江湖区右栏 = 江湖近况 + 宗门四门槛；门槛 ok/no 逐条对引擎 foundGates */
+  const railB = await page.evaluate(() => {
+    const r = document.getElementById('m-rail');
+    const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const w = st.worlds.xiuxian, P = SQ.Worlds.xiuxian.pack;
+    const g = SQ.Sect.foundGates(w, P.data, st.meta);
+    return {
+      has: document.getElementById('sc-main').classList.contains('hasrail'),
+      titles: Array.prototype.map.call(r.querySelectorAll('.rb-t'), (x) => x.textContent.trim()),
+      dom: Array.prototype.map.call(r.querySelectorAll('.rb-gate'), (x) => x.classList.contains('ok')),
+      eng: [g.realm, g.identity, g.peak, g.unlock].map(Boolean)
+    };
+  });
+  T(railB.has && railB.titles.indexOf('江湖近况') >= 0 && railB.titles.indexOf('宗门') >= 0 &&
+    railB.dom.length === 4 && railB.dom.join(',') === railB.eng.join(','),
+    'SH6c 江湖区右栏 = 江湖近况 + 宗门四门槛（门槛 ok/no 逐条 === foundGates）', JSON.stringify(railB));
+
   /* B5：历练区右栏填块（本区词缀；有战报再加一块）——无数据不显示，有数据必须开第三列 */
   await page.click('#m-tabbar button[data-v="combat"]');
   await page.waitForTimeout(300);
@@ -143,6 +160,21 @@ const { chromium } = require('playwright-core');
     sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth
   }));
   T(narrow.de && narrow.body, 'SH14 380 宽无横向溢出', narrow.sw + '/' + narrow.cw);
+
+  /* B8 新行结构（已结缘行 / 名次条）在窄屏不许撑破页宽 */
+  await page.evaluate(() => {
+    Array.prototype.slice.call(document.querySelectorAll('#m-tabbar button'))
+      .filter((b) => b.dataset.v === 'prodigy')[0].click();
+  });
+  await page.waitForTimeout(300);
+  const nw1 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  await page.evaluate(() => {
+    Array.prototype.slice.call(document.querySelectorAll('#m-tabbar button'))
+      .filter((b) => b.dataset.v === 'bonds')[0].click();
+  });
+  await page.waitForTimeout(300);
+  const nw2 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  T(!nw1 && !nw2, 'SH14b 380 宽下江湖榜 / 道友页无横向溢出', 'prodigy=' + nw1 + ' bonds=' + nw2);
   T(errors.length === 0, 'SH15 零页面报错', errors.join(' | ').slice(0, 200) || 'clean');
 
   await ctx.close();

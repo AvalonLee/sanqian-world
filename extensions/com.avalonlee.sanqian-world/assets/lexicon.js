@@ -297,6 +297,8 @@
     /* UI v2 B5：右栏（历练区）块标题 */
     'rail.affix': '本区词缀', 'rail.war': '战报',
     'rail.fire': '炉火', 'rail.restock': '坊市补货', 'rail.left': '余 {t}',
+    /* UI v2 B8：右栏（江湖区）块标题 */
+    'rail.jianghu': '江湖近况', 'rail.sect': '宗门', 'rail.none': '无',
     'zone.cavelink': '福地「{name}」以此为凭', 'zone.cavelink.locked': '首通可开福地',
     'zone.pw.ok': '战力富余 {p}%', 'zone.pw.tight': '战力压线 {p}%', 'zone.pw.bad': '战力不足，差 {n}',
     /* 商店 */
@@ -523,6 +525,9 @@
     'bond.title': '道友名录',
     'bond.sec.friend': '道友', 'bond.sec.spouse': '道侣候选',
     'bond.sec.count': '已结缘 {n} / {total}', 'bond.sec.countdead': '已结缘 {n} / {total} · 缘尽 {d}',
+    /* UI v2 B8：道友页两卡首屏之后只铺已结缘/缘尽行，未结缘收成一条入口（全名录浮层不变） */
+    'bond.sec.met': '已结缘', 'bond.sec.dead': '缘尽', 'bond.met.none': '尚未与任何人结缘',
+    'bond.unmet.line': '{n} 位道友 · 缘分未至', 'bond.unmet.go': '查看全名录 ›',
     'bond.sec.sptip': '「双」= 满档可结缘双修', 'bond.sec.spdoing': '双修中 {n}',
     'bond.badge.spouse': '双', 'bond.deadava': '缘', 'bond.guard.tag': '护法位', 'bond.fav.label': '好感度',
     'bond.spouse.form.yinyang': '阴阳双修', 'bond.spouse.form.huzhu': '互助双修', 'bond.spouse.form.luding': '炉鼎采补',
