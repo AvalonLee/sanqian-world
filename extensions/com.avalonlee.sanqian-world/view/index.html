@@ -1130,6 +1130,22 @@
             logsR.map(function (l) { return '<div class="rb-log">' + esc(l.text) + '</div>'; }).join('') + '</div>';
         }
       }
+      /* B6：道器区右栏 = 炉火（炼丹/炼器进行中）+ 坊市补货倒计时（都取存档现算，无则不显示） */
+      if (ws() && sectionOf(ui.tab).id === 'arts') {
+        var wA = ws();
+        var alA = wA.alchemy || {};
+        if (alA.craft && alA.craft.doneAt) {
+          var leftA = alA.craft.doneAt - Date.now();
+          h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.fire')) + '</div>' +
+            '<div class="rb-b"><b>' + esc(t(alA.craft.kind === 'dan' ? 'alchemy.ui.dan' : 'alchemy.ui.qi')) + '</b>' +
+            '<span>' + esc(t('rail.left', { t: timeLeftText(leftA > 0 ? leftA : 0) })) + '</span></div></div>';
+        }
+        if (wA.shop && wA.shop.nextRestock) {
+          var leftS = wA.shop.nextRestock - Date.now();
+          h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.restock')) + '</div>' +
+            '<div class="rb-b"><span>' + esc(t('rail.left', { t: timeLeftText(leftS > 0 ? leftS : 0) })) + '</span></div></div>';
+        }
+      }
     } catch (e) { h = ''; }
     rail.innerHTML = h;
     main.classList.toggle('hasrail', !!h);

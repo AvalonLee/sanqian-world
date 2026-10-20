@@ -1130,3 +1130,21 @@
   padding: 5px 0; border-bottom: 1px dashed var(--sq2-line);
 }
 .sq2-rail .rb-log:last-child { border-bottom: 0; padding-bottom: 0; }
+
+/* ── UI v2 B6：功法 / 百器两页纸面化（卡片 / 段标 / 筛选 chip；逻辑未动）── */
+#tab-arts .tcard, #tab-gear .tcard {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px;
+}
+#tab-arts .tname, #tab-gear .tname { font-family: var(--sq2-serif); }
+#tab-arts .sechead .t, #tab-gear .sechead .t {
+  font-family: var(--sq2-serif); letter-spacing: .16em; color: var(--sq2-ink-2);
+}
+#tab-arts .chips button, #tab-gear .chips button {
+  border-radius: 2px; background: transparent; color: var(--sq2-ink-2);
+}
+#tab-arts .chips button.on, #tab-gear .chips button.on {
+  border-color: var(--sq2-cinnabar); color: var(--sq2-cinnabar); background: transparent;
+}
+#tab-arts .grouper .gchip, #tab-gear .grouper .gchip { border-radius: 2px; }
+#tab-arts .bar, #tab-gear .bar { background: var(--sq2-paper-3); border-radius: 0; }
+#tab-arts .bar > i, #tab-gear .bar > i { background: var(--sq2-cinnabar); }
