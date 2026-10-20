@@ -89,12 +89,19 @@ const { chromium } = require('playwright-core');
     const m = rgb(maskBg);
     T(m && m.a <= 0.5, 'A 幕布非近黑（alpha ≤ 0.5）', maskBg);
 
-    /* ② 卡面走 --surface（浅主题 = 浅色卡，信息落在浅底上） */
-    const surface = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--surface').trim());
+    /* ② 卡面走 UI v2 纸面令牌（B11 换装后：明暗都由 --sq2-paper 承接） */
+    const paperRgb = await page.evaluate(() => {
+      const d = document.createElement('div');
+      d.style.background = 'var(--sq2-paper)';
+      document.body.appendChild(d);
+      const v = getComputedStyle(d).backgroundColor;
+      d.remove();
+      return v;
+    });
     const cardBg = await page.$eval('#trib-box', el => getComputedStyle(el).backgroundColor);
-    T(cardBg === surface, 'A 卡面底色 = 主题变量 --surface', cardBg + ' vs ' + surface);
+    T(cardBg === paperRgb, 'A 卡面底色 = 纸面令牌 --sq2-paper', cardBg + ' vs ' + paperRgb);
     const c = rgb(cardBg);
-    T(c && c.r >= 240 && c.g >= 240 && c.b >= 240, 'A 浅主题卡面为浅色（rgb ≥ 240）', cardBg);
+    T(c && c.r >= 220 && c.g >= 220 && c.b >= 200, 'A 浅主题卡面为宣纸浅色（rgb ≥ 220）', cardBg);
 
     /* ③ 文字与卡面对比（深字浅底 → 识别清晰；取普通行 .tr b，避开 .hot/.bad 彩色值） */
     const inkCss = await page.$eval('#trib-rows .tr:not(.hot):not(.bad) b', el => getComputedStyle(el).color);
@@ -121,6 +128,13 @@ const { chromium } = require('playwright-core');
     T(rows.some(r => r.includes('渡劫次数') && r.includes('第 1 次渡劫')), 'A 含「渡劫次数」行（第 1 次渡劫）', rows.join(' | '));
     T(rows.some(r => r.includes('护法')), 'A 含「护法」加项行（世界包词族覆写）', rows.join(' | '));
     T(!rows.some(r => r.includes('修为损失')), 'A 胜帧无「修为损失」行', rows.join(' | '));
+    /* ⑦ UI v2 B11：清算 → 落雷 → 定数三段标，揭盅后定数点亮 */
+    const steps = await page.evaluate(() => {
+      const xs = Array.prototype.slice.call(document.querySelectorAll('#trib-steps span'));
+      return { n: xs.length, labels: xs.map(x => x.textContent.trim()), on: xs.findIndex(x => x.className === 'on') };
+    });
+    T(steps.n === 3 && steps.labels.every(x => x.length > 0) && steps.on === 2,
+      'A 渡劫三段标齐（清算 / 落雷 / 定数），结果帧停在定数', JSON.stringify(steps));
 
     /* ⑦ 点击提前收场（tribUnlocked 后） */
     await page.click('#trib-stage');
@@ -163,11 +177,18 @@ const { chromium } = require('playwright-core');
   {
     const { ctx, page, errors } = await openPage(buildSave(0), true);
     await awaitStage(page);
-    const surface = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--surface').trim());
+    const paperRgb = await page.evaluate(() => {
+      const d = document.createElement('div');
+      d.style.background = 'var(--sq2-paper)';
+      document.body.appendChild(d);
+      const v = getComputedStyle(d).backgroundColor;
+      d.remove();
+      return v;
+    });
     const cardBg = await page.$eval('#trib-box', el => getComputedStyle(el).backgroundColor);
-    T(cardBg === surface, 'C 暗主题卡面仍 = --surface（随主题转深）', cardBg + ' vs ' + surface);
+    T(cardBg === paperRgb, 'C 暗主题卡面 = 墨夜纸面令牌（随主题转深）', cardBg + ' vs ' + paperRgb);
     const c = rgb(cardBg);
-    T(c && c.a <= 0.12, 'C 暗主题卡面为低不透明度深底（alpha ≤ 0.12）', cardBg);
+    T(c && c.r < 60 && c.g < 60 && c.b < 60 && c.a > 0.9, 'C 墨夜卡面为不透明深底（可读、不透视背景）', cardBg);
     const inkCss = await page.$eval('#trib-rows .tr:not(.hot):not(.bad) b', el => getComputedStyle(el).color);
     const ink = rgb(inkCss);
     T(ink && ink.r >= 200 && ink.g >= 200 && ink.b >= 200, 'C 暗主题数据行文字为浅色（深底浅字可读）', inkCss);
