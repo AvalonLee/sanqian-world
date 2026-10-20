@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>三千世界 · 页面命名审查（初稿）</title>
+<link rel="stylesheet" href="./style.css">
+<style>
+  body { background: #E4E0D6; }
+  .doc { max-width: 1180px; margin: 0 auto; padding: 34px 26px 80px; }
+
+  .doc-h { margin-bottom: 34px; }
+  .doc-h h1 {
+    font-family: var(--serif); font-size: 25px; letter-spacing: .22em;
+    color: #1F1C16; margin: 0 0 12px;
+  }
+  .doc-h p { margin: 0; max-width: 820px; font-size: 12.5px; line-height: 2; color: #5C564B; }
+  .doc-h b { color: #A5362C; font-weight: 500; }
+
+  h2.sh {
+    font-family: var(--serif); font-size: 15px; letter-spacing: .2em;
+    color: #1F1C16; margin: 40px 0 14px; font-weight: 500;
+    display: flex; align-items: center; gap: 12px;
+  }
+  h2.sh span.n {
+    font-family: var(--sans); font-size: 10px; letter-spacing: .1em;
+    color: #A5362C; border: 1px solid rgba(165,54,44,.35);
+    border-radius: 2px; padding: 1px 6px;
+  }
+  h2.sh::after { content: ""; flex: 1; height: 1px; background: rgba(0,0,0,.09); }
+
+  /* 问题卡 */
+  .issues { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 980px) { .issues { grid-template-columns: 1fr 1fr; } }
+  .issue {
+    background: #FBFAF6; border: 1px solid rgba(0,0,0,.08);
+    border-radius: 10px; padding: 15px 16px 14px;
+  }
+  .issue h4 {
+    margin: 0 0 8px; font-family: var(--serif); font-size: 13.5px;
+    letter-spacing: .12em; font-weight: 500; color: #1F1C16;
+  }
+  .issue h4 i {
+    font-style: normal; font-family: var(--sans); font-size: 9.5px;
+    letter-spacing: 0; color: #B0A695; margin-right: 7px;
+  }
+  .issue p { margin: 0 0 7px; font-size: 11.5px; line-height: 1.85; color: #5C564B; }
+  .issue p:last-child { margin-bottom: 0; }
+  .issue code {
+    font-family: var(--sans); font-size: 10.5px; color: #A5362C;
+    background: rgba(165,54,44,.07); padding: 1px 4px; border-radius: 2px;
+  }
+  .issue .bad { color: #8A8172; }
+  .keepmark {
+    display: inline-block; font-size: 9.5px; letter-spacing: .1em;
+    color: #3E6B58; border: 1px solid rgba(62,107,88,.32);
+    border-radius: 2px; padding: 0 5px; margin-right: 5px;
+  }
+  .ask.done { background: #F7F5EE; }
+  .ask .my.ok { color: #3E6B58; }
+  .ask .my.no { color: #8A8172; }
+
+  /* 表 */
+  table.t {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+    background: #FBFAF6; border: 1px solid rgba(0,0,0,.08);
+    border-radius: 10px; overflow: hidden;
+  }
+  table.t th {
+    text-align: left; font-weight: 500; font-size: 10.5px; letter-spacing: .16em;
+    color: #8A857A; padding: 11px 13px; border-bottom: 1px solid rgba(0,0,0,.09);
+    background: #F7F4EC; white-space: nowrap;
+  }
+  table.t td {
+    padding: 10px 13px; border-bottom: 1px solid rgba(0,0,0,.05);
+    color: #4C463A; vertical-align: top; line-height: 1.75;
+  }
+  table.t tr:last-child td { border-bottom: 0; }
+  table.t td.name {
+    font-family: var(--serif); font-size: 13px; letter-spacing: .12em;
+    color: #1F1C16; white-space: nowrap;
+  }
+  table.t td.new { font-family: var(--serif); font-size: 13px; letter-spacing: .12em; color: #A5362C; }
+  table.t td.sub { font-size: 11.5px; color: #6B6558; }
+  table.t td.why { font-size: 11.5px; color: #6B6558; }
+  table.t .dim { color: #A39C8C; }
+
+  .bd {
+    display: inline-block; font-size: 9.5px; letter-spacing: .1em;
+    padding: 1px 6px; border-radius: 2px; white-space: nowrap;
+    border: 1px solid rgba(0,0,0,.14); color: #8A8172;
+  }
+  .bd.chg { color: #A5362C; border-color: rgba(165,54,44,.4); background: rgba(165,54,44,.06); }
+  .bd.keep { color: #3E6B58; border-color: rgba(62,107,88,.32); }
+  .bd.def { color: #8B6A2F; border-color: rgba(139,106,47,.34); }
+
+  /* 规则 */
+  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 860px) { .rules { grid-template-columns: 1fr; } }
+  .rule {
+    background: #FBFAF6; border: 1px solid rgba(0,0,0,.08); border-radius: 10px;
+    padding: 15px 16px; display: flex; gap: 13px;
+  }
+  .rule .no {
+    font-family: var(--serif); font-size: 20px; color: #C9BFA6;
+    line-height: 1; flex: 0 0 auto; padding-top: 2px;
+  }
+  .rule h5 {
+    margin: 0 0 6px; font-family: var(--serif); font-size: 13px;
+    letter-spacing: .1em; font-weight: 500; color: #1F1C16;
+  }
+  .rule p { margin: 0; font-size: 11.5px; line-height: 1.85; color: #5C564B; }
+
+  /* 拍板 */
+  .asks { display: flex; flex-direction: column; gap: 10px; }
+  .ask {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: #FBFAF6; border: 1px solid rgba(0,0,0,.08);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .ask .q {
+    font-family: var(--serif); font-size: 13px; color: #1F1C16;
+    letter-spacing: .06em; flex: 1; line-height: 1.8;
+  }
+  .ask .q small { display: block; font-family: var(--sans); font-size: 11px; color: #8A857A; letter-spacing: 0; margin-top: 3px; }
+  .ask .my { font-size: 10.5px; color: #A5362C; white-space: nowrap; padding-top: 2px; }
+
+  .foot {
+    margin-top: 36px; padding: 16px 18px;
+    border: 1px dashed rgba(0,0,0,.14); border-radius: 10px;
+    font-size: 11.5px; line-height: 1.95; color: #6B6558;
+  }
+  .foot b { color: #1F1C16; font-weight: 500; }
+  .doc code, .issue code {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 10.5px; color: #7A5C2E; background: rgba(139,106,47,.09);
+    padding: 1px 4px; border-radius: 2px;
+  }
+  .issue code { color: #A5362C; background: rgba(165,54,44,.07); }
+  table.t td.why b, table.t td.sub b { color: #A5362C; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <div class="chrome-brand">
+    <span class="seal">三千</span>
+    <div>
+      <b>页面命名审查 · 初稿</b>
+      <em>15 个页名 + 页内区块名 · 逐条对照词表</em>
+    </div>
+  </div>
+  <div class="chrome-tools">
+    <button class="tbtn" id="btnTheme">墨夜</button>
+  </div>
+</div>
+
+<div class="doc">
+
+  <div class="doc-h">
+    <h1>名字的问题不在难听</h1>
+    <p>
+      我把 15 个页名连同页内区块名，对着 <code>assets/lexicon.js</code> 和 <code>worlds/xiuxian/lexicon.js</code> 核了一遍。
+      结论是：<b>页名本身大多不差，真正乱的是同一概念有好几个名字</b>——玩家得在脑子里做翻译。
+      比如同一条数值，浮层标题叫「善恶」，事件结算写「道心 +15」；同一页内容，导航叫「法与器」，日志分类叫「功法」，四柱 chip 又叫「法」。
+    </p>
+  </div>
+
+  <h2 class="sh"><span class="n">一</span>六类问题</h2>
+  <div class="issues">
+    <div class="issue">
+      <h4><i>01</i>一物多名</h4>
+      <p>同一条数值：浮层标题 <code>karma.system</code> = 「善恶」，事件文案 = 「道心 +15」，代码 = <code>karma</code>。</p>
+      <p>同一套东西：导航「法与器」、日志分类「功法」、四柱「法」。</p>
+    </div>
+    <div class="issue">
+      <h4><i>02</i>层级被并列</h4>
+      <p><code>combat.system</code> = 「秘境洞天」：秘境是去打的地方，洞天是住的地方，两者在页内是两节，却拼成一个页名。</p>
+      <p>「势力」与「宗门」并列成两页，但宗门本就是势力的一种。</p>
+    </div>
+    <div class="issue">
+      <h4><i>03</i>页名与内容不符</h4>
+      <p><code>jianghu.system</code> = 「江湖榜」，但页里只有同代天骄，没有别的榜。</p>
+      <p><span class="keepmark">已裁定保留</span>榜名作江湖门面更响，语义靠页首副标补足。</p>
+    </div>
+    <div class="issue">
+      <h4><i>04</i>页名与模式撞名</h4>
+      <p>「历练」既是修行页的一个模式（<code>idle.mode.venture</code> = 外出历练），又在新导航里当区名。</p>
+      <p>一个词指两个层级，玩家说「去历练」时不知道是切模式还是换页。</p>
+    </div>
+    <div class="issue">
+      <h4><i>05</i>长度不齐</h4>
+      <p>修行、奇遇、坊市、道友、势力、宗门、成就、轮回、日志、设置——十个两字。</p>
+      <p>秘境洞天、炼丹炼器两个四字，在竖排导航里会折行或被迫缩字号。</p>
+    </div>
+    <div class="issue">
+      <h4><i>06</i>产品词混进叙事</h4>
+      <p>日志、设置是产品词，其余十三个都是世界观词。</p>
+      <p>混排会让「生平」区读起来像设置面板，而不是人生记录。</p>
+    </div>
+  </div>
+
+  <h2 class="sh"><span class="n">二</span>逐页审查</h2>
+  <table class="t">
+    <tr>
+      <th style="width:96px">现名</th>
+      <th style="width:70px">判定</th>
+      <th style="width:110px">建议</th>
+      <th style="width:210px">页内区块</th>
+      <th>理由</th>
+    </tr>
+
+    <tr>
+      <td class="name">修行</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">修行</td>
+      <td class="sub">闭关 · 历练</td>
+      <td class="why">页名回答「我在修炼」。但两个模式现在是四字「闭关修炼 / 外出历练」，压成两字，与页名形成「页 / 模式」的清晰分工。</td>
+    </tr>
+
+    <tr>
+      <td class="name">秘境洞天</td>
+      <td><span class="bd chg">建议改</span></td>
+      <td class="new">秘境</td>
+      <td class="sub">秘境 · 洞天福地</td>
+      <td class="why">页名只答「去哪打」。洞天是家不是战场，留在页内分节即可。四字也超出两字惯例。</td>
+    </tr>
+
+    <tr>
+      <td class="name">法与器</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">法与器</td>
+      <td class="sub">功法 · 百器</td>
+      <td class="why">合并批已定，不翻案。但页内两段必须写全称——我上一版稿里用了「法 / 器」单字，是错的，应改回「功法」「百器」。</td>
+    </tr>
+
+    <tr>
+      <td class="name">法宝</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">法宝</td>
+      <td class="sub">法宝栏 · 库 · 图鉴</td>
+      <td class="why">与「百器」分家是硬需求，两个词必须一眼能分：百器是四槽装备，法宝是灵宝。</td>
+    </tr>
+
+    <tr>
+      <td class="name">坊市</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">坊市</td>
+      <td class="sub">坊市 · 黑市</td>
+      <td class="why">黑市是同一页的变体（道心 ≤ −200 才出现），不该升成页名。</td>
+    </tr>
+
+    <tr>
+      <td class="name">道友</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">道友</td>
+      <td class="sub">护法位 · 道侣位 · 名录</td>
+      <td class="why">页名答「我和谁」。但首屏应是两个「位」，不是名录——玩家进这页多半是为了换护法或结缘。</td>
+    </tr>
+
+    <tr>
+      <td class="name">势力</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">势力</td>
+      <td class="sub">十六处 · 战功 · 职位</td>
+      <td class="why">保留，但需在页首一句话讲清与「宗门」的分工：势力是别人的组织，宗门是你自己立的。</td>
+    </tr>
+
+    <tr>
+      <td class="name">江湖榜</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">江湖榜</td>
+      <td class="sub">同代 · 往代</td>
+      <td class="why"><b>已裁定保留</b>——榜名作江湖门面更响，不改。代价是页名不说明内容，须在页首加一行副标「同代天骄 · 按战力排序」补足。</td>
+    </tr>
+
+    <tr>
+      <td class="name">宗门</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">宗门</td>
+      <td class="sub">门中 · 立派 · 传位</td>
+      <td class="why">同上：与「势力」的分工要明说。玩家所属的才叫宗门。</td>
+    </tr>
+
+    <tr>
+      <td class="name">炼丹炼器</td>
+      <td><span class="bd def">需定义</span></td>
+      <td class="name">炼丹炼器</td>
+      <td class="sub">丹房 · 器台</td>
+      <td class="why">四字偏长但不可拆（两套熟练度）。导航可缩「丹器」，但我倾向不缩——缩了就要多解释一次。页内用「丹房」「器台」两个具体场所。</td>
+    </tr>
+
+    <tr>
+      <td class="name">奇遇</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">奇遇</td>
+      <td class="sub">近来奇遇 · 图鉴 · 未择之路</td>
+      <td class="why">词表里已有「近来奇遇」（<code>event.feed.title</code>），是个好词，别另造。「叙事流」只是设计内部术语，玩家看不到，无需改。</td>
+    </tr>
+
+    <tr>
+      <td class="name">成就</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">成就</td>
+      <td class="sub">九面</td>
+      <td class="why">保留。但要和「图鉴」体系对齐——见下方术语表最后一条。</td>
+    </tr>
+
+    <tr>
+      <td class="name">轮回</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">轮回</td>
+      <td class="sub">盖棺之传 · 遗泽</td>
+      <td class="why">核心叙事词，全项目最不该动的一个。「盖棺之传」「遗泽」也已经是好词。</td>
+    </tr>
+
+    <tr>
+      <td class="name">日志</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">日志</td>
+      <td class="sub">分类筛选</td>
+      <td class="why">工具词，放「生平」区末位，与叙事页拉开距离。</td>
+    </tr>
+
+    <tr>
+      <td class="name">设置</td>
+      <td><span class="bd keep">保留</span></td>
+      <td class="name">设置</td>
+      <td class="sub">存档 · 菜单顺序 · 关于</td>
+      <td class="why">同上。从「独立系统项」移入「生平」，导航只剩五个入口。</td>
+    </tr>
+  </table>
+
+  <h2 class="sh"><span class="n">三</span>术语统一表（一物一名）</h2>
+  <table class="t">
+    <tr>
+      <th style="width:120px">概念</th>
+      <th style="width:320px">现在有几种叫法</th>
+      <th>建议统一为</th>
+    </tr>
+    <tr>
+      <td class="name">善恶值</td>
+      <td class="sub">善恶（浮层标题）· 道心（事件文案）· karma（代码）</td>
+      <td class="why">界面统一 <b>道心</b>；「善恶」降为档位描述（正道 / 中立 / 魔道），不再当数值名。</td>
+    </tr>
+    <tr>
+      <td class="name">功法 + 百器</td>
+      <td class="sub">功法（页）· 百器（页）· 功法（日志）· 法（四柱）</td>
+      <td class="why">已拆两页：<b>功法</b> 与 <b>百器</b>；四柱 chip 保持单字「法」（空间所限，副标已说明）。</td>
+    </tr>
+    <tr>
+      <td class="name">秘境</td>
+      <td class="sub">秘境洞天（页）· 秘境（页内）· 历练（模式 / 日志分类）</td>
+      <td class="why">页 <b>秘境</b>；模式 <b>历练</b>；日志分类 <b>历练</b>。三者各指一层，不互串。</td>
+    </tr>
+    <tr>
+      <td class="name">洞府</td>
+      <td class="sub">洞府（系统）· 洞天福地（图鉴）· 福地（池名）</td>
+      <td class="why">总称 <b>洞天福地</b>；单个住所 <b>洞府</b>；高阶洞府才叫 <b>福地</b>。三级定义写进词表注释。</td>
+    </tr>
+    <tr>
+      <td class="name">关系</td>
+      <td class="sub">道友（页）· 侣（四柱）· 道侣 / 护法 / 同门（个体）</td>
+      <td class="why">页 <b>道友</b>；四柱 <b>侣</b>；个体按关系分称，不混用。页内首屏用「护法位 / 道侣位」。</td>
+    </tr>
+    <tr>
+      <td class="name">天骄</td>
+      <td class="sub">江湖榜（页）· 同代榜（页内）· 天骄（个体）</td>
+      <td class="why">页名保持 <b>江湖榜</b>；页内分 <b>同代 / 往代</b>；个体称 <b>天骄</b>。</td>
+    </tr>
+    <tr>
+      <td class="name">宗门 / 势力</td>
+      <td class="sub">宗门 · 门派 · 势力（16 处）</td>
+      <td class="why">玩家所属 <b>宗门</b>；世界里的其他组织 <b>势力</b>。「门派」不再作为界面词出现。</td>
+    </tr>
+    <tr>
+      <td class="name">图鉴</td>
+      <td class="sub">奇遇图鉴 · 成就九面 · 百器录 · 法宝图鉴</td>
+      <td class="why">「图鉴」只作后缀，不单独当页名；「百器录」这类雅称可保留，但标题格式统一为「<b>X 图鉴</b>」。</td>
+    </tr>
+  </table>
+
+  <h2 class="sh"><span class="n">四</span>四条命名规则（建议写进 AGENTS.md）</h2>
+  <div class="rules">
+    <div class="rule">
+      <div class="no">一</div>
+      <div>
+        <h5>页名答「去哪」，模式名答「干什么」</h5>
+        <p>页名一律是地方或名册（秘境、坊市、天骄榜）；模式名一律是动作（闭关、历练）。同一个词不能同时当两者。</p>
+      </div>
+    </div>
+    <div class="rule">
+      <div class="no">二</div>
+      <div>
+        <h5>一个概念，四处同字</h5>
+        <p>导航、页标题、浮层标题、日志分类——这四处出现同一个概念时，必须用同一个词。改一处就要四处一起改。</p>
+      </div>
+    </div>
+    <div class="rule">
+      <div class="no">三</div>
+      <div>
+        <h5>两字优先，四字只在不可拆时用</h5>
+        <p>竖排导航与底部 tab 都吃字数。炼丹炼器是唯一必须四字的情况（两套熟练度），其余一律两字。</p>
+      </div>
+    </div>
+    <div class="rule">
+      <div class="no">四</div>
+      <div>
+        <h5>产品词不与世界观词混排</h5>
+        <p>日志、设置这类产品词，集中放在「生平」区最末，不与秘境、道友这类世界观词交错出现。</p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="sh"><span class="n">五</span>决议</h2>
+  <div class="asks">
+    <div class="ask done">
+      <div class="q">「秘境洞天」→「秘境」
+        <small>导航与页面标题。洞天福地仍在页内分节，也仍是「秘境」区的子项。</small>
+      </div>
+      <div class="my ok">采纳</div>
+    </div>
+    <div class="ask done">
+      <div class="q">「善恶」统一为「道心」
+        <small>浮层标题、属性浮层、渡劫预估、伏击文案一并改。「善恶到头终有账」这类散句保留原文，不当作标签。</small>
+      </div>
+      <div class="my ok">采纳</div>
+    </div>
+    <div class="ask done">
+      <div class="q">修行页模式名 →「闭关 / 历练」
+        <small>原「闭关修炼 / 外出历练」四字在按钮里会挤。散句里仍可写「闭关修炼」，不强制改。</small>
+      </div>
+      <div class="my ok">采纳</div>
+    </div>
+    <div class="ask done">
+      <div class="q">「江湖榜」是否改「天骄榜」
+        <small>页内只有同代天骄，但榜名作为江湖门面更响。</small>
+      </div>
+      <div class="my no">保留原状</div>
+    </div>
+    <div class="ask done">
+      <div class="q">「法与器」拆为「功法 / 百器」两页
+        <small>2026-10-19 追加。原页一半是功法养成、一半是法器配装，靠「功法／法器」分段来回切，两种玩家意图挤在一起。词表里 <code>gear.system</code> 本就叫「法器」，四槽为兵刃／灵器／甲衣／佩饰，与「法宝」（<code>treasure.system</code>，三槽、一条签名效果、不可炼化）是两套独立系统。页名取「百器」而非「法器」，是为与「法宝」拉开距离（法器／法宝在中文里几乎是同义词），也呼应原项目自己的「百器录」。拆开后道器区成为 功法 / 百器 / 法宝 / 炼丹炼器 / 坊市。<br><br>落码：<code>gear.system</code> 现值「法器」需改为「百器」；<code>tribulation.resist</code>（渡劫明细里的「法器抗性」）同步改「百器抗性」。</small>
+      </div>
+      <div class="my ok">已落稿</div>
+    </div>
+  </div>
+
+  <h2 class="sh"><span class="n">六</span>落码清单</h2>
+  <table class="t">
+    <tr>
+      <th style="width:226px">文件 · 行</th>
+      <th style="width:206px">键</th>
+      <th style="width:140px">现值 → 新值</th>
+      <th>会改到的地方</th>
+    </tr>
+    <tr>
+      <td class="sub">assets/worlds/xiuxian/lexicon.js:84</td>
+      <td class="sub"><code>combat.system</code></td>
+      <td class="why">秘境洞天 → <b>秘境</b></td>
+      <td class="why">导航页签。全项目只此一处引用，页面内部分节标题本来就叫「秘境 / 洞天福地」，不受影响。</td>
+    </tr>
+    <tr>
+      <td class="sub">assets/worlds/xiuxian/lexicon.js:163</td>
+      <td class="sub"><code>karma.system</code></td>
+      <td class="why">善恶 → <b>道心</b></td>
+      <td class="why">道心浮层标题、属性浮层「→」行、日志分类筛选标签（<code>view/journal.js:19</code>）。</td>
+    </tr>
+    <tr>
+      <td class="sub">assets/worlds/xiuxian/lexicon.js:159</td>
+      <td class="sub"><code>tribulation.karma</code></td>
+      <td class="why">善恶 → <b>道心</b></td>
+      <td class="why">渡劫预估浮层里那一行的标签。</td>
+    </tr>
+    <tr>
+      <td class="sub">assets/worlds/xiuxian/lexicon-prodigy.js:174 / 178</td>
+      <td class="sub"><code>prodigy.ambush.why</code><br><code>prodigy.ambush.confirm</code></td>
+      <td class="why">善恶 → <b>道心</b></td>
+      <td class="why">伏击确认文案两处，形如「道伤 +{dao}、道心 −{k}」。</td>
+    </tr>
+    <tr>
+      <td class="sub">assets/worlds/xiuxian/lexicon.js:36</td>
+      <td class="sub"><code>idle.mode.seclude</code></td>
+      <td class="why">闭关修炼 → <b>闭关</b></td>
+      <td class="why">修行页模式按钮。</td>
+    </tr>
+    <tr>
+      <td class="sub">assets/worlds/xiuxian/lexicon.js:38</td>
+      <td class="sub"><code>idle.mode.venture</code></td>
+      <td class="why">外出历练 → <b>历练</b></td>
+      <td class="why">修行页模式按钮。</td>
+    </tr>
+  </table>
+
+  <div class="foot" style="margin-top:14px">
+    <b>不动的三处</b>：<code>jianghu.system</code>（江湖榜，已裁定保留）；<code>tiandao.verdict.karma.2</code>「善恶到头终有账」（文学散句，不是标签）；
+    <code>alchemy.mat.mat_wudao.src</code> 里的「闭关修炼」（散句，读得通）。
+  </div>
+
+  <div class="foot">
+    <b>改名成本</b>：全部是词表显示值，只改 <code>K['xxx']</code> 的字符串、不动 key，存档零迁移（页名不进档，只有 <code>profile.worldName</code> 是存档里的显示名，本次不涉及）。
+    但审计 <b>A1</b> 抓 CJK 裸字，新名必须落进词表；<code>README.md</code> 与设计卷里的称呼要同步，<code>FACTS.md</code> / <code>VERSIONS.md</code> 的历史读数不动。
+  </div>
+
+</div>
+
+<script>
+  document.getElementById('btnTheme').addEventListener('click', e => {
+    const dark = document.documentElement.dataset.theme !== 'dark';
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    e.currentTarget.textContent = dark ? '宣纸' : '墨夜';
+  });
+</script>
+</body>
+</html>
