@@ -72,31 +72,26 @@ function buildSave(autoEvent, withPend, eventPref) {
     /* 倒计时数字也在（秒级 tick 刷新） */
     const hasTtl = await page.$$eval('#tab-idle .rumorcard .rt', els => els.length);
     T(hasTtl === 2, 'R2 传闻倒计时同源渲染', 'n=' + hasTtl);
-    /* 底部自动区：三开关（自动渡劫 / 自动奇遇 / 自动炼化 · GitHub issue #2）+ 文案 */
+    /* UI v2 B2：自动三开关已迁设置页，修行页尾不再挂自动区 */
     const idleTxt = await page.$eval('#tab-idle', el => el.textContent);
-    const swT = await page.$$eval('#tab-idle [data-act="toggleAutoTrib"].switch', els => els.length);
-    const swE = await page.$$eval('#tab-idle [data-act="toggleAutoEvent"].switch', els => els.length);
-    const swR = await page.$$eval('#tab-idle [data-act="toggleGearRefine"].switch', els => els.length);
-    T(swT === 1 && swE === 1 && swR === 1, 'R1 修行页底部 = 自动渡劫 + 自动奇遇 + 自动炼化三开关',
-      'trib=' + swT + ' event=' + swE + ' refine=' + swR);
-    T(idleTxt.includes('自动渡劫') && idleTxt.includes('自动奇遇') && idleTxt.includes('自动炼化'), 'R1 三开关文案齐备');
-    /* 末尾四行 setrow 里必须含三开关（第四行可能是自动奇遇展开的倾向子行）*/
-    const autoTail = await page.$$eval('#tab-idle .setrow', els => els.slice(-4).map(e => e.textContent).join('|'));
-    T(autoTail.indexOf('自动渡劫') >= 0 && autoTail.indexOf('自动奇遇') >= 0 && autoTail.indexOf('自动炼化') >= 0,
-      'R1 自动区位于页面最底部', 'tail=' + autoTail.replace(/\s+/g, '').slice(0, 60));
-    /* 设置页不再有自动渡劫 */
+    const swIdle = await page.$$eval('#tab-idle [data-act^="toggle"]', els => els.length);
+    T(swIdle === 0 && !idleTxt.includes('自动渡劫'), 'R1 修行页不再挂自动区（三开关已迁设置页）', 'sw=' + swIdle);
     await page.click('#m-tabbar button:has-text("设置")');
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(300);
     const setTxt = await page.$eval('#tab-settings', el => el.textContent);
-    T(!setTxt.includes('自动渡劫') && setTxt.includes('菜单顺序') && setTxt.includes('存档'), 'R1 设置页已移除自动渡劫（其余区块保留）');
-    /* 手动链路回归：自动渡劫关闭时修行页「渡劫就绪」入口仍在（修为未满不显示，属既有口径——此处只验证开关可切换） */
-    await page.click('#m-tabbar button:has-text("修行")');
-    await page.waitForTimeout(200);
-    await page.click('#tab-idle [data-act="toggleAutoTrib"]');
+    const swT = await page.$$eval('#tab-settings [data-act="toggleAutoTrib"].switch', els => els.length);
+    const swE = await page.$$eval('#tab-settings [data-act="toggleAutoEvent"].switch', els => els.length);
+    const swR = await page.$$eval('#tab-settings [data-act="toggleGearRefine"].switch', els => els.length);
+    T(swT === 1 && swE === 1 && swR === 1, 'R1 设置页 = 自动渡劫 + 自动奇遇 + 自动炼化三开关',
+      'trib=' + swT + ' event=' + swE + ' refine=' + swR);
+    T(setTxt.includes('自动渡劫') && setTxt.includes('自动奇遇') && setTxt.includes('自动炼化'), 'R1 三开关文案齐备');
+    T(!setTxt.includes('菜单顺序') && setTxt.includes('存档'), 'R1 菜单顺序已下线（D5），存档块保留');
+    /* 手动链路回归：设置页开关可切换且随档持久化 */
+    await page.click('#tab-settings [data-act="toggleAutoTrib"]');
     await page.waitForTimeout(500);
     const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1')).settings.autoTrib);
     T(persisted === true, 'R1 自动渡劫切换随档持久化', 'autoTrib=' + persisted);
-    await page.click('#tab-idle [data-act="toggleAutoTrib"]');   /* 复位 */
+    await page.click('#tab-settings [data-act="toggleAutoTrib"]');   /* 复位 */
     T(errors.length === 0, 'A 零页面报错', errors.join('|').slice(0, 150) || 'clean');
     await ctx.close();
   }
@@ -134,13 +129,15 @@ function buildSave(autoEvent, withPend, eventPref) {
 
   /* ── D. 奇遇倾向（体验批）：自动奇遇开启时展开倾向 chips，抉择优先选倾向分支 ── */
   {
-    /* D1 开启态：四 chips 展开、默认无倾向高亮、点选随档持久化 */
+    /* D1 开启态：设置页四 chips 展开、默认无倾向高亮、点选随档持久化 */
     const { ctx, page, errors } = await boot(true, false);
-    const chips = await page.$$eval('#tab-idle [data-act="setEventPref"]', els => els.map(e => e.textContent.trim()));
-    T(chips.length === 4 && chips.join('|') === '无倾向|正道|魔道|左道', 'R3 自动奇遇开启 → 奇遇倾向四 chips', chips.join('|'));
-    const onTxt = await page.$eval('#tab-idle [data-act="setEventPref"].on', el => el.textContent.trim());
+    await page.click('#m-tabbar button:has-text("设置")');
+    await page.waitForTimeout(300);
+    const chips = await page.$$eval('#tab-settings [data-act="setEventPref"]', els => els.map(e => e.textContent.trim()));
+    T(chips.length === 4 && chips.join('|') === '无倾向|正道|魔道|左道', 'R3 自动奇遇开启 → 设置页奇遇倾向四 chips', chips.join('|'));
+    const onTxt = await page.$eval('#tab-settings [data-act="setEventPref"].on', el => el.textContent.trim());
     T(onTxt === '无倾向', 'R3 默认高亮无倾向', onTxt);
-    await page.click('#tab-idle [data-act="setEventPref"][data-v="evil"]');
+    await page.click('#tab-settings [data-act="setEventPref"][data-v="evil"]');
     await page.waitForTimeout(400);
     const prefSaved = await page.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1')).settings.eventPref);
     T(prefSaved === 'evil', 'R3 点选魔道随档持久化', 'eventPref=' + prefSaved);
@@ -150,8 +147,10 @@ function buildSave(autoEvent, withPend, eventPref) {
   /* D2 关闭态：chips 收起（渐进披露，子选项随父开关） */
   {
     const { ctx, page } = await boot(false, false);
-    const chipsOff = await page.$$eval('#tab-idle [data-act="setEventPref"]', els => els.length);
-    T(chipsOff === 0, 'R3 自动奇遇关闭 → 倾向 chips 收起', 'n=' + chipsOff);
+    await page.click('#m-tabbar button:has-text("设置")');
+    await page.waitForTimeout(300);
+    const chipsOff = await page.$$eval('#tab-settings [data-act="setEventPref"]', els => els.length);
+    T(chipsOff === 0, 'R3 自动奇遇关闭 → 设置页倾向 chips 收起', 'n=' + chipsOff);
     await ctx.close();
   }
   /* D3 倾向优先：pref=neutral 且该分支可用（stone 检定 5000≫30）→ 自动抉择必落 neutral（非随机） */
@@ -171,20 +170,22 @@ function buildSave(autoEvent, withPend, eventPref) {
   /* ── E. 自动炼化开关（GitHub issue #2）：缺省为开、点一下随档持久化到 ws.gearAutoRefine、可逆 ── */
   {
     const { ctx, page, errors } = await boot(false, false);
-    const sw = await page.$eval('#tab-idle [data-act="toggleGearRefine"]', el => ({
+    await page.click('#m-tabbar button:has-text("设置")');
+    await page.waitForTimeout(300);
+    const sw = await page.$eval('#tab-settings [data-act="toggleGearRefine"]', el => ({
       cls: /(^| )on( |$)/.test(el.className), aria: el.getAttribute('aria-checked'),
       label: (el.textContent || '').trim()
     }));
     T(sw.cls === true && sw.aria === 'true' && sw.label === '已开启',
       'E1 自动炼化开关缺省为开（手造旧档无该字段 ⇒ 读档补 true，行为逐字不变）', JSON.stringify(sw));
-    await page.click('#tab-idle [data-act="toggleGearRefine"]');
+    await page.click('#tab-settings [data-act="toggleGearRefine"]');
     await page.waitForTimeout(400);
     const off = await page.evaluate(() => ({
       saved: JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.gearAutoRefine,
-      aria: document.querySelector('#tab-idle [data-act="toggleGearRefine"]').getAttribute('aria-checked')
+      aria: document.querySelector('#tab-settings [data-act="toggleGearRefine"]').getAttribute('aria-checked')
     }));
     T(off.saved === false && off.aria === 'false', 'E2 点一下 ⇒ 关：落盘字段与 aria-checked 同变', JSON.stringify(off));
-    await page.click('#tab-idle [data-act="toggleGearRefine"]');
+    await page.click('#tab-settings [data-act="toggleGearRefine"]');
     await page.waitForTimeout(400);
     const on2 = await page.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.gearAutoRefine);
     T(on2 === true, 'E3 再点 ⇒ 回开（开关可逆，不是一次性旗标）', 'gearAutoRefine=' + on2);

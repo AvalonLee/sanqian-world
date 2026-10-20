@@ -265,15 +265,40 @@
      写成 `> .chips` 会把它一起吸到页顶（页中页压在标签下）。故顶部标签行带专名 `.lawchips` 与之区分。 */
   #tab-journal > .chips, #tab-arts > .lawchips {
     position: sticky; top: 0; z-index: 6;
-    background: var(--sq-sticky-veil);
+    background: var(--sq2-paper);
     -webkit-backdrop-filter: blur(14px) saturate(1.2);
     backdrop-filter: blur(14px) saturate(1.2);
     margin: -16px -16px 8px; padding: 16px 16px 8px;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--sq2-line);
     border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
   }
-  #tab-journal .loglist { margin-top: 8px; }
+  #tab-journal .loglist { margin-top: 6px; }
   #tab-journal .logline:last-child { border-bottom: none; }
+  /* UI v2 B2：日志页试点——日期独占左列、正文右列、细分隔线；分类 chips 去胶囊改纸面文字 */
+  #tab-journal > .chips button {
+    border-radius: 2px; border-color: transparent; background: transparent;
+    color: var(--sq2-ink-2); padding: 3px 8px;
+  }
+  #tab-journal > .chips button:hover { border-color: var(--sq2-line); color: var(--sq2-ink); }
+  #tab-journal > .chips button.on {
+    border-color: var(--sq2-cinnabar); color: var(--sq2-cinnabar); background: transparent;
+  }
+  #tab-journal .logline {
+    display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--sq2-line);
+    font-size: 12.5px; color: var(--sq2-ink-2);
+  }
+  #tab-journal .logline .ts {
+    margin: 0; font-family: var(--sq2-serif); font-size: 11.5px;
+    color: var(--sq2-ink-3); letter-spacing: .03em;
+  }
+  #tab-journal .logline .tx { line-height: 1.75; }
+  #tab-journal .logline.ev .tx { white-space: pre-line; }
+  @media (max-width: 420px) {
+    /* 窄屏：日期独占一行，避免「罗云历1年1月 / 6日」被挤成两行 */
+    #tab-journal .logline { display: block; }
+    #tab-journal .logline .ts { display: block; margin-bottom: 2px; }
+  }
 
   /* ── 设置页 ── */
   .setrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
@@ -757,6 +782,18 @@
   .dsec:first-child { margin-top: 0; border-top: none; padding-top: 0; }
   .dsec .dt { font-size: 11px; letter-spacing: .25em; color: var(--ink-3); margin-bottom: 6px; }
   .dsec .dd { font-size: 12.5px; line-height: 1.95; color: var(--ink-2); }
+  /* UI v2 B2：设置页试点——宋体段标 + 纸面细线行；开关选中色改朱砂 */
+  #tab-settings .dsec { border-top: 1px solid var(--sq2-line); margin-top: 20px; padding-top: 14px; }
+  #tab-settings .dsec:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+  #tab-settings .dsec .dt {
+    font-family: var(--sq2-serif); font-size: 11px; letter-spacing: .28em; color: var(--sq2-ink-3);
+  }
+  #tab-settings .setrow { border-bottom: 1px solid var(--sq2-line); padding-bottom: 12px; }
+  #tab-settings .setrow:last-child { border-bottom: 0; padding-bottom: 0; }
+  #tab-settings .switch.on {
+    color: var(--sq2-cinnabar); border-color: var(--sq2-cinnabar); background: transparent;
+  }
+  #tab-settings .switch.on i { background: var(--sq2-cinnabar); }
   /* 往来段（好感三渠道批 2026-10-06 · UI 卷 §3.4c）：拜访主按钮 + 赠丹 chips。
    * 只用既有主题变量（--well/--line/--ink-2/--ink-3/--primary/--brand-soft），零新色零新字体。 */
   .actbtn { display: flex; align-items: center; gap: 7px; width: 100%; min-height: 40px;

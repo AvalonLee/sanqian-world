@@ -609,10 +609,11 @@
       /* 第十六刀补七枚（修行页外置 `view/idle.js`，全是「件外调用才进桥」）：
        * `renderPillars` = 四柱 chip 行 ‖ `renderTiandaoRow` = 天道行（问天入口 + 天象红点）‖
        * `fmtFull` = 大数全写（灵气的「/ 上限」那一格）‖ `caveSigOf` = 洞府印记加成 ‖
-       * `talentCard` = 天赋卡（件内 `talentCard(el, wid())` 两参）‖ `autoEventPref` = 奇遇倾向现值 ‖
-       * `wid` = 当前世界 id。修行页同时复用两枚已有桥名：`bondTierNum` → `bondTier`、`ctx()` → `fresh`。 */
+       * `talentCard` = 天赋卡（件内 `talentCard(el, wid())` 两参）‖
+       * `wid` = 当前世界 id。修行页同时复用两枚已有桥名：`bondTierNum` → `bondTier`、`ctx()` → `fresh`。
+       * 〔UI v2 B2 缩回一枚〕`autoEventPref` 随自动三开关迁回设置页（核内直调）⇒ 修行页不再用，桥 53 → 52 枚。 */
       renderPillars: renderPillars, renderTiandaoRow: renderTiandaoRow, fmtFull: fmtFull,
-      caveSigOf: caveSigOf, talentCard: talentCard, autoEventPref: autoEventPref, wid: wid,
+      caveSigOf: caveSigOf, talentCard: talentCard, wid: wid,
       /* 同刀补第八枚（本刀实测漏网一枚，走查前由 boot catch 抓到）：`offlineDetail` = 离线呈报的
        * 「效率 / 时长」那一格文案。⚠️ 教训：机械改写后必须跑「内核函数名 × 件内裸调用」全表对扫，
        * 不能只信改写规则自己那份白名单（`pct` / `timeAgo` / `offlineDetail` 三枚就是这样漏的）。 */
@@ -966,7 +967,7 @@
   });
 
   /* ══════════ MAIN：九游戏页 + 两系统页 ══════════ */
-  /* 游戏页：顺序可在设置页上下调整（settings.tabOrder）；
+  /* 游戏页：**固定五区序**（UI v2 B1/B2 起；旧 `settings.tabOrder` 不再读、字段保留，旧档照常加载）；
    * lock（势力批 v2.4 需求 §4/§5 → 渐次解锁批 §C 表化）：境界未达时导航标题显示「？」置灰不可点。
    * 阈值单一事实源 = data.js TAB_UNLOCK（tabLock() 优先读表，行内 lock 为同源兜底值；
    * 引擎侧天骄 gate 与渡劫解锁播报同表同源）。
@@ -975,7 +976,7 @@
    * 页面整合批 2026-10-06（UI 卷 §3.4a）：原「功法」「法器」两页并为「法与器」一页 →
    *   游戏页 13 → **12** 项。tab id 沿用 `arts`（不新造 id），故 newArtsDot 红点键、
    *   lastArtsSig 签名、TAB_UNLOCK（二者本就无境界门槛）三处零改动；`gear` 条目删除后，
-   *   旧档 settings.tabOrder 里的 'gear' 由 tabOrder() 既有「未知 id 剔除」自动清掉，无需迁移。
+   *   旧档 `settings.tabOrder` 里的 'gear' 不参与导航（B1 起固定五区），无需迁移。
    *   导航标签改取 `arts.system`（法与器）；`skill.system`/`gear.system` 保留不动——
    *   二者仍是日志页分类筛选标签，改它们会连带改日志分类语义。 */
   var GAME_TABS = [
@@ -1045,17 +1046,7 @@
     }
   }
 
-  /* 游戏页有效顺序：settings.tabOrder 优先，缺项按默认序补齐（未知 id 剔除） */
-  function tabOrder() {
-    var so = (state.settings && state.settings.tabOrder) || [];
-    var byId = {}, used = {};
-    GAME_TABS.forEach(function (t) { byId[t.id] = t; });
-    var out = [];
-    so.forEach(function (id) { if (byId[id] && !used[id]) { out.push(byId[id]); used[id] = 1; } });
-    GAME_TABS.forEach(function (t) { if (!used[t.id]) out.push(t); });
-    return out;
-  }
-
+  /* 游戏页导航按钮（顺序由 SECTIONS 固定；旧 tabOrder 已不参与） */
   function tabBtn(bar, tb) {
     var b = document.createElement('button');
     var w0 = ws();
@@ -1673,31 +1664,37 @@
 
   /* 日志页整段（LOG_CATS / journalLines / renderJournal）已外置成 view/journal.js（第册五批） */
 
-  /* ── Tab 8 设置（重置存档：覆盖为新档 → 回填引用 → 停 tick → 关浮层 → 回创角）── */
-  /* 菜单顺序：仅游戏页可调；「日志」「设置」固定在导航最底部 */
-  function moveTab(id, dir) {
-    var ord = tabOrder().map(function (t) { return t.id; });
-    var i = ord.indexOf(id), j = i + dir;
-    if (i < 0 || j < 0 || j >= ord.length) return;
-    var tmp = ord[i]; ord[i] = ord[j]; ord[j] = tmp;
-    return SQ.Actions.setTabOrder(state, ord);
-  }
-
+  /* ── Tab 8 设置（重置存档：覆盖为新档 → 回填引用 → 停 tick → 关浮层 → 回创角）──
+   * UI v2 B2：菜单顺序整块下线（D5；`settings.tabOrder` 字段保留但不再读，旧档照常加载）；
+   * 自动三开关与奇遇倾向自修行页迁入本页（D6，用户令「日志 + 设置试点，按 B2 开干」）。 */
   function renderSettings() {
     var h = '';
-    /* 菜单顺序（游戏页可上下调整；系统页固定底部） */
-    var ord = tabOrder();
-    h += '<div class="dsec"><div class="dt">' + esc(t('settings.taborder.title')) + '</div>' +
-      '<div class="dd">' + esc(t('settings.taborder.desc')) + '</div>';
-    ord.forEach(function (tb, i) {
-      h += '<div class="setrow"><span class="sl">' + esc(tb.key ? t(tb.key) : t(tb.sys)) + '</span>' +
-        '<span class="tabordacts">' +
-        '<button class="mini" data-act="tabUp" data-v="' + tb.id + '"' + (i === 0 ? ' disabled' : '') + '>' +
-        esc(t('settings.taborder.up')) + '</button>' +
-        '<button class="mini" data-act="tabDown" data-v="' + tb.id + '"' + (i === ord.length - 1 ? ' disabled' : '') + '>' +
-        esc(t('settings.taborder.down')) + '</button>' +
-        '</span></div>';
-    });
+    var autoT = !!(state.settings && state.settings.autoTrib);
+    var autoE = !!(state.settings && state.settings.autoEvent);
+    var autoR = ws().gearAutoRefine !== false;   /* 自动炼化（issue #2）：缺省开 = 旧行为 */
+    h += '<div class="dsec"><div class="dt">' + esc(t('idle.auto.sec')) + '</div>' +
+      '<div class="setrow"><span class="sl">' + esc(t('settings.auto.title')) +
+      '<span class="sd">' + esc(t('settings.auto.desc')) + '</span></span>' +
+      '<button class="switch' + (autoT ? ' on' : '') + '" data-act="toggleAutoTrib" role="switch" aria-checked="' + autoT + '">' +
+      '<i></i><span>' + esc(autoT ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>' +
+      '<div class="setrow"><span class="sl">' + esc(t('settings.autoevent.title')) +
+      '<span class="sd">' + esc(t('settings.autoevent.desc')) + '</span></span>' +
+      '<button class="switch' + (autoE ? ' on' : '') + '" data-act="toggleAutoEvent" role="switch" aria-checked="' + autoE + '">' +
+      '<i></i><span>' + esc(autoE ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>' +
+      '<div class="setrow"><span class="sl">' + esc(t('settings.gearrefine.title')) +
+      '<span class="sd">' + esc(t('settings.gearrefine.desc')) + '</span></span>' +
+      '<button class="switch' + (autoR ? ' on' : '') + '" data-act="toggleGearRefine" role="switch" aria-checked="' + autoR + '">' +
+      '<i></i><span>' + esc(autoR ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>';
+    if (autoE) {
+      var prefNow = autoEventPref();
+      h += '<div class="setrow col"><span class="sl">' + esc(t('settings.eventpref.title')) +
+        '<span class="sd">' + esc(t('settings.eventpref.desc')) + '</span></span>' +
+        '<div class="chips">' +
+        ['none', 'right', 'evil', 'neutral'].map(function (pk) {
+          return '<button class="' + (prefNow === pk ? 'on' : '') + '" data-act="setEventPref" data-v="' + pk + '">' +
+            esc(t('event.pref.' + pk)) + '</button>';
+        }).join('') + '</div></div>';
+    }
     h += '</div>';
     h += '<div class="dsec"><div class="dt">' + esc(t('settings.save.title')) + '</div>' +
       '<div class="dd">' + esc(t('settings.save.now', identityParts())) + '</div>' +
@@ -2470,12 +2467,7 @@
       renderTab();
       return;
     }
-    if (act === 'tabUp' || act === 'tabDown') {
-      await moveTab(v, act === 'tabUp' ? -1 : 1);
-      renderTabbar();
-      renderSettings();
-      return;
-    }
+    if (act === 'tabUp' || act === 'tabDown') { return; }   /* 菜单顺序已下线（UI v2 B2）：旧入口静默忽略 */
     /* 奇遇倾向（体验批）：改偏好即落盘；下次自动抉择按新倾向取分支 */
     if (act === 'setEventPref') {
       await SQ.Actions.setEventPref(state, v);

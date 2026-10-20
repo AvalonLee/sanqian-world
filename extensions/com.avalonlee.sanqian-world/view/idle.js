@@ -277,35 +277,7 @@
       var ch = c.talentCard(el, c.wid());
       return '<div class="' + ch.className + '">' + ch.innerHTML + '</div>';
     }).join('') + '</div>';
-    /* ── 自动区（自动批）：自动渡劫（自设置页迁入）+ 自动奇遇（新增），修行页页尾统一挂靠 ── */
-    var autoT = !!(c.s.settings && c.s.settings.autoTrib);
-    var autoE = !!(c.s.settings && c.s.settings.autoEvent);
-    var autoR = c.w.gearAutoRefine !== false;   /* 自动炼化（issue #2）：缺省开 = 旧行为 */
-    h += '<div class="sechead" style="margin-top:14px"><span class="t">' + c.esc(c.t('idle.auto.sec')) + '</span></div>';
-    h += '<div class="setrow"><span class="sl">' + c.esc(c.t('settings.auto.title')) +
-      '<span class="sd">' + c.esc(c.t('settings.auto.desc')) + '</span></span>' +
-      '<button class="switch' + (autoT ? ' on' : '') + '" data-act="toggleAutoTrib" role="switch" aria-checked="' + autoT + '">' +
-      '<i></i><span>' + c.esc(autoT ? c.t('settings.auto.on') : c.t('settings.auto.off')) + '</span></button></div>';
-    h += '<div class="setrow"><span class="sl">' + c.esc(c.t('settings.autoevent.title')) +
-      '<span class="sd">' + c.esc(c.t('settings.autoevent.desc')) + '</span></span>' +
-      '<button class="switch' + (autoE ? ' on' : '') + '" data-act="toggleAutoEvent" role="switch" aria-checked="' + autoE + '">' +
-      '<i></i><span>' + c.esc(autoE ? c.t('settings.auto.on') : c.t('settings.auto.off')) + '</span></button></div>';
-    h += '<div class="setrow"><span class="sl">' + c.esc(c.t('settings.gearrefine.title')) +
-      '<span class="sd">' + c.esc(c.t('settings.gearrefine.desc')) + '</span></span>' +
-      '<button class="switch' + (autoR ? ' on' : '') + '" data-act="toggleGearRefine" role="switch" aria-checked="' + autoR + '">' +
-      '<i></i><span>' + c.esc(autoR ? c.t('settings.auto.on') : c.t('settings.auto.off')) + '</span></button></div>';
-    /* 奇遇倾向（体验批）：自动抉择时的分支偏好——优先选倾向分支，不可用则随机其他。
-     * 仅自动奇遇开启时展开（子选项，关闭时无意义，避免界面干扰）。 */
-    if (autoE) {
-      var prefNow = c.autoEventPref();
-      h += '<div class="setrow col"><span class="sl">' + c.esc(c.t('settings.eventpref.title')) +
-        '<span class="sd">' + c.esc(c.t('settings.eventpref.desc')) + '</span></span>' +
-        '<div class="chips">' +
-        ['none', 'right', 'evil', 'neutral'].map(function (pk) {
-          return '<button class="' + (prefNow === pk ? 'on' : '') + '" data-act="setEventPref" data-v="' + pk + '">' +
-            c.esc(c.t('event.pref.' + pk)) + '</button>';
-        }).join('') + '</div></div>';
-    }
+    /* 自动三开关与奇遇倾向已随 UI v2 B2 迁入设置页（§七A 154）；修行页尾不再挂自动区。 */
     c.$('tab-idle').innerHTML = h;
   }
   SQ.UI = SQ.UI || {};
