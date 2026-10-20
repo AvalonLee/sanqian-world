@@ -1148,3 +1148,26 @@
 #tab-arts .grouper .gchip, #tab-gear .grouper .gchip { border-radius: 2px; }
 #tab-arts .bar, #tab-gear .bar { background: var(--sq2-paper-3); border-radius: 0; }
 #tab-arts .bar > i, #tab-gear .bar > i { background: var(--sq2-cinnabar); }
+
+/* ── UI v2 B7：法宝 / 炼丹炼器 / 坊市纸面化（结构、价格与掉率未动）── */
+#tab-treasure .tcard, #tab-alchemy .tcard {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px;
+}
+#tab-treasure .tname, #tab-alchemy .tname { font-family: var(--sq2-serif); }
+#tab-treasure .sechead .t, #tab-alchemy .sechead .t, #tab-shop .sechead .t {
+  font-family: var(--sq2-serif); letter-spacing: .16em; color: var(--sq2-ink-2);
+}
+#tab-treasure .chips button, #tab-alchemy .chips button, #tab-shop .chips button {
+  border-radius: 2px; background: transparent; color: var(--sq2-ink-2);
+}
+#tab-treasure .chips button.on, #tab-alchemy .chips button.on, #tab-shop .chips button.on {
+  border-color: var(--sq2-cinnabar); color: var(--sq2-cinnabar); background: transparent;
+}
+#tab-shop .goods {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px;
+}
+#tab-shop .goods .g-n { font-family: var(--sq2-serif); }
+#tab-shop .merchbox { border-color: var(--sq2-cinnabar); background: var(--sq2-paper-3); border-radius: 2px; }
+#tab-shop .goods.sold, #tab-shop .goods[disabled] { opacity: .55; }
+#tab-alchemy .lrow, #tab-treasure .lrow { background: var(--sq2-paper-2); border-radius: 2px; }
+#tab-alchemy .bar > i, #tab-treasure .bar > i { background: var(--sq2-cinnabar); }
