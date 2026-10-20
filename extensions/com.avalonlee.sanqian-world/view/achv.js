@@ -82,7 +82,8 @@
         return '<span class="tdtitle">' + c.esc(c.t('codex.title.' + id)) + '</span>';
       }).join('') + '</div>';
     }
-    /* 行为成就六组 */
+    /* 行为成就六组（UI v2 B9：作第二段，与上方图鉴分行） */
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('achv.ui.behavior')) + '</span></div>';
     var byG = {};
     (d.CODEX.ACHV || []).forEach(function (a) { (byG[a.g] = byG[a.g] || []).push(a); });
     ['xiu', 'jie', 'chen', 'men', 'mi', 'ni'].forEach(function (g) {

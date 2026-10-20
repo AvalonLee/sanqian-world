@@ -145,6 +145,11 @@ function hintTotal() {
   await page.waitForTimeout(300);
   const legacy = await page.evaluate(() => {
     const el = document.querySelector('#tab-legacy');
+    const st = (JSON.parse(localStorage.getItem('sanqian-state-v1')).meta.stats) || {};
+    const cells = Array.prototype.map.call(el.querySelectorAll('.legacygrid .lg-cell'), (x) => ({
+      n: parseInt(((x.querySelector('.lg-n') || {}).textContent || '').trim(), 10),
+      k: ((x.querySelector('.lg-k') || {}).textContent || '').trim()
+    }));
     return {
       codexCard: !!el.querySelector('.facecard'),
       codexGrid: !!el.querySelector('.facegrid'),
@@ -152,12 +157,16 @@ function hintTotal() {
       achvPtr: !!el.querySelector('[data-act="tab"][data-v="achv"]'),
       achvWall: el.textContent.indexOf('首次秘境首通') >= 0 || el.textContent.indexOf('逆天行事') >= 0,
       shop: !!el.querySelector('.shopgrid'),
-      bios: el.textContent.indexOf('前世书') >= 0
+      bios: el.textContent.indexOf('前世书') >= 0,
+      cells: cells, want: [st.lives || 0, st.ascensions || 0, st.dissolutions || 0, st.deaths || 0]
     };
   });
   T(!legacy.codexCard && !legacy.codexGrid && !legacy.titleWall && !legacy.achvPtr && !legacy.achvWall,
     'A13 轮回页图鉴 / 称号墙 / 成就入口已迁出');
   T(legacy.shop && legacy.bios, 'A14 轮回页仍留遗泽商店 + 前世书', 'shop=' + legacy.shop + ' bios=' + legacy.bios);
+  T(legacy.cells.length === 4 && legacy.cells.every((x, i) => x.n === legacy.want[i] && x.k.length > 0),
+    'A14b 轮回页跨世四格（世数 / 飞升 / 兵解 / 身死）逐格 === meta.stats',
+    JSON.stringify(legacy.cells) + ' want=' + JSON.stringify(legacy.want));
 
   /* 窄屏退单列（回成就页） */
   await page.click('#m-tabbar button:has-text("成就")');

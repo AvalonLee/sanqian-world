@@ -131,11 +131,16 @@
     var st = meta.stats || {};
     var h = '<div class="pagehead split"><div class="chips"><button class="on">' + c.esc(c.t('legacy.system')) + '</button></div>' +
       '<span class="tdtitle">' + c.esc(c.t('legacy.ui.balance', { n: SQ.fmt(meta.karma || 0) })) + '</span></div>';
-    h += '<div class="kv"><span class="hint">' + c.esc(c.t('legacy.ui.stats', {
-      lives: st.lives || 0, asc: st.ascensions || 0, dis: st.dissolutions || 0,
-      death: st.deaths || 0,   /* 身死 = 被动了结（寿尽 / 道伤）计数，与玩家主动兵解分列（寿元批） */
-      realm: c.t('realm.' + Math.min(st.realmMax || 0, d.REALMS.length - 1))
-    })) + '</span></div>';
+    /* UI v2 B9：跨世四格（世数 / 飞升 / 兵解 / 身死）+ 最高境界一行；身死 = 被动了结（寿尽 / 道伤），与主动兵解分列 */
+    h += '<div class="legacygrid">' +
+      '<div class="lg-cell"><span class="lg-n">' + (st.lives || 0) + '</span><span class="lg-k">' + c.esc(c.t('legacy.ui.stat.lives')) + '</span></div>' +
+      '<div class="lg-cell"><span class="lg-n">' + (st.ascensions || 0) + '</span><span class="lg-k">' + c.esc(c.t('legacy.ui.stat.asc')) + '</span></div>' +
+      '<div class="lg-cell"><span class="lg-n">' + (st.dissolutions || 0) + '</span><span class="lg-k">' + c.esc(c.t('legacy.ui.stat.dis')) + '</span></div>' +
+      '<div class="lg-cell"><span class="lg-n">' + (st.deaths || 0) + '</span><span class="lg-k">' + c.esc(c.t('legacy.ui.stat.death')) + '</span></div>' +
+      '</div>' +
+      '<div class="kv"><span class="hint">' + c.esc(c.t('legacy.ui.stat.realm', {
+        realm: c.t('realm.' + Math.min(st.realmMax || 0, d.REALMS.length - 1))
+      })) + '</span></div>';
     /* 飞升 / 兵解入口 */
     if (w.realm >= d.REALMS.length - 1 && SQ.Legacy) {
       var fsChk = SQ.Legacy.canFeisheng(w, p, d, meta, Date.now(), c.s.profile);
@@ -147,7 +152,7 @@
         '</div>';
     }
     if (w.realm >= ((d.LEGACY || {}).BINGJIE_MIN_REALM || 4) && SQ.Legacy) {
-      h += '<button data-act="dissolve" style="width:100%;margin:8px 0">' + c.esc(c.t('legacy.ui.bingjie.btn')) + '</button>';
+      h += '<button class="bingjiebtn" data-act="dissolve" style="width:100%;margin:8px 0">' + c.esc(c.t('legacy.ui.bingjie.btn')) + '</button>';
     }
     /* 真灵承继常驻态 +「换一件」入口（轮回卷 §3.4 · 器灵卷 §九）：
      * 未持 shop.heir 资格整块不出现（零打扰）；持格且本世零觉醒候选**且无失效择定**时整块不出现——
@@ -162,7 +167,7 @@
         '<button data-act="heirSwitch" style="width:100%;margin-top:6px">' + c.esc(c.t('spirit.ui.heir.switch')) + '</button></div>';
     }
     /* 遗泽商店（价目总表 6800 · 已购置灰不隐藏） */
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('legacy.ui.shop')) + '</p>';
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('legacy.ui.shop')) + '</span></div>';
     h += '<p class="hint" style="margin:0 0 6px">' + c.esc(c.t('legacy.ui.shop.hint')) + '</p>';
     h += '<div class="shopgrid">';
     SQ.Legacy.shopItems(d).forEach(function (it) {

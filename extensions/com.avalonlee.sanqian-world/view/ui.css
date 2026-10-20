@@ -1266,3 +1266,83 @@
 .sq2-rail .rb-gate { font-size: 11px; line-height: 1.7; color: var(--sq2-ink-2); padding: 3px 0; }
 .sq2-rail .rb-gate.ok { color: var(--sq2-jade); }
 .sq2-rail .rb-gate.no { color: var(--sq2-cinnabar); }
+
+/* ── UI v2 B9：奇遇 / 成就 / 轮回纸面化（事件池、成就判定与转世结算未动）── */
+#tab-event .fcard {
+  display: grid; grid-template-columns: 58px 1fr; gap: 10px;
+  background: transparent; border: 0; border-bottom: 1px solid var(--sq2-line);
+  border-radius: 0; padding: 12px 2px;
+}
+#tab-event .fdate {
+  font-size: 10.5px; color: var(--sq2-ink-3); font-variant-numeric: tabular-nums;
+  line-height: 1.7; padding-top: 2px;
+}
+#tab-event .fmain { min-width: 0; }
+#tab-event .fcard .fn { font-family: var(--sq2-serif); }
+#tab-event .fcard .fg, #tab-event .fcard .fe { line-height: 1.7; }
+#tab-event .codex-sec.cx-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  width: 100%; margin: 10px 0 4px; padding: 8px 2px;
+  background: transparent; border: 0; border-bottom: 1px solid var(--sq2-line);
+  border-radius: 0; font-family: var(--sq2-serif); letter-spacing: .12em;
+  color: var(--sq2-ink-2); font-size: 12px; cursor: pointer;
+}
+#tab-event .codex-sec .cx-a { color: var(--sq2-cinnabar); }
+#tab-event .cslot { background: var(--sq2-paper-2); border-radius: 2px; }
+#tab-event .cslot.seen { border-color: var(--sq2-line); }
+#tab-event .unwalked { border-top: 1px dashed var(--sq2-line); margin-top: 6px; }
+
+#tab-achv .facegrid { grid-template-columns: 1fr; gap: 0; }
+#tab-achv .facecard {
+  display: grid; grid-template-columns: 132px 1fr 170px; gap: 6px 14px; align-items: center;
+  border: 0; border-bottom: 1px solid var(--sq2-line); border-radius: 0;
+  background: transparent; padding: 10px 2px;
+}
+#tab-achv .facecard .ch { grid-column: 1; grid-row: 1; display: block; }
+#tab-achv .facecard .cn { display: block; font-family: var(--sq2-serif); font-size: 13px; }
+#tab-achv .facecard .cc { display: block; margin-top: 2px; }
+#tab-achv .facecard .bar { grid-column: 2; grid-row: 1; }
+#tab-achv .facecard .cfoot { grid-column: 3; grid-row: 1; justify-content: flex-end; margin-top: 0; }
+#tab-achv .facecard .csub { grid-column: 2 / 4; }
+#tab-achv .facecard .msdots i.on { background: var(--sq2-jade); }
+#tab-achv .sechead .t {
+  font-family: var(--sq2-serif); letter-spacing: .16em; color: var(--sq2-ink-2);
+}
+#tab-achv .achvcard { background: var(--sq2-paper-2); border-radius: 2px; }
+@media (max-width: 719px) {
+  #tab-achv .facecard { grid-template-columns: 1fr; }
+  #tab-achv .facecard .ch, #tab-achv .facecard .bar, #tab-achv .facecard .cfoot { grid-column: 1; grid-row: auto; }
+  #tab-achv .facecard .cfoot { justify-content: space-between; }
+  #tab-achv .facecard .csub { grid-column: 1; }
+}
+
+#tab-legacy .legacygrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
+#tab-legacy .lg-cell {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px;
+  padding: 10px 12px;
+}
+#tab-legacy .lg-n { display: block; font-family: var(--sq2-serif); font-size: 24px; line-height: 1.1; color: var(--sq2-cinnabar); }
+#tab-legacy .lg-k { display: block; margin-top: 3px; font-size: 10.5px; letter-spacing: .12em; color: var(--sq2-ink-3); }
+#tab-legacy .bingjiebtn {
+  font-family: var(--sq2-serif); letter-spacing: .16em; padding: 14px 12px;
+  border: 1px solid var(--sq2-cinnabar); border-radius: 2px; background: transparent; color: var(--sq2-cinnabar);
+}
+#tab-legacy .sechead .t { font-family: var(--sq2-serif); letter-spacing: .16em; color: var(--sq2-ink-2); }
+#tab-legacy .shopgrid { grid-template-columns: 1fr; gap: 0; }
+#tab-legacy .shopcard {
+  display: grid; grid-template-columns: 1fr 176px; align-items: center; gap: 2px 14px;
+  border: 0; border-bottom: 1px solid var(--sq2-line); border-radius: 0;
+  background: transparent; padding: 12px 2px; margin: 0;
+}
+#tab-legacy .shopcard .nm { grid-column: 1; font-family: var(--sq2-serif); }
+#tab-legacy .shopcard .meta { grid-column: 1; }
+#tab-legacy .shopcard .acts { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+#tab-legacy .shopcard .acts button { width: 100%; }
+#tab-legacy .shopcard.locked { opacity: .55; }
+#tab-legacy .lrow { background: var(--sq2-paper-2); border-radius: 2px; }
+#tab-legacy [data-karmalog] .lrow { background: transparent; border: 0; border-bottom: 1px dashed var(--sq2-line); border-radius: 0; }
+@media (max-width: 719px) {
+  #tab-legacy .legacygrid { grid-template-columns: 1fr 1fr; }
+  #tab-legacy .shopcard { grid-template-columns: 1fr; }
+  #tab-legacy .shopcard .acts { grid-column: 1; grid-row: auto; margin-top: 6px; }
+}

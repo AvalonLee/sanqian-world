@@ -68,7 +68,12 @@
   K['legacy.ui.legacyTalent.pick'] = '转世天赋（≤2，逐世可换）';
   K['legacy.ui.bondHeir.pick'] = '跨世之缘 · 赎回道友 1 人';
   K['legacy.ui.none'] = '无';
-  K['legacy.ui.stats'] = '跨世：{lives} 世 · 飞升 {asc} · 兵解 {dis} · 身死 {death} · 最高{realm}';
+  /* UI v2 B9：跨世统计改四格 + 最高境界一行（旧整句键退役） */
+  K['legacy.ui.stat.lives'] = '轮回世数';
+  K['legacy.ui.stat.asc'] = '飞升';
+  K['legacy.ui.stat.dis'] = '兵解';
+  K['legacy.ui.stat.death'] = '身死';
+  K['legacy.ui.stat.realm'] = '最高境界 · {realm}';
   /* 结算计分项名（§2.3 十一行） */
   K['legacy.score.realmMax'] = '最高境界档';
   K['legacy.score.ascend'] = '飞升';
@@ -152,6 +157,7 @@
   K['achv.system'] = '成就';
   K['achv.ui.gcount'] = '{n}/{total}';
   K['achv.ui.got'] = '已达成';
+  K['achv.ui.behavior'] = '行 为 成 就';
   K['achv.ui.q'] = '？';
   K['codex.ui.achv.hint'] = '提示：{t}';
   K['codex.ui.titles'] = '称号墙';
