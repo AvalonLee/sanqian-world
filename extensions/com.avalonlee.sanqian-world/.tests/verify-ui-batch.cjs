@@ -46,14 +46,14 @@ const { chromium } = require('playwright-core');
 
   /* 需求 2：左侧菜单「秘境」改名「秘境洞天」 */
   const navTexts = await page.$$eval('#m-tabbar button', els => els.map(e => e.textContent.trim()));
-  T(navTexts.includes('秘境洞天'), 'R2 菜单含「秘境洞天」入口', navTexts.join('/'));
+  T(navTexts.includes('秘境'), 'R2 菜单含「秘境」入口', navTexts.join('/'));
 
-  /* 需求 2：秘境洞天页 = 秘境节（卡片网格）+ 洞天福地节（当前驻留摘要 + 福地卡片） */
-  await page.click('#m-tabbar button:has-text("秘境洞天")');
+  /* 需求 2：秘境页 = 秘境节（卡片网格）+ 洞天福地节（当前驻留摘要 + 福地卡片） */
+  await page.click('#m-tabbar button[data-v="combat"]');
   await page.waitForTimeout(300);
   const caveTxt = await page.$eval('#tab-combat', el => el.textContent);
   const idxZone = caveTxt.indexOf('秘境'), idxCur = caveTxt.indexOf('当前驻留'), idxDex = caveTxt.indexOf('洞天福地');
-  T(idxZone >= 0 && idxCur >= 0 && idxDex >= 0, 'R2 秘境洞天页两节齐全', 'zone=' + idxZone + ' cur=' + idxCur + ' dex=' + idxDex);
+  T(idxZone >= 0 && idxCur >= 0 && idxDex >= 0, 'R2 秘境页两节齐全', 'zone=' + idxZone + ' cur=' + idxCur + ' dex=' + idxDex);
   T(idxZone >= 0 && idxCur > idxZone && idxDex > idxZone, 'R2 页面序 秘境 → 洞天福地', idxZone + '<' + idxCur + '/' + idxDex);
   const caveCards = await page.$$eval('#tab-combat .cavegrid > .cavecard', els => els.length);
   T(caveCards >= 6, 'R2 洞天福地卡片网格（≥6 卡）', 'n=' + caveCards);
@@ -172,7 +172,7 @@ const { chromium } = require('playwright-core');
   });
   T(caveJump.onCombat && caveJump.hasSec, '回归 地柱 → 跳「秘境洞天」页洞天节', JSON.stringify(caveJump));
   const caveEnterDis = await page.$$eval('#tab-combat [data-act="caveEnter"][disabled]', els => els.length);
-  console.log('INFO 秘境洞天页置灰入驻按钮数（资格/冷却所致）=', caveEnterDis);
+  console.log('INFO 秘境页置灰入驻按钮数（资格/冷却所致）=', caveEnterDis);
 
   T(errors.length === 0, '零页面报错', errors.join(' | ').slice(0, 200) || 'clean');
   console.log(fail === 0 ? 'UI_VERIFY_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_VERIFY_FAILED ' + fail);

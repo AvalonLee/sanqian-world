@@ -114,29 +114,25 @@ window.SQSmoke.frag('06-karma-bond-writes', async function () {
     var W255 = 'xiuxian';
     var t255 = function (k, v) { return SQ.t(k, v || null, W255); };
     var has255 = function (k) { var s = t255(k); return s !== k && String(s).trim().length > 0; };
-    /* (a) 导航标签 */
-    var a255 = t255('arts.system') === '法与器';
-    /* (b) 概览条 + 段标共 8 个无占位符键：存在且非空 */
-    var keys255 = ['arts.ov.main', 'arts.ov.main.none', 'arts.ov.gear', 'arts.ov.power',
-      'arts.seg.fa', 'arts.seg.fa.sub', 'arts.seg.qi', 'arts.seg.qi.sub'];
-    var miss255 = keys255.filter(function (k) { return !has255(k); });
-    /* 两个带占位符的模板：渲染后不得残留 `{`（占位符名写错会原样漏进界面） */
-    var ovMain255 = t255('arts.ov.main.val', { name: '吐纳诀', lv: 3 });
-    var ovGear255 = t255('arts.ov.gear.val', { n: 2, total: 4, r: '1.2万' });
-    var b255 = miss255.length === 0 &&
-      ovMain255 === '吐纳诀 · Lv3' && ovGear255 === '2/4 · 抗 1.2万' &&
-      ovMain255.indexOf('{') < 0 && ovGear255.indexOf('{') < 0;
-    /* (c) 日志分类标签三键保留不动（值一并钉死：改名即日志页分类错位） */
-    var c255 = t255('skill.system') === '功法' && t255('gear.system') === '法器' && t255('gear.tag') === '拾得';
-    /* (d) TAB_UNLOCK 四条不得出现 */
+    /* (a) 两页导航标签（B3 拆页后：功法 / 百器） */
+    var a255 = t255('skill.system') === '功法' && t255('gear.system') === '百器';
+    /* (b) 合并页专属键全部退役（arts.system / arts.ov.* / arts.seg.* 不得再在册） */
+    var gone255 = ['arts.system', 'arts.ov.main', 'arts.ov.main.none', 'arts.ov.main.val',
+      'arts.ov.gear', 'arts.ov.gear.val', 'arts.ov.power',
+      'arts.seg.fa', 'arts.seg.fa.sub', 'arts.seg.qi', 'arts.seg.qi.sub']
+      .filter(function (k) { return has255(k); });
+    var b255 = gone255.length === 0;
+    /* (c) 日志分类标签键保留（gear.tag 拾得；skill/gear 系统名与 (a) 同源） */
+    var c255 = t255('gear.tag') === '拾得';
+    /* (d) TAB_UNLOCK 四条不得出现（两页均无境界门槛） */
     var tu255 = D.TAB_UNLOCK || {};
     var bad255 = ['arts', 'gear', 'combat', 'cave'].filter(function (k) { return tu255[k] != null; });
     var d255 = bad255.length === 0;
-    ok('255', '法与器合并页（页面整合批 · 引擎/词表侧契约）：(a) 导航标签新键 `arts.system` = 「法与器」；(b) 概览条 6 键（主修 / 主修空态 / 主修值 / 佩器 / 佩器值 / 战力）+ 段标 4 键（法·字·副标 / 器·字·副标）齐全非空，两个带占位符模板渲染后零 `{` 残留；(c) `skill.system`(功法) / `gear.system`(法器) / `gear.tag`(拾得) 三键**保留不动**——仍是日志页分类筛选标签，合并只换承载页不改分类语义；(d) `TAB_UNLOCK` 无 `arts`/`gear`/`combat`/`cave` 四条（功法与法器本就无境界门槛、秘境洞天合并批后洞天亦无锁，误加会让合并页在炼气期「？」置灰）。DOM 侧见 verify-ui-arts A0~A10、静态 id 侧见审计 A3（`lawsec-` 动态锚点前缀同批入白名单）',
+    ok('255', '「功法 / 百器」拆页（UI v2 B3 · 引擎/词表侧契约）：(a) 导航标签 = 「功法」「百器」（skill.system / gear.system）；(b) 合并页专属键 `arts.system` / `arts.ov.*` / `arts.seg.*` 全部退役（`t()` 回落 = 键本身）；(c) 日志分类键 `gear.tag`(拾得) 保留；(d) `TAB_UNLOCK` 无 `arts`/`gear`/`combat`/`cave` 四条（两页均无境界门槛）。DOM 侧见 verify-ui-arts / verify-ui-gear；探针见 probe-lawmerge',
       a255 && b255 && c255 && d255,
-      '(a) arts.system=' + t255('arts.system') +
-      ' ‖ (b) 缺键=' + (miss255.length ? miss255.join(',') : '无') + ' 主修格=' + ovMain255 + ' 佩器格=' + ovGear255 +
-      ' ‖ (c) skill.system=' + t255('skill.system') + ' gear.system=' + t255('gear.system') + ' gear.tag=' + t255('gear.tag') +
+      '(a) skill.system=' + t255('skill.system') + ' gear.system=' + t255('gear.system') +
+      ' ‖ (b) 未退役=' + (gone255.length ? gone255.join(',') : '无') +
+      ' ‖ (c) gear.tag=' + t255('gear.tag') +
       ' ‖ (d) TAB_UNLOCK 越界=' + (bad255.length ? bad255.join(',') : '无') + '(共 ' + Object.keys(tu255).length + ' 条)');
     /* #256 「跨世之缘」五环链（批 B ⑤ 好感度新渠道批 2026-10-06 · 图鉴卷 v1.4 §4.3.1 勘误取证）：
      * 本条是**勘误的执行证据**，不是新功能断言。图鉴卷 v1.3 曾断言该遗泽商品「至今未实现」

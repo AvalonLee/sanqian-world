@@ -250,19 +250,8 @@
      * ⚠️ `skill.system`（功法）与 `gear.system`（法器）**保留不动**——它们仍是日志页
      * 分类筛选标签（view 日志分类表 `{id:'arts',sys:'skill.system'}` /
      * `{id:'gear',sys:'gear.tag'}`），改它们会连带改日志分类语义。 */
-    'arts.system': '法与器',
     /* ① 概览条 `.laware`：一行三格，点格锚跳到对应段——合并页存在的理由 */
-    'arts.ov.main': '主修',
-    'arts.ov.main.none': '虚位以待',
-    'arts.ov.main.val': '{name} · Lv{lv}',
-    'arts.ov.gear': '佩器',
-    'arts.ov.gear.val': '{n}/{total} · 抗 {r}',
-    'arts.ov.power': '战力',
     /* ②④ 段标 `.secdiv`：分隔「法」「器」两段（单字大字 + 一句副标） */
-    'arts.seg.fa': '法',
-    'arts.seg.fa.sub': '功法主修，攻伐之本',
-    'arts.seg.qi': '器',
-    'arts.seg.qi.sub': '法器护身，择优自佩',
     /* 游戏历（v2.3）：{name} = 世界名去尾字（罗云州 → 罗云）；1 游戏日 = 现实 1 秒，360 日/年 */
     'calendar.date': '{name}历{y}年{m}月{d}日',
     /* 秘境 */

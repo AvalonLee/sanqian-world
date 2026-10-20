@@ -387,10 +387,8 @@ const SQ = sandbox.window.SQ;
 
   /* A3 DOM id 对账：脚本里取元素用的 id 必须在同一 HTML 内静态存在
    * （取不到 = null.textContent 直接白屏；动态拼接 id 如 'jline-'+i 按前缀白名单放行） */
-  /* 'lawsec-' = 法与器合并页两个段标锚点（`secDiv()` 拼 'lawsec-fa'/'lawsec-qi'，由概览条
-   * `lawJump` 以 `getElementById('lawsec-' + v)` 消费）——节点随 innerHTML 动态渲染，与
-   * `openCave()` 取 `#cave-sec` 同因（页面整合批 2026-10-06 登记）。 */
-  const DYN_PREFIX = ['jline-', 'lawsec-'];
+  /* UI v2 B3 拆页后 lawsec- 动态锚点已退役，白名单只剩 jline-（判定逐行演出）。 */
+  const DYN_PREFIX = ['jline-'];
   const a3 = [];
   for (const f of htmlFiles) {
     const src = fs.readFileSync(f, 'utf8');
