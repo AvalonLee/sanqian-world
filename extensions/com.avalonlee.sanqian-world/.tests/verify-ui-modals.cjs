@@ -84,10 +84,10 @@ const { chromium } = require('playwright-core');
   T(ids[0] && ids[1] && ids[2], 'M0 三枚浮层挂点在册', JSON.stringify(ids));
 
   /* ── M1 账本浮层（修行页四柱「财」点开） ── */
-  const hasLedgerTrigger = await exists('#tab-idle [data-act="openLedger"]');
+  const hasLedgerTrigger = await exists('#m-rail [data-act="openLedger"]');
   T(hasLedgerTrigger, 'M1a 修行页「财」柱触发点在位（拿不到触发点即判红，不许跳过浮层）');
   if (hasLedgerTrigger) {
-    await clickSel('#tab-idle [data-act="openLedger"]');
+    await clickSel('#m-rail [data-act="openLedger"]');
     await page.waitForTimeout(260);
     const m = await readModal('modal-ledger', '#modal-ledger');
     T(m.open && m.len >= 20 && m.cjk && !m.junk, 'M1b 账本浮层开且正文非空壳（含中文零 junk）',

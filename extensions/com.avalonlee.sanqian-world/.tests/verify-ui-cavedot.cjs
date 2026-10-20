@@ -37,7 +37,7 @@ const { chromium } = require('playwright-core');
 
   let pass = 0, fail = 0;
   const T = (ok, name, detail) => { if (ok) pass++; else fail++; console.log((ok ? 'PASS' : 'FAIL') + ' ' + name + (detail ? ' (' + detail + ')' : '')); };
-  const dotN = () => page.$$eval('[data-act="openCave"] .pk .pdot', els => els.length);
+  const dotN = () => page.$$eval('#m-rail [data-act="openCave"] .pdot', els => els.length);
 
   await page.goto(url);
   await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });

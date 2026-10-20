@@ -1153,9 +1153,11 @@
     if (!rail || !main) return;
     var h = '';
     try {
-      /* B15-b：修行区右栏 = 四柱（财 / 侣 / 法 / 地）+ 天象（档位 / 逆天值）+ 离线所得（最近一次结算摘要）。
-       * 全部读侧派生：四柱取 ledgerSums / 主修 / 洞府 / 护法，天象取 stageOf 与 defy，离线取 lastOffline；
-       * 无数据不造数（离线为空时印「暂无」而不是编一个 0）。 */
+      /* B15-b：修行区右栏 = 四柱 + 天象·传闻 + 离线所得。B16-c（用户批，对齐设计稿 data-rail=idle）：
+       * ① 四柱槽改可点（财→总账 / 法→功法 / 地→洞府 / 侣→道友，红点随迁——原中区四柱行撤出）；
+       * ② 「天象 · 传闻」块合并江湖传闻带（原中区 rumor.band 撤出）+ 天象档位/逆天行；
+       * ③ 新增「页游彩蛋」giftcard（第卅九批词表 eggs.gift.p0-p5 会话轮换，giftBuy → 拒绝 toast，
+       *    纯呈现零发放零落档——走查 G 组口径不变）。全部读侧派生：无数据不造数。 */
       if (ws() && sectionOf(ui.tab).id === 'idle') {
         var wI = ws(), pI = pack(), dI = D();
         var sI = ledgerSums();
@@ -1164,27 +1166,46 @@
         var gI = SQ.Bonds.guardianOf(wI, pI, dI);
         var lvNameI = wI.spouse ? t('bond.' + wI.spouse.npcId + '.name')
           : (gI ? t('bond.' + gI.npcId + '.name') + bondTierNum(gI.tier) : t('rail.none'));
-        /* 四柱按原型排成 2×2 小卡（财 / 侣 / 法 / 地），不再竖排成行 */
+        /* 红点签名（自原 renderPillars 迁入：侣 = 升档/可提亲、地 = 新福地解锁——进浮层/洞天节即消） */
+        var sigP = bondRedDotSig();
+        if (ui.bondSnap == null) ui.bondSnap = sigP;
+        var lvDot = ui.bondSnap !== sigP;
+        var sigD = caveRedDotSig();
+        if (ui.caveSnap == null) ui.caveSnap = sigD;
+        var diDot = ui.caveSnap !== sigD;
+        /* 四柱按原型排成 2×2 小卡（财 / 侣 / 法 / 地），整卡可点开对应浮层 */
         h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.pillars')) + '</div><div class="rb-slots">' +
-          '<div class="rb-slot"><div class="rb-sk">' + esc(t('pillar.cai')) + '</div>' +
+          '<button class="rb-slot" data-act="openLedger"><div class="rb-sk">' + esc(t('pillar.cai')) + '</div>' +
           '<div class="rb-sv">' + esc(SQ.fmt(wI.stones || 0)) + '</div>' +
-          '<div class="rb-sd">' + esc(t('pillar.cai.sub', { inn: SQ.fmt(sI.inn), out: SQ.fmt(sI.out) })) + '</div></div>' +
-          '<div class="rb-slot"><div class="rb-sk">' + esc(t('pillar.lv')) + '</div>' +
+          '<div class="rb-sd">' + esc(t('pillar.cai.sub', { inn: SQ.fmt(sI.inn), out: SQ.fmt(sI.out) })) + '</div></button>' +
+          '<button class="rb-slot" data-act="openBonds"><div class="rb-sk">' + esc(t('pillar.lv')) + (lvDot ? '<i class="pdot"></i>' : '') + '</div>' +
           '<div class="rb-sv">' + esc(lvNameI) + '</div>' +
           '<div class="rb-sd">' + esc(wI.spouse ? t('bond.spouse.form.' + wI.spouse.form)
-            : (gI ? t('bond.guard.tag') + ' ' + bondTierNum(gI.tier) : t('pillar.lv.subnone'))) + '</div></div>' +
-          '<div class="rb-slot"><div class="rb-sk">' + esc(t('pillar.fa')) + '</div>' +
+            : (gI ? t('bond.guard.tag') + ' ' + bondTierNum(gI.tier) : t('pillar.lv.subnone'))) + '</div></button>' +
+          '<button class="rb-slot" data-act="openArtsModal"><div class="rb-sk">' + esc(t('pillar.fa')) + '</div>' +
           '<div class="rb-sv">' + esc(mainI ? t('skill.' + mainI + '.name') : t('pillar.fa.empty')) + '</div>' +
-          '<div class="rb-sd">' + esc(mainI ? 'Lv' + (wI.artsLevels[mainI] || 0) : '') + '</div></div>' +
-          '<div class="rb-slot"><div class="rb-sk">' + esc(t('pillar.di')) + '</div>' +
+          '<div class="rb-sd">' + esc(mainI ? 'Lv' + (wI.artsLevels[mainI] || 0) : '') + '</div></button>' +
+          '<button class="rb-slot" data-act="openCave"><div class="rb-sk">' + esc(t('pillar.di')) + (diDot ? '<i class="pdot"></i>' : '') + '</div>' +
           '<div class="rb-sv">' + esc(cvI ? t('cave.' + cvI.id + '.name') : t('rail.none')) + '</div>' +
-          '<div class="rb-sd">' + esc(cvI ? '×' + SQ.Cave.multOf(wI, pI, dI, mods()).toFixed(2) : '') + '</div></div>' +
+          '<div class="rb-sd">' + esc(cvI ? '×' + SQ.Cave.multOf(wI, pI, dI, mods()).toFixed(2) : '') + '</div></button>' +
           '</div></div>';
+        /* 天象 · 传闻：江湖传闻带（与奇遇页顶部同源渲染）+ 天象档位/逆天值（原天道块并入） */
         var tdI = wI.tiandao || {};
         var stI = SQ.Tiandao ? SQ.Tiandao.stageOf(wI, dI) : null;
         h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.tiandao')) + '</div>' +
+          SQ.UI.rumor.band(ctx(), Date.now()) +
           '<div class="rb-b"><b>' + esc(stI ? t('tiandao.stage.' + stI) : t('rail.none')) + '</b><span>' +
           esc(t('tiandao.defy.val', { n: tdI.defy || 0 })) + '</span></div></div>';
+        /* 页游彩蛋（设计稿 data-rail=idle 的 giftcard）：会话内轮换六款槽位，纯呈现 */
+        if (ui.giftUntil == null || ui.giftUntil < Date.now()) {
+          ui.giftI = Math.floor(Math.random() * 6);
+          ui.giftUntil = Date.now() + 600000;   /* 十分钟一掷，与第卅九批「会话内轮换」同族 */
+        }
+        var gpK = 'eggs.gift.p' + Math.max(0, ui.giftI | 0);
+        h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.eggs')) + '</div>' +
+          '<div class="giftcard"><span class="g-t"><b>' + esc(t(gpK + '.name')) +
+          ' <i class="tag red">' + esc(t('eggs.gift.tag')) + '</i></b><br>' + esc(t(gpK + '.offer')) + '</span>' +
+          '<button data-act="giftBuy">' + esc(t('eggs.gift.btn')) + '</button></div></div>';
         if (wI.lastOffline) {
           var loI = wI.lastOffline;
           h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.offline')) + '</div>' +

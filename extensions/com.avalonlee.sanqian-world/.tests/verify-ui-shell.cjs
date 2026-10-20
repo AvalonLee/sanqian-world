@@ -162,8 +162,8 @@ const { chromium } = require('playwright-core');
     };
   });
   T(rail.exists, 'SH12 右栏骨架元素在位');
-  T(rail.has && rail.titles.join(',') === '四柱,天象 · 传闻,离线所得',
-    'SH13 修行区右栏 = 四柱 + 天象·传闻 + 离线所得（B15-b，有块才开第三列）', JSON.stringify(rail));
+  T(rail.has && rail.titles.join(',') === '四柱,天象 · 传闻,页游彩蛋,离线所得',
+    'SH13 修行区右栏 = 四柱 + 天象·传闻 + 页游彩蛋 + 离线所得（B16-c，有块才开第三列）', JSON.stringify(rail));
   await page.evaluate(() => {
     Array.prototype.slice.call(document.querySelectorAll('#m-tabbar button'))
       .filter((b) => b.dataset.v === 'achv')[0].click();

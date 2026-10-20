@@ -20,12 +20,28 @@
     var need = SQ.Realm.needEffOf(w, p, d, m);
     var full = need == null && w.qi >= cap;
     var h = '';
-    /* 游戏历（v2.3）：修行页顶栏——罗云历XXX年X月X日（1 游戏日 = 1 现实秒，每秒 tick 随之日进） */
-    var calNow = c.date(Date.now());
-    if (calNow) h += '<div class="calrow">' + c.esc(calNow) + '</div>';
-    /* 传闻 / 四柱 / 天道行先攒着，等身元信息之后再落（B15-b 版面序：圆相 → 四格 → 身元 → 传闻 → 四柱 → 天道） */
-    var rumorHtml = SQ.UI.rumor.band(c.fresh(), Date.now());   /* 江湖传闻区：与奇遇页顶部同源渲染 */
-    var pillarsHtml = c.renderPillars();                       /* 四柱 chip 行（B1）：财/法/地 激活 + 侣位灰置 */
+    /* B16-c（对齐设计稿修行页构图）：闭关/历练切换上移页首居中（设计稿 .mode 药丸），
+     * 说明/词缀/预警浓缩成 metaline 两行；原「修行状态」两张模式卡（.modesel）退役。
+     * 游戏历行（calrow）撤——世界时间已在顶栏 hd-sub（B16-b），不再重复。 */
+    var mode0 = w.mode || 'seclude';
+    var pwM = SQ.Mods.powerOf(w, p, d, m);
+    var znM = (d.ZONES || [])[w.zone] || {};
+    var ventureWeakM = !!znM.need && pwM < znM.need;
+    var affM = SQ.Combat.affixDef(w, d);
+    h += '<div class="mode">' +
+      ['seclude', 'venture'].map(function (mk) {
+        return '<button' + (mode0 === mk ? ' class="on"' : '') + ' data-act="setMode" data-v="' + mk + '">' +
+          c.esc(c.t('idle.mode.' + mk)) + '</button>';
+      }).join('') + '</div>';
+    h += '<div class="metaline"><span>' + c.esc(c.t('idle.mode.' + mode0 + '.desc')) + '</span><span' +
+      (ventureWeakM ? ' class="warnline"' : '') + '>' + (mode0 === 'venture'
+        ? c.esc((affM ? c.t('zone.affix.line', { name: c.t('affix.' + affM.id + '.name'), desc: c.t('affix.' + affM.id + '.desc') }) + ' · ' : '') +
+            (ventureWeakM
+              ? c.t('idle.mode.venture.warn', { zone: c.t('combat.zone.' + w.zone) })
+              : c.t('idle.mode.venture.at', { zone: c.t('combat.zone.' + w.zone) })))
+        : c.esc(affM ? c.t('zone.affix.seclude') : c.t('idle.mode.seclude.at'))) + '</span></div>';
+    /* B16-c：江湖传闻带与四柱 chip 行撤出中区（用户批）——传闻入右栏「天象 · 传闻」块，
+     * 四柱入右栏可点槽位（点击弹窗功能随迁）；天道行仍留中区（问天入口 + 天象红点）。 */
     var tiandaoHtml = c.renderTiandaoRow();                    /* 天道系统批 B1/B3：问天入口 + 天象红点 + 逆天值 */
     /* 圆相 hero（UI v2 B15-b · 设计稿 .enso）：环 = 修为进度（只读派生），环心 = 修为全位数字（1 秒一跳），
      * 环下 = 吐纳速率 + 明细。修行数字从此只在这里出现一处，不再另挂 `.big` 行与进度条（环就是进度条）。
@@ -58,9 +74,20 @@
       '<div class="val num-full" style="font-size:' + qiFs + 'px">' + qiTxt + '</div>' +
       '<div class="sub">' + subLine + '</div></div></div>' +
       '<div class="rate">' + c.esc(c.t('idle.rate', { n: rate.toFixed(1) })) +
-      '<button class="linkbtn chip" data-act="detailRate">' + c.esc(c.t('idle.detail')) + '</button></div></div>' +
-      /* 四格修为身元（设计稿 .statrow）：战力 / 精 / 气 / 神 —— 战力从环心挪到这里 */
-      '<div class="statrow">' +
+      '<button class="linkbtn chip" data-act="detailRate">' + c.esc(c.t('idle.detail')) + '</button></div></div>';
+    /* B16-c 渡劫 hero（设计稿 .hero-cta）：圆满时「渡劫」是唯一朱砂实心按钮，
+     * 成算与明细写在按钮下方——决策依据和动作在同一视线内（设计说明「动作只有两个」）。
+     * 自动渡劫开启或未圆满时不渲染按钮（口径与原 tribready 块一致：qi ≥ needEffOf 才亮）。 */
+    var tiH = (need != null) ? p.worldSystems.tribInfo(w, p, d, m) : null;
+    if (need != null && tiH && !(c.s.settings && c.s.settings.autoTrib) && w.qi >= need) {
+      h += '<div class="hero-cta">' +
+        '<div class="cta-note">' + c.esc(c.t('trib.manual.ready')) + '</div>' +
+        '<button class="btn sealbtn" data-act="trib">' + c.esc(c.t('trib.manual.btn')) + '</button>' +
+        '<div class="cta-note">' + c.esc(c.t('tribulation.estimate', { p: Math.round(tiH.p * 100) })) +
+        '<button class="linkbtn chip" data-act="detailTrib">' + c.esc(c.t('tribulation.detail')) + '</button></div></div>';
+    }
+    /* 四格修为身元（设计稿 .statrow）：战力 / 精 / 气 / 神 —— 战力从环心挪到这里 */
+    h += '<div class="statrow">' +
       '<div><div class="k">' + c.esc(c.t('resource.power')) + '</div><div class="v">' + SQ.fmt(SQ.Mods.powerOf(w, p, d, m)) + '</div></div>' +
       (d.ATTRS || []).map(function (id) {
         return '<div><div class="k">' + c.esc(c.t('attr.' + id)) + '</div><div class="v">' +
@@ -172,24 +199,18 @@
             '</div>';
         }
       }
-      /* 手动渡劫入口：仅「自动渡劫已关闭」时出现；修为圆满才亮按钮（need 与 tryTrib 同一口径） */
-      if (!(c.s.settings && c.s.settings.autoTrib) && w.qi >= need) {
-        h += '<div class="tribready">' +
-          '<div class="tr-t">' + c.esc(c.t('trib.manual.ready')) + '</div>' +
-          '<div class="hint">' + c.esc(c.t('trib.manual.hint')) + '</div>' +
-          '<button class="primary" data-act="trib">' + c.esc(c.t('trib.manual.btn')) + '</button>' +
-          '</div>';
-      }
+      /* 手动渡劫入口已上移圆相下方 hero-cta（B16-c，设计稿位）；此处不再重复渲染。 */
     } else {
       h += '<div class="kv"><span class="fullcap">' + c.esc(c.t('idle.maxed')) + '</span></div>';
       /* 飞升大劫入口（轮回卷 §1.2）：真仙盈满亮起——独立终局劫 base 0.25、
-       * 失败不扣修为不计连败、24h 重试；成功 = 满额遗泽转世（毕业仪式） */
+       * 失败不扣修为不计连败、24h 重试；成功 = 满额遗泽转世（毕业仪式）。B16-c 改 hero-cta 形态 */
       var fsChk = SQ.Legacy ? SQ.Legacy.canFeisheng(w, p, d, c.s.meta, Date.now(), c.s.profile) : { ok: false };
       if (fsChk.ok) {
         var fsInfo = SQ.Legacy.feishengInfo(w, p, d, m);
-        h += '<div class="tribready"><div class="tr-t">' + c.esc(c.t('legacy.ui.feisheng.btn')) + '</div>' +
-          (fsInfo ? '<div class="hint">' + c.esc(c.t('legacy.ui.feisheng.p', { p: Math.round(fsInfo.p * 100) })) + '</div>' : '') +
-          '<button class="primary" data-act="ascend" style="width:100%;margin-top:6px">' + c.esc(c.t('legacy.ui.feisheng')) + '</button></div>';
+        h += '<div class="hero-cta">' +
+          '<div class="cta-note">' + c.esc(c.t('legacy.ui.feisheng.btn')) +
+          (fsInfo ? ' · ' + c.esc(c.t('legacy.ui.feisheng.p', { p: Math.round(fsInfo.p * 100) })) : '') + '</div>' +
+          '<button class="btn sealbtn" data-act="ascend">' + c.esc(c.t('legacy.ui.feisheng')) + '</button></div>';
       } else if (fsChk.reason === 'cd') {
         h += '<div class="kv hint"><span>' + c.esc(c.t('legacy.ui.feisheng.cd', { t: c.timeLeft(Math.max(0, fsChk.until - Date.now())) })) + '</span></div>';
       }
@@ -228,9 +249,7 @@
       h += '<div class="idlemeta"><span>' + c.esc(c.t('idle.cave')) + ' ' +
         c.esc(c.t('cave.' + caveNow.id + '.name')) + ' ×' + caveMNow.toFixed(2) + '</span></div>';
     }
-    /* B15-b 版面序：身元信息之后落传闻 → 四柱 → 天道行（圆相已在页首） */
-    h += rumorHtml;
-    h += pillarsHtml;
+    /* B16-c：天道行仍落中区（问天入口 + 天象红点 + 逆天值）；传闻带与四柱行已移右栏（renderRail）。 */
     h += tiandaoHtml;
     /* ── 临时增益图标行（系统深化批 B2）：破境高光 / 道伤封固 / 声威大振 / 同门来助等来源溯源展示；
      * eventShield 为「护佑」层数 chip（冥佑层语义）。词表未登记的来源只显示字段与数值。 ── */
@@ -250,39 +269,7 @@
       if (shieldN) chips.push('<span class="buffchip">' + c.esc(c.t('buff.shield', { n: shieldN })) + '</span>');
       h += '<div class="buffrow">' + chips.join('') + '</div>';
     }
-    /* ── 结算区（修行状态批 v2.1 重排）：修行状态（模式卡）→ 修行所得（离线结算）→ 收功 ──
-     * 三块合成一个连贯区块：玩家先选状态、再看上次离线结算、最后手动收功，
-     * 概念上互为上下游；不再散落在页首与页尾。 */
-    var mode = w.mode || 'seclude';
-    /* 历练入口预告（体验手感批 v2.12）：当前秘境战力不足 = 与秘境页瓶颈同一 powerOf 口径 */
-    var pwForMode = SQ.Mods.powerOf(w, p, d, m);
-    var znCur = (d.ZONES || [])[w.zone] || {};
-    var ventureWeak = !!znCur.need && pwForMode < znCur.need;
-    h += '<div class="sechead"><span class="t">' + c.esc(c.t('idle.mode.title')) + '</span></div>';
-    h += '<div class="modesel">';
-    /* 历练模式卡常驻词缀行（数值详设 §2.5「切入即见、不隐藏」：秘境页顶部 + 本卡双落点） */
-    var affM = SQ.Combat.affixDef(w, d);
-    ['seclude', 'venture'].forEach(function (mk) {
-      var on = mode === mk;
-      h += '<div class="modeopt' + (on ? ' on' : '') + '" data-act="setMode" data-v="' + mk + '">' +
-        '<div class="mt">' + c.esc(c.t('idle.mode.' + mk)) + '</div>' +
-        '<div class="md">' + c.esc(c.t('idle.mode.' + mk + '.desc')) + '</div>' +
-        (mk === 'venture' && affM
-          ? '<div class="mat">' + c.esc(c.t('zone.affix.line', {
-              name: c.t('affix.' + affM.id + '.name'), desc: c.t('affix.' + affM.id + '.desc') })) + '</div>'
-          : (mk === 'seclude' && affM
-            ? '<div class="mat">' + c.esc(c.t('zone.affix.seclude')) + '</div>' : '')) +
-        (mk === 'venture' && ventureWeak
-          ? '<div class="mw">' + c.esc(c.t('idle.mode.venture.warn', { zone: c.t('combat.zone.' + w.zone) })) + '</div>'
-          : (on ? '<div class="mat">' + c.esc(mk === 'venture'
-            ? c.t('idle.mode.venture.at', { zone: c.t('combat.zone.' + w.zone) })
-            : c.t('idle.mode.seclude.at')) + '</div>' : '')) +
-        '</div>';
-    });
-    h += '</div>';
-    /* 修行所得常驻面板（F4：lastOffline 为 null 不渲染）。
-     * 潜心悟道叙事变体（修行状态批）：离山时在历练 → 标题/正文走 *.v 文案，数值同源不变；
-     * 标题缀相对时间（v2.1），明确这是「上次归来」的结算而非实时数据 */
+    /* ── 结算区（修行状态批 v2.1）：修行状态卡已上移页首 .mode 药丸（B16-c），此处只余修行所得 ── */
     if (w.lastOffline) {
       var lo = w.lastOffline;
       var ventureLo = lo.mode === 'venture';

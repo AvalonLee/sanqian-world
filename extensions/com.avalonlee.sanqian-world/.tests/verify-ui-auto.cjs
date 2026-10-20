@@ -58,19 +58,20 @@ function buildSave(autoEvent, withPend, eventPref) {
     const { ctx, page, errors } = await boot(false);
     /* 传闻区紧随游戏时间（calrow）之下 */
     const html = await page.$eval('#tab-idle', el => el.innerHTML);
-    const iCal = html.indexOf('calrow'), iRum = html.indexOf('rumorcard');
-    const iPil = html.indexOf('class="pillars"');
-    T(iCal >= 0 && iRum > iCal && iPil > iRum, 'R2 修行页序 = 游戏时间 → 江湖传闻 → 四柱', iCal + '<' + iRum + '<' + iPil);
-    /* 与奇遇页顶部信息一致：卡片文本序列相同 */
-    const idleRum = await page.$$eval('#tab-idle .rumorcard .fg', els => els.map(e => e.textContent.trim()));
+    /* B16-c 改口：旧序「游戏时间 → 江湖传闻 → 四柱」三样分别撤出中区（历入顶栏 hd-sub、
+     * 传闻与四柱入右栏）⇒ 新序 = 模式药丸（.mode）在圆相（.stathero）之前 */
+    const iMode = html.indexOf('class="mode"'), iEnso = html.indexOf('class="stathero"');
+    T(iMode >= 0 && iMode < iEnso, 'R2 修行页序 = 模式药丸 → 圆相（B16-c：传闻/四柱已移右栏）', iMode + '<' + iEnso);
+    /* 与奇遇页顶部信息一致：卡片文本序列相同（传闻现渲染在修行区右栏） */
+    const idleRum = await page.$$eval('#m-rail .rumorcard .fg', els => els.map(e => e.textContent.trim()));
     await page.click('#m-tabbar button:has-text("奇遇")');
     await page.waitForTimeout(300);
     const evRum = await page.$$eval('#tab-event .rumorcard .fg', els => els.map(e => e.textContent.trim()));
-    T(idleRum.length === 2 && idleRum.join('|') === evRum.join('|'), 'R2 传闻文本与奇遇页一致', idleRum.join('|').slice(0, 40));
+    T(idleRum.length === 2 && idleRum.join('|') === evRum.join('|'), 'R2 传闻文本与奇遇页一致（右栏 ‖ 奇遇页同源）', idleRum.join('|').slice(0, 40));
     await page.click('#m-tabbar button:has-text("修行")');
     await page.waitForTimeout(200);
     /* 倒计时数字也在（秒级 tick 刷新） */
-    const hasTtl = await page.$$eval('#tab-idle .rumorcard .rt', els => els.length);
+    const hasTtl = await page.$$eval('#m-rail .rumorcard .rt', els => els.length);
     T(hasTtl === 2, 'R2 传闻倒计时同源渲染', 'n=' + hasTtl);
     /* UI v2 B2：自动三开关已迁设置页，修行页尾不再挂自动区 */
     const idleTxt = await page.$eval('#tab-idle', el => el.textContent);

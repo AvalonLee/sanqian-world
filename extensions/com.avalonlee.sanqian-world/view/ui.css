@@ -615,15 +615,33 @@
   .merchbox .mh { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   .merchbox .mh .t { font-weight: 650; color: var(--primary); }
   /* ── 修行状态选择（模式二选一：闭关领悟 / 外出历练；离线 = 潜心悟道）── */
-  .modesel { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
-  .modeopt { border: 1px solid var(--line); border-radius: var(--sq2-r); padding: 8px 10px; cursor: pointer; background: var(--well); }
-  .modeopt .mt { font-weight: 650; font-size: 13px; color: var(--ink); }
-  .modeopt .md { font-size: 11px; color: var(--ink-3); margin-top: 3px; line-height: 1.5; }
-  .modeopt .mat { font-size: 11px; color: var(--primary); margin-top: 3px; }
-  /* 历练入口预告（体验手感批 v2.12）：当前秘境战力不足时「外出历练」卡常驻预告行 */
-  .modeopt .mw { font-size: 11px; color: var(--bad); margin-top: 3px; line-height: 1.5; }
-  .modeopt.on { border-color: var(--primary); background: var(--brand-soft); }
-  .modeopt.on .mt { color: var(--primary); }
+  /* B16-c：闭关/历练切换 = 设计稿 .mode 药丸（页首居中）；说明两行 = 设计稿 .metaline */
+  .mode {
+    display: flex; width: fit-content; gap: 0; margin: 2px auto 4px;
+    border: 1px solid var(--sq2-line-2); border-radius: 99px; padding: 2px;
+  }
+  .mode button {
+    font: inherit; font-size: 11.5px; letter-spacing: .16em;
+    padding: 5px 15px; border: 0; border-radius: 99px; min-height: 0;
+    background: none; color: var(--sq2-ink-3); cursor: pointer;
+    transition: background .2s, color .2s;
+  }
+  .mode button.on { background: var(--sq2-ink); color: var(--sq2-paper); }
+  .metaline {
+    display: flex; justify-content: space-between; gap: 10px;
+    font-size: 10.5px; color: var(--sq2-ink-3); padding: 2px 0 6px;
+  }
+  .metaline .warnline { color: var(--sq2-cinnabar); }
+  /* B16-c：渡劫 hero（设计稿 .hero-cta）——居中三行：note / 朱砂实心印钮 / 成算 note。
+   * 「圆满时渡劫是唯一朱砂实心按钮，成算与护法加成写在按钮下方」（设计说明） */
+  .hero-cta { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 6px 0 2px; }
+  .hero-cta .cta-note { font-size: 11px; color: var(--sq2-ink-3); letter-spacing: .06em; }
+  .btn.sealbtn {
+    background: var(--sq2-cinnabar); border-color: var(--sq2-cinnabar); color: #FBF5E7;
+    font-family: var(--sq2-serif); letter-spacing: .34em; text-indent: .34em;
+    box-shadow: 0 6px 18px -8px rgba(165, 54, 44, .75);
+  }
+  .btn.sealbtn:hover { filter: brightness(1.06); }
   /* 精通条（功法行 / 槽位卡共用） */
   .pbar { height: 4px; border-radius: 3px; background: var(--brand-soft); overflow: hidden; margin-top: 6px; }
   .pbar > i { display: block; height: 100%; width: 0%; background: var(--primary); }
@@ -1130,16 +1148,46 @@
   color: var(--sq2-ink-3); padding: 2px 2px 0;
 }
 #tab-idle .sechead .t { font-family: var(--sq2-serif); letter-spacing: .18em; }
-#tab-idle .modesel { gap: 10px; }
-#tab-idle .modeopt { background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px; }
-#tab-idle .modeopt.on { background: var(--sq2-paper-3); border-color: var(--sq2-cinnabar); }
-#tab-idle .modeopt.on .mt { color: var(--sq2-cinnabar); }
-#tab-idle .modeopt .mat { color: var(--sq2-jade); }
+#tab-idle .mode { margin: 2px auto 4px; }   /* B16-c：药丸切换页首居中（.mode 全局样式见上） */
 #tab-idle .offbox { background: var(--sq2-paper-2); border: 1px dashed var(--sq2-line-2); border-radius: 2px; }
 #tab-idle .bar { background: var(--sq2-paper-3); border-radius: 0; }
 #tab-idle .bar > i { background: var(--sq2-cinnabar); border-radius: 0; }
 #tab-idle .kv .big { font-family: var(--sq2-serif); }
 #tab-idle .detailbox { background: var(--sq2-paper-2); border-radius: 2px; }
+
+/* ── B16-c：右栏修行区新形态 —— 四柱槽整卡可点（设计稿 bondslot 2×2）+ 页游彩蛋 giftcard + 传闻适配 ── */
+.sq2-rail .rb-slot {
+  display: block; width: 100%; text-align: left; font: inherit; color: inherit;
+  background: var(--sq2-paper-2); border: 1px solid rgba(62, 107, 88, .38); border-radius: var(--sq2-r);
+  padding: 7px 9px; cursor: pointer; position: relative;
+  transition: background .15s, border-color .15s;
+}
+.sq2-rail .rb-slot:hover { background: var(--sq2-paper-3); border-color: var(--sq2-jade); }
+.sq2-rail .rb-slot .pdot {
+  position: absolute; top: 8px; right: 8px; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--sq2-cinnabar);
+}
+.sq2-rail .giftcard {
+  background: var(--sq2-paper-2); border: 1px dashed var(--sq2-cinnabar); border-radius: var(--sq2-r);
+  padding: 9px 10px; font-size: 11px; line-height: 1.7; color: var(--sq2-ink-2);
+}
+.sq2-rail .giftcard .g-t b { color: var(--sq2-cinnabar); font-weight: 650; }
+.sq2-rail .giftcard .g-t .tag { margin-left: 4px; vertical-align: 1px; }
+.sq2-rail .giftcard button {
+  margin-top: 7px; font: inherit; font-size: 11px; cursor: pointer;
+  padding: 4px 12px; min-height: 0; border-radius: var(--sq2-r);
+  border: 1px solid var(--sq2-line-2); background: none; color: var(--sq2-ink);
+}
+.sq2-rail .giftcard button:hover { border-color: var(--sq2-cinnabar); color: var(--sq2-cinnabar); }
+/* 传闻带在右栏窄栏里退单列细行（rumorcard 结构与奇遇页同源，仅收窄距） */
+.sq2-rail .rumorcard { padding: 8px 2px; border-radius: 0; border-left: 0; border-right: 0; }
+
+/* ── B16-c：境界说明弹窗纸面化（设计稿 sheet-card：纸底 · 直角 · 衬线题 · eyebrow kicker）── */
+#modal-realm .modal {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line-2);
+  border-radius: var(--sq2-r); backdrop-filter: none; box-shadow: 0 24px 48px -20px rgba(0, 0, 0, .4);
+}
+#modal-realm .modal h2 { font-family: var(--sq2-serif); letter-spacing: .18em; font-weight: 500; }
 
 /* ── UI v2 B5：秘境 / 洞天换装 + 右栏历练区块 ── */
 #tab-combat .zcard {
@@ -1620,7 +1668,8 @@
   }
   #tab-idle .offbox .ot { font-family: var(--sq2-serif); letter-spacing: .1em; color: var(--sq2-ink); margin-bottom: 3px; }
   /* 修行页内容列宽（设计稿 #main > #s-idle = 660）：圆相与四柱在这一宽里才立得住 */
-  @media (min-width: 720px) { #tab-idle { max-width: 660px; } }
+  /* B16-c：修行页 = 设计稿「一屏一主事」居中构图——内容列收 660 且整体居中（用户批） */
+  @media (min-width: 720px) { #tab-idle { max-width: 660px; margin-left: auto; margin-right: auto; } }
   /* ══ UI v2 B15-d：秘境页（设计稿 .curzone 山影 hero + .zlist / .zrow 行式清单）══ */
   .curzone {
     position: relative; overflow: hidden;

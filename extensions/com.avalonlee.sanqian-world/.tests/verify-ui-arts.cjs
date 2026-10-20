@@ -473,7 +473,10 @@ async function buildSave() {
     'S2 那张自创部的卡确实上屏：Lv 在位、副行退到功法描述而不是空着', 'found=' + sRead.found + ' tdesc=' + sRead.tdesc.slice(0, 18));
   T(sRead.found && sRead.text.indexOf('签名') < 0 && !/undefined|\{|null/.test(sRead.text),
     'S3 无词条的卡不许编造「签名 ·」，也不许露 undefined / null / { 占位', sRead.text.slice(0, 52));
-  await page3.evaluate(() => { const b = document.querySelector('[data-act="openArtsModal"]'); if (b) b.click(); });
+  /* B16-c：openArtsModal 触发点已随四柱迁右栏（仅修行区渲染）⇒ 先切回修行页再点右栏「法」柱 */
+  await page3.click('#m-tabbar button[data-v="idle"]');
+  await page3.waitForTimeout(400);
+  await page3.evaluate(() => { const b = document.querySelector('#m-rail [data-act="openArtsModal"]'); if (b) b.click(); });
   await page3.waitForTimeout(500);
   const sModal = await page3.evaluate(() => {
     const m = document.getElementById('modal-arts');

@@ -303,8 +303,9 @@
     'rail.fire': '炉火', 'rail.restock': '坊市补货', 'rail.left': '余 {t}',
     /* UI v2 B8：右栏（江湖区）块标题 */
     'rail.jianghu': '江湖近况', 'rail.sect': '宗门', 'rail.none': '无',
-    /* UI v2 B15-b：右栏（修行区）三块标题 —— 四柱 / 天象传闻 / 离线所得 */
+    /* UI v2 B15-b：右栏（修行区）块标题 —— 四柱 / 天象传闻 / 离线所得；B16-c 增页游彩蛋 */
     'rail.pillars': '四柱', 'rail.tiandao': '天象 · 传闻', 'rail.offline': '离线所得',
+    'rail.eggs': '页游彩蛋',
     'rail.offline.none': '本次上线暂无离线结算',
     'offline.rail.line': '修为 +{qi} · 灵石 +{stones}',
     /* UI v2 B15-c：修行页页尾段标（设计稿「天 命」小节；自动区已迁设置，见 D6） */

@@ -71,17 +71,17 @@ async function buildSave() {
   await page.waitForTimeout(800);
 
   /* ① 修行页传闻区：战况卡只读（观望文本在、无按钮）；普通传闻卡仍有「前往查证」 */
-  const idleWarBtn = await page.$$eval('#tab-idle .rumorcard.war button', els => els.length);
-  const idleWatch = await page.$eval('#tab-idle', el => el.textContent.includes('观望'));
+  const idleWarBtn = await page.$$eval('#m-rail .rumorcard.war button', els => els.length);
+  const idleWatch = await page.$eval('#m-rail', el => el.textContent.includes('观望'));
   T(idleWarBtn === 0 && idleWatch, 'R① 修行页战况卡无按钮 · 只读观望', 'btn=' + idleWarBtn);
-  const idleGoBtn = await page.$$eval('#tab-idle [data-act="rumorGo"]:not([disabled])', els => els.length);
+  const idleGoBtn = await page.$$eval('#m-rail [data-act="rumorGo"]:not([disabled])', els => els.length);
   T(idleGoBtn === 1, 'R① 可触发传闻卡「前往查证」启用（唯一）', 'n=' + idleGoBtn);
   /* ③ 失效传闻卡（目标事件冷却中）：按钮置灰 + 注明「时过境迁」（复现「已无从查证」缺陷的正典口径） */
-  const deadBtn = await page.$('#tab-idle [data-act="rumorGo"][data-v="ev-2"]');
+  const deadBtn = await page.$('#m-rail [data-act="rumorGo"][data-v="ev-2"]');
   const deadDisabled = deadBtn ? (await deadBtn.getAttribute('disabled')) !== null : false;
   const deadLabel = deadBtn ? (await deadBtn.textContent()).trim() : '';
   T(deadDisabled && deadLabel === '时过境迁', 'R③ 失效传闻卡置灰注明「时过境迁」', 'disabled=' + deadDisabled + ' label=' + deadLabel);
-  T((await page.$$eval('#tab-idle [data-act="rumorGo"][data-v="ev-2"]', els => els.length)) === 1,
+  T((await page.$$eval('#m-rail [data-act="rumorGo"][data-v="ev-2"]', els => els.length)) === 1,
     'R③ 失效卡仍在列（未静默消失，与正典「置灰」一致）');
 
   /* ② 红点：存档既有传闻进线基线化 → 奇遇菜单不再亮红点（旧口径恒亮的场景） */
