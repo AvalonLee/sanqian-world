@@ -560,6 +560,7 @@
     slotPickFor: null,                      /* 满槽替换选择模式（B4）：待入槽的功法 id */
     bondDetail: null,                       /* 名录浮层二级页（B3）：当前查看的 npcId */
     unwalked: {},                           /* 未择之路展开态（B8）：feed ts 键控；卸下照世镜即复位 */
+    codexOpen: {},                          /* 奇遇图鉴段折叠（UI v2 B9）：tier 键控，纯 UI 态、不入档 */
     bondSnap: null,                         /* 侣 chip 红点快照（B1）：升档/可提亲变化检测 */
     caveSnap: null,                         /* 地 chip 红点快照（B1）：新福地解锁变化检测 */
     achvSnap: null,                         /* 成就页红点快照：新成就达成变化检测（meta.achv 只增） */
@@ -2806,6 +2807,7 @@
       return;
     }
     if (act === 'feedMore') { ui.feedExpand = !ui.feedExpand; renderTab(); return; }
+    if (act === 'codexTier') { ui.codexOpen = ui.codexOpen || {}; ui.codexOpen[v] = !ui.codexOpen[v]; renderTab(); return; }   /* UI v2 B9：图鉴段折叠（纯 UI 态） */
     if (act === 'choose') {
       var bk = v;                                    /* 'right' | 'evil' | 'neutral' */
       var pendC = ws().pendingChoice;

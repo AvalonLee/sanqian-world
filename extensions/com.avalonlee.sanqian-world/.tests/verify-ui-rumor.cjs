@@ -126,6 +126,35 @@ async function buildSave() {
   T(rfLast.length > 0 && rfLast.indexOf('抉择') >= 0, 'RF⑥ 浮层含上次抉择（是「查阅内容」的卡，不是只有名字）', rfLast.slice(0, 40));
   await page.click('#mrc-close');
   T(await page.$eval('#modal-recall', el => el.classList.contains('hide')), 'RF⑦ 关闭钮可关（不靠遮罩/ESC）');
+
+  /* ── UI v2 B9：叙事流时间列 + 图鉴默认收起（点段头展开 / 再点收起）── */
+  const rfTl = await page.evaluate(() => {
+    const card = document.querySelector('#tab-event .fcard');
+    const fd = card && card.querySelector('.fdate');
+    const fm = card && card.querySelector('.fmain');
+    return {
+      date: fd ? fd.textContent.trim() : '',
+      left: fd && fm ? fd.getBoundingClientRect().left < fm.getBoundingClientRect().left : false
+    };
+  });
+  T(/[0-9]/.test(rfTl.date) && rfTl.left,
+    'RF⑧ 叙事流日期独占左列（时间线），正文在右', JSON.stringify(rfTl));
+  const cx0 = await page.evaluate(() => ({
+    btns: document.querySelectorAll('#tab-event .codex-sec').length,
+    grids: document.querySelectorAll('#tab-event .codexgrid').length
+  }));
+  await page.evaluate(() => { document.querySelector('#tab-event .codex-sec').click(); });
+  await page.waitForTimeout(300);
+  const cx1 = await page.evaluate(() => ({
+    grids: document.querySelectorAll('#tab-event .codexgrid').length,
+    slots: document.querySelectorAll('#tab-event .cslot').length
+  }));
+  await page.evaluate(() => { document.querySelector('#tab-event .codex-sec').click(); });
+  await page.waitForTimeout(300);
+  const cx2 = await page.evaluate(() => document.querySelectorAll('#tab-event .codexgrid').length);
+  T(cx0.btns === 3 && cx0.grids === 0 && cx1.grids === 1 && cx1.slots > 0 && cx2 === 0,
+    'RF⑨ 图鉴三段默认收起；点一段只展开那一段，再点收起',
+    'btns=' + cx0.btns + ' 收起=' + cx0.grids + ' 展开=' + cx1.grids + '/' + cx1.slots + '格 再收=' + cx2);
   await page.click('#m-tabbar button:has-text("修行")');
   await page.waitForTimeout(500);
   const hasDot2 = await page.$('#m-tabbar button[data-v="event"] .dot');

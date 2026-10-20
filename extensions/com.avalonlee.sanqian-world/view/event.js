@@ -34,10 +34,11 @@
     /* 卡片整体可点 = 复用图鉴那套「奇遇回看」浮层（`openRecall`：story + 首遇 + 上次抉择 + 上次得失），
      * 不再另造第二张详情卡（用户令「点击近来奇遇卡片应弹窗便于查阅」）。
      * 卡内「未择之路」折叠区自带 `data-act="unwalked"`，委托走 `closest('[data-act]')` ⇒ 内层优先，不冲突。 */
-    var h = '<div class="fcard" data-act="recallEvent" data-v="' + c.esc(f.id) + '"><div class="fh">' +
+    /* UI v2 B9：日期独占左列（时间线），正文右列 */
+    var h = '<div class="fcard" data-act="recallEvent" data-v="' + c.esc(f.id) + '"><div class="fdate">' + c.esc(ft) + '</div><div class="fmain"><div class="fh">' +
       '<span class="fn">' + c.esc(c.t('event.' + f.id + '.name')) +
       (f.via === 'rumor' ? '<span class="ebadge">' + c.esc(c.t('rumor.badge.via')) + '</span>' : '') +
-      ' <span class="hint">[' + c.esc(grade) + ']</span></span><span class="ft">' + c.esc(ft) + '</span></div>';
+      ' <span class="hint">[' + c.esc(grade) + ']</span></span></div>';
     h += '<div class="fg">' + c.esc(c.t('event.' + f.id + '.branch.' + f.branch)) + chk + ' · ' + c.esc(k) + '</div>';
     h += '<div class="fe">' + c.esc(SQ.Events.effText(c.w, c.p, c.d, f.eff || {})) + '</div>';
     /* 未择之路折叠区（B8）：仅佩戴照世镜时渲染；卸下即隐藏、展开态复位（renderEvent 侧清 ui.unwalked） */
@@ -60,7 +61,7 @@
       }
       h += '</div>';
     }
-    return h + '</div>';
+    return h + '</div></div>';
   }
 
   function render(c) {
@@ -87,8 +88,14 @@
       /* 三节分计数与页首总数自洽（走查稿③ 第 1 项）：天 a/A + 地 b/B + 人 c/C = 页首 n */
       var tierAll = all.filter(function (ev) { return ev.tier === tier; });
       var tierSeen = tierAll.filter(function (ev) { return w.eventHistory.seen[ev.id] != null; }).length;
-      h += '<div class="codex-sec">' + c.esc(c.t('event.codex.sec', {
-        tier: c.t('event.tier.' + tier), n: tierSeen, total: tierAll.length })) + '</div><div class="codexgrid">';
+      /* UI v2 B9：图鉴默认收起，点段头展开/收起（纯 UI 态，不入档） */
+      var openT = !!(c.ui.codexOpen && c.ui.codexOpen[tier]);
+      h += '<button type="button" class="codex-sec cx-row' + (openT ? ' open' : '') + '" data-act="codexTier" data-v="' + tier + '">' +
+        '<span>' + c.esc(c.t('event.codex.sec', {
+          tier: c.t('event.tier.' + tier), n: tierSeen, total: tierAll.length })) + '</span>' +
+        '<span class="cx-a">' + (openT ? '▾' : '›') + '</span></button>';
+      if (!openT) return;
+      h += '<div class="codexgrid">';
       tierAll.forEach(function (ev) {
         var seen = w.eventHistory.seen[ev.id] != null;
         var badges = '';
