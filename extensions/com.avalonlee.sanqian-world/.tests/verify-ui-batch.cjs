@@ -81,14 +81,14 @@ const { chromium } = require('playwright-core');
   T(seal === '', 'R1 财浮层底部「白手起家」文案已去除', 'seal="' + seal + '"');
   await page.click('#mlg-close');
 
-  /* 需求 6：道友页 道侣位提示文案 */
+  /* 需求 6：道友页 道侣位提示文案（B15-f 改口：两行摘要 → 两张位卡，空态 = .bondslot.empty） */
   await page.click('#m-tabbar button:has-text("道友")');
   await page.waitForTimeout(200);
-  const spTip = await page.$eval('#tab-bonds .spouserow.none', el => el.textContent);
+  const spTip = await page.$eval('#tab-bonds .slots2 .bondslot.empty', el => el.textContent);
   T(spTip.includes('候选好感满档可结缘双修') && !/提亲/.test(spTip), 'R6 道侣位文案改为「可结缘双修」（且不留旧称）', spTip.slice(0, 40));
 
-  /* 需求 5：护法位点开择选浮层 */
-  await page.click('#tab-bonds .guardline.pickable');
+  /* 需求 5：护法位点开择选浮层（B15-f 改口：整卡即锚点） */
+  await page.click('#tab-bonds .slots2 .bondslot[data-act="guardPickOpen"]');
   await page.waitForTimeout(200);
   const gTitle = await page.$eval('#msp-title', el => el.textContent);
   T(gTitle.includes('择'), 'R5 护法位点开择选浮层', 'title=' + gTitle);
@@ -97,10 +97,10 @@ const { chromium } = require('playwright-core');
   T(gRows >= 3, 'R5 候选列表含恢复自动 + 3 位已结缘者', 'rows=' + gRows);
   T(!gNames.includes('候选') || !gNames.includes('？'), 'R5 未结缘者不显示');
   /* 点选「谢」出任护法（tier2 → bonus 应为 0）*/
-  const before = await page.$eval('#tab-bonds .guardline', el => el.textContent);
+  const before = await page.$eval('#tab-bonds .slots2 .bondslot[data-act="guardPickOpen"]', el => el.textContent);
   await page.click('#msp-body [data-act="guardSet"][data-v="xie"]');
   await page.waitForTimeout(500);
-  const after = await page.$eval('#tab-bonds .guardline', el => el.textContent);
+  const after = await page.$eval('#tab-bonds .slots2 .bondslot[data-act="guardPickOpen"]', el => el.textContent);
   T(after.includes('谢'), 'R5 点选后护法位换人', '"' + before.slice(0, 18) + '" → "' + after.slice(0, 18) + '"');
   const pickPersist = await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
@@ -109,7 +109,7 @@ const { chromium } = require('playwright-core');
   T(pickPersist === 'xie', 'R5 guardianPick 随档持久化', 'pick=' + pickPersist);
 
   /* 需求 5：道侣位点开择选浮层（suwan 满档 100 → 应在列；不满足者不显示）*/
-  await page.click('#tab-bonds .spouserow.pickable');
+  await page.click('#tab-bonds .slots2 .bondslot[data-act="spousePickOpen"]');
   await page.waitForTimeout(200);
   const sTitle = await page.$eval('#msp-title', el => el.textContent);
   const sBody = await page.$eval('#msp-body', el => el.textContent);

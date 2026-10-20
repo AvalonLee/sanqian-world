@@ -112,30 +112,42 @@
     /* 护法位摘要行三态（稿一/稿四）：魔道整块置灰独行 / 生效带加项 / 档不足或无人。
      * 择选批：非魔道三态均可点开「择护法」浮层，由玩家自选在任护法 */
     var top = '';
+    /* 两张位卡（B15-f · 设计稿 .slots2 / .bondslot）：护法位 / 道侣位。
+     * 交互锚点不变：整卡挂 data-act（guardPickOpen / spousePickOpen），择选浮层与既有行为零改。 */
+    var gOK = !evil && g && g.bonus > 0;
+    var gName = (g && !evil) ? c.t('bond.' + g.npcId + '.name') : c.t('bond.guard.none');
+    var gDesc, gX;
     if (evil) {
-      top += '<div class="guardline dead"><span>' + c.esc(c.t('bond.guard.none')) + '</span><span class="g">' + c.esc(c.t('bond.guard.evil')) + '</span></div>';
-    } else if (g && g.bonus > 0) {
-      top += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + c.esc(c.t('bond.guard.line', {
-        name: c.t('bond.' + g.npcId + '.name'), title: c.t('bond.' + g.npcId + '.title.' + g.tier), num: c.bondTier(g.tier)
-      })) + '</span><span class="g">' + c.esc(c.t('bond.guard.eff', { b: g.bonus.toFixed(2) })) + '</span></div>';
+      gDesc = c.t('bond.guard.evil'); gX = '';
     } else if (g) {
-      top += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + c.esc(c.t('bond.guard.line', {
-        name: c.t('bond.' + g.npcId + '.name'), title: c.t('bond.' + g.npcId + '.title.' + g.tier), num: c.bondTier(g.tier)
-      })) + '</span><span class="g">' + c.esc(c.t('bond.guard.low')) + '</span></div>';
+      gDesc = c.t('bond.' + g.npcId + '.title.' + g.tier) + ' ' + c.bondTier(g.tier);
+      gX = (gOK ? c.t('bond.guard.eff', { b: g.bonus.toFixed(2) }) : c.t('bond.guard.low')) + ' · ' + c.t('bond.guard.swap');
     } else {
-      top += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + c.esc(c.t('bond.guard.none')) + '</span><span class="g">' + c.esc(c.t('bond.guard.low')) + '</span></div>';
+      gDesc = c.t('bond.guard.low'); gX = c.t('bond.guard.swap');
     }
-    /* 双修状态行：未结缘虚线灰 / 生效 / 炉鼎暗红「回头即散」——择选批：两态均可点开「择道侣」浮层 */
+    top += '<div class="bondslot' + (gOK ? ' filled' : ' empty') + '" data-act="guardPickOpen">' +
+      '<div class="bs-k">' + c.esc(c.t('bond.guard.tag')) + '</div>' +
+      '<div class="bs-v">' + c.esc(gName) + '</div>' +
+      '<div class="bs-d">' + c.esc(gDesc) + '</div>' +
+      (gX ? '<div class="bs-x">' + c.esc(gX) + '</div>' : '') + '</div>';
     if (w.spouse) {
       var sf = w.spouse.form;
-      top += '<div class="spouserow' + (sf === 'luding' ? ' luding' : '') + ' pickable" data-act="spousePickOpen"><span>' + c.esc(c.t('bond.spouse.active', {
-        form: c.t('bond.spouse.form.' + sf), name: c.t('bond.' + w.spouse.npcId + '.name'),
-        eff: c.t('bond.form.eff.' + sf).split(' · ')[0]
-      })) + '</span>' + (sf === 'luding' ? '<span>' + c.esc(c.t('bond.spouse.luding.warn')) + '</span>' : '') + '</div>';
+      top += '<div class="bondslot filled' + (sf === 'luding' ? ' luding' : '') + '" data-act="spousePickOpen">' +
+        '<div class="bs-k">' + c.esc(c.t('bond.sec.spouse')) + '</div>' +
+        '<div class="bs-v">' + c.esc(c.t('bond.' + w.spouse.npcId + '.name')) + '</div>' +
+        '<div class="bs-d">' + c.esc(c.t('bond.spouse.form.' + sf)) + ' · ' +
+        c.esc(c.t('bond.form.eff.' + sf).split(' · ')[0]) + '</div>' +
+        '<div class="bs-x' + (sf === 'luding' ? ' bad' : '') + '">' +
+        c.esc(sf === 'luding' ? c.t('bond.spouse.luding.warn') : c.t('bond.spouse.cand')) + '</div></div>';
     } else {
-      top += '<div class="spouserow none pickable" data-act="spousePickOpen"><span>' + c.esc(c.t('bond.spouse.none')) + '</span><span>' + c.esc(c.t('bond.spouse.nonetip')) + '</span></div>';
+      top += '<div class="bondslot empty" data-act="spousePickOpen">' +
+        '<div class="bs-k">' + c.esc(c.t('bond.sec.spouse')) + '</div>' +
+        '<div class="bs-v">' + c.esc(c.t('bond.spouse.none')) + '</div>' +
+        '<div class="bs-d">' + c.esc(c.t('bond.spouse.nonetip')) + '</div>' +
+        '<div class="bs-x dim">' + c.esc(c.t('bond.spouse.cand')) + '</div></div>';
     }
-    h += '<div class="bondslots">' + top + '</div>';
+    h += '<div class="slots2">' + top + '</div>';
+
     var all = SQ.Bonds.list(p);
     /* 道友页（UI v2 B8）：两卡首屏之后只铺「已结缘 + 缘尽」的行；
      * 未结缘不再铺 55 个问号格，收成一条入口，点开仍是同一份 58 人全名录浮层（能力零删除）。 */

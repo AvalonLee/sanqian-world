@@ -1140,6 +1140,49 @@
     if (!rail || !main) return;
     var h = '';
     try {
+      /* B15-b：修行区右栏 = 四柱（财 / 侣 / 法 / 地）+ 天象（档位 / 逆天值）+ 离线所得（最近一次结算摘要）。
+       * 全部读侧派生：四柱取 ledgerSums / 主修 / 洞府 / 护法，天象取 stageOf 与 defy，离线取 lastOffline；
+       * 无数据不造数（离线为空时印「暂无」而不是编一个 0）。 */
+      if (ws() && sectionOf(ui.tab).id === 'idle') {
+        var wI = ws(), pI = pack(), dI = D();
+        var sI = ledgerSums();
+        var mainI = SQ.Arts.mainArt(wI);
+        var cvI = SQ.Cave.current(wI, pI);
+        var gI = SQ.Bonds.guardianOf(wI, pI, dI);
+        var lvNameI = wI.spouse ? t('bond.' + wI.spouse.npcId + '.name')
+          : (gI ? t('bond.' + gI.npcId + '.name') + bondTierNum(gI.tier) : t('rail.none'));
+        /* 四柱按原型排成 2×2 小卡（财 / 侣 / 法 / 地），不再竖排成行 */
+        h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.pillars')) + '</div><div class="rb-slots">' +
+          '<div class="rb-slot"><div class="rb-sk">' + esc(t('pillar.cai')) + '</div>' +
+          '<div class="rb-sv">' + esc(SQ.fmt(wI.stones || 0)) + '</div>' +
+          '<div class="rb-sd">' + esc(t('pillar.cai.sub', { inn: SQ.fmt(sI.inn), out: SQ.fmt(sI.out) })) + '</div></div>' +
+          '<div class="rb-slot"><div class="rb-sk">' + esc(t('pillar.lv')) + '</div>' +
+          '<div class="rb-sv">' + esc(lvNameI) + '</div>' +
+          '<div class="rb-sd">' + esc(wI.spouse ? t('bond.spouse.form.' + wI.spouse.form)
+            : (gI ? t('bond.guard.tag') + ' ' + bondTierNum(gI.tier) : t('pillar.lv.subnone'))) + '</div></div>' +
+          '<div class="rb-slot"><div class="rb-sk">' + esc(t('pillar.fa')) + '</div>' +
+          '<div class="rb-sv">' + esc(mainI ? t('skill.' + mainI + '.name') : t('pillar.fa.empty')) + '</div>' +
+          '<div class="rb-sd">' + esc(mainI ? 'Lv' + (wI.artsLevels[mainI] || 0) : '') + '</div></div>' +
+          '<div class="rb-slot"><div class="rb-sk">' + esc(t('pillar.di')) + '</div>' +
+          '<div class="rb-sv">' + esc(cvI ? t('cave.' + cvI.id + '.name') : t('rail.none')) + '</div>' +
+          '<div class="rb-sd">' + esc(cvI ? '×' + SQ.Cave.multOf(wI, pI, dI, mods()).toFixed(2) : '') + '</div></div>' +
+          '</div></div>';
+        var tdI = wI.tiandao || {};
+        var stI = SQ.Tiandao ? SQ.Tiandao.stageOf(wI, dI) : null;
+        h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.tiandao')) + '</div>' +
+          '<div class="rb-b"><b>' + esc(stI ? t('tiandao.stage.' + stI) : t('rail.none')) + '</b><span>' +
+          esc(t('tiandao.defy.val', { n: tdI.defy || 0 })) + '</span></div></div>';
+        if (wI.lastOffline) {
+          var loI = wI.lastOffline;
+          h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.offline')) + '</div>' +
+            '<div class="rb-b"><span>' + esc(t('rail.left', { t: timeAgo(loI.at) })) + '</span></div>' +
+            '<div class="rb-log">' + esc(t('offline.rail.line', { qi: SQ.fmt(loI.qi), stones: SQ.fmt(loI.stones || 0) })) +
+            '</div></div>';
+        } else {
+          h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.offline')) + '</div>' +
+            '<div class="rb-b"><span>' + esc(t('rail.offline.none')) + '</span></div></div>';
+        }
+      }
       /* B5 起填块：历练区 = 本区词缀 + 最近 3 条战报（全部读侧派生，无数据不显示、不造数） */
       if (ws() && sectionOf(ui.tab).id === 'zone') {
         var wR = ws(), dR = D();
@@ -2426,6 +2469,8 @@
     /* ── G16 势力（势力批 v2.4）：加入 CONFIRM / 叛离 CONFIRM / 特席购买 / 关系全列开关 ── */
     /* ── G16 势力（势力批 v2.4 · 第册卅九批整片外置 view/faction.js）：关系全列开关 / 加入 CONFIRM ── */
     if (act === 'facRelAll') { SQ.UI.faction.actRelAll(ctx()); return; }
+    /* B15-j：势力页阵营筛选（chips） */
+    if (act === 'facCamp') { SQ.UI.faction.actCamp(ctx(), el.dataset.v); return; }
     if (act === 'joinFaction') { await SQ.UI.faction.actJoin(ctx(), v); return; }
     /* 叛离入口（系统深化批 B4 改造）：升级为去向感知两级弹窗——处理见下方 leaveFaction/defectGo 段 */
     /* 叛离入口（系统深化批 B4 改造）：升级为去向感知两级弹窗——处理见下方 leaveFaction/defectGo 段 */

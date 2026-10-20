@@ -157,114 +157,123 @@
     c.$('mrm-close').textContent = c.t('ui.close');
   }
 
-  /* ── Tab 2 秘境 ── */
+  /* ── Tab 2 秘境（B15-d 重排 · 设计稿 .curzone + .zlist）──
+   * 结构变化：原「卡片网格 + 通栏 hero 卡」改成「当前秘境 = 山影 hero 块；其余秘境 = 行式清单
+   * （可入 / 已首通两段）」。功能零丢：域主挑战、残片兑换（含 z6~8 四选）、首通进度、
+   * 战力三态、瓶颈提示、洞天联动角标、切换入口全部在位；洞天福地节原样保留。 */
   function render(c) {
     var w = c.w, m = c.mods, d = c.d, p = c.p;
     var power = SQ.Mods.powerOf(w, p, d, m);
-    var maxUn = SQ.Combat.maxUnlocked(w, d);
-    /* 战力已上移修行页重点展示；此处只留历练战绩（战力绝对值见修行页） */
-    var h = '<p class="hint" style="margin:0 0 8px">' + c.esc(c.t('ui.kills', { n: SQ.fmt(w.kills) })) + ' · ' +
-      c.esc(c.t('ui.total', { n: SQ.fmt(w.total || 0) })) + '</p>';
+    var h = '';
     /* 首通 ↔ 洞府联动（B6）：3 处福地以秘境首通为资格 → 两柱互相引流 */
     var caveByZone = {};
     SQ.Cave.list(c.p).forEach(function (cv) {
       var zc = cv.reqs && cv.reqs.zoneCleared;
       if (zc != null) caveByZone[zc] = cv;
     });
-    function zoneRow(i) {
-      var z = d.ZONES[i];
-      var locked = w.realm < z.unlock;
-      var cur = w.zone === i;
-      var bn = !locked && power < z.need;
-      var rh = '<div class="lrow zcard' + (cur ? ' cur hero' : '') + (locked ? ' locked' : '') + '" data-zone="' + i + '">';
-      rh += '<div class="nm">' + c.esc(locked ? c.t('zone.unknown') : c.t('combat.zone.' + i)) +
-           (cur ? ' <span class="tierbadge t4">' + c.esc(c.t('zone.current')) + '</span>' : '') +
-           ((w.cleared || []).indexOf(i) >= 0 ? ' <span class="tierbadge t1">' + c.esc(c.t('zone.cleared')) + '</span>' : '') +
-           /* 金虚线联动角标：点击跳本页洞天节（未首通 = 预告「首通可开福地」） */
-           (caveByZone[i] ? '<span class="cavelink" data-act="openCave">' +
-             c.esc(c.t((w.cleared || []).indexOf(i) >= 0 ? 'zone.cavelink' : 'zone.cavelink.locked',
-               { name: c.t('cave.' + caveByZone[i].id + '.name') })) + '</span>' : '') + '</div>';
-      if (locked) {
-        rh += '<div class="meta">' + c.esc(c.t('zone.locked', { realm: c.t('realm.' + z.unlock) })) + '</div>';
-      } else {
-        /* 数值行合并（信息密度批）：需求战力 · 灵石 · 战力三态同排一行 */
-        var pwCls = power >= z.need * 1.2 ? 'ok' : (power >= z.need ? 'tight' : 'bad');
-        rh += '<div class="zstats"><span>' + c.esc(c.t('zone.need', { n: SQ.fmt(z.need) })) + '</span>' +
-          '<span>' + c.esc(c.t('zone.stones', { n: SQ.fmt(z.stones) })) + '</span>' +
-          '<span class="zone-pw ' + pwCls + '">' + c.esc(pwCls === 'bad'
-            ? c.t('zone.pw.bad', { n: SQ.fmt(z.need - power) })
-            : c.t('zone.pw.' + pwCls, { p: Math.round((power / z.need - 1) * 100) })) + '</span></div>';
-        if (bn) rh += '<div class="meta red">' + c.esc(c.t('combat.bottleneck')) + ' — ' + c.esc(c.t('combat.bottleneck.hint')) + '</div>';
-        if (cur) {
-          /* 当前秘境 hero：左栏 = 天时 + 域主，右栏 = 进度 + 残片（宽屏双栏、窄屏单栏） */
-          var zhL = '', zhR = '';
-          /* 区域词缀 chip（B3 · 切入即见：名 + 效果 + 剩余时长；数值详设 §2.5） */
-          var aff = SQ.Combat.affixDef(w, d);
-          if (aff) {
-            zhL += '<div class="affixrow"><span class="affixchip">' + c.esc(c.t('affix.' + aff.id + '.name')) + '</span>' +
-              '<span class="meta">' + c.esc(c.t('affix.' + aff.id + '.desc')) + ' · ' +
-              c.esc(c.t('zone.affix.left', { t: c.timeLeft((w.zoneAffix && w.zoneAffix.until || 0) - Date.now()) })) + '</span></div>';
-          } else {
-            zhL += '<div class="meta hint">' + c.esc(c.t('zone.affix.none')) + '</div>';
-          }
-          /* 域主现世（B3 · 数值详设 §2.6）：ready → 域主线 + 挑战按钮（CD 态置灰倒计时）；dead → 已斩角标 */
-          var zb = w.zoneBoss;
-          if (zb && zb.zone === i && zb.state === 'ready') {
-            var bossNeed = Math.round(z.need * (d.BOSS_MULT != null ? d.BOSS_MULT : 1.8));
-            var cdLeft = (zb.retryAt || 0) - Date.now();
-            zhL += '<div class="bossrow"><span class="tierbadge tboss">' + c.esc(c.t('zone.boss.tag')) + '</span>' +
-              '<span class="zone-pw ' + (power >= bossNeed ? 'ok' : 'bad') + '">' +
-              c.esc(c.t('zone.boss.need', { need: SQ.fmt(bossNeed), m: (d.BOSS_MULT != null ? d.BOSS_MULT : 1.8) })) + '</span></div>';
-            zhL += cdLeft > 0
-              ? '<div class="acts"><button disabled>' + c.esc(c.t('zone.boss.cd', { t: c.timeLeft(cdLeft) })) + '</button></div>'
-              : '<div class="acts"><button class="primary" data-act="challengeBoss">' + c.esc(c.t('zone.boss.challenge')) + '</button></div>';
-          } else if (zb && zb.zone === i && zb.state === 'dead') {
-            zhL += '<div class="meta"><span class="tierbadge t1">' + c.esc(c.t('zone.boss.dead')) + '</span></div>';
-          }
-          zhR += '<div class="bar slim"><i style="width:' + (w.prog[i] || 0) + '%"></i></div>';
-          zhR += '<div class="meta">' + c.esc(c.t('zone.prog', { n: w.prog[i] || 0 })) + (bn ? ' <span class="red">(' + c.esc(c.t('combat.bottleneck')) + ' 90)</span>' : '') + '</div>';
-          /* 探宝残片进度与兑换入口（B3 · 数值详设 §2.7 + 扩容批四选）：z6~8 设施图纸/情报/丹方/器图纸四按钮 */
-          var shN = Math.max(0, Math.floor((w.shards || [])[i] || 0));
-          var shNeed = d.SHARD_NEED != null ? d.SHARD_NEED : 20;
-          zhR += '<div class="shardrow"><span class="meta">' + c.esc(c.t('zone.shard.name')) + ' ' +
-            c.esc(c.t('zone.shard.prog', { n: shN, need: shNeed })) + '</span>';
-          if (shN >= shNeed) {
-            zhR += (i >= 6 && i <= 8)
-              ? '<span class="acts"><button data-act="exchangeShard" data-v="' + i + '" data-c="fac">' +
-                c.esc(c.t('zone.shard.pick.fac')) + '</button>' +
-                '<button data-act="exchangeShard" data-v="' + i + '" data-c="intel">' +
-                c.esc(c.t('zone.shard.pick.intel')) + '</button>' +
-                (d.ALCHEMY ? '<button data-act="exchangeShard" data-v="' + i + '" data-c="recipe">' +
-                c.esc(c.t('alchemy.shard.pick.recipe')) + '</button>' +
-                '<button data-act="exchangeShard" data-v="' + i + '" data-c="bp">' +
-                c.esc(c.t('alchemy.shard.pick.bp')) + '</button>' : '') + '</span>'
-              : '<span class="acts"><button data-act="exchangeShard" data-v="' + i + '">' +
-                c.esc(c.t('zone.shard.exchange')) + '</button></span>';
-          }
-          zhR += '</div>';
-          rh += '<div class="zhero"><div class="zhcol">' + zhL + '</div><div class="zhcol">' + zhR + '</div></div>';
-        } else {
-          rh += '<div class="acts zfoot"><button data-act="setZone" data-v="' + i + '">' + c.esc(c.t('zone.enter')) + '</button></div>';
-        }
-      }
-      return rh + '</div>';
+    function pwText(z) {
+      var cls = power >= z.need * 1.2 ? 'ok' : (power >= z.need ? 'tight' : 'bad');
+      return { cls: cls, txt: cls === 'bad' ? c.t('zone.pw.bad', { n: SQ.fmt(z.need - power) })
+        : c.t('zone.pw.' + cls, { p: Math.round((power / z.need - 1) * 100) }) };
     }
-    /* 列表排序（B6 · 帧一）：进行中置顶 → 未首通按阶梯在上（下一目标牵引）→
-     * 分隔线 → 已首通折叠在下（回访刷取入口，倒序 = 越新越近手边） */
+    /* ① 当前秘境 hero */
+    var zi = w.zone, zc0 = d.ZONES[zi];
+    var progN = w.prog[zi] || 0;
+    var pw0 = pwText(zc0);
+    var aff0 = SQ.Combat.affixDef(w, d);
+    var meta0 = c.t('zone.need', { n: SQ.fmt(zc0.need) }) + ' · ' +
+      c.t('ui.kills', { n: SQ.fmt(w.kills) }) + (aff0 ? ' · ' + c.t('affix.' + aff0.id + '.name') : '');
+    h += '<div class="curzone">' +
+      '<svg class="cz-ink" viewBox="0 0 150 110" aria-hidden="true">' +
+      '<path d="M0 110V74l18-22 12 10 16-32 16 28 12-14 18 26 12-12 16 20 30-16v48z" fill="currentColor"></path></svg>' +
+      '<div class="cz-top"><div><div class="cz-name">' + c.esc(c.t('combat.zone.' + zi)) + '</div>' +
+      '<div class="cz-meta">' + c.esc(meta0) + '</div></div>' +
+      '<span class="tag jade">' + c.esc(c.t('zone.current')) + '</span></div>' +
+      '<div class="cz-prog"><div class="lab"><span>' + c.esc(c.t('zone.prog', { n: progN })) + '</span>' +
+      '<span class="' + pw0.cls + '">' + c.esc(pw0.txt) + '</span></div>' +
+      '<div class="bar"><i style="width:' + progN + '%"></i></div></div>';
+    /* ② 动作行：残片进度 + 兑换（够数才亮；z6~8 给四选）+ 域主挑战 */
+    var shN0 = Math.max(0, Math.floor((w.shards || [])[zi] || 0));
+    var shNeed0 = d.SHARD_NEED != null ? d.SHARD_NEED : 20;
+    h += '<div class="cz-acts"><span class="cz-shard">' + c.esc(c.t('zone.shard.name')) + ' ' +
+      c.esc(c.t('zone.shard.prog', { n: shN0, need: shNeed0 })) + '</span>';
+    if (shN0 >= shNeed0) {
+      if (zi >= 6 && zi <= 8) {
+        h += '<button data-act="exchangeShard" data-v="' + zi + '" data-c="fac">' + c.esc(c.t('zone.shard.pick.fac')) + '</button>' +
+          '<button data-act="exchangeShard" data-v="' + zi + '" data-c="intel">' + c.esc(c.t('zone.shard.pick.intel')) + '</button>' +
+          (d.ALCHEMY ? '<button data-act="exchangeShard" data-v="' + zi + '" data-c="recipe">' + c.esc(c.t('alchemy.shard.pick.recipe')) + '</button>' +
+            '<button data-act="exchangeShard" data-v="' + zi + '" data-c="bp">' + c.esc(c.t('alchemy.shard.pick.bp')) + '</button>' : '');
+      } else {
+        h += '<button data-act="exchangeShard" data-v="' + zi + '">' + c.esc(c.t('zone.shard.exchange')) + '</button>';
+      }
+    }
+    h += '</div>';
+    /* ③ 三行：域主 / 本区词缀 / 洞天 */
+    var zb0 = w.zoneBoss;
+    h += '<div class="cz-kv"><span>' + c.esc(c.t('zone.boss.name')) + '</span>';
+    if (zb0 && zb0.zone === zi && zb0.state === 'ready') {
+      var bossNeed = Math.round(zc0.need * (d.BOSS_MULT != null ? d.BOSS_MULT : 1.8));
+      var cdLeft = (zb0.retryAt || 0) - Date.now();
+      h += cdLeft > 0
+        ? '<b class="bad">' + c.esc(c.t('zone.boss.cd', { t: c.timeLeft(cdLeft) })) + '</b>'
+        : '<button class="linkbtn" data-act="challengeBoss">' + c.esc(c.t('zone.boss.challenge')) + '</button>';
+      h += '<i class="cz-sub ' + (power >= bossNeed ? 'ok' : 'bad') + '">' +
+        c.esc(c.t('zone.boss.need', { need: SQ.fmt(bossNeed), m: (d.BOSS_MULT != null ? d.BOSS_MULT : 1.8) })) + '</i>';
+    } else if (zb0 && zb0.zone === zi && zb0.state === 'dead') {
+      h += '<b class="ok">' + c.esc(c.t('zone.boss.dead')) + '</b>';
+    } else {
+      h += '<b class="hint">' + c.esc(c.t('zone.boss.none')) + '</b>';
+    }
+    h += '</div>';
+    h += '<div class="cz-kv"><span>' + c.esc(c.t('affix.title')) + '</span>';
+    if (aff0) {
+      h += '<b>' + c.esc(c.t('affix.' + aff0.id + '.desc')) + '</b>' +
+        '<i class="cz-sub">' + c.esc(c.t('zone.affix.left', { t: c.timeLeft((w.zoneAffix && w.zoneAffix.until || 0) - Date.now()) })) + '</i>';
+    } else {
+      h += '<b class="hint">' + c.esc(c.t('zone.affix.none')) + '</b>';
+    }
+    h += '</div>';
+    var cv0 = caveByZone[zi];
+    h += '<div class="cz-kv"><span>' + c.esc(c.t('cave.title')) + '</span>';
+    h += cv0
+      ? '<button class="linkbtn" data-act="openCave">' + c.esc(c.t('cave.' + cv0.id + '.name')) + ' ›</button>'
+      : '<b class="hint">' + c.esc(c.t('cave.link.none')) + '</b>';
+    h += '</div></div>';
+    /* ④ 行式清单：可入（未首通，含未解锁）→ 已首通可回访 */
     var cleared = w.cleared || [];
-    var curI = w.zone;
     var upper = [], lower = [];
     d.ZONES.forEach(function (z, i) {
-      if (i === curI) return;
+      if (i === zi) return;
       (cleared.indexOf(i) >= 0 ? lower : upper).push(i);
     });
-    h += '<div class="secbar"><span>' + c.esc(c.t('zone.sec')) + '</span></div>';
-    h += '<div class="zonegrid">';
-    h += zoneRow(curI);
-    upper.forEach(function (i) { h += zoneRow(i); });
+    function zrow(i) {
+      var z = d.ZONES[i];
+      var locked = w.realm < z.unlock;
+      var bn = !locked && power < z.need;
+      var r = '<div class="zrow' + (locked ? ' locked' : '') + '" data-zone="' + i + '"' +
+        (locked ? '' : ' data-act="setZone" data-v="' + i + '"') + '>' +
+        '<div><div class="z-n">' + c.esc(locked ? c.t('zone.unknown') : c.t('combat.zone.' + i)) + '</div>' +
+        '<div class="z-d">' + c.esc(locked
+          ? c.t('zone.locked', { realm: c.t('realm.' + z.unlock) })
+          : c.t('zone.need', { n: SQ.fmt(z.need) }) + ' · ' + c.t('zone.stones', { n: SQ.fmt(z.stones) })) + '</div></div>';
+      var right;
+      if (locked) {
+        right = '<div class="s hint">' + c.esc(c.t('zone.lockedtag')) + '</div>';
+      } else {
+        var pw = pwText(z);
+        right = '<div class="s ' + pw.cls + '">' + c.esc(pw.txt) + '</div>';
+        var sub = bn ? c.t('combat.bottleneck')
+          : (caveByZone[i] ? c.t('cave.' + caveByZone[i].id + '.name')
+            : (cleared.indexOf(i) >= 0 ? c.t('zone.cleared') : c.t('zone.enter')));
+        right += '<div class="p">' + c.esc(sub) + '</div>';
+      }
+      return r + '<div class="z-r">' + right + '</div></div>';
+    }
+    h += '<div class="zlist"><h2 class="sect">' + c.esc(c.t('zone.sec')) + '</h2>';
+    upper.forEach(function (i) { h += zrow(i); });
     if (lower.length) {
-      h += '<div class="zsep">—— ' + c.esc(c.t('zone.clearedsec')) + ' ——</div>';
-      lower.reverse().forEach(function (i) { h += zoneRow(i); });
+      h += '<h2 class="sect" style="margin-top:22px">' + c.esc(c.t('zone.clearedsec')) + '</h2>';
+      lower.slice().reverse().forEach(function (i) { h += zrow(i); });
     }
     h += '</div>';
     /* ── 洞天福地（合并批）：原「洞天」独立页内容内联到本页——与秘境同页卡片化，

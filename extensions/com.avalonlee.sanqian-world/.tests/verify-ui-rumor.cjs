@@ -127,18 +127,22 @@ async function buildSave() {
   await page.click('#mrc-close');
   T(await page.$eval('#modal-recall', el => el.classList.contains('hide')), 'RF⑦ 关闭钮可关（不靠遮罩/ESC）');
 
-  /* ── UI v2 B9：叙事流时间列 + 图鉴默认收起（点段头展开 / 再点收起）── */
+  /* ── 叙事流日期位置（B15-g 改口：按原型 .f-time 回到标题行右端，不再是左列时间线）──
+   * 判据形状：日期有数字 + 与标题行同一水平带（top 差 ≤ 6px）+ 右边界贴近卡片右边界（≥ 卡宽 70%）。 */
   const rfTl = await page.evaluate(() => {
     const card = document.querySelector('#tab-event .fcard');
     const fd = card && card.querySelector('.fdate');
-    const fm = card && card.querySelector('.fmain');
+    const fn = card && card.querySelector('.fn');
+    if (!fd || !fn) return { date: '', sameRow: false, rightPct: 0 };
+    const r = fd.getBoundingClientRect(), t = fn.getBoundingClientRect(), c = card.getBoundingClientRect();
     return {
-      date: fd ? fd.textContent.trim() : '',
-      left: fd && fm ? fd.getBoundingClientRect().left < fm.getBoundingClientRect().left : false
+      date: fd.textContent.trim(),
+      sameRow: Math.abs(r.top - t.top) <= 6,
+      rightPct: Math.round((r.right - c.left) / c.width * 100)
     };
   });
-  T(/[0-9]/.test(rfTl.date) && rfTl.left,
-    'RF⑧ 叙事流日期独占左列（时间线），正文在右', JSON.stringify(rfTl));
+  T(/[0-9]/.test(rfTl.date) && rfTl.sameRow && rfTl.rightPct >= 70,
+    'RF⑧ 叙事流日期在标题行右端（原型 .f-time 位置）', JSON.stringify(rfTl));
   const cx0 = await page.evaluate(() => ({
     btns: document.querySelectorAll('#tab-event .codex-sec').length,
     grids: document.querySelectorAll('#tab-event .codexgrid').length

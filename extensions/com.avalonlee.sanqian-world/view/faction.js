@@ -224,15 +224,23 @@
     var toggle = '<button class="linkbtn" data-act="facRelAll">' +
       c.esc(c.t(c.ui.facRelAll ? 'event.feed.less' : 'arts.group.all')) + '</button>';
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('faction.system')) + ' · ' + (w.factions || []).length + '</span>' + toggle + '</div>';
-    var colAligns = ['right', 'neutral', 'evil'];
-    h += '<div class="faccols">';
-    colAligns.forEach(function (al) {
-      var list = (w.factions || []).filter(function (f) { return f.align === al; });
-      h += '<div class="faccol"><div class="faccolhead kb ' + al + '">' + c.esc(c.t('align.' + al)) +
-        ' · ' + list.length + '</div>';
-      list.forEach(function (f) { h += factionCard(c, w, f, cur); });
-      h += '</div>';
-    });
+    /* UI v2 B15-j：三栏（正/左/魔）改设计稿「阵营 chips 筛选 + 单列行式」——
+     * 筛选态走 ui.facCamp（不落盘），名单与卡本身一字未改，只换排列方式。 */
+    var camp = c.ui.facCamp || 'all';
+    var cnt = { all: (w.factions || []).length, right: 0, neutral: 0, evil: 0 };
+    (w.factions || []).forEach(function (f) { if (cnt[f.align] != null) cnt[f.align]++; });
+    h += '<div class="chipsrow facchips">' + [
+      { k: 'all', label: c.t('arts.group.all') },
+      { k: 'right', label: c.t('align.right') },
+      { k: 'neutral', label: c.t('align.neutral') },
+      { k: 'evil', label: c.t('align.evil') }
+    ].map(function (x) {
+      return '<button type="button" class="' + (camp === x.k ? 'on' : '') + '" data-act="facCamp" data-v="' + x.k + '">' +
+        c.esc(x.label) + ' ' + cnt[x.k] + '</button>';
+    }).join('') + '</div>';
+    h += '<div class="faclist">';
+    (w.factions || []).filter(function (f) { return camp === 'all' || f.align === camp; })
+      .forEach(function (f) { h += factionCard(c, w, f, cur); });
     h += '</div>';
     c.$('tab-faction').innerHTML = h;
   }
@@ -317,6 +325,9 @@
   /* ── 这一页的八条动作（第册六批口径：一片 = 一页的呈现 + 它的动作；分派留在内核、顺序不动，
    * 内核那八行各自只剩一句 await SQ.UI.faction.actXxx(ctx(), v)）── */
   function actRelAll(c) { c.ui.facRelAll = !c.ui.facRelAll; c.renderTab(); }
+
+  /* B15-j：阵营筛选（纯视图态，不落盘；切页保持当前筛选） */
+  function actCamp(c, v) { c.ui.facCamp = v || 'all'; c.renderTab(); }
   async function actJoin(c, v) {
     var fJ = SQ.Factions.byId(c.w, v);
     if (!fJ) return;
@@ -368,7 +379,7 @@
   }
 
   SQ.UI = SQ.UI || {};
-  SQ.UI.faction = { render: renderFaction, actRelAll: actRelAll, actJoin: actJoin,
+  SQ.UI.faction = { render: renderFaction, actRelAll: actRelAll, actCamp: actCamp, actJoin: actJoin,
     actDefect: actDefect, actOfficePick: actOfficePick, actOfficePickCancel: actOfficePickCancel,
     actDispatch: actDispatch, actGuard: actGuard, actSupply: actSupply };
 })();

@@ -121,35 +121,59 @@ const { chromium } = require('playwright-core');
   await page.click('#m-tabbar button[data-v="idle"]');
   await page.waitForTimeout(300);
 
-  /* ③ 纸面 + 墨夜 */
+  /* ③ 纸面 + 墨夜
+   * ⚠️ B15-a2 起「纸」的载体从 body 移到 html（body 透明上浮 z-index 1，纸纹层夹在中间）
+   *    ⇒ 本组读 documentElement 的底色；body 只负责内容层与文字色。 */
   const light = await page.evaluate(() => {
-    const bg = getComputedStyle(document.body).backgroundColor;
+    const bg = getComputedStyle(document.documentElement).backgroundColor;
+    const bodyBg = getComputedStyle(document.body).backgroundColor;
     const paper = getComputedStyle(document.documentElement).getPropertyValue('--sq2-paper').trim();
-    return { bg, paper };
+    return { bg, bodyBg, paper };
   });
-  T(light.bg !== 'rgba(0, 0, 0, 0)' && light.bg !== 'transparent', 'SH7 亮色页面底不透明', light.bg);
+  T(light.bg !== 'rgba(0, 0, 0, 0)' && light.bg !== 'transparent', 'SH7 亮色页面底不透明（纸在 html）', light.bg);
   T(light.paper === '#F6F1E5', 'SH8 亮色 --sq2-paper = #F6F1E5', light.paper);
 
   await page.evaluate(() => { document.documentElement.setAttribute('data-xhub-theme', 'dark'); });
   await page.waitForTimeout(120);
   const dark = await page.evaluate(() => {
     const cs = getComputedStyle(document.body);
+    const htmlBg = getComputedStyle(document.documentElement).backgroundColor;
     const paper = getComputedStyle(document.documentElement).getPropertyValue('--sq2-paper').trim();
     const rgbs = (s) => (s.match(/\d+/g) || []).map(Number);
-    const bg = rgbs(cs.backgroundColor), ink = rgbs(cs.color);
+    const bg = rgbs(htmlBg), ink = rgbs(cs.color);
     return { paper, bg, ink };
   });
   T(dark.paper === '#1C1A17', 'SH9 墨夜 --sq2-paper 转深', dark.paper);
-  T(dark.bg[0] < 60 && dark.bg[1] < 60, 'SH10 墨夜页面底为深色', dark.bg.join(','));
+  T(dark.bg[0] < 60 && dark.bg[1] < 60, 'SH10 墨夜页面底为深色（读 html）', dark.bg.join(','));
   T(dark.ink[0] > 180 && dark.ink[1] > 180, 'SH11 墨夜文字转浅（可读）', dark.ink.join(','));
 
-  /* ④ 右栏骨架 */
+  /* ④ 右栏：修行区自 B15-b 起有三块（四柱 / 天象·传闻 / 离线所得）；仍无块的区（生平）必须收起第三列 */
+  await page.evaluate(() => {
+    Array.prototype.slice.call(document.querySelectorAll('#m-tabbar button'))
+      .filter((b) => b.dataset.v === 'idle')[0].click();
+  });
+  await page.waitForTimeout(260);
   const rail = await page.evaluate(() => {
     const r = document.getElementById('m-rail');
-    return { exists: !!r, empty: r ? r.children.length === 0 : false, has: document.getElementById('sc-main').classList.contains('hasrail'), display: r ? getComputedStyle(r).display : '' };
+    return {
+      exists: !!r,
+      titles: Array.prototype.map.call(r.querySelectorAll('.rb-t'), (x) => x.textContent.trim()),
+      has: document.getElementById('sc-main').classList.contains('hasrail')
+    };
   });
   T(rail.exists, 'SH12 右栏骨架元素在位');
-  T(rail.empty && !rail.has, 'SH13 B1 无块 ⇒ 不加 hasrail（不占第三列）', JSON.stringify(rail));
+  T(rail.has && rail.titles.join(',') === '四柱,天象 · 传闻,离线所得',
+    'SH13 修行区右栏 = 四柱 + 天象·传闻 + 离线所得（B15-b，有块才开第三列）', JSON.stringify(rail));
+  await page.evaluate(() => {
+    Array.prototype.slice.call(document.querySelectorAll('#m-tabbar button'))
+      .filter((b) => b.dataset.v === 'achv')[0].click();
+  });
+  await page.waitForTimeout(260);
+  const railNone = await page.evaluate(() => {
+    const r = document.getElementById('m-rail');
+    return { empty: r.children.length === 0, has: document.getElementById('sc-main').classList.contains('hasrail') };
+  });
+  T(railNone.empty && !railNone.has, 'SH13b 无块区（生平）不加 hasrail（不占第三列）', JSON.stringify(railNone));
 
   /* ⑤ 380 宽 */
   await page.setViewportSize({ width: 380, height: 720 });

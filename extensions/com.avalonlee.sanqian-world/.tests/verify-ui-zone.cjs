@@ -58,22 +58,23 @@ async function buildSave(ov) {
   await page.waitForTimeout(400);
 
   const wide = await page.evaluate(() => {
-    const grid = document.querySelector('#tab-combat .zonegrid');
-    const hero = document.querySelector('#tab-combat .zcard.hero');
-    const sep = document.querySelector('#tab-combat .zonegrid > .zsep');
+    const cz = document.querySelector('#tab-combat .curzone');
+    const rows = document.querySelectorAll('#tab-combat .zlist .zrow');
     const cg = document.querySelector('#tab-combat .cavegrid');
     const ch = document.querySelector('#tab-combat .cavegrid > .cavecard.hero');
+    const nameEl = cz ? cz.querySelector('.cz-name') : null;
     return {
-      hasGrid: !!grid,
-      cols: grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').length : 0,
-      cards: document.querySelectorAll('#tab-combat .zonegrid > .zcard').length,
-      heroN: document.querySelectorAll('#tab-combat .zcard.hero').length,
-      heroSpan: hero ? getComputedStyle(hero).gridColumn : '',
-      heroCols: hero ? getComputedStyle(hero.querySelector('.zhero')).gridTemplateColumns.split(' ').length : 0,
-      bossBtn: !!document.querySelector('#tab-combat .zcard.hero [data-act="challengeBoss"]'),
-      shardBtn: !!document.querySelector('#tab-combat .zcard.hero [data-act="exchangeShard"]'),
-      sep: !!sep,
-      enterBtns: document.querySelectorAll('#tab-combat .zonegrid > .zcard .zfoot [data-act="setZone"]').length,
+      hasCz: !!cz,
+      czName: nameEl ? nameEl.textContent.trim() : '',
+      czProg: !!document.querySelector('#tab-combat .curzone .cz-prog .bar'),
+      czKv: document.querySelectorAll('#tab-combat .curzone .cz-kv').length,
+      bossBtn: !!document.querySelector('#tab-combat .curzone [data-act="challengeBoss"]'),
+      shardBtn: !!document.querySelector('#tab-combat .curzone [data-act="exchangeShard"]'),
+      rows: rows.length,
+      secs: document.querySelectorAll('#tab-combat .zlist .sect').length,
+      rowsClick: document.querySelectorAll('#tab-combat .zlist .zrow[data-act="setZone"]').length,
+      lockedRows: document.querySelectorAll('#tab-combat .zlist .zrow.locked').length,
+      total: (cz ? 1 : 0) + rows.length,
       /* 合并批：洞天福地内联本页，同构卡片网格 + 当前驻留置顶 hero */
       caveSec: !!document.querySelector('#tab-combat #cave-sec'),
       caveCols: cg ? getComputedStyle(cg).gridTemplateColumns.split(' ').length : 0,
@@ -85,13 +86,17 @@ async function buildSave(ov) {
     };
   });
 
-  T(wide.hasGrid && wide.cols >= 2, 'R1 秘境页为卡片网格（宽屏 ≥2 列）', 'cols=' + wide.cols);
-  T(wide.cards === 10, 'R2 每秘境一卡（10 卡全在）', 'n=' + wide.cards);
-  T(wide.heroN === 1 && wide.heroSpan === '1 / -1', 'R3 当前秘境 = 通栏 hero', wide.heroSpan);
-  T(wide.heroCols === 2, 'R4 hero 内层双栏（天时/域主 | 进度/残片）', 'cols=' + wide.heroCols);
+  /* B15-d 改口：秘境页从「卡片网格 + 通栏 hero 卡」改为设计稿「山影 curzone 块 + 行式清单」。
+   * R1~R8 随之重写——守的东西不变（10 处都在 / 当前秘境有身元 / 域主与残片入口在位 /
+   * 已首通另起一段 / 非当前可点进 / 窄屏不破宽），只是载体从卡片换成 hero + 行。 */
+  T(wide.hasCz && wide.czName.length > 0, 'R1 当前秘境 = curzone hero（名字在位）', wide.czName);
+  T(wide.total === 10, 'R2 十处秘境全在（hero 1 + 清单 9）', 'total=' + wide.total);
+  T(wide.czProg, 'R3 hero 内含首通进度条');
+  T(wide.czKv === 3, 'R4 hero 三行身元（域主 / 词缀 / 洞天）', 'n=' + wide.czKv);
   T(wide.bossBtn && wide.shardBtn, 'R5 hero 内含域主挑战 + 残片兑换入口', 'boss=' + wide.bossBtn + ' shard=' + wide.shardBtn);
-  T(wide.sep, 'R6 已首通分组分隔线保留');
-  T(wide.enterBtns === 5, 'R7 非当前已解锁卡均有「切换到此」', 'n=' + wide.enterBtns);
+  T(wide.secs === 2, 'R6 清单两段（可入 / 已首通）', 'sect=' + wide.secs);
+  T(wide.rowsClick === 5, 'R7 非当前已解锁行均可点进（data-act=setZone）', 'n=' + wide.rowsClick);
+  T(wide.lockedRows > 0, 'R7b 未解锁行仍以灰行占位（？？？）', 'n=' + wide.lockedRows);
   T(wide.caveSec && wide.caveCols >= 2, 'R9 洞天福地并入本页且为卡片网格（宽屏 ≥2 列）', 'cols=' + wide.caveCols);
   T(wide.caveCards >= 6, 'R10 福地每处一卡（≥6 卡）', 'n=' + wide.caveCards);
   T(wide.caveHeroN === 1 && wide.caveHeroSpan === '1 / -1' && wide.caveFirstHero, 'R11 当前驻留福地 = 置顶通栏 hero', wide.caveHeroSpan + '/first=' + wide.caveFirstHero);
@@ -100,16 +105,22 @@ async function buildSave(ov) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
   const narrow = await page.evaluate(() => {
-    const grid = document.querySelector('#tab-combat .zonegrid');
-    const hero = document.querySelector('#tab-combat .zcard.hero');
+    const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-combat .zlist .zrow'));
+    const cz = document.querySelector('#tab-combat .curzone');
     const cg = document.querySelector('#tab-combat .cavegrid');
+    const over = rows.some((r) => r.scrollWidth > r.clientWidth + 1);
+    /* 山影水印 .cz-ink 刻意 right:-6 探出（overflow:hidden 裁掉），不算内容溢出 */
+    const kids = cz ? Array.prototype.slice.call(cz.children).filter((x) => !x.classList.contains('cz-ink')) : [];
+    const cr = cz ? cz.getBoundingClientRect() : null;
+    const czOver = !cz || kids.some((k) => k.getBoundingClientRect().right > cr.right + 0.5);
     return {
-      cols: getComputedStyle(grid).gridTemplateColumns.split(' ').length,
-      heroCols: getComputedStyle(hero.querySelector('.zhero')).gridTemplateColumns.split(' ').length,
+      czOver: czOver,
+      rowOver: over,
+      docOver: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       caveCols: getComputedStyle(cg).gridTemplateColumns.split(' ').length
     };
   });
-  T(narrow.cols === 1 && narrow.heroCols === 1, 'R8 窄屏退单列（秘境网格 + hero 内层同退）', 'cols=' + narrow.cols + ' hero=' + narrow.heroCols);
+  T(!narrow.czOver && !narrow.rowOver && !narrow.docOver, 'R8 窄屏：hero 与行式清单均无横向溢出', JSON.stringify(narrow));
   T(narrow.caveCols === 1, 'R13 窄屏洞天网格同退单列', 'cols=' + narrow.caveCols);
 
   /* ── N9 四选走查（2026-10-07 收口批）：z6~8 档四按钮齐 + 点「普通/精制图纸」真入档 ──
@@ -128,13 +139,13 @@ async function buildSave(ov) {
   await page.waitForTimeout(400);
   const four = await page.evaluate(() => {
     const bs = Array.prototype.slice.call(
-      document.querySelectorAll('#tab-combat .zcard.hero [data-act="exchangeShard"]'));
+      document.querySelectorAll('#tab-combat .curzone [data-act="exchangeShard"]'));
     return { cs: bs.map((b) => b.getAttribute('data-c')).filter(Boolean),
       labels: bs.map((b) => b.textContent.trim()) };
   });
   T(four.cs.join(',') === 'fac,intel,recipe,bp', 'R14 z6~8 档四选按钮齐（fac/intel/recipe/bp 顺）',
     'cs=' + four.cs.join('|') + ' labels=' + four.labels.join('/'));
-  await page.click('#tab-combat .zcard.hero [data-act="exchangeShard"][data-c="bp"]');
+  await page.click('#tab-combat .curzone [data-act="exchangeShard"][data-c="bp"]');
   await page.waitForTimeout(900);
   const got = await page.evaluate(() => {
     const st = JSON.parse(localStorage.getItem('sanqian-state-v1') || '{}');

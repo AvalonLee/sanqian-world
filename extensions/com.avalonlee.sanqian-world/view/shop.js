@@ -73,39 +73,50 @@
       : c.t('shop.price', { n: SQ.fmt(it.price) }) + ' ' + c.t('resource.currency');
   }
 
+  /* 货架卡（B15-e · 设计稿 .goods）：名称行（含词缀/分类 chip）→ 效果行 → 价格行（朱砂衬线，底部对齐）。
+   * 结构仍是「卡片 div + 内部购买按钮」——设计稿把整张卡当按钮，但本页 `[data-act="buy"]` 是走查与
+   * 事件委托的锚点，故保留按钮、把它排成价格行（按钮文字 = 价格，aria-label 说明动作）。
+   * 类名保留 `.shopcard`（market 走查按它计数），视觉由 `.goods` 承担。 */
   function itemRow(c, it, idx, black, w) {
-    var h = '<div class="lrow shopcard' + (it.sold ? ' locked' : '') + '">';
+    var nameHtml = '', effHtml = '';
     if (it.kind === 'gear') {
-      h += '<div class="nm">' + c.esc(goodName(c, it)) + tagHtml(c, it) +
-           (it.gear.special ? ' <span class="special-mark">' + c.esc(c.t('gear.special.' + it.gear.special)) + '</span>' : '') + '</div>';
-      h += '<div class="meta">' + c.esc(c.statLine(it.gear)) + '</div>';
-      if (!SQ.Gear.canWear(it.gear, w)) h += '<div class="meta red">' + c.esc(c.t('gear.req', { realm: c.t('realm.' + it.gear.reqs.realm) })) + '</div>';
+      nameHtml = c.esc(goodName(c, it)) + tagHtml(c, it) +
+        (it.gear.special ? ' <span class="special-mark">' + c.esc(c.t('gear.special.' + it.gear.special)) + '</span>' : '');
+      effHtml = c.esc(c.statLine(it.gear));
+      if (!SQ.Gear.canWear(it.gear, w)) {
+        effHtml += '<div class="g-warn">' + c.esc(c.t('gear.req', { realm: c.t('realm.' + it.gear.reqs.realm) })) + '</div>';
+      }
     } else if (it.kind === 'pill') {
-      h += '<div class="nm">' + c.esc(goodName(c, it)) + tagHtml(c, it) + '</div>';
-      h += '<div class="meta">' + c.esc(c.t('pill.' + it.ref + '.desc')) + '</div>';
+      nameHtml = c.esc(goodName(c, it)) + tagHtml(c, it);
+      effHtml = c.esc(c.t('pill.' + it.ref + '.desc'));
     } else if (it.kind === 'arts') {
       var a = c.p.artsMap()[it.ref];
       /* 情报角标（势力全录卷 §9.9 · B4）：intelArts 条目在坊市显示「情报」角标 + 豁免提示行 */
       var intelS = !!(w.intelArts && w.intelArts[it.ref]);
-      h += '<div class="nm"><span class="align-sym align-' + a.alignment + '">' + c.esc(c.t('align.sym.' + a.alignment)) + '</span>' + c.esc(goodName(c, it)) +
-        (intelS ? ' <span class="tierbadge t2">' + c.esc(c.t('faction.intel.tag')) + '</span>' : '') + tagHtml(c, it) + '</div>';
-      h += '<div class="meta">' + c.esc(c.t('skill.' + it.ref + '.desc')) + '</div>';
-      if (intelS) h += '<div class="meta" style="color:var(--sq-tier-2)">' + c.esc(c.t('faction.intel.ignore')) + '</div>';
+      nameHtml = '<span class="align-sym align-' + a.alignment + '">' + c.esc(c.t('align.sym.' + a.alignment)) + '</span>' +
+        c.esc(goodName(c, it)) +
+        (intelS ? ' <span class="tierbadge t2">' + c.esc(c.t('faction.intel.tag')) + '</span>' : '') + tagHtml(c, it);
+      effHtml = c.esc(c.t('skill.' + it.ref + '.desc')) +
+        (intelS ? '<div class="g-warn" style="color:var(--sq-tier-2)">' + c.esc(c.t('faction.intel.ignore')) + '</div>' : '');
     } else if (it.kind === 'treasure') {
       var td = SQ.Treasures.def(c.p, it.ref);
-      h += '<div class="nm">' + c.esc(goodName(c, it)) + tagHtml(c, it) + '</div>';
-      h += '<div class="meta">' + c.esc(c.t('treasure.grade.' + td.grade)) + ' · ' + c.esc(c.t('treasure.' + it.ref + '.desc')) + '</div>';
+      nameHtml = c.esc(goodName(c, it)) + tagHtml(c, it);
+      effHtml = c.esc(c.t('treasure.grade.' + td.grade)) + ' · ' + c.esc(c.t('treasure.' + it.ref + '.desc'));
     } else if (it.pack) {
       /* 炼丹炼器子货（材料包/丹方/图纸/丹炉成品 · §2.5 pack 格二级权重） */
       var gp = it.pack;
-      h += '<div class="nm">' + c.esc(goodName(c, it)) + tagHtml(c, it) + '</div>';
-      h += '<div class="meta">' + c.esc(gp.type === 'recipe' ? c.t('alchemy.recipe.' + gp.ref + '.name') : (gp.type === 'bp' ? c.t('alchemy.bp.' + gp.ref + '.desc') : (gp.type === 'mat' ? c.t('alchemy.shopdesc.mat') : c.t('alchemy.furnace.desc')))) + '</div>';
+      nameHtml = c.esc(goodName(c, it)) + tagHtml(c, it);
+      effHtml = c.esc(gp.type === 'recipe' ? c.t('alchemy.recipe.' + gp.ref + '.name')
+        : (gp.type === 'bp' ? c.t('alchemy.bp.' + gp.ref + '.desc')
+          : (gp.type === 'mat' ? c.t('alchemy.shopdesc.mat') : c.t('alchemy.furnace.desc'))));
     } else {
-      h += '<div class="nm">' + c.esc(goodName(c, it)) + tagHtml(c, it) + '</div>';
-      h += '<div class="meta">' + c.esc(c.t('shop.pack.desc')) + ' → ' + SQ.fmt(it.stones) + ' ' + c.esc(c.t('resource.currency')) + '</div>';
+      nameHtml = c.esc(goodName(c, it)) + tagHtml(c, it);
+      effHtml = c.esc(c.t('shop.pack.desc')) + ' → ' + SQ.fmt(it.stones) + ' ' + c.esc(c.t('resource.currency'));
     }
+    /* 价格行 */
+    var priceHtml = '', discHtml = '';
     if (it.sold) {
-      h += '<div class="acts"><button disabled>' + c.esc(c.t('shop.sold')) + '</button></div>';
+      priceHtml = '<span class="g-sold">' + c.esc(c.t('shop.sold')) + '</span>';
     } else {
       var price = priceTxt(c, it);
       /* 道友折扣可视化（B9 · 坊市稿）：柳三变「消息灵通」在位 → 划线参考原价 + 绿字生效行。
@@ -117,12 +128,16 @@
         var sumS = (mS.sum || {}).shopCost || 0;
         var wasP = Math.round(it.price * (1 + sumS - bS) / (1 + sumS));
         if (wasP > it.price) wasHtml = '<span class="pricewas">' + SQ.fmt(wasP) + '</span>';
-        h += '<div class="bondline">' + c.esc(c.t('shop.bond.discount', { p: Math.round(-bS * 100) })) + '</div>';
+        discHtml = '<div class="g-disc">' + c.esc(c.t('shop.bond.discount', { p: Math.round(-bS * 100) })) + '</div>';
       }
-      h += '<div class="acts"><button data-act="buy" data-v="' + idx + '" data-b="' + (black ? 1 : 0) + '">' +
-        c.esc(c.t('shop.buy')) + ' · ' + wasHtml + c.esc(price) + '</button></div>';
+      priceHtml = '<button class="g-buy" data-act="buy" data-v="' + idx + '" data-b="' + (black ? 1 : 0) + '"' +
+        ' aria-label="' + c.esc(c.t('shop.buy') + ' ' + goodName(c, it)) + '">' +
+        wasHtml + c.esc(price) + '</button>';
     }
-    return h + '</div>';
+    return '<div class="goods shopcard' + (it.sold ? ' sold locked' : '') + '">' +
+      '<div class="g-n nm">' + nameHtml + '</div>' +
+      '<div class="g-e meta">' + effHtml + '</div>' +
+      '<div class="g-p acts">' + priceHtml + discHtml + '</div></div>';
   }
 
   function render(c) {
@@ -130,8 +145,8 @@
     var blackOpen = SQ.Shop.blackOpen(w, c.p, d);
     var restockMs = Math.max(0, (isFinite(+((w.shop || {}).nextRestock)) ? +w.shop.nextRestock : 0) - Date.now());
     var rh = Math.floor(restockMs / 3600000), rm = Math.floor((restockMs % 3600000) / 60000);
-    /* 页头：左「坊市/黑市」切换 chips + 右刷新按钮，同排水平对齐 */
-    var h = '<div class="pagehead split"><div class="chips">';
+    /* 页头：左「坊市/黑市」药丸切换（设计稿 .segmini）+ 右圆形刷新钮，同排水平对齐 */
+    var h = '<div class="pagehead split"><div class="segmini chips">';
     h += '<button class="' + (c.ui.shopBlack ? '' : 'on') + '" data-act="shopTab" data-v="0">' + c.esc(c.t('shop.system')) + '</button>';
     if (blackOpen || (w.shop.blackItems || []).some(function (x) { return x.sold; })) {
       h += '<button class="' + (c.ui.shopBlack ? 'on' : '') + '" data-act="shopTab" data-v="1">' + c.esc(c.t('shop.blackmarket')) + '</button>';
@@ -151,14 +166,18 @@
         '<span class="hint">' + c.esc(c.t('shop.merchant.left', { t: c.timeLeft(Math.max(0, merch.until - Date.now())) })) + '</span></div>' +
         '<p class="hint" style="margin:2px 0 6px">' + c.esc(c.t('shop.merchant.hint')) + '</p><div class="shopgrid">';
       (merch.items || []).forEach(function (it, i) {
-        if (it.sold) { h += '<div class="lrow shopcard locked"><div class="nm">—</div><div class="meta">' + c.esc(c.t('shop.sold')) + '</div></div>'; return; }
-        /* 词缀 + 分类一律走同一套 `tagHtml`（第册五批与货架同一函数）——旧写法在此另拼一套，
+        if (it.sold) {
+          h += '<div class="goods shopcard sold locked"><div class="g-n nm">—</div>' +
+            '<div class="g-p acts"><span class="g-sold">' + c.esc(c.t('shop.sold')) + '</span></div></div>';
+          return;
+        }
+        /* 词缀 + 分类一律走同一套 `tagHtml`（与货架同一函数）——旧写法在此另拼一套，
          * 结果特席上「法器有品阶、功法没有、丹药一个都没有」，同一件货在两个货架上标签不一致。
          * 名与价同走 goodName / priceTxt（特席旧式的三元式不含 treasure ⇒ 法宝会错显成丹药名）。 */
-        h += '<div class="lrow shopcard"><div class="nm">' + c.esc(goodName(c, it)) + tagHtml(c, it) + '</div>' +
-          '<div class="meta">' + c.esc(priceTxt(c, it)) + '</div>' +
-          '<div class="acts"><button data-act="buyMerchant" data-v="' + i + '"' + (w.stones < it.price ? ' disabled' : '') + '>' +
-          c.esc(c.t('shop.buy')) + '</button></div></div>';
+        h += '<div class="goods shopcard"><div class="g-n nm">' + c.esc(goodName(c, it)) + tagHtml(c, it) + '</div>' +
+          '<div class="g-e meta">' + c.esc(priceTxt(c, it)) + '</div>' +
+          '<div class="g-p acts"><button class="g-buy" data-act="buyMerchant" data-v="' + i + '"' +
+          (w.stones < it.price ? ' disabled' : '') + '>' + c.esc(c.t('shop.buy')) + '</button></div></div>';
       });
       h += '</div></div>';
     }
