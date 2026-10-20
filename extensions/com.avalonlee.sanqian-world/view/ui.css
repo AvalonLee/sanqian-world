@@ -1405,3 +1405,63 @@
 }
 #sc-c2 .biascard.sel { border-color: var(--sq2-cinnabar); background: var(--sq2-paper-3); box-shadow: none; }
 #sc-c2 .biascard .bn { font-family: var(--sq2-serif); }
+
+/* ── UI v2 B11：渡劫演出 + 抉择模态纸面化（判定 / 收益 / 时序未动）── */
+.trib-card {
+  background: var(--sq2-paper); border: 1px solid var(--sq2-line); border-radius: 2px;
+  font-family: var(--sq2-serif);
+}
+.trib-card::before { background: var(--sq2-cinnabar); }
+.trib-card.lose::before { background: var(--sq2-cinnabar); }
+.trib-card.win::before { background: var(--sq2-jade); }
+.trib-steps {
+  display: flex; justify-content: center; gap: 18px; margin: 0 0 12px;
+  font-size: 10.5px; letter-spacing: .22em; color: var(--sq2-ink-3);
+}
+.trib-steps span.on { color: var(--sq2-cinnabar); }
+.trib-steps span.done { color: var(--sq2-jade); }
+.trib-ring .trk { stroke: var(--sq2-paper-3); }
+.trib-ring .tri-p { color: var(--sq2-cinnabar); font-family: var(--sq2-serif); }
+.trib-card.lose .tri-p { color: var(--sq2-cinnabar); }
+.trib-card .t1 { font-family: var(--sq2-serif); letter-spacing: .2em; }
+.trib-card.win .t1 { color: var(--sq2-jade); }
+.trib-card.lose .t1 { color: var(--sq2-cinnabar); }
+.trib-card .t2 { color: var(--sq2-ink-2); }
+.trib-rows .tr {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px;
+}
+.trib-rows .tr b { color: var(--sq2-ink); }
+.trib-rows .tr.hot b { color: var(--sq2-cinnabar); }
+.trib-rows .tr.bad b { color: var(--sq2-cinnabar); }
+.trib-card .trib-skip { color: var(--sq2-ink-3); }
+
+#modal-choice .modal {
+  background: var(--sq2-paper); border: 1px solid var(--sq2-line); border-radius: 2px;
+}
+#modal-choice h2 {
+  font-family: var(--sq2-serif); letter-spacing: .16em; font-weight: 650;
+}
+#modal-choice .mc-story { color: var(--sq2-ink-2); }
+#modal-choice .mbadge {
+  border-radius: 2px; font-family: var(--sq2-serif); letter-spacing: .08em;
+}
+#modal-choice .mbadge.sp { background: transparent; color: var(--sq2-cinnabar); }
+#modal-choice #mc-branches .branch {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line);
+  border-left-width: 3px; border-radius: 2px; padding: 12px 14px;
+}
+#modal-choice #mc-branches .branch .bk { font-family: var(--sq2-serif); }
+#modal-choice #mc-branches .branch.right-b { border-left-color: var(--sq2-jade); }
+#modal-choice #mc-branches .branch.evil-b { border-left-color: var(--sq2-cinnabar); }
+#modal-choice #mc-branches .branch.neutral-b { border-left-color: var(--sq2-ink-3); }
+#modal-choice #mc-branches .branch:disabled { opacity: .45; }
+#modal-choice .mc-foot { color: var(--sq2-ink-3); }
+#modal-choice .res-karma { border-radius: 2px; font-family: var(--sq2-serif); }
+#modal-choice .res-karma.pos { color: var(--sq2-jade); background: transparent; }
+#modal-choice .res-karma.neg { color: var(--sq2-cinnabar); background: transparent; }
+#modal-choice .res-check.pass { color: var(--sq2-jade); }
+#modal-choice .res-check.fail { color: var(--sq2-cinnabar); }
+#modal-choice #mc-ok {
+  background: var(--sq2-cinnabar); border-color: var(--sq2-cinnabar);
+  color: var(--sq2-paper); border-radius: 2px; font-family: var(--sq2-serif);
+}

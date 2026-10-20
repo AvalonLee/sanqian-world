@@ -17,8 +17,9 @@
 (function () {
   var SQ = (window.SQ = window.SQ || {});
 
-  /* 两枚私有量（原为内核闭包 var，随本族搬入） */
+  /* 三枚私有量（原为内核闭包 var，随本族搬入） */
   var tribTimer = null;
+  var tribPhaseTimer = null;
   var tribUnlocked = false;
   /* 环周长 = 2πr（r = 42） */
   var TRIB_ARC_C = 264;
@@ -46,6 +47,19 @@
     el.style.stroke = color;
     el.style.strokeDashoffset = String(TRIB_ARC_C * (1 - Math.max(0, Math.min(100, p)) / 100));
   }
+  /* UI v2 B11：清算 → 落雷 → 定数三段标（纯呈现；落雷段沿用悬念帧，不新增判定） */
+  function stage(c, n) {
+    var st = c.$('trib-steps');
+    if (!st) return;
+    if (st.children[0] && !st.children[0].textContent) {
+      st.children[0].textContent = c.t('trib.stage.clear');
+      st.children[1].textContent = c.t('trib.stage.thunder');
+      st.children[2].textContent = c.t('trib.stage.fate');
+    }
+    Array.prototype.forEach.call(st.children, function (el, i) {
+      el.className = i === n ? 'on' : (i < n ? 'done' : '');
+    });
+  }
   function row(c, label, value, tone) {
     return '<div class="tr' + (tone ? ' ' + tone : '') + '"><span>' + c.esc(label) + '</span><b>' + c.esc(value) + '</b></div>';
   }
@@ -58,6 +72,8 @@
     var box = c.$('trib-box');
     var p = snap0 ? snap0.p : 0;
     box.className = 'trib-card charging';
+    if (tribPhaseTimer) { clearTimeout(tribPhaseTimer); tribPhaseTimer = null; }
+    stage(c, 0);
     /* 悬念帧：环自 0 蓄势到成算（reduced-motion 直落） */
     var a = c.$('trib-arc');
     a.style.transition = 'none';
@@ -75,6 +91,7 @@
     if (c.reducedMotion()) charge(); else requestAnimationFrame(charge);
     function reveal() {
       box.className = 'trib-card ' + (win ? 'win' : 'lose');
+      stage(c, 2);
       arc(c, p, win ? 'var(--primary)' : 'var(--bad)');
       c.$('trib-t1').textContent = win ? c.t('trib.result.win') : c.t('trib.result.lose');
       c.$('trib-t2').textContent = win
@@ -105,7 +122,11 @@
       tribUnlocked = true;
     }
     if (c.reducedMotion()) reveal();
-    else setTimeout(reveal, 1000);
+    else {
+      /* 落雷段 = 悬念帧中段亮灯（600ms 起），定数段接在 1000ms 的揭盅帧 */
+      tribPhaseTimer = setTimeout(function () { stage(c, 1); }, 600);
+      setTimeout(reveal, 1000);
+    }
     if (tribTimer) clearTimeout(tribTimer);
     /* 悬念 1s（不可跳）+ 结果帧 2s 自动关（交互说明 §4.9）；reduced-motion 直出后同样 2s */
     tribTimer = setTimeout(function () { if (tribUnlocked) hide(c); }, c.reducedMotion() ? 2000 : 3000);
@@ -114,6 +135,7 @@
   function hide(c) {
     c.$('trib-stage').classList.add('hide');
     if (tribTimer) { clearTimeout(tribTimer); tribTimer = null; }
+    if (tribPhaseTimer) { clearTimeout(tribPhaseTimer); tribPhaseTimer = null; }
   }
 
   /* 点按跳过：悬念帧 1s 未揭盅时点不动（F7） */
