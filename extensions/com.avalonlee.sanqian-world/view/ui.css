@@ -1060,3 +1060,41 @@
     * { animation: none !important; }
     .judging .jline { transition: none; }
   }
+
+/* ── UI v2 B4：修行页换装（纸面 / 圆相 / 平铺模式卡；功能与文案未动）── */
+#tab-idle .calrow {
+  font-family: var(--sq2-serif); letter-spacing: .08em; color: var(--sq2-ink-3);
+  font-size: 11.5px; text-align: right; padding: 2px 0 6px;
+}
+#tab-idle .stathero {
+  background: var(--sq2-paper-2); border: 1px solid var(--sq2-line);
+  border-radius: 2px; padding: 14px 16px; margin: 10px 0 6px;
+}
+#tab-idle .stathero .shmain {
+  position: relative; width: 124px; height: 124px; flex: 0 0 124px;
+  align-items: center; justify-content: center; text-align: center; padding: 14px;
+}
+#tab-idle .shring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+#tab-idle .shring circle { fill: none; stroke-width: 2; }
+#tab-idle .shring .ring-bg { stroke: var(--sq2-line); }
+#tab-idle .shring .ring-fg { stroke: var(--sq2-cinnabar); stroke-linecap: round; }
+#tab-idle .stathero .shv { position: relative; font-family: var(--sq2-serif); font-size: 24px; color: var(--sq2-ink); font-weight: 650; }
+#tab-idle .stathero .shl { position: relative; font-size: 11px; color: var(--sq2-ink-3); margin-top: 1px; }
+#tab-idle .stathero .shattr { gap: 8px; }
+#tab-idle .stathero .sha { background: var(--sq2-paper-3); border-radius: 2px; min-width: 52px; }
+#tab-idle .stathero .sha .av { font-family: var(--sq2-serif); }
+#tab-idle .idlemeta {
+  display: flex; justify-content: space-between; font-size: 12px;
+  color: var(--sq2-ink-3); padding: 2px 2px 0;
+}
+#tab-idle .sechead .t { font-family: var(--sq2-serif); letter-spacing: .18em; }
+#tab-idle .modesel { gap: 10px; }
+#tab-idle .modeopt { background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px; }
+#tab-idle .modeopt.on { background: var(--sq2-paper-3); border-color: var(--sq2-cinnabar); }
+#tab-idle .modeopt.on .mt { color: var(--sq2-cinnabar); }
+#tab-idle .modeopt .mat { color: var(--sq2-jade); }
+#tab-idle .offbox { background: var(--sq2-paper-2); border: 1px dashed var(--sq2-line-2); border-radius: 2px; }
+#tab-idle .bar { background: var(--sq2-paper-3); border-radius: 0; }
+#tab-idle .bar > i { background: var(--sq2-cinnabar); border-radius: 0; }
+#tab-idle .kv .big { font-family: var(--sq2-serif); }
+#tab-idle .detailbox { background: var(--sq2-paper-2); border-radius: 2px; }
