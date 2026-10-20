@@ -70,7 +70,7 @@
       (SQ.Sect.discipleMerit(w, p, d) > 0 ? '<span>' + c.esc(c.t('sect.war.merit',
         { n: SQ.fmt(SQ.Sect.discipleMerit(w, p, d)) })) + '</span>' : '') + '</div>';
     /* 弟子 */
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('sect.ui.disciples', { n: sec.disciples.length, cap: SQ.Sect.discCap(w, d) })) + '</p>';
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.ui.disciples', { n: sec.disciples.length, cap: SQ.Sect.discCap(w, d) })) + '</span></div>';
     /* N20 接线：继位择人的规则（供奉不可继位）此前只靠按钮 disabled 隐含，无一句释文 */
     if (sec.disciples.length) h += '<p class="hint">' + c.esc(c.t('sect.ui.succ.pick')) + '</p>';
     if (!sec.disciples.length) h += '<p class="hint">' + c.esc(c.t('sect.disc.empty')) + '</p>';
@@ -123,7 +123,7 @@
       }
     }
     /* 四设施 */
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('sect.ui.facs')) + '</p>';
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.ui.facs')) + '</span></div>';
     (d.SECT.FAC_IDS || []).forEach(function (fid) {
       var lv = sec.fac[fid] || 0;
       var maxed = lv >= (d.SECT.FAC_MAX || 5);
@@ -142,7 +142,7 @@
     if (sectEntry && !w.factionWar) {
       var enemies = (w.factions || []).filter(function (f) { return f.id !== 'sect' && (sectEntry.rel || {})[f.id] === 'enemy'; });
       if (enemies.length) {
-        h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('sect.war.btn')) + '</p><div class="chips">';
+        h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.war.btn')) + '</span></div><div class="chips">';
         var dCd = (sec.declareAt || 0) > 0 && Date.now() - sec.declareAt < (d.SECT.WAR_DECLARE_CD_MS);
         enemies.forEach(function (f) {
           h += '<button data-act="sectWar" data-v="' + f.id + '"' + (dCd ? ' disabled' : '') + '>' + c.esc(f.name) + '</button>';

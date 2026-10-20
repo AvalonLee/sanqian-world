@@ -1146,6 +1146,41 @@
             '<div class="rb-b"><span>' + esc(t('rail.left', { t: timeLeftText(leftS > 0 ? leftS : 0) })) + '</span></div></div>';
         }
       }
+      /* B8：江湖区右栏 = 江湖近况（护法 / 道侣 / 已结缘 / 势力 / 榜位）+ 宗门（未开宗 = 四门槛，已开宗 = 声望与战力） */
+      if (ws() && sectionOf(ui.tab).id === 'bonds') {
+        var wJ = ws(), dJ = D(), pJ = pack();
+        var gJ = SQ.Bonds.guardianOf(wJ, pJ, dJ);
+        var listJ = SQ.Bonds.list(pJ);
+        var metJ = listJ.filter(function (x) { return SQ.Bonds.tierOf(wJ, x.id, dJ) >= 1; }).length;
+        var facJ = SQ.Factions.current(wJ);
+        var bandJ = SQ.Jianghu.bandOf(wJ.realm);
+        var boardJ = SQ.Prodigy.board4(wJ, pJ, dJ, mods())[bandJ];
+        h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.jianghu')) + '</div>' +
+          '<div class="rb-b"><b>' + esc(t('bond.guard.tag')) + '</b><span>' + esc(gJ && gJ.bonus > 0
+            ? t('bond.' + gJ.npcId + '.name') : t('rail.none')) + '</span></div>' +
+          '<div class="rb-b"><b>' + esc(t('bond.sec.spouse')) + '</b><span>' + esc(wJ.spouse
+            ? t('bond.' + wJ.spouse.npcId + '.name') : t('pillar.lv.subnone')) + '</span></div>' +
+          '<div class="rb-b"><b>' + esc(t('bond.sec.met')) + '</b><span>' + metJ + ' / ' + listJ.length + '</span></div>' +
+          '<div class="rb-b"><b>' + esc(t('faction.system')) + '</b><span>' + esc(facJ ? facJ.name : t('rail.none')) + '</span></div>' +
+          '<div class="rb-b"><b>' + esc(t('jianghu.system')) + '</b><span>' + esc(boardJ && boardJ.myRank > 0
+            ? t('prodigy.board.myrank', { band: t('jianghu.band.' + bandJ), n: boardJ.myRank })
+            : t('prodigy.board.norank')) + '</span></div></div>';
+        h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.sect')) + '</div>';
+        if (wJ.sect) {
+          h += '<div class="rb-b"><b>' + esc(wJ.sect.name) + '</b><span>' +
+            esc(t('sect.ui.rep', { n: SQ.fmt(SQ.Sect.sectRep(wJ, dJ)) })) + ' · ' +
+            esc(t('sect.ui.power', { n: SQ.fmt(SQ.Sect.sectPower(wJ, pJ, dJ, mods())) })) + '</span></div>';
+        } else {
+          var gB = SQ.Sect.foundGates(wJ, dJ, state.meta);
+          [{ ok: gB.realm, txt: t('sect.ui.gate.realm') },
+            { ok: gB.identity, txt: t('sect.ui.gate.identity') },
+            { ok: gB.peak, txt: t('sect.ui.gate.peak', { n: wJ.factionRepPeak || 0 }) },
+            { ok: gB.unlock, txt: t('sect.ui.gate.unlock') }].forEach(function (g) {
+            h += '<div class="rb-gate ' + (g.ok ? 'ok' : 'no') + '">' + esc(g.txt) + ' ' + (g.ok ? '✓' : '×') + '</div>';
+          });
+        }
+        h += '</div>';
+      }
     } catch (e) { h = ''; }
     rail.innerHTML = h;
     main.classList.toggle('hasrail', !!h);

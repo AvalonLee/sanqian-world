@@ -127,10 +127,22 @@ async function mkPage(browser, S) {
         await page.waitForTimeout(100);
       }
     };
+    /* B8：道友页只铺已结缘行，未结缘者只在全名录浮层里 ⇒ 先开名录再点格 */
+    const openRoster = async () => {
+      await page.evaluate(() => {
+        if (document.getElementById('modal-bonds').classList.contains('hide')) {
+          const l = document.querySelector('#tab-bonds [data-act="openBonds"]');
+          if (l) l.click();
+        }
+      });
+      await page.waitForTimeout(250);
+    };
     const openDetail = async (id) => {
+      /* 先收浮层再开名录：详情态里没有名录格，且重开名录会让详情重取一次最新档 */
       await page.evaluate(() => document.getElementById('modal-bonds').classList.add('hide'));
+      await openRoster();
       await page.evaluate((x) => {
-        const el = document.querySelector('.pal[data-act="bondOpen"][data-v="' + x + '"]');
+        const el = document.querySelector('#mbd-body .pal[data-act="bondOpen"][data-v="' + x + '"]');
         if (el) el.click();
       }, id);
       await page.waitForTimeout(380);
@@ -153,10 +165,21 @@ async function mkPage(browser, S) {
     await page.click('#m-tabbar button[data-v="bonds"]');
     await page.waitForTimeout(450);
 
-    /* A1 名录 58 格（44 友 + 14 道侣候选）；未识格 = lock 剪影 + 挂 bondOpen + 格内零真名 */
+    /* A1（UI v2 B8）：道友页首屏只有已结缘行 + 未结缘一条；全名录仍在浮层里，
+     *   58 格（44 友 + 14 道侣候选）、未识格为可点开的剪影且格内零真名。 */
+    const tabShape = await page.evaluate(() => ({
+      rows: document.querySelectorAll('#tab-bonds .brow').length,
+      unmet: !!document.querySelector('#tab-bonds [data-act="openBonds"]'),
+      pal: document.querySelectorAll('#tab-bonds .palgrid').length
+    }));
+    await page.evaluate(() => {
+      const l = document.querySelector('#tab-bonds [data-act="openBonds"]');
+      if (l) l.click();
+    });
+    await page.waitForTimeout(350);
     const list = await page.evaluate(() => {
-      const cells = Array.from(document.querySelectorAll('#tab-bonds .pal'));
-      const el = document.querySelector('#tab-bonds .pal[data-v="huang"]');
+      const cells = Array.from(document.querySelectorAll('#mbd-body .pal'));
+      const el = document.querySelector('#mbd-body .pal[data-v="huang"]');
       return {
         n: cells.length,
         lockN: cells.filter((c) => /(^| )lock/.test(c.className)).length,
@@ -165,11 +188,12 @@ async function mkPage(browser, S) {
         cls: el ? el.className : '', act: el ? el.dataset.act : '', txt: el ? (el.textContent || '') : ''
       };
     });
-    T(list.n === 58 && list.spN === 14 && list.deadN === 0 && list.lockN === 55 &&
+    T(tabShape.rows === 3 && tabShape.unmet && tabShape.pal === 0 &&
+      list.n === 58 && list.spN === 14 && list.deadN === 0 && list.lockN === 55 &&
       list.act === 'bondOpen' && /lock/.test(list.cls) && list.txt.indexOf(nameHuang) < 0,
-      'A1 名录 58 格（44 友 + 14 候选）、未识格为可点开的剪影格且格内零真名',
-      'pal=' + list.n + ' lock=' + list.lockN + ' sp=' + list.spN + ' dead=' + list.deadN +
-      ' act=' + list.act + ' txt=' + list.txt.replace(/\s+/g, '').slice(0, 10));
+      'A1 道友页首屏只铺已结缘行 + 未结缘一条；全名录浮层仍 58 格（44 友 + 14 候选）、未识格为剪影且零真名',
+      'rows=' + tabShape.rows + ' unmet=' + tabShape.unmet + ' pal格=' + list.n + ' lock=' + list.lockN +
+      ' sp=' + list.spN + ' dead=' + list.deadN + ' act=' + list.act);
 
     /* A2 未识详情 = 隐匿详情：只有「往来」一段、无好感尺、零赠丹 chip、正文零真名 */
     await h.openDetail('huang');
@@ -203,7 +227,7 @@ async function mkPage(browser, S) {
     await page.click('#mbd-body [data-act="bondVisit"][data-v="huang"]');
     const aff3 = await h.until(() => h.readW().then((w) => (w.bonds.huang === 3 ? w : null)));
     const toast1 = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts .toast')).map((x) => x.textContent).join(' | '));
-    const cellAfter = await page.$$eval('#tab-bonds .pal[data-v="huang"]', (e) => (e[0] ? { cls: e[0].className, txt: e[0].textContent || '' } : null));
+    const cellAfter = await page.$$eval('#tab-bonds .brow[data-v="huang"]', (e) => (e[0] ? { cls: e[0].className, txt: e[0].textContent || '' } : null));
     T(!!aff3 && toast1.indexOf(nameHuang) >= 0 && !!cellAfter && cellAfter.txt.indexOf(nameHuang) >= 0 &&
       !/lock/.test(cellAfter.cls),
       'A4 拜访未识者实发 +3 落盘、结识 toast 点名、名录格由剪影转实名（标注 === 实发）',
@@ -452,6 +476,45 @@ async function mkPage(browser, S) {
       'D2 不关浮层就刷新：按钮已转冷却倒计时（旧状：归属被 tick 偷换 ⇒ 重渲渲到背后页，按钮仍亮）',
       '浮层在=' + post.modalOpen + ' 按钮仍可点=' + post.live);
     T(mp.errors.length === 0, 'D3 场景D 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
+    await mp.ctx.close();
+  }
+
+  /* ══════════════ 场景 E：缘尽行（UI v2 B8 新结构）══════════════
+   * 缘尽者不进「已结缘」，单独一段；身份仍不揭示、动作仍是赎回（bondDead）。
+   * 先证反例会出现：锁一人（−99 哨兵）后首屏必须恰有一行缘尽，且全名录浮层里恰一枚 dead 格。 */
+  {
+    const S = seed();
+    S.save.worlds.xiuxian.bonds.huang = -99;
+    const mp = await mkPage(browser, S);
+    const page = mp.page, h = wire(page);
+    await page.click('#m-tabbar button[data-v="bonds"]');
+    await page.waitForTimeout(450);
+    const nameHuang = await page.evaluate(() => SQ.t('bond.huang.name', null, 'xiuxian'));
+    const tabE = await page.evaluate(() => {
+      const row = document.querySelector('#tab-bonds .brow.dead');
+      const secs = Array.prototype.map.call(document.querySelectorAll('#tab-bonds .sechead .t'), (x) => x.textContent.trim());
+      return {
+        rows: document.querySelectorAll('#tab-bonds .brow.dead').length,
+        act: row ? row.dataset.act : '', txt: row ? (row.textContent || '') : '',
+        secs: secs
+      };
+    });
+    T(tabE.rows === 1 && tabE.act === 'bondDead' && tabE.txt.indexOf(nameHuang) < 0 &&
+      tabE.secs.some((x) => /缘\s*尽/.test(x)),
+      'E1 缘尽者单独成段：首屏恰一行、动作 = 赎回、身份不揭示',
+      'rows=' + tabE.rows + ' act=' + tabE.act + ' secs=' + tabE.secs.join('/') + ' leak=' + (tabE.txt.indexOf(nameHuang) >= 0));
+    await page.evaluate(() => {
+      const l = document.querySelector('#tab-bonds [data-act="openBonds"]');
+      if (l) l.click();
+    });
+    await page.waitForTimeout(350);
+    const modalE = await page.evaluate(() => ({
+      pal: document.querySelectorAll('#mbd-body .pal').length,
+      dead: document.querySelectorAll('#mbd-body .pal.dead').length
+    }));
+    T(modalE.pal === 58 && modalE.dead === 1,
+      'E2 全名录浮层仍 58 格，缘尽格恰一枚（首屏收行不等于名录缩水）', JSON.stringify(modalE));
+    T(mp.errors.length === 0, 'E3 场景E 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
     await mp.ctx.close();
   }
 

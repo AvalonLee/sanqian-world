@@ -111,31 +111,61 @@
     var h = '';
     /* 护法位摘要行三态（稿一/稿四）：魔道整块置灰独行 / 生效带加项 / 档不足或无人。
      * 择选批：非魔道三态均可点开「择护法」浮层，由玩家自选在任护法 */
+    var top = '';
     if (evil) {
-      h += '<div class="guardline dead"><span>' + c.esc(c.t('bond.guard.none')) + '</span><span class="g">' + c.esc(c.t('bond.guard.evil')) + '</span></div>';
+      top += '<div class="guardline dead"><span>' + c.esc(c.t('bond.guard.none')) + '</span><span class="g">' + c.esc(c.t('bond.guard.evil')) + '</span></div>';
     } else if (g && g.bonus > 0) {
-      h += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + c.esc(c.t('bond.guard.line', {
+      top += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + c.esc(c.t('bond.guard.line', {
         name: c.t('bond.' + g.npcId + '.name'), title: c.t('bond.' + g.npcId + '.title.' + g.tier), num: c.bondTier(g.tier)
       })) + '</span><span class="g">' + c.esc(c.t('bond.guard.eff', { b: g.bonus.toFixed(2) })) + '</span></div>';
     } else if (g) {
-      h += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + c.esc(c.t('bond.guard.line', {
+      top += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + c.esc(c.t('bond.guard.line', {
         name: c.t('bond.' + g.npcId + '.name'), title: c.t('bond.' + g.npcId + '.title.' + g.tier), num: c.bondTier(g.tier)
       })) + '</span><span class="g">' + c.esc(c.t('bond.guard.low')) + '</span></div>';
     } else {
-      h += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + c.esc(c.t('bond.guard.none')) + '</span><span class="g">' + c.esc(c.t('bond.guard.low')) + '</span></div>';
+      top += '<div class="guardline pickable" data-act="guardPickOpen"><span>' + c.esc(c.t('bond.guard.none')) + '</span><span class="g">' + c.esc(c.t('bond.guard.low')) + '</span></div>';
     }
     /* 双修状态行：未结缘虚线灰 / 生效 / 炉鼎暗红「回头即散」——择选批：两态均可点开「择道侣」浮层 */
     if (w.spouse) {
       var sf = w.spouse.form;
-      h += '<div class="spouserow' + (sf === 'luding' ? ' luding' : '') + ' pickable" data-act="spousePickOpen"><span>' + c.esc(c.t('bond.spouse.active', {
+      top += '<div class="spouserow' + (sf === 'luding' ? ' luding' : '') + ' pickable" data-act="spousePickOpen"><span>' + c.esc(c.t('bond.spouse.active', {
         form: c.t('bond.spouse.form.' + sf), name: c.t('bond.' + w.spouse.npcId + '.name'),
         eff: c.t('bond.form.eff.' + sf).split(' · ')[0]
       })) + '</span>' + (sf === 'luding' ? '<span>' + c.esc(c.t('bond.spouse.luding.warn')) + '</span>' : '') + '</div>';
     } else {
-      h += '<div class="spouserow none pickable" data-act="spousePickOpen"><span>' + c.esc(c.t('bond.spouse.none')) + '</span><span>' + c.esc(c.t('bond.spouse.nonetip')) + '</span></div>';
+      top += '<div class="spouserow none pickable" data-act="spousePickOpen"><span>' + c.esc(c.t('bond.spouse.none')) + '</span><span>' + c.esc(c.t('bond.spouse.nonetip')) + '</span></div>';
     }
-    var friends = SQ.Bonds.list(p).filter(function (x) { return x.category !== 'spouse'; });
-    var spouses = SQ.Bonds.list(p).filter(function (x) { return x.category === 'spouse'; });
+    h += '<div class="bondslots">' + top + '</div>';
+    var all = SQ.Bonds.list(p);
+    /* 道友页（UI v2 B8）：两卡首屏之后只铺「已结缘 + 缘尽」的行；
+     * 未结缘不再铺 55 个问号格，收成一条入口，点开仍是同一份 58 人全名录浮层（能力零删除）。 */
+    if (isTab) {
+      var met = all.filter(function (x) { return SQ.Bonds.tierOf(w, x.id, d) >= 1; });
+      var dead = all.filter(function (x) { return SQ.Bonds.locked(w, x.id); });
+      var unmet = all.filter(function (x) { return SQ.Bonds.tierOf(w, x.id, d) < 1 && !SQ.Bonds.locked(w, x.id); });
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('bond.sec.met')) + ' · ' + met.length + '</span><span class="s">' +
+        c.esc(c.t('bond.sec.count', { n: met.length, total: all.length })) + '</span></div>';
+      if (met.length) {
+        h += '<div class="browlist">';
+        met.forEach(function (ch) { h += bondRow(c, ch, w, d); });
+        h += '</div>';
+      } else {
+        h += '<p class="hint">' + c.esc(c.t('bond.met.none')) + '</p>';
+      }
+      if (dead.length) {
+        h += '<div class="sechead"><span class="t">' + c.esc(c.t('bond.sec.dead')) + ' · ' + dead.length + '</span></div><div class="browlist">';
+        dead.forEach(function (ch) { h += bondDeadRow(c, ch, w, d); });
+        h += '</div>';
+      }
+      if (unmet.length) {
+        h += '<button type="button" class="lockedline" data-act="openBonds"><span>' +
+          c.esc(c.t('bond.unmet.line', { n: unmet.length })) + '</span><span>' + c.esc(c.t('bond.unmet.go')) + '</span></button>';
+      }
+      c.$('tab-bonds').innerHTML = h;
+      return;
+    }
+    var friends = all.filter(function (x) { return x.category !== 'spouse'; });
+    var spouses = all.filter(function (x) { return x.category === 'spouse'; });
     var fKnown = friends.filter(function (x) { return SQ.Bonds.tierOf(w, x.id, d) >= 1; }).length;
     var fDead = friends.filter(function (x) { return SQ.Bonds.locked(w, x.id); }).length;
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('bond.sec.friend')) + ' · ' + friends.length + '</span><span class="s">' +
@@ -146,8 +176,39 @@
       c.esc(w.spouse ? c.t('bond.sec.spdoing', { n: 1 }) : c.t('bond.sec.sptip')) + '</span></div><div class="palgrid">';
     spouses.forEach(function (ch) { h += palCell(c, ch, w, d); });
     h += '</div>';
-    if (isTab) c.$('tab-bonds').innerHTML = h;
-    else c.$('mbd-body').innerHTML = h;
+    c.$('mbd-body').innerHTML = h;
+  }
+
+  /* 已结缘行（UI v2 B8）：头像 / 名号 / 来历与档位 / 好感尺 / 下一档，一行一人 */
+  function bondRow(c, ch, w, d) {
+    var p = c.p;
+    var tier = SQ.Bonds.tierOf(w, ch.id, d);
+    var aff = Math.max(0, SQ.Bonds.affinityOf(w, ch.id));
+    var g = SQ.Bonds.guardianOf(w, p, d);
+    var isGuard = !!(g && g.npcId === ch.id && g.bonus > 0);
+    var isSpouse = !!(w.spouse && w.spouse.npcId === ch.id);
+    var canP = ch.category === 'spouse' && SQ.Bonds.canPropose(w, p, d, ch.id, Date.now()).ok;
+    var tierTxt = c.t('bond.' + ch.id + '.title.' + tier) + c.bondTier(tier) +
+      (isSpouse && w.spouse.form === 'luding' ? ' · ' + c.t('bond.spouse.form.luding') : '') +
+      (canP ? ' · ' + c.t('bond.propose.ready') : '');
+    return '<button type="button" class="brow' + (ch.category === 'spouse' ? ' sp' : '') + '" data-act="bondOpen" data-v="' + ch.id + '">' +
+      '<span class="br-av">' + c.esc(c.t('bond.' + ch.id + '.ava')) + '</span>' +
+      '<span class="br-b"><b>' + c.esc(c.t('bond.' + ch.id + '.name')) +
+      (isSpouse ? ' ♡' : (isGuard ? ' ☂' : '')) + '</b>' +
+      '<span class="br-d">' + c.esc(c.t('bond.' + ch.id + '.kind')) + ' · ' + c.esc(tierTxt) + '</span></span>' +
+      '<span class="br-r"><span class="pb"><i style="width:' + Math.min(100, aff) + '%"></i></span>' +
+      '<span class="br-t">' + c.esc(tier >= maxBondTier(c) ? c.t('bond.fv.max', { n: aff }) : c.t('bond.fv.next', { n: aff, next: nextBondThreshold(c, tier) })) + '</span></span></button>';
+  }
+  /* 缘尽行：身份永不揭示（与名录格同口径），可赎者挂「赎」角标 */
+  function bondDeadRow(c, ch, w, d) {
+    var costR = (d.BOND_REDEEM_COST != null ? d.BOND_REDEEM_COST : 30);
+    var doneR = (w.redeemedIds || []).indexOf(ch.id) >= 0;
+    var canR = !doneR && ((c.s.meta && c.s.meta.karma) || 0) >= costR;
+    return '<button type="button" class="brow dead" data-act="bondDead" data-v="' + ch.id + '">' +
+      '<span class="br-av">' + c.esc(c.t('bond.deadava')) + '</span>' +
+      '<span class="br-b"><b>' + c.esc(c.t('event.codex.unknown')) + '</b>' +
+      '<span class="br-d">' + c.esc(c.t('bond.locked')) + '</span></span>' +
+      (canR ? '<span class="br-go">' + c.esc(c.t('bond.redeem.badge')) + '</span>' : '') + '</button>';
   }
 
   /* 格位详情五段式（B3 · 稿二）：头部 / 好感进度尺四档刻度 / 个体助力 / 小传正典 / 出身事件或结缘条件 */
