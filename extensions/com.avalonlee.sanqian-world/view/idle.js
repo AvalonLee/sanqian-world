@@ -28,8 +28,15 @@
     h += SQ.UI.rumor.band(c.fresh(), Date.now());
     h += c.renderPillars();                       /* 四柱 chip 行（B1）：财/法/地 激活 + 侣位灰置 */
     h += c.renderTiandaoRow();                    /* 天道系统批 B1/B3：问天入口 + 天象红点 + 逆天值/档位/称号/逆天盾 */
-    /* 角色总览：战力大字重点展示 + 三维三格 + 境界说明入口（战力行自秘境页上移） */
+    /* 角色总览（UI v2 B4）：战力置于圆相中央，环 = 修为进度（只读派生，不新开状态）；
+     * 右侧保持精/气/神三格。圆相里的数字仍是 SQ.fmt 真值，不走演示值。 */
+    var ringP = Math.max(0, Math.min(100, cap > 0 ? (w.qi / cap) * 100 : 0));
+    var RING_C = 339.292;   /* 2π × r54 */
     h += '<div class="stathero"><div class="shmain">' +
+      '<svg class="shring" viewBox="0 0 120 120" aria-hidden="true">' +
+      '<circle class="ring-bg" cx="60" cy="60" r="54"></circle>' +
+      '<circle class="ring-fg" cx="60" cy="60" r="54" style="stroke-dasharray:' + RING_C +
+      ';stroke-dashoffset:' + (RING_C * (1 - ringP / 100)).toFixed(1) + '"></circle></svg>' +
       '<span class="shv">' + SQ.fmt(SQ.Mods.powerOf(w, p, d, m)) + '</span>' +
       '<span class="shl">' + c.esc(c.t('resource.power')) + '</span></div><div class="shattr">' +
       (d.ATTRS || []).map(function (id) {
@@ -62,6 +69,13 @@
       h += '<div class="kv"><span' + (li.daoNear ? ' class="bad"' : '') + '>' +
         c.esc(c.t('daoshang.row', { n: li.daoLv, cap: li.daoMax })) + '</span>' +
         (li.daoNear ? '<span class="bad">' + c.esc(c.t('daoshang.near')) + '</span>' : '') + '</div>';
+    }
+    /* 洞府一行（UI v2 B4 · 设计稿 metaline）：洞府名 + 独立乘区倍率，取 engine 现算，不写死。 */
+    var caveNow = SQ.Cave.current(w, p);
+    if (caveNow) {
+      var caveMNow = SQ.Cave.multOf(w, p, d, m);
+      h += '<div class="idlemeta"><span>' + c.esc(c.t('idle.cave')) + ' ' +
+        c.esc(c.t('cave.' + caveNow.id + '.name')) + ' ×' + caveMNow.toFixed(2) + '</span></div>';
     }
     /* 修为大数字（修行状态批 v2.1）：**全位数字逐秒跳动**——不带 万/亿 缩放（缩放会把
      * 低境界产出量化到 0.1万/步，数字长时间纹丝不动）、不带「修为」单位字，只留 / 上限；
