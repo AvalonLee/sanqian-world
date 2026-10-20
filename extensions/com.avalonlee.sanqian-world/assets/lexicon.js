@@ -318,6 +318,7 @@
     'trib.manual.ready': '修为圆满 · 可渡劫', 'trib.manual.btn': '渡劫',
     'trib.manual.hint': '自动渡劫已关闭，需自行点按渡劫',
     'trib.suspense': '劫云压顶，天雷欲落——',
+    'trib.stage.clear': '清算', 'trib.stage.thunder': '落雷', 'trib.stage.fate': '定数',
     'trib.result.win': '雷歇云散 · 渡劫功成', 'trib.result.lose': '天雷加身 · 道基受创',
     'trib.loss.line': '修为损失 {p}%', 'trib.recap.line': '劫前成算 {p}% · 第 {n} 次渡劫',
     /* 渡劫演出重做批：结果帧数据行标签（成算环 + 数据行陈列） */
