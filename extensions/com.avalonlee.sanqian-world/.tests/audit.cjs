@@ -918,13 +918,19 @@ const SQ = sandbox.window.SQ;
   const modSrc = fs.readFileSync(path.join(ROOT, 'module/index.html'), 'utf8');
   const b4 = [];
   if (!viewHasCss) b4.push('view/ui.css 不在（样式若仍内联，本关口径要同批改）');
-  if (!viewSrc.includes('background: var(--xhub-page-bg, transparent)')) b4.push('view 页面底非透明变量');
+  /* UI v2 B1（D1=B）：view 页面底由「宿主透明」改为「不透明宣纸」，两段分别判：
+   *   ① view 必须有 --sq2-paper 定义 + body 用它铺底 + 暗色有覆盖（自带的墨夜）；
+   *   ② module 卡仍必须透明（卡片嵌在宿主桌面里，不铺纸）。
+   * `var(--xhub-surface` 仍是面/字/线的映射证据，保留。 */
+  if (!viewSrc.includes('--sq2-paper:')) b4.push('view 缺 --sq2-paper 纸面令牌');
+  if (!/background:\s*var\(--sq2-paper\)/.test(viewSrc)) b4.push('view 页面底未铺 --sq2-paper 纸面');
+  if (!/data-xhub-theme="dark"[^}]*--sq2-paper:/.test(viewSrc)) b4.push('view 缺墨夜纸面覆盖（--sq2-paper 暗色声明）');
   if (!viewSrc.includes('var(--xhub-surface')) b4.push('view 缺 --xhub-surface');
   if (!/background:\s*transparent/.test(modSrc)) b4.push('module 卡底非透明');
   for (const [n, s] of [['view', viewSrc], ['module', modSrc]]) {
     if (!s.includes(':root[data-xhub-theme="dark"]')) b4.push(n + ' 缺深色双声明');
   }
-  ok('B4', '主题铁律（透明底 + 双声明）', b4.length === 0, b4.join(';'));
+  ok('B4', '主题铁律（v2 纸面 + module 透明 + 双声明）', b4.length === 0, b4.join(';'));
 
   /* B5 module 格子纪律 */
   const b5 = [];

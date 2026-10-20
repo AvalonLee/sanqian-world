@@ -79,6 +79,9 @@
 
     /* ── 菜单描述（词族契约 tab. 族：由世界分卷拥有——换世界即换菜单名）── */
     'tab.idle': '修行', 'tab.event': '奇遇',
+    /* UI v2 B1：左带五区分组标题（世界分卷拥有；修行区标题复用 tab.idle 的「修行」） */
+    'nav.sec.idle': '修行', 'nav.sec.zone': '历练', 'nav.sec.arts': '道器',
+    'nav.sec.bonds': '江湖', 'nav.sec.life': '生平',
 
     /* ── G3 秘境 ── */
     'combat.system': '秘境洞天',
