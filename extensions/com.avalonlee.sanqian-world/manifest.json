@@ -1,7 +1,7 @@
 {
   "id": "com.avalonlee.sanqian-world",
   "name": "三千世界",
-  "version": "0.5.70",
+  "version": "0.5.71",
   "runtime": "web",
   "kind": "view",
   "surfaces": ["module", "view", "window", "drawer"],
