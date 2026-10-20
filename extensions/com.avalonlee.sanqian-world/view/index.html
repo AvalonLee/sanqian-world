@@ -525,6 +525,8 @@
 <script src="idle.js"></script>
 <script src="tiandao.js"></script>
 <script src="self.js"></script>
+<script src="spirit.js"></script>
+<script src="trib.js"></script>
 <script src="event.js"></script>
 <script>
 (function () {
@@ -583,8 +585,9 @@
   function ctx() {
     return { s: state, w: ws(), p: pack(), d: D(), ui: ui, $: $, t: t, esc: esc, date: gameDateStr,
       mods: mods(), tierCls: tierCls, kindCls: treasureKindCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, timeAgo: timeAgo, fmtDate: fmtDate,
-      /* 第册卅六批第七刀补两枚：`spiritPanel` = 器灵面板仍在内核、法宝页回头调用（件外调用 ⇒ 该进桥），`nudge` = 输入不合法时抖一下控件的内核助手（造化两路动作要用点击那一行的 el） */
-      spiritPanel: renderSpiritPanel, nudge: nudgeEl,
+      /* 第册卅六批第七刀补一枚：`nudge` = 输入不合法时抖一下控件的内核助手（造化两路动作要用点击那一行的 el）。
+       * 同批那枚 `spiritPanel` 已随第册五十八批器灵面板外置 view/spirit.js 缩回——件对件调用不再过桥（桥首次负增长）。 */
+      nudge: nudgeEl,
       /* 第八刀补三枚（都是「件外调用」才进桥）：fmtLeft = 沙漏剩余时长 ‖ fmtDur = 游戏历时长 ‖ bondTier = 好感档汉字数字 */
       fmtLeft: fmtLeft, fmtDur: fmtGameDur, bondTier: bondTierNum,
       /* 第十一刀补一枚：showWash = 洗髓浮层的内核入口（服丹成功即开 = 件外调用才进桥） */
@@ -1422,8 +1425,9 @@
 
   /* ── Tab · 法宝（灵宝 · 法宝全录）── 第册卅六批整片外置 `view/treasure.js`（N34 第七刀）：
    * 法宝栏 3 槽 + 法宝库 + 祭炼/认主 + 造化与五条动作都在那件里，内核只在 renderTab 与分派处直调
-   * `SQ.UI.treasure.*`（不留二次转发的壳）。桥多给的 `spiritPanel`（器灵面板仍在内核、法宝页回头调用）
-   * 与 `nudge` 的取舍口径见 ctx() 那两行注：一件键该不该进桥，只看它是件外调用还是件内互调。 */
+   * `SQ.UI.treasure.*`（不留二次转发的壳）。桥多给的 `spiritPanel` 已随第册五十八批器灵面板外置缩回
+   * （件对件调 `SQ.UI.spirit.render(c)`）；余下 `nudge` 的取舍口径见 ctx() 那段注：一件键该不该进桥，
+   * 只看它是件外调用还是件内互调。 */
   $('mgc-close').addEventListener('click', function () { $('modal-gearcodex').classList.add('hide'); });
 
   /* 奇遇回看浮层（批 2 · 交互说明 ★）：story 全文 + 首遇时间 + 上次选择与结果。
@@ -1731,101 +1735,13 @@
     SQ.UI.bonds.checkSpouseLog(ctx());   /* 双修解除叙事（B4）：spouseLog.at 键控会话一次 */
   }
 
-  /* ── 渡劫演出（F7：悬念 1s 不可跳 → 成败帧：损失明细 + 成算复盘 + 计数；reduced-motion 直出）── */
-  var tribTimer = null, tribUnlocked = false;
+  /* ── 渡劫演出族已随第册五十八批整片外置 view/trib.js（N34 第二十刀 · 阶段 A1）：
+   * `snap` / `show` / `skip` 三枚导出（`hide` 只被件内调用）；内核只留三处调用与本节末尾那一行监听转发。
+   * `reducedMotion` 是内核十几处共用的可访问性助手（桥位同名），**留核、不随族走**。 ── */
   function reducedMotion() {
     return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
-  function snapTrib() {
-    try {
-      var w = ws(), p = pack(), d = D(), m = mods();
-      var ti = p.worldSystems.tribInfo(w, p, d, m);
-      var loss = p.worldSystems.tribLoss(w, p, d, m);
-      ui.tribSnap = ti ? {
-        p: Math.round(ti.p * 100), loss: Math.round(loss * 100),
-        /* 护法叙事三态素材（B6）：道号 / 道侣形态名（护法恰为道侣时）/ 魔道独行 */
-        guardNpc: ti.parts.guardianNpc || null, guardBonus: ti.parts.guardian || 0,
-        evil: p.worldSystems.tierOf(w) === 'evil',
-        spouseForm: (w.spouse && ti.parts.guardianNpc === w.spouse.npcId) ? w.spouse.form : null
-      } : null;
-    } catch (e) { ui.tribSnap = null; }
-  }
-  /* 渡劫呈报（渡劫演出重做批）：主题感知卡片 + 成算环蓄势 → 结果帧数据行。
-   * 环 = 成算（0~100%），胜主色 / 败警戒色；数据行陈列成算 / 损失 / 次数 / 护法。 */
-  var TRIB_ARC_C = 264;   /* 环周长 = 2πr（r = 42） */
-  function tribArc(p, color) {
-    var arc = $('trib-arc');
-    if (!arc) return;
-    arc.style.stroke = color;
-    arc.style.strokeDashoffset = String(TRIB_ARC_C * (1 - Math.max(0, Math.min(100, p)) / 100));
-  }
-  function tribRow(label, value, tone) {
-    return '<div class="tr' + (tone ? ' ' + tone : '') + '"><span>' + esc(label) + '</span><b>' + esc(value) + '</b></div>';
-  }
-  function showTrib() {
-    var w = ws();
-    var win = w.tribulation.lastResult === 'success';
-    var snap = ui.tribSnap;
-    var box = $('trib-box');
-    var p = snap ? snap.p : 0;
-    box.className = 'trib-card charging';
-    /* 悬念帧：环自 0 蓄势到成算（reduced-motion 直落） */
-    var arc = $('trib-arc');
-    arc.style.transition = 'none';
-    arc.style.stroke = 'var(--primary)';
-    arc.style.strokeDashoffset = String(TRIB_ARC_C);
-    $('trib-ring-p').textContent = snap ? String(p) : '--';
-    $('trib-t1').textContent = t('trib.suspense');
-    $('trib-t2').textContent = t('trib.attempts', { n: w.tribulation.attempts });
-    $('trib-rows').innerHTML = '';
-    $('trib-guard').classList.add('hide');
-    $('trib-skip').classList.add('hide');
-    tribUnlocked = false;
-    $('trib-stage').classList.remove('hide');
-    var charge = function () { arc.style.transition = ''; tribArc(p, 'var(--primary)'); };
-    if (reducedMotion()) charge(); else requestAnimationFrame(charge);
-    function reveal() {
-      box.className = 'trib-card ' + (win ? 'win' : 'lose');
-      tribArc(p, win ? 'var(--primary)' : 'var(--bad)');
-      $('trib-t1').textContent = win ? t('trib.result.win') : t('trib.result.lose');
-      $('trib-t2').textContent = win
-        ? t('tribulation.success', { realm: t('realm.' + w.realm) }) + ' · ' + t('tribulation.reset')
-        : t('tribulation.reset');
-      /* 数据行：成算 / [败] 修为损失 / 渡劫次数 / 护法加项 */
-      var rows = '';
-      if (snap) rows += tribRow(t('trib.row.p'), p + '%', 'hot');
-      if (!win && snap) rows += tribRow(t('trib.row.loss'), snap.loss + '%', 'bad');
-      rows += tribRow(t('trib.row.n'), t('trib.attempts', { n: w.tribulation.attempts }));
-      if (snap) rows += snap.guardBonus > 0
-        ? tribRow(t('tribulation.guardian'), '+' + snap.guardBonus.toFixed(2), 'hot')
-        : tribRow(t('tribulation.guardian'), t('tribulation.guardian.none'));
-      $('trib-rows').innerHTML = rows;
-      /* 护法叙事行（B6 · 帧四）：成功三态（道号+加项 / 道侣形态名 / 魔道独行） */
-      var tg = $('trib-guard');
-      if (win && snap && snap.guardNpc && snap.guardBonus > 0) {
-        tg.textContent = snap.spouseForm
-          ? t('tribulation.guardianSpouse', { name: t('bond.' + snap.guardNpc + '.name'), form: t('bond.spouse.form.' + snap.spouseForm) })
-          : t('tribulation.guardianLine', { name: t('bond.' + snap.guardNpc + '.name') });
-        tg.classList.remove('hide');
-      } else if (win && snap && snap.evil) {
-        tg.textContent = t('tribulation.guardianNone');
-        tg.classList.remove('hide');
-      }
-      $('trib-skip').textContent = t('trib.skip');
-      $('trib-skip').classList.remove('hide');
-      tribUnlocked = true;
-    }
-    if (reducedMotion()) reveal();
-    else setTimeout(reveal, 1000);
-    if (tribTimer) clearTimeout(tribTimer);
-    /* 悬念 1s（不可跳）+ 结果帧 2s 自动关（交互说明 §4.9）；reduced-motion 直出后同样 2s */
-    tribTimer = setTimeout(function () { if (tribUnlocked) hideTrib(); }, reducedMotion() ? 2000 : 3000);
-  }
-  function hideTrib() {
-    $('trib-stage').classList.add('hide');
-    if (tribTimer) { clearTimeout(tribTimer); tribTimer = null; }
-  }
-  $('trib-stage').addEventListener('click', function () { if (tribUnlocked) hideTrib(); });
+  $('trib-stage').addEventListener('click', function () { SQ.UI.trib.skip(ctx()); });
 
   /* ── 抉择模态（F3）：三分支 + 信息层（成算/花费/缺项置灰）+ 判定演出 + 结果页 + 独占全屏演出。
    * karma 不预告（按钮无道心数值）；确定性判定不满足 → 置灰；attr/power 类给出成算或可预判结果。── */
@@ -2353,41 +2269,8 @@
 
   /* ── 融合坛（功法页尾 · 融合器灵卷 B5）── */
 
-  /* ── 器灵面板（法宝页尾 · 融合器灵卷 B5）── */
-  function renderSpiritPanel() {
-    var w = ws(), d = D(), p = pack();
-    if (!SQ.Fusion) return '';
-    var entries = SQ.Fusion.equippedEntries(w, p);
-    if (!entries.length) return '';
-    var h = '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + esc(t('spirit.ui.tab')) + '</p>';
-    entries.forEach(function (pr) {
-      var sp = (pr.e.st || {}).spirit || { w: 0, a: 0 };
-      var nm = t('treasure.' + pr.def.id + '.name');
-      if (!sp.a) {
-        var need = SQ.Fusion.needOf(d, pr.def);
-        h += '<div class="lrow"><div class="nm">' + esc(nm) + ' <span class="hint">' + esc(t('spirit.ui.gray')) + '</span></div>' +
-          '<div class="meta">' + esc(t('spirit.ui.warm', { w: Math.floor(sp.w || 0), need: need })) + '</div>' +
-          '<div class="bar slim"><i style="width:' + Math.min(100, ((sp.w || 0) / need) * 100).toFixed(1) + '%"></i></div></div>';
-        return;
-      }
-      var sk = SQ.Fusion.skillOf(d, sp.p);
-      var cdLeft = (sp.cd || 0) + (d.SPIRIT.SKILL_CD_MS) - Date.now();
-      var state2 = '';
-      var disabled = false;
-      if (cdLeft > 0) { state2 = t('spirit.ui.skill.cd', { t: timeLeftText(cdLeft) }); disabled = true; }
-      else if (sk && sk.id === 'hun' && sp.hun) { state2 = t('spirit.ui.skill.mark'); disabled = true; }
-      else if (sk && sk.id === 'shi' && (sp.mk || 0) > Date.now()) { state2 = t('spirit.ui.skill.mark'); disabled = true; }
-      else if (sk && sk.def.field) {
-        var liveS = (w.buffs || []).some(function (b) { return b.source === 'spirit_' + sk.id && b.until > Date.now(); });
-        if (liveS) { state2 = t('spirit.ui.skill.active'); disabled = true; }
-      }
-      h += '<div class="lrow"><div class="nm">' + esc(nm) + ' <span class="special-mark">' + esc(t('spirit.persona.' + sp.p + '.name')) + '</span></div>' +
-        '<div class="meta">' + esc(t('spirit.ui.skill')) + ' · ' + esc(sk ? t('spirit.skill.' + sk.id + '.name') + ' — ' + t('spirit.skill.' + sk.id + '.desc') : '') +
-        (state2 ? ' · ' + esc(state2) : '') + '</div>' +
-        '<div class="acts"><button data-act="spiritSkill" data-v="' + pr.e.id + '"' + (disabled ? ' disabled' : '') + '>' + esc(t('spirit.ui.skill.btn')) + '</button></div></div>';
-    });
-    return h;
-  }
+  /* ── 器灵面板已随第册五十八批整片外置 view/spirit.js（N34 第二十刀 · 阶段 A1）：
+   * 唯一调用方是法宝页（原走桥位 `spiritPanel`）⇒ 件对件调用 `SQ.UI.spirit.render(c)`，桥键同批缩回一枚。 ── */
 
   /* ── 全局动作委托 ── */
   document.addEventListener('click', async function (e) {
@@ -2434,7 +2317,7 @@
     }
     if (act === 'claim') {
       var before = ws().tribulation.attempts;
-      snapTrib();
+      SQ.UI.trib.snap(ctx());
       await SQ.claim(state);
       afterClaim(before);
       renderAll();
@@ -2542,7 +2425,7 @@
     if (act === 'trib') {
       /* 手动渡劫：劫前成算快照 → 掷判 → 走与自动渡劫同一套呈报（演出/红点/重绘） */
       var prevT = ws().tribulation.attempts;
-      snapTrib();
+      SQ.UI.trib.snap(ctx());
       var resT = await SQ.Actions.tryTrib(state);
       if (resT) { afterClaim(prevT); renderAll(); }
       return;
@@ -2946,7 +2829,7 @@
       else SQ.UI.event.choice(ctx());
     }
     else if (w.lastOffline && w.lastOffline.at !== ui.seenOfflineAt) showOfflineReport();
-    else if (w.tribulation.attempts > prevAttempts) showTrib();
+    else if (w.tribulation.attempts > prevAttempts) SQ.UI.trib.show(ctx());
     /* 未读红点：基线（lastLogKey / lastFeedKey）每 tick 都要推进——toast 去重靠它。
      所以「有没有新内容」必须在推进基线之前判定，再记到独立的 dot 标志上；
      直接让 renderTabbar 去比基线，差值恒为 0，红点永远不亮。
@@ -3044,7 +2927,7 @@
       var ae = document.activeElement;
       var typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
       try {
-        snapTrib();                       /* 劫前成算/损失快照（F7 复盘行） */
+        SQ.UI.trib.snap(ctx());           /* 劫前成算/损失快照（F7 复盘行） */
         await SQ.claim(state);
         afterClaim(prev);
         if (typing || document.hidden) return;
