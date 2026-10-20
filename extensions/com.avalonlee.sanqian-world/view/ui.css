@@ -389,8 +389,12 @@
       grid-template-areas: "top sub" "tabs body";
       column-gap: 14px;
     }
-    /* B16-a：顶栏已是 .hd 左右两栏，窄左栏（264px）靠 hd-l 省略号收缩，不再换行 */
-    #sc-main > .topbar { margin-bottom: 12px; }
+    /* B16-a 修正（用户实测反馈：桌面 264px 左栏里左右两栏互挤错位）：
+       顶栏在窄左栏改纵向堆叠——hd-l 独占整行，hd-r（灵石 + 名号）整行右对齐落其下；
+       左右两栏形态只在手机全宽（.hd 原生 392）成立。水印（top 6px，约 66px 高）也随堆叠
+       与 hd-r 行自然错开，不再叠在灵石/名号文字上。 */
+    #sc-main > .topbar { flex-direction: column; align-items: stretch; gap: 7px; margin-bottom: 12px; }
+    .topbar .hd-l { width: 100%; }
     #sc-main > .sq2-subnav { max-width: 980px; width: 100%; margin: 0 auto; }
 
     .tabbar { flex-direction: column; align-items: stretch; padding: 0; overflow-y: auto; }
