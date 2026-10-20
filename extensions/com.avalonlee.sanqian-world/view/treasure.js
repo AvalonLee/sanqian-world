@@ -3,6 +3,8 @@
  *        （祭出 / 收起 / 祭炼 / 灵石换灵气 / 换丹）。分派顺序与判据不动：内核只留 `SQ.UI.treasure.*` 五句转发。
  * 桥 = 内核 ctx() 递进来的那一枚 `c`（键集由审计 D7 逐键对账）；形参名钉死 c ⇒ 本文件所有回调一律不许用 c。
  * 本批桥多给两枚：`spiritPanel`（器灵面板仍在内核，本页回头调用）‖ `nudge`（输入不合法时抖一下那枚控件）。
+ * 〔第册五十八批 2026-10-19 · N34 第二十刀〕`spiritPanel` 已缩回：器灵面板外置成 `view/spirit.js`，
+ *   本页改件对件调用 `SQ.UI.spirit.render(c)`（同递一枚 `c`）⇒ 桥 53 → 52 枚，是本仓桥首次负增长。
  * ⚠️ 卡片类名助手不搬：它是「法与器」两页共用的那一枚，仍留内核、经桥以 `kindCls` 递出（件内互调才留内核）。 */
 (function () {
   var SQ = (window.SQ = window.SQ || {});
@@ -120,7 +122,7 @@
         '<div class="acts"><button data-act="treasurePill">' +
         c.esc(c.t('treasure.convert.pill', { n: SQ.fmt(ts.PILL_COST), cur: c.t('resource.currency') })) + '</button></div></div>';
     }
-    h += c.spiritPanel();
+    h += SQ.UI.spirit.render(c);
     c.$('tab-treasure').innerHTML = h;
   }
 
