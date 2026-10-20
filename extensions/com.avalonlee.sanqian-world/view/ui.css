@@ -1,6 +1,20 @@
-  /* ── 主题：双声明 fallback（x-hub §5.5）；页面底永远透明（§5.4 铁律）── */
+  /* ── 主题：双声明 fallback（x-hub §5.5）；UI v2 B1 起页面底 = 不透明宣纸（UI 卷 §8.1 D1=B），
+ *    module 卡仍保持透明玻璃（审计 B4 两段判：v2 页纸面 ‖ module 卡透明）── */
   :root {
     color-scheme: light;
+    /* UI v2 纸面令牌（B1）：朱砂 / 青为固定语义色，面 / 字 / 线仍优先读宿主变量 */
+    --sq2-paper: #F6F1E5;
+    --sq2-paper-2: #FBF7EC;
+    --sq2-paper-3: #EFE8D8;
+    --sq2-ink: #1F1C16;
+    --sq2-ink-2: #5A5348;
+    --sq2-ink-3: #8B8272;
+    --sq2-line: rgba(31, 28, 22, 0.16);
+    --sq2-line-2: rgba(31, 28, 22, 0.32);
+    --sq2-cinnabar: #A5362C;
+    --sq2-jade: #3E6B58;
+    --sq2-gold: #8E6E2F;
+    --sq2-serif: "Songti SC", "STSong", SimSun, serif;
     --surface: var(--xhub-surface, rgba(255, 255, 255, 0.66));
     --well: var(--xhub-bg-card, rgba(255, 255, 255, 0.9));
     --ink: var(--xhub-text-1, #1f2230);
@@ -43,6 +57,18 @@
     --sq-tier-3: #b47fdf; --sq-tier-4: #d9b45e;
     /* 日志吸顶栏底色：暗色下 --surface 近乎全透（0.06），须换近实深遮罩挡残影 */
     --sq-sticky-veil: rgba(30, 32, 41, 0.92);
+    /* UI v2 墨夜（B1）：固定纸面转深，字/线随之反相；朱砂与青取暗底亮值 */
+    --sq2-paper: #1C1A17;
+    --sq2-paper-2: #24211D;
+    --sq2-paper-3: #2B2722;
+    --sq2-ink: #E8E1D2;
+    --sq2-ink-2: #B5AC9B;
+    --sq2-ink-3: #8A8172;
+    --sq2-line: rgba(232, 225, 210, 0.14);
+    --sq2-line-2: rgba(232, 225, 210, 0.28);
+    --sq2-cinnabar: #D0604F;
+    --sq2-jade: #7FAE97;
+    --sq2-gold: #C9A75D;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -50,7 +76,8 @@
     margin: 0; padding: 16px;
     font-family: system-ui, -apple-system, "Segoe UI", "Songti SC", SimSun, sans-serif;
     font-size: 13px;
-    background: var(--xhub-page-bg, transparent);
+    /* UI v2 B1（D1=B）：页面底改为不透明宣纸；墨夜由宿主 data-xhub-theme 驱动，不再透住宿主壁纸 */
+    background: var(--sq2-paper);
     color: var(--ink);
   }
   :root[data-xhub-wallpaper-clear="1"] .panel {
@@ -76,6 +103,8 @@
     border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
   }
   h1 { margin: 0 0 4px; font-size: 17px; font-weight: 650; letter-spacing: 0.12em; }
+  /* UI v2 B1：标题走宋体栈（零外链）；正文仍系统无衬线 */
+  h1, h2, .sect { font-family: var(--sq2-serif); }
   .sub { margin: 0 0 12px; color: var(--ink-2); }
   .hint { color: var(--ink-3); font-size: 12px; }
   button {
@@ -178,16 +207,19 @@
   #sc-main {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    grid-template-areas: "top" "body" "tabs";
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "top" "sub" "body" "tabs";
     /* 定高（而非 min-height）：只有容器高度确定，右栏 .tabbody 才会内部滚动、
        左栏（顶栏 + 导航）才钉住不动；用 min-height 时内容撑高容器 → 整页跟着滚。 */
     height: calc(100vh - 32px);
     height: calc(100dvh - 32px);
   }
   #sc-main > .topbar { grid-area: top; }
+  #sc-main > .sq2-subnav { grid-area: sub; }
   #sc-main > .tabbody { grid-area: body; min-height: 0; }
   #sc-main > .tabbar { grid-area: tabs; }
+  /* UI v2 B1：右栏骨架。B1 不造数据，空时整列收起（hasrail 由 renderRail 在真有块时加） */
+  #sc-main > .sq2-rail { grid-area: rail; display: none; min-width: 0; overflow-y: auto; }
   /* 走查 v2.7 §1：三行——①名字 ②善恶徽章 + 灵石 ③战力 + 修为；二三行字号样式一致 */
   .topbar { display: block; padding: 10px 14px; position: relative; overflow: hidden; }
   /* 世界名水印（方案 B3 · 右上竖排落款）：夹在面板底色与文字层之间——absolute 贴右上，文字行抬到 z-index 1。
@@ -270,17 +302,63 @@
     #sc-main {
       grid-template-columns: 264px minmax(0, 1fr);
       grid-template-rows: auto minmax(0, 1fr);
-      grid-template-areas: "top body" "tabs body";
+      grid-template-areas: "top sub" "tabs body";
       column-gap: 14px;
     }
     #sc-main > .topbar { flex-wrap: wrap; row-gap: 6px; margin-bottom: 12px; }
+    #sc-main > .sq2-subnav { max-width: 980px; width: 100%; margin: 0 auto; }
 
     .tabbar { flex-direction: column; align-items: stretch; padding: 0; overflow-y: auto; }
     .tabbar button { flex: 0 0 auto; text-align: left; padding: 9px 12px; font-size: 13px; min-height: 40px; }
     .tabbar .dot { top: 50%; right: 12px; margin-top: -3.5px; }
-    .tabbar .navsep { align-self: stretch; width: auto; height: 1px; margin: 6px 0; }
+    /* UI v2 B1：桌面导航改纸面平铺行（去卡片描边/圆角；当前页 = 朱砂左竖条 + 纸面底） */
+    .tabbar button {
+      border: 0; border-radius: 0; background: transparent; color: var(--sq2-ink-2);
+      border-left: 2px solid transparent; min-height: 36px; padding: 7px 12px;
+    }
+    .tabbar button:hover { background: var(--sq2-paper-2); color: var(--sq2-ink); }
+    .tabbar button.on { background: var(--sq2-paper-3); color: var(--sq2-cinnabar); border-left-color: var(--sq2-cinnabar); }
+    .tabbar .sq2-navsec { border-top: 1px solid var(--sq2-line); margin-top: 6px; padding-top: 10px; }
+    .tabbar .sq2-navsec:first-child { border-top: 0; margin-top: 0; padding-top: 2px; }
+    /* 顶栏在桌面融进纸面（不再是一张玻璃卡） */
+    #sc-main > .topbar { background: transparent; border-color: transparent; box-shadow: none; border-radius: 0; }
     /* 内容卡限宽居中：宽屏下叙事段落一行别拉太长（中文字距舒适区 ~40 字/行） */
     #sc-main > .tabbody > .panel { max-width: 980px; margin-left: auto; margin-right: auto; }
+  }
+
+  /* ── UI v2 B1：五区导航标题 + 子导航 + 右栏（§4.3 的块在 B2+ 逐区填；空则整列收起）── */
+  .tabbar .sq2-navsec {
+    font-family: var(--sq2-serif); font-size: 10.5px; letter-spacing: .22em;
+    color: var(--sq2-ink-3); padding: 10px 12px 3px; white-space: nowrap;
+  }
+  @media (max-width: 719px) { .tabbar .sq2-navsec { display: none; } }
+  .sq2-subnav {
+    display: flex; align-items: center; gap: 2px; padding: 2px 0 8px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .sq2-subnav .sq2-subsec {
+    flex: 0 0 auto; font-family: var(--sq2-serif); font-size: 11px; letter-spacing: .2em;
+    color: var(--sq2-ink-3); padding-right: 9px; margin-right: 5px;
+    border-right: 1px solid var(--sq2-line); white-space: nowrap;
+  }
+  .sq2-subnav button {
+    flex: 0 0 auto; min-height: 32px; padding: 3px 10px; font-size: 12px;
+    border: 1px solid transparent; border-radius: 2px; background: transparent;
+    color: var(--sq2-ink-2); cursor: pointer; white-space: nowrap;
+  }
+  .sq2-subnav button:hover { color: var(--sq2-ink); border-color: var(--sq2-line); }
+  .sq2-subnav button.on { color: var(--sq2-cinnabar); border-color: var(--sq2-cinnabar); }
+  .sq2-subnav button.locked { opacity: .45; cursor: default; letter-spacing: 2px; }
+  .sq2-rail {
+    background: var(--sq2-paper-2); border-left: 1px solid var(--sq2-line);
+    padding: 14px 16px; font-size: 12px;
+  }
+  @media (min-width: 1200px) {
+    #sc-main.hasrail {
+      grid-template-columns: 232px minmax(0, 1fr) 316px;
+      grid-template-areas: "top sub rail" "tabs body rail";
+    }
+    #sc-main.hasrail > .sq2-rail { display: block; }
   }
 
   /* ── 列表行通用 ── */

@@ -102,21 +102,21 @@ async function buildSave() {
   await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
   await page.waitForTimeout(700);
 
-  /* ── A0 导航：游戏页 12 项（页面整合批 13 → 12；以 .navsep 分组线为界，其后是系统页 3 项）── */
+  /* ── A0 导航：15 项 + 五区齐全（UI v2 B1 起；B3 拆 gear 后 → 16 项）── */
   const nav = await page.evaluate(() => {
     const bar = document.getElementById('m-tabbar');
     const kids = Array.prototype.slice.call(bar.children);
-    const sep = kids.findIndex((x) => x.classList.contains('navsep'));
-    const game = kids.slice(0, sep).filter((x) => x.tagName === 'BUTTON');
+    const btns = kids.filter((x) => x.tagName === 'BUTTON');
     return {
-      nGame: game.length,
-      nSys: kids.slice(sep + 1).filter((x) => x.tagName === 'BUTTON').length,
-      labels: game.map((x) => x.textContent.trim()),
-      hasGearTab: game.some((x) => x.dataset.v === 'gear'),
-      artsLabel: (game.filter((x) => x.dataset.v === 'arts')[0] || {}).textContent || ''
+      total: btns.length,
+      secs: kids.filter((x) => x.classList.contains('sq2-navsec')).map((x) => x.textContent.trim()),
+      labels: btns.map((x) => x.textContent.trim()),
+      hasGearTab: btns.some((x) => x.dataset.v === 'gear'),
+      artsLabel: (btns.filter((x) => x.dataset.v === 'arts')[0] || {}).textContent || ''
     };
   });
-  T(nav.nGame === 12, 'A0 导航游戏页 12 项（功法 + 法器并为「法与器」）', 'n=' + nav.nGame + ' 系统页=' + nav.nSys);
+  T(nav.total === 15, 'A0 导航 15 项（B1 五区分组，未拆 gear）', 'n=' + nav.total);
+  T(nav.secs.join(',') === '修行,历练,道器,江湖,生平', 'A0 五区齐全且顺序固定', nav.secs.join('/'));
   T(!nav.hasGearTab, 'A0b `gear` 已从 GAME_TABS 移除（无独立导航项）');
   T(nav.artsLabel.trim() === '法与器', 'A0c 合并页导航标签 = 「法与器」（词表 arts.system）', 'got=' + nav.artsLabel.trim());
   T(nav.labels.indexOf('法宝') >= 0, 'A0d 法宝仍独立成页（用户拍板合并面限定「只并功法 + 装备」）');
@@ -611,21 +611,20 @@ async function buildSave() {
   const afterLegacy = await page2.evaluate(() => {
     const bar = document.getElementById('m-tabbar');
     const kids = Array.prototype.slice.call(bar.children);
-    const sep = kids.findIndex((x) => x.classList.contains('navsep'));
-    const game = kids.slice(0, sep).filter((x) => x.tagName === 'BUTTON');
+    const btns = kids.filter((x) => x.tagName === 'BUTTON');
     return {
-      nGame: game.length,
-      ids: game.map((x) => x.dataset.v),
-      /* 前四项应保留旧档相对序（idle → arts → combat → treasure），gear / nosuchtab 被剔除后由默认序补齐其余 */
-      head4: game.slice(0, 4).map((x) => x.dataset.v).join(','),
+      total: btns.length,
+      ids: btns.map((x) => x.dataset.v),
+      secs: kids.filter((x) => x.classList.contains('sq2-navsec')).map((x) => x.textContent.trim()),
       persisted: JSON.stringify((JSON.parse(localStorage.getItem('sanqian-state-v1') || '{}').settings || {}).tabOrder || [])
     };
   });
-  T(afterLegacy.nGame === 12, 'A10 旧档 tabOrder 含 `gear` → 导航仍 12 项（不多项不崩）', 'n=' + afterLegacy.nGame);
+  T(afterLegacy.total === 15, 'A10 旧档 tabOrder 不影响导航项数（仍 15 项、不多项不崩）', 'n=' + afterLegacy.total);
   T(afterLegacy.ids.indexOf('gear') < 0 && afterLegacy.ids.indexOf('nosuchtab') < 0,
     'A10b 未知 id（gear / nosuchtab）被剔除', afterLegacy.ids.join(','));
-  T(afterLegacy.head4 === 'idle,arts,combat,treasure',
-    'A10c 旧档相对序保留（gear 剔除后其余项顺延，不重排）', 'nav=' + afterLegacy.head4 + ' 落盘=' + afterLegacy.persisted);
+  T(afterLegacy.ids.join(',') === 'idle,combat,event,arts,treasure,alchemy,shop,bonds,faction,prodigy,sect,achv,legacy,journal,settings' &&
+    afterLegacy.secs.join(',') === '修行,历练,道器,江湖,生平',
+    'A10c 旧档 tabOrder 被五区固定序取代（字段保留、不再参与排序）', 'nav=' + afterLegacy.ids.join(','));
   /* 🆕 标签化批的兼容性追问：`ui.lawChip` 只在内存 ⇒ 切过标签再落盘，存档里也**不该多出这个键**。
    * 非空观测先行（本仓教训：`⊆ 空集` 式判据恒真）——先在旧档页面上**真把标签切到法器段**并验切换生效，
    * 再验「写口确实跑过」（`settings.tabOrder` 已落盘 = 有真档）+ 全档搜不到 `lawChip`。 */

@@ -71,6 +71,8 @@
       </div>
       <div class="topline" id="m-sub"></div>
     </div>
+    <!-- UI v2 B1：当前区子导航（桌面与手机同一条；点击复用 data-act="tab" 分派） -->
+    <div id="m-subnav" class="sq2-subnav"></div>
     <div class="tabbody">
       <div id="tab-idle" class="panel"></div>
       <div id="tab-combat" class="panel hide"></div>
@@ -89,6 +91,8 @@
       <div id="tab-settings" class="panel hide"></div>
     </div>
     <div class="tabbar" id="m-tabbar"></div>
+    <!-- UI v2 B1：右栏骨架（≥1200px 第三列）。B1 只立容器，不造数据；空时 CSS 收起 -->
+    <aside id="m-rail" class="sq2-rail" aria-label="区情"></aside>
 </div>
 
 <!-- 锁定确认模态（F1：入定摘要 pills = 天赋 + 初心） -->
@@ -997,6 +1001,26 @@
     { id: 'settings', key: 'tab.settings' }
   ];
   var TABS = GAME_TABS.concat(SYS_TABS);
+  /* UI v2 B1：五区分组（固定顺序）。B1 仍 15 页；B3 拆页后「道器」组加 gear。
+   * 区标题是 #m-tabbar 的直接子节点（span），页按钮仍是直接子节点 —— 旧判据按 button[data-v]
+   * 取数不受影响；A0/A10 的「12 游戏 + navsep」口径已在同批改为「15 项 + 五区齐全」。 */
+  var SECTIONS = [
+    { id: 'idle', key: 'nav.sec.idle', items: ['idle'] },
+    { id: 'zone', key: 'nav.sec.zone', items: ['combat', 'event'] },
+    { id: 'arts', key: 'nav.sec.arts', items: ['arts', 'treasure', 'alchemy', 'shop'] },
+    { id: 'bonds', key: 'nav.sec.bonds', items: ['bonds', 'faction', 'prodigy', 'sect'] },
+    { id: 'life', key: 'nav.sec.life', items: ['achv', 'legacy', 'journal', 'settings'] }
+  ];
+  function tabById(id) {
+    for (var i = 0; i < TABS.length; i++) if (TABS[i].id === id) return TABS[i];
+    return null;
+  }
+  function sectionOf(id) {
+    for (var i = 0; i < SECTIONS.length; i++) {
+      if (SECTIONS[i].items.indexOf(id) >= 0) return SECTIONS[i];
+    }
+    return SECTIONS[0];
+  }
 
   /* 渐次解锁批 §C1：门槛单一事实源 = D.TAB_UNLOCK（引擎天骄 gate / realm.js 解锁播报同源）；
    * 世界未装载或表缺项时回落 GAME_TABS 行内 lock（同值兜底）。 */
@@ -1077,12 +1101,48 @@
     tabKnownSync();
     var bar = $('m-tabbar');
     bar.innerHTML = '';
-    tabOrder().forEach(function (tb) { tabBtn(bar, tb); });
-    /* 系统页固定最底部：一条分组线 + 日志/设置 */
-    var sp = document.createElement('span');
-    sp.className = 'navsep';
-    bar.appendChild(sp);
-    SYS_TABS.forEach(function (tb) { tabBtn(bar, tb); });
+    /* UI v2 B1：按五区渲染，区标题插在按钮序列里（不是套容器：A0 按直接 button 数取数） */
+    SECTIONS.forEach(function (sec) {
+      var h = document.createElement('span');
+      h.className = 'sq2-navsec';
+      h.dataset.sec = sec.id;
+      h.textContent = t(sec.key);
+      bar.appendChild(h);
+      sec.items.forEach(function (id) {
+        var tb = tabById(id);
+        if (tb) tabBtn(bar, tb);
+      });
+    });
+    renderSubnav();
+    renderRail();
+  }
+
+  /* UI v2 B1：右栏骨架。B1 只立容器与「有块才开列」的约定；B2+ 按区填块（块内数字必须与页同源）。
+   * 现在没有任何块 ⇒ 不加 hasrail，三栏不出现；块出现时再开 232 + 内容 + 316。 */
+  function renderRail() {
+    var rail = $('m-rail');
+    var main = $('sc-main');
+    if (!rail || !main) return;
+    var h = '';
+    rail.innerHTML = h;
+    main.classList.toggle('hasrail', !!h);
+  }
+
+  /* UI v2 B1：当前区子导航（同区快速切换）。点击复用 data-act="tab" 的全局分派。 */
+  function renderSubnav() {
+    var nav = $('m-subnav');
+    if (!nav) return;
+    var sec = sectionOf(ui.tab);
+    var h = '<span class="sq2-subsec">' + esc(t(sec.key)) + '</span>';
+    sec.items.forEach(function (id) {
+      var tb = tabById(id);
+      if (!tb) return;
+      var locked = tabLock(tb) && (!ws() || ws().realm < tabLock(tb));
+      var label = locked ? t('event.codex.unknown') : (tb.key ? t(tb.key) : t(tb.sys));
+      h += '<button class="' + (locked ? 'locked' : '') + (ui.tab === id ? ' on' : '') + '"' +
+        (locked ? '' : ' data-act="tab" data-v="' + id + '"') + '>' + esc(label) + '</button>';
+    });
+    nav.innerHTML = h;
   }
 
   function switchTab(id) {
