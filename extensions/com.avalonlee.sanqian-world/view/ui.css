@@ -1440,3 +1440,22 @@
   background: var(--sq2-cinnabar); border-color: var(--sq2-cinnabar);
   color: var(--sq2-paper); border-radius: 2px; font-family: var(--sq2-serif);
 }
+
+/* ── UI v2 B13：手机五区底部 tab（<720px 取代 16 项横滑；区内换页走顶部子导航）── */
+.sq2-zonebar { display: none; grid-area: tabs; }
+@media (max-width: 719px) {
+  #sc-main > .tabbar { display: none; }
+  .sq2-zonebar {
+    display: flex; align-items: stretch; gap: 2px;
+    border-top: 1px solid var(--sq2-line); background: var(--sq2-paper);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .sq2-zonebar button {
+    flex: 1 1 0; min-width: 0; min-height: 44px; padding: 6px 4px;
+    border: 0; border-radius: 2px; background: transparent;
+    color: var(--sq2-ink-2); font-family: var(--sq2-serif);
+    font-size: 12px; letter-spacing: .08em; white-space: nowrap; cursor: pointer;
+  }
+  .sq2-zonebar button.on { color: var(--sq2-cinnabar); background: var(--sq2-paper-2); }
+  .sq2-zonebar button:disabled { opacity: .4; cursor: default; }
+}

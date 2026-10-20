@@ -175,6 +175,38 @@ const { chromium } = require('playwright-core');
   await page.waitForTimeout(300);
   const nw2 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   T(!nw1 && !nw2, 'SH14b 380 宽下江湖榜 / 道友页无横向溢出', 'prodigy=' + nw1 + ' bonds=' + nw2);
+
+  /* B13：手机五区底部 tab 取代 16 项横滑；点区落该区首页，区内换页走顶部子导航 */
+  const zb0 = await page.evaluate(() => ({
+    tabbar: getComputedStyle(document.getElementById('m-tabbar')).display,
+    zone: getComputedStyle(document.getElementById('m-zonebar')).display,
+    btns: Array.prototype.map.call(document.querySelectorAll('#m-zonebar button'), (b) => b.textContent.trim()),
+    on: Array.prototype.map.call(document.querySelectorAll('#m-zonebar button'), (b) => b.classList.contains('on'))
+  }));
+  T(zb0.tabbar === 'none' && zb0.zone === 'flex' &&
+    zb0.btns.join(',') === '修行,历练,道器,江湖,生平' && zb0.on.filter(Boolean).length === 1,
+    'SH16 380 宽：底栏 = 五区 tab（16 项导航收起，当前区唯一高亮）', JSON.stringify(zb0));
+  await page.evaluate(() => {
+    const b = Array.prototype.slice.call(document.querySelectorAll('#m-zonebar button')).filter((x) => x.textContent.trim() === '道器')[0];
+    if (b) b.click();
+  });
+  await page.waitForTimeout(300);
+  const zbArts = await page.evaluate(() => ({
+    arts: !document.getElementById('tab-arts').classList.contains('hide'),
+    sub: (document.querySelector('#m-subnav .sq2-subsec') || {}).textContent || ''
+  }));
+  await page.evaluate(() => {
+    const b = Array.prototype.slice.call(document.querySelectorAll('#m-zonebar button')).filter((x) => x.textContent.trim() === '江湖')[0];
+    if (b) b.click();
+  });
+  await page.waitForTimeout(300);
+  const zbBonds = await page.evaluate(() => ({
+    bonds: !document.getElementById('tab-bonds').classList.contains('hide'),
+    sub: (document.querySelector('#m-subnav .sq2-subsec') || {}).textContent || '',
+    overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth
+  }));
+  T(zbArts.arts && zbArts.sub.trim() === '道器' && zbBonds.bonds && zbBonds.sub.trim() === '江湖' && !zbBonds.overflow,
+    'SH17 点底栏「道器 / 江湖」落该区首页，子导航同步该区且无横向溢出', JSON.stringify({ arts: zbArts, bonds: zbBonds }));
   T(errors.length === 0, 'SH15 零页面报错', errors.join(' | ').slice(0, 200) || 'clean');
 
   await ctx.close();
