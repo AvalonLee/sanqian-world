@@ -259,11 +259,8 @@
 
   /* ── 日志页（原「奇遇页 → 系统日志弹层」升级为左侧导航的独立页）── */
   /* 顶部分类切换栏吸顶：.tabbody 内部滚动时钉在顶部，长列表下也能随手切分类；
-     负外边距抵消 .panel 的 16px 内边距、铺满卡宽；近实遮罩 + 背景模糊挡住滚过的日志行
-     ⚠️ 法与器页**不能写 `#tab-arts > .chips`**（真机走查 N4 抓到，不是假想防御）：`artsBody()`
-     返回的是一串**平铺**块，融合坛「父母选择」那排 `.chips` 同为 `#tab-arts` 的直接子代，
-     写成 `> .chips` 会把它一起吸到页顶（页中页压在标签下）。故顶部标签行带专名 `.lawchips` 与之区分。 */
-  #tab-journal > .chips, #tab-arts > .lawchips {
+     负外边距抵消 .panel 的 16px 内边距、铺满卡宽；近实遮罩 + 背景模糊挡住滚过的日志行 */
+  #tab-journal > .chips {
     position: sticky; top: 0; z-index: 6;
     background: var(--sq2-paper);
     -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -661,28 +658,7 @@
   .sechead .t { font-weight: 650; letter-spacing: .2em; font-size: 12px; color: var(--ink-2); }
   .sechead .s { font-size: 10.5px; color: var(--ink-3); text-align: right; }
 
-  /* ── 法与器合并页（页面整合批 2026-10-06 · UI 卷 §3.4a）──
-   * ① 概览条 .laware：一行三格（主修 / 佩器 / 战力），点格锚跳到对应段。
-   *    这是合并页存在的理由——进页一眼看到「法」「器」两条轴的当前态。
-   * ② ④ 段标 .secdiv：单字大字 + 一句副标，把长页明确切成「法」「器」两段。
-   * 两者只用既有主题变量（--well/--line/--ink-2/--ink-3/--primary/--brand-soft），
-   * 零硬编码色，随宿主明暗主题走（§八 主题铁律）。 */
-  .laware { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 4px; }
-  .laware button { display: block; width: 100%; text-align: left; padding: 8px 10px; border-radius: 10px;
-    border: 1px solid var(--line); background: var(--well); cursor: pointer; min-width: 0; }
-  .laware button:hover { border-color: var(--primary); background: var(--brand-soft); }
-  .laware .k { display: block; font-size: 10px; letter-spacing: .16em; color: var(--ink-3); margin-bottom: 3px; }
-  .laware .v { display: block; font-size: 12.5px; font-weight: 650; color: var(--ink-2);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-  .laware .v.none { font-weight: 400; color: var(--ink-3); }
-  .secdiv { display: flex; align-items: baseline; gap: 10px; margin: 18px 0 2px;
-    padding-top: 12px; border-top: 1px solid var(--line); }
-  .secdiv .zi { font-size: 20px; font-weight: 800; letter-spacing: 0; color: var(--primary); line-height: 1; }
-  .secdiv .sub { font-size: 11px; color: var(--ink-3); letter-spacing: .08em; }
-  .secdiv:first-child { margin-top: 0; }
-  @media (max-width: 400px) {
-    .laware { grid-template-columns: 1fr; }
-  }
+  /* 法与器合并页已随 UI v2 B3 拆页 ⇒ .laware / .secdiv 两块样式同批退役 */
   .srcrow { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
   .srcrow .src, .ccell .src { color: var(--primary); cursor: pointer; }
   .primetag { font-size: 9px; color: var(--primary); border: 1px solid var(--primary); border-radius: 3px;
@@ -963,7 +939,6 @@
   .facrow button { white-space: nowrap; }
   .fcard .fh { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
   .fcard .fn { font-weight: 650; font-size: 13px; }
-  .fcard .ft { color: var(--ink-3); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .fcard .fg { font-size: 12px; margin-top: 3px; }
   .fcard .fe { color: var(--ink-2); font-size: 12px; margin-top: 4px; }
   .ebadge { display: inline-block; font-size: 10px; padding: 0 5px; border-radius: 4px; border: 1px solid currentColor; margin-left: 4px; vertical-align: 1px; }
