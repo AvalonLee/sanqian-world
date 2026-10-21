@@ -850,6 +850,11 @@
   #tab-settings .dsec .dt {
     font-family: var(--sq2-serif); font-size: 11px; letter-spacing: .28em; color: var(--sq2-ink-3);
   }
+  /* B16-s：段标统一为 .sechead（与其余页同形） */
+  #tab-settings .sechead { margin: 0 0 8px; }
+  #tab-settings .sechead .t {
+    font-family: var(--sq2-serif); font-size: 11px; letter-spacing: .28em; color: var(--sq2-ink-3);
+  }
   #tab-settings .setrow { border-bottom: 1px solid var(--sq2-line); padding-bottom: 12px; }
   #tab-settings .setrow:last-child { border-bottom: 0; padding-bottom: 0; }
   #tab-settings .switch.on {
