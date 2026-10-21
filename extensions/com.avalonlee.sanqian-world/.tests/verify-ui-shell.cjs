@@ -61,6 +61,36 @@ const { chromium } = require('playwright-core');
   T(bar.ids.join(',') === 'idle,combat,event,arts,gear,treasure,alchemy,shop,bonds,faction,prodigy,sect,achv,legacy,journal,settings',
     'SH3 按钮顺序 = 五区固定序（含百器）', bar.ids.join(','));
 
+  /* ③ 内容列居中（2026-10-21 用户令「拖大窗口不要贴左」）：
+   * 顶栏 / 子导航 / 正文同宽 832 并在可用区间内居中；正文面板 780、左右内距 26。
+   * 可用区间 = 左导航右边 → 右栏左边（无右栏时到视口右边）。 */
+  const geo = await page.evaluate(() => {
+    const r = (sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return null;
+      const b = el.getBoundingClientRect();
+      return { l: b.left, r: b.right, w: b.width };
+    };
+    const main = document.getElementById('sc-main');
+    return {
+      nav: r('#sc-main > .sq2-nav'), top: r('#sc-main > .topbar'), sub: r('#sc-main > .sq2-subnav'),
+      body: r('#sc-main > .tabbody'), panel: r('#tab-idle'),
+      rail: main.classList.contains('hasrail') ? r('#sc-main > .sq2-rail') : null,
+      railOn: main.classList.contains('hasrail')
+    };
+  });
+  const leftGap = geo.body.l - geo.nav.r;
+  const rightGap = (geo.rail ? geo.rail.l : 1440) - geo.body.r;
+  T(Math.abs(leftGap - rightGap) <= 2, 'SH3b 内容列在可用宽度里居中（左右留白相等）',
+    '左=' + leftGap.toFixed(1) + ' 右=' + rightGap.toFixed(1) + ' 右栏=' + geo.railOn);
+  T(Math.abs(geo.top.l - geo.body.l) <= 1 && Math.abs(geo.top.w - geo.body.w) <= 1 &&
+    Math.abs(geo.sub.l - geo.body.l) <= 1,
+    'SH3c 顶栏 / 子导航 / 正文同宽同起始线（居中不把三段错开）',
+    'top=' + geo.top.l + '@' + geo.top.w + ' body=' + geo.body.l + '@' + geo.body.w);
+  T(Math.abs(geo.panel.w - 780) <= 1 && Math.abs((geo.panel.l - geo.body.l) - 26) <= 1,
+    'SH3d 正文面板 780 宽、左右内距 26（限宽与内距都还在）',
+    'panel=' + geo.panel.w + '@' + geo.panel.l + ' body=' + geo.body.l);
+
   /* ② 子导航 = 当前区 */
   const sub0 = await page.evaluate(() => {
     const n = document.getElementById('m-subnav');

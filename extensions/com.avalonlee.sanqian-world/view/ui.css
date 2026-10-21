@@ -429,8 +429,13 @@
     }
     #sc-main > .sq2-subnav { padding: 0 26px; }
     #sc-main > .tabbody { padding: 0 26px 40px; }
-    /* 内容限宽 780 一律左对齐（设计稿 §3：与顶栏、子导航同一起始线，右侧留白整齐） */
-    #sc-main > .tabbody > .panel { max-width: 780px; margin-left: 0; margin-right: 0; }
+    /* 内容列在可用宽度里居中（用户 2026-10-21 令「拖大窗口时不要贴左」）：
+       顶栏 / 子导航 / 正文三段同宽（780 + 左右内距 26×2 = 832）并排居中，起始线仍互相对齐；
+       ≥1200 有右栏时，居中区间 = 左导航与右栏之间的那一列。 */
+    #sc-main > .topbar, #sc-main > .sq2-subnav, #sc-main > .tabbody {
+      width: 100%; max-width: 832px; margin-left: auto; margin-right: auto;
+    }
+    #sc-main > .tabbody > .panel { max-width: 780px; margin-left: auto; margin-right: auto; }
   }
 
   /* ── UI v2 B1：五区导航标题 + 子导航 + 右栏（§4.3 的块在 B2+ 逐区填；空则整列收起）── */
