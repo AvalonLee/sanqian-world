@@ -168,7 +168,8 @@ const KEY = 'sanqian-state-v1';
       const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
       const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
       const g = SQ.Sect.foundGates(w, D, st.meta);
-      const spans = Array.prototype.slice.call(document.querySelectorAll('#tab-sect .reqchips span'));
+      /* B16-j 改口：四门槛由 chip 行改设计稿 .gate 行（左上角圆标 ✓ / ·），判定仍逐条对引擎 */
+      const spans = Array.prototype.slice.call(document.querySelectorAll('#tab-sect .gate'));
       const dom = spans.map((x) => x.classList.contains('ok'));
       const eng = [g.realm, g.identity, g.peak, g.unlock];
       const chk = SQ.Sect.canFound(w, pack, D, st.meta);
@@ -176,7 +177,7 @@ const KEY = 'sanqian-state-v1';
         reason: chk.reason, idEng: g.identity };
     });
     T(gRow.n === 4 && gRow.dom === gRow.eng,
-      'AT-G 宗门四门槛 chip 逐条 === SQ.Sect.foundGates（规则只留属主那一份）',
+      'AT-G 宗门四门槛行逐条 === SQ.Sect.foundGates（规则只留属主那一份）',
       '屏=' + gRow.dom + ' 引擎=' + gRow.eng + ' 叛离过=' + gRow.everDef + ' canFound=' + gRow.reason);
   } else {
     T(false, 'AT-G 宗门页导航可定位', '找不到「宗门」页签');

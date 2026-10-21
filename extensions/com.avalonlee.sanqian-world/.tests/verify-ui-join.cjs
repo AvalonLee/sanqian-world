@@ -109,6 +109,58 @@ async function buildSave() {
   T(sectTxt.indexOf(seed.servedName) >= 0, 'U2 弟子行显天骄本名（名源名录、非山门俗名回落）', 'name=' + seed.servedName + ' · ' + sectTxt.slice(0, 60));
   T((sectTxt.match(/天骄/g) || []).length >= 1, 'U3 弟子行带「天骄」角标（tianjiao 有渲染点）', sectTxt.slice(0, 60));
 
+  /* ── U4/U5（B16-j）：已开宗版面 = 状态条 + 四格摘要；空态 = curzone 外壳 + 四门槛行 + 立派之后 ──
+   * 两条都只判「结构在 + 文案取自词表」，不钉具体数值（数值随档走，钉了就是第二份事实源）。 */
+  const secLayout = await page.evaluate(() => {
+    const strip = document.querySelector('#tab-sect .statestrip');
+    const sum = document.querySelector('#tab-sect .sum4');
+    const wf = (k) => SQ.t(k, null, 'xiuxian').replace(/\s+/g, '');
+    return {
+      strip: !!strip,
+      stripTxt: strip ? strip.innerText.replace(/\s+/g, '') : '',
+      cells: sum ? sum.children.length : 0,
+      sumTxt: sum ? sum.innerText.replace(/\s+/g, '') : '',
+      wantK: wf('sect.ui.strip.k'), wantRec: wf('sect.ui.sum.rec')
+    };
+  });
+  T(secLayout.strip && secLayout.stripTxt.indexOf(secLayout.wantK) >= 0 && secLayout.cells === 4 &&
+    secLayout.sumTxt.indexOf(secLayout.wantRec) >= 0,
+    'U7 已开宗版面：状态条（当前宗门）+ 四格摘要（战绩 / 设施 / 门规 / 传位）',
+    'strip=' + secLayout.strip + ' cells=' + secLayout.cells);
+
+  const emptySave = JSON.parse(JSON.stringify(save));
+  delete emptySave.worlds.xiuxian.sect;
+  const ctxE = await browser.newContext();
+  await ctxE.addInitScript((s) => { localStorage.setItem('sanqian-state-v1', s); }, JSON.stringify(emptySave));
+  const pageE = await ctxE.newPage();
+  const errorsE = [];
+  pageE.on('pageerror', (e) => errorsE.push(String(e.message || e)));
+  await pageE.goto(url);
+  await pageE.waitForSelector('#sc-main:not(.hide)', { timeout: 20000 });
+  await pageE.click('#m-tabbar button[data-v="sect"]');
+  await pageE.waitForTimeout(500);
+  const emp = await pageE.evaluate(() => {
+    const wf = (k) => SQ.t(k, null, 'xiuxian').replace(/\s+/g, '');
+    const cz = document.querySelector('#tab-sect .curzone');
+    return {
+      cz: !!cz,
+      czName: cz ? ((cz.querySelector('.cz-name') || {}).textContent || '').trim() : '',
+      wantName: SQ.t('sect.ui.found.name', null, 'xiuxian').trim(),
+      gates: document.querySelectorAll('#tab-sect .gate').length,
+      oks: document.querySelectorAll('#tab-sect .gate.ok').length,
+      after: document.querySelectorAll('#tab-sect .afrow').length,
+      foundDisabled: (function () {
+        const b = Array.prototype.filter.call(document.querySelectorAll('#tab-sect button'), (x) => x.disabled)[0];
+        return !!b;
+      })()
+    };
+  });
+  T(emp.cz && emp.czName === emp.wantName && emp.gates === 4 && emp.after === 3,
+    'U8 未开宗空态：curzone 外壳（尚未开宗）+ 四门槛 .gate 行 + 立派之后三行',
+    'gates=' + emp.gates + ' oks=' + emp.oks + ' after=' + emp.after);
+  T(errorsE.length === 0, 'U9 空态零页面报错', errorsE.join('|').slice(0, 120) || 'clean');
+  await ctxE.close();
+
   await page.click('#m-tabbar button[data-v="prodigy"]');
   await until(() => { const el = document.getElementById('tab-prodigy'); return !!el && !el.classList.contains('hide'); });
   /* 四榜逐切合计（第册一批③）：一名天骄只出现在自己那条境界带的榜上，单看默认天榜会漏 ——

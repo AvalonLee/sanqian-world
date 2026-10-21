@@ -1390,6 +1390,48 @@
   #tab-alchemy .sum3 .v { font-size: 13px !important; }
   #tab-alchemy .sum3 .k { letter-spacing: .12em; }
 }
+
+/* ── UI v2 B16-j：宗门页（空态 curzone 外壳 / 四门槛 .gate 行 / 立派之后 / 已开宗状态条 + 四格）── */
+#tab-sect .gate {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 2px; border-bottom: 1px solid var(--sq2-line);
+  font-size: 11.5px; color: var(--ink-2);
+}
+#tab-sect .gate .g-mark { width: 16px; text-align: center; color: var(--ink-3); }
+#tab-sect .gate.ok .g-mark { color: var(--sq2-jade); }
+#tab-sect .gate.ok { color: var(--sq2-ink); }
+#tab-sect .gate .g-t { flex: 1; min-width: 0; }
+#tab-sect .statestrip {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  margin: 4px 0 10px; padding: 9px 12px;
+  border: 1px solid var(--sq2-line); border-radius: 2px; background: var(--sq2-paper-2);
+  font-size: 11.5px;
+}
+#tab-sect .statestrip .s-k { font-size: 9.5px; letter-spacing: .2em; color: var(--ink-3); }
+#tab-sect .statestrip .s-v { font-family: var(--sq2-serif); letter-spacing: .08em; color: var(--sq2-ink); }
+#tab-sect .statestrip .s-x { margin-left: auto; color: var(--ink-3); font-size: 10.5px; }
+#tab-sect .sum4 {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--sq2-line); border-bottom: 1px solid var(--sq2-line);
+  margin: 4px 0 14px;
+}
+#tab-sect .sum4 > div { position: relative; padding: 10px 8px 11px; text-align: center; }
+#tab-sect .sum4 > div + div::before {
+  content: ""; position: absolute; left: 0; top: 22%; bottom: 22%; width: 1px; background: var(--sq2-line);
+}
+#tab-sect .sum4 .k { font-size: 9.5px; letter-spacing: .2em; color: var(--sq2-ink-3); }
+#tab-sect .sum4 .v {
+  font-family: var(--sq2-serif); font-size: 14px; margin-top: 2px;
+  color: var(--sq2-ink); font-variant-numeric: tabular-nums;
+}
+#tab-sect .afrow { cursor: default; }
+#tab-sect .afrow .nm { display: block; font-family: var(--sq2-serif); font-size: 13px; }
+#tab-sect .afrow .meta { display: block; margin-top: 3px; font-size: 11.5px; }
+@media (max-width: 519px) {
+  #tab-sect .sum4 { grid-template-columns: repeat(2, 1fr); }
+  #tab-sect .sum4 > div:nth-child(3)::before { display: none; }
+  #tab-sect .sum4 > div:nth-child(n+3) { border-top: 1px solid var(--sq2-line); }
+}
 @media (max-width: 719px) {
   #tab-gear .stroe { grid-template-columns: 1fr; }
   #tab-gear .stroe .srr { grid-column: 1; grid-row: auto; align-items: flex-start; }

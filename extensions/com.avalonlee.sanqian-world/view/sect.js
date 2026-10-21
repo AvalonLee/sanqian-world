@@ -28,13 +28,26 @@
         { ok: g295.peak, txt: c.t('sect.ui.gate.peak', { n: w.factionRepPeak || 0 }) },
         { ok: g295.unlock, txt: c.t('sect.ui.gate.unlock') }
       ];
-      h += '<div class="reqchips">' + gates.map(function (g) {
-        return '<span class="' + (g.ok ? 'ok' : 'no') + '">' + c.esc(g.txt) + (g.ok ? ' ✓' : '') + '</span>';
-      }).join('') + '</div>';
+      /* B16-j · 设计稿 §宗门空态：① `.curzone` 外壳（尚未开宗 + 一句交代 + 未立角标）
+       * ② 四门槛改 `.gate` 行（圆标 + 行间细线 + 达成染色）③ 门槛未齐时给置灰的「开宗立派」
+       * ④ 页尾补「立派之后」三行——空页也要有期待（设计稿 §sect 第 3 条）。 */
+      h += '<div class="curzone"><div class="cz-top"><div>' +
+        '<div class="cz-name">' + c.esc(c.t('sect.ui.found.name')) + '</div>' +
+        '<div class="cz-meta">' + c.esc(c.t('sect.ui.nofound')) + '</div></div>' +
+        '<span class="tag">' + c.esc(c.t('sect.ui.found.tag')) + '</span></div></div>';
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.ui.gates')) + '</span></div>';
+      gates.forEach(function (g) {
+        h += '<div class="gate' + (g.ok ? ' ok' : '') + '">' +
+          '<span class="g-mark">' + (g.ok ? '✓' : '·') + '</span>' +
+          '<span class="g-t">' + c.esc(g.txt) + '</span></div>';
+      });
+      /* 原「已传位」提示写在门槛未齐那一支里不可达（外层已判 `!w.sect`，而 reason 'done' 要求
+       * ws.sect.succession）⇒ 第十四批审计 #17 删；传位态由下方 `if (sec.succession)` 正常渲染。 */
       if (!chk.ok) {
-        h += '<p class="hint">' + c.esc(c.t('sect.ui.nofound')) + '</p>';
-        /* 原「已传位」提示写在这里不可达（外层已判 `!w.sect`，而 reason 'done' 要求 ws.sect.succession），
-         * 传位态由本函数下方 `if (sec.succession)` 那条正常渲染 ⇒ 删（第十四批审计 #17）。 */
+        /* 门槛未齐：按钮置灰但不隐藏（设计稿 §sect 第 2 条：达成即亮，预期明确）。
+         * 不用 `.primary`——实心底 + disabled 在纸面上会叠成一块浊色，与「不可点」的语义相反。 */
+        h += '<button disabled style="width:100%;margin-top:16px">' +
+          c.esc(c.t('sect.found.btn')) + '</button>';
       } else {
         h += '<p class="hint" style="margin-top:8px">' + c.esc(c.t('sect.ui.gate.pick')) + '</p><div class="chips">';
         (d.SECT.GATES || []).forEach(function (g) {
@@ -51,6 +64,12 @@
         h += '<button class="linkbtn" data-act="sectRollName" style="margin-top:6px">' + c.esc(c.t('sect.ui.name.roll')) + '</button>';
         h += '<button class="primary" data-act="sectFound" style="width:100%;margin-top:8px">' + c.esc(c.t('sect.found.btn')) + '</button>';
       }
+      /* 立派之后：三行预告（门规三定 / 门中供给 / 传位）——开宗前也看得到路 */
+      h += '<div class="sechead" style="margin-top:24px"><span class="t">' + c.esc(c.t('sect.ui.after')) + '</span></div>';
+      ['rule', 'supply', 'succ'].forEach(function (k) {
+        h += '<div class="lrow afrow"><span class="nm">' + c.esc(c.t('sect.ui.after.' + k)) + '</span>' +
+          '<span class="meta">' + c.esc(c.t('sect.ui.after.' + k + '.d')) + '</span></div>';
+      });
       c.$('tab-sect').innerHTML = h;
       return;
     }
@@ -60,15 +79,26 @@
       c.$('tab-sect').innerHTML = h;
       return;
     }
-    h += '<div class="kv"><span><b>' + c.esc(sec.name) + '</b> · ' + c.esc(c.t('sect.gate.' + sec.gate + '.name')) + ' · ' + c.esc(c.t('sect.align.' + sec.align + '.name')) + '</span>' +
-      '<span>' + c.esc(c.t('sect.ui.rep', { n: SQ.fmt(SQ.Sect.sectRep(w, d)) })) + '</span></div>';
-    h += '<div class="kv"><span>' + c.esc(c.t('sect.ui.power', { n: SQ.fmt(SQ.Sect.sectPower(w, p, d, m)) })) + '</span>' +
-      '<span>' + c.esc(c.t('sect.ui.war.record', { w: sec.warRecord.wins, l: sec.warRecord.loses })) + '</span>' +
-      /* 弟子出力折算战功（自立门户卷 §战功制 line 219 / WAR_DISC_K）：`discipleMerit` 一直在参战
-       * 结算里加进 war.merit（`factions.js:349-350`），但界面上玩家只看得到总数、看不到是哪笔贡献
-       * ⇒ 词条在册却零渲染点（N20 逐条核对中判为「该接线」的那一条），此处显形为一条 kv。 */
-      (SQ.Sect.discipleMerit(w, p, d) > 0 ? '<span>' + c.esc(c.t('sect.war.merit',
-        { n: SQ.fmt(SQ.Sect.discipleMerit(w, p, d)) })) + '</span>' : '') + '</div>';
+    /* B16-j · 设计稿 §已开宗：状态条（宗门 · 门规 · 声望 / 战力）+ 四格摘要（战绩 / 设施 / 门规 / 传位） */
+    var facN = (d.SECT.FAC_IDS || []).filter(function (f) { return (sec.fac[f] || 0) > 0; }).length;
+    h += '<div class="statestrip"><span class="s-k">' + c.esc(c.t('sect.ui.strip.k')) + '</span>' +
+      '<span class="s-v">' + c.esc(sec.name) + ' · ' + c.esc(c.t('sect.gate.' + sec.gate + '.name')) +
+      ' · ' + c.esc(c.t('sect.align.' + sec.align + '.name')) + '</span>' +
+      '<span class="s-x">' + c.esc(c.t('sect.ui.rep', { n: SQ.fmt(SQ.Sect.sectRep(w, d)) })) + ' · ' +
+      c.esc(c.t('sect.ui.power', { n: SQ.fmt(SQ.Sect.sectPower(w, p, d, m)) })) + '</span></div>';
+    h += '<div class="sum4">' +
+      '<div><div class="k">' + c.esc(c.t('sect.ui.sum.rec')) + '</div><div class="v">' +
+      c.esc(c.t('sect.ui.war.record', { w: sec.warRecord.wins, l: sec.warRecord.loses })) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('sect.ui.sum.fac')) + '</div><div class="v">' +
+      c.esc(c.t('sect.ui.fac.n', { n: facN })) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('sect.ui.sum.rule')) + '</div><div class="v">' +
+      c.esc(c.t('sect.gate.' + sec.gate + '.name')) + ' · ' + c.esc(c.t('sect.align.' + sec.align + '.name')) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('sect.ui.sum.succ')) + '</div><div class="v">' +
+      c.esc(sec.succession ? c.t('sect.ui.sum.set') : c.t('sect.ui.sum.none')) + '</div></div></div>';
+    /* 弟子出力折算战功（N20 接线）保留为一行小字：四格摘要里已没有它的位置，但这笔贡献不能只在引擎里 */
+    if (SQ.Sect.discipleMerit(w, p, d) > 0) {
+      h += '<p class="hintline">' + c.esc(c.t('sect.war.merit', { n: SQ.fmt(SQ.Sect.discipleMerit(w, p, d)) })) + '</p>';
+    }
     /* 弟子 */
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.ui.disciples', { n: sec.disciples.length, cap: SQ.Sect.discCap(w, d) })) + '</span></div>';
     /* N20 接线：继位择人的规则（供奉不可继位）此前只靠按钮 disabled 隐含，无一句释文 */

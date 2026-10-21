@@ -129,6 +129,25 @@
   K['sect.ui.succ.confirm'] = '传位三后果：宗门转 NPC 位继续活着 / 你获称号「开山祖师」跨世保留 / 当世不可再开宗。传位？';
   K['sect.ui.succ.done'] = '已传位 · 一代宗师下山';
   K['sect.ui.nofound'] = '未开宗——四门槛达成后此处亮起「开宗立派」';
+  /* ── B16-j 版面（设计稿 §宗门：空态外壳 / 四门槛 .gate 行 / 立派之后三行 / 已开宗状态条与四格）── */
+  K['sect.ui.found.name'] = '尚未开宗';
+  K['sect.ui.found.tag'] = '未立';
+  K['sect.ui.gates'] = '四 门 槛';
+  K['sect.ui.after'] = '立 派 之 后';
+  K['sect.ui.after.rule'] = '门规三定';
+  K['sect.ui.after.rule.d'] = '定道统 · 定门风 · 定收徒门槛，决定门中供给与弟子资质';
+  K['sect.ui.after.supply'] = '门中供给';
+  K['sect.ui.after.supply.d'] = '按门规定期发放灵石、丹药与功法';
+  K['sect.ui.after.succ'] = '传位';
+  K['sect.ui.after.succ.d'] = '转世前可指定继承人，宗门不随你身死而散';
+  K['sect.ui.strip.k'] = '当前宗门';
+  K['sect.ui.sum.rec'] = '战 绩';
+  K['sect.ui.sum.fac'] = '设 施';
+  K['sect.ui.sum.rule'] = '门 规';
+  K['sect.ui.sum.succ'] = '传 位';
+  K['sect.ui.sum.none'] = '未立';
+  K['sect.ui.sum.set'] = '已定';
+  K['sect.ui.fac.n'] = '{n} 处';
   K['sect.ui.leave.lock'] = '宗门不可弃——传位方可下山';
   K['sect.ui.dispatch'] = '调遣';
   K['sect.ui.accept'] = '收入门墙';
