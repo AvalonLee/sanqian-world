@@ -338,6 +338,8 @@ var SECTIONS = [
 
 | **B16-q** | 势力页：当前效力收条 + 分段标 + 供给/委托改整行 ✅ 已落（2026-10-21） | ① 原三块同权 `.facbanner`（势力名 / 职级 / 职位）收成设计稿 `.statestrip` **一条**（势力名 + 职级/声望）+ 一行 `.hintline`（增益 · 职位 · 护法态）；② 补「职级 · 双技能」（新键 `faction.sec.office`，按职位解锁才出现）/「捐献供奉」/「叛离」三处 `.sechead`；③ 门中供给 `.cardgrid` 卡片 → **`.matgrid`/`.matrow` 整行**（名称+丹标签 / 说明 / 价目钮）；④ 门中委托卡片 → **`.lrow` 整行**（名号 / 进度与赏金 / 交付钮+余时）；⑤ 势力战横幅改 `.warstrip`（朱砂小标「势力冲突」+ 正文 + 动作） | `view/faction.js`、`view/ui.css`、`lexicon-factions.js`、`.tests/verify-ui-faction.cjs`（+N1~N4）、`.tests/verify-ui-market.cjs`（M5/M6/M13/M23 改口认 `.matrow`） | 53 件 / 全绿（faction 19 → 23 判）；审计 34/34；扩展 0.5.107→0.5.108 |
 
+| **B16-r** | 江湖榜：寻仇链改段条 + 榜面说明落页尾 ✅ 已落（2026-10-21） | ① 寻仇链从普通 `.lrow` 改设计稿 `.warstrip`（朱砂小标「寻仇链」+ 敌手 / 已胜场 / 再战倒计时），新键 `prodigy.ambush.chain.title`；② 榜面说明「不写战力、只给三档」从 chip 下方移到页尾（设计稿位置）；③ 四榜 chip 加 `.chipsrow` 语义类（`.chips` 保留，走查取数不变） | `view/jianghu.js`、`view/ui.css`、`lexicon-prodigy.js`、`.tests/verify-ui-jianghu.cjs`（+J18） | 53 件 / 全绿（jianghu 17 → 18 判）；审计 34/34；扩展 0.5.108→0.5.109 |
+
 > B1→B3 的顺序可以互换（先拆页再换壳），但不建议：壳先用旧 15 项跑通，拆页只改数据模型，问题更好分离。
 
 > **B16 系列的口径变化**：B15 那一轮做的是「形」（令牌 / 纸面 / 行式样式），B16 起改为**逐页搬设计稿的构图**（区块顺序、主事焦点、信息分组）。两轮都不动引擎、不动 `data-act`/`id`。

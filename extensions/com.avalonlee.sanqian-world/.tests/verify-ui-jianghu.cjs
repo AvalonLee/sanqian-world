@@ -285,6 +285,23 @@ function buildSave() {
       'h=' + r.h + ' title=' + r.title + ' 钮=' + r.branches + '/' + nWant);
     await c.close();
   }
+  {
+    /* B16-r：寻仇链在案 ⇒ 榜顶 .warstrip 段条（标题回词表现算，敌手与再战倒计时非空） */
+    const s4 = buildSave(), w4 = s4.worlds.xiuxian;
+    w4.revenge = { n: 2, nextAt: T0 + 3600000, foe: '沈孤云' };
+    const { c, pg } = await openWith(s4);
+    await pg.click('#m-tabbar button[data-v="prodigy"]');
+    await pg.waitForTimeout(500);
+    const r = await pg.evaluate(() => {
+      const el = document.querySelector('#tab-prodigy .warstrip');
+      return { t: el && el.querySelector('.w-t') ? el.querySelector('.w-t').textContent.trim() : '',
+        v: el && el.querySelector('.w-v') ? el.querySelector('.w-v').textContent.replace(/\s+/g, ' ').trim() : '' };
+    });
+    const wantT = S.t('prodigy.ambush.chain.title', null, 'xiuxian').trim();
+    T(r.t === wantT && r.v.indexOf('沈孤云') >= 0 && r.v.indexOf('后再战') >= 0,
+      'J18 寻仇链在案时榜顶给 .warstrip 段条（标题走词表 · 敌手与再战倒计时非空）', JSON.stringify(r));
+    await c.close();
+  }
 
   T(errs.length === 0, 'J13 全程零 pageerror / 零 console error', errs.join(' | ').slice(0, 200) || 'clean');
 
