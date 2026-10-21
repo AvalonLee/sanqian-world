@@ -214,8 +214,12 @@
           c.esc(SQ.fmt(SQ.Arts.salvageValue(w, p, d, x))) + ' ' + c.esc(c.t('resource.currency')) + '</button></div></div>';
       }).join('') + '</div>';
     }
-    /* ── 功法图鉴（走查 v2.5 §4 + v2.8 §1：待修习架功法回归各品阶/阵营小节，弃置在卡内）── */
-    h += '<div class="sechead"><span class="t">' + c.esc(c.t('arts.codex.title')) + '</span></div>';
+    /* ── 功法图鉴（B16-h：默认按品阶/阵营**折叠**，点组头展开——设计稿「图鉴默认收起」口径；
+     * 70 部全铺是整页最长的一段空白墙。折叠态复用内核既有的 `ui.codexOpen`（键加 `ar_` 前缀，
+     * 与奇遇 `tian/di/ren`、法宝 `tr_*` 互不干扰），不新增动作名、不新增落盘字段。 ── */
+    var knownN = (w.artsKnown || []).length;
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('arts.codex.title')) + '</span>' +
+      '<span class="s">' + c.esc(c.t('arts.codex.rec', { n: knownN, total: Object.keys(am).length })) + '</span></div>';
     var groups = grp === 'tier' ? ['huang', 'xuan', 'di', 'tian'] : ['right', 'neutral', 'evil'];
     if (c.ui.artsGroupVal) groups = [c.ui.artsGroupVal];
     var allIds = Object.keys(am);
@@ -228,9 +232,15 @@
         if (SQ.Arts.owned(w, x)) ownedS.push(x);
         else unownedS.push(x);
       });
-      h += '<div class="sechead"><span class="t">' +
+      var gotN = ids.filter(function (x) { return SQ.Arts.owned(w, x); }).length;
+      var openG = !!(c.ui.codexOpen && c.ui.codexOpen['ar_' + gv]);
+      h += '<button type="button" class="sechead codexsec' + (openG ? ' open' : '') + '" data-act="codexTier" data-v="ar_' + gv + '">' +
+        '<span class="t">' +
         c.esc(grp === 'tier' ? c.t('arts.sec.tier', { g: c.t('arts.tierchar.' + gv) }) : c.t('arts.sec.align', { g: c.t('align.' + gv) })) +
-        '</span>' + (sil.length ? '<span class="s">' + c.esc(c.t('arts.sec.excl', { n: sil.length })) + '</span>' : '') + '</div>';
+        '</span><span class="s">' + c.esc(c.t('arts.codex.rec', { n: gotN, total: ids.length })) +
+        (sil.length ? ' · ' + c.esc(c.t('arts.sec.excl', { n: sil.length })) : '') +
+        ' ' + (openG ? '▾' : '›') + '</span></button>';
+      if (!openG) return;
       sil.forEach(function (x) { h += artSilhouette(c, x, am[x]); });
       h += '<div class="cards">' + ownedS.concat(unownedS).map(function (x) { return artCodexCard(c, x, w); }).join('') + '</div>';
     });
@@ -257,7 +267,11 @@
     var slotted = (w.artsSlots || []).indexOf(id) >= 0;
     var lv = w.artsLevels[id] || 0;
     var pr = SQ.Arts.practiceOf(w, id, d);
-    var h = '<div class="tcard ' + (a.alignment === 'evil' ? 'neg' : a.alignment === 'right' ? 'pos' : '') + '">';
+    /* B16-h：已学会由「卡片墙」改整行——`.artrow` 只加布局类，`.tcard` 与全部内层钩子
+     * （.tname / .hint / .meta / .pbar / .tierbadge.t1 / data-act）一字未动 ⇒ A11、H2 那组
+     * 「卡面 === 引擎 detail」的对表判据不需要改口。 */
+    var h = '<div class="tcard artrow ' + (a.alignment === 'evil' ? 'neg' : a.alignment === 'right' ? 'pos' : '') + '">' +
+      '<div class="ar-main">';
     h += '<div class="tname">' + c.esc(c.t('skill.' + id + '.name')) +
       ' <span class="tierbadge ' + c.artTier(a) + '">' + c.esc(c.t('skill.tier.' + a.tier)) + '</span>' +
       (slotted ? '<span class="tierbadge t1">' + c.esc(c.t('arts.slotted')) + '</span>' : '')   /* F16（N68）：不再借秘境洞天的 zone.current */ + '</div>';
@@ -276,7 +290,7 @@
       h += '<div class="pbar"><i style="width:' + pr.toFixed(0) + '%"></i></div>' +
         '<div class="hint">' + c.esc(c.t('arts.practice', { p: Math.floor(pr) })) + '</div>';
     }
-    h += '<div class="acts">';
+    h += '</div><div class="acts">';
     h += slotted
       ? '<button data-act="unslotArt" data-v="' + id + '">' + c.esc(c.t('arts.unequip')) + '</button>'
       : '<button data-act="slotArt" data-v="' + id + '">' + c.esc(c.t('arts.equip')) + '</button>';

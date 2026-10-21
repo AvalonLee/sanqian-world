@@ -146,6 +146,35 @@ async function buildSave() {
   T(upTop.order && upTop.selfStrip,
     'A4f 筛选条在六槽之前（页首带）+ 自悟节改条状（.strip.selflearn 内含保底进度条）');
 
+  /* ── A4h/A4i（B16-h）：图鉴默认折叠 + 已学会整行 ──
+   * 折叠判据要**双向**：默认零卡，点开真出卡，再点真收起——只判「默认没有」会放过点了没反应的死按钮。
+   * 行式判据只认「`.artgrid` 单列 + 每张 `.tcard` 都带 `.artrow`」，`.tcard` 与内层钩子仍归 A11/H2 守。 */
+  const fold0 = await page.evaluate(() => ({
+    heads: document.querySelectorAll('#tab-arts .codexsec').length,
+    open: document.querySelectorAll('#tab-arts .codexsec.open').length,
+    cells: document.querySelectorAll('#tab-arts .codexsec.open ~ .cards > .tcard').length,
+    rowN: document.querySelectorAll('#tab-arts .artgrid > .tcard').length,
+    rowAll: Array.prototype.slice.call(document.querySelectorAll('#tab-arts .artgrid > .tcard'))
+      .every((c) => c.classList.contains('artrow')),
+    cols: (function () { const g = document.querySelector('#tab-arts .artgrid'); return g ? getComputedStyle(g).gridTemplateColumns.split(' ').length : 0; })()
+  }));
+  T(fold0.heads >= 1 && fold0.open === 0 && fold0.cells === 0,
+    'A4h 功法图鉴默认折叠（组头在位、零展开、零卡片）', 'heads=' + fold0.heads + ' open=' + fold0.open + ' cells=' + fold0.cells);
+  T(fold0.rowN >= 1 && fold0.rowAll && fold0.cols === 1,
+    'A4i 已学会改整行（.artgrid 单列 + 每张卡带 .artrow，.tcard 钩子保留）',
+    'rows=' + fold0.rowN + ' allArtrow=' + fold0.rowAll + ' cols=' + fold0.cols);
+  await page.evaluate(() => document.querySelector('#tab-arts .codexsec').click());
+  await page.waitForTimeout(300);
+  const fold1 = await page.evaluate(() => ({
+    open: document.querySelectorAll('#tab-arts .codexsec.open').length,
+    cells: document.querySelectorAll('#tab-arts .codexsec.open ~ .cards > .tcard').length
+  }));
+  await page.evaluate(() => document.querySelector('#tab-arts .codexsec').click());
+  await page.waitForTimeout(250);
+  const fold2 = await page.evaluate(() => document.querySelectorAll('#tab-arts .codexsec.open').length);
+  T(fold1.open === 1 && fold1.cells > 0 && fold2 === 0,
+    'A4h2 点组头展开出卡、再点收回（折叠是活按钮，不是死样式）', '展开后 cells=' + fold1.cells + ' 收起后 open=' + fold2);
+
   /* ── A4d 主修可点定（GitHub issue #3）：点第 2 格的「设为主修」⇒ 角标与概览条同时换人 ──
    * 旧实现「主修 = 第 1 位」下这颗按钮根本不存在，故本条也是「设为主修」入口的在位判据。 */
   const mainPick = await page.evaluate(() => {
@@ -581,7 +610,9 @@ async function buildSave() {
       /* 筛选条必须在「已学会」段标**之前**（它现在管两段）：用 DOM 位置关系判，不靠字符串顺序 */
       before: !!(grp && knownEl && (grp.compareDocumentPosition(knownEl) & Node.DOCUMENT_POSITION_FOLLOWING) > 0),
       heads: txts.join('|'),
-      tierHeads: txts.filter((x) => x.indexOf('字阶') >= 0).length,
+      /* B16-h 改口：图鉴末节改「按品阶折叠」后组头是 .codexsec 按钮，不再靠「字阶」字样数节 */
+      tierHeads: document.querySelectorAll('#tab-arts .codexsec').length,
+      tierHeadsTxt: Array.prototype.map.call(document.querySelectorAll('#tab-arts .codexsec .t'), (x) => x.textContent.trim()).join('|'),
       emptyLine: (document.getElementById('tab-arts').innerText || '').indexOf('尚未学会') >= 0
     };
   });
@@ -596,7 +627,7 @@ async function buildSave() {
   T(fH.n === 2 && fH.names.join(',') === '吐纳法,聚灵诀' && fH.knownHead.indexOf('· 2') >= 0,
     'F3 点「黄」⇒ 已学会只剩两部黄阶（段标计数同步到 2、太上忘情篇被滤掉）',
     'cards=' + fH.n + ' [' + fH.names.join('/') + '] head=' + fH.knownHead);
-  T(fH.tierHeads === 1 && fH.heads.indexOf('黄字阶') >= 0,
+  T(fH.tierHeads === 1 && fH.tierHeadsTxt.indexOf('黄') >= 0,
     'F4 图鉴同步只剩黄阶一节（同一段筛选器，两段不许各筛各的）', '阶节=' + fH.tierHeads + ' ' + fH.heads.slice(0, 60));
   await page4.click('#tab-arts .gchip[data-v="xuan"]');
   await page4.waitForTimeout(400);

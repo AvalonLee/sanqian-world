@@ -240,6 +240,7 @@
     'arts.sec.known': '已 学 会',
     'arts.known.empty': '尚未学会任何功法——去坊市求一部，或等一场奇遇。',
     'arts.codex.title': '功 法 图 鉴',
+    'arts.codex.rec': '已录 {n}/{total}',
     'arts.codex.known': '已学会 · Lv{lv}',
     'arts.codex.shelf': '待复检 · 要求未达',
     /* 已学会卡增益行（走查 v2.7 §3）：等级起点批（2026-10-14 · 入门即 Lv1）后「Lv0 未修持」态不可达，
@@ -506,7 +507,9 @@
     'arts.modal.title': '修习功法', 'arts.modal.sub': '已装备 {n}/{cap} · 挂「主修」角标者修持最快（点格子上的「设为主修」自由指定）',
     'arts.group.tier': '品阶', 'arts.group.align': '阵营', 'arts.group.all': '全部',
     'arts.tierchar.huang': '黄', 'arts.tierchar.xuan': '玄', 'arts.tierchar.di': '地', 'arts.tierchar.tian': '天',
-    'arts.sec.tier': '待修习架 · {g}字阶', 'arts.sec.align': '待修习架 · {g}',
+    /* B16-h：图鉴组头文案改正——旧值写作「待修习架 · {g}字阶」，指的是当年「未学者都算待修习」的
+     * 口径；现在组内是「已录在前、未录在后」，且它已是指向整组的折叠按钮，再叫待修习会误导。 */
+    'arts.sec.tier': '{g} 阶', 'arts.sec.align': '{g}',
     'arts.sec.excl': '含独占 {n} 部（奇遇限定）',
     'arts.state.unowned': '未获得 · 获取途径：{via}',
     'arts.state.lackline': '修习要求未达 · 需：{req}',
