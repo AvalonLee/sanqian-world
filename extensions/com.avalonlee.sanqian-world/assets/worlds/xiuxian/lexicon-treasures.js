@@ -26,6 +26,13 @@
     'treasure.unequipped': '{name} 已收起',
     'treasure.bag.empty': '尚无所得法宝',
     'treasure.hint': '法宝独立于法器：仅带一条签名效果，不入自动择优、不可炼化。',
+    /* B16-e 版面（设计稿 §法宝：库改行 / 造化两条 strip / 图鉴两行折叠） */
+    'treasure.bag.hint': '点整行看详情 · 换件即入槽',
+    'treasure.codex.n': '{n} / {total}',
+    'treasure.convert.hint': '须先祭出造化鼎',
+    'treasure.convert.qi.title': '化 灵',
+    'treasure.convert.pill.title': '炼 丹',
+    'treasure.convert.pill.go': '炼 丹 ›',
     /* 法宝图鉴（未得者：名号 / 品阶 / 效果 / 描述一律问号遮蔽） */
     'treasure.codex.title': '法宝图鉴',
     'treasure.codex.banner': '已录 {n}/{total}',

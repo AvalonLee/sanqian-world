@@ -356,6 +356,31 @@ async function buildSave() {
     'A7d 反例：已满阶那件卡上不出现这句（引擎取数口对它回 0）——否则「按件停表」只在数上成立、屏上仍在催',
     '满阶卡=' + bond.s2 + ' 命中=' + bond.hitMax + ' leftMax=' + bond.leftMax);
 
+  /* ── A7e~A7g（B16-e）：法宝库改整行 / 图鉴改「先天 · 后天」两行折叠 ──
+   * 46 格问号墙是设计稿点名的空态灾难 ⇒ 默认不出格子，点行才展开。库行则必须「一行一件 + 行内动作在位」，
+   * 否则「改成行」只是把按钮挪丢了。 */
+  const trLayout = await page.evaluate(() => {
+    const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-treasure .trrow'));
+    const act = rows[0] ? !!rows[0].querySelector('[data-act="equipTreasure"],[data-act="unequipTreasure"],[data-act="refineTreasure"]') : false;
+    return {
+      rows: rows.length, act: act,
+      secs: document.querySelectorAll('#tab-treasure .codex-sec.cx-row').length,
+      cells: document.querySelectorAll('#tab-treasure .codex-sec ~ .trgrid > .tcard').length
+    };
+  });
+  T(trLayout.rows >= 2 && trLayout.act, 'A7e 法宝库改整行（一行一件、行内动作在位）', 'rows=' + trLayout.rows + ' act=' + trLayout.act);
+  T(trLayout.secs === 2 && trLayout.cells === 0, 'A7f 法宝图鉴默认收起（先天 / 后天两行，零问号格）',
+    'secs=' + trLayout.secs + ' cells=' + trLayout.cells);
+  await page.evaluate(() => document.querySelector('#tab-treasure [data-act="codexTier"][data-v="tr_xian"]').click());
+  await page.waitForTimeout(300);
+  const trOpen = await page.evaluate(() => ({
+    open: !!document.querySelector('#tab-treasure .codex-sec.cx-row.open'),
+    cells: document.querySelectorAll('#tab-treasure .codex-sec.open ~ .trgrid > .tcard').length
+  }));
+  T(trOpen.open && trOpen.cells > 0, 'A7g 点「先天」行展开逐格（再点收起）', 'cells=' + trOpen.cells);
+  await page.evaluate(() => document.querySelector('#tab-treasure [data-act="codexTier"][data-v="tr_xian"]').click());
+  await page.waitForTimeout(200);
+
   /* ── A8 窄屏：器段退单列 + **导航零截断**（横向滚动修复的验收点）── */
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);

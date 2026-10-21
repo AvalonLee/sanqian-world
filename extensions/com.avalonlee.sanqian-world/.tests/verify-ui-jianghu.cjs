@@ -236,7 +236,8 @@ function buildSave() {
     await pg.click('#m-tabbar button[data-v="treasure"]');
     await pg.waitForTimeout(500);
     const r = await pg.evaluate(() => ({
-      cards: Array.prototype.slice.call(document.querySelectorAll('#tab-treasure .trgrid > .tcard'))
+      /* B16-e：法宝库由卡片网格改为整行 ⇒ 上屏证据 = 槽位卡 OR 库行（两者都是「真的渲染出来」） */
+      cards: Array.prototype.slice.call(document.querySelectorAll('#tab-treasure .trgrid > .tcard, #tab-treasure .trrow'))
         .map(n => (n.textContent || '').replace(/\s+/g, ' ').trim()),
       owned: (((JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.treasures) || {}).owned || []).map(x => x.id)
     }));
