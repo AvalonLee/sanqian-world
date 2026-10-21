@@ -961,6 +961,7 @@
   .giftcard .gtag { background: #d03030; color: #fff; padding: 1px 5px; border-radius: 2px; font-weight: 700; }
   .giftcard .gname { font-weight: 700; color: var(--ink); }
   .giftcard .goffer { color: var(--ink-2); }
+  .giftcard .gcost { color: #d03030; font-weight: 600; }
   .giftcard .gbtn { border: 1px solid #d03030; color: #d03030; border-radius: 999px; padding: 1px 8px; font-weight: 650; }
   .tddefy { font-size: 12px; color: var(--ink-2); }
   .tdstage { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--bad); color: var(--bad); white-space: nowrap; }
@@ -1284,17 +1285,33 @@
   background: var(--sq2-cinnabar);
 }
 .sq2-rail .giftcard {
-  background: var(--sq2-paper-2); border: 1px dashed var(--sq2-cinnabar); border-radius: var(--sq2-r);
+  display: block; background: var(--sq2-paper-2); border: 1px dashed var(--sq2-cinnabar); border-radius: var(--sq2-r);
   padding: 9px 10px; font-size: 11px; line-height: 1.7; color: var(--sq2-ink-2);
 }
-.sq2-rail .giftcard .g-t b { color: var(--sq2-cinnabar); font-weight: 650; }
-.sq2-rail .giftcard .g-t .tag { margin-left: 4px; vertical-align: 1px; }
+.sq2-rail .giftcard .g-head { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.sq2-rail .giftcard .g-head b { color: var(--sq2-cinnabar); font-weight: 650; font-family: var(--sq2-serif); }
+.sq2-rail .giftcard .g-head .tag { margin-left: 0; vertical-align: 1px; }
+.sq2-rail .giftcard .g-cd {
+  margin-left: auto; font-size: 10px; color: var(--sq2-ink-3);
+  font-variant-numeric: tabular-nums; letter-spacing: .04em;
+}
+.sq2-rail .giftcard .g-offer { margin-top: 4px; color: var(--sq2-ink-2); }
+.sq2-rail .giftcard .g-cost { margin-top: 4px; font-size: 10.5px; color: var(--sq2-cinnabar); }
 .sq2-rail .giftcard button {
-  margin-top: 7px; font: inherit; font-size: 11px; cursor: pointer;
+  display: block; width: 100%; margin-top: 7px; font: inherit; font-size: 11px; cursor: pointer;
   padding: 4px 12px; min-height: 0; border-radius: var(--sq2-r);
   border: 1px solid var(--sq2-line-2); background: none; color: var(--sq2-ink);
 }
 .sq2-rail .giftcard button:hover { border-color: var(--sq2-cinnabar); color: var(--sq2-cinnabar); }
+/* B16-z：天降礼包开箱结果（纸面弹窗，红印 + 一句实际结果） */
+.giftres { text-align: center; }
+.giftres-seal {
+  width: 48px; height: 48px; margin: 0 auto 12px; display: grid; place-items: center;
+  font-family: var(--sq2-serif); font-size: 24px; color: var(--sq2-paper);
+  background: var(--sq2-cinnabar); border-radius: 3px;
+}
+.giftres h2 { font-family: var(--sq2-serif); font-size: 20px; letter-spacing: .24em; margin: 0 0 10px; color: var(--sq2-ink); }
+.giftres p { font-size: 12px; color: var(--sq2-ink-2); line-height: 2; text-align: left; white-space: pre-line; }
 /* 传闻带在右栏窄栏里退单列细行（rumorcard 结构与奇遇页同源，仅收窄距） */
 .sq2-rail .rumorcard { padding: 8px 2px; border-radius: 0; border-left: 0; border-right: 0; }
 

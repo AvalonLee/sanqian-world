@@ -450,6 +450,18 @@
   </div>
 </div>
 
+<!-- 天降礼包 · 开箱结果（B16-z）：确认支付后只报「实际开出什么」，不重复宣传语（宣传语在结果正文里引一次） -->
+<div id="modal-giftresult" class="mask hide">
+  <div class="modal">
+    <div class="giftres">
+      <div class="giftres-seal">礼</div>
+      <h2 id="mgr-title"></h2>
+      <p id="mgr-body"></p>
+      <button id="mgr-ok" class="primary" style="width:100%"></button>
+    </div>
+  </div>
+</div>
+
 <!-- 渡劫演出（UI v2 B16-u · 设计稿 §渡劫演出）：全屏「清算 → 落雷 → 定数」三段。
      判定与时序未动（D8：点渡劫即结算，不加劫前确认）；清算段是**结算后的账单**，
      列的是 `tribInfo.parts` 那七项真实加数，让玩家看见这一雷是怎么算出来的。 -->
@@ -551,6 +563,7 @@
 <script src="../assets/systems/codex.js"></script>
 <script src="../assets/systems/alchemy.js"></script>
 <script src="../assets/systems/prodigy.js"></script>
+<script src="../assets/systems/gifts.js"></script>
 <script src="../assets/systems/jianghu.js"></script>
 <script src="../assets/systems/fusion.js"></script>
 <script src="../assets/systems/sect.js"></script>
@@ -1239,16 +1252,23 @@
           esc(t('tiandao.defy.val', { n: tdI.defy || 0 })) +
           (tdI.title ? ' · ' + esc(t('tiandao.title')) : '') +
           (tdI.shield ? ' · ' + esc(t('tiandao.shield')) : '') + '</span></button></div>';
-        /* 页游彩蛋（设计稿 data-rail=idle 的 giftcard）：会话内轮换六款槽位，纯呈现 */
+        /* 天降礼包（B16-z · 原页游彩蛋）：24 条轮播 + 10 分钟倒计时；真扣灵石/修为的百分比 */
         if (ui.giftUntil == null || ui.giftUntil < Date.now()) {
-          ui.giftI = Math.floor(Math.random() * 6);
-          ui.giftUntil = Date.now() + 600000;   /* 十分钟一掷，与第卅九批「会话内轮换」同族 */
+          ui.giftI = Math.floor(Math.random() * SQ.Gifts.N);
+          ui.giftUntil = Date.now() + SQ.Gifts.ROLL_MS;
         }
-        var gpK = 'eggs.gift.p' + Math.max(0, ui.giftI | 0);
+        var gpI = SQ.Gifts.offer(ui.giftI);
+        var gpCost = SQ.Gifts.costOf(wI, gpI.idx);
+        var gpLeft = Math.max(0, (ui.giftUntil || 0) - Date.now());
+        var gpMm = Math.floor(gpLeft / 60000), gpSs = Math.floor((gpLeft % 60000) / 1000);
+        var gpCd = (gpMm < 10 ? '0' : '') + gpMm + ':' + (gpSs < 10 ? '0' : '') + gpSs;
         h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.eggs')) + '</div>' +
-          '<div class="giftcard"><span class="g-t"><b>' + esc(t(gpK + '.name')) +
-          ' <i class="tag red">' + esc(t('eggs.gift.tag')) + '</i></b><br>' + esc(t(gpK + '.offer')) + '</span>' +
-          '<button data-act="giftBuy">' + esc(t('eggs.gift.btn')) + '</button></div></div>';
+          '<div class="giftcard"><div class="g-head"><b>' + esc(t(gpI.nameKey)) + '</b>' +
+          '<i class="tag red">' + esc(t('eggs.gift.tag')) + '</i>' +
+          '<span class="g-cd">' + esc(t('eggs.gift.cd', { t: gpCd })) + '</span></div>' +
+          '<div class="g-offer">' + esc(t(gpI.offerKey)) + '</div>' +
+          '<div class="g-cost">' + esc(t('eggs.gift.cost.' + gpI.costType, { p: Math.round(gpCost.pct * 100), n: SQ.fmt(gpCost.n) })) + '</div>' +
+          '<button data-act="giftBuy" data-v="' + gpI.idx + '">' + esc(t('eggs.gift.btn')) + '</button></div></div>';
         if (wI.lastOffline) {
           var loI = wI.lastOffline;
           h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.offline')) + '</div>' +
@@ -2317,6 +2337,47 @@
     if (cb) cb();
   });
 
+  /* ── 天降礼包（B16-z）：确认支付 → 引擎先判后扣 → 结果弹窗 ── */
+  function giftBuyFlow(idx) {
+    var gp = SQ.Gifts.offer(idx);
+    var cost = SQ.Gifts.costOf(ws(), idx);
+    var resName = t(cost.type === 'stones' ? 'resource.currency' : 'resource.primary');
+    askConfirm(t('eggs.gift.confirm.title'), t('eggs.gift.confirm.body', {
+      n: SQ.fmt(cost.n), res: resName, p: Math.round(cost.pct * 100), name: t(gp.nameKey)
+    }), async function () {
+      var r = await SQ.Actions.giftBuy(state, idx);
+      if (!r || r.ok === false) { toast(t('eggs.gift.poor')); return; }
+      showGiftResult(r);
+      renderAll();
+    });
+  }
+  function showGiftResult(r) {
+    var gp = r.offer, cost = r.cost;
+    var resName = t(cost.type === 'stones' ? 'resource.currency' : 'resource.primary');
+    var body = t('eggs.gift.result.cost', { n: SQ.fmt(cost.n), res: resName }) + ' ';
+    if (r.kind === 'gear' && r.item) {
+      body += t('eggs.gift.result.gear', {
+        item: SQ.Gear.nameOf(r.item.slot, wid()),
+        tier: t('gear.tier.' + r.item.tier),
+        promise: t(gp.offerKey)
+      });
+    } else if (r.kind === 'art' && r.art) {
+      var a = pack().artsMap()[r.art];
+      body += t('eggs.gift.result.art', {
+        art: t('skill.' + r.art + '.name'),
+        tier: t('skill.tier.' + (a ? a.tier : 0)),
+        promise: t(gp.offerKey)
+      });
+    } else {
+      body += t('eggs.gift.result.none', { promise: t(gp.offerKey) });
+    }
+    $('mgr-title').textContent = t('eggs.gift.result.title');
+    $('mgr-body').textContent = body;
+    $('mgr-ok').textContent = t('eggs.gift.result.close');
+    $('modal-giftresult').classList.remove('hide');
+  }
+  $('mgr-ok').addEventListener('click', function () { $('modal-giftresult').classList.add('hide'); });
+
   /* ── 天道族（问天 / 圣旨 / 天象 / 天道行 / 页游贴片）已整片外置 `view/tiandao.js`（N34 第十七刀 · 第册五十三批）：
    * 八个监听留在这里、监听体一行转发到 `SQ.UI.tiandao.*`；天道行仍由桥位 `renderTiandaoRow` 供 `view/idle.js`，
    * 取值走下面那枚一行转发别名（导出面 ⇔ 引用面因此仍对得上）。 ── */
@@ -2406,7 +2467,7 @@
   var MASKS = ['modal-role', 'modal-karma', 'modal-offline', 'modal-lock', 'modal-confirm',
     'modal-ledger', 'modal-arts', 'modal-realm', 'modal-gearcodex', 'modal-recall', 'modal-bonds', 'modal-propose',
     'modal-slotpick', 'modal-tiandao', 'modal-decree', 'modal-omens', 'rank-stage', 'modal-matwudao',
-    'modal-heirchoice', 'modal-talentwash', 'modal-recap'];
+    'modal-heirchoice', 'modal-talentwash', 'modal-recap', 'modal-giftresult'];
   document.addEventListener('click', function (e) {
     var el = e.target;
     if (!el.classList || !el.classList.contains('mask')) return;
@@ -2770,7 +2831,7 @@
     /* 页游充值贴片彩蛋：只回一句拒绝，零发放 / 零落档 / 零账（判据 = 走查 G 组「点完存档字节不变」）。
      * 刻意不碰 ui.announcedLogKey——那是「动作自己就同一条日志弹过提示」的去重位，本动作不写日志，
      * 认领它会把当时恰好新增的那条日志呈报吞掉（红点仍亮、toast 却不弹）。 */
-    if (act === 'giftBuy') { toast(t('eggs.gift.deny')); return; }
+    if (act === 'giftBuy') { giftBuyFlow(+v); return; }
     if (act === 'openOmens') { SQ.UI.tiandao.omen(ctx()); return; }
     if (act === 'tdHex') { ui.tdHex = v; SQ.UI.tiandao.modal(ctx()); return; }
     if (act === 'tdIncense') { ui.tdIncense = parseInt(v, 10); SQ.UI.tiandao.modal(ctx()); return; }
