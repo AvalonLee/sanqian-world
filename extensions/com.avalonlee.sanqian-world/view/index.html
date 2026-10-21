@@ -577,6 +577,7 @@
     bondDetail: null,                       /* 名录浮层二级页（B3）：当前查看的 npcId */
     unwalked: {},                           /* 未择之路展开态（B8）：feed ts 键控；卸下照世镜即复位 */
     codexOpen: {},                          /* 奇遇图鉴段折叠（UI v2 B9）：tier 键控，纯 UI 态、不入档 */
+    achvGroup: 'xiu',                       /* 成就页行为成就分组（UI v2 B16-k）：六组 chips 单选，纯 UI 态 */
     bondSnap: null,                         /* 侣 chip 红点快照（B1）：升档/可提亲变化检测 */
     caveSnap: null,                         /* 地 chip 红点快照（B1）：新福地解锁变化检测 */
     achvSnap: null,                         /* 成就页红点快照：新成就达成变化检测（meta.achv 只增） */
@@ -2527,6 +2528,7 @@
     if (act === 'slotPickCancel') { ui.slotPickFor = null; renderTab(); return; }
     if (act === 'artsGroup') { ui.artsGroup = v; ui.artsGroupVal = null; renderTab(); return; }
     if (act === 'artsGroupVal') { ui.artsGroupVal = ui.artsGroupVal === v ? null : v; renderTab(); return; }
+    if (act === 'achvGroup') { ui.achvGroup = v; renderTab(); return; }   /* UI v2 B16-k：成就六组 chips（纯 UI 态，单选不取消） */
     if (act === 'unslotArt') { await SQ.Actions.unslotArt(state, v); renderAll(); return; }
     /* 设主修（GitHub issue #3）：六槽任一都可选，选中即换人；被引擎拒（不在槽内）给如实文案 */
     if (act === 'setMainArt') {
