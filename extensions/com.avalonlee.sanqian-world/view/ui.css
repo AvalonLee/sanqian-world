@@ -2501,3 +2501,36 @@
   #tab-shop .goods .g-disc, #tab-shop .goods.sold .g-sold { flex: 1 1 100%; }
   #tab-shop .strip .refreshbtn { flex: 0 0 auto; }
   @media (max-width: 719px) { #tab-shop .goods .g-buy { flex: 1 1 auto; } }
+  /* ══ 第册一百一十六批 · 江湖榜：席位点开的人物卡（版式重排 · 用户令「文字离边界太近，要简洁高级」）══
+   *    旧 `.detailbox` 左右内距为 0（父行 .lrow 只有 2px 内距）⇒ 字贴卡边、信息无主次。
+   *    这一版分四层：卡头（宋体名号 + 灰头衔 + 深浅一枚）‖ 明细两列对齐（左标签灰小字 / 右值黑）
+   *    ‖ 小传独立成段（行距放宽）‖ 脚注一句。天骄那张卡（带切磋·袭杀）与只读人物卡同一套类名
+   *    ⇒ 一处版式两处显示（本仓「两处显示 = 一份公式」那条纪律）。 */
+  #tab-prodigy .detailbox {
+    margin: 10px 0 4px; padding: 12px 14px;
+    border: 1px solid var(--sq2-line); border-radius: var(--sq2-r);
+    background: var(--sq2-paper-2); font-size: 12px; color: var(--sq2-ink-2);
+  }
+  #tab-prodigy .detailbox .jh-h {
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    padding-bottom: 9px; margin-bottom: 3px; border-bottom: 1px solid var(--sq2-line-2);
+  }
+  #tab-prodigy .detailbox .jh-nm { font-family: var(--sq2-serif); font-size: 15px; letter-spacing: .04em; color: var(--sq2-ink); }
+  #tab-prodigy .detailbox .jh-ti { font-size: 11px; color: var(--sq2-ink-3); }
+  #tab-prodigy .detailbox .kv {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    margin: 0; padding: 6px 0; border-bottom: 1px dashed var(--sq2-line);
+  }
+  #tab-prodigy .detailbox .kv > span:first-child { color: var(--sq2-ink-3); font-size: 11px; letter-spacing: .08em; white-space: nowrap; }
+  #tab-prodigy .detailbox .kv > span:last-child { color: var(--sq2-ink); text-align: right; }
+  #tab-prodigy .detailbox .kv:last-of-type { border-bottom: 0; }
+  #tab-prodigy .detailbox .meta.hint { padding: 8px 0 0; font-size: 11px; line-height: 1.7; color: var(--sq2-ink-3); }
+  #tab-prodigy .detailbox .jh-bio { margin-top: 8px; padding-top: 9px; border-top: 1px solid var(--sq2-line-2); }
+  #tab-prodigy .detailbox .jh-bl { font-size: 11px; letter-spacing: .14em; color: var(--sq2-ink-3); margin-bottom: 4px; }
+  #tab-prodigy .detailbox .jh-bt { font-size: 11.5px; line-height: 1.85; color: var(--sq2-ink-2); }
+  #tab-prodigy .detailbox .jh-foot { margin: 10px 0 0; padding-top: 9px; border-top: 1px dashed var(--sq2-line); font-size: 11px; }
+  #tab-prodigy .detailbox .acts { margin-top: 10px; }
+  @media (max-width: 719px) {
+    #tab-prodigy .detailbox { padding: 10px 11px; }
+    #tab-prodigy .detailbox .kv { gap: 10px; }
+  }

@@ -2878,7 +2878,10 @@
     if (act === 'forgeBp') { SQ.UI.alchemy.actForgeBp(ctx(), v); return; }
     if (act === 'forgeDir') { SQ.UI.alchemy.actForgeDir(ctx(), v); return; }
     if (act === 'forgeAttr') { SQ.UI.alchemy.actForgeAttr(ctx(), v); return; }
-    if (act === 'prodDetail') { ui.prodOpen = (ui.prodOpen === v ? null : v); renderTab(); return; }
+    if (act === 'prodDetail') { ui.prodOpen = (ui.prodOpen === v ? null : v); ui.jhOpen = null; renderTab(); return; }
+    /* 只读人物卡（第册一百一十六批 · 用户令「四榜角色都应该能交互」）：与 prodDetail 互斥，
+     * 一次只展开一张卡；两族闸门不同——天骄那张带切磋/袭杀，这张只给身份与深浅。 */
+    if (act === 'jhDetail') { ui.jhOpen = (ui.jhOpen === v ? null : v); ui.prodOpen = null; renderTab(); return; }
     if (act === 'sparProd') {
       SQ.UI.jianghu.actSpar(ctx(), v, el.dataset.c || 'std');
       return;
