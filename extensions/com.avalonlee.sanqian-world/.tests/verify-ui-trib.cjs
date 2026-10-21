@@ -332,6 +332,20 @@ const { chromium } = require('playwright-core');
     T(e2.n === 0 && e2.qi >= e2.need && e2.hasBtn,
       'E2 圆满 · 倒计时行消失且手动渡劫按钮在（证按 needEffOf 计，不是按 capOf 那个上限）',
       '行=' + e2.n + ' qi=' + e2.qi + ' need=' + e2.need + ' 按钮=' + e2.hasBtn);
+    /* B16-aa：渡劫 hero 加宽且仍在圆相下方、四格上方，并与四格同轴居中 */
+    const e3 = await aF.page.evaluate(() => {
+      const r = (s) => { const el = document.querySelector(s); return el ? el.getBoundingClientRect() : null; };
+      const c = r('#tab-idle .hero-cta'), b = r('#tab-idle .hero-cta [data-act="trib"]');
+      const en = r('#tab-idle .stathero'), st = r('#tab-idle .statrow');
+      return {
+        cw: c ? Math.round(c.width) : 0, bw: b ? Math.round(b.width) : 0,
+        axis: c && st ? Math.round((c.left + c.width / 2) - (st.left + st.width / 2)) : 999,
+        belowEnso: !!(c && en && c.top >= en.bottom - 2),
+        aboveStat: !!(c && st && c.bottom <= st.top + 2)
+      };
+    });
+    T(e3.cw >= 400 && e3.bw >= 300 && Math.abs(e3.axis) <= 2 && e3.belowEnso && e3.aboveStat,
+      'E3 渡劫 hero 加宽（块 ≥400 / 钮 ≥300）· 仍在圆相下方、四格上方 · 与四格同轴居中', JSON.stringify(e3));
     T(aU.errors.length === 0 && aF.errors.length === 0, 'E 零页面报错',
       aU.errors.concat(aF.errors).join(' | ').slice(0, 200) || 'clean');
     await aF.ctx.close();
