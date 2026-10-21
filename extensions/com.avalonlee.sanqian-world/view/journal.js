@@ -52,7 +52,9 @@
       ch += '<button class="' + (c.ui.logFilter === cat.id ? 'on' : '') + '" data-act="logFilter" data-v="' + cat.id + '">' + c.esc(label) + '</button>';
     });
     var lines = journalLines(c, c.w);
-    var h = '<div class="chips">' + ch + '</div>';
+    /* B16-m：分类栏改设计稿 .chipsrow 形态——单行横排、窄屏横向滑动（不再折成两三行）。
+     * `.chips` 类名保留：走查 J0/A2 与 bonds 都是按 `#tab-journal > .chips button` 取数的。 */
+    var h = '<div class="chips chipsrow">' + ch + '</div>';
     if (!lines.length) {
       h += '<p class="hint" style="padding:12px 0">' + c.esc(c.t('log.empty')) + '</p>';
     } else {
@@ -64,10 +66,24 @@
           var dt0 = new Date(l.ts);
           gt = ('0' + dt0.getHours()).slice(-2) + ':' + ('0' + dt0.getMinutes()).slice(-2);
         }
-        /* N20 接线：「全部」筛选下行内不显分类（11 个分类标签键都在用，只是没进日志行）⇒ 仅在该筛选下加 `[分类]` 前缀，         * 其余筛选由选中态自身表达，不重复 */
+        /* N20 接线：「全部」筛选下行内不显分类（11 个分类标签键都在用，只是没进日志行）⇒ 仅在该筛选下加 `[分类]` 前缀，
+         * 其余筛选由选中态自身表达，不重复。
+         * B16-m：分类标签加粗（设计稿行首 `<b>分类</b>` 的观感）。仍由 `log.catted` 一处生成本行格式，
+         * 只把 `{cat}` 换成粗体片段——两侧先各自 esc 再拼，正文里的 `<` 不会变成标签。 */
         var catC = ((c.ui.logFilter || 'all') === 'all') ? LOG_CATS.filter(function (cc) { return cc.id === l.cat; })[0] : null;
+        var txHtml;
+        if (catC) {
+          var catLabel = catC.key ? c.t(catC.key) : c.t(catC.sys);
+          /* 两个占位符各自代入：先取格式串（`log.catted` 仍是这一行格式的唯一来源），
+           * 再把 \u0001/\u0002 换成「已转义的标签」与「已转义的正文」——用户文本不会变成标签。 */
+          txHtml = c.t('log.catted', { cat: '\u0001', text: '\u0002' })
+            .split('\u0001').join('<b>' + c.esc(catLabel) + '</b>')
+            .split('\u0002').join(c.esc(l.text));
+        } else {
+          txHtml = c.esc(l.text);
+        }
         h += '<div class="logline' + (l.cat === 'event' ? ' ev' : '') + '"><span class="ts">' + c.esc(gt) + '</span>' +
-          '<span class="tx">' + c.esc(catC ? c.t('log.catted', { cat: catC.key ? c.t(catC.key) : c.t(catC.sys), text: l.text }) : l.text) + '</span></div>';
+          '<span class="tx">' + txHtml + '</span></div>';
       });
       h += '</div>';
     }

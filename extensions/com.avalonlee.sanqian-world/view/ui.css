@@ -342,6 +342,10 @@
   #tab-journal > .chips button.on {
     border-color: var(--sq2-cinnabar); color: var(--sq2-cinnabar); background: transparent;
   }
+  /* B16-m：十一分类单行横排（窄屏横向滑动，不折行）——设计稿 .chipsrow */
+  #tab-journal > .chips.chipsrow { flex-wrap: nowrap; overflow-x: auto; gap: 2px; padding-bottom: 3px; }
+  #tab-journal > .chips.chipsrow button { flex: 0 0 auto; padding: 2px 7px; min-height: 26px; font-size: 11.5px; letter-spacing: .02em; }
+  #tab-journal > .chips.chipsrow::-webkit-scrollbar { height: 4px; }
   #tab-journal .logline {
     display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px;
     padding: 9px 0; border-bottom: 1px solid var(--sq2-line);

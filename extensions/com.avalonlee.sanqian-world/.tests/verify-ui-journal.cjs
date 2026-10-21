@@ -91,7 +91,19 @@ async function buildCapSave() {
       ovf: tb.scrollWidth - tb.clientWidth
     };
   });
-  /* N20 接线批（第十一批）：日志行分类前缀。正典 = `log.catted`「[{cat}] {text}」，    * 此前 11 个分类标签键全在用、但行内只有时间 + 正文 ⇒「全部」态下玩家看不出某一行属于哪一类。    * J1 先取分类栏的 11 枚标签文本作**词表来源**（不写死中文），再证首行前缀命中其中之一；    * J2 证「切到某分类后不再重复前缀」（选中态已表达分类，重复是噪音）。 */   const catLabels = await page.evaluate(() => [...document.querySelectorAll('#tab-journal > .chips button')]     .map(b => b.textContent.trim()).filter(x => x !== '全部'));   T(catLabels.length === 10, 'J0 分类标签取到 10 枚（11 个按钮去掉「全部」；前缀判据的词表来源必须非空集）', 'n=' + catLabels.length);   const prefAll = await page.evaluate(() => { const l = document.querySelector('#tab-journal .logline'); return l ? l.innerText : ''; });   const mPref = (prefAll.match(/\[([^\]]+)\]/) || [])[1];   T(!!mPref && catLabels.indexOf(mPref) >= 0, 'J1「全部」态行内带 [分类] 前缀且前缀取自词表（log.catted 接线）', JSON.stringify(prefAll.slice(0, 28)) + ' 命中=' + mPref);   await page.click('#tab-journal > .chips button[data-v="sys"]');   const prefOne = await page.evaluate(() => { const l = document.querySelector('#tab-journal .logline'); return l ? l.innerText : ''; });   T(prefOne.indexOf('[') < 0, 'J2 单分类筛选下不重复前缀（选中态已表达分类）', JSON.stringify(prefOne.slice(0, 28)));   await page.click('#tab-journal > .chips button[data-v="all"]');   T(top.pos === 'sticky', 'A1 分类栏 position:sticky', top.pos);
+  /* N20 接线批（第十一批）：日志行分类前缀。正典 = `log.catted`「[{cat}] {text}」，    * 此前 11 个分类标签键全在用、但行内只有时间 + 正文 ⇒「全部」态下玩家看不出某一行属于哪一类。    * J1 先取分类栏的 11 枚标签文本作**词表来源**（不写死中文），再证首行前缀命中其中之一；    * J2 证「切到某分类后不再重复前缀」（选中态已表达分类，重复是噪音）。 */   const catLabels = await page.evaluate(() => [...document.querySelectorAll('#tab-journal > .chips button')]     .map(b => b.textContent.trim()).filter(x => x !== '全部'));   T(catLabels.length === 10, 'J0 分类标签取到 10 枚（11 个按钮去掉「全部」；前缀判据的词表来源必须非空集）', 'n=' + catLabels.length);   const prefAll = await page.evaluate(() => { const l = document.querySelector('#tab-journal .logline'); return l ? l.innerText : ''; });   const mPref = (prefAll.match(/\[([^\]]+)\]/) || [])[1];   T(!!mPref && catLabels.indexOf(mPref) >= 0, 'J1「全部」态行内带 [分类] 前缀且前缀取自词表（log.catted 接线）', JSON.stringify(prefAll.slice(0, 28)) + ' 命中=' + mPref);   await page.click('#tab-journal > .chips button[data-v="sys"]');   const prefOne = await page.evaluate(() => { const l = document.querySelector('#tab-journal .logline'); return l ? l.innerText : ''; });   T(prefOne.indexOf('[') < 0, 'J2 单分类筛选下不重复前缀（选中态已表达分类）', JSON.stringify(prefOne.slice(0, 28)));   await page.click('#tab-journal > .chips button[data-v="all"]');   /* B16-m：分类栏改 .chipsrow —— 单行横排（原来十一枚折成两三行），窄屏靠容器横向滑动而不撑破页宽 */
+  const row = await page.evaluate(() => {
+    const box = document.querySelector('#tab-journal > .chips.chipsrow');
+    if (!box) return { ok: false };
+    const tops = [...box.querySelectorAll('button')].map((b) => Math.round(b.getBoundingClientRect().top));
+    return { ok: true, wrap: getComputedStyle(box).flexWrap, uniq: new Set(tops).size, n: tops.length,
+      ovf: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+  });
+  T(row.ok && row.wrap === 'nowrap' && row.uniq === 1 && row.n === 11 && row.ovf <= 1,
+    'J3 分类栏单行横排（.chipsrow · 十一枚同排一线 · 零页面横向溢出）',
+    'wrap=' + row.wrap + ' 行数=' + row.uniq + ' n=' + row.n + ' ovf=' + row.ovf);
+
+  T(top.pos === 'sticky', 'A1 分类栏 position:sticky', top.pos);
   T(top.btnN === 11, 'A2 十一分类按钮齐全（原「八」判据随任务清单 N17 补 历练/洞府/坊市 三类过期 · 玩法闭环批 2026-10-07 刷新；UI 卷 v2.20 好感三渠道批曾记 七→八）', 'n=' + top.btnN);
   T(top.lines === 100, 'A3 日志行全量渲染 100 条', 'n=' + top.lines);
   T(top.scrollable, 'A4 内容可滚动（有纵向溢出）');
