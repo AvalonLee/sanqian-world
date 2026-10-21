@@ -73,10 +73,10 @@
       : c.t('shop.price', { n: SQ.fmt(it.price) }) + ' ' + c.t('resource.currency');
   }
 
-  /* 货架卡（B15-e · 设计稿 .goods）：名称行（含词缀/分类 chip）→ 效果行 → 价格行（朱砂衬线，底部对齐）。
-   * 结构仍是「卡片 div + 内部购买按钮」——设计稿把整张卡当按钮，但本页 `[data-act="buy"]` 是走查与
-   * 事件委托的锚点，故保留按钮、把它排成价格行（按钮文字 = 价格，aria-label 说明动作）。
-   * 类名保留 `.shopcard`（market 走查按它计数），视觉由 `.goods` 承担。 */
+  /* 货架卡（B15-e · 设计稿 .goods）：名称行（含词缀/分类 chip）→ 效果行 → 价格行。
+   * 价格行第册一百一十四批起是「左边价（朱砂衬线）+ 右边一枚购入钮」——原先把钮本身当价格行，
+   * 玩家要点的东西读起来像一行字。类名保留 `.shopcard`（market 走查按它计数），
+   * `data-act="buy"` 仍是事件委托与走查的锚点。 */
   function itemRow(c, it, idx, black, w) {
     var nameHtml = '', effHtml = '';
     if (it.kind === 'gear') {
@@ -97,7 +97,11 @@
         c.esc(goodName(c, it)) +
         (intelS ? ' <span class="tierbadge t2">' + c.esc(c.t('faction.intel.tag')) + '</span>' : '') + tagHtml(c, it);
       effHtml = c.esc(c.t('skill.' + it.ref + '.desc')) +
-        (intelS ? '<div class="g-warn" style="color:var(--sq-tier-2)">' + c.esc(c.t('faction.intel.ignore')) + '</div>' : '');
+        (intelS ? '<div class="g-warn" style="color:var(--sq-tier-2)">' + c.esc(c.t('faction.intel.ignore')) + '</div>' : '') +
+        /* 去向日志句挪到卡面（第册一百一十四批）：它原先只写在确认框里，框已随「点了就成交」没了，
+         * 而「买了怎么屏上无痕」正是第卌六批立这句话的原因——判定仍走引擎同一把 canLearn。 */
+        (SQ.Arts.canLearn(w, c.p, c.d, it.ref) ? ''
+          : '<div class="g-warn">' + c.esc(c.t('shop.confirm.shelf')) + '</div>');
     } else if (it.kind === 'treasure') {
       var td = SQ.Treasures.def(c.p, it.ref);
       nameHtml = c.esc(goodName(c, it)) + tagHtml(c, it);
@@ -130,9 +134,11 @@
         if (wasP > it.price) wasHtml = '<span class="pricewas">' + SQ.fmt(wasP) + '</span>';
         discHtml = '<div class="g-disc">' + c.esc(c.t('shop.bond.discount', { p: Math.round(-bS * 100) })) + '</div>';
       }
-      priceHtml = '<button class="g-buy" data-act="buy" data-v="' + idx + '" data-b="' + (black ? 1 : 0) + '"' +
-        ' aria-label="' + c.esc(c.t('shop.buy') + ' ' + goodName(c, it)) + '">' +
-        wasHtml + c.esc(price) + '</button>';
+      /* 价格退回纯文本，动作交给右端一枚「购入」钮（第册一百一十四批 · 用户令「每卡右边一个购买钮」）。
+       * data-act / data-v / data-b 三枚锚点一字未动——事件委托与走查都按它们取数。 */
+      priceHtml = '<span class="g-cost">' + wasHtml + c.esc(price) + '</span>' +
+        '<button class="g-buy" data-act="buy" data-v="' + idx + '" data-b="' + (black ? 1 : 0) + '"' +
+        ' aria-label="' + c.esc(c.t('shop.buy') + ' ' + goodName(c, it)) + '">' + c.esc(c.t('shop.buy')) + '</button>';
     }
     return '<div class="goods shopcard' + (it.sold ? ' sold locked' : '') + '">' +
       '<div class="g-n nm">' + nameHtml + '</div>' +
@@ -145,18 +151,12 @@
     var blackOpen = SQ.Shop.blackOpen(w, c.p, d);
     var restockMs = Math.max(0, (isFinite(+((w.shop || {}).nextRestock)) ? +w.shop.nextRestock : 0) - Date.now());
     var rh = Math.floor(restockMs / 3600000), rm = Math.floor((restockMs % 3600000) / 60000);
-    /* 页头：左「坊市/黑市」药丸切换（设计稿 .segmini）+ 右圆形刷新钮，同排水平对齐。
-     * B16-ab：黑市页签常驻——未达道心门槛时进去给「未开市」提示，不再整颗藏起来。 */
-    var h = '<div class="pagehead split"><div class="segmini chips">';
-    h += '<button class="' + (c.ui.shopBlack ? '' : 'on') + '" data-act="shopTab" data-v="0">' + c.esc(c.t('shop.system')) + '</button>';
-    h += '<button class="' + (c.ui.shopBlack ? 'on' : '') + '" data-act="shopTab" data-v="1">' + c.esc(c.t('shop.blackmarket')) + '</button>';
-    h += '</div>';
-    h += '<button class="refreshbtn" data-act="refreshShop">' +
-      c.esc(c.t('shop.refresh', { n: SQ.fmt(SQ.Shop.refreshFee(w, c.p, d, m)) })) + '</button></div>';
-    if (c.ui.shopBlack && !blackOpen) {
-      h += '<p class="hint">' + c.esc(c.t('shop.blackclosed')) + '</p>';
-    }
-    h += '<p class="hint" style="margin-top:6px">' + c.esc(c.t('shop.restock', { t: rh > 0 ? c.t('ui.time.hm', { h: rh, m: rm }) : c.t('ui.time.m', { m: Math.max(1, rm) }) })) + '</p>';
+    /* 页头整行已摘（第册一百一十四批 · 用户令「中间已经显示对应的信息，那行切换钮多余」）：
+     * 两架改为同页上下排，段条本身就是「哪一架」；刷新费阶梯是全局的，按段各给一枚钮，
+     * 引擎侧仍按 black 只重掷那一架（黑市未开市时不给钮，免得刷出一架玩家看不见的货）。 */
+    var fee = SQ.fmt(SQ.Shop.refreshFee(w, c.p, d, m));
+    var restockTxt = c.t('shop.restock', { t: rh > 0 ? c.t('ui.time.hm', { h: rh, m: rm }) : c.t('ui.time.m', { m: Math.max(1, rm) }) });
+    var h = '';
     /* 神秘商人特席（势力批 v2.4 §8）：交好奇遇开启、10 分钟自动离去；scout = 无视后的更好货 */
     var merch = w.shop && w.shop.merchant;
     if (merch && merch.until > Date.now()) {
@@ -186,14 +186,23 @@
         c.esc(c.t('shop.merchant.closed')) + '</span></div>' +
         '<p class="hint" style="margin:2px 0 0">' + c.esc(c.t('shop.merchant.closed.hint')) + '</p></div>';
     }
-    /* B16-ab：黑市未开市 ⇒ 页签可进，但只给提示，不渲染货架（避免旧黑市货残留被误买） */
-    if (c.ui.shopBlack && !blackOpen) { c.$('tab-shop').innerHTML = h; return; }
-    var items = c.ui.shopBlack ? (w.shop.blackItems || []) : w.shop.items;
-    /* B16-o：黑市按设计稿先给一条 .strip 段条（黑市 / 一句代价提示），再落两列货架 */
-    if (c.ui.shopBlack) h += '<div class="strip"><span class="t">' + c.esc(c.t('shop.blackmarket')) +
-      '</span><span class="v">' + c.esc(c.t('shop.blackHint')) + '</span></div>';
-    h += '<div class="shopgrid">';
-    items.forEach(function (it, i) { h += itemRow(c, it, i, c.ui.shopBlack, w); });
+    /* ── 坊市架（段条 = 架名 + 补货倒计时 + 本架刷新钮）── */
+    h += '<div class="fasec"><div class="strip"><span class="t">' + c.esc(c.t('shop.system')) +
+      '</span><span class="v">' + c.esc(restockTxt) + '</span>' +
+      '<button class="refreshbtn" data-act="refreshShop" data-v="0">' + c.esc(c.t('shop.refresh', { n: fee })) + '</button></div>' +
+      '<div class="shopgrid">';
+    (w.shop.items || []).forEach(function (it, i) { h += itemRow(c, it, i, false, w); });
+    h += '</div></div>';
+    /* ── 黑市架（同页第二段，不再有页签）：未开市 ⇒ 只给段条一句「未开市」，不渲染旧货（B16-ab 口径不变）── */
+    h += '<div class="heisec"><div class="strip"><span class="t">' + c.esc(c.t('shop.blackmarket')) +
+      '</span><span class="v">' + c.esc(c.t(blackOpen ? 'shop.blackHint' : 'shop.blackclosed')) + '</span>' +
+      (blackOpen ? '<button class="refreshbtn" data-act="refreshShop" data-v="1">' +
+        c.esc(c.t('shop.refresh', { n: fee })) + '</button>' : '') + '</div>';
+    if (blackOpen) {
+      h += '<div class="shopgrid">';
+      (w.shop.blackItems || []).forEach(function (it, i) { h += itemRow(c, it, i, true, w); });
+      h += '</div>';
+    }
     h += '</div>';
     c.$('tab-shop').innerHTML = h;
   }
@@ -209,29 +218,19 @@
   async function actBuy(c, idx, black) {
     var it = (black ? c.w.shop.blackItems : c.w.shop.items)[idx];
     if (!it) { c.renderAll(); return; }
-    var nm = goodName(c, it);
-    var price = priceTxt(c, it);
-    /* 弹窗是无阻塞的：CONFIRM 开着的时候秒级 tick 仍会跑，4h 补货或手动刷新会把
-     * `ws.shop.items` **整表替换**，此时旧序号指向的是另一件货 ⇒ 第廿六批实测：弹窗写
-     * 「春风化雨篇 · 2,300 灵石」，点确认实扣 360 买走一件法器。故开弹窗时先记身份指纹，
-     * 确认时复查「这一格还是不是它」，不是就不成交（与引擎先判后扣同一族）。 */
+    /* 点钮即成交（第册一百一十四批 · 用户令「不需要再弹窗确认」）。第廿六批那条「无阻塞弹窗期间被补货
+     * 换架、按旧序号买成别件」的窗口随弹窗一起没了，但指纹仍要递给引擎复查：同一拍里 tick 落盘的换架
+     * 照样按 reason:'stale' 分文不动地拒（引擎侧那一判由冒烟 #298(e) 常驻守着）。 */
     var sig = SQ.Shop.goodSig(it);
-    /* 第卌六批：买的是要求未达的功法 ⇒ 成交后它会进待修习架（不是丢），确认框里先把去向说清；
-     * 判定与引擎同一把 `SQ.Arts.canLearn`（视图不自建一套门槛口径）。 */
-    var body = c.t('shop.confirm', { name: nm, price: price }) +
-      (it.kind === 'arts' && !SQ.Arts.canLearn(c.w, c.p, c.d, it.ref) ? ' ' + c.t('shop.confirm.shelf') : '');
-    c.ask(c.t('shop.buy'), body, async function () {
-      /* 指纹回给引擎复查（SQ.Shop.buy 里 reason:'stale' ⇒ 分文不动），视图不再自判一套 */
-      var rBy = await SQ.Actions.buy(c.s, idx, black, sig);
-      /* 丹匣满 / 已拥有 / 待修习架已满 ⇒ 引擎在扣钱之前整笔拒单（先判后扣），屏上必须说一句 ——
-       * 与 #272/#273 那条「失败不告警」同族，未知 reason 走 .other 兜底、不打内部字段名 */
-      if (rBy && rBy.ok === false)
-        c.toast(failText(c, (rBy && rBy.reason) || 'other'));
-      c.renderAll();
-    });
+    var rBy = await SQ.Actions.buy(c.s, idx, black, sig);
+    /* 丹匣满 / 已拥有 / 待修习架已满 / 手头不足 ⇒ 引擎在扣钱之前整笔拒单（先判后扣），屏上必须说一句 ——
+     * 未知 reason 走 .other 兜底、不打内部字段名 */
+    if (rBy && rBy.ok === false)
+      c.toast(failText(c, (rBy && rBy.reason) || 'other'));
+    c.renderAll();
   }
-  async function actRefresh(c) {
-    await SQ.Actions.refreshShop(c.s, c.ui.shopBlack);
+  async function actRefresh(c, black) {
+    await SQ.Actions.refreshShop(c.s, black);
     c.renderAll();
   }
   async function actMerchant(c, idx) {

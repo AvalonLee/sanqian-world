@@ -62,7 +62,10 @@
         return '<button' + (mode0 === mk ? ' class="on"' : '') + ' data-act="setMode" data-v="' + mk + '">' +
           c.esc(c.t('idle.mode.' + mk)) + '</button>';
       }).join('') + '</div>';
-    h += '<div class="metaline modemeta"><span>' + c.esc(c.t('idle.mode.' + mode0 + '.desc')) + '</span><span' +
+    /* 小字以**闭关那句**为准（第册一百一十四批 · 用户令「切到历练也不要变」）：
+     * 原先随模式换文案，两句话长短不同 ⇒ 圆相被顶得上下跳（B16-ae 先用定高压住，这一批直接把文案钉成一句）。
+     * 右侧那一枚仍是模式态读数（正在洞府 / 正在「某秘境」历练 / 战力不足预警），模式信息不丢。 */
+    h += '<div class="metaline modemeta"><span>' + c.esc(c.t('idle.mode.seclude.desc')) + '</span><span' +
       (ventureWeakM ? ' class="warnline"' : '') + '>' + (mode0 === 'venture'
         ? c.esc((affM ? c.t('zone.affix.line', { name: c.t('affix.' + affM.id + '.name'), desc: c.t('affix.' + affM.id + '.desc') }) + ' · ' : '') +
             (ventureWeakM

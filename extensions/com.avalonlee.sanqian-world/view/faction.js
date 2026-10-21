@@ -33,8 +33,7 @@
   function renderHome(c) {
     var w = c.w, d = c.d;
     var cur = SQ.Factions.current(w);
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' +
-      c.esc(c.t('sect.system')) + '</button></div></div>';
+    var h = '';
     if (cur) {
       var rank = SQ.Factions.rankOf(w, d, cur.id);
       var rep = SQ.Factions.repOf(w, cur.id);
@@ -235,8 +234,7 @@
     if (c.ui.facPick) return renderDetail(c, c.ui.facPick);
     var w = c.w, d = c.d;
     var cur = SQ.Factions.current(w);
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + c.esc(c.t('faction.system')) + '</button></div></div>';
-    h += '<p class="hint" style="margin:6px 0 2px">' + c.esc(c.t('faction.page.hint')) + '</p>';
+    var h = '<p class="hint" style="margin:6px 0 2px">' + c.esc(c.t('faction.page.hint')) + '</p>';
     var camp = c.ui.facCamp || 'all';
     var cnt = { all: (w.factions || []).length, right: 0, neutral: 0, evil: 0 };
     (w.factions || []).forEach(function (f) { if (cnt[f.align] != null) cnt[f.align]++; });

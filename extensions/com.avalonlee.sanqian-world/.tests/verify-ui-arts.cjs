@@ -724,20 +724,23 @@ async function buildSave() {
     'shelf=' + (gAfter.shelf || '空') + ' stones ' + stonesBefore + '→' + gAfter.stones + ' head=' + gAfter.head);
   await page5.click('#m-tabbar button:has-text("坊市")');
   await page5.waitForTimeout(600);
-  const buyBtn = page5.locator('#tab-shop button[data-act="buy"][data-v="0"][data-b="0"]');
+  const buyBtn = page5.locator('#tab-shop .fasec button[data-act="buy"][data-v="0"][data-b="0"]');
   const hasBuy = (await buyBtn.count()) > 0;
   const stPreBuy = (await shelfRead()).stones;   /* 基线取当下值（G3 的弃置已回账），不是最初的 5000 */
+  const card5 = hasBuy ? await page5.evaluate(() => {
+    const el = document.querySelector('#tab-shop .fasec .shopcard');
+    return (el ? el.textContent : '').replace(/\s+/g, ' ').trim();
+  }) : '';
+  T(hasBuy && card5.indexOf('聚仙幡') >= 0 && card5.indexOf('待修习架') >= 0,
+    'G4 买**要求未达**的功法，卡面自己就把去向说一句（第册一百一十四批：这句原先只在确认框里，框已随「点了就成交」没了 ⇒ 搬到卡上，否则玩家又要以为货丢了）',
+    'hasBuy=' + hasBuy + ' 卡=' + card5.slice(0, 120));
   if (hasBuy) await buyBtn.first().click();
   await page5.waitForTimeout(500);
-  const cfTxt = hasBuy ? await page5.evaluate(() => document.getElementById('cf-text').textContent) : '';
-  T(hasBuy && cfTxt.indexOf('聚仙幡') >= 0 && cfTxt.indexOf('待修习架') >= 0,
-    'G4 坊市买**要求未达**的功法，确认框就把去向说一句（原话只写价格，成交后屏上无痕）',
-    'hasBuy=' + hasBuy + ' cf=' + cfTxt.replace(/\s+/g, ' ').slice(0, 150));
-  if (hasBuy) { await page5.click('#cf-cancel'); await page5.waitForTimeout(400); }
-  const gCancel = await shelfRead();
-  T(gCancel.stones === stPreBuy,
-    'G5 取消这单分文不动（提示语不许变成新的扣钱路径）',
-    'stones=' + gCancel.stones + ' 期望=' + stPreBuy);
+  const noDlg5 = await page5.evaluate(() => !document.querySelector('#modal-confirm:not(.hide)'));
+  const gBuy = await shelfRead();
+  T(noDlg5 && gBuy.stones === stPreBuy - 999 && gBuy.shelf.indexOf('juxian') >= 0,
+    'G5 点钮即成交：不弹确认框、按卡面价扣钱、那部落进待修习架（原「取消这单分文不动」那一支随弹窗退役）',
+    '弹窗=' + !noDlg5 + ' 灵石=' + stPreBuy + '→' + gBuy.stones + ' shelf=' + gBuy.shelf);
   T(errors5.length === 0, 'G6 整组零页面报错', errors5.join('|').slice(0, 150) || 'clean');
   await ctx5.close();
 

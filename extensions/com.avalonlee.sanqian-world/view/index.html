@@ -607,7 +607,7 @@
   var ui = {
     tab: 'idle',
     detailRate: false, detailTrib: false,
-    logFilter: 'all', shopBlack: false,
+    logFilter: 'all',
     lastAttempts: 0, lastLogKey: '', toasts: [],
     announcedLogKey: '',                    /* 动作处已就同一日志提示过的标识：tick 侧据此避免同文重复呈报 */
     newLogDot: false,                       /* 日志页未读红点（afterClaim 置位，进页清除） */
@@ -2655,9 +2655,10 @@
       return;
     }
     if (act === 'upgradeArt') { await SQ.Actions.upgradeArt(state, v); renderAll(); return; }
-    if (act === 'shopTab') { ui.shopBlack = v === '1'; renderTab(); return; }
+    /* 坊市刷新（第册一百一十四批：一页两架 ⇒ 每架一枚钮，data-v 就是「刷哪一架」；
+     * 原先那行「坊市/黑市」页签与 ui.shopBlack 一并退役） */
     if (act === 'refreshShop') {
-      await SQ.UI.shop.actRefresh(ctx());
+      await SQ.UI.shop.actRefresh(ctx(), v === '1');
       return;
     }
     if (act === 'toggleAutoTrib') {
