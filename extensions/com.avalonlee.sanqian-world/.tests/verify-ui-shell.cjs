@@ -185,15 +185,26 @@ const { chromium } = require('playwright-core');
   await page.waitForTimeout(260);
   const rail = await page.evaluate(() => {
     const r = document.getElementById('m-rail');
+    const duo = r.querySelector('.rb-duo');
+    const caveSlot = Array.prototype.slice.call(r.querySelectorAll('.rb-slot'))
+      .filter((x) => x.querySelector('.rb-sk') && x.querySelector('.rb-sk').textContent.indexOf(SQ.t('pillar.di', null, 'xiuxian')) >= 0)[0];
     return {
       exists: !!r,
       titles: Array.prototype.map.call(r.querySelectorAll('.rb-t'), (x) => x.textContent.trim()),
-      has: document.getElementById('sc-main').classList.contains('hasrail')
+      has: document.getElementById('sc-main').classList.contains('hasrail'),
+      duoLabels: duo ? Array.prototype.map.call(duo.querySelectorAll('.rb-pair i'), (x) => x.textContent.trim()) : [],
+      duoFont: duo ? getComputedStyle(duo.querySelector('.rb-pair')).fontSize : '',
+      caveTxt: caveSlot ? (caveSlot.querySelector('.rb-sd') || {}).textContent.trim() : ''
     };
   });
   T(rail.exists, 'SH12 右栏骨架元素在位');
   T(rail.has && rail.titles.join(',') === '四柱,天象 · 传闻,页游彩蛋,离线所得',
     'SH13 修行区右栏 = 四柱 + 天象·传闻 + 页游彩蛋 + 离线所得（B16-c，有块才开第三列）', JSON.stringify(rail));
+  T(rail.duoLabels.join('|') === '护法位|双修位' && parseFloat(rail.duoFont) <= 10.5,
+    'SH13c 侣柱同时显示护法位与双修位（框内小字，不再只显示其中一位）',
+    'labels=' + rail.duoLabels.join('|') + ' font=' + rail.duoFont);
+  T(/^修为产出 ×\d+\.\d{2}$/.test(rail.caveTxt),
+    'SH13d 地柱乘区带中文说明（修为产出 ×N.NN，不只一个孤零零的数字）', rail.caveTxt);
   await page.evaluate(() => {
     Array.prototype.slice.call(document.querySelectorAll('#m-tabbar button'))
       .filter((b) => b.dataset.v === 'achv')[0].click();

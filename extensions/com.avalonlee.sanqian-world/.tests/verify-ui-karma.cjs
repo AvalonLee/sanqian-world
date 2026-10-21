@@ -124,17 +124,24 @@ const { chromium } = require('playwright-core');
     const rk = document.getElementById('m-rank');
     const line2 = rk ? rk.parentElement : null;
     const stones = document.getElementById('m-stones');
+    const vals = stones ? stones.closest('.hd-vals') : null;
+    const qi = document.getElementById('m-qi');
     const who = document.getElementById('m-who');
+    const qb = qi ? qi.getBoundingClientRect() : null;
+    const sb = stones ? stones.getBoundingClientRect() : null;
     return {
       act: rk ? rk.getAttribute('data-act') : null,
-      inLine2: !!(rk && stones && rk.parentElement === stones.parentElement),
-      belowStone: !!(rk && line2 && line2.firstElementChild === stones && stones.nextElementSibling === rk),
+      inLine2: !!(rk && vals && line2 && vals.parentElement === line2),
+      belowStone: !!(rk && vals && vals.nextElementSibling === rk),
+      qiLeft: !!(qb && sb && qb.right <= sb.left + 1),
+      qiCompact: qi ? /万|亿/.test(qi.textContent) || qi.textContent.replace(/[^\d.]/g, '').length <= 6 : false,
       whoHasChip: !!(who && who.querySelector('.rankchip'))
     };
   });
-  T(rankPos.act === 'karma' && rankPos.inLine2 && rankPos.belowStone && !rankPos.whoHasChip,
-    '名号行位于右栏灵石之下（B16 对齐设计稿 .hd：右列 = 灵石上 · 名号下 · 左列不含徽章）',
-    'act=' + rankPos.act + ' inLine2=' + rankPos.inLine2 + ' belowStone=' + rankPos.belowStone + ' whoHasChip=' + rankPos.whoHasChip);
+  T(rankPos.act === 'karma' && rankPos.inLine2 && rankPos.belowStone && rankPos.qiLeft && rankPos.qiCompact && !rankPos.whoHasChip,
+    '名号行位于右栏灵石行之下；修为在灵石左侧且用万/亿缩写（B16-x：右列 = 修为+灵石上 · 名号下）',
+    'act=' + rankPos.act + ' inLine2=' + rankPos.inLine2 + ' belowStone=' + rankPos.belowStone +
+    ' qiLeft=' + rankPos.qiLeft + ' qiCompact=' + rankPos.qiCompact + ' whoHasChip=' + rankPos.whoHasChip);
 
   /* ②b 加入势力后顶栏不溢出：右列固定不缩、元信息（左列 .hd-sub）省略号收尾（宽屏左栏仅 264px） */
   const whoBox = await page.evaluate((wn) => {
