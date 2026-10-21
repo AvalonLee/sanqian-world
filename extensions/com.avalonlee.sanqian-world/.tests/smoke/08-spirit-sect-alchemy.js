@@ -711,11 +711,11 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
           parents: [{ id: 'parent_a_long_id', name: '父本名甲', tier: 3 }, { id: 'parent_b_long_id', name: '父本名乙', tier: 3 }],
           createdAt: 1730000000000 };
       }) });
-    ok('234', '混沌淬炼：悟道石 ×1（材料账 out）+ 灵石 REFORGE_COST[tier]（out.arts 既有分类）随尝试消耗；miss 零损失 + CD 1 日二发拒；hit = special 覆盖混沌池（attr 映射 qi→hundun/jing→zaohua/shen→taiyi、grade=gen−1、同池只升不降）+ XARTS 注册同步 + mods hooks 消费对表；poor/wudao/unknown 拒；normalize lastReforgeAt 钳位保留；fusion 最坏态容量 <1.6KB',
+    ok('234', '混沌淬炼：悟道石 ×1（材料账 out）+ 灵石 REFORGE_COST[tier]（out.arts 既有分类）随尝试消耗；miss 零损失 + CD 30 分钟二发拒（第册一百一十五批改值，判据仍读表）；hit = special 覆盖混沌池（attr 映射 qi→hundun/jing→zaohua/shen→taiyi、grade=gen−1、同池只升不降）+ XARTS 注册同步 + mods hooks 消费对表；poor/wudao/unknown 拒；normalize lastReforgeAt 钳位保留；fusion 最坏态容量 <1.6KB',
       miss234 && cd234.reason === 'cd' && hit234 && keep234 && mapOk234 &&
       poorR234.reason === 'poor' && wudaoR234.reason === 'wudao' && unkR234.reason === 'unknown' &&
       norm234 && worst234 < 1600 &&
-      D.FUSE.CHAOS_P === 0.30 && D.FUSE.REFORGE_CD_MS === 86400000,
+      D.FUSE.CHAOS_P === 0.30 && D.FUSE.REFORGE_CD_MS === 1800000,
       'miss=' + miss234 + ' hit=' + hit234 + ' keep=' + keep234 + ' worst=' + worst234 + 'B');
 
     /* #235 命名池扩容（24×20=480 → 36×30=1080）：PRE_N/SUF_N/COMBOS 对表自洽；词表 key 1~36/1~30 连续不缺不重；

@@ -470,7 +470,7 @@
   /* act「fuseStart」分支体（第册十批随片搬出，分派处留一行调用）*/
   async function actFuseStart(c) {
       var nameIn = document.querySelector('.fusename');
-      c.ask(c.t('fuse.ui.btn'), c.t('fuse.ui.confirm', { p: Math.round(SQ.Fusion.fuseP(c.w, c.d) * 100) }), async function () {
+      c.ask(c.t('fuse.ui.btn'), c.t('fuse.ui.confirm', { p: Math.round(SQ.Fusion.fuseP(c.w, c.d) * 100), cd: c.timeLeft(c.d.FUSE.CD_MS) }), async function () {
         var rF = await SQ.Actions.fuseStart(c.s, c.ui.fuseSel[0], c.ui.fuseSel[1], nameIn ? nameIn.value : '');
         if (rF && rF.ok && rF.success) {
           c.ui.fuseSel = [];
@@ -496,7 +496,8 @@
       var cR0 = SQ.Fusion.customById(c.w, v);
       var costR0 = SQ.Fusion.reforgeCostOf(cR0, c.d);
       c.ask(c.t('fuse.reforge.btn'), c.t('fuse.reforge.confirm', {
-        n: SQ.fmt(costR0), p: Math.round(((c.d.FUSE || {}).CHAOS_P || 0.30) * 100)
+        n: SQ.fmt(costR0), p: Math.round(((c.d.FUSE || {}).CHAOS_P || 0.30) * 100),
+        cd: c.timeLeft(c.d.FUSE.REFORGE_CD_MS)   /* 冷却句从表取（第册一百一十五批：原写死「1 日」） */
       }), async function () {
         var rR = await SQ.Actions.customReforge(c.s, v);
         if (rR && rR.ok && rR.hit) c.toast(c.t('fuse.reforge.hit', { name: (cR0 || {}).name || '', sig: c.t('special.' + rR.pool + '.name') }));
