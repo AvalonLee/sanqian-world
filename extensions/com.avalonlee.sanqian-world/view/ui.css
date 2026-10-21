@@ -2395,6 +2395,9 @@
     background: var(--sq2-ink); border-color: var(--sq2-ink); color: var(--sq2-paper);
   }
   #tab-faction .faclist { display: block; }
+  /* B16-ac：势力名录行可点（详情分层），日常管理已移宗门页 */
+  #tab-faction .facrow { cursor: pointer; }
+  #tab-faction .facrow:hover { background: var(--sq2-paper-2); }
   /* 当前效力 / 未入 = 条状（设计稿 .statestrip / .strip） */
   #tab-faction .facbanner {
     border: 1px solid var(--sq2-line); background: var(--sq2-paper-3);

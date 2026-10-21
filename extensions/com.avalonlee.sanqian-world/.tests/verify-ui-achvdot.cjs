@@ -51,8 +51,11 @@ const { chromium } = require('playwright-core');
   /* ② 触发新成就：势力页「加入」任一门（→ ws.factionId 落档 → achv_rumen 达成） */
   await page.click('#m-tabbar button[data-v="faction"]');
   await page.waitForTimeout(300);
+  /* B16-ac：加入钮在势力详情里（目录行先点开） */
+  await page.click('#tab-faction .faccard[data-act="facDetail"]');
+  await page.waitForTimeout(300);
   const joinBtn = '[data-act="joinFaction"]:not([disabled])';
-  T(await page.$(joinBtn) !== null, '势力页「加入」按钮可用（未入势力 · 无冷却）', joinBtn);
+  T(await page.$(joinBtn) !== null, '势力详情「加入」按钮可用（未入势力 · 无冷却）', joinBtn);
   await page.click(joinBtn);
   await page.waitForTimeout(250);
   await page.click('#cf-ok');

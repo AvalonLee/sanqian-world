@@ -29,10 +29,12 @@
     for (var k in (w.factionNpcs || {})) if (w.factionNpcs[k] === f.id) n++;
     return n;
   }
-  function renderFaction(c) {
+  /* 固定势力的「我的门派」主页（B16-ac）：原势力页管理区整块搬到这里，由宗门页调用 */
+  function renderHome(c) {
     var w = c.w, d = c.d;
     var cur = SQ.Factions.current(w);
-    var h = '';
+    var h = '<div class="pagehead split"><div class="chips"><button class="on">' +
+      c.esc(c.t('sect.system')) + '</button></div></div>';
     if (cur) {
       var rank = SQ.Factions.rankOf(w, d, cur.id);
       var rep = SQ.Factions.repOf(w, cur.id);
@@ -224,13 +226,17 @@
     if ((w.factionCdUntil || 0) > Date.now()) {
       h += '<p class="hint">' + c.esc(c.t('faction.cd', { t: c.fmtDur(Math.max(0, w.factionCdUntil - Date.now())) })) + '</p>';
     }
+    /* B16-ac：日常管理整块挂到宗门页（势力页只做目录 + 详情） */
+    c.$('tab-sect').innerHTML = h;
+  }
+
+  /* ── 势力目录（B16-ac）：筛选 + 整行点击看详情；日常管理已移宗门页 ── */
+  function renderFaction(c) {
+    if (c.ui.facPick) return renderDetail(c, c.ui.facPick);
+    var w = c.w, d = c.d;
+    var cur = SQ.Factions.current(w);
+    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + c.esc(c.t('faction.system')) + '</button></div></div>';
     h += '<p class="hint" style="margin:6px 0 2px">' + c.esc(c.t('faction.page.hint')) + '</p>';
-    /* 走查 v2.5 §1：三栏布局（正道 | 左道 | 魔道），势力各归其位；名称后不再缀阵营字 */
-    var toggle = '<button class="linkbtn" data-act="facRelAll">' +
-      c.esc(c.t(c.ui.facRelAll ? 'event.feed.less' : 'arts.group.all')) + '</button>';
-    h += '<div class="sechead"><span class="t">' + c.esc(c.t('faction.system')) + ' · ' + (w.factions || []).length + '</span>' + toggle + '</div>';
-    /* UI v2 B15-j：三栏（正/左/魔）改设计稿「阵营 chips 筛选 + 单列行式」——
-     * 筛选态走 ui.facCamp（不落盘），名单与卡本身一字未改，只换排列方式。 */
     var camp = c.ui.facCamp || 'all';
     var cnt = { all: (w.factions || []).length, right: 0, neutral: 0, evil: 0 };
     (w.factions || []).forEach(function (f) { if (cnt[f.align] != null) cnt[f.align]++; });
@@ -245,14 +251,55 @@
     }).join('') + '</div>';
     h += '<div class="faclist">';
     (w.factions || []).filter(function (f) { return camp === 'all' || f.align === camp; })
-      .forEach(function (f) { h += factionCard(c, w, f, cur); });
+      .forEach(function (f) { h += factionCard(c, w, f, cur, true); });
     h += '</div>';
+    c.$('tab-faction').innerHTML = h;
+  }
+  /* 单家势力详情：介绍 / 掌门 / 关系 / 入伙动作（日常管理在宗门页） */
+  function renderDetail(c, id) {
+    var w = c.w;
+    var f = SQ.Factions.byId(w, id);
+    if (!f) { c.ui.facPick = null; return renderFaction(c); }
+    var cur = SQ.Factions.current(w);
+    var isCur = cur && cur.id === f.id;
+    var mst = f.fixed && SQ.Jianghu ? SQ.Jianghu.masterOf(c.p, f.id) : null;
+    var eld = f.fixed && SQ.Jianghu ? SQ.Jianghu.elderOf(c.p, f.id) : null;
+    var h = '<div class="pagehead split"><button class="linkbtn" data-act="facBack">‹ ' + c.esc(c.t('faction.system')) + '</button></div>';
+    h += '<div class="curzone"><div class="cz-top"><div>' +
+      '<div class="cz-name">' + c.esc(f.name) +
+      (f.fixed ? ' <span class="tierbadge t1">' + c.esc(c.t('faction.fixed.tag')) + '</span>' : '') +
+      (isCur ? ' <span class="tierbadge t1">' + c.esc(c.t('faction.joined')) + '</span>' : '') + '</div>' +
+      '<div class="cz-meta">' + c.esc(c.t('align.' + f.align)) + ' · ' + c.esc(c.t('faction.members', { n: factionMembers(c, w, f) })) + '</div></div></div>' +
+      '<p class="fd">' + c.esc(c.t(f.desc)) + '</p>' +
+      (mst && eld ? '<p class="fd">' + c.esc(c.t('faction.master.line', { name: mst.nm, realm: c.t('realm.' + mst.rlm), elder: eld.nm })) + '</p>' : '') +
+      '<div class="fperk">' + c.esc(c.t('faction.perk')) + ' · <b>' + c.esc(c.t('talent.field.' + f.perk.field)) + ' +' +
+      (f.perk.field === 'tribBonus' ? f.perk.v.toFixed(2) : Math.round(f.perk.v * 100) + '%') + '</b></div>' +
+      '<div class="frel"><span class="lab">' + c.esc(c.t('faction.relations')) + '</span><span class="chipsx">' +
+      factionRelChips(c, w, f) + '</span></div></div>';
+    var isSectLord = w.factionId === 'sect' && w.sect && !w.sect.succession;
+    if (isCur) {
+      h += '<button class="primary" data-act="tab" data-v="sect" style="width:100%;margin-top:12px">' +
+        c.esc(c.t('sect.system')) + ' ›</button>';
+    } else if (!w.factionId) {
+      var cdLeft = (w.factionCdUntil || 0) > Date.now();
+      h += '<button class="primary" data-act="joinFaction" data-v="' + f.id + '"' + (cdLeft ? ' disabled' : '') +
+        ' style="width:100%;margin-top:12px">' + c.esc(c.t('faction.join')) + '</button>';
+    } else if (isSectLord) {
+      h += '<button disabled style="width:100%;margin-top:12px">' + c.esc(c.t('sect.ui.leave.lock')) + '</button>';
+    } else {
+      var relD = SQ.Factions.relationOf(w, w.factionId, f.id);
+      var enemyD = relD === 'enemy';
+      h += '<button class="' + (enemyD ? 'primary' : '') + '" data-act="defectGo" data-v="' + f.id + '"' +
+        (enemyD ? '' : ' disabled') + ' style="width:100%;margin-top:12px">' +
+        c.esc(c.t(enemyD ? 'faction.defect.title' : 'faction.cd.wait')) + '</button>';
+      h += '<p class="hint" style="margin-top:6px">' + c.esc(c.t('faction.leave')) + ' → ' + c.esc(c.t('sect.system')) + '</p>';
+    }
     c.$('tab-faction').innerHTML = h;
   }
 
   /* 势力卡（走查 v2.5 §1 抽出 + 深化批 v1.23）：名称不带阵营字——阵营由所在栏表达；
    * 固定势力挂「名门」角标；当前效力卡显示职级放大后的 perk 实效 */
-  function factionCard(c, w, f, cur) {
+  function factionCard(c, w, f, cur, dir) {
     var isCur = cur && cur.id === f.id;
     var perkV = f.perk.v;
     if (isCur) {
@@ -269,7 +316,8 @@
     var eld = f.fixed && SQ.Jianghu ? SQ.Jianghu.elderOf(c.p, f.id) : null;
     var mstLine = (mst && eld) ? '<div class="fd">' + c.esc(c.t('faction.master.line', {
       name: mst.nm, realm: c.t('realm.' + mst.rlm), elder: eld.nm })) + '</div>' : '';
-    var hc = '<div class="faccard' + (isCur ? ' cur' : '') + '">' +
+    var hc = '<div class="faccard facrow' + (isCur ? ' cur' : '') + '"' +
+      (dir ? ' data-act="facDetail" data-v="' + f.id + '"' : '') + '>' +
       '<div class="fh"><span class="fn">' + c.esc(f.name) +
       (f.fixed ? '<span class="tierbadge t1">' + c.esc(c.t('faction.fixed.tag')) + '</span>' : '') +
       (isCur ? '<span class="tierbadge t1">' + c.esc(c.t('faction.joined')) + '</span>' : '') +
@@ -281,6 +329,7 @@
       '<div class="frel"><span class="lab">' + c.esc(c.t('faction.relations')) + '</span>' +
       '<span class="chipsx">' + factionRelChips(c, w, f) + '</span></div>';
     var isSectLord = w.factionId === 'sect' && w.sect && !w.sect.succession;
+    if (dir) return hc + '</div>';   /* 目录行只负责打开详情 */
     if (!isCur) {
       /* 择门批（需求 3）：已身在一门时，其余势力加入按钮一律置灰——势力唯一归属 */
       var joinDis = cdLeft || !!w.factionId;
@@ -330,6 +379,8 @@
   /* ── 这一页的八条动作（第册六批口径：一片 = 一页的呈现 + 它的动作；分派留在内核、顺序不动，
    * 内核那八行各自只剩一句 await SQ.UI.faction.actXxx(ctx(), v)）── */
   function actRelAll(c) { c.ui.facRelAll = !c.ui.facRelAll; c.renderTab(); }
+  function actDetail(c, id) { c.ui.facPick = id || null; c.renderTab(); }
+  function actBack(c) { c.ui.facPick = null; c.renderTab(); }
 
   /* B15-j：阵营筛选（纯视图态，不落盘；切页保持当前筛选） */
   function actCamp(c, v) { c.ui.facCamp = v || 'all'; c.renderTab(); }
@@ -340,7 +391,7 @@
     if (c.w.factionId) { c.toast(c.t('faction.join.occupied')); return; }
     c.ask(c.t('faction.join'), c.t('faction.confirm.join', { name: fJ.name }), async function () {
       var resJ = await SQ.Actions.joinFaction(c.s, v);
-      if (resJ && resJ.ok) c.toast(c.t('faction.log.join', { name: fJ.name }));
+      if (resJ && resJ.ok) { c.ui.facPick = null; c.toast(c.t('faction.log.join', { name: fJ.name })); }
       else if (resJ && resJ.reason === 'sect') c.toast(c.t('faction.join.sectlock'));
       else if (resJ && resJ.reason === 'occupied') c.toast(c.t('faction.join.occupied'));
       c.renderAll();
@@ -384,7 +435,8 @@
   }
 
   SQ.UI = SQ.UI || {};
-  SQ.UI.faction = { render: renderFaction, actRelAll: actRelAll, actCamp: actCamp, actJoin: actJoin,
+  SQ.UI.faction = { render: renderFaction, home: renderHome, actDetail: actDetail, actBack: actBack,
+    actRelAll: actRelAll, actCamp: actCamp, actJoin: actJoin,
     actDefect: actDefect, actOfficePick: actOfficePick, actOfficePickCancel: actOfficePickCancel,
     actDispatch: actDispatch, actGuard: actGuard, actSupply: actSupply };
 })();

@@ -25,7 +25,7 @@ const { chromium } = require('playwright-core');
     s.profile.createdAt = now;
     Object.values(s.worlds).forEach(w => {
       w.lastSave = now; w.lastOffline = null; w.pendingChoice = null;
-      w.realm = 2; w.mode = 'seclude';
+      w.realm = 4; w.mode = 'seclude';   /* B16-ac：宗门页签 lock 4，需解锁才能验「加入势力后的宗门主页」 */
       w.stones = 2000000;
       w.factionId = 'yanue';                    /* 掩月宗：敌对 liumo/xinggong/luopo/suiyuan */
       w.factionRep = { yanue: 0 };
@@ -61,10 +61,34 @@ const { chromium } = require('playwright-core');
   await page.click('#m-tabbar button:has-text("势力")');
   await page.waitForTimeout(400);
 
+  /* ── N0 组（B16-ac · 势力页改目录）：只铺名录，点击一行进详情；日常管理不在此页 ── */
+  const dir0 = await page.evaluate(() => ({
+    cards: document.querySelectorAll('#tab-faction .faccard').length,
+    manage: document.querySelectorAll('#tab-faction [data-act="leaveFaction"], #tab-faction [data-act="facDonate"], #tab-faction [data-act="supplyBuy"]').length,
+    clickable: document.querySelectorAll('#tab-faction .faccard[data-act="facDetail"]').length
+  }));
+  T(dir0.cards >= 10 && dir0.manage === 0 && dir0.clickable === dir0.cards,
+    'N0 势力页 = 名录（整行可点看详情），日常管理不在此页', JSON.stringify(dir0));
+  await page.click('#tab-faction .faccard[data-act="facDetail"]');
+  await page.waitForTimeout(300);
+  const det0 = await page.evaluate(() => ({
+    detail: !!document.querySelector('#tab-faction .curzone'),
+    back: !!document.querySelector('#tab-faction [data-act="facBack"]'),
+    desc: ((document.querySelector('#tab-faction .curzone .fd') || {}).textContent || '').trim()
+  }));
+  T(det0.detail && det0.back && det0.desc.length > 10,
+    'N0b 点势力行进详情（介绍 + 返回），详情与名录分层', JSON.stringify(det0));
+  await page.click('#tab-faction [data-act="facBack"]');
+  await page.waitForTimeout(300);
+
+  /* 日常管理已搬宗门页：以下 N/R/Q 组切到宗门页 */
+  await page.click('#m-tabbar button:has-text("宗门")');
+  await page.waitForTimeout(500);
+
   /* ── N 组（B16-q · 对齐设计稿构图）：当前效力收成 statestrip + hintline，后段分段标，
    *    供给改整行清单；四档供给与三张委托的入口一个不少 ── */
   const nq = await page.evaluate(() => {
-    const el = document.querySelector('#tab-faction');
+    const el = document.querySelector('#tab-sect');
     return {
       strip: !!el.querySelector('.statestrip .s-v'),
       line: !!el.querySelector('.hintline'),
@@ -82,37 +106,37 @@ const { chromium } = require('playwright-core');
   T(nq.oldBanners === 0, 'N4 旧 .facbanner 横条已退净（当前效力 / 无势力 / 势力战三处已换形态）', 'n=' + nq.oldBanners);
 
   /* R1 叛离入口可见性：≥2 处（当前效力区块 + 势力卡），且顶部入口首屏内可点 */
-  const leaveBtns = await page.$$eval('#tab-faction [data-act="leaveFaction"]', els => els.map(e => {
+  const leaveBtns = await page.$$eval('#tab-sect [data-act="leaveFaction"]', els => els.map(e => {
     const r = e.getBoundingClientRect();
     return { text: e.textContent.trim(), y: Math.round(r.top + window.scrollY), dis: e.disabled };
   }));
-  T(leaveBtns.length >= 2, 'R1 叛离入口 ≥2 处（当前效力 + 势力卡）', 'n=' + leaveBtns.length);
+  T(leaveBtns.length >= 1, 'R1 叛离入口在宗门页当前势力区块（日常管理已搬家）', 'n=' + leaveBtns.length);
   const topLeave = leaveBtns.slice().sort((a, b) => a.y - b.y)[0];
   T(!!topLeave && topLeave.text === '叛离' && !topLeave.dis, 'R1 叛离按钮文案「叛离」且可点', topLeave ? topLeave.text + '/dis=' + topLeave.dis : 'none');
   T(!!topLeave && topLeave.y < 800, 'R1 顶部叛离入口位于当前效力区块（首屏内）', 'y=' + (topLeave ? topLeave.y : -1));
 
   /* R2 去向选择浮层：好聚好散 + 敌对红标「叛投」且仅敌对可点 */
-  await page.click('#tab-faction [data-act="leaveFaction"]');
+  await page.click('#tab-sect [data-act="leaveFaction"]');
   await page.waitForTimeout(300);
-  const pick = await page.$$eval('#tab-faction .detailbox', els => els.length);
+  const pick = await page.$$eval('#tab-sect .detailbox', els => els.length);
   T(pick >= 1, 'R2 去向选择浮层展开', 'n=' + pick);
-  const plain = await page.$$eval('#tab-faction [data-act="leavePlain"]', els => els.length);
+  const plain = await page.$$eval('#tab-sect [data-act="leavePlain"]', els => els.length);
   T(plain >= 1, 'R2 含「好聚好散」常规离山入口', 'n=' + plain);
-  const defectBtns = await page.$$eval('#tab-faction [data-act="defectGo"]', els => els.map(e => ({ v: e.getAttribute('data-v'), dis: e.disabled })));
+  const defectBtns = await page.$$eval('#tab-sect [data-act="defectGo"]', els => els.map(e => ({ v: e.getAttribute('data-v'), dis: e.disabled })));
   const enabled = defectBtns.filter(b => !b.dis).map(b => b.v).sort();
   const enemies = ['liumo', 'luopo', 'suiyuan', 'xinggong'];
   T(enabled.length === enemies.length && enemies.every(e => enabled.indexOf(e) >= 0),
     'R2 仅敌对势力可叛投', 'enabled=' + enabled.join('/'));
-  const redTag = await page.$$eval('#tab-faction .detailbox .tierbadge.tboss', els => els.length);
+  const redTag = await page.$$eval('#tab-sect .detailbox .tierbadge.tboss', els => els.length);
   T(redTag === enemies.length, 'R2 敌对势力带红标「敌对 · 叛投」', 'n=' + redTag);
   const nonEnemyDis = defectBtns.filter(b => enemies.indexOf(b.v) < 0);
   T(nonEnemyDis.length > 0 && nonEnemyDis.every(b => b.dis), 'R2 非敌对势力叛投按钮置灰', 'n=' + nonEnemyDis.length);
 
   /* R3 供奉三档 + 2h 窗口提示（无 24h 残留） */
-  const donBtns = await page.$$eval('#tab-faction [data-act="facDonate"]', els => els.map(e => e.textContent.trim()));
+  const donBtns = await page.$$eval('#tab-sect [data-act="facDonate"]', els => els.map(e => e.textContent.trim()));
   T(donBtns.length === 3 && donBtns.every(x => x.indexOf('供奉') >= 0 && x.indexOf('+') >= 0),
     'R3 供奉三档按钮（含预计声望）', donBtns.join(' | '));
-  const donHint = await page.$$eval('#tab-faction p.hint', els => {
+  const donHint = await page.$$eval('#tab-sect p.hint', els => {
     const hit = els.map(e => e.textContent).filter(x => x.indexOf('÷1000') >= 0);
     return hit[0] || '';
   });
@@ -120,7 +144,7 @@ const { chromium } = require('playwright-core');
   T(donHint.indexOf('24 小时') < 0 && donHint.indexOf('24小时') < 0, 'R3 供奉区无 24 小时残留', '');
 
   /* R4 供奉确认弹窗预览与引擎同口径（窗口内 used 生效） */
-  await page.click('#tab-faction [data-act="facDonate"]');
+  await page.click('#tab-sect [data-act="facDonate"]');
   await page.waitForTimeout(300);
   const confirmOpen = await page.$eval('#modal-confirm', el => !el.classList.contains('hide'));
   const confirmTxt = await page.$eval('#cf-text', el => el.textContent);
@@ -129,7 +153,7 @@ const { chromium } = require('playwright-core');
   await page.waitForTimeout(200);
 
   /* ── Q 组：门中委托一次贴三张、类型互不相同、各交各的 ── */
-  await page.click('#tab-faction');
+  await page.click('#tab-sect');
   await page.waitForTimeout(600);
   const qread = () => page.evaluate(() => {
     const btns = Array.prototype.slice.call(document.querySelectorAll('[data-act="questClaim"]'));
@@ -156,6 +180,10 @@ const { chromium } = require('playwright-core');
   const q3 = await qread();
   T(q3.n === 1 && q3.types[0] === 'cultivate' && q3.dis[0] === true,
     'Q5 两张达标的都交完：只剩那张未达标的，且 30 分钟闸内不补新单', 'n=' + q3.n + ' types=' + q3.types.join('+'));
+
+  /* M 组看的是势力名录卡：切回势力页 */
+  await page.click('#m-tabbar button:has-text("势力")');
+  await page.waitForTimeout(400);
 
   /* ── M 组（第卌七批① · 江湖名录取数口）：势力卡必须写清「掌门是谁」──
    * 名录是静态内容，认不出就不写这行 ⇒ 这组同时钉两侧：固定势力卡全都有名字，
