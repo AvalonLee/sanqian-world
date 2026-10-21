@@ -288,6 +288,23 @@ const { load } = require('./sandbox.cjs');   /* 种子数值一律取自引擎�
     await page.waitForTimeout(400);
     const btn = await page.$$eval('[data-act="ascend"]', els => els.length);
     T(btn >= 1, 'F0 真仙盈满 ⇒ 修行页飞升入口在位（进得去这条终局）', '入口 ' + btn + ' 颗');
+    /* B16-af：飞升入口在圆相/速率下方、四格上方，且无外层方框 */
+    const fGeo = await page.evaluate(() => {
+      const c = document.querySelector('#tab-idle .hero-cta.ascend');
+      const rate = document.querySelector('#tab-idle .rate');
+      const st = document.querySelector('#tab-idle .statrow');
+      const cs = c ? getComputedStyle(c) : null;
+      const cb = c ? c.getBoundingClientRect() : null, rb = rate ? rate.getBoundingClientRect() : null,
+        sb = st ? st.getBoundingClientRect() : null;
+      return {
+        has: !!c, bw: cs ? cs.borderTopWidth : '', bg: cs ? cs.backgroundColor : '',
+        belowRate: !!(cb && rb && cb.top >= rb.bottom - 2),
+        aboveStat: !!(cb && sb && cb.bottom <= sb.top + 2)
+      };
+    });
+    T(fGeo.has && fGeo.bw === '0px' && (fGeo.bg === 'rgba(0, 0, 0, 0)' || fGeo.bg === 'transparent') &&
+      fGeo.belowRate && fGeo.aboveStat,
+      'F0b 飞升按钮无外层方框，位于吐纳速率下方、四格上方', JSON.stringify(fGeo));
     await page.click('[data-act="ascend"]');
     await page.waitForSelector('#modal-confirm:not(.hide)', { timeout: 8000 });
     await page.click('#cf-ok');
