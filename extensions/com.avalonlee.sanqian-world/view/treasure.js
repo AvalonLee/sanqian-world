@@ -65,8 +65,7 @@
       ' <span class="tierbadge ' + c.kindCls(dd.kind) + '">' + c.esc(c.t('treasure.kind.' + dd.kind)) + '</span>' +
       ' <span class="align-sym">' + c.esc(c.t('treasure.grade.' + dd.grade)) + '</span>' +
       (eq ? ' <span class="special-mark">' + c.esc(c.t('treasure.equip')) + '</span>' : '') + '</span>';
-    h += '<span class="trd">' + c.esc(c.t('treasure.lv.' + dd.kind, { n: lv, cap: max })) +
-      ' · ' + c.esc(SQ.Treasures.fxText(w, p, dd, e)) + '</span>';
+    h += '<span class="trd">' + c.esc(SQ.Treasures.fxText(w, p, dd, e)) + '</span>';
     if (dd.kind === 'xian') {
       /* N52 口径不变：这句只报「这件」的剩余，公式在引擎 bondHoursLeft 一处。
        * B16-e：认主规则句不再逐行重复——规则在库段标下说一次（行内只留数据）。 */
