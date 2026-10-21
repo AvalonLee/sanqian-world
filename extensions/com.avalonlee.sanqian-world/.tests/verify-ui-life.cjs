@@ -80,7 +80,10 @@ const { load } = require('./sandbox.cjs');   /* 种子数值一律取自引擎�
       vis: !document.getElementById('modal-recap').classList.contains('hide'),
       title: (tt.textContent || '').trim(), titleH: Math.round(tt.getBoundingClientRect().height),
       titleDup: document.querySelectorAll('#mrp-title').length,
-      titleLex: SQ.t('legacy.ui.recap.title', null, 'xiuxian'),
+      kicker: (document.getElementById('mrp-kicker').textContent || '').trim(),
+      kickerLex: SQ.t('legacy.ui.recap.title', null, 'xiuxian'),
+      titleLex: SQ.t('legacy.ui.recap.life', { name: SQ.displayName(s) }, 'xiuxian'),
+      rows: document.querySelectorAll('#mrp-rows li').length,
       goLex: (document.getElementById('mrp-go').textContent || '').trim(),
       goKey: SQ.t('legacy.ui.recap.go', null, 'xiuxian'),
       n: got.length, full: (last.text || '').length,
@@ -96,10 +99,11 @@ const { load } = require('./sandbox.cjs');   /* 种子数值一律取自引擎�
   const recapJudges = async (page, T, tagOpen, tagClose, chan) => {
     const r1 = await recapOf(page);
     T(r1.vis && r1.title === r1.titleLex && r1.titleH > 0 && r1.titleDup === 1 &&
+      r1.kicker === r1.kickerLex && r1.rows === 4 &&
       r1.goLex === r1.goKey && r1.n > 0 && r1.prefix && r1.chan === chan,
-      tagOpen + ' 盖棺之传在位：浮层可见 ‖ 标题取词表值**且量得出高度、挂点全库唯一** ‖ 钮名取词表值 ‖ 正文恒为末条传记前缀且那条 channel=' + chan,
+      tagOpen + ' 盖棺之传在位：浮层可见 ‖ 题签 + 「道号 · 一生」标题都取词表值，标题量得出高度、挂点全库唯一 ‖ 本世四行在位 ‖ 钮名取词表值 ‖ 正文恒为末条传记前缀且那条 channel=' + chan,
       'vis=' + r1.vis + ' 标题=' + r1.title + '@' + r1.titleH + 'px/id=' + r1.titleDup +
-      ' 钮=' + r1.goLex + ' 字数=' + r1.n + '/' + r1.full + ' 前缀=' + r1.prefix + ' chan=' + r1.chan);
+      ' 行=' + r1.rows + ' 钮=' + r1.goLex + ' 字数=' + r1.n + '/' + r1.full + ' 前缀=' + r1.prefix + ' chan=' + r1.chan);
     await page.click('#mrp-go', { timeout: 4000 }).catch(() => {});   /* 浮层没开时别把整篇跑崩：让下一判定性判红 */
     const r2 = await recapOf(page);
     /* 这一判同时咬「开过」：演出压根没开时 r1.vis=false，此处必红——否则「关好之后落在创角屏」

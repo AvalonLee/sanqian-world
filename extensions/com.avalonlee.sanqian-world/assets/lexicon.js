@@ -341,6 +341,7 @@
     'trib.suspense': '劫云压顶，天雷欲落——',
     'trib.stage.clear': '清算', 'trib.stage.thunder': '落雷', 'trib.stage.fate': '定数',
     'trib.result.win': '雷歇云散 · 渡劫功成', 'trib.result.lose': '天雷加身 · 道基受创',
+    'trib.mark.win': '成', 'trib.mark.lose': '败', 'trib.bill.pct': '成 算',
     'trib.loss.line': '修为损失 {p}%', 'trib.recap.line': '劫前成算 {p}% · 第 {n} 次渡劫',
     /* 渡劫演出重做批：结果帧数据行标签（成算环 + 数据行陈列） */
     'trib.row.p': '劫前成算', 'trib.row.loss': '修为损失', 'trib.row.n': '渡劫次数',
@@ -369,6 +370,9 @@
     'event.check.type.gear': '法器判定', 'event.check.type.power': '战力判定',
     'event.branch.lack': '不足：{req}',
     'event.result.title': '缘已定', 'event.result.pass': '判定得成', 'event.result.fail': '判定失利 · 收益折半',
+    'event.mark.win': '成', 'event.mark.lose': '败',
+    'event.res.eff': '得失', 'event.res.excl': '独占', 'event.res.bond': '缘',
+    'branch.mark.right': '正', 'branch.mark.evil': '魔', 'branch.mark.neutral': '中',
     'event.exclusive.title': '宝物认主', 'event.exclusive.art': '道统传人',
     'event.exclusive.hint': '独占之珍不参与自动择优，替换须亲手确认。',
     /* ── 批 2 · 四柱 chip 行（B1）：财/法/地 激活，侣位灰置（批 3 解锁）── */

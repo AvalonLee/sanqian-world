@@ -126,23 +126,34 @@
   </div>
 </div>
 
-<!-- 选择奇遇模态（F3：三分支 + 判定演出 + 结果页；必须选择才关闭） -->
-<div id="modal-choice" class="mask hide">
-  <div class="modal">
-    <div class="mc-badges" id="mc-badges"></div>
-    <h2 id="mc-title"></h2>
-    <p class="mc-story" id="mc-story"></p>
-    <div id="mc-branches"></div>
-    <p class="mc-foot hint" id="mc-foot"></p>
-    <div id="mc-judging" class="judging hide"></div>
-    <div id="mc-result" class="hide">
-      <p class="res-check" id="mc-check"></p>
-      <p class="res-karma" id="mc-karma"></p>
-      <p id="mc-eff" class="hint" style="text-align:center"></p>
-      <p id="mc-excl" class="hint hide" style="text-align:center"></p>
-      <p id="mc-bondlock" class="hint hide" style="text-align:center;opacity:.75"></p>
-      <button id="mc-ok" class="primary" style="width:100%"></button>
-    </div>
+<!-- 选择奇遇（F3：三分支 + 判定演出 + 结果页；必须选择才关闭）
+     UI v2 B16-v：按设计稿改全屏「问 → 应」两段（薄雾压边 + 纸面面板）；
+     判定、收益与「道心不预告」（D7）口径一字未动。 -->
+<div id="modal-choice" class="choice hide">
+  <div class="ch-mist" aria-hidden="true"></div>
+  <div class="ch-body">
+    <section class="chstage" id="mc-ask">
+      <div class="ch-head"><span class="mc-badges" id="mc-badges"></span><span class="ch-time" id="mc-date"></span></div>
+      <h2 class="mc-name" id="mc-title"></h2>
+      <p class="mc-story" id="mc-story"></p>
+      <div class="ch-opts" id="mc-branches"></div>
+      <p class="mc-foot hint" id="mc-foot"></p>
+      <div id="mc-judging" class="judging hide"></div>
+    </section>
+    <section class="chstage hide" id="mc-result">
+      <div class="ch-res" id="mc-res-box">
+        <div class="ch-mark" id="mc-mark"></div>
+        <h2 id="mc-res-title"></h2>
+        <div class="ch-sub res-check" id="mc-check"></div>
+      </div>
+      <ul class="ch-list">
+        <li><span class="gk" id="mc-gk-karma"></span><span class="res-karma" id="mc-karma"></span></li>
+        <li><span class="gk" id="mc-gk-eff"></span><span id="mc-eff"></span></li>
+        <li id="mc-excl-line" class="hide"><span class="gk" id="mc-gk-excl"></span><span id="mc-excl"></span></li>
+        <li id="mc-bondlock-line" class="hide"><span class="gk" id="mc-gk-bond"></span><span id="mc-bondlock"></span></li>
+      </ul>
+      <div class="ch-acts"><button id="mc-ok"></button></div>
+    </section>
   </div>
 </div>
 
@@ -427,29 +438,48 @@
 <div id="modal-recap" class="mask hide">
   <div class="modal">
     <div class="decree-scroll">
+      <div class="recap-kicker" id="mrp-kicker"></div>
       <div class="decree-type" id="mrp-title"></div>
-      <div class="decree-verdict" id="mrp-text" style="max-height:58vh;overflow-y:auto"></div>
+      <div class="decree-verdict" id="mrp-text" style="max-height:44vh;overflow-y:auto"></div>
+      <ul class="recap-rows" id="mrp-rows"></ul>
     </div>
     <button id="mrp-go" class="primary" style="width:100%;margin-top:12px"></button>
   </div>
 </div>
 
-<!-- 渡劫呈报（渡劫演出重做批：主题感知卡片 + 成算环 + 数据行） -->
+<!-- 渡劫演出（UI v2 B16-u · 设计稿 §渡劫演出）：全屏「清算 → 落雷 → 定数」三段。
+     判定与时序未动（D8：点渡劫即结算，不加劫前确认）；清算段是**结算后的账单**，
+     列的是 `tribInfo.parts` 那七项真实加数，让玩家看见这一雷是怎么算出来的。 -->
 <div id="trib-stage" class="trib-mask hide">
-  <div class="trib-card" id="trib-box">
+  <div class="trib-sky" aria-hidden="true">
+    <svg class="trib-cloud c1" viewBox="0 0 1200 300" preserveAspectRatio="none"><path fill="currentColor" d="M0 0H1200V132C1140 158 1078 118 1010 146C942 174 878 130 800 156C722 182 660 138 584 164C508 190 444 146 368 172C292 198 228 152 152 178C96 197 44 166 0 184Z"/></svg>
+    <svg class="trib-cloud c2" viewBox="0 0 1200 300" preserveAspectRatio="none"><path fill="currentColor" d="M0 0H1200V96C1150 130 1088 92 1020 122C952 152 884 108 812 138C740 168 672 124 596 152C520 180 456 136 380 164C304 192 236 146 160 172C104 191 48 160 0 178Z"/></svg>
+    <svg class="trib-cloud c3" viewBox="0 0 1200 300" preserveAspectRatio="none"><path fill="currentColor" d="M0 0H1200V72C1146 104 1082 70 1014 98C946 126 878 84 804 112C730 140 664 98 588 126C512 154 448 112 372 138C296 164 232 120 156 146C100 164 46 136 0 152Z"/></svg>
+    <svg class="trib-bolt" viewBox="0 0 1200 900" preserveAspectRatio="none">
+      <path class="fork" d="M548 402L470 468L492 486"/>
+      <path class="fork" d="M520 640L448 704"/>
+      <path class="main" d="M596 -10L560 190L618 182L548 402L610 392L520 640L578 630L508 762"/>
+    </svg>
+  </div>
+  <div class="trib-body" id="trib-box">
     <div class="trib-steps" id="trib-steps"><span class="on"></span><span></span><span></span></div>
-    <div class="trib-ring" id="trib-ring">
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <circle class="trk" cx="50" cy="50" r="42"></circle>
-        <circle class="tfl" id="trib-arc" cx="50" cy="50" r="42"></circle>
-      </svg>
-      <div class="tri-in"><span class="tri-p" id="trib-ring-p">--</span><span class="tri-u">%</span></div>
-    </div>
-    <div class="t1" id="trib-t1"></div>
-    <div class="t2" id="trib-t2"></div>
-    <div class="trib-rows" id="trib-rows"></div>
-    <div class="t2 hide" id="trib-guard"></div>
-    <div class="trib-skip hide" id="trib-skip"></div>
+    <section class="tstage" id="trib-clear">
+      <div class="t-eyebrow" id="trib-date"></div>
+      <div class="t-titles"><span class="t-from" id="trib-from"></span><span class="t-arrow">→</span><span class="t-to" id="trib-to"></span></div>
+      <div class="t-p"><span class="t-num" id="trib-ring-p">--</span><span class="t-pct">%</span></div>
+      <div class="t-p-lab" id="trib-plab"></div>
+      <ul class="t-bill" id="trib-bill"></ul>
+    </section>
+    <section class="tstage" id="trib-verdict" hidden>
+      <div class="t-verdict" id="trib-v">
+        <div class="t-vmark" id="trib-mark"></div>
+        <h2 id="trib-t1"></h2>
+        <div class="t-vsub" id="trib-t2"></div>
+      </div>
+      <ul class="t-gains" id="trib-rows"></ul>
+      <div class="t2 hide" id="trib-guard"></div>
+      <div class="t-acts"><button class="btn sealbtn hide" id="trib-skip"></button></div>
+    </section>
   </div>
 </div>
 

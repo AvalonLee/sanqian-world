@@ -107,6 +107,16 @@ const pend = (id, realm, k) => ({ id: id, at: T0, tier: id === 'ambush_revenge' 
       'P1 三枚按钮齐（迎战 / 认输 / 避战）且键序固定', p0.branches.map((b) => b.v).join('/'));
     T(p0.branches.every((b) => !/^(正道|魔道|左道)\s*·/.test(b.txt)) && /迎战|认输|避战/.test(p0.branches[0].txt),
       'P2 按钮文字**不带善恶前缀**（迎战/避战/认输是战术，不是道德阵营）', p0.branches.map((b) => b.txt.slice(0, 12)).join(' | '));
+    /* B16-v：问段 = 设计稿全屏两段（薄雾 / 日期 / 选项卡），不是普通居中模态 */
+    const shell0 = await page.evaluate(() => ({
+      cls: document.getElementById('modal-choice').className,
+      mist: !!document.querySelector('#modal-choice .ch-mist'),
+      date: (document.getElementById('mc-date') || {}).textContent.trim(),
+      opts: document.querySelectorAll('#mc-branches .opt').length,
+      askHidden: document.getElementById('mc-ask').classList.contains('hide')
+    }));
+    T(/choice/.test(shell0.cls) && shell0.mist && !!shell0.date && shell0.opts === 3 && !shell0.askHidden,
+      'P2b 抉择演出 = 设计稿全屏「问」段（薄雾 + 日期 + 三张选项卡）', JSON.stringify(shell0));
     T(p0.story.indexOf('来者 ' + expFoe.nm + ' · 战力 ' + p0.foeTxt) >= 0 && p0.pend.foe.power === expFoe.power,
       'P3 正文第二行报来者名号与战力（取表：REALMS[6].power × FOE_K = ' + expFoe.power + '）',
       p0.story.slice(-34));
@@ -132,6 +142,15 @@ const pend = (id, realm, k) => ({ id: id, at: T0, tier: id === 'ambush_revenge' 
     T(p2.open === true && p2.branchesHidden === true && p2.resultShown === true && p2.okTxt !== '',
       'T4 超时结算后浮层落到结果页（分支排已收 ‖ 结果页在位 ‖「确定」有字 ⇒ 关得掉，不是一排点了没反应的按钮）',
       'open=' + p2.open + ' 分支收=' + p2.branchesHidden + ' 结果页=' + p2.resultShown + ' ok=' + JSON.stringify(p2.okTxt));
+    /* B16-v：结果段按设计稿 = 印（成/败）+ 缘已定 + 四项标签 */
+    const res2 = await page.evaluate(() => ({
+      mark: (document.getElementById('mc-mark') || {}).textContent.trim(),
+      title: (document.getElementById('mc-res-title') || {}).textContent.trim(),
+      gks: Array.prototype.map.call(document.querySelectorAll('#modal-choice .ch-list .gk'),
+        (x) => x.textContent.trim())
+    }));
+    T(!!res2.mark && !!res2.title && res2.gks.length === 4 && res2.gks.every((x) => x.length > 0),
+      'T4b 结果段 = 印 + 缘已定 + 四项标签（道心/得失/独占/缘）', JSON.stringify(res2));
     await page.click('#mc-ok');
     const p3 = await state(page);
     T(p3.open === false, 'T5 点「确定」浮层收起（玩家能从超时这一屏走出来）', 'open=' + p3.open);
