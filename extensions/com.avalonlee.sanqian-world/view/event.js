@@ -130,6 +130,11 @@
     if (!ev) return;
     lastChoiceResult = null;
     c.clearJudging();   /* 判定动画的定时器数组仍在核内（内核的作答流也在 push）⇒ 走桥位清点 */
+    c.$('mc-date').textContent = c.date(c.s.profile, c.w, Date.now(), c.s.profile.worldId) || '';
+    c.$('mc-gk-karma').textContent = c.t('karma.system');
+    c.$('mc-gk-eff').textContent = c.t('event.res.eff');
+    c.$('mc-gk-excl').textContent = c.t('event.res.excl');
+    c.$('mc-gk-bond').textContent = c.t('event.res.bond');
     c.$('mc-badges').innerHTML =
       '<span class="mbadge">' + c.esc(c.t('event.tier.' + ev.tier)) + '</span>' +
       '<span class="mbadge ' + (ev.nature === 'good' ? 'good' : 'bad') + '">' + c.esc(c.t('event.nature.' + ev.nature)) + '</span>' +
@@ -155,15 +160,19 @@
       var hasLock = (br.gain || []).some(function (g) { return g.type === 'bondLock'; });
       /* 情谊生裂角标（缘尽收敛批）：轻中度背叛分支的预告——措辞比「绝缘」轻，明示不致缘尽 */
       var hasDrain = (br.gain || []).some(function (g) { return g.type === 'bondDrain'; });
-      bh += '<button class="branch ' + bk + '-b" data-act="choose" data-v="' + bk + '"' + (disabled ? ' disabled' : '') + '>' +
-        '<span class="bk">' + (tac ? '' : c.esc(c.t('branch.' + bk)) + ' · ') + c.esc(c.t('event.' + ev.id + '.branch.' + bk)) +
+      /* B16-v：设计稿选项卡 = 立场印 + 分支标题 + 判定/收益行；**不预告道心增减**（D7 已拍板） */
+      bh += '<button class="opt ' + bk + '-b" data-act="choose" data-v="' + bk + '"' + (disabled ? ' disabled' : '') + '>' +
+        '<span class="opt-mark"' + (tac ? ' style="background:var(--sq2-ink-3)"' : '') + '>' +
+        c.esc(tac ? '' : c.t('branch.mark.' + bk)) + '</span>' +
+        '<span class="opt-main"><span class="opt-t">' + c.esc(c.t('event.' + ev.id + '.branch.' + bk)) +
         (hasLock ? ' <span class="ebadge gray">' + c.esc(c.t('event.badge.bondlock')) + '</span>' : '') +
-        (!hasLock && hasDrain ? ' <span class="ebadge gray">' + c.esc(c.t('event.badge.bonddrain')) + '</span>' : '') + '</span>' +
-        (infos.length ? '<span class="bi">' + c.esc(infos.join(' · ')) + '</span>' : '') +
-        '</button>';
+        (!hasLock && hasDrain ? ' <span class="ebadge gray">' + c.esc(c.t('event.badge.bonddrain')) + '</span>' : '') +
+        '</span>' + (infos.length ? '<span class="opt-c">' + c.esc(infos.join(' · ')) + '</span>' : '') +
+        '</span></button>';
     });
     c.$('mc-branches').innerHTML = bh;
     c.$('mc-branches').classList.remove('hide');
+    c.$('mc-ask').classList.remove('hide');
     if (tac) c.ambushCountdown();
     else {
       c.ambushHalt();
@@ -177,6 +186,7 @@
 
   function choiceResult(c, res) {
     lastChoiceResult = res;
+    c.$('mc-ask').classList.add('hide');
     c.$('mc-branches').classList.add('hide');
     c.$('mc-foot').classList.add('hide');
     c.$('mc-judging').classList.add('hide');
@@ -186,11 +196,15 @@
     var ck = c.$('mc-check');
     if (checks.length) {
       ck.textContent = res.pass ? c.t('event.result.pass') : c.t('event.result.fail');
-      ck.className = 'res-check ' + (res.pass ? 'pass' : 'fail');
+      ck.className = 'ch-sub res-check ' + (res.pass ? 'pass' : 'fail');
     } else {
       ck.textContent = '';
-      ck.className = 'res-check';
+      ck.className = 'ch-sub res-check';
     }
+    /* B16-v：结果段 = 印（成/败）+ 缘已定 + 判定行 + 得失清单 */
+    c.$('mc-mark').textContent = c.t(res.pass ? 'event.mark.win' : 'event.mark.lose');
+    c.$('mc-res-box').className = 'ch-res' + (res.pass ? '' : ' bad');
+    c.$('mc-res-title').textContent = c.t('event.result.title');
     c.$('mc-karma').textContent = res.karmaTxt;
     c.$('mc-karma').className = 'res-karma ' + (res.karma >= 0 ? 'pos' : 'neg');
     c.$('mc-eff').textContent = SQ.Events.effText(c.w, c.p, c.d, res.eff || {});
@@ -198,9 +212,9 @@
     if (res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) {
       /* 独占已入手：全屏演出之外，结果页留一行豁免规则提示（UI §3.5） */
       exEl.textContent = c.t('event.exclusive.hint');
-      exEl.classList.remove('hide');
+      c.$('mc-excl-line').classList.remove('hide');
     } else {
-      exEl.classList.add('hide');
+      c.$('mc-excl-line').classList.add('hide');
     }
     /* 绝交锁结果页末行灰字（B7）：「有些事做了，就再没有回头路」
      * 缘尽收敛批（引擎卷 v1.10 §3.6）：门槛不合已降级为情谊生裂 → 换软措辞末行，
@@ -208,12 +222,12 @@
     var blEl = c.$('mc-bondlock');
     if (res.eff && res.eff.bondLock) {
       blEl.textContent = c.t('log.eff.bondLock', { name: c.t('bond.' + res.eff.bondLock + '.name') });
-      blEl.classList.remove('hide');
+      c.$('mc-bondlock-line').classList.remove('hide');
     } else if (res.eff && res.eff.bondDrain) {
       blEl.textContent = c.t('log.eff.bondDrain.hint', { name: c.t('bond.' + res.eff.bondDrain + '.name') });
-      blEl.classList.remove('hide');
+      c.$('mc-bondlock-line').classList.remove('hide');
     } else {
-      blEl.classList.add('hide');
+      c.$('mc-bondlock-line').classList.add('hide');
     }
     c.$('mc-ok').textContent = c.t('ui.confirm');
   }

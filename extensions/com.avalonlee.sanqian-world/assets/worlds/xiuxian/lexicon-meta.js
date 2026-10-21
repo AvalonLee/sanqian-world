@@ -70,6 +70,7 @@
    * 「烧表请天道作传」整族下线（见 codex.js 同批注）；两行 `bio.source.*` **留下**——
    * 老档确有 source:'tiandao' 的条目，抹掉来源标记等于改史。 */
   K['legacy.ui.recap.title'] = '盖棺之传';
+  K['legacy.ui.recap.life'] = '{name} · 一生';
   K['legacy.ui.recap.go'] = '入世';
   K['legacy.ui.startRealm.pick'] = '起步境界（跳档不跳渡劫）';
   K['legacy.ui.legacyTalent.pick'] = '转世天赋（≤2，逐世可换）';

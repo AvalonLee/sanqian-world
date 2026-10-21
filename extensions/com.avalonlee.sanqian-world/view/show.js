@@ -96,10 +96,14 @@
     c.renderAll();
   }
 
-  /* 盖棺之传：标题 + 正文打字机（`reducedMotion` 时直接全文上屏）；点「入世」收口。 */
-  function recap(c, title, text) {
+  /* 盖棺之传：题签 + 一生标题 + 正文打字机 + 本世四行（`reducedMotion` 时直接全文上屏）；点「入世」收口。 */
+  function recap(c, title, text, rows) {
     var el = c.$('mrp-text');
+    c.$('mrp-kicker').textContent = c.t('legacy.ui.recap.title');
     c.$('mrp-title').textContent = title;
+    c.$('mrp-rows').innerHTML = (rows || []).map(function (r) {
+      return '<li>' + c.esc(r) + '</li>';
+    }).join('');
     c.$('mrp-go').textContent = c.t('legacy.ui.recap.go');
     el.textContent = '';
     el.scrollTop = 0;
@@ -129,7 +133,21 @@
   function playRecap(c) {
     var bs = c.s.meta.biographies || [];
     var bio = bs[bs.length - 1];
-    if (bio && bio.text) recap(c, c.t('legacy.ui.recap.title'), bio.text);
+    if (!bio || !bio.text) return;
+    /* B16-w：本世四行全读 `Legacy.preview` 的 summary（与兵解预览 / 实结同源），视图零自算。
+     * channel 只影响折算分与倍率，summary 与通道无关 ⇒ 取 bingjie 那支即可。 */
+    var rows = [];
+    try {
+      var pv = SQ.Legacy.preview(c.w, c.s.meta, c.p, c.d, 'bingjie', Date.now());
+      var sm = (pv && pv.summary) || {};
+      rows = [
+        c.t('legacy.ui.preview.realm') + ' · ' + c.t('realm.' + (sm.realm || 0)),
+        c.t('legacy.ui.preview.trib', { w: sm.tribWin || 0, l: sm.tribFail || 0 }),
+        c.t('legacy.ui.preview.zones', { n: sm.zones || 0 }),
+        c.t('legacy.ui.preview.bonds', { n: sm.bonds || 0 })
+      ];
+    } catch (e) { rows = []; }
+    recap(c, c.t('legacy.ui.recap.life', { name: SQ.displayName(c.s) }), bio.text, rows);
   }
 
   SQ.UI = SQ.UI || {};

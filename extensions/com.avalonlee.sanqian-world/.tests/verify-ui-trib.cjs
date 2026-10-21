@@ -80,16 +80,30 @@ const { chromium } = require('playwright-core');
   /* ── A 胜局（浅主题）── */
   {
     const { ctx, page, errors } = await openPage(buildSave(0), false);
+    await page.waitForSelector('#trib-stage:not(.hide)', { timeout: 20000 });
+    /* B16-u：首帧 = 清算（账单先于定数揭盅） */
+    const clear0 = await page.evaluate(() => ({
+      hidden: document.getElementById('trib-clear').hidden,
+      verdict: document.getElementById('trib-verdict').hidden,
+      bill: document.querySelectorAll('#trib-bill li').length
+    }));
+    T(clear0.hidden === false && clear0.verdict === true && clear0.bill === 8,
+      'A 演出首帧 = 清算（七项账单先行，定数尚未揭盅）', JSON.stringify(clear0));
     await awaitStage(page);
     const st = await readState(page);
     T(st.attempts === 1 && st.result === 'success', 'A 真实结算：首次渡劫且功成', JSON.stringify(st));
 
-    /* ① 幕布非近黑（旧口径为铺满全屏的近黑幕布 → 本批弃用） */
-    const maskBg = await page.$eval('#trib-stage', el => getComputedStyle(el).backgroundColor);
-    const m = rgb(maskBg);
-    T(m && m.a <= 0.5, 'A 幕布非近黑（alpha ≤ 0.5）', maskBg);
+    /* ① 幕布 = 设计稿深色遮罩；定数帧（.ok/.bad）改用渐变底 ⇒ 量 background-image */
+    const maskBg = await page.evaluate(() => {
+      const el = document.getElementById('trib-stage');
+      const cs = getComputedStyle(el);
+      return { color: cs.backgroundColor, image: cs.backgroundImage };
+    });
+    const m = rgb(maskBg.color);
+    T((maskBg.image && maskBg.image.indexOf('gradient') >= 0) || (m && m.a >= 0.5 && m.a <= 0.7),
+      'A 幕布为设计稿深色遮罩（落雷前深底 / 定数帧云开渐变）', JSON.stringify(maskBg));
 
-    /* ② 卡面走 UI v2 纸面令牌（B11 换装后：明暗都由 --sq2-paper 承接） */
+    /* ② 演出面板走 UI v2 纸面令牌（.tstage；清算与定数同壳） */
     const paperRgb = await page.evaluate(() => {
       const d = document.createElement('div');
       d.style.background = 'var(--sq2-paper)';
@@ -98,10 +112,10 @@ const { chromium } = require('playwright-core');
       d.remove();
       return v;
     });
-    const cardBg = await page.$eval('#trib-box', el => getComputedStyle(el).backgroundColor);
-    T(cardBg === paperRgb, 'A 卡面底色 = 纸面令牌 --sq2-paper', cardBg + ' vs ' + paperRgb);
+    const cardBg = await page.$eval('#trib-verdict', el => getComputedStyle(el).backgroundColor);
+    T(cardBg === paperRgb, 'A 演出面板底色 = 纸面令牌 --sq2-paper', cardBg + ' vs ' + paperRgb);
     const c = rgb(cardBg);
-    T(c && c.r >= 220 && c.g >= 220 && c.b >= 200, 'A 浅主题卡面为宣纸浅色（rgb ≥ 220）', cardBg);
+    T(c && c.r >= 220 && c.g >= 220 && c.b >= 200, 'A 浅主题面板为宣纸浅色（rgb ≥ 220）', cardBg);
 
     /* ③ 文字与卡面对比（深字浅底 → 识别清晰；取普通行 .tr b，避开 .hot/.bad 彩色值） */
     const inkCss = await page.$eval('#trib-rows .tr:not(.hot):not(.bad) b', el => getComputedStyle(el).color);
@@ -114,12 +128,27 @@ const { chromium } = require('playwright-core');
     const t1 = await page.$eval('#trib-t1', el => el.textContent.trim());
     T(t1 === '雷歇云散 · 渡劫功成', 'A 胜帧标题', t1);
 
-    /* ⑤ 成算环：环内百分比与 dashoffset 自洽（周长 264） */
+    /* ⑤ 清算账单（B16-u）：成算大数 = 账单合计；七项加数 + 合计共八行 */
     const pct = parseInt((await page.$eval('#trib-ring-p', el => el.textContent.trim())), 10);
-    const off = parseFloat(await page.$eval('#trib-arc', el => el.style.strokeDashoffset));
-    T(pct >= 5 && pct <= 95, 'A 环内成算在 clamp 区间 [5,95]', String(pct));
+    T(pct >= 5 && pct <= 95, 'A 成算大数在 clamp 区间 [5,95]', String(pct));
     T(pct >= 50, 'A 胜局成算 ≥ 50（与定值 RNG 自洽：p>0.5 才成）', String(pct));
-    T(Math.abs(off - 264 * (1 - pct / 100)) < 0.6, 'A 成算环 dashoffset 与百分比自洽', off + ' @' + pct + '%');
+    const bill = await page.evaluate(() => {
+      const lis = Array.prototype.slice.call(document.querySelectorAll('#trib-bill li'));
+      return {
+        n: lis.length,
+        labels: lis.map(li => {
+          const sp = li.querySelector('span');
+          /* 只取标签本体：<em> 是行内小注（战力 / 道心 / 护法名），不算标签 */
+          return sp && sp.firstChild ? String(sp.firstChild.textContent).trim() : '';
+        }),
+        sum: ((document.querySelector('#trib-bill .t-sum b') || {}).textContent || '').trim()
+      };
+    });
+    T(bill.n === 8, 'A 清算账单 = 七项加数 + 合计（8 行）', 'n=' + bill.n);
+    T(['境界基础', '百器抗性', '战力富余', '天赋/功法', '道心', '正道光环', '护法']
+      .every(k => bill.labels.some(x => x.indexOf(k) >= 0)),
+      'A 账单七项与引擎 tribInfo.parts 同名（不让视图自造口径）', bill.labels.join('/'));
+    T(bill.sum === pct + '%', 'A 账单合计 === 成算大数（同一快照，非两处各算）', bill.sum + ' @' + pct + '%');
 
     /* ⑥ 数据行：成算 / 次数 / 护法（胜帧无损失行） */
     const rows = await page.$$eval('#trib-rows .tr', els => els.map(el => el.textContent.replace(/\s+/g, ' ').trim()));
@@ -159,9 +188,9 @@ const { chromium } = require('playwright-core');
     T(t1 === '天雷加身 · 道基受创', 'B 败帧标题', t1);
 
     const pct = parseInt((await page.$eval('#trib-ring-p', el => el.textContent.trim())), 10);
-    const off = parseFloat(await page.$eval('#trib-arc', el => el.style.strokeDashoffset));
     T(pct < 50, 'B 败局成算 < 50（与定值 RNG 自洽：p<0.5 才败）', String(pct));
-    T(Math.abs(off - 264 * (1 - pct / 100)) < 0.6, 'B 成算环 dashoffset 与百分比自洽', off + ' @' + pct + '%');
+    const billSum = await page.$eval('#trib-bill .t-sum b', el => el.textContent.trim());
+    T(billSum === pct + '%', 'B 清算合计 === 成算大数（败局同一快照）', billSum + ' @' + pct + '%');
 
     const rows = await page.$$eval('#trib-rows .tr', els => els.map(el => el.textContent.replace(/\s+/g, ' ').trim()));
     const lossRow = rows.find(r => r.includes('修为损失'));
@@ -185,16 +214,21 @@ const { chromium } = require('playwright-core');
       d.remove();
       return v;
     });
-    const cardBg = await page.$eval('#trib-box', el => getComputedStyle(el).backgroundColor);
-    T(cardBg === paperRgb, 'C 暗主题卡面 = 墨夜纸面令牌（随主题转深）', cardBg + ' vs ' + paperRgb);
+    const cardBg = await page.$eval('#trib-verdict', el => getComputedStyle(el).backgroundColor);
+    T(cardBg === paperRgb, 'C 暗主题面板 = 墨夜纸面令牌（随主题转深）', cardBg + ' vs ' + paperRgb);
     const c = rgb(cardBg);
-    T(c && c.r < 60 && c.g < 60 && c.b < 60 && c.a > 0.9, 'C 墨夜卡面为不透明深底（可读、不透视背景）', cardBg);
+    T(c && c.r < 60 && c.g < 60 && c.b < 60 && c.a > 0.9, 'C 墨夜面板为不透明深底（可读、不透视背景）', cardBg);
     const inkCss = await page.$eval('#trib-rows .tr:not(.hot):not(.bad) b', el => getComputedStyle(el).color);
     const ink = rgb(inkCss);
     T(ink && ink.r >= 200 && ink.g >= 200 && ink.b >= 200, 'C 暗主题数据行文字为浅色（深底浅字可读）', inkCss);
-    const maskBg = await page.$eval('#trib-stage', el => getComputedStyle(el).backgroundColor);
-    const m = rgb(maskBg);
-    T(m && m.a <= 0.5, 'C 暗主题幕布仍非近黑（alpha ≤ 0.5）', maskBg);
+    const maskBg = await page.evaluate(() => {
+      const el = document.getElementById('trib-stage');
+      const cs = getComputedStyle(el);
+      return { color: cs.backgroundColor, image: cs.backgroundImage };
+    });
+    const m = rgb(maskBg.color);
+    T((maskBg.image && maskBg.image.indexOf('gradient') >= 0) || (m && m.a >= 0.5 && m.a <= 0.7),
+      'C 暗主题幕布同为设计稿遮罩（深底 / 云开渐变）', JSON.stringify(maskBg));
     T(errors.length === 0, 'C 零页面报错', errors.join(' | ').slice(0, 200) || 'clean');
     await ctx.close();
   }

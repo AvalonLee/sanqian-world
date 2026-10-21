@@ -363,7 +363,11 @@ const { chromium } = require('playwright-core');
         title: (tt.textContent || '').trim(),
         titleH: Math.round(tt.getBoundingClientRect().height),
         titleDup: document.querySelectorAll('#mrp-title').length,
-        titleLex: SQ.t('legacy.ui.recap.title', null, s.profile.worldId),
+        kicker: (document.getElementById('mrp-kicker').textContent || '').trim(),
+        /* B16-w：题签 = 盖棺之传，标题 = 「道号 · 一生」（两者都回词表） */
+        kickerLex: SQ.t('legacy.ui.recap.title', null, s.profile.worldId),
+        titleLex: SQ.t('legacy.ui.recap.life', { name: SQ.displayName(s) }, s.profile.worldId),
+        rows: document.querySelectorAll('#mrp-rows li').length,
         goLex: (document.getElementById('mrp-go').textContent || '').trim(),
         goKey: SQ.t('legacy.ui.recap.go', null, s.profile.worldId),
         n: got.length, full: full.length,
@@ -375,10 +379,11 @@ const { chromium } = require('playwright-core');
     });
     const rc1 = await readRecap();
     T(rc1.visible && rc1.title === rc1.titleLex && rc1.titleH > 0 && rc1.titleDup === 1 &&
+      rc1.kicker === rc1.kickerLex && rc1.rows === 4 &&
       rc1.goLex === rc1.goKey && rc1.n > 0 && rc1.prefix && rc1.bioBtns === 0,
-      'A22 兵解即开盖棺之传：浮层在位 ‖ 标题取到词表值**且真的量得出高度、挂点全库唯一**（同 id 撞车会写进暗处那一个）‖ 钮名取到词表值 ‖ 屏上正文恒为存档末条传记的前缀（视图零自造文本）‖ 前世书 bioAsk/bioAdopt 两钮全库 0 颗',
-      'vis=' + rc1.visible + ' 标题=' + rc1.title + '@' + rc1.titleH + 'px/同族 id=' + rc1.titleDup +
-      ' 钮=' + rc1.goLex + ' 字数=' + rc1.n + '/' + rc1.full + ' 前缀=' + rc1.prefix + ' 残留钮=' + rc1.bioBtns);
+      'A22 兵解即开盖棺之传：浮层在位 ‖ 题签「盖棺之传」+ 标题「道号 · 一生」都取词表值，标题**量得出高度、挂点全库唯一**（同 id 撞车会写进暗处那一个）‖ 本世四行在位 ‖ 钮名取词表值 ‖ 屏上正文恒为存档末条传记的前缀（视图零自造文本）‖ 前世书 bioAsk/bioAdopt 两钮全库 0 颗',
+      'vis=' + rc1.visible + ' 题签=' + rc1.kicker + ' 标题=' + rc1.title + '@' + rc1.titleH + 'px/同族 id=' + rc1.titleDup +
+      ' 行=' + rc1.rows + ' 钮=' + rc1.goLex + ' 字数=' + rc1.n + '/' + rc1.full + ' 前缀=' + rc1.prefix + ' 残留钮=' + rc1.bioBtns);
     await page.waitForTimeout(400);
     const rc2 = await readRecap();
     T(rc2.n >= rc1.n && (rc2.n > rc1.n || rc2.n === rc2.full) && rc2.prefix,
