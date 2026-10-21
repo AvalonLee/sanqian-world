@@ -687,7 +687,9 @@
   .chips button.on { border-color: var(--primary); color: var(--primary); background: var(--brand-soft); }
   /* 页头：仅右上角动作（坊市刷新）；页内不再重复 Tab 名（左栏导航已标） */
   .pagehead { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 8px; }
-  /* 左 chips + 右动作同排（坊市：左「坊市/黑市」右「刷新」），两端对齐、垂直居中 */
+  /* 左动作 + 右动作同排（详情页的返回钮那一类），两端对齐、垂直居中。
+   * 第册一百一十四批起「页头只放一枚不可点的页名」已五页清零（坊市 / 势力 / 宗门 / 成就 / 轮回）——
+   * Tab 名只在左栏导航出现一次。 */
   .pagehead.split { justify-content: space-between; }
   .pagehead .chips { margin-bottom: 0; }
   .refreshbtn { min-height: 34px; padding: 4px 14px; border-radius: 999px; font-size: 12px; color: var(--primary); border-color: var(--primary); background: var(--brand-soft); white-space: nowrap; }
@@ -2244,14 +2246,9 @@
   .zrow.locked { opacity: .48; cursor: default; }
   .zrow.locked:hover { background: transparent; }
   @media (min-width: 720px) { #tab-combat { max-width: 780px; } }
-  /* ══ UI v2 B15-e：坊市（设计稿 .segmini / .refreshbtn / .warstrip / .shopgrid / .goods）══ */
-  .segmini { display: inline-flex; border: 1px solid var(--sq2-line-2); border-radius: 99px; padding: 2px; }
-  .segmini button {
-    font: inherit; font-size: 11.5px; letter-spacing: .14em;
-    padding: 5px 15px; border: 0; border-radius: 99px;
-    background: none; color: var(--sq2-ink-3); cursor: pointer; min-height: 34px;
-  }
-  .segmini button.on { background: var(--sq2-ink); color: var(--sq2-paper); }
+  /* ══ UI v2 B15-e：坊市（设计稿 .refreshbtn / .warstrip / .shopgrid / .goods）══
+   *    .segmini（页头那枚「坊市 / 黑市」药丸切换）随第册一百一十四批整族删除：两架已同页上下排，
+   *    段条就是架名，切换态不再需要（本仓没有第二处用它）。 */
   .refreshbtn {
     font-size: 11px; padding: 7px 13px; min-height: 34px; border-radius: 99px;
     letter-spacing: .06em; border: 1px solid var(--sq2-line-2); background: transparent;
@@ -2485,3 +2482,22 @@
   #tab-sect .reqchips > span.ok::before { background: var(--sq2-jade); border-color: var(--sq2-jade); }
   #tab-sect .sechead .t { font-family: var(--sq2-serif); letter-spacing: .16em; }
   @media (min-width: 720px) { #tab-prodigy, #tab-sect { max-width: 780px; } }
+  /* ══ 第册一百一十四批 · 坊市：一页两架 + 每卡「购入」钮（用户三令之一、二）══
+   *    ① 价格行由「钮就是价格」改「左价右钮」：朱砂衬线跟着价走，动作那枚收成小胶囊。
+   *       `width:auto` 是顶掉上方通用 `.acts button { width:100% }`（同 ID 前缀更具体）。
+   *    ② 段条两架各一条（.fasec / .heisec），右端刷新钮 = 刷这一架；走查按容器类分架取数，
+   *       不再靠「点页签之后再数」。 */
+  #tab-shop .goods .g-p { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  #tab-shop .goods .g-cost {
+    flex: 1; font-family: var(--sq2-serif); font-size: 12.5px; letter-spacing: .04em; color: var(--sq2-cinnabar);
+  }
+  #tab-shop .goods .g-buy {
+    flex: 0 0 auto; width: auto; min-height: 28px; padding: 2px 12px; text-align: center;
+    border: 1px solid var(--sq2-line-2); border-radius: 999px; background: transparent;
+  }
+  #tab-shop .goods .g-buy:hover {
+    background: var(--sq2-ink); border-color: var(--sq2-ink); color: var(--sq2-paper); text-decoration: none;
+  }
+  #tab-shop .goods .g-disc, #tab-shop .goods.sold .g-sold { flex: 1 1 100%; }
+  #tab-shop .strip .refreshbtn { flex: 0 0 auto; }
+  @media (max-width: 719px) { #tab-shop .goods .g-buy { flex: 1 1 auto; } }

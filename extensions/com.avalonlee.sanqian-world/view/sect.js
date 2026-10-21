@@ -14,7 +14,7 @@
   function render(c) {
     var w = c.w, d = c.d, p = c.p, m = c.mods;
     c.ui.sectPick = c.ui.sectPick || { gate: 'wuyue', align: 'neutral' };
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + c.esc(c.t('sect.system')) + '</button></div></div>';
+    var h = '';
     /* B16-ac：已加入固定势力 ⇒ 宗门页 = 该势力的「我的门派」主页（介绍 + 五套日常管理） */
     if (!w.sect && w.factionId && w.factionId !== 'sect' && SQ.UI.faction && SQ.UI.faction.home) {
       SQ.UI.faction.home(c);

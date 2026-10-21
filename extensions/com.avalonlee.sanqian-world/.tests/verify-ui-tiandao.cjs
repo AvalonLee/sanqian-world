@@ -421,19 +421,31 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   await page.waitForTimeout(250);
   T(!(await page.$('.dp-sheet')), 'I3 点「收起」浮层消失（不留遮罩拦点击）');
 
-  /* I4（B16-ae）：闭关/历练切换时模式说明折行数不同，圆相不许上下跳 */
+  /* I4（B16-ae）：闭关/历练切换时模式说明折行数不同，圆相不许上下跳
+   * I4b（第册一百一十四批改口）：那行小字不再随模式换文案 ⇒ 切换不跳的**因**已经变了，
+   * 但 I4 这一判的方向不变（圆相仍不许动），故保留；新加 I4b 判「屏上那句确实是闭关那句」。 */
   const topOf = () => page.evaluate(() => Math.round(document.querySelector('#tab-idle .stathero').getBoundingClientRect().top));
+  const metaOf = () => page.evaluate(() => {
+    const s = document.querySelector('#tab-idle .modemeta > span');
+    return s ? s.textContent.replace(/\s+/g, ' ').trim() : '';
+  });
   const t0 = await topOf();
+  const mSeclude = await metaOf();
   await page.click('#tab-idle [data-act="setMode"][data-v="venture"]');
   await page.waitForTimeout(350);
   const t1 = await topOf();
   const hMeta = await page.evaluate(() => Math.round(document.querySelector('#tab-idle .modemeta').getBoundingClientRect().height));
+  const mVenture = await metaOf();
   await page.click('#tab-idle [data-act="setMode"][data-v="seclude"]');
   await page.waitForTimeout(350);
   const t2 = await topOf();
   T(Math.abs(t0 - t1) <= 1 && Math.abs(t0 - t2) <= 1 && hMeta >= 38,
     'I4 闭关 ↔ 历练切换：模式说明行高度固定，圆相不上下移动',
     JSON.stringify({ seclude: t0, venture: t1, back: t2, metaH: hMeta }));
+  const wantMeta = await page.evaluate(() => SQ.t('idle.mode.seclude.desc', null, 'xiuxian').replace(/\s+/g, ' ').trim());
+  T(mVenture === wantMeta && mSeclude === wantMeta,
+    'I4b 历练态那行小字与闭关逐字相同（用户令「切换不要变」，取词表不写死中文）',
+    '历练=' + mVenture.slice(0, 26) + ' 闭关=' + mSeclude.slice(0, 26) + ' 词表=' + wantMeta.slice(0, 26));
 
   /* I5（B16-af）：天命段标最右 = 洗髓快捷入口 */
   const washI = await page.evaluate(() => {
