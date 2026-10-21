@@ -132,6 +132,8 @@
 
   /* ── UI ── */
   K['alchemy.system'] = '炼丹炼器';
+  K['alchemy.tab.dan'] = '丹房';
+  K['alchemy.tab.qi'] = '器台';
   K['alchemy.ui.dan'] = '炼丹';
   K['alchemy.ui.qi'] = '炼器';
   K['alchemy.ui.mats'] = '材料背包';

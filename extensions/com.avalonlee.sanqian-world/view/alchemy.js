@@ -82,8 +82,12 @@
     }
     var al = w.alchemy || { furnace: false, recipes: [], blueprints: [], prof: { dan: 0, qi: 0 }, pills: {}, craft: null };
     var hasFur = SQ.Alchemy.hasFurnace(w, p, d, c.s.meta);
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + c.esc(c.t('alchemy.system')) + '</button></div>' +
-      '<span class="hint">' + c.esc(hasFur ? c.t('alchemy.furnace.name') : c.t('alchemy.ui.nofurnace')) + '</span></div>';
+    /* B16-o2（原 B16-i 押后项）：丹房 / 器台分页（设计稿 .seg2）。纯视图态 ui.alTab，不落盘；
+     * 炉中队列**留在分页之外常驻**——否则器台在炼时切到丹房就取不到丹，功能会被藏起来。 */
+    var alTab = c.ui.alTab === 'qi' ? 'qi' : 'dan';
+    var h = '<div class="seg2" aria-label="' + c.esc(c.t('alchemy.system')) + '">' +
+      '<button class="' + (alTab === 'dan' ? 'on' : '') + '" data-act="alTab" data-v="dan">' + c.esc(c.t('alchemy.tab.dan')) + '</button>' +
+      '<button class="' + (alTab === 'qi' ? 'on' : '') + '" data-act="alTab" data-v="qi">' + c.esc(c.t('alchemy.tab.qi')) + '</button></div>';
     /* 熟练度双轨 */
     var rkD = SQ.Alchemy.profRank(d, al.prof ? al.prof.dan : 0), rkQ = SQ.Alchemy.profRank(d, al.prof ? al.prof.qi : 0);
     var nD = (al.prof || {}).dan || 0, nQ = (al.prof || {}).qi || 0;
@@ -111,6 +115,8 @@
       h += '<p class="hint">' + c.esc(c.t('alchemy.ui.queue.empty')) + '</p>';
     }
     /* 丹方册 → 整行清单（设计稿：一个丹方一行，材料/成算在左、库存与开炉在右） */
+    /* 分页口径：非当前页整段生成后丢弃（纯渲染，无副作用），只把当前页拼进 h */
+    var hBase = h; if (alTab !== 'dan') h = '';
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('alchemy.ui.dan')) + '</span></div>';
     if (!(al.recipes || []).length) h += '<p class="hint">' + c.esc(c.t('alchemy.ui.recipe.none')) + '</p>';
     else h += '<div class="rowlist">';
@@ -157,7 +163,9 @@
       });
       h += '</div>';
     }
+    if (alTab !== 'dan') h = hBase;
     /* 炼器（图纸 + 方向 + 属性指向）→ 设计稿「器台 · 图纸」整行 */
+    hBase = h; if (alTab !== 'qi') h = '';
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('alchemy.ui.bp.sec')) + '</span></div>';
     if (!(al.blueprints || []).length) h += '<p class="hint">' + c.esc(c.t('alchemy.ui.bp.none')) + '</p>';
     else h += '<div class="rowlist">';
@@ -200,6 +208,7 @@
     });
     if ((al.blueprints || []).length) h += '</div>';
     if (!al.furnace && (al.blueprints || []).indexOf('bp_furnace') >= 0) { /* 丹炉图纸打造走同一 alStart */ }
+    if (alTab !== 'qi') h = hBase;
     /* 材料背包 + 出售 */
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('alchemy.ui.mats')) + '</span>' +
       '<span class="s">' + c.esc(c.t('alchemy.ui.mats.n', { n: Object.keys(w.materials || {}).length })) + '</span></div>';

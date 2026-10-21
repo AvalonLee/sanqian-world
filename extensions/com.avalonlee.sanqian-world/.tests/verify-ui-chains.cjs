@@ -360,6 +360,10 @@ async function buildSave() {
   T(dan.poorDisabled === true, 'C3b 材料不足的丹方「开炉」置灰（旧口径只看有没有丹炉）', String(dan.poorDisabled));
   T(/材料不足/.test(dan.poorRow), 'C3c 缺料原因上屏（复用 alchemy.ui.matslack）', dan.poorRow.slice(0, 70));
 
+  /* B16-t：丹房 / 器台分页——炼器断言先切到器台（炉中队列常驻两页之外） */
+  await page.click('#tab-alchemy button[data-act="alTab"][data-v="qi"]');
+  await page.waitForTimeout(300);
+
   /* ── 炼器三守卫同档共存（本批建场灌料的结果：普通图 = 料齐而方向未定、精制图 = 缺料、
    *    丹炉图 = 已在身）。每条都先用引擎本体反证（seed.probeQi*），再看视图给不给同一个答案：
    *    「视图判定与引擎同序」才算链通，只对照视图会放过两侧同时错的情况。 */
@@ -404,6 +408,8 @@ async function buildSave() {
   T(noLatinQi.length === 0, 'C3g2 炼器区三守卫文案零裸拉丁', noLatinQi.slice(0, 3).join(','));
 
   /* 真失败路径：同帧连点 = 陈旧渲染态（第二下必撞 al.craft 已置 → reason 'busy'） */
+  await page.click('#tab-alchemy button[data-act="alTab"][data-v="dan"]');
+  await page.waitForTimeout(300);
   await page.evaluate((vid) => {
     const b = document.querySelector('#tab-alchemy button[data-act="alStart"][data-v="' + vid + '"][data-c="dan"]');
     b.click(); b.click();
