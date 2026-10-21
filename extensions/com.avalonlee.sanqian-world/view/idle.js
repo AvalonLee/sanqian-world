@@ -62,7 +62,7 @@
         return '<button' + (mode0 === mk ? ' class="on"' : '') + ' data-act="setMode" data-v="' + mk + '">' +
           c.esc(c.t('idle.mode.' + mk)) + '</button>';
       }).join('') + '</div>';
-    h += '<div class="metaline"><span>' + c.esc(c.t('idle.mode.' + mode0 + '.desc')) + '</span><span' +
+    h += '<div class="metaline modemeta"><span>' + c.esc(c.t('idle.mode.' + mode0 + '.desc')) + '</span><span' +
       (ventureWeakM ? ' class="warnline"' : '') + '>' + (mode0 === 'venture'
         ? c.esc((affM ? c.t('zone.affix.line', { name: c.t('affix.' + affM.id + '.name'), desc: c.t('affix.' + affM.id + '.desc') }) + ' · ' : '') +
             (ventureWeakM
