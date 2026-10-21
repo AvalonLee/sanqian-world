@@ -123,30 +123,36 @@ async function buildSave() {
    *        在新结构下必然假红，故改为「五段段标齐全 + 行清单与网格各在位 + 两条产线入口都在」。 ── */
   await page.click('#m-tabbar button[data-v="alchemy"]');
   await page.waitForTimeout(400);
-  const alWide = await page.evaluate(() => {
-    const grids = Array.from(document.querySelectorAll('#tab-alchemy .cardgrid'));
-    return {
-      n: grids.length,
-      cols: grids.length ? getComputedStyle(grids[0]).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      items: document.querySelectorAll('#tab-alchemy .cardgrid > .carditem').length,
-      segs: Array.prototype.map.call(document.querySelectorAll('#tab-alchemy .sechead .t'), (x) => x.textContent.trim()),
-      rows: document.querySelectorAll('#tab-alchemy .rowlist > .lrow').length,
-      mat: document.querySelectorAll('#tab-alchemy .matgrid > .matrow').length,
-      strips: document.querySelectorAll('#tab-alchemy .strip').length,
-      startBtns: document.querySelectorAll('#tab-alchemy button[data-act="alStart"]').length,
-      forgeBtns: document.querySelectorAll('#tab-alchemy button[data-act="forgeBp"]').length,
-      /* 段标按词表取，不抄中文；丹匣段只在有丹药时渲染 ⇒ 本 fixture 无库存时不该硬要 */
-      want: ['alchemy.ui.queue', 'alchemy.ui.dan', 'alchemy.ui.bp.sec', 'alchemy.ui.mats']
-        .map((k) => SQ.t(k, null, 'xiuxian').trim())
-    };
-  });
-  const segHit = alWide.want.filter((w) => alWide.segs.indexOf(w) >= 0).length;
-  T(segHit === 4 && alWide.rows >= 1 && (alWide.mat >= 1 || alWide.items >= 1),
-    'M7 炼丹炼器四段段标齐全（炉中 / 丹方 / 器台图纸 / 材料）+ 丹方与图纸为整行清单（丹匣段只在有丹药时出现）',
-    '命中段=' + segHit + '/4 segs=' + alWide.segs.join('/') + ' rows=' + alWide.rows + ' mat=' + alWide.mat + ' items=' + alWide.items);
-  T(alWide.startBtns >= 1 && alWide.forgeBtns >= 1,
-    'M8 丹方与图纸的动作入口在位（alStart / forgeBp 都渲染出来了）',
-    'start=' + alWide.startBtns + ' forge=' + alWide.forgeBtns);
+  /* B16-t：丹房 / 器台分页 ⇒ 段标按页分别取（炉中与材料两段常驻、不分页） */
+  const alDan = await page.evaluate(() => ({
+    segs: Array.prototype.map.call(document.querySelectorAll('#tab-alchemy .sechead .t'), (x) => x.textContent.trim()),
+    rows: document.querySelectorAll('#tab-alchemy .rowlist > .lrow').length,
+    mat: document.querySelectorAll('#tab-alchemy .matgrid > .matrow').length,
+    mats: document.querySelectorAll('#tab-alchemy [data-matline]').length,
+    startBtns: document.querySelectorAll('#tab-alchemy button[data-act="alStart"][data-c="dan"]').length,
+    want: ['alchemy.ui.queue', 'alchemy.ui.dan', 'alchemy.ui.mats']
+      .map((k) => SQ.t(k, null, 'xiuxian').trim())
+  }));
+  await page.click('#tab-alchemy [data-act="alTab"][data-v="qi"]');
+  await page.waitForTimeout(300);
+  const alQi = await page.evaluate(() => ({
+    segs: Array.prototype.map.call(document.querySelectorAll('#tab-alchemy .sechead .t'), (x) => x.textContent.trim()),
+    rows: document.querySelectorAll('#tab-alchemy .rowlist > .lrow').length,
+    forgeBtns: document.querySelectorAll('#tab-alchemy button[data-act="forgeBp"]').length,
+    want: ['alchemy.ui.queue', 'alchemy.ui.bp.sec', 'alchemy.ui.mats']
+      .map((k) => SQ.t(k, null, 'xiuxian').trim())
+  }));
+  const hitDan = alDan.want.filter((w) => alDan.segs.indexOf(w) >= 0).length;
+  const hitQi = alQi.want.filter((w) => alQi.segs.indexOf(w) >= 0).length;
+  T(hitDan === 3 && hitQi === 3 && alDan.rows >= 1 && alQi.rows >= 1 && alDan.mats >= 1,
+    'M7 炼丹炼器分页后段标仍在：丹房（炉中/丹方/材料）与器台（炉中/图纸/材料）各齐全，丹方与图纸为整行',
+    'dan=' + hitDan + '/3 rows=' + alDan.rows + ' mats=' + alDan.mats + ' [' + alDan.segs.join('/') + '] qi=' + hitQi + '/3 rows=' + alQi.rows + ' [' + alQi.segs.join('/') + ']');
+  T(alDan.startBtns >= 1 && alQi.forgeBtns >= 1,
+    'M8 丹方与图纸的动作入口在位（alStart[dan] / forgeBp 都渲染出来了）',
+    'start=' + alDan.startBtns + ' forge=' + alQi.forgeBtns);
+  /* 回到丹房页（后续 D 相要在丹匣里点服用） */
+  await page.click('#tab-alchemy [data-act="alTab"][data-v="dan"]');
+  await page.waitForTimeout(250);
 
   /* ──  江湖榜：一榜十席 + 玩家名次行只在自己那一榜（第册一批③改口）── */
   await page.click('#m-tabbar button[data-v="prodigy"]');
