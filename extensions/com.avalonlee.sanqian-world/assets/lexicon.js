@@ -606,6 +606,7 @@
     'bond.tiernum.1': '①', 'bond.tiernum.2': '②', 'bond.tiernum.3': '③', 'bond.tiernum.4': '④',
     'bond.title': '道友名录',
     'bond.sec.friend': '道友', 'bond.sec.spouse': '道侣候选',
+    'bond.sec.spousem': '道侣',                              /* 已结缘的那一族（第册一百一十七批：首屏不再与「道友」混铺一段） */
     'bond.sec.count': '已结缘 {n} / {total}', 'bond.sec.countdead': '已结缘 {n} / {total} · 缘尽 {d}',
     /* UI v2 B8：道友页两卡首屏之后只铺已结缘/缘尽行，未结缘收成一条入口（全名录浮层不变） */
     'bond.sec.met': '已结缘', 'bond.sec.dead': '缘尽', 'bond.met.none': '尚未与任何人结缘',
