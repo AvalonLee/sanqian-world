@@ -39,17 +39,16 @@
       var th = (d.FACTION_RANKS || {}).TH || [0];
       var nextTh = rank < th.length - 1 ? th[rank + 1] : null;
       var pk = SQ.Factions.perkOf(w, d) || cur.perk;
-      h += '<div class="facbanner"><span class="ft">' + c.esc(c.t('faction.page.cur', { name: cur.name })) +
-        '</span><span class="fg">' + c.esc(c.t('talent.field.' + cur.perk.field)) + ' +' +
+      /* B16-q：当前效力按设计稿收成一条 .statestrip（势力名 + 职级/声望）+ 一行 .hintline
+       * （增益 · 职位 · 护法态）——原先三块 .facbanner 竖排，把「我是谁 / 什么级别 / 能干什么」
+       * 摊成三条同等重量的横条，页面一进来没有主次。 */
+      var perkTxt = c.esc(c.t('talent.field.' + cur.perk.field)) + ' +' +
         (cur.perk.field === 'tribBonus' ? pk.v.toFixed(2) : Math.round(pk.v * 100) + '%') +
-        (rank > 0 ? c.esc(' · ' + c.t('faction.rank.perk', { m: ((d.FACTION_RANKS || {}).PERK_MULT || [1])[rank] })) : '') +
-        '</span></div>';
-      /* 职级贡献行（势力全录卷 §三） */
-      h += '<div class="facbanner"><span class="ft">' + c.esc(nextTh != null
-        ? c.t('faction.rank.cur', { rank: c.t('faction.rank.' + rank), rep: rep, next: nextTh })
-        : c.t('faction.rank.max', { rank: c.t('faction.rank.' + rank), rep: rep })) + '</span>' +
-        (rank > 0 ? '<span class="fg">' + c.esc(c.t('faction.rank.perk', { m: ((d.FACTION_RANKS || {}).PERK_MULT || [1])[rank] })) + '</span>' : '') +
-        '</div>';
+        (rank > 0 ? c.esc(' · ' + c.t('faction.rank.perk', { m: ((d.FACTION_RANKS || {}).PERK_MULT || [1])[rank] })) : '');
+      h += '<div class="statestrip"><span class="s-v">' + c.esc(c.t('faction.page.cur', { name: cur.name })) +
+        '</span><span class="s-x">' + c.esc(nextTh != null
+          ? c.t('faction.rank.cur', { rank: c.t('faction.rank.' + rank), rep: rep, next: nextTh })
+          : c.t('faction.rank.max', { rank: c.t('faction.rank.' + rank), rep: rep })) + '</span></div>';
       /* ── 职级实权（势力全录卷 §八 · B4）：职位行双段式「职级：{称号} · 职位：{职位}」（§8.1 同名警示——
        * 称号是名分线、职位是实权线，禁止裸称职位名）+ 两枚技能按钮各带 CD 态 ── */
       var office = SQ.Factions.officeOf(w, d, cur.id);
@@ -59,17 +58,17 @@
       var nowO = Date.now();
       var dispCd = Math.max(0, (fo.dispatchAt || 0) + offCd - nowO);
       var guardCd = Math.max(0, (fo.guardAt || 0) + offCd - nowO);
-      h += '<div class="facbanner"><span class="ft">' + c.esc(c.t('faction.office.line', {
+      var officeTxt = c.t('faction.office.line', {
         txt: office
           ? c.t('faction.rank.' + rank) + ' · ' + c.t('faction.office.' + office)
           : c.t('faction.office.locked', { r: c.t('faction.rank.3'), office: c.t('faction.office.steward') })
-      })) +
-        '</span>' +
-        (w.tribulation && w.tribulation.officeGuard
-          ? '<span class="fg">' + c.esc(c.t('faction.office.guard.armed')) + '</span>' : '') + '</div>';
+      });
+      h += '<div class="hintline">' + perkTxt + ' · ' + c.esc(officeTxt) +
+        (w.tribulation && w.tribulation.officeGuard ? ' · ' + c.esc(c.t('faction.office.guard.armed')) : '') + '</div>';
       if (office) {
         var dispCand = dispatchCandidates(c, w, d);
         var dispReady = dispCand.some(function (cmp) { return cmp.canPick; });
+        h += '<div class="sechead"><span class="t">' + c.esc(c.t('faction.sec.office')) + '</span></div>';
         h += '<div class="row" style="margin:6px 0 2px">';
         h += '<button style="flex:1" data-act="officePick"' + ((dispCd > 0 || !dispReady) ? ' disabled' : '') + '>' +
           c.esc(dispCd > 0 ? c.t('faction.office.dispatch.cd') : c.t('faction.office.dispatch')) + '</button>';
@@ -106,6 +105,7 @@
        * （魔道栏卡片位于 2500px 长页的 1100px 处），需长滚才见，玩家反馈「没看到叛离选项」。
        * 现提到「当前效力」区块独立一行（去向选择浮层紧随其下展开），与卡片内入口并存同触发。
        * 宗主锁定态沿用卡片口径（宗门不可弃，传位方可下山）。 */
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('faction.leave')) + '</span></div>';
       if (w.factionId === 'sect' && w.sect && !w.sect.succession) {
         h += '<div class="row" style="margin:8px 0 2px"><button style="flex:1" disabled>' +
           c.esc(c.t('sect.ui.leave.lock')) + '</button></div>';
@@ -135,6 +135,7 @@
       var capD = (d.FACTION_DONATE || {}).WINDOW_CAP || 300;
       var inWin = Date.now() - (don.at || 0) <= ((d.FACTION_DONATE || {}).WINDOW_MS);
       var capLeft = inWin ? Math.max(0, capD - (don.used || 0)) : capD;
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('faction.donate')) + '</span></div>';
       h += '<div class="row" style="margin:6px 0 2px">';
       ((d.FACTION_DONATE || {}).TIERS || []).forEach(function (amt) {
         var repW = Math.min(Math.floor(amt / ((d.FACTION_DONATE || {}).STONES_PER_REP)), capLeft);
@@ -155,16 +156,18 @@
     if (war && war.until > Date.now()) {
       var mySide = SQ.Factions.warSideOf(w);
       var meritNeed = SQ.Factions.meritNeedOf(w, d);
-      h += '<div class="facbanner" style="border-color:var(--bad)"><span class="ft">' +
+      /* B16-q：势力战横幅按设计稿改 .warstrip（朱砂小标「势力冲突」+ 正文 + 动作） */
+      h += '<div class="warstrip"><span class="w-t">' + c.esc(c.t('faction.war.title')) +
+        '</span><span class="w-v">' +
         c.esc(c.t('faction.war.banner', {
           a: SQ.Factions.nameOf(w, war.aId), b: SQ.Factions.nameOf(w, war.bId),
           t: c.fmtLeft(war.until - Date.now())
         })) + '</span>' +
         (war.joined === 'in'
-          ? '<span class="fg">' + c.esc(c.t('faction.war.merit.prog', { m: war.merit || 0, n: meritNeed })) + '</span>'
+          ? '<span class="w-v">' + c.esc(c.t('faction.war.merit.prog', { m: war.merit || 0, n: meritNeed })) + '</span>'
           : (mySide
             ? '<button class="primary" data-act="warJoin">' + c.esc(c.t('faction.war.join')) + '</button>'
-            : '<span class="fg hint">' + c.esc(c.t('faction.war.watch')) + '</span>')) + '</div>';
+            : '<span class="w-v hint">' + c.esc(c.t('faction.war.watch')) + '</span>')) + '</div>';
       if (war.joined === 'in') {
         h += '<div class="bar slim"><i style="width:' +
           Math.min(100, ((war.merit || 0) / Math.max(1, meritNeed)) * 100).toFixed(1) + '%"></i></div>';
@@ -182,13 +185,14 @@
       if (qlist.length) {
         qlist.forEach(function (q) {
           var pr = SQ.Factions.questProgress(w, c.p, d, q);
-          h += '<div class="faccard cur"><div class="fh"><span class="fn">' +
-            c.esc(c.t('faction.quest.' + q.type, { n: SQ.fmt(q.target) })) + '</span>' +
-            '<span class="fm">' + c.esc(c.t('faction.quest.left', { t: c.fmtLeft(q.expireAt - Date.now()) })) + '</span></div>' +
-            '<div class="fperk">' + c.esc(c.t('faction.quest.prog', { cur: SQ.fmt(pr.cur), target: SQ.fmt(pr.target) })) +
+          /* B16-q：委托卡 → 设计稿 .lrow 整行（名号 / 进度与赏金 / 交付钮 + 余时） */
+          h += '<div class="lrow"><div class="l-n">' +
+            c.esc(c.t('faction.quest.' + q.type, { n: SQ.fmt(q.target) })) + '</div>' +
+            '<div class="l-d">' + c.esc(c.t('faction.quest.prog', { cur: SQ.fmt(pr.cur), target: SQ.fmt(pr.target) })) +
             ' · ' + c.esc(c.t('faction.quest.reward', { rep: q.rep, stones: q.stones ? ' + ' + SQ.fmt(q.stones) + ' ' + c.t('resource.currency') : '' })) + '</div>' +
-            '<div class="acts"><button class="' + (pr.done ? 'primary' : '') + '" data-act="questClaim" data-v="' + c.esc(q.type) + '"' +
-            (pr.done ? '' : ' disabled') + '>' + c.esc(c.t('faction.quest.claim')) + '</button></div></div>';
+            '<div class="l-r"><button class="' + (pr.done ? 'primary' : '') + '" data-act="questClaim" data-v="' + c.esc(q.type) + '"' +
+            (pr.done ? '' : ' disabled') + '>' + c.esc(c.t('faction.quest.claim')) + '</button><br>' +
+            c.esc(c.t('faction.quest.left', { t: c.fmtLeft(q.expireAt - Date.now()) })) + '</div></div>';
         });
       } else {
         h += '<p class="hint" style="padding:6px 0">' + c.esc(c.t('faction.quest.none')) + '</p>';
@@ -197,7 +201,7 @@
       h += '<div class="sechead"><span class="t">' + c.esc(c.t('faction.supply.title')) + '</span></div>';
       var rankC = SQ.Factions.rankOf(w, d, cur.id);
       var repC = SQ.Factions.repOf(w, cur.id);
-      h += '<div class="cardgrid">';
+      h += '<div class="matgrid">';
       var mSup = c.mods;   /* 一次取全乘区，供下面四个 SKU 的供给价共用（审计 #6：别在循环里逐件重算 Mods.collect） */
       (d.FACTION_SUPPLY || []).forEach(function (si) {
         var pill = null;
@@ -208,11 +212,12 @@
         var lockRank = rankC < si.rank, lockRep = repC < si.rep, lockSt = w.stones < costS;
         var btnTxt = onCd ? c.t('faction.supply.cd') : lockRank ? c.t('faction.supply.locked', { rank: c.t('faction.rank.' + si.rank) })
           : c.t('faction.supply.cost', { rep: si.rep, n: SQ.fmt(costS) });
-        /* 与坊市货架同一对标签（`pillAffix` / `pillCat`）——这四颗丹就是 `D.PILLS`，两处口径必须一致 */
-        h += '<div class="faccard carditem"><div class="fh"><span class="fn">' + c.esc(c.t('faction.supply.sku.' + si.sku)) + '</span>' + SQ.UI.shop.pillAffix(c, pill) + SQ.UI.shop.pillCat(c) + '</div>' +
-          '<div class="fd">' + c.esc(c.t('pill.' + si.pill + '.desc')) + '</div>' +
-          '<div class="acts"><button data-act="supplyBuy" data-v="' + si.sku + '"' +
-          ((onCd || lockRank || lockRep || lockSt) ? ' disabled' : '') + '>' + c.esc(btnTxt) + '</button></div></div>';
+        /* B16-q：卡片网格 → 设计稿 .matrow 整行；名称与丹标签在左、说明中段、价目与请回钮在右 */
+        h += '<div class="matrow"><span class="m-n">' + c.esc(c.t('faction.supply.sku.' + si.sku)) +
+          SQ.UI.shop.pillAffix(c, pill) + SQ.UI.shop.pillCat(c) + '</span>' +
+          '<span class="m-d">' + c.esc(c.t('pill.' + si.pill + '.desc')) + '</span>' +
+          '<button data-act="supplyBuy" data-v="' + si.sku + '"' +
+          ((onCd || lockRank || lockRep || lockSt) ? ' disabled' : '') + '>' + c.esc(btnTxt) + '</button></div>';
       });
       h += '</div>';
     }
