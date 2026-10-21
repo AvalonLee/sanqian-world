@@ -33,7 +33,7 @@ async function buildSave() {
   ws.treasures.slots = ['x02', 'x04', null];
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-3' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-21-1' },
     meta: { unlockedWorlds: ['xiuxian'] },
     settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
     worlds: { xiuxian: ws }
