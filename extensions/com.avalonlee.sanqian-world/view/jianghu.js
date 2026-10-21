@@ -12,8 +12,10 @@
    * 「够不够格」的表达，否则切磋与袭杀成盲盒 ⇒ 三档徽标（可压 / 相当 / 悬殊）：档位由引擎
    * `SQ.Prodigy.board4` 用切磋表值 `HANDICAP.crush` / `brave` 同一把尺子算好送来，视图零判定口径
    *（与 N54「故意不报成算百分比」同取向：报档位，不报假精确）。
-   * 席位三族各有各的形状：相识者（可点、给钮）‖ 背景席位（素不相识、无钮）‖ 隐世三席
-   *（名号与一切明细都是「？？？」、零入口、恒列天榜前三 —— 用户裁定 2）。
+   * 席位三族各有各的形状（第册一百一十六批改口）：相识者（入口 = 战书，可切磋可袭杀）‖ 背景席位
+   *（入口 = 只读人物卡，含小传，递不出战书）‖ 隐世三席（同样可点开，但名号与明细仍是「？？？」、
+   * 恒挂「悬殊」、脚注一句「不宜力敌」——裁定 2 的悬念未破）。
+   * ⚠️ 顶栏那一行自己的名次**不随切榜变**（按境界所属那一榜说话；旧写法把「本榜」当成正在看的榜 ⇒ 谎）。
    * ⚠️ chip 容器挂专名类 `.jbchips`（第卌六批 `.lawchips` 同型教训：走查靠文案匹配取数会撞车）。 */
   function jbChipOf(c) { var b = c.ui.jhb; return (b === 1 || b === 2 || b === 3) ? b : 0; }
   /* 五项文本片段：取不到那一栏就不 push（与「势力卡掌门一行取不到就整行不渲染」同一纪律）。
@@ -76,14 +78,15 @@
         c.esc(c.t('jianghu.band.' + b)) + '</button>';
     }).join('') + '</div>' + h;
     var myRank = bb.myRank;          /* 名次由引擎 board4 一并给出（视图不再数第二遍 ⇒ 无第二口径） */
-    /* 玩家只在一个榜上有名次：看别的榜时那一格**不渲染**（早版在此显「第 0 位」，是截图目检抓到的谎）；
-     * 右侧节律行改口成「名次播报每 N 游戏年一次」——榜面本身已是实时装配，再说「榜每 10 年一刷」
-     * 就与「跨带即时换榜、出榜即时递补」两条播报互相打脸（那两条走的是同一枚 RANK_REFRESH_MS 之外的即时路径）。 */
-    /* UI v2 B8：自己的名次条置顶（大号名次 + 名次播报周期）；本榜无名次时不写「第 0 位」 */
-    h += '<div class="selfrank' + (myRank > 0 ? '' : ' off') + '">' +
-      '<span class="rankno">' + (myRank > 0 ? myRank : '·') + '</span>' +
-      '<span class="sr-n">' + c.esc(myRank > 0
-        ? c.t('prodigy.board.myrank', { band: c.t('jianghu.band.' + cur), n: myRank })
+    /* 自己的名次行**常驻**（第册一百一十六批 · 用户令「切到地/玄/黄榜不要说『暂未见你』」）：
+     * 引擎事实 = 玩家只落在境界所属那一榜（其余三榜的 myRank 恒 0），所以这句一律按**自己那一榜**说，
+     * 与当前 chip 无关；旧写法把「本榜」当成正在看的那一榜 ⇒ 在天榜第四的人切个榜就被说成无名。 */
+    var ownBand = SQ.Jianghu.bandOf(w.realm || 0), ownRank = boards[ownBand].myRank;
+    /* UI v2 B8：自己的名次条置顶（大号名次 + 名次播报周期）；未进十席时不写「第 0 位」 */
+    h += '<div class="selfrank' + (ownRank > 0 ? '' : ' off') + '">' +
+      '<span class="rankno">' + (ownRank > 0 ? ownRank : '·') + '</span>' +
+      '<span class="sr-n">' + c.esc(ownRank > 0
+        ? c.t('prodigy.board.myrank', { band: c.t('jianghu.band.' + ownBand), n: ownRank })
         : c.t('prodigy.board.norank')) + '</span>' +
       '<span class="hint sr-x">' + c.esc(c.t('prodigy.board.refresh', { y: Math.round((d.PRODIGY.RANK_REFRESH_MS) / 360000) })) + '</span></div>';
     bb.rows.forEach(function (r, rank) {
@@ -113,14 +116,22 @@
         if (srvSet[pr.id]) relTxt += ' <span class="tierbadge t3">' + c.esc(c.t('prodigy.detail.serving')) + '</span>';
       }
       /* 玩家跌出十席时榜尾那一行显**真实名次**（`bb.myRank`），不是尾行的行号（旧榜面同一条口径） */
+      /* 席位入口（第册一百一十六批）：相识天骄走 `prodDetail`（带战书的旧口），其余有名录号的席位
+       * 走 `jhDetail` = **只读人物卡**（背景席位 / 掌门太上 / 隐世三席）。玩家自己那行仍是粗体。 */
       h += '<div class="lrow' + (isMe ? ' cur' : '') + '"><div class="nm"><span class="rankno">' + (isMe ? myRank : rank + 1) + '.</span> ' +
         (isMe ? '<b>' + c.esc(nm) + '</b>'
-          : (pr ? '<button class="linkbtn" data-act="prodDetail" data-v="' + r.pid + '">' + c.esc(nm) + '</button>' : c.esc(nm))) +
+          : (pr ? '<button class="linkbtn" data-act="prodDetail" data-v="' + r.pid + '">' + c.esc(nm) + '</button>'
+            : (r.rid ? '<button class="linkbtn" data-act="jhDetail" data-v="' + r.rid + '">' + c.esc(nm) + '</button>' : c.esc(nm)))) +
         (jp && jp.ti && !r.hid && !isMe ? ' <span class="hint">' + c.esc(jp.ti) + '</span>' : '') +
         (align != null && align >= 0 ? ' <span class="align-sym align-' + ['right', 'neutral', 'evil'][align] + '">' + c.esc(c.t('align.sym.' + ['right', 'neutral', 'evil'][align])) + '</span>' : '') +
         /* 三档徽标（可压 / 相当 / 悬殊）取代战力数字：档位由引擎按切磋表值算好送来，视图零判定；
-         * 玩家自己与隐世三席不给（前者无对手可言，后者按裁定 2 一切明细都是问号） */
-        (isMe || r.hid ? '' : ' <span class="tierbadge ' + ['t1', 't2', 't4'][r.lv] + '">' + c.esc(c.t('jianghu.lv.' + r.lv)) + '</span>') +
+         * 玩家自己不给（无对手可言）。隐世三席第册一百一十六批起**恒挂悬殊**——
+         * 用户令「前三要玩家几乎无法战胜」，而这三席不进战斗通道，所以这是界面对「深浅不可测」的表达，
+         * 不改引擎里那三席的真实 power（改了要再归因一次轨迹锚，而对玩家没有意义）。 */
+        (isMe ? '' : (function () {
+          var lvV = r.hid ? 2 : r.lv;
+          return ' <span class="tierbadge ' + ['t1', 't2', 't4'][lvV] + '">' + c.esc(c.t('jianghu.lv.' + lvV)) + '</span>';
+        })()) +
         ' ' + relTxt + '</div>' +
         '<div class="meta">' + c.esc(jbFive(c, r).join(' · ')) + '</div></div>';
       if (!isMe && pr && c.ui.prodOpen === r.pid) {
@@ -134,6 +145,11 @@
         var braveD = !crushD && ratioD <= (hcD.brave != null ? hcD.brave : 0.8);
         var hcKey = crushD ? 'crush' : (braveD ? 'brave' : 'even');
         h += '<div class="detailbox">' +
+          /* 卡头（第册一百一十六批版式重排）：名号 + 头衔 + 深浅一档，向下才是明细——
+           * 旧结构第一行就是「归属」，展开后看不出这张卡是谁的。 */
+          '<div class="jh-h"><span class="jh-nm">' + c.esc(nm) + '</span>' +
+          (jp && jp.ti ? '<span class="jh-ti">' + c.esc(jp.ti) + '</span>' : '') +
+          ' <span class="tierbadge ' + ['t1', 't2', 't4'][r.lv] + '">' + c.esc(c.t('jianghu.lv.' + r.lv)) + '</span></div>' +
           '<div class="kv"><span>' + c.esc(c.t('prodigy.detail.faction')) + '</span><span>' + c.esc(SQ.Prodigy.factionNameOf(w, pr, p)) + '</span></div>' +
           /* N20 接线：关系档此前只在榜行露出（relTxt），详情面整行缺席；正典 = 天骄卷 line128 详情页列「关系档与好感」 */
           (relTxt ? '<div class="kv"><span>' + c.esc(c.t('prodigy.detail.rel')) + '</span><span>' + relTxt + '</span></div>' : '') +
@@ -180,6 +196,26 @@
           : '<div class="acts" style="margin-top:6px"><button data-act="ambushProd" data-v="' + pr.id + '">' +
             c.esc(c.t('prodigy.ambush.btn')) + '</button></div>';
         h += '</div>';
+      } else if (!isMe && !pr && r.rid && c.ui.jhOpen === r.rid) {
+        /* 只读人物卡（背景席位 / 掌门太上 / 隐世三席，第册一百一十六批）：身份与深浅给足，战书递不出
+         * （引擎对这三族没有战斗对象，给按钮 = 点了没反应的死入口）。隐世那三席按裁定 2 明细仍是「？？？」，
+         * 只多一句「不宜力敌」；小传 `bio` 是名录立数据以来第一次上屏（此前全库零消费）。 */
+        var gJ = SQ.Jianghu.gearOf(p, d, r.rid, r.realm);
+        var lvJ = r.hid ? 2 : r.lv;
+        h += '<div class="detailbox jhcard">' +
+          '<div class="jh-h"><span class="jh-nm">' + c.esc(nm) + '</span>' +
+          (!r.hid && jp && jp.ti ? '<span class="jh-ti">' + c.esc(jp.ti) + '</span>' : '') +
+          ' <span class="tierbadge ' + ['t1', 't2', 't4'][lvJ] + '">' + c.esc(c.t('jianghu.lv.' + lvJ)) + '</span></div>' +
+          '<div class="kv"><span>' + c.esc(c.t('prodigy.detail.faction')) + '</span><span>' +
+          c.esc(r.hid ? c.t('jianghu.q') : SQ.Prodigy.factionNameOf(w, { fc: (jp && jp.fc) ? 0 : -1, fid: (jp && jp.fc) || null }, p)) + '</span></div>' +
+          '<div class="kv"><span>' + c.esc(c.t('jianghu.detail.realm')) + '</span><span>' +
+          c.esc(r.hid ? c.t('jianghu.q') : c.t('realm.' + r.realm)) + '</span></div>' +
+          (r.hid ? '' : ((gJ && gJ.wp ? '<div class="kv"><span>' + c.esc(c.t('jianghu.detail.weapon')) + '</span><span>' + c.esc(gJ.wp) + '</span></div>' : '') +
+            (gJ && gJ.tb ? '<div class="kv"><span>' + c.esc(c.t('jianghu.detail.treasure')) + '</span><span>' + c.esc(c.t('treasure.' + gJ.tb + '.name')) + '</span></div>' : '') +
+            (gJ && gJ.art ? '<div class="kv"><span>' + c.esc(c.t('jianghu.detail.art')) + '</span><span>' + c.esc(c.t('skill.' + gJ.art + '.name')) + '</span></div>' : ''))) +
+          (!r.hid && jp && jp.bio ? '<div class="jh-bio"><div class="jh-bl">' + c.esc(c.t('jianghu.detail.bio')) +
+            '</div><div class="jh-bt">' + c.esc(jp.bio) + '</div></div>' : '') +
+          '<p class="hint jh-foot">' + c.esc(c.t(r.hid ? 'jianghu.hid.line' : 'jianghu.detail.nofight')) + '</p></div>';
       }
     });
     /* B16-r：榜面说明按设计稿落页尾（原先夹在 chip 与名次条之间） */
@@ -191,6 +227,7 @@
   function actChip(c, v) {
         c.ui.jhb = (v === '1' || v === '2' || v === '3') ? (+v) : 0;
           c.ui.prodOpen = null;
+          c.ui.jhOpen = null;
           var jbB = document.querySelector('.tabbody');
           if (jbB) jbB.scrollTop = 0;
           render(c);

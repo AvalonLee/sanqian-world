@@ -105,6 +105,10 @@ function buildSave() {
       knownPid: (w.prodigies || []).map(p => p.id),
       acts: Array.prototype.slice.call(document.querySelectorAll('#tab-prodigy [data-act="prodDetail"]'))
         .map(b => b.getAttribute('data-v')),
+      /* 第册一百一十六批新增两族读数：只读人物卡的入口（jhDetail）与自己名次行的那句话 */
+      jhActs: Array.prototype.slice.call(document.querySelectorAll('#tab-prodigy [data-act="jhDetail"]'))
+        .map(b => b.getAttribute('data-v')),
+      selfrank: ((document.querySelector('#tab-prodigy .selfrank .sr-n') || {}).textContent || '').trim(),
       /* 天榜可见席位的境界应 ≥8（隐世除外）；地榜 6~7 */
       realms: bs.map(b => b.rows.filter(r => r && !r.hid).map(r => r.realm))
     };
@@ -123,10 +127,18 @@ function buildSave() {
   T(r0.n4.every(x => x.vis >= 10 && x.vis <= 11) && r0.n4.length === 4,
     'J3 四榜各十席（可见 10，玩家在本榜十席之外时追加尾行 = 11）',
     JSON.stringify(r0.n4.map(x => x.n + '/' + x.vis)));
-  T(r0.qRows === 3 && r0.badges.slice(0, 3).every(b => b.length === 1 && b[0] === S.t('jianghu.hid.tag', null, 'xiuxian')) &&
-      r0.link.slice(0, 3).every(n => n === 0) && r0.meta.slice(0, 3).every(m => m === [1,2,3,4,5].map(() => S.t('jianghu.q', null, 'xiuxian')).join(' · ')),
-    'J4 天榜前三 = 隐世三席：明细五项全问号、只挂「隐世」一枚标、零入口（裁定 2 的屏上形状）',
-    '问号行=' + r0.qRows + ' 前三标=' + JSON.stringify(r0.badges.slice(0, 3)) + ' 前三钮=' + JSON.stringify(r0.link.slice(0, 3)));
+  /* J4 改口（第册一百一十六批 · 用户令「前三也可点开，但战力要拉满到几乎无法战胜」）：
+   * 旧判「只挂隐世一枚标 + 零入口」⇒ 现在是「隐世 + 悬殊两枚标 + 恰一枚只读入口（jhDetail，不是战书）」；
+   * 明细五项仍须全问号（裁定 2 未破），所以问号那条一字不松。 */
+  T(r0.qRows === 3 && r0.badges.slice(0, 3).every(b => b.length === 2 &&
+      b.indexOf(S.t('jianghu.hid.tag', null, 'xiuxian')) >= 0 &&
+      b.indexOf(S.t('jianghu.lv.2', null, 'xiuxian')) >= 0) &&
+      r0.link.slice(0, 3).every(n => n === 1) &&
+      r0.jhActs.slice(0, 3).join(',') === r0.hidIds.slice(0, 3).join(',') &&
+      r0.meta.slice(0, 3).every(m => m === [1,2,3,4,5].map(() => S.t('jianghu.q', null, 'xiuxian')).join(' · ')),
+    'J4 天榜前三 = 隐世三席：明细五项全问号（裁定 2 未破）+ 挂「隐世」「悬殊」两枚标 + 恰一枚只读入口（不是战书）',
+    '问号行=' + r0.qRows + ' 前三标=' + JSON.stringify(r0.badges.slice(0, 3)) + ' 前三钮=' + JSON.stringify(r0.link.slice(0, 3)) +
+    ' 入口号=' + r0.jhActs.slice(0, 3).join('/') + ' 名录号=' + r0.hidIds.slice(0, 3).join('/'));
   T(r0.powerWord === 0,
     'J5 榜面每一行的明细行都不再出现「战力」二字（数字整列撤除，副标那句说明不在 .lrow .meta 里）',
     '含战力行数=' + r0.powerWord + ' 样例=' + (r0.meta[4] || '').slice(0, 60));
@@ -140,11 +152,14 @@ function buildSave() {
     '判形行数=' + badgeShape.length + ' 违例=' + (r0.lvBad.join(',') || '无'));
   /* 相识者给入口、背景席位不给：入口的 data-v 是**存档行 id**（prN），名录号只作身份 ⇒ 两侧各取各的键 */
   const knownIn = r0.acts.filter(x => r0.knownPid.indexOf(x) >= 0).length;
+  /* J7 改口（第册一百一十六批）：入口分两族——战书（prodDetail）仍只给相识天骄，
+   * 只读人物卡（jhDetail）给其余每一席（背景席位 + 隐世三席）。旧判「其余一律零入口」已不是口径。 */
   T(r0.acts.length === knownIn && knownIn > 0 &&
+      r0.jhActs.length === r0.rows - knownIn - r0.cur &&
       r0.stranger === r0.rows - knownIn - r0.qRows - r0.cur,
-    'J7 可交互性只给相识者：榜上有入口的行 === 存档相识者（' + knownIn + ' 行），其余一律挂「素不相识」且零入口',
-    '行=' + r0.rows + ' 入口=' + r0.acts.length + ' 相识=' + knownIn + ' 陌生标=' + r0.stranger +
-    ' 隐世=' + r0.qRows + ' 玩家=' + r0.cur);
+    'J7 两族入口分得干净：战书只给相识者（' + knownIn + ' 行）‖ 只读人物卡覆盖其余每一席 ‖「素不相识」灰字仍只标背景席位',
+    '行=' + r0.rows + ' 战书=' + r0.acts.length + ' 只读卡入口=' + r0.jhActs.length +
+    ' 陌生标=' + r0.stranger + ' 隐世=' + r0.qRows + ' 玩家=' + r0.cur);
   T(r0.realms[1].every(x => x >= 6 && x <= 7) && r0.realms[2].every(x => x >= 4 && x <= 5) &&
       r0.realms[3].every(x => x <= 3),
     'J8 榜带一刀切在屏上成立：地榜境界恒 6~7 ‖ 玄榜 4~5 ‖ 黄榜 ≤3（天榜另判 ≥8）',
@@ -177,16 +192,67 @@ function buildSave() {
     const r = bs[0].rows.filter(x => x && !x.me && !x.hid && !x.known && x.rid)[0];
     return r ? { rid: r.rid, nm: (SQ.Jianghu.of(P, r.rid) || {}).nm } : null;
   });
+  /* J10 改口（第册一百一十六批 · 用户令「榜上角色都应该可以交互」）：背景席位现在**该**展开，
+   * 但展开的必须是只读人物卡——没有切磋/袭杀钮（引擎对这三族没有战斗对象，给按钮就是死入口）、
+   * 不出现「战力」二字（J5 同一条口径）。旧判「点了不展开」随设计稿 §二 一起改口。
+   * 同时把版式那一判（J22）要的矩形读数在同一次点击里取回（不重复点、不再开一个 context）。 */
   const bgClick = bgRid ? await page.evaluate((o) => {
     const row = Array.prototype.slice.call(document.querySelectorAll('#tab-prodigy .lrow'))
       .filter(x => ((x.querySelector('.nm') || {}).textContent || '').indexOf(o.nm) >= 0)[0];
-    if (!row) return 'norow:' + o.nm;
+    if (!row) return { r: 'norow:' + o.nm };
+    const btn = row.querySelector('[data-act="jhDetail"]');
+    if (!btn) return { r: 'nobtn' };
     const before = document.querySelectorAll('#tab-prodigy .detailbox').length;
-    row.click();
-    return document.querySelectorAll('#tab-prodigy .detailbox').length === before ? 'ok' : 'opened';
-  }, bgRid) : 'nobg';
-  T(bgClick === 'ok', 'J10 背景席位点了不展开（素不相识 = 零入口，不是「按钮点了没反应」的坏味道）',
-    '结果=' + bgClick + ' 席位=' + (bgRid ? bgRid.rid : '无'));
+    btn.click();
+    const after = document.querySelectorAll('#tab-prodigy .detailbox').length;
+    const el = document.querySelector('#tab-prodigy .detailbox.jhcard');
+    if (!el) return { r: 'same:' + before + '→' + after };
+    const st = getComputedStyle(el), rc = el.getBoundingClientRect(), kv = el.querySelector('.kv');
+    return { r: after === before + 1 ? 'opened' : 'count:' + before + '→' + after,
+      fight: el.querySelectorAll('[data-act="sparProd"],[data-act="ambushProd"]').length,
+      powerWord: (el.textContent || '').indexOf(SQ.t('resource.power', null, 'xiuxian')),
+      padL: Math.round(parseFloat(st.paddingLeft)), padR: Math.round(parseFloat(st.paddingRight)),
+      gap: kv ? Math.round(kv.getBoundingClientRect().left - rc.left) : -1,
+      bio: !!el.querySelector('.jh-bio'), foot: (el.querySelector('.jh-foot') || {}).textContent || '',
+      hasH: !!el.querySelector('.jh-h .jh-nm') };
+  }, bgRid) : { r: 'nobg' };
+  T(bgClick.r === 'opened' && bgClick.fight === 0 && bgClick.powerWord < 0 && bgClick.bio &&
+      bgClick.hasH && bgClick.foot.indexOf(S.t('jianghu.detail.nofight', null, 'xiuxian').slice(0, 6)) >= 0,
+    'J10 背景席位点开 = 只读人物卡（卡头在位 ‖ 有「人物小传」段 ‖ 零切磋零袭杀 ‖ 不写「战力」‖ 脚注是那句「递不出战书」）',
+    JSON.stringify(bgClick).slice(0, 180));
+  /* J22 版式（第册一百一十六批 · 用户令「文字离边界太近」）：量矩形不量文本——
+   * 卡自身左右内距 ≥10px，且第一行明细的左边缘比卡的左边缘再进去 ≥10px（贴边必然为 0）。 */
+  T(bgClick.padL >= 10 && bgClick.padR >= 10 && bgClick.gap >= 10,
+    'J22 人物卡不贴边（量矩形：卡内距 ' + bgClick.padL + '/' + bgClick.padR + 'px ‖ 明细行左缘比卡左缘进 ' + bgClick.gap + 'px）',
+    'padL=' + bgClick.padL + ' padR=' + bgClick.padR + ' gap=' + bgClick.gap);
+
+  /* J21 隐世那三席点开（第册一百一十六批 · 用户令「前三也可点开，但战力要拉满到几乎无法战胜」）：
+   * 卡必须仍在（.jhcard）、明细仍是问号（裁定 2 未破）、脚注是那句「不宜力敌」、零战斗钮。
+   * 口径交底：这三席的「悬殊」与那句脚注是**视图对深浅的表达**，引擎里他们的真实 power 未改
+   * （改它会再动一次轨迹锚，而那三席本就进不了战斗通道）。 */
+  const hidCard = await page.evaluate(() => {
+    const row = Array.prototype.slice.call(document.querySelectorAll('#tab-prodigy .lrow'))
+      .filter(x => ((x.querySelector('.nm') || {}).textContent || '').indexOf('？') >= 0)[0];
+    if (!row) return { r: 'norow' };
+    const btn = row.querySelector('[data-act="jhDetail"]');
+    if (!btn) return { r: 'nobtn' };
+    btn.click();
+    const el = document.querySelector('#tab-prodigy .detailbox.jhcard');
+    if (!el) return { r: 'nocard' };
+    const Q = SQ.t('jianghu.q', null, 'xiuxian');
+    return { r: 'ok', qLines: (el.textContent || '').split(Q).length - 1,   /* 名号 + 归属 + 境界 三处问号 */
+      fight: el.querySelectorAll('[data-act="sparProd"],[data-act="ambushProd"]').length,
+      bio: !!el.querySelector('.jh-bio'),
+      foot: ((el.querySelector('.jh-foot') || {}).textContent || '').trim(),
+      want: SQ.t('jianghu.hid.line', null, 'xiuxian') };
+  });
+  T(hidCard.r === 'ok' && hidCard.qLines >= 3 && hidCard.fight === 0 && !hidCard.bio &&
+      hidCard.foot === hidCard.want,
+    'J21 隐世席点开 = 问号卡 + 「不宜力敌」那句脚注逐字对词表（不给小传、不给战斗钮）',
+    JSON.stringify(hidCard).slice(0, 190));
+  /* 点开之后收起（避免把这张卡带进后面的切榜读数） */
+  await page.evaluate(() => { const b = document.querySelector('#tab-prodigy .lrow [data-act="jhDetail"]'); if (b) b.click(); });
+  await page.waitForTimeout(200);
 
   /* 切到玄榜（玩家境界 5 所在那一榜）：chip 状态与内容同步换、玩家行只出现在自己那一榜 */
   await page.evaluate(() => { document.querySelector('#tab-prodigy .jbchips button[data-v="2"]').click(); });
@@ -201,6 +267,14 @@ function buildSave() {
       /位列.{0,4}第 [0-9]+ 位/.test(r1.body),
     'J12 玩家行只出现在自己境界带那一榜并高亮，且名次行**不会被写成「第 0 位」**（截图目检抓到过这一枚谎；裁定 3：不另开「我方之势」行）',
     '天榜cur=' + r0.cur + ' 玄榜cur=' + r1.cur + ' 行=' + r1.curTxt.trim().slice(0, 28));
+
+  /* J19（第册一百一十六批 · 用户报「已在天榜第四，切到地/玄/黄榜顶部却说『本榜十席暂未见你』」）：
+   * 名次行现在按**自己那一榜**说话，切榜不改这句；旧写法把「本榜」当成正在看的那一榜 ⇒ 那句话是谎。
+   * 反向取证：把视图改回 `myRank`/`cur`（正在看的那一榜）⇒ 这一判当场红。 */
+  T(!!r0.selfrank && r0.selfrank === r1.selfrank &&
+      /位列.{0,6}第 [0-9]+ 位/.test(r0.selfrank) && r0.selfrank.indexOf('暂未见你') < 0,
+    'J19 自己名次行常驻且不随切榜变（天榜读与玄榜读逐字相同，句中含真实名次）',
+    '天榜读=' + r0.selfrank + ' ‖ 玄榜读=' + r1.selfrank);
 
   /* ══ J14~J16 第册三批④：夺宝与隐世奇遇「真的上屏」（第册批 mrc-title 那一课不重演）══
    * 场景全由**引擎自己**写：夺宝走唯一写口 `killOff`（日志函子 = 真的 `SQ.Log.push`），
