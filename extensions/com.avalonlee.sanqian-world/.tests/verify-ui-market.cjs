@@ -138,16 +138,16 @@ async function buildSave() {
     await ctxB.close();
   }
 
-  /* ── ② 势力页：门中供给改整行清单（B16-q：卡片网格 → .matgrid/.matrow） ── */
-  await page.click('#m-tabbar button[data-v="faction"]');
+  /* ── ② 宗门页（B16-ac：门中供给随日常管理搬到这里）：整行清单 ── */
+  await page.click('#m-tabbar button[data-v="sect"]');
   await page.waitForTimeout(400);
   const facWide = await page.evaluate(() => {
-    const g = document.querySelector('#tab-faction .matgrid');
+    const g = document.querySelector('#tab-sect .matgrid');
     return {
       hasGrid: !!g,
       cols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      cards: document.querySelectorAll('#tab-faction .matgrid > .matrow').length,
-      supplyTitle: !!document.querySelector('#tab-faction .matgrid')
+      cards: document.querySelectorAll('#tab-sect .matgrid > .matrow').length,
+      supplyTitle: !!document.querySelector('#tab-sect .matgrid')
     };
   });
   T(facWide.hasGrid && facWide.cols === 1, 'M5 门中供给为整行清单（设计稿 .matrow 单列）', 'cols=' + facWide.cols);
@@ -230,9 +230,9 @@ async function buildSave() {
   await page.waitForTimeout(300);
   const alNarrow = await colsOf('#tab-alchemy .cardgrid');
   await zoneTo('江湖');
-  await page.click('#m-subnav button[data-v="faction"]');
+  await page.click('#m-subnav button[data-v="sect"]');
   await page.waitForTimeout(300);
-  const facNarrow = await colsOf('#tab-faction .matgrid');
+  const facNarrow = await colsOf('#tab-sect .matgrid');
   T(shopNarrow === 1, 'M12 窄屏坊市退单列', 'cols=' + shopNarrow);
   T(facNarrow === 1, 'M13 窄屏门中供给仍单列', 'cols=' + facNarrow);
   T(alNarrow === 1, 'M14 窄屏炼丹炼器退单列', 'cols=' + alNarrow);
@@ -240,10 +240,10 @@ async function buildSave() {
   /* M23 同型面第二处：门中供给（势力页）卖的就是 D.PILLS 那四颗丹，必须挂**同一对标签**
    * （坊市加了而那里不加 = 造一处新的不一致，正是本批在特席上刚修掉的毛病）。
    * 主存档已入势力、声望满 ⇒ 四档供给全解锁，卡片必为四张，逐张量 .fh 内的 chip。 */
-  /* 已停在势力页（窄屏那一步刚切过来）⇒ M23 直接量，不再重复点导航 */
+  /* 已停在宗门页（窄屏那一步刚切过来）⇒ M23 直接量，不再重复点导航 */
   await page.waitForTimeout(500);
   const sup = await page.evaluate(() => Array.prototype.map.call(
-    document.querySelectorAll('#tab-faction .matgrid > .matrow'), (c) => {
+    document.querySelectorAll('#tab-sect .matgrid > .matrow'), (c) => {
       const mn = c.querySelector('.m-n');
       return {
         text: mn ? mn.textContent.replace(/\s+/g, ' ').trim() : '',

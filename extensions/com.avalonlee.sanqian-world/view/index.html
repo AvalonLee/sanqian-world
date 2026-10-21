@@ -2626,6 +2626,8 @@
     if (act === 'facRelAll') { SQ.UI.faction.actRelAll(ctx()); return; }
     /* B15-j：势力页阵营筛选（chips） */
     if (act === 'facCamp') { SQ.UI.faction.actCamp(ctx(), el.dataset.v); return; }
+    if (act === 'facDetail') { SQ.UI.faction.actDetail(ctx(), el.dataset.v); return; }
+    if (act === 'facBack') { SQ.UI.faction.actBack(ctx()); return; }
     if (act === 'joinFaction') { await SQ.UI.faction.actJoin(ctx(), v); return; }
     /* 叛离入口（系统深化批 B4 改造）：升级为去向感知两级弹窗——处理见下方 leaveFaction/defectGo 段 */
     /* 叛离入口（系统深化批 B4 改造）：升级为去向感知两级弹窗——处理见下方 leaveFaction/defectGo 段 */

@@ -150,18 +150,21 @@ const { chromium } = require('playwright-core');
   /* 需求 3：势力页加入按钮置灰（先加入一个）*/
   await page.click('#m-tabbar button:has-text("势力")');
   await page.waitForTimeout(300);
-  /* 势力页按钮每秒随 tick 重渲染：裸 ElementHandle.click 会在重渲染瞬间脱挂且不自动重试，
-   * 改用 Locator（.first()）——重解析+重试，规避 elementHandle.click「not attached」抖动。 */
+  /* B16-ac：势力页是名录 ⇒ 先点一行进详情，加入钮在详情里 */
+  await page.click('#tab-faction .faccard[data-act="facDetail"]');
+  await page.waitForTimeout(300);
   const joinSel = '[data-act="joinFaction"]:not([disabled])';
   const joinCount = await page.locator(joinSel).count();
-  T(joinCount > 0, 'R3 未加入时可加入', 'enabled=' + joinCount);
+  T(joinCount > 0, 'R3 未加入时详情可加入', 'enabled=' + joinCount);
   await page.locator(joinSel).first().click();
   await page.waitForTimeout(300);
   await page.click('#cf-ok');   /* CONFIRM */
   await page.waitForTimeout(600);
-  const en = await page.$$eval('[data-act="joinFaction"]:not([disabled])', els => els.length);
-  const dis = await page.$$eval('[data-act="joinFaction"][disabled]', els => els.length);
-  T(en === 0 && dis > 0, 'R3 加入后其余势力按钮全部置灰', 'enabled=' + en + ' disabled=' + dis);
+  /* 加入后回到名录；再打开另一家详情 ⇒ 单一归属，不再给加入钮 */
+  await page.click('#tab-faction .faccard[data-act="facDetail"]');
+  await page.waitForTimeout(300);
+  const en2 = await page.$$eval('[data-act="joinFaction"]', els => els.length);
+  T(en2 === 0, 'R3 加入后再看别家：单一归属，不再给加入钮', 'joinBtn=' + en2);
 
   /* 地柱跳转回归：openCave → 切到「秘境洞天」页并落到洞天节（原浮层已内联本页）*/
   await page.click('#m-tabbar button:has-text("修行")');
