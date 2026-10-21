@@ -61,6 +61,16 @@ const { chromium } = require('playwright-core');
   T(bar.ids.join(',') === 'idle,combat,event,arts,gear,treasure,alchemy,shop,bonds,faction,prodigy,sect,achv,legacy,journal,settings',
     'SH3 按钮顺序 = 五区固定序（含百器）', bar.ids.join(','));
 
+  /* B16-y：导航短名「丹器」（两字节奏，与功法/百器一致）；页内全名仍为 alchemy.system */
+  const navLab = await page.evaluate(() => {
+    const b = document.querySelector('#m-tabbar button[data-v="alchemy"]');
+    const txt = b ? b.textContent.trim() : '';
+    return { txt: txt, want: SQ.t('nav.alchemy', null, 'xiuxian'), full: SQ.t('alchemy.system', null, 'xiuxian') };
+  });
+  T(navLab.txt === navLab.want && navLab.txt.length === 2 && navLab.full === '炼丹炼器',
+    'SH3a 导航炼丹页显示短名「丹器」（2 字），页内全名「炼丹炼器」保留',
+    JSON.stringify(navLab));
+
   /* ③ 内容列居中（2026-10-21 用户令「拖大窗口不要贴左」）：
    * 顶栏 / 子导航 / 正文同宽 832 并在可用区间内居中；正文面板 780、左右内距 26。
    * 可用区间 = 左导航右边 → 右栏左边（无右栏时到视口右边）。 */
