@@ -183,6 +183,43 @@ const KEY = 'sanqian-state-v1';
     T(false, 'AT-G 宗门页导航可定位', '找不到「宗门」页签');
   }
 
+  /* AT-H（B16-ad）：自立宗门治理区（改名 / 门规 / 宣言 / 税率 / 任免 / 逐出 / 解散）在屏上 */
+  {
+    const sx = JSON.parse(fixture), wS = sx.worlds.xiuxian;
+    wS.factionId = 'sect';
+    wS.sect = {
+      name: '试剑宗', gate: 'wuyue', align: 'neutral', motto: '', tax: 0,
+      disciples: [{ id: 'd1', nm: [0, 0], tier: 'mid', realm: 2, prog: 0, inv: 0, perk: 'combatPower', tianjiao: false }],
+      fac: { zangjing: 0, danfang: 0, yanwu: 0, keshe: 0 }, seq: 1,
+      warRecord: { wins: 0, loses: 0 }, suppressed: {}, foundAt: Date.now()
+    };
+    wS.factions.push({ id: 'sect', name: '试剑宗', align: 'neutral', perk: { field: 'qiRate', v: 0 }, rel: {}, fixed: false });
+    const ctxS = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    await ctxS.addInitScript((a) => { try { localStorage.setItem(a.k, a.v); } catch (e) {} }, { k: KEY, v: JSON.stringify(sx) });
+    const pS = await ctxS.newPage();
+    const errS = [];
+    pS.on('pageerror', (e) => errS.push(String(e.message).slice(0, 90)));
+    await pS.goto(url);
+    await pS.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 }).catch((e) => { console.log('AT-H_ERR', errS.join(' | ') || 'no pageerror'); throw e; });
+    await pS.waitForTimeout(500);
+    await pS.evaluate(() => { var b = document.querySelector('#m-tabbar button[data-v="sect"]'); if (b) b.click(); });
+    await pS.waitForTimeout(400);
+    const gov = await pS.evaluate(() => ({
+      heads: Array.prototype.map.call(document.querySelectorAll('#tab-sect .sechead .t'), (x) => x.textContent.trim()),
+      want: SQ.t('sect.gov.title', null, 'xiuxian'),
+      tax: document.querySelectorAll('#tab-sect [data-act="sectGovTax"]').length,
+      posts: document.querySelectorAll('#tab-sect [data-act="sectPost"]').length,
+      expel: document.querySelectorAll('#tab-sect [data-act="sectExpel"]').length,
+      disband: !!document.querySelector('#tab-sect [data-act="sectDisband"]'),
+      inputs: !!document.querySelector('#sect-rename-input') && !!document.querySelector('#sect-motto-input'),
+      errs: 0
+    }));
+    T(gov.heads.indexOf(gov.want) >= 0 && gov.tax === 7 &&
+      gov.posts >= 2 && gov.expel >= 1 && gov.disband && gov.inputs && errS.length === 0,
+      'AT-H 自立宗门治理区齐备（改名/门规/宣言/税率七档/任免/逐出/解散 · 零报错）', JSON.stringify(gov));
+    await ctxS.close();
+  }
+
   /* AT-SB 滚动条已换成主题样式（第十九批 · 用户令「整个游戏的滚动条和界面不太匹配，美化一下」）。
    * ⚠️ 量法：本环境（Win11 + 新版 Chromium）走 **overlay 滚动条**，`offsetWidth − clientWidth` 恒为 0
    *   ——拿布局占位当判据会把一条正确的样式测成红（首跑即此形，登记防下批重踩）。

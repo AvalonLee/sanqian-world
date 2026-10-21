@@ -2960,6 +2960,63 @@
       renderAll();
       return;
     }
+    /* B16-ad：自立宗门治理 / 人事 / 外交（全开放） */
+    if (act === 'sectGovField') {
+      var gvF = v === 'rename' ? ($('sect-rename-input') || {}).value : ($('sect-motto-input') || {}).value;
+      var rGF = await SQ.Actions.sectGov(state, v, gvF);
+      if (rGF && rGF.ok) toast(t(v === 'rename' ? 'sect.gov.rename.ok' : 'sect.gov.motto.ok', { name: rGF.name || '' }));
+      else if (rGF && rGF.reason === 'empty') toast(t('sect.gov.rename.empty'));
+      renderAll();
+      return;
+    }
+    if (act === 'sectGovRule') {
+      var wR = ws(), secR = wR.sect || {};
+      var gR = el.dataset.c === 'gate' ? v : secR.gate;
+      var aR = el.dataset.c === 'align' ? v : secR.align;
+      var rGR = await SQ.Actions.sectGov(state, 'rule', gR, aR);
+      if (rGR && rGR.ok) toast(t('sect.gov.rule.ok'));
+      renderAll();
+      return;
+    }
+    if (act === 'sectGovTax') {
+      var rGT = await SQ.Actions.sectGov(state, 'tax', parseInt(v, 10));
+      renderAll();
+      return;
+    }
+    if (act === 'sectPost') {
+      var rGP = await SQ.Actions.sectGov(state, 'appoint', v, el.dataset.c === 'none' ? null : el.dataset.c);
+      renderAll();
+      return;
+    }
+    if (act === 'sectExpel') {
+      var wE = ws(), dE = SQ.Sect.byDiscId(wE, v);
+      var nmE = dE ? SQ.Sect.discName(wE, dE, pack()) : '';
+      askConfirm(t('sect.gov.expel'), t('sect.gov.expel.confirm', { name: nmE }), async function () {
+        var rGE = await SQ.Actions.sectGov(state, 'expel', v);
+        if (rGE && rGE.ok) toast(t('sect.gov.expel.ok', { name: nmE }));
+        renderAll();
+      });
+      return;
+    }
+    if (act === 'sectDisband') {
+      var nmD = (ws().sect || {}).name || '';
+      askConfirm(t('sect.gov.disband'), t('sect.gov.disband.confirm', { name: nmD }), async function () {
+        var rGD = await SQ.Actions.sectGov(state, 'disband');
+        if (rGD && rGD.ok) toast(t('sect.gov.disband.ok'));
+        renderAll();
+      });
+      return;
+    }
+    if (act === 'sectPeace') {
+      var pcP = SQ.Sect.peaceCost(ws(), D());
+      askConfirm(t('sect.gov.peace'), t('sect.gov.peace.confirm', { n: SQ.fmt(pcP) }), async function () {
+        var rPP = await SQ.Actions.sectGov(state, 'peace');
+        if (rPP && rPP.ok) toast(t('sect.gov.peace.ok'));
+        else if (rPP && rPP.reason === 'poor') toast(t('shop.fail.poor'));
+        renderAll();
+      });
+      return;
+    }
     if (act === 'sectSucceed') {
       askConfirm(t('sect.ui.succ.btn'), t('sect.ui.succ.confirm'), async function () {
         var rSc = await SQ.Actions.sectSucceed(state, v);

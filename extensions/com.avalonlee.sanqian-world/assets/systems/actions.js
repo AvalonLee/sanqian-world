@@ -887,6 +887,25 @@
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
       });
       return out;
+    },
+    /* B16-ad：自立宗门治理 / 人事 / 外交（统一走 mutate；返回结果供 toast） */
+    sectGov: async function (ref, kind, a, b) {
+      var out = null;
+      await SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        var pack = packOf(s), D = dataOf(s);
+        function log(cat, text) { SQ.Log.push(ws, cat, text); }
+        if (kind === 'rename') out = SQ.Sect.rename(ws, D, a);
+        else if (kind === 'rule') out = SQ.Sect.setRule(ws, D, a, b);
+        else if (kind === 'motto') out = SQ.Sect.setMotto(ws, D, a);
+        else if (kind === 'tax') out = SQ.Sect.setTax(ws, D, a);
+        else if (kind === 'appoint') out = SQ.Sect.appoint(ws, D, a, b);
+        else if (kind === 'expel') out = SQ.Sect.expel(ws, D, a);
+        else if (kind === 'disband') out = SQ.Sect.disband(ws, pack, D, Date.now(), log);
+        else if (kind === 'peace') out = SQ.Sect.makePeace(ws, pack, D, Date.now(), log);
+        if (out && out.ok) pack.recalcDerived(ws, s.profile);
+      });
+      return out;
     }
   };
 })();

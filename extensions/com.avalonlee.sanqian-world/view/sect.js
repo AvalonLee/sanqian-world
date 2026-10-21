@@ -104,6 +104,29 @@
     if (SQ.Sect.discipleMerit(w, p, d) > 0) {
       h += '<p class="hintline">' + c.esc(c.t('sect.war.merit', { n: SQ.fmt(SQ.Sect.discipleMerit(w, p, d)) })) + '</p>';
     }
+    /* B16-ad：自立宗门完全开放——改名 / 改门规 / 门规宣言 / 税率 / 解散 */
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.gov.title')) + '</span></div>';
+    h += '<div class="setrow"><span class="sl">' + c.esc(c.t('sect.gov.name')) + '</span>' +
+      '<span style="display:flex;gap:6px;align-items:center"><input id="sect-rename-input" class="tdta" style="max-width:140px;min-height:32px" maxlength="' + (d.SECT.NAME_MAX || 6) + '" value="' + c.esc(sec.name) + '">' +
+      '<button data-act="sectGovField" data-v="rename">' + c.esc(c.t('sect.gov.rename')) + '</button></span></div>';
+    h += '<div class="setrow col"><span class="sl">' + c.esc(c.t('sect.gov.rule')) + '</span><div class="chips">' +
+      (d.SECT.GATES || []).map(function (g) {
+        return '<button class="' + (sec.gate === g ? 'on' : '') + '" data-act="sectGovRule" data-c="gate" data-v="' + g + '">' +
+          c.esc(c.t('sect.gate.' + g + '.name')) + '</button>';
+      }).join('') +
+      ['right', 'neutral', 'evil'].map(function (a) {
+        return '<button class="' + (sec.align === a ? 'on' : '') + '" data-act="sectGovRule" data-c="align" data-v="' + a + '">' +
+          c.esc(c.t('sect.align.' + a + '.name')) + '</button>';
+      }).join('') + '</div></div>';
+    h += '<div class="setrow"><span class="sl">' + c.esc(c.t('sect.gov.motto')) + '</span>' +
+      '<span style="display:flex;gap:6px;align-items:center"><input id="sect-motto-input" class="tdta" style="max-width:200px;min-height:32px" maxlength="' + (d.SECT.MOTTO_MAX || 24) + '" placeholder="' + c.esc(c.t('sect.gov.motto.ph')) + '" value="' + c.esc(sec.motto || '') + '">' +
+      '<button data-act="sectGovField" data-v="motto">' + c.esc(c.t('sect.gov.motto')) + '</button></span></div>';
+    if (sec.motto) h += '<p class="hint" style="margin:2px 0">' + c.esc(c.t('sect.gov.motto.line', { m: sec.motto })) + '</p>';
+    h += '<div class="setrow col"><span class="sl">' + c.esc(c.t('sect.gov.tax')) + '</span><div class="chips">' +
+      (d.SECT.TAX_STEPS || [0, 5, 10, 15, 20, 25, 30]).map(function (n) {
+        return '<button class="' + ((sec.tax || 0) === n ? 'on' : '') + '" data-act="sectGovTax" data-v="' + n + '">' + n + '%</button>';
+      }).join('') + '</div><p class="hint">' + c.esc(c.t('sect.gov.tax.hint')) + '</p></div>';
+    h += '<button class="danger" data-act="sectDisband" style="width:100%;margin-top:8px">' + c.esc(c.t('sect.gov.disband')) + '</button>';
     /* 弟子 */
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.ui.disciples', { n: sec.disciples.length, cap: SQ.Sect.discCap(w, d) })) + '</span></div>';
     /* N20 接线：继位择人的规则（供奉不可继位）此前只靠按钮 disabled 隐含，无一句释文 */
@@ -126,6 +149,12 @@
         [0, 1, 2].forEach(function (iv) {
           h += '<button data-act="sectInvest" data-v="' + dsc.id + '" data-c="' + iv + '" class="' + (dsc.inv === iv ? 'primary' : '') + '">' + c.esc(c.t('sect.disc.inv.' + iv)) + '</button>';
         });
+        /* B16-ad：任免（执事 / 长老 各限一名）与逐出 */
+        [['steward', 'sect.gov.post.steward'], ['elder', 'sect.gov.post.elder']].forEach(function (p) {
+          h += '<button data-act="sectPost" data-v="' + dsc.id + '" data-c="' + p[0] + '" class="' + (dsc.post === p[0] ? 'primary' : '') + '">' + c.esc(c.t(p[1])) + '</button>';
+        });
+        if (dsc.post) h += '<button data-act="sectPost" data-v="' + dsc.id + '" data-c="none">' + c.esc(c.t('sect.gov.post.none')) + '</button>';
+        h += '<button class="danger" data-act="sectExpel" data-v="' + dsc.id + '">' + c.esc(c.t('sect.gov.expel')) + '</button>';
       }
       h += '<button data-act="sectDispatch" data-v="' + dsc.id + '">' + c.esc(c.t('sect.ui.dispatch')) + '</button>';
       if (w.realm >= d.REALMS.length - 1) h += '<button data-act="sectSucceed" data-v="' + dsc.id + '"' + (dsc.offering ? ' disabled' : '') + '>' + c.esc(c.t('sect.ui.succ.btn')) + '</button>';
@@ -186,7 +215,14 @@
       }
     }
     if (w.factionWar && SQ.Factions.warSideOf(w)) {
-      h += '<p class="hint" style="margin-top:8px">' + c.esc(c.t('sect.war.guard')) + ' → ' + c.esc(c.t('rumor.war.go')) + '</p>';
+      /* B16-ad：花灵石单方停战（世界级战争计时立即结束） */
+      var pc = SQ.Sect.peaceCost(w, d);
+      h += '<div class="warstrip"><span class="w-t">' + c.esc(c.t('faction.war.title')) +
+        '</span><span class="w-v">' + c.esc(c.t('faction.war.banner', {
+          a: SQ.Factions.nameOf(w, w.factionWar.aId), b: SQ.Factions.nameOf(w, w.factionWar.bId),
+          t: c.fmtLeft(w.factionWar.until - Date.now())
+        })) + '</span><button data-act="sectPeace">' +
+        c.esc(c.t('sect.gov.peace.cost', { n: SQ.fmt(pc) })) + '</button></div>';
     }
     c.$('tab-sect').innerHTML = h;
   }
