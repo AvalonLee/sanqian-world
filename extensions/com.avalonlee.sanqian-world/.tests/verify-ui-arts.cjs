@@ -55,7 +55,7 @@ async function buildSave() {
     const p = document.getElementById('tab-arts');
     return {
       lawMark: !!p.querySelector('[data-mainart="1"]') || !!p.querySelector('.artgrid'),
-      gearMark: !!p.querySelector('.geargrid') || !!p.querySelector('[data-act="openGearCodex"]'),
+      gearMark: !!p.querySelector('.gear4') || !!p.querySelector('[data-act="openGearCodex"]'),
       merged: !!p.querySelector('.lawchips') || !!p.querySelector('.laware') || !!p.querySelector('.secdiv')
     };
   };
@@ -388,7 +388,7 @@ async function buildSave() {
   await page.click('#m-subnav button[data-v="gear"]');
   await page.waitForTimeout(300);
   const narrow = await page.evaluate(() => {
-    const g = document.querySelector('#tab-gear .geargrid');
+    const g = document.querySelector('#tab-gear .gear4');
     const zBar = document.getElementById('m-zonebar');
     const btns = Array.prototype.slice.call(zBar.querySelectorAll('button'));
     return {
@@ -400,7 +400,8 @@ async function buildSave() {
       scrollable: zBar.scrollWidth > zBar.clientWidth
     };
   });
-  T(narrow.gearCols === 1, 'A8 窄屏器段网格退单列', 'cols=' + narrow.gearCols);
+  /* B16-f：百器四槽改 `auto-fit minmax(148px,1fr)`（设计稿原式）⇒ 390 宽折两列；窄屏硬要求仍是不破宽 */
+  T(narrow.gearCols >= 2, 'A8 窄屏器段四槽自动折列（≥2 列）', 'cols=' + narrow.gearCols);
   T(narrow.clipped.length === 0, 'A8d 窄屏五区底栏**零标签截断**（B13 起 16 项横滑已收起）',
     narrow.clipped.length ? '被截: ' + narrow.clipped.join(',') : 'clean');
   T(narrow.tabbar === 'none' && narrow.zone === 'flex' && narrow.zones === 5 && !narrow.scrollable,

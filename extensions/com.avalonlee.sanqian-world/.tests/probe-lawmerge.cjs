@@ -117,9 +117,9 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
     ['功法·融合坛悟道石', 'data-act="matWudao"']
   ];
   const QI_MARKS = [
-    ['百器·百器录横幅', 'data-act="openGearCodex"'],
-    ['百器·器卡网格', 'cards geargrid'],
-    ['百器·库藏阁', 'geargrid']
+    ['百器·百器录行', 'data-act="openGearCodex"'],
+    ['百器·四槽一行', 'class="gear4"'],
+    ['百器·百器录整行', 'class="lrow codexrow"']
   ];
   const has = (h, marks) => marks.filter(([, s]) => h.indexOf(s) >= 0).map(([n]) => n);
   const missing = (h, marks) => marks.filter(([, s]) => h.indexOf(s) < 0).map(([n]) => n);

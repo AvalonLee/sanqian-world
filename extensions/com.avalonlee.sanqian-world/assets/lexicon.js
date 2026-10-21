@@ -541,6 +541,13 @@
     'gear.sec.worn': '佩 戴 中', 'gear.sec.wornsub': '{n}/{total} · 自动择优 · 抗性合计 {r}',
     'toast.gear.exswap': '手动替换：{name}（{tier}）已穿上，旧件移入库藏阁',
     'gear.stash.hint': '境界提升自动复检',
+    /* ── B16-e 百器页版面（设计稿 §百器：三格摘要 / 四槽一行 / 百器录行 / 炼化条）── */
+    'gear.sum.worn': '在 身',
+    'gear.slot.none': '空',
+    'gear.hint': '百器随身穿戴、入战生效，可炼化为材料；法宝另立一页，只带一条签名效果，不介入战斗。',
+    'gear.codex.open': '全部 ›',
+    'gear.refine.strip.t': '炼 化',
+    'gear.refine.strip.v': '弃置的百器可炼为材料，已录格子不会消失',
     /* ── 批 2 · 奇遇回看浮层（交互说明 ★：图鉴格点按 = story + 首遇时间 + 上次选择）── */
     'event.recall.title': '奇遇回看 · {name}',
     'event.recall.first': '首遇 · {d}（{ago}）', 'event.recall.times': '累计相遇 {n} 次',

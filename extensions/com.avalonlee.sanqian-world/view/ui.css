@@ -188,11 +188,11 @@
   .artgrid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important; }
   .artgrid .acts { display: flex; flex-wrap: wrap; gap: 4px; }
   .artgrid .acts button { flex: 1 1 auto; }
-  /* 法器 / 法宝卡网格（卡片化批）：同行卡片数随窗口宽度自适应，宽屏多列、窄屏单列 */
-  .geargrid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)) !important; }
+  /* 法宝槽位卡网格（卡片化批）：同行卡片数随窗口宽度自适应，宽屏多列、窄屏单列。
+     百器一侧自 B16-f 改 `.gear4` 一行四格后，`.geargrid` 一族随之退役。 */
   .trgrid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important; }
-  .geargrid .acts, .trgrid .acts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
-  .geargrid .acts button, .trgrid .acts button { flex: 1 1 auto; min-height: 34px; padding: 4px 10px; font-size: 12px; }
+  .trgrid .acts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .trgrid .acts button { flex: 1 1 auto; min-height: 34px; padding: 4px 10px; font-size: 12px; }
   .tcard .tslot { font-size: 11px; color: var(--ink-2); margin-bottom: 3px; }
   .tcard .tacts-src { margin-top: 6px; }
   .tcard { position: relative; border: 1px solid var(--line); border-radius: var(--sq2-r); padding: 10px 12px; background: var(--well); }
@@ -734,12 +734,8 @@
   .ebadge.gold { color: var(--primary); border-color: var(--primary); background: var(--brand-soft); }
   .ebadge.gray { color: var(--ink-3); border-color: var(--line); }
 
-  /* ── 批 2 · B5 法宝页：百器录横幅 + 浮层 12 格双节 + 来源行 + 极品 ※ ── */
-  .gbanner { display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    border: 1px solid var(--primary); border-radius: var(--sq2-r); padding: 9px 12px; margin: 8px 0;
-    background: var(--brand-soft); cursor: pointer; }
-  .gbanner .l { font-weight: 700; letter-spacing: .3em; color: var(--primary); font-size: 13px; white-space: nowrap; }
-  .gbanner .r { font-size: 11px; color: var(--ink-2); text-align: right; }
+  /* ── 批 2 · B5 法宝页：百器录浮层 12 格双节 + 来源行 + 极品 ※ ──
+     （百器录横幅 `.gbanner` 自 B16-f 改「整行 `.lrow codexrow`」后退役） ── */
   .sechead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 12px 0 4px; }
   .sechead .t { font-weight: 650; letter-spacing: .2em; font-size: 12px; color: var(--ink-2); }
   .sechead .s { font-size: 10.5px; color: var(--ink-3); text-align: right; }
@@ -1256,6 +1252,62 @@
 #tab-arts .grouper .gchip, #tab-gear .grouper .gchip { border-radius: 2px; }
 #tab-arts .bar, #tab-gear .bar { background: var(--sq2-paper-3); border-radius: 0; }
 #tab-arts .bar > i, #tab-gear .bar > i { background: var(--sq2-cinnabar); }
+
+/* ── UI v2 B16-f：百器页对齐设计稿（三格摘要 / 四槽一行 / 百器录行 / 库藏阁行 / 炼化条）──
+   槽位与库藏阁都不再用整张卡片：一屏里四槽 + 若干库件应当扫得完（设计稿 §百器 的四条理由）。 */
+#tab-gear .gear4 {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 9px;
+  margin: 8px 0 12px;
+}
+#tab-gear .gslot {
+  border: 1px solid var(--sq2-line); border-radius: 2px; background: var(--sq2-paper-2);
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; text-align: left;
+}
+#tab-gear .gslot.on { border-color: var(--sq2-cinnabar); background: var(--sq2-paper-3); }
+#tab-gear .gslot.empty { border-style: dashed; background: transparent; }
+#tab-gear .gslot .g-k { font-size: 9.5px; letter-spacing: .2em; color: var(--sq2-ink-3); }
+#tab-gear .gslot .g-n { font-family: var(--sq2-serif); font-size: 14px; letter-spacing: .05em; color: var(--sq2-ink); }
+#tab-gear .gslot .g-e { font-size: 10.5px; color: var(--ink-2); line-height: 1.65; }
+#tab-gear .gslot .g-n.dim, #tab-gear .gslot .g-e.dim { color: var(--ink-3); }
+#tab-gear .stroe {
+  display: grid; grid-template-columns: minmax(0, 1fr) 172px; gap: 4px 14px;
+  align-items: center; padding: 10px 14px;
+}
+#tab-gear .stroe .srn { font-family: var(--sq2-serif); font-size: 14px; letter-spacing: .05em; color: var(--sq2-ink); }
+#tab-gear .stroe .srd { font-size: 11.5px; color: var(--ink-2); line-height: 1.6; }
+#tab-gear .stroe .srd .bar { margin: 0; height: 4px; border-radius: 0; background: var(--sq2-paper-3); }
+#tab-gear .stroe .srcrow { grid-column: 1; font-size: 11px; }
+#tab-gear .stroe .srr {
+  grid-column: 2; grid-row: 1 / span 9;
+  display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
+}
+#tab-gear .stroe .srb { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+#tab-gear .stroe .srb button { min-height: 28px; padding: 2px 9px; font-size: 11.5px; }
+#tab-gear .stroe .srb b { font-family: var(--sq2-serif); font-weight: 500; font-size: 12px; color: var(--sq2-cinnabar); }
+#tab-gear .codexrow {
+  display: grid; grid-template-columns: minmax(0, 1fr) 150px auto; gap: 4px 14px;
+  align-items: center; padding: 10px 14px;
+}
+#tab-gear .codexrow .srd { min-width: 0; }
+#tab-gear .codexrow .srr { grid-column: 3; grid-row: 1; display: flex; justify-content: flex-end; }
+#tab-gear .codexrow .srd .bar { margin: 0; height: 4px; border-radius: 0; background: var(--sq2-paper-3); }
+@media (max-width: 719px) {
+  #tab-gear .codexrow { grid-template-columns: 1fr; }
+  #tab-gear .codexrow .srr { grid-column: 1; grid-row: auto; justify-content: flex-start; }
+}
+#tab-gear .strip {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 10px 0; padding: 9px 12px;
+  border: 1px solid var(--sq2-line); border-radius: 2px; background: var(--sq2-paper-3);
+  font-size: 11.5px;
+}
+#tab-gear .strip .t { font-family: var(--sq2-serif); letter-spacing: .14em; color: var(--sq2-ink-2); }
+#tab-gear .strip .v { flex: 1; color: var(--ink-2); }
+@media (max-width: 719px) {
+  #tab-gear .stroe { grid-template-columns: 1fr; }
+  #tab-gear .stroe .srr { grid-column: 1; grid-row: auto; align-items: flex-start; }
+  #tab-gear .stroe .srb { justify-content: flex-start; }
+}
 
 /* ── UI v2 B7：法宝 / 炼丹炼器 / 坊市纸面化（结构、价格与掉率未动）── */
 #tab-treasure .tcard, #tab-alchemy .tcard {
@@ -1864,18 +1916,18 @@
   /* ══ UI v2 B15-h：成就页三格摘要 + 图鉴九面改行式（设计稿 .sum3 / .lrow）══
    *    九面仍是 `.facegrid > .facecard`（走查按这两个选择器取数），只把布局从网格卡片改成
    *    「名称 + 分母在左、里程碑在右、进度条贴名下方」的行；`.msdots` / `.cfoot` 结构未动。══ */
-  #tab-achv .sum3 {
+  #tab-achv .sum3, #tab-gear .sum3 {
     display: grid; grid-template-columns: repeat(3, 1fr);
     border-top: 1px solid var(--sq2-line); border-bottom: 1px solid var(--sq2-line);
     margin: 4px 0 12px;
   }
-  #tab-achv .sum3 > div { position: relative; padding: 11px 10px 12px; text-align: center; }
-  #tab-achv .sum3 > div + div::before {
+  #tab-achv .sum3 > div, #tab-gear .sum3 > div { position: relative; padding: 11px 10px 12px; text-align: center; }
+  #tab-achv .sum3 > div + div::before, #tab-gear .sum3 > div + div::before {
     content: ""; position: absolute; left: 0; top: 22%; bottom: 22%;
     width: 1px; background: var(--sq2-line);
   }
-  #tab-achv .sum3 .k { font-size: 10px; letter-spacing: .22em; color: var(--sq2-ink-3); }
-  #tab-achv .sum3 .v {
+  #tab-achv .sum3 .k, #tab-gear .sum3 .k { font-size: 10px; letter-spacing: .22em; color: var(--sq2-ink-3); }
+  #tab-achv .sum3 .v, #tab-gear .sum3 .v {
     font-family: var(--sq2-serif); font-size: 17px; margin-top: 2px;
     color: var(--sq2-ink); font-variant-numeric: tabular-nums;
   }
