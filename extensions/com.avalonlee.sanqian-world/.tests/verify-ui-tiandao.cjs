@@ -420,6 +420,20 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   await page.click('.dp-sheet [data-act="detailRate"]');
   await page.waitForTimeout(250);
   T(!(await page.$('.dp-sheet')), 'I3 点「收起」浮层消失（不留遮罩拦点击）');
+
+  /* I4（B16-ae）：闭关/历练切换时模式说明折行数不同，圆相不许上下跳 */
+  const topOf = () => page.evaluate(() => Math.round(document.querySelector('#tab-idle .stathero').getBoundingClientRect().top));
+  const t0 = await topOf();
+  await page.click('#tab-idle [data-act="setMode"][data-v="venture"]');
+  await page.waitForTimeout(350);
+  const t1 = await topOf();
+  const hMeta = await page.evaluate(() => Math.round(document.querySelector('#tab-idle .modemeta').getBoundingClientRect().height));
+  await page.click('#tab-idle [data-act="setMode"][data-v="seclude"]');
+  await page.waitForTimeout(350);
+  const t2 = await topOf();
+  T(Math.abs(t0 - t1) <= 1 && Math.abs(t0 - t2) <= 1 && hMeta >= 38,
+    'I4 闭关 ↔ 历练切换：模式说明行高度固定，圆相不上下移动',
+    JSON.stringify({ seclude: t0, venture: t1, back: t2, metaH: hMeta }));
   T(errors.length === 0, 'G7 第一台整轮零页错误', errors.slice(0, 3).join(' | '));
 
   await browser.close();

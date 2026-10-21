@@ -364,6 +364,8 @@ var SECTIONS = [
 
 | **B16-ad** | 自立宗门「完全开放」✅ 已落（2026-10-21 · 第二/三批合） | ① **治理**：改名（≤6 字）、改门规（gate + align 随时重定）、门规宣言（≤24 字，纯文案，宗门页展示）、税率（0~30% 步长 5，按弟子所在区灵石基准抽成、月结进 `in.tribute`）、解散宗门（清 `ws.sect` / `factionId` / 势力池条目，二次确认）；② **人事**：新增 **执事 / 长老** 职位（各限一名；执事宗门声望 +10%、长老宗门战力 +10%）、可撤职、可逐出弟子；传位沿用现有流程；③ **外交**：战事在案时可**花灵石单方停战**（`PEACE_COST_K × 宗门声望`，下限 1000），立即结束当前战争；④ 新字段仅 `sec.motto` / `sec.tax` / 弟子 `post`，normalize 逐项钳位，旧档零迁移 | `assets/systems/sect.js`（9 个新函数 + normalize + 税月结 + 职位加成）、`assets/systems/actions.js`（`sectGov` 唯一写口）、`assets/worlds/xiuxian/data.js`（MOTTO_MAX / TAX_K / TAX_STEPS / PEACE_COST_K）、`lexicon-sect.js`（+25 键）、`view/sect.js`（治理区 / 职位与逐出钮 / 停战条）、`view/index.html`（7 条分派）、`.tests/probe-sectgov.cjs`（9 判）、`.tests/verify-ui-alltabs.cjs`（+AT-H） | 20 件 / **603** 全绿（probe-sectgov 9 判）；审计 34/34；走查 861 判；扩展 0.5.124→0.5.125 |
 
+| **B16-ae** | 修行页模式说明行定高 ✅ 已落（2026-10-21） | 闭关 / 历练切换时，下方说明行因文案长短折行数不同，会把圆相顶得上下移动。给该行加 `.modemeta` 固定高度（≥720 两行 38px；窄屏三行 56px），文案在固定区域内换行，圆相位置不动 | `view/idle.js`（metaline 加类）、`view/ui.css`、`.tests/verify-ui-tiandao.cjs`（+I4：切换前后圆相 top 差 ≤1px） | 55 件 / 全绿（tiandao 40 → 41 判）；审计 34/34；扩展 0.5.125→0.5.126 |
+
 > B1→B3 的顺序可以互换（先拆页再换壳），但不建议：壳先用旧 15 项跑通，拆页只改数据模型，问题更好分离。
 
 > **B16 系列的口径变化**：B15 那一轮做的是「形」（令牌 / 纸面 / 行式样式），B16 起改为**逐页搬设计稿的构图**（区块顺序、主事焦点、信息分组）。两轮都不动引擎、不动 `data-act`/`id`。

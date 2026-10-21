@@ -1245,6 +1245,10 @@
 }
 #tab-idle .sechead .t { font-family: var(--sq2-serif); letter-spacing: .18em; }
 #tab-idle .mode { margin: 2px auto 4px; }   /* B16-c：药丸切换页首居中（.mode 全局样式见上） */
+/* B16-ae：模式说明行预留固定高度——闭关/历练切换时文案折行数不同，不许把圆相顶得上下跳 */
+#tab-idle .modemeta { min-height: 38px; align-items: flex-start; }
+#tab-idle .modemeta > span { line-height: 1.45; }
+@media (max-width: 719px) { #tab-idle .modemeta { min-height: 56px; } }
 #tab-idle .offbox { background: var(--sq2-paper-2); border: 1px dashed var(--sq2-line-2); border-radius: 2px; }
 #tab-idle .bar { background: var(--sq2-paper-3); border-radius: 0; }
 #tab-idle .bar > i { background: var(--sq2-cinnabar); border-radius: 0; }
