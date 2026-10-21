@@ -93,6 +93,15 @@ async function buildSave() {
   await page.waitForTimeout(300);
   const blackCards = await page.$$eval('#tab-shop .shopcard', (els) => els.length);
   T(blackCards >= 10 && blackCards <= 16, 'M4 黑市同链路同区间（两架各自独立掷）', 'n=' + blackCards);
+  /* B16-o：黑市按设计稿先给段条（标题回词表现算 + 代价提示非空） */
+  const blackStrip = await page.evaluate(() => {
+    const el = document.querySelector('#tab-shop .strip');
+    return { t: el && el.querySelector('.t') ? el.querySelector('.t').textContent.trim() : '',
+      v: el && el.querySelector('.v') ? el.querySelector('.v').textContent.trim() : '',
+      want: SQ.t('shop.blackmarket', null, 'xiuxian').trim() };
+  });
+  T(blackStrip.t === blackStrip.want && blackStrip.v.length > 0,
+    'M4b 黑市段条在位（标题走词表 · 代价提示非空）', JSON.stringify(blackStrip));
 
   /* ── ② 势力页：门中供给改卡片 ── */
   await page.click('#m-tabbar button[data-v="faction"]');
