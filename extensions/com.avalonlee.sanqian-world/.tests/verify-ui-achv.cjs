@@ -177,7 +177,8 @@ function hintTotal() {
       titleWall: el.textContent.indexOf('称号墙') >= 0,
       achvPtr: !!el.querySelector('[data-act="tab"][data-v="achv"]'),
       achvWall: el.textContent.indexOf('首次秘境首通') >= 0 || el.textContent.indexOf('逆天行事') >= 0,
-      shop: !!el.querySelector('.shopgrid'),
+      /* B16-l 改口：遗泽商店由 .shopgrid 卡片改整行（.atkrow），入口 data-act=lgBuy 仍在 */
+      shop: !!el.querySelector('.atkrow, .shopgrid') && !!el.querySelector('[data-act="lgBuy"]'),
       bios: el.textContent.indexOf('前世书') >= 0,
       cells: cells, want: [st.lives || 0, st.ascensions || 0, st.dissolutions || 0, st.deaths || 0]
     };
@@ -185,6 +186,26 @@ function hintTotal() {
   T(!legacy.codexCard && !legacy.codexGrid && !legacy.titleWall && !legacy.achvPtr && !legacy.achvWall,
     'A13 轮回页图鉴 / 称号墙 / 成就入口已迁出');
   T(legacy.shop && legacy.bios, 'A14 轮回页仍留遗泽商店 + 前世书', 'shop=' + legacy.shop + ' bios=' + legacy.bios);
+  /* B16-l：兵解入口与结算预览同进同退；预览里的折算遗泽必须 === SQ.Legacy.preview 现算值 */
+  const bj = await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
+    const el = document.getElementById('tab-legacy');
+    const det = el.querySelector('.detailbox');
+    const last = det ? det.querySelector('.kv:last-child b') : null;
+    return {
+      eligible: w.realm >= ((D.LEGACY || {}).BINGJIE_MIN_REALM || 4),
+      hasBox: !!el.querySelector('.bjbox'),
+      hasDet: !!det,
+      rows: det ? det.querySelectorAll('.kv').length : 0,
+      totTxt: last ? last.textContent.trim() : '',
+      want: '+' + SQ.fmt(SQ.Legacy.preview(w, st.meta, pack, D, 'bingjie', Date.now()).total || 0)
+    };
+  });
+  T((bj.eligible ? bj.hasBox : !bj.hasBox) && bj.hasBox === bj.hasDet &&
+    (!bj.hasDet || (bj.rows >= 5 && bj.totTxt === bj.want)),
+    'A14c 兵解入口与结算预览同进同退，预览末行折算遗泽 === SQ.Legacy.preview 现算值（视图不自算）',
+    '境界够=' + bj.eligible + ' box=' + bj.hasBox + ' det=' + bj.hasDet + ' rows=' + bj.rows + ' 屏=' + bj.totTxt + ' 引擎=' + bj.want);
   T(legacy.cells.length === 4 && legacy.cells.every((x, i) => x.n === legacy.want[i] && x.k.length > 0),
     'A14b 轮回页跨世四格（世数 / 飞升 / 兵解 / 身死）逐格 === meta.stats',
     JSON.stringify(legacy.cells) + ' want=' + JSON.stringify(legacy.want));

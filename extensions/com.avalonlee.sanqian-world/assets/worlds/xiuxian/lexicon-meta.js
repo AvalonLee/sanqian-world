@@ -56,6 +56,13 @@
   K['legacy.ui.settle.title'] = '一世终了';
   K['legacy.ui.settle.gain'] = '遗泽入账 +{n}';
   K['legacy.ui.bios'] = '前世书';
+  /* ── B16-l 版面（设计稿 §轮回：兵解居首 + 结算预览 detailbox + 商店整行）── */
+  K['legacy.ui.previewbox'] = '兵 解 结 算 预 览';
+  K['legacy.ui.preview.src'] = '与实结同源';
+  K['legacy.ui.preview.totallab'] = '折算遗泽';
+  K['legacy.ui.bingjie.sub'] = '此世所得折分 ×0.7 入遗泽 · 转世后重走创角三屏';
+  K['legacy.ui.karmalog.note'] = '入账即记 · 同事件合并';
+  K['legacy.ui.bios.n'] = '{n} 世';
   K['legacy.ui.bios.empty'] = '尚无前世传记。';
   K['legacy.ui.bio.source.local'] = '本地史笔';
   K['legacy.ui.bio.source.tiandao'] = '天道亲笔';

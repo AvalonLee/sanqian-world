@@ -141,18 +141,37 @@
       '<div class="kv"><span class="hint">' + c.esc(c.t('legacy.ui.stat.realm', {
         realm: c.t('realm.' + Math.min(st.realmMax || 0, d.REALMS.length - 1))
       })) + '</span></div>';
-    /* 飞升 / 兵解入口 */
+    /* B16-l · 设计稿 §轮回 的次序：先「兵解转世」（可选项），再「飞升」（终局），最后真灵承继。
+     * 兵解入口改为居中印钮 + 一句后果说明（原文只有一颗通栏按钮，玩家点下去才知道折分 ×0.7）。 */
+    var canBj = SQ.Legacy && w.realm >= ((d.LEGACY || {}).BINGJIE_MIN_REALM || 4);
+    if (canBj) {
+      h += '<div class="bjbox"><button class="bingjiebtn" data-act="dissolve">' + c.esc(c.t('legacy.ui.bingjie.btn')) + '</button>' +
+        '<p class="hint">' + c.esc(c.t('legacy.ui.bingjie.sub')) + '</p></div>';
+    }
+    /* 兵解结算预览（设计稿 §兵解结算预览「与实结同源」）：逐行只读 `SQ.Legacy.preview` 产物，
+     * 视图不另算一份 —— 玩家在按下兵解之前就能看见此世折多少遗泽。 */
+    if (canBj) {
+      var pvB = SQ.Legacy.preview(w, meta, p, d, 'bingjie', Date.now());
+      var smB = pvB.summary || {};
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('legacy.ui.previewbox')) + '</span>' +
+        '<span class="s">' + c.esc(c.t('legacy.ui.preview.src')) + '</span></div>';
+      h += '<div class="detailbox">' +
+        '<div class="kv"><span>' + c.esc(c.t('legacy.ui.preview.realm')) + '</span><b>' + c.esc(c.t('realm.' + (smB.realm || 0))) + '</b></div>' +
+        '<div class="kv"><span>' + c.esc(c.t('legacy.ui.preview.trib', { w: smB.tribWin || 0, l: smB.tribFail || 0 })) + '</span></div>' +
+        '<div class="kv"><span>' + c.esc(c.t('legacy.ui.preview.zones', { n: smB.zones || 0 })) + '</span></div>' +
+        '<div class="kv"><span>' + c.esc(c.t('legacy.ui.preview.bonds', { n: smB.bonds || 0 })) + '</span></div>' +
+        '<div class="kv"><span>' + c.esc(c.t('legacy.ui.preview.totallab')) + '</span><b class="good">+' +
+        SQ.fmt(pvB.total || 0) + '</b></div></div>';
+    }
+    /* 飞升（终局）：真仙盈满才亮，未达时把原因写在同一块里 */
     if (w.realm >= d.REALMS.length - 1 && SQ.Legacy) {
       var fsChk = SQ.Legacy.canFeisheng(w, p, d, meta, Date.now(), c.s.profile);
       var fsInfo = SQ.Legacy.feishengInfo(w, p, d, m);
-      h += '<div class="tribready" style="margin-top:8px"><div class="tr-t">' + c.esc(c.t('legacy.ui.feisheng.btn')) + '</div>' +
+      h += '<div class="tribready" style="margin-top:10px"><div class="tr-t">' + c.esc(c.t('legacy.ui.feisheng.btn')) + '</div>' +
         (fsInfo ? '<div class="hint">' + c.esc(c.t('legacy.ui.feisheng.p', { p: Math.round(fsInfo.p * 100) })) + '</div>' : '') +
         '<div class="hint">' + c.esc(fsChk.ok ? c.t('legacy.ui.feisheng.confirm') : legacyReasonText(c, fsChk)) + '</div>' +
         (fsChk.ok ? '<button class="primary" data-act="ascend" style="width:100%;margin-top:6px">' + c.esc(c.t('legacy.ui.feisheng')) + '</button>' : '') +
         '</div>';
-    }
-    if (w.realm >= ((d.LEGACY || {}).BINGJIE_MIN_REALM || 4) && SQ.Legacy) {
-      h += '<button class="bingjiebtn" data-act="dissolve" style="width:100%;margin:8px 0">' + c.esc(c.t('legacy.ui.bingjie.btn')) + '</button>';
     }
     /* 真灵承继常驻态 +「换一件」入口（轮回卷 §3.4 · 器灵卷 §九）：
      * 未持 shop.heir 资格整块不出现（零打扰）；持格且本世零觉醒候选**且无失效择定**时整块不出现——
@@ -166,22 +185,22 @@
         (heirLine ? '<div class="hint" style="font-weight:650">' + c.esc(heirLine) + '</div>' : '') +
         '<button data-act="heirSwitch" style="width:100%;margin-top:6px">' + c.esc(c.t('spirit.ui.heir.switch')) + '</button></div>';
     }
-    /* 遗泽商店（价目总表 6800 · 已购置灰不隐藏） */
-    h += '<div class="sechead"><span class="t">' + c.esc(c.t('legacy.ui.shop')) + '</span></div>';
-    h += '<p class="hint" style="margin:0 0 6px">' + c.esc(c.t('legacy.ui.shop.hint')) + '</p>';
-    h += '<div class="shopgrid">';
+    /* 遗泽商店（价目总表 6800 · 已购置灰不隐藏）——B16-l：卡片网格改整行，价目落到右列 */
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('legacy.ui.shop')) + '</span>' +
+      '<span class="s">' + c.esc(c.t('legacy.ui.shop.hint')) + '</span></div>';
+    h += '<div class="rowlist">';
     SQ.Legacy.shopItems(d).forEach(function (it) {
       var owned = (meta.spent || {})[it.key] != null;
       var descKey = it.kind === 'talent' ? ('legacy.talent.' + it.talent.id + '.desc')
         : it.kind === 'qirate' ? 'legacy.shopdesc.qirate'
         : it.kind === 'startRealm' ? 'legacy.shopdesc.startRealm'
         : ('legacy.shopdesc.' + it.id);
-      h += '<div class="lrow shopcard' + (owned ? ' locked' : '') + '"><div class="nm">' + c.esc(c.t(it.nameKey)) + '</div>' +
-        '<div class="meta">' + c.esc(c.t(descKey)) + '</div>' +
-        '<div class="acts">' + (owned
+      h += '<div class="lrow atkrow' + (owned ? ' locked' : '') + '"><span class="nm">' + c.esc(c.t(it.nameKey)) + '</span>' +
+        '<span class="meta">' + c.esc(c.t(descKey)) + '</span>' +
+        '<span class="rr"><b>' + c.esc(SQ.fmt(it.price)) + '</b>' + (owned
           ? '<button disabled>' + c.esc(c.t('legacy.ui.owned')) + '</button>'
           : '<button data-act="lgBuy" data-v="' + it.id + '"' + ((meta.karma || 0) < it.price ? ' disabled' : '') + '>' +
-            c.esc(c.t('legacy.ui.buy')) + ' · ' + it.price + '</button>') + '</div></div>';
+            c.esc(c.t('legacy.ui.buy')) + ' ›</button>') + '</span></div>';
     });
     h += '</div>';
     /* ── 遗泽收支流水（绿灯不等于链通批 · C2）──────────────────────────
@@ -206,8 +225,10 @@
       }
       kgrp.push({ ts: l.ts, delta: l.delta, reason: l.reason, balance: l.balance, n: 1 });
     });
-    h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' +
-      c.esc(c.t('legacy.ui.balance', { n: '' })) + '</p>';
+    /* B16-l：伪段标（`<p class="hint">` 加粗冒充标题）改 `.sechead`。段标文本仍取 `legacy.ui.balance`
+     * 的空参惯用法（走查 C2f 钉的就是这一条），右侧补一句流水口径说明。 */
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('legacy.ui.balance', { n: '' })) + '</span>' +
+      '<span class="s">' + c.esc(c.t('legacy.ui.karmalog.note')) + '</span></div>';
     if (!kgrp.length) h += '<p class="hint">' + c.esc(c.t('log.empty')) + '</p>';
     h += '<div data-karmalog="1">';
     kgrp.forEach(function (l) {
@@ -232,8 +253,9 @@
      *    / `Codex.adoptBio` / `Actions.adoptBio` / `BIO_MEMO_LEN` / 五条词条 + 作传提示词一起删）：这条通道要玩家
      *    自己粘回一段外部文本，实机上没人真用它，留着只让前世书看起来像个待办清单。
      *    来源小标**保留**——老档里确有 `source:'tiandao'` 的条目，抹掉小标等于把它们的来路抹了。 */
-    h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + c.esc(c.t('legacy.ui.bios')) + '</p>';
     var bios = meta.biographies || [];
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('legacy.ui.bios')) + '</span>' +
+      '<span class="s">' + c.esc(c.t('legacy.ui.bios.n', { n: bios.length })) + '</span></div>';
     if (!bios.length) h += '<p class="hint">' + c.esc(c.t('legacy.ui.bios.empty')) + '</p>';
     bios.slice().reverse().forEach(function (b, ri) {
       var idx = bios.length - 1 - ri;
