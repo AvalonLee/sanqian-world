@@ -112,6 +112,20 @@ async function buildSave() {
   await page.click('#tab-event [data-act="feedMore"]');
   await page.waitForTimeout(300);
   T((await page.$$eval('#tab-event .fcard', els => els.length)) === 3, 'RF④ 收起回到 3 条（切换是幂等的，不是一次性）');
+  /* B16-n：奇遇页两处「加粗 p.hint 冒充段标」已换成 .sechead（叙事流 / 图鉴），段标文本回词表现算 */
+  const secE = await page.evaluate(() => {
+    const el = document.getElementById('tab-event');
+    const wf = (k) => SQ.t(k, null, 'xiuxian').trim();
+    const heads = Array.prototype.map.call(el.querySelectorAll('.sechead .t'), (x) => x.textContent.trim());
+    return { heads, wantFeed: wf('event.feed.title'), wantCodex: wf('event.codex.title'),
+      wantRumor: wf('rumor.title'),
+      legacyHint: el.querySelectorAll(':scope > p.hint[style*="font-weight:650"]').length };
+  });
+  T(secE.heads.length === 3 && secE.heads.indexOf(secE.wantRumor) >= 0 && secE.heads.indexOf(secE.wantFeed) >= 0 &&
+    secE.heads.indexOf(secE.wantCodex) >= 0 && !secE.legacyHint,
+    'RF⑦ 传闻 / 叙事流 / 图鉴三段段标已统一为 .sechead（页首不再留加粗 p.hint 冒充标题）',
+    'heads=' + JSON.stringify(secE.heads) + ' 遗留伪段标=' + secE.legacyHint);
+
   /* 卡片点击 = 复用图鉴那套 `openRecall`（story + 首遇 + 上次抉择 + 上次得失），不另造第二张详情卡 */
   await page.click('#tab-event .fcard');
   await page.waitForTimeout(400);

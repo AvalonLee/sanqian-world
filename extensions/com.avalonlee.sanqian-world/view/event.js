@@ -70,10 +70,12 @@
     var feed = w.eventHistory.feed || [];
     var seenN = Object.keys(w.eventHistory.seen || {}).length;
     var all = c.allEventList();
-    var h = '<p class="hint" style="margin:0 0 10px">' + c.esc(c.t('event.page.progress', { n: seenN, total: all.length })) + '</p>';
+    var h = '';
     /* G17 江湖传闻节（奇遇页顶部——传闻在上、亲历在下） */
     h += SQ.UI.rumor.band(c.fresh(), Date.now());
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('event.feed.title')) + '</p>';
+    /* B16-n：伪段标（`<p class="hint">` 加粗当标题）改 `.sechead`；页首那句进度并进图鉴段标右侧，
+     * 同一页不再把「已遇 n/total」说两遍。 */
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('event.feed.title')) + '</span></div>';
     if (!feed.length) h += '<p class="hint" style="padding:8px 0">' + c.esc(c.t('event.feed.empty')) + '</p>';
     /* 折叠 3 条 / 展开只到最近 10 条（用户令「展开的条数太多了」）；
      * 存储上限仍是 `D.EVENT_FEED_CAP`（50），这条只管屏上给看多少 ⇒ 不改档、不裁流。 */
@@ -83,7 +85,8 @@
       h += '<div class="row"><button style="flex:1" data-act="feedMore">' +
         c.esc(c.ui.feedExpand ? c.t('event.feed.less') : c.t('event.feed.more', { n: Math.min(10, feed.length) })) + '</button></div>';
     }
-    h += '<p class="hint" style="margin:14px 0 2px;font-weight:650">' + c.esc(c.t('event.codex.title')) + '</p>';
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('event.codex.title')) + '</span>' +
+      '<span class="s">' + c.esc(c.t('event.page.progress', { n: seenN, total: all.length })) + '</span></div>';
     ['tian', 'di', 'ren'].forEach(function (tier) {
       /* 三节分计数与页首总数自洽（走查稿③ 第 1 项）：天 a/A + 地 b/B + 人 c/C = 页首 n */
       var tierAll = all.filter(function (ev) { return ev.tier === tier; });

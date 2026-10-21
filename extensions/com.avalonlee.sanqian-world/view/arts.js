@@ -390,10 +390,10 @@
     if (!SQ.Fusion || w.realm < 4) return '';
     var fu = w.fusion || { customs: [], meditate: 0, lastFuseAt: 0, seq: 0 };
     c.ui.fuseSel = c.ui.fuseSel || [];
-    var h = '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + c.esc(c.t('fuse.system')) + '</p>';
+    var h = '<div class="sechead"><span class="t">' + c.esc(c.t('fuse.system')) + '</span></div>';
     var chk = SQ.Fusion.canFuse(w, p, d, c.ui.fuseSel[0] || '', c.ui.fuseSel[1] || '', Date.now());
     var needH = (d.FUSE || {}).MEDITATE_NEED_H || 12;
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('fuse.ui.wudao')) + '</p>';
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('fuse.ui.wudao')) + '</span></div>';
     h += '<div class="kv"><span>' + c.esc(c.t('fuse.ui.wudao.med', { h: Math.floor(fu.meditate || 0), need: needH })) + ' · ' +
       '<button class="linkbtn" data-act="matWudao" style="padding:0;vertical-align:baseline">' +
       c.esc(c.t('fuse.ui.wudao.stone', { n: (w.materials || {})['mat_wudao'] || 0 })) + '</button></span>' +
@@ -422,7 +422,7 @@
     }
     /* 自创部一览（融合扩容批：混沌签名徽标 + 淬炼按钮） */
     if ((fu.customs || []).length) {
-      h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + c.esc(c.t('fuse.ui.customs')) + '</p>';
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('fuse.ui.customs')) + '</span></div>';
       h += '<div class="meta hint" style="margin-top:8px">' + c.esc(c.t('fuse.chaos.hint')) + '</div>';
     }
     var fuR0 = (fu.lastReforgeAt || 0) + ((d.FUSE || {}).REFORGE_CD_MS);
