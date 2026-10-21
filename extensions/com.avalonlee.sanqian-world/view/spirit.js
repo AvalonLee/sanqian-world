@@ -15,7 +15,7 @@
     if (!SQ.Fusion) return '';
     var entries = SQ.Fusion.equippedEntries(w, p);
     if (!entries.length) return '';
-    var h = '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + c.esc(c.t('spirit.ui.tab')) + '</p>';
+    var h = '<div class="sechead"><span class="t">' + c.esc(c.t('spirit.ui.tab')) + '</span></div>';
     entries.forEach(function (pr) {
       var sp = (pr.e.st || {}).spirit || { w: 0, a: 0 };
       var nm = c.t('treasure.' + pr.def.id + '.name');

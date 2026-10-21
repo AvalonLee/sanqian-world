@@ -231,10 +231,10 @@
           if (curRank >= 0) h += '</div>';
           curRank = gM;
           var nxtN = SQ.Alchemy.groupIds(d, gM + 1).length;
-          h += '<p class="hint" data-matline="' + gM + '" style="margin:8px 0 2px;font-weight:650">' +
+          h += '<div class="sechead" data-matline="' + gM + '"><span class="t">' +
             c.esc(c.t('alchemy.ui.mat.rank', { n: gM + 1 })) + ' · ' +
             c.esc(nxtN ? c.t('alchemy.ui.mat.line', { k: A.REFINE_IN || 4, up: gM + 2, p: nxtN })
-              : c.t('alchemy.ui.mat.line.top', { n: gM + 1 })) + '</p><div class="cardgrid">';
+              : c.t('alchemy.ui.mat.line.top', { n: gM + 1 })) + '</span></div><div class="cardgrid">';
         }
         h += '<div class="lrow carditem"><div class="nm">' + c.esc(c.t('alchemy.mat.' + mid + '.name')) + ' ×' + w.materials[mid] +
           ' <span class="catbadge">' + c.esc(c.t('alchemy.ui.mat.rank', { n: gM + 1 })) + '</span></div>' +

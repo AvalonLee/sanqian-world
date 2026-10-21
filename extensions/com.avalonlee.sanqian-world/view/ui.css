@@ -1641,7 +1641,11 @@
 #tab-event .fcard .fn { font-family: var(--sq2-serif); font-size: 14px; letter-spacing: .06em; color: var(--sq2-ink); }
 #tab-event .fcard .fh .hint { font-size: 10px; letter-spacing: .06em; }
 #tab-event .fcard .fg, #tab-event .fcard .fe { line-height: 1.7; }
-#tab-event .fcard .fg { font-size: 11.5px; color: var(--sq2-ink-3); margin-top: 4px; }
+/* B16-n：卡内「未择之路」折叠区改纸面行语域（原来是虚线 + 品牌金，和页内其他条不同族） */
+#tab-event .unwalked { border-top: 1px solid var(--sq2-line); margin-top: 8px; padding-top: 7px; }
+#tab-event .unwalked .uw-t { color: var(--sq2-cinnabar); font-family: var(--sq2-serif); letter-spacing: .1em; }
+#tab-event .unwalked .uw-b > div { padding: 4px 0; border-bottom: 1px dashed var(--sq2-line); }
+#tab-event .unwalked .uw-b > div:last-child { border-bottom: 0; }#tab-event .fcard .fg { font-size: 11.5px; color: var(--sq2-ink-3); margin-top: 4px; }
 #tab-event .fcard .fe { font-size: 11.5px; color: var(--sq2-ink-2); margin-top: 2px; }
 #tab-event .codex-sec.cx-row {
   display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
