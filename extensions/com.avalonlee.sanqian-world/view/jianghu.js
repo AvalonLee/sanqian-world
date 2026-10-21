@@ -57,10 +57,11 @@
      * 读数全取引擎那份单槽 ws.revenge（一槽一仇，不是容器 ⇒ 这行不会随名录变长） */
     if (w.revenge) {
       var rvLeft = (w.revenge.nextAt || 0) - Date.now();
-      h += '<div class="lrow"><div class="nm"><span class="bad">' +
-        c.esc(c.t('prodigy.ambush.chain.n', { n: w.revenge.n || 0 })) + '</span></div>' +
-        '<div class="meta">' + c.esc(w.revenge.foe || '') + (rvLeft > 0 ?
-          ' · ' + c.esc(c.t('prodigy.ambush.chain.cd', { t: c.timeLeft(rvLeft) })) : '') + '</div></div>';
+      /* B16-r：寻仇链按设计稿改 .warstrip（朱砂小标 + 敌手/环数/余时） */
+      h += '<div class="warstrip"><span class="w-t">' + c.esc(c.t('prodigy.ambush.chain.title')) + '</span>' +
+        '<span class="w-v">' + c.esc(c.t('prodigy.ambush.chain.n', { n: w.revenge.n || 0 })) + ' · ' +
+        c.esc(w.revenge.foe || '') + (rvLeft > 0 ? ' · ' + c.esc(c.t('prodigy.ambush.chain.cd', { t: c.timeLeft(rvLeft) })) : '') +
+        '</span></div>';
     }
     /* 第册一批③：原「相识名录为空 ⇒ 只显一行提示」的早退**删除**——四榜席位由名录实时补位，
      * 榜面恒有四十个名字，「榜上无名」这一态在新口径下不存在了（走查 AT10 抓到这条：
@@ -70,11 +71,10 @@
      * 而榜本就是纯派生（读三次全等），留一份快照只是第二个口径（refresh 节律仍管战力重排播报）。 */
     var boards = SQ.Prodigy.board4(w, p, d, m);
     var cur = jbChipOf(c), bb = boards[cur];
-    h = '<div class="chips jbchips">' + [0, 1, 2, 3].map(function (b) {
+    h = '<div class="chips chipsrow jbchips">' + [0, 1, 2, 3].map(function (b) {
       return '<button type="button" class="' + (b === cur ? 'on' : '') + '" data-act="jbChip" data-v="' + b + '">' +
         c.esc(c.t('jianghu.band.' + b)) + '</button>';
-    }).join('') + '</div>' +
-      '<p class="hint" style="margin:0 0 8px">' + c.esc(c.t('prodigy.board.hint')) + '</p>' + h;
+    }).join('') + '</div>' + h;
     var myRank = bb.myRank;          /* 名次由引擎 board4 一并给出（视图不再数第二遍 ⇒ 无第二口径） */
     /* 玩家只在一个榜上有名次：看别的榜时那一格**不渲染**（早版在此显「第 0 位」，是截图目检抓到的谎）；
      * 右侧节律行改口成「名次播报每 N 游戏年一次」——榜面本身已是实时装配，再说「榜每 10 年一刷」
@@ -182,6 +182,8 @@
         h += '</div>';
       }
     });
+    /* B16-r：榜面说明按设计稿落页尾（原先夹在 chip 与名次条之间） */
+    h += '<p class="hint" style="margin-top:12px">' + c.esc(c.t('prodigy.board.hint')) + '</p>';
     c.$('tab-prodigy').innerHTML = h;
   }
 

@@ -2189,13 +2189,13 @@
   #tab-faction .matrow button { min-height: 26px; padding: 1px 9px; font-size: 11px; white-space: nowrap; }
   @media (max-width: 719px) { #tab-faction .matrow { flex-wrap: wrap; } }
   /* B16-q：势力战 = 设计稿 .warstrip */
-  #tab-faction .warstrip {
+  #tab-faction .warstrip, #tab-prodigy .warstrip {
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     border: 1px solid var(--sq2-line-2); border-radius: var(--sq2-r);
     background: var(--sq2-paper-3); padding: 9px 12px; margin: 10px 0;
   }
-  #tab-faction .warstrip .w-t { font-family: var(--sq2-serif); letter-spacing: .08em; color: var(--sq2-cinnabar); white-space: nowrap; }
-  #tab-faction .warstrip .w-v { flex: 1; color: var(--sq2-ink-2); font-size: 11px; }
+  #tab-faction .warstrip .w-t, #tab-prodigy .warstrip .w-t { font-family: var(--sq2-serif); letter-spacing: .08em; color: var(--sq2-cinnabar); white-space: nowrap; }
+  #tab-faction .warstrip .w-v, #tab-prodigy .warstrip .w-v { flex: 1; color: var(--sq2-ink-2); font-size: 11px; }
   @media (min-width: 720px) { #tab-faction { max-width: 780px; } }
   /* ══ UI v2 B15-k：江湖榜 + 宗门（设计稿 .chipsrow / .selfrank / .rankno / .gate）══
    *    两页在 B8 已改成 lrow 行式（类名也就是设计稿那套），本批只补视觉：榜位序号列、

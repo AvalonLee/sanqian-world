@@ -179,6 +179,7 @@
   K['prodigy.ambush.confirm'] = '伏击{name}：胜则夺 {cur} ×{loot} 并记袭杀 {n}/{max}，败则道伤 +{dao}、道心 −{k}。'
     + '双方战力 ±10% 浮动，须压过对方 ×{r} 才算成；满 {max} 次此人必死，其族高手必来寻仇。袭杀？';
   K['prodigy.ambush.reject'] = '此刻下不了手';
+  K['prodigy.ambush.chain.title'] = '寻仇链';
   K['prodigy.ambush.chain.n'] = '一族寻仇 · 已胜 {n} 场';
   K['prodigy.ambush.chain.cd'] = '{t} 后再战';
 
