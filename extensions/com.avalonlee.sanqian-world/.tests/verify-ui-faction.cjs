@@ -61,6 +61,26 @@ const { chromium } = require('playwright-core');
   await page.click('#m-tabbar button:has-text("势力")');
   await page.waitForTimeout(400);
 
+  /* ── N 组（B16-q · 对齐设计稿构图）：当前效力收成 statestrip + hintline，后段分段标，
+   *    供给改整行清单；四档供给与三张委托的入口一个不少 ── */
+  const nq = await page.evaluate(() => {
+    const el = document.querySelector('#tab-faction');
+    return {
+      strip: !!el.querySelector('.statestrip .s-v'),
+      line: !!el.querySelector('.hintline'),
+      heads: Array.prototype.map.call(el.querySelectorAll('.sechead .t'), (x) => x.textContent.trim()),
+      sup: el.querySelectorAll('.matgrid > .matrow').length,
+      quests: el.querySelectorAll('[data-act="questClaim"]').length,
+      oldBanners: el.querySelectorAll('.facbanner').length
+    };
+  });
+  T(nq.strip && nq.line, 'N1 当前效力 = statestrip + 一行 hintline（不再叠三块同权横条）', JSON.stringify(nq));
+  T(nq.heads.indexOf('捐献供奉') >= 0 && nq.heads.indexOf('叛离') >= 0 &&
+    nq.heads.indexOf('门中委托') >= 0 && nq.heads.indexOf('门中供给') >= 0,
+    'N2 捐献 / 叛离 / 委托 / 供给四段段标齐全（职级 · 双技能按职位解锁，零职级时本就不该出现）', nq.heads.join('|'));
+  T(nq.sup === 4 && nq.quests === 3, 'N3 门中供给四行 + 委托三张仍在（入口零丢）', 'sup=' + nq.sup + ' quests=' + nq.quests);
+  T(nq.oldBanners === 0, 'N4 旧 .facbanner 横条已退净（当前效力 / 无势力 / 势力战三处已换形态）', 'n=' + nq.oldBanners);
+
   /* R1 叛离入口可见性：≥2 处（当前效力区块 + 势力卡），且顶部入口首屏内可点 */
   const leaveBtns = await page.$$eval('#tab-faction [data-act="leaveFaction"]', els => els.map(e => {
     const r = e.getBoundingClientRect();

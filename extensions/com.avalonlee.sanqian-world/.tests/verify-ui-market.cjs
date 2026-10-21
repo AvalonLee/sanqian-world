@@ -103,20 +103,20 @@ async function buildSave() {
   T(blackStrip.t === blackStrip.want && blackStrip.v.length > 0,
     'M4b 黑市段条在位（标题走词表 · 代价提示非空）', JSON.stringify(blackStrip));
 
-  /* ── ② 势力页：门中供给改卡片 ── */
+  /* ── ② 势力页：门中供给改整行清单（B16-q：卡片网格 → .matgrid/.matrow） ── */
   await page.click('#m-tabbar button[data-v="faction"]');
   await page.waitForTimeout(400);
   const facWide = await page.evaluate(() => {
-    const g = document.querySelector('#tab-faction .cardgrid');
+    const g = document.querySelector('#tab-faction .matgrid');
     return {
       hasGrid: !!g,
       cols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      cards: document.querySelectorAll('#tab-faction .cardgrid > .faccard.carditem').length,
-      supplyTitle: !!document.querySelector('#tab-faction .cardgrid')
+      cards: document.querySelectorAll('#tab-faction .matgrid > .matrow').length,
+      supplyTitle: !!document.querySelector('#tab-faction .matgrid')
     };
   });
-  T(facWide.hasGrid && facWide.cols >= 2, 'M5 门中供给为卡片网格（宽屏 ≥2 列）', 'cols=' + facWide.cols);
-  T(facWide.cards === 4, 'M6 门中供给四档各一卡', 'n=' + facWide.cards);
+  T(facWide.hasGrid && facWide.cols === 1, 'M5 门中供给为整行清单（设计稿 .matrow 单列）', 'cols=' + facWide.cols);
+  T(facWide.cards === 4, 'M6 门中供给四档各一行', 'n=' + facWide.cards);
 
   /* ── ③ 炼丹炼器页（B16-i 改口：设计语言已从「卡片网格」转为「段标 + 行/条/网格三态」——
    *        丹方与图纸是整行、炉中是条、丹匣与材料是网格。原判据数 .cardgrid 段数与卡数，
@@ -191,9 +191,9 @@ async function buildSave() {
   await zoneTo('江湖');
   await page.click('#m-subnav button[data-v="faction"]');
   await page.waitForTimeout(300);
-  const facNarrow = await colsOf('#tab-faction .cardgrid');
+  const facNarrow = await colsOf('#tab-faction .matgrid');
   T(shopNarrow === 1, 'M12 窄屏坊市退单列', 'cols=' + shopNarrow);
-  T(facNarrow === 1, 'M13 窄屏门中供给退单列', 'cols=' + facNarrow);
+  T(facNarrow === 1, 'M13 窄屏门中供给仍单列', 'cols=' + facNarrow);
   T(alNarrow === 1, 'M14 窄屏炼丹炼器退单列', 'cols=' + alNarrow);
 
   /* M23 同型面第二处：门中供给（势力页）卖的就是 D.PILLS 那四颗丹，必须挂**同一对标签**
@@ -202,12 +202,12 @@ async function buildSave() {
   /* 已停在势力页（窄屏那一步刚切过来）⇒ M23 直接量，不再重复点导航 */
   await page.waitForTimeout(500);
   const sup = await page.evaluate(() => Array.prototype.map.call(
-    document.querySelectorAll('#tab-faction .faccard.carditem'), (c) => {
-      const fh = c.querySelector('.fh');
+    document.querySelectorAll('#tab-faction .matgrid > .matrow'), (c) => {
+      const mn = c.querySelector('.m-n');
       return {
-        text: fh ? fh.textContent.replace(/\s+/g, ' ').trim() : '',
-        tier: fh ? Array.prototype.map.call(fh.querySelectorAll('.tierbadge'), (x) => x.textContent.trim()) : [],
-        cat: fh ? Array.prototype.map.call(fh.querySelectorAll('.catbadge'), (x) => x.textContent.trim()) : []
+        text: mn ? mn.textContent.replace(/\s+/g, ' ').trim() : '',
+        tier: mn ? Array.prototype.map.call(mn.querySelectorAll('.tierbadge'), (x) => x.textContent.trim()) : [],
+        cat: mn ? Array.prototype.map.call(mn.querySelectorAll('.catbadge'), (x) => x.textContent.trim()) : []
       };
     }));
   T(sup.length >= 4 && sup.every((r) => r.cat.length === 1 && r.cat[0] === '丹药' && r.tier.length === 1

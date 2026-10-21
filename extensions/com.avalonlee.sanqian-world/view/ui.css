@@ -2166,6 +2166,36 @@
     border-radius: var(--sq2-r); padding: 11px 12px;
   }
   #tab-faction .facbanner .ft { font-family: var(--sq2-serif); letter-spacing: .1em; }
+  /* B16-q：当前效力 statestrip + 一行 hintline（设计稿 .statestrip / .hintline） */
+  #tab-faction .statestrip {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    border-top: 1px solid var(--sq2-line); border-bottom: 1px solid var(--sq2-line);
+    padding: 10px 2px; margin: 4px 0 6px;
+  }
+  #tab-faction .statestrip .s-v { font-family: var(--sq2-serif); font-size: 14px; letter-spacing: .06em; color: var(--sq2-ink); }
+  #tab-faction .statestrip .s-x { margin-left: auto; color: var(--sq2-ink-3); font-size: 10.5px; }
+  #tab-faction .hintline { font-size: 10.5px; color: var(--sq2-ink-3); line-height: 1.7; margin: 0 0 8px; }
+  /* B16-q：门中供给改 .matrow 整行（名称/标签 · 说明 · 价目钮） */
+  #tab-faction .matgrid { display: grid; grid-template-columns: 1fr; border-top: 1px solid var(--sq2-line); }
+  #tab-faction .matrow {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 2px; border-bottom: 1px solid var(--sq2-line);
+  }
+  #tab-faction .matrow .m-n {
+    font-family: var(--sq2-serif); white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  #tab-faction .matrow .m-d { flex: 1; min-width: 0; color: var(--sq2-ink-2); font-size: 10.5px; line-height: 1.5; }
+  #tab-faction .matrow button { min-height: 26px; padding: 1px 9px; font-size: 11px; white-space: nowrap; }
+  @media (max-width: 719px) { #tab-faction .matrow { flex-wrap: wrap; } }
+  /* B16-q：势力战 = 设计稿 .warstrip */
+  #tab-faction .warstrip {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    border: 1px solid var(--sq2-line-2); border-radius: var(--sq2-r);
+    background: var(--sq2-paper-3); padding: 9px 12px; margin: 10px 0;
+  }
+  #tab-faction .warstrip .w-t { font-family: var(--sq2-serif); letter-spacing: .08em; color: var(--sq2-cinnabar); white-space: nowrap; }
+  #tab-faction .warstrip .w-v { flex: 1; color: var(--sq2-ink-2); font-size: 11px; }
   @media (min-width: 720px) { #tab-faction { max-width: 780px; } }
   /* ══ UI v2 B15-k：江湖榜 + 宗门（设计稿 .chipsrow / .selfrank / .rankno / .gate）══
    *    两页在 B8 已改成 lrow 行式（类名也就是设计稿那套），本批只补视觉：榜位序号列、

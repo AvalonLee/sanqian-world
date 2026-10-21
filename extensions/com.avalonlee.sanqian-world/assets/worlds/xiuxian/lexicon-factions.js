@@ -149,6 +149,7 @@
   keys['faction.rank.cur'] = '职级 · {rank}（声望 {rep}/{next}）';
   keys['faction.rank.max'] = '职级 · {rank}（声望 {rep} · 已至人臣之极）';
   keys['faction.rank.perk'] = '职级放大 ×{m}';
+  keys['faction.sec.office'] = '职级 · 双技能';
   keys['faction.donate'] = '捐献供奉';
   keys['faction.donate.btn'] = '供奉 {n}（+{rep}）';
   keys['faction.donate.hint'] = '灵石 ÷1000 = 声望；每 2 小时至多 +{cap} 声望（超额按比例部分成交）。';
