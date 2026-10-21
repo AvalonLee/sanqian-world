@@ -60,8 +60,8 @@ async function buildSave(ov) {
   const wide = await page.evaluate(() => {
     const cz = document.querySelector('#tab-combat .curzone');
     const rows = document.querySelectorAll('#tab-combat .zlist .zrow');
-    const cg = document.querySelector('#tab-combat .cavegrid');
-    const ch = document.querySelector('#tab-combat .cavegrid > .cavecard.hero');
+    const grids = Array.prototype.slice.call(document.querySelectorAll('#tab-combat .cavegrid'));
+    const solo = document.querySelector('#tab-combat .cavegrid.solo');
     const nameEl = cz ? cz.querySelector('.cz-name') : null;
     return {
       hasCz: !!cz,
@@ -75,14 +75,14 @@ async function buildSave(ov) {
       rowsClick: document.querySelectorAll('#tab-combat .zlist .zrow[data-act="setZone"]').length,
       lockedRows: document.querySelectorAll('#tab-combat .zlist .zrow.locked').length,
       total: (cz ? 1 : 0) + rows.length,
-      /* 合并批：洞天福地内联本页，同构卡片网格 + 当前驻留置顶 hero */
+      /* B16-d：洞天节 = 段标 + 状态条 + 四组分段 + 当前驻留设施行 */
       caveSec: !!document.querySelector('#tab-combat #cave-sec'),
-      caveCols: cg ? getComputedStyle(cg).gridTemplateColumns.split(' ').length : 0,
-      caveCards: document.querySelectorAll('#tab-combat .cavegrid > .cavecard').length,
-      caveHeroN: document.querySelectorAll('#tab-combat .cavegrid > .cavecard.hero').length,
-      caveHeroSpan: ch ? getComputedStyle(ch).gridColumn : '',
-      caveFirstHero: !!(cg && cg.firstElementChild && cg.firstElementChild.classList.contains('hero')),
-      caveEnterBtns: document.querySelectorAll('#tab-combat .cavegrid > .cavecard [data-act="caveEnter"]').length
+      strip: !!document.querySelector('#tab-combat #cave-sec .statestrip'),
+      groups: document.querySelectorAll('#tab-combat #cave-sec .subhead').length,
+      caveCards: document.querySelectorAll('#tab-combat #cave-sec .cavecard').length,
+      soloCur: solo ? solo.querySelectorAll(':scope > .cavecard.cur').length : 0,
+      caveEnterBtns: document.querySelectorAll('#tab-combat #cave-sec [data-act="caveEnter"]').length,
+      facRows: document.querySelectorAll('#tab-combat #cave-sec .faclist .lrow').length
     };
   });
 
@@ -97,17 +97,23 @@ async function buildSave(ov) {
   T(wide.secs === 2, 'R6 清单两段（可入 / 已首通）', 'sect=' + wide.secs);
   T(wide.rowsClick === 5, 'R7 非当前已解锁行均可点进（data-act=setZone）', 'n=' + wide.rowsClick);
   T(wide.lockedRows > 0, 'R7b 未解锁行仍以灰行占位（？？？）', 'n=' + wide.lockedRows);
-  T(wide.caveSec && wide.caveCols >= 2, 'R9 洞天福地并入本页且为卡片网格（宽屏 ≥2 列）', 'cols=' + wide.caveCols);
-  T(wide.caveCards >= 6, 'R10 福地每处一卡（≥6 卡）', 'n=' + wide.caveCards);
-  T(wide.caveHeroN === 1 && wide.caveHeroSpan === '1 / -1' && wide.caveFirstHero, 'R11 当前驻留福地 = 置顶通栏 hero', wide.caveHeroSpan + '/first=' + wide.caveFirstHero);
+  /* B16-d 改口：洞天节从「单张通栏 hero + 一列 13 卡」改成设计稿「状态条 + 四组分段
+     （当前驻留 / 已拥有未驻留 / 可入驻 / 未解锁）+ 当前驻留设施行」。守的东西照旧：
+     十三处一张不少、当前驻留独占一行、入驻按钮在位、设施可营建。 */
+  T(wide.caveSec && wide.strip && wide.groups >= 2,
+    'R9 洞天节 = 段标 + 状态条 + 分组（.statestrip / .subhead 在位）', 'strip=' + wide.strip + ' groups=' + wide.groups);
+  T(wide.caveCards === 13, 'R10 十三处福地全在（分组只是分维，不删卡）', 'n=' + wide.caveCards);
+  T(wide.soloCur === 1, 'R11 当前驻留福地独占一行（.cavegrid.solo > .cavecard.cur）', 'n=' + wide.soloCur);
   T(wide.caveEnterBtns > 0, 'R12 福地卡含入驻/迁居按钮', 'n=' + wide.caveEnterBtns);
+  T(wide.facRows === 4, 'R12b 当前驻留设施四行（灵田/丹房/藏书阁/聚灵阵）', 'n=' + wide.facRows);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
   const narrow = await page.evaluate(() => {
     const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-combat .zlist .zrow'));
     const cz = document.querySelector('#tab-combat .curzone');
-    const cg = document.querySelector('#tab-combat .cavegrid');
+    /* B16-d：多卡组才量列数（solo 组恒单列，量它没有意义） */
+    const cg = document.querySelector('#tab-combat .cavegrid:not(.solo)');
     const over = rows.some((r) => r.scrollWidth > r.clientWidth + 1);
     /* 山影水印 .cz-ink 刻意 right:-6 探出（overflow:hidden 裁掉），不算内容溢出 */
     const kids = cz ? Array.prototype.slice.call(cz.children).filter((x) => !x.classList.contains('cz-ink')) : [];
@@ -117,7 +123,7 @@ async function buildSave(ov) {
       czOver: czOver,
       rowOver: over,
       docOver: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      caveCols: getComputedStyle(cg).gridTemplateColumns.split(' ').length
+      caveCols: cg ? getComputedStyle(cg).gridTemplateColumns.split(' ').length : 1
     };
   });
   T(!narrow.czOver && !narrow.rowOver && !narrow.docOver, 'R8 窄屏：hero 与行式清单均无横向溢出', JSON.stringify(narrow));

@@ -309,7 +309,14 @@ var SECTIONS = [
 | **B15-j** | 势力页：三栏 → 阵营筛选 + 单列 ✅ 已落（2026-10-20） | ① 三栏（正/左/魔）改「阵营 chips（带计数）+ 单列」；② 新增视图态 `ui.facCamp` + 动作 `facCamp`；③ 当前效力 / 未入条改纸-3 条状 | `view/faction.js`、`view/index.html`、`view/ui.css` | `--ui` 53 件 / 1,399 全绿；faction 19 ‖ join 20 零改口 |
 | **B15-k** | 江湖榜 + 宗门视觉收口 ✅ 已落（2026-10-20 · 纯 CSS） | ① 四榜 / 宗门 chips 改药丸（选中墨底纸字）；② 榜位序号列改宋体 15px 右对齐 + `.top` 朱砂；③ 自己的名次条改 `.selfrank`（朱砂淡底 + 细朱砂边）；④ 宗门四门槛改 `.gate` 行（圆标 + 行间细线 + 达成染色）；⑤ 段标字距统一 | `view/ui.css` | `--ui` 53 件 / 1,399 全绿；jianghu 17 ‖ join 20 ‖ alltabs 23 零改口 |
 
+| **B16-a** | 顶栏对齐设计稿 `.hd` ✅ 已落（2026-10-20） | 三行堆叠 → 左右两栏（左：衬线大名 + 元信息 + 战力修为；右：灵石衬线数字 + 名号行化）；桌面 264px 左栏塞两栏会挤 ⇒ 同批修正为纵向堆叠（`fc58bd8`） | `view/index.html`、`view/ui.css`、`.tests/verify-ui-karma.cjs` | karma 25 ‖ shell 21 ‖ talentswap 15 绿 |
+| **B16-b** | 桌面壳三栏 ✅ 已落（2026-10-20） | grid 改 `nav/top/sub/body` 四区；`#m-tabbar` 连品牌区（印章「三千」+ SANQIAN WORLD）包进 `#m-nav`；顶栏横跨内容列（角色名 + 境界印章 / 世界名 · 世界历日期 / 灵石 + 名号）；内容列 980 居中 → **780 左对齐**；水印退役、战力修为撤出顶栏 | `view/index.html`、`view/ui.css`、`.tests/verify-ui-karma.cjs`、`.tests/verify-ui-shell.cjs` | karma 25 ‖ shell 21 ‖ arts 58 绿；判据改口 3 处 |
+| **B16-c** | 修行页构图 ✅ 已落（2026-10-20） | 药丸上移页首居中；渡劫改 `hero-cta`（朱砂印钮 + 成算随钮下）；内容列 660 居中；中区撤历行 / 传闻 / 四柱（入右栏，四柱槽可点带红点）；右栏加页游彩蛋；境界说明弹窗纸面化 | `view/idle.js`、`view/index.html`、`view/ui.css`、`.tests/*` | 53 件 / 1,399 全绿；判据改口 6 处 |
+| **B16-d** | 秘境页洞天节 ✅ 已落（2026-10-21） | ① 洞天节从「`.secbar` + 一列 13 卡（当前驻留通栏 hero、设施内联）」改成设计稿「段标 + 导语 + `.statestrip` 状态条 + 四组分段（当前驻留 / 已拥有 · 未驻留 / 可入驻 / 未解锁）+ **当前驻留设施四行**」；② 卡片改 `.cv-n` / `.cv-d` 紧凑形（名 + 角标 / 倍率 · 签名 / 资格 chips），叙事仍只对被持有者开放；③ 非驻留已持有福地的设施行保留为卡内只读（「仅驻留中可营建」），信息一处不减；④ 死样式退役：`.secbar` 一族、`.cavecard.hero`、`.ch/.cn/.cm/.cs`、`.cavecard.lack` | `view/zone.js`、`view/ui.css`、两个 lexicon、`.tests/verify-ui-zone.cjs`、`.tests/verify-ui-batch.cjs` | 53 件 / **1,400** 全绿（zone 17 → 18 判）；审计 34/34；账本 drift=0；扩展 0.5.95→0.5.96 |
+
 > B1→B3 的顺序可以互换（先拆页再换壳），但不建议：壳先用旧 15 项跑通，拆页只改数据模型，问题更好分离。
+
+> **B16 系列的口径变化**：B15 那一轮做的是「形」（令牌 / 纸面 / 行式样式），B16 起改为**逐页搬设计稿的构图**（区块顺序、主事焦点、信息分组）。两轮都不动引擎、不动 `data-act`/`id`。
 
 ---
 

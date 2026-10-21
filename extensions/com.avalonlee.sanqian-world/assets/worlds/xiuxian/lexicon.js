@@ -246,6 +246,8 @@
     'cave.fac.title': '附属设施',
     'cave.fac.hint': '只可在当前驻留的福地上营建；产业永存，唯驻留处生效。',
     'cave.fac.lv': '{n} 级',
+    'cave.fac.none': '未营建',
+    'cave.fac.idle.build': '未营建 · 可营建',
     'cave.fac.build': '营建 · {n} 灵石',
     'cave.fac.upgrade': '扩建 · {n} 灵石',
     'cave.fac.max': '已至满级',

@@ -70,59 +70,112 @@
     });
     return h + '</div>';
   }
-  /* 洞天福地图鉴卡列（合并批：内联于「秘境洞天」页）——十三福地四态卡 + 缺项 chips + 叙事折叠 + 附属设施。
-   * 当前驻留福地置顶为通栏 hero（与秘境页「当前秘境 hero」同构）；别院角标按福地表原序判定，
-   * 不受展示排序影响。 */
-  function caveDexHTML(c, left, withFac) {
+  /* 福地卡（B16-d · 设计稿 .cavecard 紧凑形）：名 + 角标 / 倍率·签名一行 / 资格 chips。
+   * 角标「隐世」「别院」按福地表原序判定（不受展示分组影响）；叙事仍只对被持有（或已点开观其
+   * 灵气）的福地开放——UI §3.3 v2.4 原口径不放宽。设施明细：当前驻留福地改由页内独立段承载
+   * （可营建/扩建），其余已持有福地仍内联只读行，信息一处不减。 */
+  function caveSigTxt(c, cv) {
+    if (!cv.signature) return c.t('cave.sig.none');
+    var sv = cv.signature;
+    return c.t('cave.sig', {
+      name: c.t('cave.' + cv.id + '.signature'),
+      eff: c.t('talent.field.' + sv.field) + ' ' +
+        (sv.field === 'tribBonus' ? '+' + sv.value.toFixed(2) : (sv.value > 0 ? '+' : '') + Math.round(sv.value * 100) + '%')
+    });
+  }
+  function caveCardHTML(c, cv, chk, isCur, owned, left, branchIds) {
     var w = c.w, p = c.p, d = c.d;
-    var h = '';
+    /* 角标（v2.0）：隐世（obtain 门控）/ 别院（同档 mult 横向支线） */
+    var kindTag = cv.obtain ? '<span class="ctag own">' + c.esc(c.t('cave.tag.hidden')) + '</span>'
+      : (branchIds[cv.id] ? '<span class="ctag">' + c.esc(c.t('cave.tag.branch')) + '</span>' : '');
+    /* 缺项只算「资格」项（含 obtain），冷却与「已在此处」单独处理（不入红绿 chips） */
+    var qualLack = chk.lack.filter(function (x) { return x.kind !== 'cooldown' && x.kind !== 'same'; });
+    var stateCls = isCur ? ' cur' : (qualLack.length ? ' locked' : '');
+    var tag = isCur ? '<span class="ctag cur">' + c.esc(c.t('cave.state.cur')) + '</span>'
+      : (owned ? '<span class="ctag own">' + c.esc(c.t('cave.state.own')) + '</span>' : '');
+    var h = '<div class="cavecard' + stateCls + '" data-cave="' + cv.id + '">' +
+      '<div class="cv-n">' + c.esc(c.t('cave.' + cv.id + '.name')) + kindTag + tag + '</div>' +
+      '<div class="cv-d">' + c.esc(c.t('cave.cv.d', { mult: cv.mult.toFixed(2), sig: caveSigTxt(c, cv) })) + '</div>' +
+      '<div class="reqchips">' + caveReqChips(c, cv, chk) + '</div>';
+    var openStory = isCur || owned || (c.ui.caveStory && c.ui.caveStory[cv.id]);
+    if (isCur || owned || openStory) {
+      h += '<div class="cavestory">' + c.esc(c.t('cave.' + cv.id + '.desc')) + '</div>';
+    } else {
+      h += '<div class="cavestory hint">' + c.esc(c.t('cave.story.locked')) + '</div>';
+    }
+    if (owned && !isCur) h += caveFacRows(c, w, d, cv, false);
+    if (!isCur) {
+      var dis = qualLack.length > 0 || left > 0;
+      h += '<button class="cavebtn' + (dis ? '' : ' primary') + '" data-act="caveEnter" data-v="' + cv.id + '"' +
+        (dis ? ' disabled' : '') + '>' +
+        c.esc(qualLack.length ? c.t('cave.state.lack') : (left > 0 ? c.t('cave.cd', { t: c.fmtDur(left) })
+          : (owned ? c.t('cave.state.move') : c.t('cave.state.enter')))) + '</button>';
+    }
+    return h + '</div>';
+  }
+  /* 四组分段（设计稿 §洞天福地）：当前驻留 / 已拥有 · 未驻留 / 可入驻 / 未解锁。
+   * 组序固定、组内按福地表原序；单卡组用 .solo 收成一行。 */
+  function caveGroupsHTML(c, left) {
+    var w = c.w, p = c.p, d = c.d;
     var list = SQ.Cave.list(p);
+    var curId = w.cave.current;
     var seenMult = {}, branchIds = {};
     list.forEach(function (cv) {
       if (!cv.obtain && seenMult[cv.mult.toFixed(2)]) branchIds[cv.id] = 1;
       seenMult[cv.mult.toFixed(2)] = 1;
     });
-    var curId = w.cave.current;
-    list.slice().sort(function (a, b) {
-      return (a.id === curId ? 0 : 1) - (b.id === curId ? 0 : 1);
-    }).forEach(function (cv) {
+    var keys = ['current', 'owned', 'avail', 'locked'], bucket = {};
+    keys.forEach(function (k) { bucket[k] = []; });
+    list.forEach(function (cv) {
       var chk = SQ.Cave.canEnter(w, p, d, cv.id, Date.now());
-      var isCur = curId === cv.id;
       var owned = SQ.Cave.owned(w, cv.id);
-      /* 角标（v2.0）：隐世（obtain 门控）/ 别院（同档 mult 横向支线） */
-      var kindTag = '';
-      if (cv.obtain) kindTag = '<span class="ctag own">' + c.esc(c.t('cave.tag.hidden')) + '</span>';
-      else if (branchIds[cv.id]) kindTag = '<span class="ctag">' + c.esc(c.t('cave.tag.branch')) + '</span>';
-      /* 缺项只算「资格」项（含 obtain），冷却与「已在此处」单独处理（不入红绿 chips） */
       var qualLack = chk.lack.filter(function (x) { return x.kind !== 'cooldown' && x.kind !== 'same'; });
-      var stateCls = isCur ? ' cur' : (qualLack.length ? ' lack' : '');
-      var tag = isCur ? '<span class="ctag cur">' + c.esc(c.t('cave.state.cur')) + '</span>'
-        : (owned ? '<span class="ctag own">' + c.esc(c.t('cave.state.own')) + '</span>' : '');
-      h += '<div class="cavecard' + stateCls + (isCur ? ' hero' : '') + '" data-cave="' + cv.id + '">' +
-        '<div class="ch"><span class="cn">' + c.esc(c.t('cave.' + cv.id + '.name')) + kindTag + tag + '</span>' +
-        '<span class="cm">×' + cv.mult.toFixed(2) + '</span></div>' +
-        '<div class="cs">' + c.esc(cv.signature
-          ? c.t('cave.sig', { name: c.t('cave.' + cv.id + '.signature'), eff: c.t('talent.field.' + cv.signature.field) + ' ' + (cv.signature.field === 'tribBonus' ? '+' + cv.signature.value.toFixed(2) : (cv.signature.value > 0 ? '+' : '') + Math.round(cv.signature.value * 100) + '%') })
-          : c.t('cave.sig.none')) + '</div>' +
-        '<div class="reqchips">' + caveReqChips(c, cv, chk) + '</div>';
-      /* 叙事分段（UI §3.3 v2.4）：驻留中/已持有出全文，未达资格折叠成盼头 */
-      var openStory = isCur || owned || c.ui.caveStory[cv.id];
-      var canRead = isCur || owned;
-      if (canRead || openStory) {
-        h += '<div class="cavestory">' + c.esc(c.t('cave.' + cv.id + '.desc')) + '</div>';
-      } else {
-        h += '<div class="cavestory hint">' + c.esc(c.t('cave.story.locked')) + '</div>';
-      }
-      /* 附属设施（v2.0）：已持有才展开；等级/效果只读恒显，营建/扩建按钮仅当前驻留福地有 */
-      if (owned && withFac) h += caveFacRows(c, w, d, cv, isCur);
-      if (!isCur) {
-        var dis = qualLack.length > 0 || left > 0;
-        h += '<button class="cavebtn' + (dis ? '' : ' primary') + '" data-act="caveEnter" data-v="' + cv.id + '"' +
-          (dis ? ' disabled' : '') + '>' +
-          c.esc(qualLack.length ? c.t('cave.state.lack') : (left > 0 ? c.t('cave.cd', { t: c.fmtDur(left) })
-            : (owned ? c.t('cave.state.move') : c.t('cave.state.enter')))) + '</button>';
-      }
+      var k = curId === cv.id ? 'current' : (owned ? 'owned' : (qualLack.length ? 'locked' : 'avail'));
+      bucket[k].push({ cv: cv, chk: chk, owned: owned });
+    });
+    var h = '';
+    keys.forEach(function (k) {
+      var arr = bucket[k];
+      if (!arr.length) return;
+      h += '<p class="subhead"><span class="sl">' + c.esc(c.t('cave.grp.' + k, { n: arr.length })) + '</span>' +
+        '<span class="sr">' + c.esc(c.t(k === 'locked' ? 'cave.grp.hint.locked' : 'cave.grp.hint')) + '</span></p>' +
+        '<div class="cavegrid' + (arr.length === 1 ? ' solo' : '') + '">';
+      arr.forEach(function (it) {
+        h += caveCardHTML(c, it.cv, it.chk, k === 'current', it.owned, left, branchIds);
+      });
       h += '</div>';
+    });
+    return h;
+  }
+  /* 当前驻留设施（设计稿 .lrow 行）：等级与效果在左、营建/扩建在右；满级只留一行字。
+   * 与 caveFacRows 的分工：这一段只服务当前驻留福地（可动），caveFacRows 是非驻留福地的只读内联行。 */
+  function caveFacLrows(c) {
+    var w = c.w, p = c.p, d = c.d;
+    var cv = SQ.Cave.current(w, p);
+    var fac = (w.cave && w.cave.fac && w.cave.fac[cv.id]) || {};
+    var maxLv = d.CAVE_FAC_MAX_LV || 3;
+    var h = '';
+    (d.CAVE_FACILITIES || []).forEach(function (fd) {
+      var lv = fac[fd.id] || 0;
+      var eff = fd.per * lv;
+      var effTxt = c.t('talent.field.' + fd.field) + ' ' +
+        (fd.field === 'tribBonus' ? '+' + eff.toFixed(2) : (eff * 100).toFixed(1) + '%');
+      if (fd.id === 'lingtian') effTxt += ' · ' + c.t('cave.fac.lingtian.mat');
+      var right;
+      if (lv >= maxLv) {
+        right = '<b>' + c.esc(c.t('cave.fac.max')) + '</b>';
+      } else {
+        var cost = (d.CAVE_FAC_COST || [])[lv] || 0;
+        var ok = w.stones >= cost;
+        right = '<button class="' + (ok ? 'primary' : '') + '" data-act="caveBuild" data-v="' + cv.id + '" data-f="' + fd.id + '"' +
+          (ok ? '' : ' disabled') + '>' +
+          c.esc(c.t(lv === 0 ? 'cave.fac.build' : 'cave.fac.upgrade', { n: SQ.fmt(cost) })) + '</button>';
+      }
+      h += '<div class="lrow facrow">' +
+        '<span class="nm">' + c.esc(c.t('cave.fac.' + fd.id + '.name')) +
+        '<span class="hint"> ' + c.esc(lv > 0 ? c.t('cave.fac.lv', { n: lv }) : c.t('cave.fac.none')) + '</span></span>' +
+        '<span class="meta">' + c.esc(effTxt + ' · ' + (lv > 0 ? c.t('cave.fac.active') : c.t('cave.fac.idle.build'))) + '</span>' +
+        right + '</div>';
     });
     return h;
   }
@@ -276,15 +329,31 @@
       lower.slice().reverse().forEach(function (i) { h += zrow(i); });
     }
     h += '</div>';
-    /* ── 洞天福地（合并批）：原「洞天」独立页内容内联到本页——与秘境同页卡片化，
-       互为引流（秘境卡「福地」角标 ↔ 洞天卡首通资格 chips）；当前驻留福地为通栏 hero ── */
+    /* ── 洞天福地（B16-d 对齐设计稿 §洞天福地）：段标 → 导语 → 状态条 → 四组分段 → 当前驻留设施行。
+       与秘境同页互为引流（秘境卡「福地」角标 ↔ 洞天卡首通资格 chips）；十三处一律在册，
+       分组的只是「玩家现在能不能去」这一维，不删不减。 ── */
     var caveCur = SQ.Cave.current(w, p);
     var caveLeft = SQ.Cave.cooldownLeft(w, Date.now());
-    h += '<div class="secbar" id="cave-sec"><span>' + c.esc(c.t('cave.title')) + '</span>' +
-      '<span class="secnote">' + c.esc(c.t('cave.cur', {
-        name: c.t('cave.' + caveCur.id + '.name'), mult: SQ.Cave.multOf(w, p, d, m).toFixed(2)
-      }) + ' · ' + (caveLeft > 0 ? c.t('cave.cd', { t: c.fmtDur(caveLeft) }) : c.t('cave.cd.ready'))) + '</span></div>';
-    h += '<div class="cavegrid">' + caveDexHTML(c, caveLeft, true) + '</div>';
+    var caveMult = SQ.Cave.multOf(w, p, d, m);
+    var caveFacs = d.CAVE_FACILITIES || [];
+    var facCur = (w.cave && w.cave.fac && w.cave.fac[caveCur.id]) || {};
+    var facOn = caveFacs.filter(function (fd) { return (facCur[fd.id] || 0) > 0; }).length;
+    h += '<div class="dtsec" id="cave-sec">' +
+      '<div class="sechead"><span class="t">' + c.esc(c.t('cave.shelf', { n: SQ.Cave.list(p).length })) + '</span>' +
+      '<span class="s">' + c.esc(c.t('cave.cur', { name: c.t('cave.' + caveCur.id + '.name'), mult: caveMult.toFixed(2) })) + '</span></div>' +
+      '<p class="hintline">' + c.esc(c.t('cave.intro')) + '</p>' +
+      '<div class="statestrip"><span class="s-k">' + c.esc(c.t('cave.strip.k')) + '</span>' +
+      '<span class="s-v">' + c.esc(c.t('cave.strip.v', { name: c.t('cave.' + caveCur.id + '.name'), mult: caveMult.toFixed(2) })) + '</span>' +
+      '<span class="s-x">' + c.esc(c.t('cave.strip.x', {
+        n: facOn, m: caveFacs.length,
+        cd: caveLeft > 0 ? c.t('cave.cd', { t: c.fmtDur(caveLeft) }) : c.t('cave.cd.ready')
+      })) + '</span></div>' +
+      caveGroupsHTML(c, caveLeft) +
+      '<div class="sechead"><span class="t">' + c.esc(c.t('cave.fac.sec')) + '</span>' +
+      '<span class="s">' + c.esc(c.t('cave.fac.sec.hint')) + '</span></div>' +
+      '<div class="faclist">' + caveFacLrows(c) + '</div>' +
+      '<p class="hintline">' + c.esc(c.t('cave.fac.note')) + '</p>' +
+      '</div>';
     c.$('tab-combat').innerHTML = h;
   }
 

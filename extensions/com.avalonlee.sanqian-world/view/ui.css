@@ -505,19 +505,14 @@
     .zonegrid { grid-template-columns: 1fr; }
     .zcard.hero .zhero { grid-template-columns: 1fr; }
   }
-  /* ── 秘境洞天合并批：页内分节标题（秘境 / 洞天福地）+ 洞天福地卡片网格。
-     洞天节与秘境节同构——宽屏多列、窄屏单列，当前驻留福地为通栏 hero 卡 ── */
-  .secbar { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-    margin: 18px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
-  .secbar > span:first-child { font-weight: 650; font-size: 14px; }
-  .secbar .secnote { margin-left: auto; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  /* ── 秘境洞天：洞天福地卡片网格（B16-d 起节标题改用 .sechead + .statestrip，
+     原 .secbar 一族随之退役）——宽屏多列、窄屏单列、单卡组整行 ── */
   .cavegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 10px; align-items: stretch; }
+  .cavegrid.solo { grid-template-columns: 1fr; }
   .cavegrid > .cavecard { margin: 0; display: flex; flex-direction: column; }
-  .cavegrid > .cavecard.hero { grid-column: 1 / -1; }
   .cavegrid > .cavecard .cavebtn { margin-top: auto; }
   @media (max-width: 719px) {
     .cavegrid { grid-template-columns: 1fr; }
-    .secbar .secnote { margin-left: 0; }
   }
   /* ── 成就图鉴批：独立「成就」页卡片网格——已解锁（.got）显名/条件/遗泽，
      未解锁（.lock）遮为问号；特殊成就（data 标 hint）在未解锁时出条件提示（.ahint）── */
@@ -699,14 +694,11 @@
   .lgrow .lgn { font-size: 10px; color: var(--ink-3); }
   #mlg-seal { text-align: center; margin-top: 12px; color: var(--primary); letter-spacing: .12em; }
 
-  /* ── 批 2 · 地柱洞府卡（B3）：四态（驻留/持有/可入驻/缺项）+ 叙事折叠 ── */
+  /* ── 批 2 · 地柱洞府卡（B3）：四态（驻留/持有/可入驻/缺项）+ 叙事折叠 ──
+     B16-d 起标题行改 .cv-n / .cv-d（设计稿同名），旧 .ch/.cn/.cm/.cs 一族退役；
+     缺项态统一用 .locked（原 .lack 一并无主，随之删除） ── */
   .cavecard { border: 1px solid var(--line); border-radius: var(--sq2-r); padding: 9px 11px; margin: 7px 0; background: var(--well); }
-  .cavecard.cur { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
-  .cavecard.lack { opacity: .72; }
-  .cavecard .ch { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  .cavecard .cn { font-weight: 650; font-size: 13px; }
-  .cavecard .cm { font-variant-numeric: tabular-nums; color: var(--primary); font-size: 12px; white-space: nowrap; }
-  .cavecard .cs { font-size: 11px; color: var(--ink-2); margin-top: 2px; }
+  .cavecard.cur { border-color: var(--primary); }
   .cavecard .ctag { display: inline-block; font-size: 10px; padding: 0 6px; border-radius: 999px;
     border: 1px solid currentColor; margin-left: 6px; vertical-align: middle; }
   .cavecard .ctag.cur { color: var(--primary); }
@@ -1202,11 +1194,37 @@
   border-radius: 2px; padding: 1px 7px;
 }
 #tab-combat .cavecard { background: var(--sq2-paper-2); border: 1px solid var(--sq2-line); border-radius: 2px; }
-#tab-combat .cavecard.hero { border-color: var(--sq2-cinnabar); background: var(--sq2-paper-3); }
-#tab-combat .cavecard .cn { font-family: var(--sq2-serif); }
+#tab-combat .cavecard.cur { border-color: var(--sq2-cinnabar); background: var(--sq2-paper-3); }
+#tab-combat .cavecard.locked { border-style: dashed; background: transparent; opacity: .62; }
 #tab-combat .cavebtn { border-radius: 2px; }
 #tab-combat .reqchips span { border-radius: 2px; }
 #tab-combat .bar > i { background: var(--sq2-cinnabar); }
+/* B16-d 洞天节（设计稿 .subhead / .statestrip / .cavecard 紧凑形 / 设施行）——
+   与「秘境」节同页，故一律 #tab-combat 作用域，不动其它页的同名原语 */
+#tab-combat .cavecard .cv-n {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-family: var(--sq2-serif); font-size: 14px; letter-spacing: .08em;
+}
+#tab-combat .cavecard .cv-d { font-size: 10.5px; color: var(--ink-3); margin-top: 3px; line-height: 1.7; }
+#tab-combat .subhead {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin: 20px 0 2px;
+}
+#tab-combat .subhead .sl { font-family: var(--sq2-serif); font-size: 13px; letter-spacing: .18em; color: var(--ink-2); }
+#tab-combat .subhead .sr { font-size: 10.5px; color: var(--ink-3); }
+#tab-combat .statestrip {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  margin: 10px 0 2px; padding: 9px 12px;
+  border: 1px solid var(--sq2-line); border-radius: 2px; background: var(--sq2-paper-2);
+  font-size: 11.5px;
+}
+#tab-combat .statestrip .s-k { font-size: 9.5px; letter-spacing: .2em; color: var(--ink-3); }
+#tab-combat .statestrip .s-v { font-family: var(--sq2-serif); letter-spacing: .08em; color: var(--sq2-ink); }
+#tab-combat .statestrip .s-x { margin-left: auto; color: var(--ink-3); font-size: 10.5px; }
+#tab-combat .faclist { margin-top: 6px; }
+#tab-combat .faclist .lrow { display: flex; align-items: center; gap: 10px; }
+#tab-combat .faclist .lrow .nm { font-size: 13px; white-space: nowrap; }
+#tab-combat .faclist .lrow .meta { flex: 1; font-size: 11px; margin-top: 0; }
 .sq2-rail .sq2-rb { margin-bottom: 20px; }
 .sq2-rail .rb-t {
   font-family: var(--sq2-serif); font-size: 10.5px; letter-spacing: .22em;

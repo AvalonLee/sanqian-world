@@ -419,6 +419,22 @@
     'cave.enter.fail.unknown': '此处福地不存在',
     'cave.enter.fail.obtain': '缘法未至——此处福地不售灵石，只认修行',
     'cave.time.dhms': '{d}天 {h}:{m}:{s}', 'cave.time.hms': '{h}:{m}:{s}',
+    /* ── 洞天福地节版面（B16-d · 对齐设计稿 §洞天福地：段标 / 导语 / 状态条 / 四组分段 / 设施段）── */
+    'cave.shelf': '洞天福地 · {n} 处',
+    'cave.intro': '洞天是家不是战场：首通秘境可开福地；入驻给修为倍率，附属设施给材料、炼丹与产出。迁居冷却 1 游戏年，已入驻的福地不会掉。',
+    'cave.cv.d': '×{mult} 修为产出 · {sig}',
+    'cave.grp.current': '当前驻留 · {n}',
+    'cave.grp.owned': '已拥有 · 未驻留 · {n}',
+    'cave.grp.avail': '可入驻 · {n}',
+    'cave.grp.locked': '未解锁 · {n}',
+    'cave.grp.hint': '点开看资格与设施',
+    'cave.grp.hint.locked': '按境界 / 缘法逐处开',
+    'cave.strip.k': '当前驻留',
+    'cave.strip.v': '{name} · ×{mult}',
+    'cave.strip.x': '设施 {n}/{m} 生效 · {cd}',
+    'cave.fac.sec': '当前驻留设施',
+    'cave.fac.sec.hint': '0~3 级 · 仅驻留生效',
+    'cave.fac.note': '设施随福地所有权永久保留，搬离即失效；灵石投入记入洞府支出。灵田每 6 游戏月产本区材料，丹房加参悟，藏书阁加奇遇机缘，聚灵阵加离线效率。',
     /* ── G17 江湖传闻（传闻设计卷 v1.0）：茶楼口吻模糊转述模板 ×30 + 地点池 ×8；
      * 世界分卷可按 key 覆写（三级回落）。{place} = 地点词；不剧透事件名。 ── */
     'rumor.title': '江湖传闻',

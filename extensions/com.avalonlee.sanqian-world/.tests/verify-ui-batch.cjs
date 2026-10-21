@@ -60,9 +60,12 @@ const { chromium } = require('playwright-core');
   const facBtns = await page.$$eval('#tab-combat [data-act="caveBuild"]', els => els.length);
   T(facBtns > 0, 'R2 营建按钮存在', 'n=' + facBtns);
   /* 附属设施升级选项只属于当前驻留福地：hero 卡有按钮，非驻留已持有卡无按钮 + 只读提示 */
-  const curBuild = await page.$$eval('#tab-combat .cavecard.hero [data-act="caveBuild"]', els => els.length);
-  const curTxt = await page.$eval('#tab-combat .cavecard.hero', el => el.textContent);
-  T(curBuild > 0 && curTxt.includes('生效中'), 'R2 当前驻留福地有营建选项', 'n=' + curBuild);
+  /* 附属设施升级选项只属于当前驻留福地：B16-d 起由页内「当前驻留设施」行承载（设计稿 §洞天福地），
+     非驻留的已持有福地仍在卡内只读内联（无按钮 + 只读提示），两处都不是空判 */
+  const curBuild = await page.$$eval('#tab-combat #cave-sec .faclist [data-act="caveBuild"]', els => els.length);
+  const curTxt = await page.$eval('#tab-combat #cave-sec .faclist', el => el.textContent);
+  T(curBuild === 4 && /生效中|可营建/.test(curTxt),
+    'R2 当前驻留福地有营建选项（四设施各一行；状态词随等级，本 fixture 为未营建）', 'n=' + curBuild);
   const otherBuild = await page.$$eval('#tab-combat .cavecard[data-cave="green_peak"] [data-act="caveBuild"]', els => els.length);
   const otherTxt = await page.$eval('#tab-combat .cavecard[data-cave="green_peak"]', el => el.textContent);
   T(otherBuild === 0 && otherTxt.includes('仅驻留中可营建'), 'R2 非驻留福地不显示营建选项', 'n=' + otherBuild);
