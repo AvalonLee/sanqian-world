@@ -2281,6 +2281,8 @@
   }
   #tab-shop .merchbox .mh { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   #tab-shop .merchbox .mh .t { font-family: var(--sq2-serif); letter-spacing: .12em; color: var(--sq2-ink); }
+  #tab-shop .merchbox.closed { border-style: dashed; background: var(--sq2-paper-2); }
+  #tab-shop .merchbox.closed .mh .t { color: var(--sq2-ink-2); }
   /* B16-o：黑市段条（设计稿 .strip：细线 + 纸-2 底 + 宋体小标 + 说明） */
   #tab-shop .strip {
     display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;

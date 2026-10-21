@@ -101,6 +101,8 @@
   keys['shop.merchant.title'] = '神秘商人';
   keys['shop.merchant.left'] = '离去 {t}';
   keys['shop.merchant.hint'] = '斗篷下的面孔看不清楚，货倒是真的——价格也是。';
+  keys['shop.merchant.closed'] = '未开市';
+  keys['shop.merchant.closed.hint'] = '留意江湖奇遇——与他交好，或许能请动他。';
   keys['shop.merchant.open'] = '神秘商人在坊市后巷支起了摊子';
   keys['shop.merchant.scout'] = '· 他认出了你，货比上次好';
 

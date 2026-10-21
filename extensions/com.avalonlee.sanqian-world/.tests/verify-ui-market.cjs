@@ -88,7 +88,7 @@ async function buildSave() {
   /* 格数随机批 2026-10-09：一次刷 10~16 件（用户令「不要固定为 10 个」）⇒ 判据从「恰 10」改「区间内」，
    * 区间硬界由冒烟 #285 逐值钉死（七刻度扫一遍必为 10..16），这里只量真机渲染出的卡数不落界外。 */
   T(shopWide.cards >= 10 && shopWide.cards <= 16, 'M2 坊市一次刷新 10~16 件随机物品（区间内，不是恒 10）', 'n=' + shopWide.cards);
-  T(shopWide.blackBtn, 'M3 黑市入口可见（karma ≤ −200）');
+  T(shopWide.blackBtn, 'M3 黑市入口常驻（道心 ≤ −200 时开市，未达则显示未开市）');
   await page.click('#tab-shop [data-act="shopTab"][data-v="1"]');
   await page.waitForTimeout(300);
   const blackCards = await page.$$eval('#tab-shop .shopcard', (els) => els.length);
@@ -102,6 +102,41 @@ async function buildSave() {
   });
   T(blackStrip.t === blackStrip.want && blackStrip.v.length > 0,
     'M4b 黑市段条在位（标题走词表 · 代价提示非空）', JSON.stringify(blackStrip));
+
+  /* B16-ab：神秘商人特席常驻——未触发奇遇时也留一块「未开市」 */
+  await page.click('#tab-shop [data-act="shopTab"][data-v="0"]');
+  await page.waitForTimeout(300);
+  const merchClosed = await page.evaluate(() => {
+    const b = document.querySelector('#tab-shop .merchbox.closed');
+    return { closed: !!b, txt: b ? b.textContent.replace(/\s+/g, ' ').trim() : '' };
+  });
+  T(merchClosed.closed && /未开市/.test(merchClosed.txt) && /奇遇/.test(merchClosed.txt),
+    'M4c 神秘商人特席常驻：未开市时给「未开市 + 留意奇遇」提示', JSON.stringify(merchClosed));
+
+  /* B16-ab：黑市页签常驻——道心未达标时进入给「未开市」，不渲染货架 */
+  {
+    const saveClear = JSON.parse(JSON.stringify(save));
+    saveClear.worlds.xiuxian.karmaEventScore = 0;
+    saveClear.worlds.xiuxian.karma = 0;
+    const ctxB = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    await ctxB.addInitScript((x) => { localStorage.setItem('sanqian-state-v1', JSON.stringify(x)); }, saveClear);
+    const pgB = await ctxB.newPage();
+    await pgB.goto(url);
+    await pgB.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+    await pgB.waitForTimeout(700);
+    await pgB.click('#m-tabbar button[data-v="shop"]');
+    await pgB.waitForTimeout(400);
+    const btnB = await pgB.$('#tab-shop [data-act="shopTab"][data-v="1"]');
+    if (btnB) await btnB.click();
+    await pgB.waitForTimeout(350);
+    const closedB = await pgB.evaluate(() => ({
+      hint: (document.querySelector('#tab-shop > p.hint') || {}).textContent || '',
+      cards: document.querySelectorAll('#tab-shop .shopgrid .shopcard').length
+    }));
+    T(!!btnB && /未开市/.test(closedB.hint) && closedB.cards === 0,
+      'M4d 黑市页签常驻：道心未达 −200 时进去给「未开市」提示，不渲染旧货', JSON.stringify(closedB));
+    await ctxB.close();
+  }
 
   /* ── ② 势力页：门中供给改整行清单（B16-q：卡片网格 → .matgrid/.matrow） ── */
   await page.click('#m-tabbar button[data-v="faction"]');
