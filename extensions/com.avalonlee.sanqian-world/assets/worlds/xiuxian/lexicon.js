@@ -84,6 +84,8 @@
     /* UI v2 B1：左带五区分组标题（世界分卷拥有；修行区标题复用 tab.idle 的「修行」） */
     'nav.sec.idle': '修行', 'nav.sec.zone': '历练', 'nav.sec.arts': '道器',
     'nav.sec.bonds': '江湖', 'nav.sec.life': '生平',
+    /* B16-y：导航短名（页内与商店分类仍用全名 alchemy.system「炼丹炼器」） */
+    'nav.alchemy': '丹器',
 
     /* ── G3 秘境 ── */
     'combat.system': '秘境',

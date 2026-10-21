@@ -1039,8 +1039,9 @@
     { id: 'faction', key: null, sys: 'faction.system', lock: 1 },
     { id: 'bonds', key: null, sys: 'ui.pillar.bond', lock: 1 },
     { id: 'event', key: 'tab.event' },
-    /* 六向长线批：炼丹炼器（筑基开炉）/ 同代天骄（金丹方闻同代之名）/ 宗门（化神亮入口） */
-    { id: 'alchemy', key: null, sys: 'alchemy.system', lock: 1 },
+    /* 六向长线批：炼丹炼器（筑基开炉）/ 同代天骄（金丹方闻同代之名）/ 宗门（化神亮入口）
+     * B16-y：导航短名「丹器」（两字节奏）；页内 seg2 / 商店分类仍用 alchemy.system 全名。 */
+    { id: 'alchemy', key: 'nav.alchemy', sys: 'alchemy.system', lock: 1 },
     { id: 'prodigy', key: null, sys: 'jianghu.system', lock: 2 },
     { id: 'sect', key: null, sys: 'sect.system', lock: 4 },
     /* 成就图鉴批：成就自轮回页迁出为独立页（常驻可见，无境界门槛） */
