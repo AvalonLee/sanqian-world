@@ -108,12 +108,20 @@
      * 成算与明细写在按钮下方——决策依据和动作在同一视线内（设计说明「动作只有两个」）。
      * 自动渡劫开启或未圆满时不渲染按钮（口径与原 tribready 块一致：qi ≥ needEffOf 才亮）。 */
     var tiH = (need != null) ? p.worldSystems.tribInfo(w, p, d, m) : null;
+    /* B16-af：飞升 hero 与渡劫 hero 同一位置（圆相 + 吐纳速率下方、四格上方）；飞升去掉外层方框 */
+    var fsChk = (need == null && SQ.Legacy) ? SQ.Legacy.canFeisheng(w, p, d, c.s.meta, Date.now(), c.s.profile) : { ok: false };
     if (need != null && tiH && !(c.s.settings && c.s.settings.autoTrib) && w.qi >= need) {
       h += '<div class="hero-cta">' +
         '<div class="cta-note">' + c.esc(c.t('trib.manual.ready')) + '</div>' +
         '<button class="btn sealbtn" data-act="trib">' + c.esc(c.t('trib.manual.btn')) + '</button>' +
         '<div class="cta-note">' + c.esc(c.t('tribulation.estimate', { p: Math.round(tiH.p * 100) })) +
         '<button class="linkbtn chip" data-act="detailTrib">' + c.esc(c.t('tribulation.detail')) + '</button></div></div>';
+    } else if (need == null && fsChk.ok) {
+      var fsInfo0 = SQ.Legacy.feishengInfo(w, p, d, m);
+      h += '<div class="hero-cta ascend">' +
+        '<div class="cta-note">' + c.esc(c.t('legacy.ui.feisheng.btn')) +
+        (fsInfo0 ? ' · ' + c.esc(c.t('legacy.ui.feisheng.p', { p: Math.round(fsInfo0.p * 100) })) : '') + '</div>' +
+        '<button class="btn sealbtn" data-act="ascend">' + c.esc(c.t('legacy.ui.feisheng')) + '</button></div>';
     }
     /* 四格修为身元（设计稿 .statrow）：战力 / 精 / 气 / 神 —— 战力从环心挪到这里 */
     var buffHtml = '';
@@ -223,16 +231,8 @@
       /* 手动渡劫入口已上移圆相下方 hero-cta（B16-c，设计稿位）；此处不再重复渲染。 */
     } else {
       h += '<div class="kv"><span class="fullcap">' + c.esc(c.t('idle.maxed')) + '</span></div>';
-      /* 飞升大劫入口（轮回卷 §1.2）：真仙盈满亮起——独立终局劫 base 0.25、
-       * 失败不扣修为不计连败、24h 重试；成功 = 满额遗泽转世（毕业仪式）。B16-c 改 hero-cta 形态 */
-      var fsChk = SQ.Legacy ? SQ.Legacy.canFeisheng(w, p, d, c.s.meta, Date.now(), c.s.profile) : { ok: false };
-      if (fsChk.ok) {
-        var fsInfo = SQ.Legacy.feishengInfo(w, p, d, m);
-        h += '<div class="hero-cta">' +
-          '<div class="cta-note">' + c.esc(c.t('legacy.ui.feisheng.btn')) +
-          (fsInfo ? ' · ' + c.esc(c.t('legacy.ui.feisheng.p', { p: Math.round(fsInfo.p * 100) })) : '') + '</div>' +
-          '<button class="btn sealbtn" data-act="ascend">' + c.esc(c.t('legacy.ui.feisheng')) + '</button></div>';
-      } else if (fsChk.reason === 'cd') {
+      /* 飞升 hero 已上移圆相下方（B16-af）；这里只留冷却提示 */
+      if (fsChk.reason === 'cd') {
         h += '<div class="kv hint"><span>' + c.esc(c.t('legacy.ui.feisheng.cd', { t: c.timeLeft(Math.max(0, fsChk.until - Date.now())) })) + '</span></div>';
       }
     }
@@ -285,8 +285,13 @@
     }
     /* 收功按钮已移除（v2.2）：自动心跳每秒做同一套结算+落盘，手动按钮语义重复——
      * 结算区收敛为「修行状态 → 修行所得」纯展示区块 */
-    /* B15-c：天赋卡归并到「天命」段标之下（设计稿 .shelf-head；自动区已随 D6 迁设置页，不在本页） */
-    h += '<div class="sechead"><span class="t">' + c.esc(c.t('idle.talent.title')) + '</span></div>';
+    /* B15-c：天赋卡归并到「天命」段标之下（设计稿 .shelf-head；自动区已随 D6 迁设置页，不在本页）
+     * B16-af：段标最右补洗髓快捷入口（同一枚 showWash） */
+    var swCap = (d.TALENT_SWAP || {}).PER_LIFE || 0;
+    var swLeft = Math.max(0, swCap - (w.talentUsed || 0));
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('idle.talent.title')) + '</span>' +
+      (swCap > 0 ? '<button class="linkbtn" data-act="washOpen">' +
+        c.esc(c.t('talent.swap.entry', { owed: w.talentOwed || 0, cap: swLeft })) + '</button>' : '') + '</div>';
     h += '<div class="cards" style="margin-top:12px">' + (c.s.profile.talents || []).map(function (el) {
       var ch = c.talentCard(el, c.wid());
       return '<div class="' + ch.className + '">' + ch.innerHTML + '</div>';

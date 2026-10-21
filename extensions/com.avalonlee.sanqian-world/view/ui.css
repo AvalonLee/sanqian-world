@@ -655,6 +655,8 @@
     width: 100%; max-width: 360px; min-height: 46px; padding: 12px 24px;
     font-size: 15px; letter-spacing: .4em;
   }
+  /* B16-af：飞升只用印钮本身，不要外层方框 */
+  .hero-cta.ascend { border: 0; background: transparent; box-shadow: none; padding: 0; }
   .btn.sealbtn {
     background: var(--sq2-cinnabar); border-color: var(--sq2-cinnabar); color: #FBF5E7;
     font-family: var(--sq2-serif); letter-spacing: .34em; text-indent: .34em;
@@ -1334,8 +1336,12 @@
 .giftres h2 { font-family: var(--sq2-serif); font-size: 20px; letter-spacing: .24em; margin: 0 0 10px; color: var(--sq2-ink); }
 .giftres p { font-size: 12px; color: var(--sq2-ink-2); line-height: 2; text-align: left; white-space: pre-line; }
 .giftres .giftres-paid { text-align: center; font-size: 10.5px; color: var(--sq2-ink-3); margin-top: 8px; }
-/* 传闻带在右栏窄栏里退单列细行（rumorcard 结构与奇遇页同源，仅收窄距） */
-.sq2-rail .rumorcard { padding: 8px 2px; border-radius: 0; border-left: 0; border-right: 0; }
+/* 传闻带在右栏窄栏里退单列细行（B16-af：去深色方块底、内距放宽，改成行间虚线分隔） */
+.sq2-rail .rumorcard {
+  padding: 10px 6px; margin: 0; border-radius: 0; border: 0;
+  border-bottom: 1px dashed var(--sq2-line); background: transparent;
+}
+.sq2-rail .rumorcard:last-child { border-bottom: 0; }
 
 /* ── B16-c：境界说明弹窗纸面化（设计稿 sheet-card：纸底 · 直角 · 衬线题 · eyebrow kicker）── */
 #modal-realm .modal {

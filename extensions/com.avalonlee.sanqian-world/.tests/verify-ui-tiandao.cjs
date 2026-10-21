@@ -434,6 +434,20 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   T(Math.abs(t0 - t1) <= 1 && Math.abs(t0 - t2) <= 1 && hMeta >= 38,
     'I4 闭关 ↔ 历练切换：模式说明行高度固定，圆相不上下移动',
     JSON.stringify({ seclude: t0, venture: t1, back: t2, metaH: hMeta }));
+
+  /* I5（B16-af）：天命段标最右 = 洗髓快捷入口 */
+  const washI = await page.evaluate(() => {
+    const head = Array.prototype.slice.call(document.querySelectorAll('#tab-idle .sechead'))
+      .filter((x) => x.textContent.indexOf(SQ.t('idle.talent.title', null, 'xiuxian')) >= 0)[0];
+    const btn = head ? head.querySelector('[data-act="washOpen"]') : null;
+    return {
+      has: !!btn,
+      txt: btn ? btn.textContent.trim() : '',
+      right: !!(head && btn && (head.getBoundingClientRect().right - btn.getBoundingClientRect().right) <= 8)
+    };
+  });
+  T(washI.has && /洗髓/.test(washI.txt) && washI.right,
+    'I5 天命段标最右端有洗髓快捷入口（同一 showWash 入口）', JSON.stringify(washI));
   T(errors.length === 0, 'G7 第一台整轮零页错误', errors.slice(0, 3).join(' | '));
 
   await browser.close();
