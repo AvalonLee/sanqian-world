@@ -109,7 +109,7 @@
     h += '</div>';
     h += '<p class="hint" style="margin:0 0 8px">' + c.esc(c.t('arts.practice.hint')) + '</p>';
     /* ③ 六槽（设计稿 .slots：槽位比卡片轻，只承担「谁在里面 + 升级」） */
-    h += '<div class="cards slots" style="grid-template-columns:repeat(3,1fr)">';
+    h += '<div class="cards slots">';
     for (var i = 0; i < d.ARTS_SLOTS; i++) {
       var id = w.artsSlots[i];
       /* 角标 + 定位锚（法柱 chip 滚动到此）读 mainArt，与引擎修习增速指向同源。

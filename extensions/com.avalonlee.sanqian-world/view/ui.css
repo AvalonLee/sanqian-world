@@ -1307,6 +1307,8 @@
 /* ── UI v2 B16-g：功法页上半对齐设计稿（三格摘要 / 筛选条上移 / 六槽 / 自悟条 / 待修习架整行）──
    已学会与图鉴两块仍是卡片网格，留待下一批（它们牵着 A11/H2 一组「卡面 === 引擎 detail」的对表判据，
    换版式必须与那组判据同批重写）。 */
+#tab-arts .slots { grid-template-columns: repeat(3, 1fr) !important; }
+@media (max-width: 519px) { #tab-arts .slots { grid-template-columns: repeat(2, 1fr) !important; } }
 #tab-arts .slots .tcard { padding: 10px 12px; }
 #tab-arts .strip {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
