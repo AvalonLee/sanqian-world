@@ -115,6 +115,37 @@ async function buildSave() {
   T(arts.selfHead, 'A4b 自悟节标题（自行领悟）在位');
   T(arts.cands, 'A4c 自悟节含候选/说明文案');
 
+  /* ── A4e~A4g（B16-g）：功法页上半对齐设计稿 ──
+   *   ① 三格摘要的三个值都要与引擎取数口一致（主修 = Arts.mainArt、在修 = 槽长、产出 = 有百分号格式）；
+   *   ② 筛选条上移到六槽之前（设计稿把品阶 chips 放页首）；
+   *   ③ 自悟节改条状、待修习架改整行 —— 这两处是「卡片墙 → 行/条」在功法页的落点。 */
+  const upTop = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const w = s.worlds.xiuxian, P = SQ.Worlds.xiuxian.pack, D = P.data;
+    const box = document.querySelector('#tab-arts .sum3');
+    const cells = box ? Array.prototype.slice.call(box.children) : [];
+    const v = (i) => ((cells[i] && cells[i].querySelector('.v') || {}).textContent || '').trim();
+    const mainId = SQ.Arts.mainArt(w);
+    const grouper = document.querySelector('#tab-arts .grouper');
+    const slots = document.querySelector('#tab-arts .slots');
+    const self = document.querySelector('#tab-arts .strip.selflearn');
+    const grid = document.querySelector('#tab-arts .shelfgrid');
+    return {
+      n: cells.length, main: v(0), slotsTxt: v(1), prod: v(2),
+      wantMain: mainId ? SQ.t('skill.' + mainId + '.name', null, 'xiuxian') : '',
+      wantSlots: (w.artsSlots || []).filter((x) => !!x).length + ' / ' + D.ARTS_SLOTS,
+      order: !!(grouper && slots && (grouper.compareDocumentPosition(slots) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      selfStrip: !!self && !!self.querySelector('.pbar > i'),
+      shelfGrid: !!grid, shelfIsCards: !!(grid && grid.classList.contains('cards'))
+    };
+  });
+  T(upTop.n === 3 && upTop.main === upTop.wantMain && upTop.slotsTxt === upTop.wantSlots &&
+    /^[+−]\d+(\.\d+)?%$/.test(upTop.prod),
+    'A4e 三格摘要（主修 / 在修 / 产出）：主修 = Arts.mainArt、在修 = 已装格数（非数组长度）、产出为带符号百分数',
+    '主修=' + upTop.main + ' 在修=' + upTop.slotsTxt + ' 产出=' + upTop.prod);
+  T(upTop.order && upTop.selfStrip,
+    'A4f 筛选条在六槽之前（页首带）+ 自悟节改条状（.strip.selflearn 内含保底进度条）');
+
   /* ── A4d 主修可点定（GitHub issue #3）：点第 2 格的「设为主修」⇒ 角标与概览条同时换人 ──
    * 旧实现「主修 = 第 1 位」下这颗按钮根本不存在，故本条也是「设为主修」入口的在位判据。 */
   const mainPick = await page.evaluate(() => {
@@ -628,10 +659,13 @@ async function buildSave() {
     return {
       head: !!head && rows.length > 0, headTxt: head ? head.textContent.trim() : '',
       rows: rows.length, txt,
+      /* B16-g：待修习架从卡片网格改整行清单 —— 容器不得再带 .cards / .artgrid */
+      notCards: !!grid && !grid.classList.contains('cards') && !grid.classList.contains('artgrid'),
       on: onEl ? String(onEl.dataset.v || '') : '', shelf: (w.shelf || []).join(','), stones: w.stones || 0
     };
   });
   const g0 = await shelfRead();
+  T(g0.notCards, 'G0 待修习架为整行清单（.shelfgrid 不带 .cards / .artgrid 网格类）');
   T(errors5.length === 0 && g0.head && g0.rows === 1 && g0.txt.indexOf('聚仙幡') >= 0 &&
     g0.txt.indexOf('待复检') >= 0 && g0.txt.indexOf('{') < 0 && g0.txt.indexOf('弃置') >= 0 &&
     g0.headTxt.indexOf('· 1') >= 0,

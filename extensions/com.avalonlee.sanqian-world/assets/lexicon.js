@@ -205,6 +205,10 @@
        **要重新接线必须先改值**，否则是把已作废的机制搬回屏上。 */
     'arts.reset': '待重修',
     'arts.main': '主修', 'arts.main.empty': '主修虚位',
+    /* ── B16-g 功法页三格摘要（设计稿 .sum3：主修 / 在修 / 产出）── */
+    'arts.sum.main': '主 修',
+    'arts.sum.slots': '在 修',
+    'arts.sum.prod': '产 出',
     /* 主修可点定（GitHub issue #3）：非主修的在槽功法逐格挂此按钮，不必再「全拆重装」 */
     'arts.main.set': '设为主修',
     'arts.main.ok': '已转修「{name}」，此后此功修持最快',
@@ -225,6 +229,7 @@
      * 天阶与专属渠道功法不入此池 */
     'arts.selflearn': '于静修中自行领悟《{name}》',
     'arts.selflearn.sec': '自 行 领 悟',
+    'arts.selflearn.strip': '静 修',
     'arts.selflearn.cands': '可领悟 {n} 部',
     'arts.selflearn.pct': '自悟进度 {p}%',
     'arts.selflearn.hint': '修持中随机领悟市面传承功法（黄/玄阶；闭关易悟、历练难悟）；越悟越难，离线潜心悟道亦可缓进；进度满必得一部',

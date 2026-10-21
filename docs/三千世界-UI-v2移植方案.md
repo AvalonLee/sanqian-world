@@ -316,6 +316,8 @@ var SECTIONS = [
 
 | **B16-f** | 百器页：三格 / 四槽一行 / 库藏阁行 ✅ 已落（2026-10-21） | ① 页首加 `.sum3` **三格摘要**（在身 n/4 · 攻击 Σ · 渡劫抗性 Σ，全部现算）；② 四槽卡片网格 → 设计稿 `.gear4`（`repeat(auto-fit,minmax(148px,1fr))`，宽 4 列 / 窄 2 列）+ `.gslot`（槽名 / 名 + 品阶角标 / 属性行），空槽虚线；③ 百器录页首横幅 → **整行**（`.lrow.codexrow`：计数 + 进度条 + 全部 ›，点开仍是 12 格双节浮层）；④ 库藏阁卡片 → **整行**（左名/品阶/属性/评分/缺项/来源，右换上·炼化）；⑤ 页尾加炼化 `.strip`；⑥ 死样式退役：`.geargrid` 一族、`.gbanner`（含 `.l`/`.r`） | `view/gear.js`、`view/ui.css`、`assets/lexicon.js`、`.tests/verify-ui-gear.cjs`（+3 判）、`.tests/verify-ui-arts.cjs`（A8 改口）、`.tests/probe-lawmerge.cjs`（百器标志改 `.gear4`/`codexrow`） | 53 件 / **1,406** 全绿（gear 10 → 13 判）；审计 34/34；lawmerge 13/13；扩展 0.5.97→0.5.98 |
 
+| **B16-g** | 功法页上半：三格 / 筛选条上移 / 自悟条 / 架上行 ✅ 已落（2026-10-21） | ① 页首加 `.sum3` **三格摘要**（主修 = `Arts.mainArt` / 在修 = **已装格数**（旧写法取定长数组 length，装 1 部也显示 6/6，同批修正）/ 产出 = `mods.detail.qiRate.arts`）；② 品阶·阵营筛选条从「已学会之前」**上移到页首带**（设计稿把 chips 放最上）；③ 自行领悟 `.tcard` → **`.strip`**（保底进度条移入条内，`.pbar`/`.hint` 钩子保留）；④ 待修习架从 `.cards .artgrid` 网格 → **整行清单**（`.shelfgrid` 不再被网格切块，弃置钮仍在行内）；⑤ 六槽容器加 `.slots` 类并轻量化。**已学会与图鉴两块仍是卡片网格**，留待 B16-h（它们牵着 A11/H2 一组「卡面 === 引擎 detail」的对表判据，须同批重写） | `view/arts.js`、`view/ui.css`、`assets/lexicon.js`、`.tests/verify-ui-arts.cjs`（+3 判）、`.tests/probe-lawmerge.cjs`（自悟节标志改 `strip selflearn`） | 53 件 / **1,409** 全绿（arts 61 → 64 判，**零改口**）；审计 34/34；lawmerge 13/13；扩展 0.5.98→0.5.99 |
+
 > B1→B3 的顺序可以互换（先拆页再换壳），但不建议：壳先用旧 15 项跑通，拆页只改数据模型，问题更好分离。
 
 > **B16 系列的口径变化**：B15 那一轮做的是「形」（令牌 / 纸面 / 行式样式），B16 起改为**逐页搬设计稿的构图**（区块顺序、主事焦点、信息分组）。两轮都不动引擎、不动 `data-act`/`id`。

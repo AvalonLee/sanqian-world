@@ -113,7 +113,7 @@ const ok = (name, cond, detail) => R.push({ name, ok: !!cond, detail: detail || 
 
   const FA_MARKS = [
     ['功法·修习槽', 'data-mainart="1"'],
-    ['功法·自悟节', 'class="tcard selflearn"'],
+    ['功法·自悟节', 'strip selflearn'],
     ['功法·融合坛悟道石', 'data-act="matWudao"']
   ];
   const QI_MARKS = [

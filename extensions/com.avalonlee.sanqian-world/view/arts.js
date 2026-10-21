@@ -79,11 +79,37 @@
       h += '<div class="resetbanner">' + c.esc(c.t('arts.slotpick.title', { name: c.t('skill.' + c.ui.slotPickFor + '.name') })) +
         ' <button class="linkbtn" data-act="slotPickCancel">' + c.esc(c.t('ui.cancel')) + '</button></div>';
     }
-    h += '<div class="kv"><span>' + c.esc(c.t('arts.slots', { n: w.artsSlots.length, cap: d.ARTS_SLOTS })) + ' · ' +
-      c.esc(c.t('arts.shelf', { n: (w.shelf || []).length, cap: d.SHELF_CAP })) + '</span></div>';
-    h += '<p class="hint" style="margin:0 0 8px">' + c.esc(c.t('arts.practice.hint')) + '</p>';
-    h += '<div class="cards" style="grid-template-columns:repeat(3,1fr)">';
+    /* ── ① 三格摘要（B16-g · 设计稿 §功法 .sum3）：主修 / 在修 / 产出 ──
+     * 三个数全部现算：主修读 `Arts.mainArt`（与精通增速同源），在修读槽位长度，
+     * 产出读 mods 里 **arts 这一路** 的实际加成（`detail.qiRate.arts`）——不是页面自造的合计。 */
     var mainId = SQ.Arts.mainArt(w);   /* issue #3：主修由玩家点定（w.artsMain），未点定回落第 1 位 */
+    var prodArts = (m.detail && m.detail.qiRate ? (m.detail.qiRate.arts || 0) : 0);
+    /* 「在修」= 真正装着功法的格数（`artsSlots` 是定长数组，直接取 length 会恒等于 6） */
+    var slotUsed = (w.artsSlots || []).filter(function (x) { return !!x; }).length;
+    h += '<div class="sum3">' +
+      '<div><div class="k">' + c.esc(c.t('arts.sum.main')) + '</div><div class="v">' +
+      c.esc(mainId ? c.t('skill.' + mainId + '.name') : c.t('arts.main.empty')) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('arts.sum.slots')) + '</div><div class="v">' +
+      slotUsed + ' / ' + d.ARTS_SLOTS + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('arts.sum.prod')) + '</div><div class="v">' +
+      (prodArts >= 0 ? '+' : '−') + c.pct(Math.abs(prodArts)) + '</div></div></div>';
+    /* 计数同一口径：`artsSlots` 是定长数组，旧写法直接取 length ⇒ 恒等于 6（装 1 部也显示 6/6） */
+    h += '<div class="kv"><span>' + c.esc(c.t('arts.slots', { n: slotUsed, cap: d.ARTS_SLOTS })) + ' · ' +
+      c.esc(c.t('arts.shelf', { n: (w.shelf || []).length, cap: d.SHELF_CAP })) + '</span></div>';
+    /* ── ② 筛选条上移页首（B16-g · 设计稿把品阶 chips 放在最上）：语义不变，
+     * 仍是「整段功法页共用」的一枚筛选态（`ui.artsGroup` / `ui.artsGroupVal`），不另立第二套。 ── */
+    var grp = c.ui.artsGroup;
+    h += '<div class="grouper"><span class="gseg">' +
+      '<span class="' + (grp === 'tier' ? 'on' : '') + '" data-act="artsGroup" data-v="tier">' + c.esc(c.t('arts.group.tier')) + '</span>' +
+      '<span class="' + (grp === 'align' ? 'on' : '') + '" data-act="artsGroup" data-v="align">' + c.esc(c.t('arts.group.align')) + '</span></span>';
+    (grp === 'tier' ? ['huang', 'xuan', 'di', 'tian'] : ['right', 'neutral', 'evil']).forEach(function (v) {
+      h += '<span class="gchip' + (c.ui.artsGroupVal === v ? ' on' : '') + '" data-act="artsGroupVal" data-v="' + v + '">' +
+        c.esc(grp === 'tier' ? c.t('arts.tierchar.' + v) : c.t('align.' + v)) + '</span>';
+    });
+    h += '</div>';
+    h += '<p class="hint" style="margin:0 0 8px">' + c.esc(c.t('arts.practice.hint')) + '</p>';
+    /* ③ 六槽（设计稿 .slots：槽位比卡片轻，只承担「谁在里面 + 升级」） */
+    h += '<div class="cards slots" style="grid-template-columns:repeat(3,1fr)">';
     for (var i = 0; i < d.ARTS_SLOTS; i++) {
       var id = w.artsSlots[i];
       /* 角标 + 定位锚（法柱 chip 滚动到此）读 mainArt，与引擎修习增速指向同源。
@@ -140,24 +166,12 @@
        * 故这两行取局部、不许加 `c.`。改名会牵动上下文 ⇒ 就地注明，别靠下一个人的眼力。 */
       h += '<div class="sechead"><span class="t">' + c.esc(c.t('arts.selflearn.sec')) + '</span>' +
            '<span class="s">' + c.esc(c.t('arts.selflearn.cands', { n: cands })) + '</span></div>';
-      h += '<div class="tcard selflearn">' +
-           '<div class="tpract"><span class="pbar"><i style="width:' + pct.toFixed(0) + '%"></i></span>' +
-           '<span class="hint">' + c.esc(c.t('arts.selflearn.pct', { p: pct.toFixed(0) })) + '</span></div>' +
-           '<div class="hint">' + c.esc(c.t(cands ? 'arts.selflearn.hint' : 'arts.selflearn.none')) + '</div>' +
-           '</div>';
+      h += '<div class="strip selflearn">' +
+           '<span class="t">' + c.esc(c.t('arts.selflearn.strip')) + '</span>' +
+           '<span class="v">' + c.esc(c.t(cands ? 'arts.selflearn.hint' : 'arts.selflearn.none')) + '</span>' +
+           '<span class="tpract"><span class="pbar"><i style="width:' + pct.toFixed(0) + '%"></i></span>' +
+           '<span class="hint">' + c.esc(c.t('arts.selflearn.pct', { p: pct.toFixed(0) })) + '</span></span></div>';
     })();
-    /* ── 筛选条（体验批）：这排 chip 原先只管下方图鉴，现在**整段功法页**共用——已学会攒到三十余部后
-     * 找一部只能翻。复用 `ui.artsGroup`/`ui.artsGroupVal` 两枚内存态（零新状态、零新词表键），
-     * chip 位置随语义上移到「已学会」之前。选中值 null = 不筛（默认态整页不变）。 ── */
-    var grp = c.ui.artsGroup;
-    h += '<div class="grouper"><span class="gseg">' +
-      '<span class="' + (grp === 'tier' ? 'on' : '') + '" data-act="artsGroup" data-v="tier">' + c.esc(c.t('arts.group.tier')) + '</span>' +
-      '<span class="' + (grp === 'align' ? 'on' : '') + '" data-act="artsGroup" data-v="align">' + c.esc(c.t('arts.group.align')) + '</span></span>';
-    (grp === 'tier' ? ['huang', 'xuan', 'di', 'tian'] : ['right', 'neutral', 'evil']).forEach(function (v) {
-      h += '<span class="gchip' + (c.ui.artsGroupVal === v ? ' on' : '') + '" data-act="artsGroupVal" data-v="' + v + '">' +
-        c.esc(grp === 'tier' ? c.t('arts.tierchar.' + v) : c.t('align.' + v)) + '</span>';
-    });
-    h += '</div>';
     /* ── 已学会（走查 v2.5 §4）：紧贴修习槽——装入/精通一屏可达（升级钮在第卌七批④c 移到槽卡） ── */
     var knownS = (w.artsKnown || []).slice().sort(function (x, y) {
       return ((w.artsSlots || []).indexOf(y) >= 0 ? 1 : 0) - ((w.artsSlots || []).indexOf(x) >= 0 ? 1 : 0);
@@ -190,7 +204,9 @@
        * （`arts.sec.tier`/`arts.sec.align`，第册 B4 起如此），同页两个同名段标只会更糊。
        * 专名类 `shelfsec` / `shelfgrid` 供走查精确取数（裸 `.sechead` + 文案匹配会撞上图鉴那几节 = `.lawchips` 同型教训）。 */
       h += '<div class="sechead shelfsec"><span class="t">' + c.esc(c.t('arts.sec.shelf')) + ' · ' + shelfS.length + '</span></div>';
-      h += '<div class="cards artgrid shelfgrid">' + shelfS.map(function (x) {
+      /* B16-g：改「整行清单」——原先套在 `.cards .artgrid` 里被网格切成小卡，一屏看不完几部；
+         行式后每部一行（名 + 字阶 + 缺项 + 弃置），与设计稿 .shelf-row 同构。专名类 `shelfgrid` 保留。 */
+      h += '<div class="shelfgrid">' + shelfS.map(function (x) {
         return '<div class="lrow locked"><div class="meta"><b>' + c.esc(c.t('skill.' + x + '.name')) + '</b>' +
           '<span class="hint"> ' + c.esc(c.t('arts.tierchar.' + am[x].tier)) + ' · ' + c.esc(c.t('arts.codex.shelf')) + '</span>' +
           '<div class="hint">' + c.esc(artLackTexts(c, x).join(' ‖ ')) + '</div></div>' +
