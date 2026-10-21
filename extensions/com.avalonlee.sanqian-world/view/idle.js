@@ -236,40 +236,33 @@
         h += '<div class="kv hint"><span>' + c.esc(c.t('legacy.ui.feisheng.cd', { t: c.timeLeft(Math.max(0, fsChk.until - Date.now())) })) + '</span></div>';
       }
     }
-    h += '<div class="kv"><span class="hint">' + c.esc(c.t('realm.info.cur', { realm: c.t('realm.' + w.realm) })) + '</span>' +
-      '<button class="linkbtn chip" data-act="openRealm">' + c.esc(c.t('realm.info.link')) + '</button></div>';
-    /* 寿元 / 道伤两行（寿元批 §6.1A · 第卌八批改显示口径）：一律取世界包 lifeInfo 的派生数，视图零自拼口径
-     * （第廿五批「同源」纪律沿用）。大限将至整行转红——引擎侧刻意**不写日志**：每秒 tick
-     * 重绘会刷屏（第廿八批「转世结算刷屏」同族坑），警示只在这一屏。道伤满 1 层才报，
-     * 岁月疗养中的零点几层不占行。
-     * 用户令「寿元：111岁，尚余约1111年」⇒ `li.age`（= floor(lifeUsed)，含创角生年）报岁、
-     * 只报剩余，不再摆「X/Y」分数：上界会随累加阶梯与 lifeBonus 动，摆出来只诱导误算。 */
+    /* B16-aa：境界 / 寿元 / 道伤 / 洞府收成设计稿 v2 的紧凑信息块——
+     * 第一行「当前境界 + 境界说明」，第二行「寿元 ‖ 洞府」，第三行「道伤 ‖ 历练折算」。 */
     var li = p.worldSystems.lifeInfo(w);
-    /* N58 定案（第册十二批落地）：历练态在寿元行旁补一句**按当前模式折算**的等效可用年——
-     * 寿元阶梯按「全部闭关」定标，而历练产出只有闭关的 42% ⇒ 同一境要烧 2.4 倍岁月。
-     * 不改表、不改节奏（那两案第册三批已否），只把这件事摆到屏上。折算率现取 `MODES`，不写死 2.4。 */
-    var ventSpan = '';
+    var ventTxt = '';
     if (!li.eternal && w.mode === 'venture') {
       var MSv = p.data.MODES || {};
       var skv = (MSv.seclude || {}).qiMult || 1, vkv = (MSv.venture || {}).qiMult || 1;
-      ventSpan = '<span class="hint"> · ' + c.esc(c.t('life.venture.warn', { n: SQ.fmt(Math.max(0, Math.floor(li.left * vkv / skv))) })) + '</span>';
+      ventTxt = c.t('life.venture.warn', { n: SQ.fmt(Math.max(0, Math.floor(li.left * vkv / skv))) });
     }
-    h += '<div class="kv"><span' + (li.near ? ' class="bad"' : '') + '>' + c.esc(
-      li.eternal ? c.t('life.row.eternal', { age: SQ.fmt(li.age) })
-        : c.t('life.row', { age: SQ.fmt(li.age), left: SQ.fmt(Math.max(0, Math.ceil(li.left))) })
-      ) + '</span>' + (li.near ? '<span class="bad">' + c.esc(c.t('life.near', { left: SQ.fmt(Math.ceil(li.left)) })) + '</span>' : '') + ventSpan + '</div>';
-    if (li.daoLv >= 1) {
-      h += '<div class="kv"><span' + (li.daoNear ? ' class="bad"' : '') + '>' +
-        c.esc(c.t('daoshang.row', { n: li.daoLv, cap: li.daoMax })) + '</span>' +
-        (li.daoNear ? '<span class="bad">' + c.esc(c.t('daoshang.near')) + '</span>' : '') + '</div>';
-    }
-    /* 洞府一行（UI v2 B4 · 设计稿 metaline）：洞府名 + 独立乘区倍率，取 engine 现算，不写死。 */
     var caveNow = SQ.Cave.current(w, p);
-    if (caveNow) {
-      var caveMNow = SQ.Cave.multOf(w, p, d, m);
-      h += '<div class="idlemeta"><span>' + c.esc(c.t('idle.cave')) + ' ' +
-        c.esc(c.t('cave.' + caveNow.id + '.name')) + ' ×' + caveMNow.toFixed(2) + '</span></div>';
-    }
+    var caveTxt = caveNow
+      ? c.t('idle.cave') + ' ' + c.t('cave.' + caveNow.id + '.name') + ' ×' + SQ.Cave.multOf(w, p, d, m).toFixed(2)
+      : '';
+    var lifeTxt = li.eternal ? c.t('life.row.eternal', { age: SQ.fmt(li.age) })
+      : c.t('life.row', { age: SQ.fmt(li.age), left: SQ.fmt(Math.max(0, Math.ceil(li.left))) });
+    if (li.near) lifeTxt += ' · ' + c.t('life.near', { left: SQ.fmt(Math.ceil(li.left)) });
+    var daoTxt = li.daoLv >= 1
+      ? c.t('daoshang.row', { n: li.daoLv, cap: li.daoMax }) + (li.daoNear ? ' · ' + c.t('daoshang.near') : '')
+      : '';
+    h += '<div class="statmeta">' +
+      '<div class="kv"><span class="hint">' + c.esc(c.t('realm.info.cur', { realm: c.t('realm.' + w.realm) })) + '</span>' +
+      '<button class="linkbtn chip" data-act="openRealm">' + c.esc(c.t('realm.info.link')) + '</button></div>' +
+      '<div class="metaline"><span class="' + (li.near ? 'bad' : '') + '">' + c.esc(lifeTxt) + '</span>' +
+      '<span>' + c.esc(caveTxt) + '</span></div>' +
+      ((daoTxt || ventTxt) ? '<div class="metaline"><span class="' + (li.daoNear ? 'bad' : '') + '">' + c.esc(daoTxt) +
+        '</span><span class="' + (ventTxt ? 'warnline' : '') + '">' + c.esc(ventTxt) + '</span></div>' : '') +
+      '</div>';
     /* B16-c：天道行仍落中区（问天入口 + 天象红点 + 逆天值）；传闻带与四柱行已移右栏（renderRail）。
      * B16-w：右栏有「天象 · 传闻」与彩蛋块时，本行由 CSS 收起（不重复显示；窄屏无右栏时仍在此）。 */
     h += tiandaoHtml;

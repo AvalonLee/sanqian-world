@@ -386,14 +386,22 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
     };
     return {
       mode: at('.mode'), enso: at('.stathero'), stat: at('.statrow'),
-      realm: at('.kv', SQ.t('realm.info.cur', { realm: SQ.t('realm.' + 0, null, 'xiuxian') }, 'xiuxian').slice(0, 2)),
-      life: at('.kv', SQ.t('life.row', { age: '', left: '' }, 'xiuxian').slice(0, 2)),
-      cave: at('.idlemeta'), td: at('.tdrow'), talent: at('.sechead')
+      meta: at('.statmeta'), td: at('.tdrow'), talent: at('.sechead'),
+      metaHas: (function () {
+        const m = tab.querySelector('.statmeta');
+        if (!m) return { life: false, cave: false, realm: false };
+        const tx = m.textContent;
+        return {
+          realm: tx.indexOf(SQ.t('realm.info.cur', { realm: SQ.t('realm.' + 0, null, 'xiuxian') }, 'xiuxian').slice(0, 2)) >= 0,
+          life: tx.indexOf('寿元') >= 0,
+          cave: tx.indexOf(SQ.t('idle.cave', null, 'xiuxian')) >= 0
+        };
+      })()
     };
   });
-  const seqI = [orderI.mode, orderI.enso, orderI.stat, orderI.realm, orderI.life, orderI.cave, orderI.td, orderI.talent];
-  T(seqI.every((x, i) => x >= 0 && (i === 0 || x > seqI[i - 1])),
-    'I1 修行页大块次序 = 模式 → 圆相 → 四格 → 境界 → 寿元 → 洞府 → 天象行 → 天命（设计稿 v2）',
+  const seqI = [orderI.mode, orderI.enso, orderI.stat, orderI.meta, orderI.td, orderI.talent];
+  T(seqI.every((x, i) => x >= 0 && (i === 0 || x > seqI[i - 1])) && orderI.metaHas.realm && orderI.metaHas.life && orderI.metaHas.cave,
+    'I1 修行页大块次序 = 模式 → 圆相 → 四格 → 境界/寿元/洞府信息块 → 天象行 → 天命（设计稿 v2；信息块内三样齐全）',
     JSON.stringify(orderI));
 
   /* I2 吐纳明细浮层：纸面面板 + 加/乘标记 + 合计；关闭可收 */
