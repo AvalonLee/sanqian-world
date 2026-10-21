@@ -1050,10 +1050,14 @@ window.SQSmoke.frag('03-bonds-spouse', async function () {
     w325e.rumors = SQ.Rumors.normalizeList(w325e.rumors, pack, D, t325);   /* 走一遍读档清洗：数字 → 字符串 */
     var e2_325 = SQ.Rumors.pushProdigy(w325e, pack, D, t325 + 60000, 'prodigy.rumor.rank.up', { n: 5 });
     var numKey325 = w325e.rumors.length === 1 && String(e2_325.v.n) === '5';
-    ok('325', '天骄/宗门展示卡同话不重推（传闻板 cap=2 不吃重复句）：同 tpl 同参只剩一条且拿回同一枚对象 ‖ 换 tpl 照推 ‖ 同 tpl 不同人照推两条 ‖ 连推 cap+1 仍挤最旧 ‖ 数字参经 normalizeList 后仍判同',
-      dedupe325 && diffTpl325 && diffVar325 && eject325 && numKey325,
+    /* TTL 读表（第册一百一十五批把天骄卡由 ren 档 40 分拆出来、自成一档 5 分）：判据证的是**消费关系**——
+     * 卡的生命期 === D.PRODIGY.RUMOR_TTL_MIN × 60000，改表即改行为；写死任何分钟数这条都会假绿。 */
+    var ttl325 = a1_325.expireAt === t325 + D.PRODIGY.RUMOR_TTL_MIN * 60000;
+    ok('325', '天骄/宗门展示卡同话不重推（传闻板 cap=2 不吃重复句）：同 tpl 同参只剩一条且拿回同一枚对象 ‖ 换 tpl 照推 ‖ 同 tpl 不同人照推两条 ‖ 连推 cap+1 仍挤最旧 ‖ 数字参经 normalizeList 后仍判同 ‖ TTL 取 `PRODIGY.RUMOR_TTL_MIN`（不再跟 ren 档）',
+      dedupe325 && diffTpl325 && diffVar325 && eject325 && numKey325 && ttl325,
       '去重=' + dedupe325 + ' 换tpl=' + diffTpl325 + ' 换人=' + diffVar325 +
-      ' 挤旧=' + eject325 + '(cap=' + CAP325 + ' 板=' + w325d.rumors.length + ') 数字归一=' + numKey325);
+      ' 挤旧=' + eject325 + '(cap=' + CAP325 + ' 板=' + w325d.rumors.length + ') 数字归一=' + numKey325 +
+      ' TTL=' + ttl325 + '(' + D.PRODIGY.RUMOR_TTL_MIN + '分)');
 
     /* ═══ 体验手感批（数值详设 §4.4/§2.4 v1.26）═══ */
 

@@ -148,8 +148,8 @@
     var cA = customById(ws, idA), cB = customById(ws, idB);
     if ((cA && cA.gen >= (FF.GEN_MAX || 3)) || (cB && cB.gen >= (FF.GEN_MAX || 3))) return { ok: false, reason: 'gen' };
     if ((f.customs || []).length >= (FF.CUSTOM_MAX || 4)) return { ok: false, reason: 'full' };
-    if (f.lastFuseAt > 0 && now - f.lastFuseAt < (FF.CD_MS || 259200000)) {
-      return { ok: false, reason: 'cd', until: f.lastFuseAt + (FF.CD_MS || 259200000) };
+    if (f.lastFuseAt > 0 && now - f.lastFuseAt < (FF.CD_MS || 7200000)) {
+      return { ok: false, reason: 'cd', until: f.lastFuseAt + (FF.CD_MS || 7200000) };
     }
     var hasStone = ((ws.materials || {})['mat_wudao'] || 0) >= 1;
     var hasMed = (f.meditate || 0) >= (FF.MEDITATE_NEED_H || 12);
@@ -330,7 +330,7 @@
     var f = ensure(ws, D);
     var c = customById(ws, cid);
     if (!c) return { ok: false, reason: 'unknown' };
-    var cdMs = FF.REFORGE_CD_MS || 86400000;
+    var cdMs = FF.REFORGE_CD_MS || 1800000;
     if (f.lastReforgeAt > 0 && now - f.lastReforgeAt < cdMs) {
       return { ok: false, reason: 'cd', until: f.lastReforgeAt + cdMs };
     }
