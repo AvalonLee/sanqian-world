@@ -20,18 +20,19 @@
    * 天象浮层：即开即消红点；逆天大劫入口在渡劫预估浮层（detailTrib 段）。 */
   var tdTypeTimer = null;
 
-  /* 天降礼包（B16-z）：窄屏无右栏时的中区入口；文案与扣费模型全读 SQ.Gifts，与右栏同源。 */
+  /* 天降礼包（B16-z）：窄屏无右栏时的中区入口；展示态与扣费模型全读 SQ.Gifts，与右栏同源。 */
   function renderGiftPack(c) {
     var now = Date.now();
-    if (c.ui.giftI < 0 || now >= c.ui.giftUntil) {
-      c.ui.giftI = Math.floor(Math.random() * SQ.Gifts.N);
-      c.ui.giftUntil = now + SQ.Gifts.ROLL_MS;
-    }
-    var gp = SQ.Gifts.offer(c.ui.giftI);
-    var cost = SQ.Gifts.costOf(c.w, gp.idx);
-    var left = Math.max(0, (c.ui.giftUntil || 0) - now);
+    var st = SQ.Gifts.state(c.ui, now);
+    var left = Math.max(0, st.until - now);
     var mm = Math.floor(left / 60000), ss = Math.floor((left % 60000) / 1000);
     var cd = (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+    if (st.mode === 'cool') {
+      return '<span class="giftcard cool"><span class="goffer">' +
+        c.esc(c.t('eggs.gift.cool', { t: cd })) + '</span></span>';
+    }
+    var gp = SQ.Gifts.offer(st.idx);
+    var cost = SQ.Gifts.costOf(c.w, gp.idx);
     return '<span class="giftcard" data-act="giftBuy" data-v="' + gp.idx + '">' +
       '<span class="gtag">' + c.esc(c.t('eggs.gift.tag')) + '</span>' +
       '<span class="gname">' + c.esc(c.t(gp.nameKey)) + '</span>' +

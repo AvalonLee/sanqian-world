@@ -12,6 +12,8 @@
   var SQ = window.SQ || (window.SQ = {});
   var PCTS = [0.05, 0.08, 0.11, 0.14, 0.17];
   var N = 24;
+  var ROLL_MS = 600000;
+  var COOLDOWN_MS = 180000;
 
   function offer(idx) {
     var i = Math.max(0, Math.min(N - 1, idx | 0));
@@ -80,11 +82,29 @@
     return out;
   }
 
+  /* 礼包展示态（会话 ui，不落盘）：买完先空置 COOLDOWN_MS，到期才换下一条；换时避免与上一条相同。
+   * 返回 { mode:'cool', until } 或 { mode:'offer', idx, until }，两处卡片（右栏 / 窄屏中区）共用。 */
+  function state(ui, now) {
+    if (ui.giftCooldownUntil && now < ui.giftCooldownUntil) {
+      return { mode: 'cool', until: ui.giftCooldownUntil };
+    }
+    if (ui.giftUntil == null || now >= ui.giftUntil) {
+      var prev = ui.giftI;
+      var nxt = Math.floor(Math.random() * N);
+      if (nxt === prev && N > 1) nxt = (nxt + 1) % N;
+      ui.giftI = nxt;
+      ui.giftUntil = now + ROLL_MS;
+    }
+    return { mode: 'offer', idx: ui.giftI, until: ui.giftUntil };
+  }
+
   SQ.Gifts = {
     N: N,
-    ROLL_MS: 600000,
+    ROLL_MS: ROLL_MS,
+    COOLDOWN_MS: COOLDOWN_MS,
     offer: offer,
     costOf: costOf,
+    state: state,
     buy: buy
   };
 })();

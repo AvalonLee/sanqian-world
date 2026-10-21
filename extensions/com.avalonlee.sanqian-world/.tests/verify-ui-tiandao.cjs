@@ -65,7 +65,10 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(url);
-  await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+  await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 }).catch((e) => {
+    console.log('BOOT_ERRORS', errors.slice(0, 4).join(' | '));
+    throw e;
+  });
   await page.waitForTimeout(700);
 
   const clearToasts = () => page.evaluate(() => { document.getElementById('toasts').innerHTML = ''; });
@@ -324,6 +327,18 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   await page.waitForTimeout(250);
   T(await page.evaluate(() => document.getElementById('modal-giftresult').classList.contains('hide')),
     'G5d 结果弹窗「再接再厉」可关闭（不留遮罩拦后续点击）');
+  /* G5e：买完先空置（不立刻换下一条、也不留领取钮），到期才刷新 */
+  const coolI = await page.evaluate(() => {
+    const card = document.querySelector('#m-rail .giftcard');
+    return {
+      cool: !!(card && card.classList.contains('cool')),
+      text: card ? card.textContent.replace(/\s+/g, ' ').trim() : '',
+      buy: !!document.querySelector('#m-rail [data-act="giftBuy"]')
+    };
+  });
+  T(coolI.cool && /下一份/.test(coolI.text) && !coolI.buy,
+    'G5e 开完礼包先空置：卡片只报「下一份 N 后刷新」，不立刻换新、也不留领取钮',
+    JSON.stringify(coolI));
   const seen = new Set();
   for (let i = 0; i < 12 && seen.size < 2; i++) {
     await page.reload();
