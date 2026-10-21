@@ -72,7 +72,10 @@
         <div class="hd-sub who-meta" id="m-meta"></div>
       </div>
       <div class="hd-r">
-        <span class="stones hd-stone" id="m-stones"></span>
+        <div class="hd-vals">
+          <span class="qi hd-qi" id="m-qi"></span>
+          <span class="stones hd-stone" id="m-stones"></span>
+        </div>
         <span class="rankchip" id="m-rank" data-act="karma"></span>
       </div>
     </div>
@@ -1196,8 +1199,9 @@
         var mainI = SQ.Arts.mainArt(wI);
         var cvI = SQ.Cave.current(wI, pI);
         var gI = SQ.Bonds.guardianOf(wI, pI, dI);
-        var lvNameI = wI.spouse ? t('bond.' + wI.spouse.npcId + '.name')
-          : (gI ? t('bond.' + gI.npcId + '.name') + bondTierNum(gI.tier) : t('rail.none'));
+        /* B16-x：侣柱同时显示护法位与双修位（两行小字，框内可读） */
+        var gNameI = gI ? t('bond.' + gI.npcId + '.name') : t('rail.none');
+        var sNameI = wI.spouse ? t('bond.' + wI.spouse.npcId + '.name') : t('rail.none');
         /* 红点签名（自原 renderPillars 迁入：侣 = 升档/可提亲、地 = 新福地解锁——进浮层/洞天节即消） */
         var sigP = bondRedDotSig();
         if (ui.bondSnap == null) ui.bondSnap = sigP;
@@ -1211,15 +1215,18 @@
           '<div class="rb-sv">' + esc(SQ.fmt(wI.stones || 0)) + '</div>' +
           '<div class="rb-sd">' + esc(t('pillar.cai.sub', { inn: SQ.fmt(sI.inn), out: SQ.fmt(sI.out) })) + '</div></button>' +
           '<button class="rb-slot" data-act="openBonds"><div class="rb-sk">' + esc(t('pillar.lv')) + (lvDot ? '<i class="pdot"></i>' : '') + '</div>' +
-          '<div class="rb-sv">' + esc(lvNameI) + '</div>' +
-          '<div class="rb-sd">' + esc(wI.spouse ? t('bond.spouse.form.' + wI.spouse.form)
-            : (gI ? t('bond.guard.tag') + ' ' + bondTierNum(gI.tier) : t('pillar.lv.subnone'))) + '</div></button>' +
+          '<div class="rb-duo">' +
+          '<span class="rb-pair"><i>' + esc(t('bond.guard.tag')) + '</i><b>' + esc(gNameI) +
+          (gI ? esc(bondTierNum(gI.tier)) : '') + '</b></span>' +
+          '<span class="rb-pair"><i>' + esc(t('bond.spouse.tag')) + '</i><b>' + esc(sNameI) +
+          (wI.spouse ? ' · ' + esc(t('bond.spouse.form.' + wI.spouse.form)) : '') + '</b></span>' +
+          '</div></button>' +
           '<button class="rb-slot" data-act="openArtsModal"><div class="rb-sk">' + esc(t('pillar.fa')) + '</div>' +
           '<div class="rb-sv">' + esc(mainI ? t('skill.' + mainI + '.name') : t('pillar.fa.empty')) + '</div>' +
           '<div class="rb-sd">' + esc(mainI ? 'Lv' + (wI.artsLevels[mainI] || 0) : '') + '</div></button>' +
           '<button class="rb-slot" data-act="openCave"><div class="rb-sk">' + esc(t('pillar.di')) + (diDot ? '<i class="pdot"></i>' : '') + '</div>' +
           '<div class="rb-sv">' + esc(cvI ? t('cave.' + cvI.id + '.name') : t('rail.none')) + '</div>' +
-          '<div class="rb-sd">' + esc(cvI ? '×' + SQ.Cave.multOf(wI, pI, dI, mods()).toFixed(2) : '') + '</div></button>' +
+          '<div class="rb-sd">' + esc(cvI ? t('rail.cave.mult', { m: SQ.Cave.multOf(wI, pI, dI, mods()).toFixed(2) }) : '') + '</div></button>' +
           '</div></div>';
         /* 天象 · 传闻：江湖传闻带（与奇遇页顶部同源渲染）+ 天象档位/逆天值（原天道块并入） */
         var tdI = wI.tiandao || {};
@@ -1901,6 +1908,12 @@
     $('m-stones').innerHTML = esc(t('resource.currency')) + (unit
       ? ' <b>' + esc(st.slice(0, -1)) + '</b> ' + esc(unit)
       : ' <b>' + esc(st) + '</b>');
+    /* B16-x：灵石左侧补修为（用户令「万/亿，不展开」）——同一 fmt 缩放口径，单位字仍取词表 */
+    var qv = SQ.fmt(w.qi);
+    var qUnit = qv.slice(-1) === uWan ? uWan : (qv.slice(-1) === uYi ? uYi : '');
+    $('m-qi').innerHTML = esc(t('resource.primary')) + (qUnit
+      ? ' <b>' + esc(qv.slice(0, -1)) + '</b> ' + esc(qUnit)
+      : ' <b>' + esc(qv) + '</b>');
     /* 右列下行 = 名号行（善恶入口） */
     var rk = $('m-rank');
     rk.className = 'rankchip ' + tier;

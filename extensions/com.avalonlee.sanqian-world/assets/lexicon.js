@@ -312,6 +312,8 @@
     /* UI v2 B15-b：右栏（修行区）块标题 —— 四柱 / 天象传闻 / 离线所得；B16-c 增页游彩蛋 */
     'rail.pillars': '四柱', 'rail.tiandao': '天象 · 传闻', 'rail.offline': '离线所得',
     'rail.eggs': '页游彩蛋',
+    'rail.cave.mult': '修为产出 ×{m}',
+    'bond.spouse.tag': '双修位',
     'rail.offline.none': '本次上线暂无离线结算',
     'offline.rail.line': '修为 +{qi} · 灵石 +{stones}',
     /* UI v2 B15-c：修行页页尾段标（设计稿「天 命」小节；自动区已迁设置，见 D6） */
