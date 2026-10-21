@@ -194,12 +194,17 @@
       }
     }
     if (e.bondLock) parts.push(SQ.t('log.eff.bondLock', { name: SQ.t('bond.' + e.bondLock + '.name', null, wid) }, wid));
-    /* 缘尽降级（引擎卷 v1.10 §3.6）：门槛不合 → 好感大跌而非恩断义绝，如实呈报扣减值 */
-    if (e.bondDrain && !e.bondDrain.blocked) {
-      parts.push(SQ.t('log.eff.bondDrain', {
-        name: SQ.t('bond.' + e.bondDrain.npc + '.name', null, wid),
-        a: e.bondDrain.before, b: e.bondDrain.after
-      }, wid));
+    if (e.bondDrain) {
+      /* 缘尽降级 / 显式情谊生裂：老档与旧 feed 里 applied.bondDrain 只存 npc 字符串，
+       * 新结算另写 bondDrainInfo（含 npc/前后好感）。两种形态都归一后渲染，
+       * 缺前后值就退「轻一句」，绝不把 bond.<id>.name 这类裸键拼上屏。 */
+      var bd = e.bondDrainInfo || (typeof e.bondDrain === 'string' ? { npc: e.bondDrain } : e.bondDrain);
+      if (!bd.blocked) {
+        var bdName = SQ.t('bond.' + bd.npc + '.name', null, wid);
+        parts.push(bd.before != null && bd.after != null
+          ? SQ.t('log.eff.bondDrain', { name: bdName, a: bd.before, b: bd.after }, wid)
+          : SQ.t('log.eff.bondDrain.hint', { name: bdName }, wid));
+      }
     }
     if (e.fail) {
       /* failE 已预掷定为实扣值（resolveEff）→ 结果页如实呈报，避免「显示值 ≠ 实扣值」 */
@@ -485,7 +490,7 @@
           delete e.bondLock;
           /* applied 是结果页 / 日志的消费面（view 读 res.eff.bondLock 出「恩断义绝」末行）——
            * 降级后必须同步撤销，否则玩家看到的是没发生的绝交。 */
-          if (ctx.applied) { delete ctx.applied.bondLock; ctx.applied.bondDrain = e.bondDrain.npc; }
+          if (ctx.applied) { delete ctx.applied.bondLock; ctx.applied.bondDrain = e.bondDrain.npc; ctx.applied.bondDrainInfo = e.bondDrain; }
         }
       }
       /* 显式 bondDrain 收益结算（gainToEff 产出字符串形态；上一块的降级产物已是对象，此处不重入）*/
@@ -495,7 +500,7 @@
         var dr2 = SQ.Bonds.drainFor(ws, pack, D, drNpc,
           (ctx && ctx.branchKarma != null) ? ctx.branchKarma : 0, now);
         e.bondDrain = { npc: drNpc, before: dr2.before, after: dr2.after, blocked: dr2.blocked };
-        if (ctx.applied) { delete ctx.applied.bondLock; ctx.applied.bondDrain = drNpc; }
+        if (ctx.applied) { delete ctx.applied.bondLock; ctx.applied.bondDrain = drNpc; ctx.applied.bondDrainInfo = e.bondDrain; }
       }
       if (e.chance && Math.random() < e.chance.p) {
         SQ.Events.applyEffects(ws, pack, D, mods, Object.assign({}, e.chance.e), ctx);   /* 副本 = 同一纪律：`chance.e` 是表里的嵌套对象 */

@@ -173,6 +173,39 @@ async function buildSave() {
   T(cx0.btns === 3 && cx0.grids === 0 && cx1.grids === 1 && cx1.slots > 0 && cx2 === 0,
     'RF⑨ 图鉴三段默认收起；点一段只展开那一段，再点收起',
     'btns=' + cx0.btns + ' 收起=' + cx0.grids + ' 展开=' + cx1.grids + '/' + cx1.slots + '格 再收=' + cx2);
+  /* RF⑩（第册一百〇二批 · 用户反馈「剑韵故人 / 圣贤一灯 得失记录出现英文」）：
+   * bondDrain 的**展示面**必须是可读人话——npc 名与前后好感从结算回写；
+   * 旧档 / 旧 feed 里只存 npc 字符串的形态也必须退「轻一句」，不许 bond.<id>.name / undefined 上屏。 */
+  const rfDr = await page.evaluate(() => {
+    const pack = SQ.Worlds.xiuxian.pack, D = pack.data;
+    const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const out = {};
+    ['jianyun_guiren', 'shengxian_yideng'].forEach((id) => {
+      const w = JSON.parse(JSON.stringify(st.worlds.xiuxian));
+      w.realm = 9; w.bonds = { aliang: 60, jingchun: 60 };
+      w.eventHistory = w.eventHistory || { feed: [], seen: {} };
+      w.eventHistory.feed = w.eventHistory.feed || [];
+      w.eventHistory.seen = w.eventHistory.seen || {};
+      w.eventCooldowns = w.eventCooldowns || {};
+      w.pendingChoice = null;
+      pack.recalcDerived(w, st.profile);
+      const mods = SQ.Mods.collect(st.profile, w, pack, D);
+      const r = SQ.Events.resolveBranch(w, pack, D, mods, id, 'evil', Date.now(), { log: function () {} });
+      out[id] = {
+        text: SQ.Events.effText(w, pack, D, r.eff),
+        drained: r.eff && r.eff.bondDrain,
+        info: !!(r.eff && r.eff.bondDrainInfo)
+      };
+    });
+    out.legacy = SQ.Events.effText({}, pack, D, { bondDrain: 'aliang' });
+    return out;
+  });
+  const rfDrOk = ['jianyun_guiren', 'shengxian_yideng'].every(function (id) {
+    const o = rfDr[id];
+    return o.text.indexOf('情谊生裂') >= 0 && !/bond\.|undefined/.test(o.text) && o.info;
+  }) && rfDr.legacy.indexOf('情谊生裂') >= 0 && !/bond\.|undefined/.test(rfDr.legacy);
+  T(rfDrOk, 'RF⑩ 情谊生裂的得失记录可读：npc 与前后好感从结算回写，旧档字符串形态也退人话（不再是 bond.undefined.name）',
+    JSON.stringify(rfDr));
   await page.click('#m-tabbar button:has-text("修行")');
   await page.waitForTimeout(500);
   const hasDot2 = await page.$('#m-tabbar button[data-v="event"] .dot');
