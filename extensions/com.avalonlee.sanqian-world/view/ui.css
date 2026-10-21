@@ -2048,6 +2048,14 @@
   }
   #tab-shop .merchbox .mh { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   #tab-shop .merchbox .mh .t { font-family: var(--sq2-serif); letter-spacing: .12em; color: var(--sq2-ink); }
+  /* B16-o：黑市段条（设计稿 .strip：细线 + 纸-2 底 + 宋体小标 + 说明） */
+  #tab-shop .strip {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    border: 1px solid var(--sq2-line); border-radius: var(--sq2-r);
+    background: var(--sq2-paper-2); padding: 8px 12px; margin-top: 12px;
+  }
+  #tab-shop .strip .t { font-family: var(--sq2-serif); letter-spacing: .14em; color: var(--sq2-ink-2); }
+  #tab-shop .strip .v { flex: 1; color: var(--sq2-ink-3); font-size: 11px; }
   @media (min-width: 720px) { #tab-shop { max-width: 780px; } }
   /* ══ UI v2 B15-f：道友页两张位卡（设计稿 .slots2 / .bondslot）══
    *    护法位 / 道侣位并排；空位用虚线框（设计稿「尚未结缘」的形态），炉鼎态用朱砂边警示。
