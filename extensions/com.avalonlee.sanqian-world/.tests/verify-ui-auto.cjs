@@ -87,6 +87,14 @@ function buildSave(autoEvent, withPend, eventPref) {
       'trib=' + swT + ' event=' + swE + ' refine=' + swR);
     T(setTxt.includes('自动渡劫') && setTxt.includes('自动奇遇') && setTxt.includes('自动炼化'), 'R1 三开关文案齐备');
     T(!setTxt.includes('菜单顺序') && setTxt.includes('存档'), 'R1 菜单顺序已下线（D5），存档块保留');
+    /* B16-s：三段次序 = 存档 → 自动 → 关于（设计稿重排；原先自动在最上），段标统一 .sechead */
+    const setOrder = await page.evaluate(() => {
+      const heads = Array.prototype.map.call(document.querySelectorAll('#tab-settings .sechead .t'), (x) => x.textContent.trim());
+      return { heads: heads, oldDt: document.querySelectorAll('#tab-settings .dt').length };
+    });
+    T(setOrder.heads.length === 3 && setOrder.heads[0] === '存档' && setOrder.heads[1] === '自动' &&
+      setOrder.heads[2] === '关于' && setOrder.oldDt === 0,
+      'R1 设置页次序 = 存档 → 自动 → 关于，段标统一 .sechead（旧 .dt 退净）', JSON.stringify(setOrder));
     /* 手动链路回归：设置页开关可切换且随档持久化 */
     await page.click('#tab-settings [data-act="toggleAutoTrib"]');
     await page.waitForTimeout(500);

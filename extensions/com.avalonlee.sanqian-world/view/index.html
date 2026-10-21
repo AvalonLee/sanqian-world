@@ -1777,7 +1777,18 @@
     var autoT = !!(state.settings && state.settings.autoTrib);
     var autoE = !!(state.settings && state.settings.autoEvent);
     var autoR = ws().gearAutoRefine !== false;   /* 自动炼化（issue #2）：缺省开 = 旧行为 */
-    h += '<div class="dsec"><div class="dt">' + esc(t('idle.auto.sec')) + '</div>' +
+    /* B16-s：按设计稿次序「存档 → 自动 → 关于」重排（原先自动在最上、存档其次），
+     * 段标统一 .sechead；开关与动作锚点（data-act / aria-checked）一字未动。 */
+    h += '<div class="dsec"><div class="sechead"><span class="t">' + esc(t('settings.save.title')) + '</span></div>' +
+      '<div class="dd">' + esc(t('settings.save.now', identityParts())) + '</div>' +
+      '<p class="hint">' + esc(t('settings.reset.note')) + '</p>' +
+      '<div class="setrow"><span class="sl">' + esc(t('settings.clearbuffs')) +
+      '<span class="sd">' + esc(t('settings.clearbuffs.desc')) + '</span></span>' +
+      '<button class="mini" data-act="clearBuffs">' + esc(t('settings.clearbuffs.btn')) + '</button></div>' +
+      '<div class="setrow"><span class="sl">' + esc(t('settings.reset')) +
+      '<span class="sd">' + esc(t('settings.reset.desc')) + '</span></span>' +
+      '<button class="danger" data-act="resetSave">' + esc(t('settings.reset.btn')) + '</button></div></div>';
+    h += '<div class="dsec"><div class="sechead"><span class="t">' + esc(t('idle.auto.sec')) + '</span></div>' +
       '<div class="setrow"><span class="sl">' + esc(t('settings.auto.title')) +
       '<span class="sd">' + esc(t('settings.auto.desc')) + '</span></span>' +
       '<button class="switch' + (autoT ? ' on' : '') + '" data-act="toggleAutoTrib" role="switch" aria-checked="' + autoT + '">' +
@@ -1801,16 +1812,7 @@
         }).join('') + '</div></div>';
     }
     h += '</div>';
-    h += '<div class="dsec"><div class="dt">' + esc(t('settings.save.title')) + '</div>' +
-      '<div class="dd">' + esc(t('settings.save.now', identityParts())) + '</div>' +
-      '<p class="hint">' + esc(t('settings.reset.note')) + '</p>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.clearbuffs')) +
-      '<span class="sd">' + esc(t('settings.clearbuffs.desc')) + '</span></span>' +
-      '<button class="mini" data-act="clearBuffs">' + esc(t('settings.clearbuffs.btn')) + '</button></div>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.reset')) +
-      '<span class="sd">' + esc(t('settings.reset.desc')) + '</span></span>' +
-      '<button class="danger" data-act="resetSave">' + esc(t('settings.reset.btn')) + '</button></div></div>';
-    h += '<div class="dsec"><div class="dt">' + esc(t('settings.about.title')) + '</div>' +
+    h += '<div class="dsec"><div class="sechead"><span class="t">' + esc(t('settings.about.title')) + '</span></div>' +
       '<div class="dd">' + esc(t('settings.about.body')) + '</div></div>';
     $('tab-settings').innerHTML = h;
   }
