@@ -145,17 +145,16 @@
     var blackOpen = SQ.Shop.blackOpen(w, c.p, d);
     var restockMs = Math.max(0, (isFinite(+((w.shop || {}).nextRestock)) ? +w.shop.nextRestock : 0) - Date.now());
     var rh = Math.floor(restockMs / 3600000), rm = Math.floor((restockMs % 3600000) / 60000);
-    /* 页头：左「坊市/黑市」药丸切换（设计稿 .segmini）+ 右圆形刷新钮，同排水平对齐 */
+    /* 页头：左「坊市/黑市」药丸切换（设计稿 .segmini）+ 右圆形刷新钮，同排水平对齐。
+     * B16-ab：黑市页签常驻——未达道心门槛时进去给「未开市」提示，不再整颗藏起来。 */
     var h = '<div class="pagehead split"><div class="segmini chips">';
     h += '<button class="' + (c.ui.shopBlack ? '' : 'on') + '" data-act="shopTab" data-v="0">' + c.esc(c.t('shop.system')) + '</button>';
-    if (blackOpen || (w.shop.blackItems || []).some(function (x) { return x.sold; })) {
-      h += '<button class="' + (c.ui.shopBlack ? 'on' : '') + '" data-act="shopTab" data-v="1">' + c.esc(c.t('shop.blackmarket')) + '</button>';
-    }
+    h += '<button class="' + (c.ui.shopBlack ? 'on' : '') + '" data-act="shopTab" data-v="1">' + c.esc(c.t('shop.blackmarket')) + '</button>';
     h += '</div>';
     h += '<button class="refreshbtn" data-act="refreshShop">' +
       c.esc(c.t('shop.refresh', { n: SQ.fmt(SQ.Shop.refreshFee(w, c.p, d, m)) })) + '</button></div>';
     if (c.ui.shopBlack && !blackOpen) {
-      h += '<p class="hint">' + c.esc(c.t('shop.blackHint')) + '</p>';
+      h += '<p class="hint">' + c.esc(c.t('shop.blackclosed')) + '</p>';
     }
     h += '<p class="hint" style="margin-top:6px">' + c.esc(c.t('shop.restock', { t: rh > 0 ? c.t('ui.time.hm', { h: rh, m: rm }) : c.t('ui.time.m', { m: Math.max(1, rm) }) })) + '</p>';
     /* 神秘商人特席（势力批 v2.4 §8）：交好奇遇开启、10 分钟自动离去；scout = 无视后的更好货 */
@@ -180,7 +179,15 @@
           (w.stones < it.price ? ' disabled' : '') + '>' + c.esc(c.t('shop.buy')) + '</button></div></div>';
       });
       h += '</div></div>';
+    } else {
+      /* B16-ab：特席常驻——没触发奇遇也留一块「未开市」，玩家知道这里本该有商人 */
+      h += '<div class="merchbox closed"><div class="mh"><span class="t">' +
+        c.esc(c.t('shop.merchant.title')) + '</span><span class="hint">' +
+        c.esc(c.t('shop.merchant.closed')) + '</span></div>' +
+        '<p class="hint" style="margin:2px 0 0">' + c.esc(c.t('shop.merchant.closed.hint')) + '</p></div>';
     }
+    /* B16-ab：黑市未开市 ⇒ 页签可进，但只给提示，不渲染货架（避免旧黑市货残留被误买） */
+    if (c.ui.shopBlack && !blackOpen) { c.$('tab-shop').innerHTML = h; return; }
     var items = c.ui.shopBlack ? (w.shop.blackItems || []) : w.shop.items;
     /* B16-o：黑市按设计稿先给一条 .strip 段条（黑市 / 一句代价提示），再落两列货架 */
     if (c.ui.shopBlack) h += '<div class="strip"><span class="t">' + c.esc(c.t('shop.blackmarket')) +
