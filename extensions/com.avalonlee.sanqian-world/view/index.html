@@ -457,6 +457,7 @@
       <div class="giftres-seal">礼</div>
       <h2 id="mgr-title"></h2>
       <p id="mgr-body"></p>
+      <p id="mgr-paid" class="giftres-paid"></p>
       <button id="mgr-ok" class="primary" style="width:100%"></button>
     </div>
   </div>
@@ -2352,27 +2353,26 @@
     });
   }
   function showGiftResult(r) {
-    var gp = r.offer, cost = r.cost;
+    var cost = r.cost;
     var resName = t(cost.type === 'stones' ? 'resource.currency' : 'resource.primary');
-    var body = t('eggs.gift.result.cost', { n: SQ.fmt(cost.n), res: resName }) + ' ';
+    var body = '';
     if (r.kind === 'gear' && r.item) {
-      body += t('eggs.gift.result.gear', {
+      body = t('eggs.gift.result.gear', {
         item: SQ.Gear.nameOf(r.item.slot, wid()),
-        tier: t('gear.tier.' + r.item.tier),
-        promise: t(gp.offerKey)
+        tier: t('gear.tier.' + r.item.tier)
       });
     } else if (r.kind === 'art' && r.art) {
       var a = pack().artsMap()[r.art];
-      body += t('eggs.gift.result.art', {
+      body = t('eggs.gift.result.art', {
         art: t('skill.' + r.art + '.name'),
-        tier: t('skill.tier.' + (a ? a.tier : 0)),
-        promise: t(gp.offerKey)
+        tier: t('skill.tier.' + (a ? a.tier : 0))
       });
     } else {
-      body += t('eggs.gift.result.none', { promise: t(gp.offerKey) });
+      body = t('eggs.gift.result.none');
     }
     $('mgr-title').textContent = t('eggs.gift.result.title');
     $('mgr-body').textContent = body;
+    $('mgr-paid').textContent = t('eggs.gift.result.cost', { n: SQ.fmt(cost.n), res: resName });
     $('mgr-ok').textContent = t('eggs.gift.result.close');
     $('modal-giftresult').classList.remove('hide');
   }

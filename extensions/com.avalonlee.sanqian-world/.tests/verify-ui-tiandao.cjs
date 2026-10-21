@@ -313,11 +313,13 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
     title: (document.getElementById('mgr-title').textContent || '').trim(),
     wantTitle: SQ.t('eggs.gift.result.title', null, 'xiuxian'),
     body: (document.getElementById('mgr-body').textContent || '').trim(),
-    cost: (document.getElementById('mgr-body').textContent || '').indexOf('已支付') >= 0,
-    outcome: /开出|空空如也/.test(document.getElementById('mgr-body').textContent || '')
+    paid: (document.getElementById('mgr-paid').textContent || '').trim(),
+    cost: (document.getElementById('mgr-paid').textContent || '').indexOf('已支付') >= 0,
+    outcome: /开出|空空如也/.test(document.getElementById('mgr-body').textContent || ''),
+    noPitch: !/宣传|礼包宣传|错过再等|下次一定/.test(document.getElementById('mgr-body').textContent || '')
   }));
-  T(gr.open && gr.title === gr.wantTitle && gr.cost && gr.outcome,
-    'G5c 确认后真扣费并弹结果（结果如实说开出什么 / 空空如也，宣传语只作对照）', JSON.stringify(gr));
+  T(gr.open && gr.title === gr.wantTitle && gr.cost && gr.outcome && gr.noPitch,
+    'G5c 确认后真扣费并弹结果：只报实际开出什么 / 空空如也，不再回引宣传语', JSON.stringify(gr));
   await page.click('#mgr-ok');
   await page.waitForTimeout(250);
   T(await page.evaluate(() => document.getElementById('modal-giftresult').classList.contains('hide')),
