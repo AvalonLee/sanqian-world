@@ -1359,7 +1359,9 @@
 }
 .sq2-rail button.rb-b:hover b { text-decoration: underline; }
 @media (min-width: 1200px) {
-  #sc-main.hasrail #tab-idle .tdrow { display: none; }
+  /* 有右栏列时：中区不再重复右栏已显示的天象/兵解/彩蛋行与离线所得 */
+  #sc-main.hasrail #tab-idle .tdrow,
+  #sc-main.hasrail #tab-idle .offbox { display: none; }
 }
 .sq2-rail .rb-log {
   font-size: 11.5px; color: var(--sq2-ink-2); line-height: 1.65;

@@ -107,7 +107,14 @@ const { chromium } = require('playwright-core');
 
     const hidden = await page.$eval('#modal-offline', el => el.classList.contains('hide'));
     T(hidden, '离线 ≤5min：出关呈报不弹出', 'hidden=' + hidden);
-    T((await page.$('.offbox')) !== null, '修行页常驻面板照旧渲染（未误伤）', '');
+    /* B16-w 续：离线所得右栏已有 ⇒ 有右栏列时中区 .offbox 收起；窄屏无右栏时仍渲染 */
+    const offA = await page.evaluate(() => {
+      const r = document.getElementById('m-rail');
+      const o = document.querySelector('#tab-idle .offbox');
+      return { railVisible: !!(r && r.offsetParent), exists: !!o, visible: !!(o && o.offsetParent) };
+    });
+    T(offA.exists && (offA.railVisible ? !offA.visible : offA.visible),
+      '修行页离线面板：有右栏时中区收起（不重复），窄屏无右栏时仍渲染（去重不删信息）', JSON.stringify(offA));
     T(errors.length === 0, '零页面报错（≤5min 口径）', errors.join(' | ').slice(0, 200) || 'clean');
     await ctx.close();
   }
