@@ -1353,6 +1353,43 @@
 }
 #tab-arts .codexsec .t { font-family: var(--sq2-serif); }
 #tab-arts .codexsec.open .s { color: var(--sq2-cinnabar); }
+
+/* ── UI v2 B16-i：炼丹炼器页对齐设计稿（三格摘要 / 真段标 / 炉中条 / 丹匣网格 / 丹方与图纸整行）── */
+#tab-alchemy .rowlist { display: block; }
+#tab-alchemy .rowlist .lrow { margin: 6px 0; padding: 10px 12px; }
+#tab-alchemy .rowlist .lrow .nm { font-family: var(--sq2-serif); }
+#tab-alchemy .rowlist .lrow .acts { margin-top: 6px; }
+#tab-alchemy .rowlist .lrow .acts button { min-height: 28px; padding: 2px 10px; font-size: 11.5px; }
+#tab-alchemy .strip {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 6px 0 14px; padding: 9px 12px;
+  border: 1px solid var(--sq2-line); border-radius: 2px; background: var(--sq2-paper-3);
+  font-size: 11.5px;
+}
+#tab-alchemy .strip .t { font-family: var(--sq2-serif); letter-spacing: .14em; color: var(--sq2-ink-2); }
+#tab-alchemy .strip .v { flex: 1; min-width: 140px; color: var(--ink-2); }
+#tab-alchemy .strip .more { color: var(--sq2-cinnabar); white-space: nowrap; }
+#tab-alchemy .matgrid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 6px 10px; margin: 6px 0 12px;
+}
+#tab-alchemy .matrow {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  border: 1px solid var(--sq2-line); border-radius: 2px; background: var(--sq2-paper-2);
+  font-size: 11.5px;
+}
+#tab-alchemy .matrow .m-n { font-family: var(--sq2-serif); white-space: nowrap; }
+#tab-alchemy .matrow .m-c { color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#tab-alchemy .matrow .m-d { flex: 1; min-width: 0; color: var(--ink-2); font-size: 10.5px; line-height: 1.5; }
+#tab-alchemy .matrow button { min-height: 26px; padding: 1px 9px; font-size: 11px; }
+@media (max-width: 719px) {
+  #tab-alchemy .matgrid { grid-template-columns: 1fr; }
+  #tab-alchemy .matrow { flex-wrap: wrap; }
+  /* 三格在 390 宽每格仅 ~110px：「学徒 · 12 次」按 17px 排会折行，收到 13px。
+     注：`.sum3 .v` 的 17px 主规则在文件更后处（B15-h 那段）⇒ 这里必须 !important 才压得住。 */
+  #tab-alchemy .sum3 .v { font-size: 13px !important; }
+  #tab-alchemy .sum3 .k { letter-spacing: .12em; }
+}
 @media (max-width: 719px) {
   #tab-gear .stroe { grid-template-columns: 1fr; }
   #tab-gear .stroe .srr { grid-column: 1; grid-row: auto; align-items: flex-start; }
@@ -1966,18 +2003,18 @@
   /* ══ UI v2 B15-h：成就页三格摘要 + 图鉴九面改行式（设计稿 .sum3 / .lrow）══
    *    九面仍是 `.facegrid > .facecard`（走查按这两个选择器取数），只把布局从网格卡片改成
    *    「名称 + 分母在左、里程碑在右、进度条贴名下方」的行；`.msdots` / `.cfoot` 结构未动。══ */
-  #tab-achv .sum3, #tab-gear .sum3, #tab-arts .sum3 {
+  #tab-achv .sum3, #tab-gear .sum3, #tab-arts .sum3, #tab-alchemy .sum3 {
     display: grid; grid-template-columns: repeat(3, 1fr);
     border-top: 1px solid var(--sq2-line); border-bottom: 1px solid var(--sq2-line);
     margin: 4px 0 12px;
   }
-  #tab-achv .sum3 > div, #tab-gear .sum3 > div, #tab-arts .sum3 > div { position: relative; padding: 11px 10px 12px; text-align: center; }
-  #tab-achv .sum3 > div + div::before, #tab-gear .sum3 > div + div::before, #tab-arts .sum3 > div + div::before {
+  #tab-achv .sum3 > div, #tab-gear .sum3 > div, #tab-arts .sum3 > div, #tab-alchemy .sum3 > div { position: relative; padding: 11px 10px 12px; text-align: center; }
+  #tab-achv .sum3 > div + div::before, #tab-gear .sum3 > div + div::before, #tab-arts .sum3 > div + div::before, #tab-alchemy .sum3 > div + div::before {
     content: ""; position: absolute; left: 0; top: 22%; bottom: 22%;
     width: 1px; background: var(--sq2-line);
   }
-  #tab-achv .sum3 .k, #tab-gear .sum3 .k, #tab-arts .sum3 .k { font-size: 10px; letter-spacing: .22em; color: var(--sq2-ink-3); }
-  #tab-achv .sum3 .v, #tab-gear .sum3 .v, #tab-arts .sum3 .v {
+  #tab-achv .sum3 .k, #tab-gear .sum3 .k, #tab-arts .sum3 .k, #tab-alchemy .sum3 .k { font-size: 10px; letter-spacing: .22em; color: var(--sq2-ink-3); }
+  #tab-achv .sum3 .v, #tab-gear .sum3 .v, #tab-arts .sum3 .v, #tab-alchemy .sum3 .v {
     font-family: var(--sq2-serif); font-size: 17px; margin-top: 2px;
     color: var(--sq2-ink); font-variant-numeric: tabular-nums;
   }

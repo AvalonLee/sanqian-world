@@ -119,6 +119,16 @@
   K['alchemy.prof.dan'] = '炼丹';
   K['alchemy.prof.qi'] = '炼器';
   K['alchemy.prof.row'] = '{track} · {rank}（{n} 次）';
+  /* ── B16-i 版面（设计稿 §炼丹炼器：三格摘要 / 段标 / 炉中条 / 丹匣网格）── */
+  K['alchemy.prof.short'] = '{rank} · {n} 次';
+  K['alchemy.prof.line'] = '{a} ｜ {b} · 两套熟练度各自涨，互不折算';
+  K['alchemy.sum.prof'] = '熟 练';
+  K['alchemy.sum.fur'] = '丹 炉';
+  K['alchemy.sum.craft'] = '在 炼';
+  K['alchemy.ui.craft.n'] = '{n} 炉';
+  K['alchemy.ui.danbox'] = '丹 匣';
+  K['alchemy.ui.bp.sec'] = '器 台 · 图 纸';
+  K['alchemy.ui.mats.n'] = '{n} 种';
 
   /* ── UI ── */
   K['alchemy.system'] = '炼丹炼器';

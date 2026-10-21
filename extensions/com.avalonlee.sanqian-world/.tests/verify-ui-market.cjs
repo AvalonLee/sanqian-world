@@ -109,7 +109,9 @@ async function buildSave() {
   T(facWide.hasGrid && facWide.cols >= 2, 'M5 门中供给为卡片网格（宽屏 ≥2 列）', 'cols=' + facWide.cols);
   T(facWide.cards === 4, 'M6 门中供给四档各一卡', 'n=' + facWide.cards);
 
-  /* ── ③ 炼丹炼器页：信息改卡片 ── */
+  /* ── ③ 炼丹炼器页（B16-i 改口：设计语言已从「卡片网格」转为「段标 + 行/条/网格三态」——
+   *        丹方与图纸是整行、炉中是条、丹匣与材料是网格。原判据数 .cardgrid 段数与卡数，
+   *        在新结构下必然假红，故改为「五段段标齐全 + 行清单与网格各在位 + 两条产线入口都在」。 ── */
   await page.click('#m-tabbar button[data-v="alchemy"]');
   await page.waitForTimeout(400);
   const alWide = await page.evaluate(() => {
@@ -117,11 +119,25 @@ async function buildSave() {
     return {
       n: grids.length,
       cols: grids.length ? getComputedStyle(grids[0]).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      items: document.querySelectorAll('#tab-alchemy .cardgrid > .carditem').length
+      items: document.querySelectorAll('#tab-alchemy .cardgrid > .carditem').length,
+      segs: Array.prototype.map.call(document.querySelectorAll('#tab-alchemy .sechead .t'), (x) => x.textContent.trim()),
+      rows: document.querySelectorAll('#tab-alchemy .rowlist > .lrow').length,
+      mat: document.querySelectorAll('#tab-alchemy .matgrid > .matrow').length,
+      strips: document.querySelectorAll('#tab-alchemy .strip').length,
+      startBtns: document.querySelectorAll('#tab-alchemy button[data-act="alStart"]').length,
+      forgeBtns: document.querySelectorAll('#tab-alchemy button[data-act="forgeBp"]').length,
+      /* 段标按词表取，不抄中文；丹匣段只在有丹药时渲染 ⇒ 本 fixture 无库存时不该硬要 */
+      want: ['alchemy.ui.queue', 'alchemy.ui.dan', 'alchemy.ui.bp.sec', 'alchemy.ui.mats']
+        .map((k) => SQ.t(k, null, 'xiuxian').trim())
     };
   });
-  T(alWide.n >= 3 && alWide.cols >= 2, 'M7 炼丹炼器信息为卡片网格（≥3 段 · 宽屏 ≥2 列）', 'grids=' + alWide.n + ' cols=' + alWide.cols);
-  T(alWide.items >= 6, 'M8 丹方/图纸/材料均以卡片呈现', 'items=' + alWide.items);
+  const segHit = alWide.want.filter((w) => alWide.segs.indexOf(w) >= 0).length;
+  T(segHit === 4 && alWide.rows >= 1 && (alWide.mat >= 1 || alWide.items >= 1),
+    'M7 炼丹炼器四段段标齐全（炉中 / 丹方 / 器台图纸 / 材料）+ 丹方与图纸为整行清单（丹匣段只在有丹药时出现）',
+    '命中段=' + segHit + '/4 segs=' + alWide.segs.join('/') + ' rows=' + alWide.rows + ' mat=' + alWide.mat + ' items=' + alWide.items);
+  T(alWide.startBtns >= 1 && alWide.forgeBtns >= 1,
+    'M8 丹方与图纸的动作入口在位（alStart / forgeBp 都渲染出来了）',
+    'start=' + alWide.startBtns + ' forge=' + alWide.forgeBtns);
 
   /* ──  江湖榜：一榜十席 + 玩家名次行只在自己那一榜（第册一批③改口）── */
   await page.click('#m-tabbar button[data-v="prodigy"]');
@@ -329,7 +345,8 @@ async function buildSave() {
   await page.click('#m-subnav button[data-v="alchemy"]');
   await page.waitForSelector('[data-act="alDrink"][data-v="cuiti"]', { timeout: 8000 });
   const rowD = await page.evaluate(() => {
-    const el = document.querySelector('[data-act="alDrink"][data-v="cuiti"]').closest('.carditem');
+    /* B16-i：丹匣由卡片改设计稿 .matrow 网格行 ⇒ 取行容器两种都认 */
+    const el = document.querySelector('[data-act="alDrink"][data-v="cuiti"]').closest('.matrow, .carditem');
     return { txt: (el.innerText || '').replace(/\s+/g, ' '), badge: (el.querySelector('.tierbadge') || {}).textContent || '' };
   });
   T(rowD.txt.indexOf('淬体丹') >= 0 && rowD.badge === '坊市' && rowD.txt.indexOf('undefined') < 0,

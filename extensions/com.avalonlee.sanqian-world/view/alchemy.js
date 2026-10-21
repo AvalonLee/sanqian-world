@@ -86,23 +86,34 @@
       '<span class="hint">' + c.esc(hasFur ? c.t('alchemy.furnace.name') : c.t('alchemy.ui.nofurnace')) + '</span></div>';
     /* 熟练度双轨 */
     var rkD = SQ.Alchemy.profRank(d, al.prof ? al.prof.dan : 0), rkQ = SQ.Alchemy.profRank(d, al.prof ? al.prof.qi : 0);
-    h += '<div class="kv"><span>' + c.esc(c.t('alchemy.prof.row', { track: c.t('alchemy.prof.dan'), rank: c.t('alchemy.rank.' + rkD + '.name'), n: (al.prof || {}).dan || 0 })) + '</span>' +
-      '<span>' + c.esc(c.t('alchemy.prof.row', { track: c.t('alchemy.prof.qi'), rank: c.t('alchemy.rank.' + rkQ + '.name'), n: (al.prof || {}).qi || 0 })) + '</span></div>';
-    /* 炼制队列（单槽） */
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('alchemy.ui.queue')) + '</p>';
+    var nD = (al.prof || {}).dan || 0, nQ = (al.prof || {}).qi || 0;
+    /* B16-i · 设计稿 §炼丹炼器 .sum3：熟练 / 丹炉 / 在炼（三个数全部现算） */
+    h += '<div class="sum3">' +
+      '<div><div class="k">' + c.esc(c.t('alchemy.sum.prof')) + '</div><div class="v">' +
+      c.esc(c.t('alchemy.prof.short', { rank: c.t('alchemy.rank.' + rkD + '.name'), n: nD })) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('alchemy.sum.fur')) + '</div><div class="v">' +
+      c.esc(hasFur ? c.t('alchemy.furnace.name') : c.t('alchemy.ui.nofurnace')) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('alchemy.sum.craft')) + '</div><div class="v">' +
+      c.esc(c.t('alchemy.ui.craft.n', { n: al.craft ? 1 : 0 })) + '</div></div></div>';
+    h += '<p class="hintline">' + c.esc(c.t('alchemy.prof.line', {
+      a: c.t('alchemy.prof.row', { track: c.t('alchemy.prof.dan'), rank: c.t('alchemy.rank.' + rkD + '.name'), n: nD }),
+      b: c.t('alchemy.prof.row', { track: c.t('alchemy.prof.qi'), rank: c.t('alchemy.rank.' + rkQ + '.name'), n: nQ })
+    })) + '</p>';
+    /* 炼制队列（单槽）→ 设计稿「炉中」一条 */
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('alchemy.ui.queue')) + '</span></div>';
     var cr = al.craft;
     if (cr) {
       var ready = Date.now() >= cr.doneAt;
-      h += '<div class="cardgrid"><div class="lrow carditem"><div class="nm">' + c.esc(cr.kind === 'dan' ? c.t('alchemy.recipe.' + cr.id + '.name') : c.t('alchemy.bp.' + cr.id + '.name')) + '</div>' +
-        '<div class="meta">' + c.esc(ready ? c.t('alchemy.ui.queue.ready') : c.t('alchemy.ui.queue.wait', { t: c.timeLeft(cr.doneAt - Date.now()) })) + '</div>' +
-        '<div class="acts"><button data-act="alCollect" class="' + (ready ? 'primary' : '') + '"' + (ready ? '' : ' disabled') + '>' + c.esc(c.t('alchemy.ui.collect')) + '</button></div></div></div>';
+      h += '<div class="strip"><span class="t">' + c.esc(cr.kind === 'dan' ? c.t('alchemy.recipe.' + cr.id + '.name') : c.t('alchemy.bp.' + cr.id + '.name')) + '</span>' +
+        '<span class="v">' + c.esc(ready ? c.t('alchemy.ui.queue.ready') : c.t('alchemy.ui.queue.wait', { t: c.timeLeft(cr.doneAt - Date.now()) })) + '</span>' +
+        '<button class="more" data-act="alCollect"' + (ready ? '' : ' disabled') + '>' + c.esc(c.t('alchemy.ui.collect')) + '</button></div>';
     } else {
       h += '<p class="hint">' + c.esc(c.t('alchemy.ui.queue.empty')) + '</p>';
     }
-    /* 丹方册 */
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('alchemy.ui.dan')) + '</p>';
+    /* 丹方册 → 整行清单（设计稿：一个丹方一行，材料/成算在左、库存与开炉在右） */
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('alchemy.ui.dan')) + '</span></div>';
     if (!(al.recipes || []).length) h += '<p class="hint">' + c.esc(c.t('alchemy.ui.recipe.none')) + '</p>';
-    else h += '<div class="cardgrid">';
+    else h += '<div class="rowlist">';
     (A.RECIPES || []).forEach(function (r) {
       if ((al.recipes || []).indexOf(r.id) < 0) return;
       var active = w.realm >= r.realm;
@@ -120,11 +131,13 @@
         (blkD ? ' disabled' : '') + '>' + c.esc(c.t('alchemy.ui.start')) + '</button></div></div>';
     });
     if ((al.recipes || []).length) h += '</div>';
-    /* 丹药库存 */
+    /* 丹药库存 → 设计稿「丹匣」网格（名 ×n + 服） */
     var pillKeys = Object.keys(al.pills || {});
     if (pillKeys.length) {
-      h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('alchemy.ui.stock', { n: '' })) + '</p>';
-      h += '<div class="cardgrid">';
+      var pillTotal = pillKeys.reduce(function (a, k) { return a + (al.pills[k] || 0); }, 0);
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('alchemy.ui.danbox')) + '</span>' +
+        '<span class="s">' + c.esc(c.t('alchemy.ui.stock', { n: pillTotal })) + '</span></div>';
+      h += '<div class="matgrid">';
       pillKeys.forEach(function (pk) {
         /* 两族合一（第十七批）：自产丹与坊市 / 门中 / 特席 / 残片所得的成品丹同匣同渲染，
          * 名字与描述各按本族词表键取（pillDefOf 给），徽标分「自炼」/「坊市」两色不新造色、共用 .tierbadge */
@@ -135,18 +148,19 @@
           var liveB = (w.buffs || []).filter(function (b) { return b.field === pd.buff.field && b.mult > pd.buff.mult * (pd.rune ? 2 : 1) && b.until > Date.now(); });
           if (liveB.length) stronger = ' · ' + c.t('alchemy.ui.stronger');
         }
-        h += '<div class="lrow carditem"><div class="nm">' + c.esc(c.t(pd.nameKey)) +
+        h += '<div class="matrow"><span class="m-n">' + c.esc(c.t(pd.nameKey)) +
           (pd.rune ? ' <span class="special-mark">' + c.esc(c.t('alchemy.ui.rune')) + '</span>' : '') +
-          ' <span class="tierbadge t2">' + c.esc(c.t(pd.kind === 'self' ? 'alchemy.ui.selfmade' : 'alchemy.ui.traded')) + '</span></div>' +
-          '<div class="meta">' + c.esc(c.t(pd.descKey)) + ' ×' + al.pills[pk] + c.esc(stronger) + '</div>' +
-          '<div class="acts"><button data-act="alDrink" data-v="' + pk + '">' + c.esc(c.t('alchemy.ui.drink')) + '</button></div></div>';
+          ' <span class="tierbadge t2">' + c.esc(c.t(pd.kind === 'self' ? 'alchemy.ui.selfmade' : 'alchemy.ui.traded')) + '</span></span>' +
+          '<span class="m-c">×' + al.pills[pk] + '</span>' +
+          '<span class="m-d">' + c.esc(c.t(pd.descKey)) + c.esc(stronger) + '</span>' +
+          '<button data-act="alDrink" data-v="' + pk + '">' + c.esc(c.t('alchemy.ui.drink')) + '</button></div>';
       });
       h += '</div>';
     }
-    /* 炼器（图纸 + 方向 + 属性指向） */
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('alchemy.ui.qi')) + '</p>';
+    /* 炼器（图纸 + 方向 + 属性指向）→ 设计稿「器台 · 图纸」整行 */
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('alchemy.ui.bp.sec')) + '</span></div>';
     if (!(al.blueprints || []).length) h += '<p class="hint">' + c.esc(c.t('alchemy.ui.bp.none')) + '</p>';
-    else h += '<div class="cardgrid">';
+    else h += '<div class="rowlist">';
     c.ui.forge = c.ui.forge || { bp: null, dir: null, attr: null };
     (A.BLUEPRINTS || []).forEach(function (bp) {
       if ((al.blueprints || []).indexOf(bp.id) < 0) return;
@@ -187,7 +201,8 @@
     if ((al.blueprints || []).length) h += '</div>';
     if (!al.furnace && (al.blueprints || []).indexOf('bp_furnace') >= 0) { /* 丹炉图纸打造走同一 alStart */ }
     /* 材料背包 + 出售 */
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('alchemy.ui.mats')) + '</p>';
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('alchemy.ui.mats')) + '</span>' +
+      '<span class="s">' + c.esc(c.t('alchemy.ui.mats.n', { n: Object.keys(w.materials || {}).length })) + '</span></div>';
     var matIds = Object.keys(w.materials || {});
     if (!matIds.length) h += '<p class="hint">' + c.esc(c.t('alchemy.ui.mats.empty')) + '</p>';
     else {
