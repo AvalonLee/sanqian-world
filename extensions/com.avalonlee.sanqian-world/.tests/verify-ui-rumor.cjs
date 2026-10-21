@@ -38,7 +38,7 @@ async function buildSave() {
   return {
     save: {
       v: 1,
-      profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-3' },
+      profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-21-1' },
       meta: { unlockedWorlds: ['xiuxian'] },
       settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
       worlds: { xiuxian: ws }
@@ -71,17 +71,17 @@ async function buildSave() {
   await page.waitForTimeout(800);
 
   /* ① 修行页传闻区：战况卡只读（观望文本在、无按钮）；普通传闻卡仍有「前往查证」 */
-  const idleWarBtn = await page.$$eval('#tab-idle .rumorcard.war button', els => els.length);
-  const idleWatch = await page.$eval('#tab-idle', el => el.textContent.includes('观望'));
+  const idleWarBtn = await page.$$eval('#m-rail .rumorcard.war button', els => els.length);
+  const idleWatch = await page.$eval('#m-rail', el => el.textContent.includes('观望'));
   T(idleWarBtn === 0 && idleWatch, 'R① 修行页战况卡无按钮 · 只读观望', 'btn=' + idleWarBtn);
-  const idleGoBtn = await page.$$eval('#tab-idle [data-act="rumorGo"]:not([disabled])', els => els.length);
+  const idleGoBtn = await page.$$eval('#m-rail [data-act="rumorGo"]:not([disabled])', els => els.length);
   T(idleGoBtn === 1, 'R① 可触发传闻卡「前往查证」启用（唯一）', 'n=' + idleGoBtn);
   /* ③ 失效传闻卡（目标事件冷却中）：按钮置灰 + 注明「时过境迁」（复现「已无从查证」缺陷的正典口径） */
-  const deadBtn = await page.$('#tab-idle [data-act="rumorGo"][data-v="ev-2"]');
+  const deadBtn = await page.$('#m-rail [data-act="rumorGo"][data-v="ev-2"]');
   const deadDisabled = deadBtn ? (await deadBtn.getAttribute('disabled')) !== null : false;
   const deadLabel = deadBtn ? (await deadBtn.textContent()).trim() : '';
   T(deadDisabled && deadLabel === '时过境迁', 'R③ 失效传闻卡置灰注明「时过境迁」', 'disabled=' + deadDisabled + ' label=' + deadLabel);
-  T((await page.$$eval('#tab-idle [data-act="rumorGo"][data-v="ev-2"]', els => els.length)) === 1,
+  T((await page.$$eval('#m-rail [data-act="rumorGo"][data-v="ev-2"]', els => els.length)) === 1,
     'R③ 失效卡仍在列（未静默消失，与正典「置灰」一致）');
 
   /* ② 红点：存档既有传闻进线基线化 → 奇遇菜单不再亮红点（旧口径恒亮的场景） */
@@ -112,6 +112,20 @@ async function buildSave() {
   await page.click('#tab-event [data-act="feedMore"]');
   await page.waitForTimeout(300);
   T((await page.$$eval('#tab-event .fcard', els => els.length)) === 3, 'RF④ 收起回到 3 条（切换是幂等的，不是一次性）');
+  /* B16-n：奇遇页两处「加粗 p.hint 冒充段标」已换成 .sechead（叙事流 / 图鉴），段标文本回词表现算 */
+  const secE = await page.evaluate(() => {
+    const el = document.getElementById('tab-event');
+    const wf = (k) => SQ.t(k, null, 'xiuxian').trim();
+    const heads = Array.prototype.map.call(el.querySelectorAll('.sechead .t'), (x) => x.textContent.trim());
+    return { heads, wantFeed: wf('event.feed.title'), wantCodex: wf('event.codex.title'),
+      wantRumor: wf('rumor.title'),
+      legacyHint: el.querySelectorAll(':scope > p.hint[style*="font-weight:650"]').length };
+  });
+  T(secE.heads.length === 3 && secE.heads.indexOf(secE.wantRumor) >= 0 && secE.heads.indexOf(secE.wantFeed) >= 0 &&
+    secE.heads.indexOf(secE.wantCodex) >= 0 && !secE.legacyHint,
+    'RF⑦ 传闻 / 叙事流 / 图鉴三段段标已统一为 .sechead（页首不再留加粗 p.hint 冒充标题）',
+    'heads=' + JSON.stringify(secE.heads) + ' 遗留伪段标=' + secE.legacyHint);
+
   /* 卡片点击 = 复用图鉴那套 `openRecall`（story + 首遇 + 上次抉择 + 上次得失），不另造第二张详情卡 */
   await page.click('#tab-event .fcard');
   await page.waitForTimeout(400);
@@ -126,6 +140,72 @@ async function buildSave() {
   T(rfLast.length > 0 && rfLast.indexOf('抉择') >= 0, 'RF⑥ 浮层含上次抉择（是「查阅内容」的卡，不是只有名字）', rfLast.slice(0, 40));
   await page.click('#mrc-close');
   T(await page.$eval('#modal-recall', el => el.classList.contains('hide')), 'RF⑦ 关闭钮可关（不靠遮罩/ESC）');
+
+  /* ── 叙事流日期位置（B15-g 改口：按原型 .f-time 回到标题行右端，不再是左列时间线）──
+   * 判据形状：日期有数字 + 与标题行同一水平带（top 差 ≤ 6px）+ 右边界贴近卡片右边界（≥ 卡宽 70%）。 */
+  const rfTl = await page.evaluate(() => {
+    const card = document.querySelector('#tab-event .fcard');
+    const fd = card && card.querySelector('.fdate');
+    const fn = card && card.querySelector('.fn');
+    if (!fd || !fn) return { date: '', sameRow: false, rightPct: 0 };
+    const r = fd.getBoundingClientRect(), t = fn.getBoundingClientRect(), c = card.getBoundingClientRect();
+    return {
+      date: fd.textContent.trim(),
+      sameRow: Math.abs(r.top - t.top) <= 6,
+      rightPct: Math.round((r.right - c.left) / c.width * 100)
+    };
+  });
+  T(/[0-9]/.test(rfTl.date) && rfTl.sameRow && rfTl.rightPct >= 70,
+    'RF⑧ 叙事流日期在标题行右端（原型 .f-time 位置）', JSON.stringify(rfTl));
+  const cx0 = await page.evaluate(() => ({
+    btns: document.querySelectorAll('#tab-event .codex-sec').length,
+    grids: document.querySelectorAll('#tab-event .codexgrid').length
+  }));
+  await page.evaluate(() => { document.querySelector('#tab-event .codex-sec').click(); });
+  await page.waitForTimeout(300);
+  const cx1 = await page.evaluate(() => ({
+    grids: document.querySelectorAll('#tab-event .codexgrid').length,
+    slots: document.querySelectorAll('#tab-event .cslot').length
+  }));
+  await page.evaluate(() => { document.querySelector('#tab-event .codex-sec').click(); });
+  await page.waitForTimeout(300);
+  const cx2 = await page.evaluate(() => document.querySelectorAll('#tab-event .codexgrid').length);
+  T(cx0.btns === 3 && cx0.grids === 0 && cx1.grids === 1 && cx1.slots > 0 && cx2 === 0,
+    'RF⑨ 图鉴三段默认收起；点一段只展开那一段，再点收起',
+    'btns=' + cx0.btns + ' 收起=' + cx0.grids + ' 展开=' + cx1.grids + '/' + cx1.slots + '格 再收=' + cx2);
+  /* RF⑩（第册一百〇二批 · 用户反馈「剑韵故人 / 圣贤一灯 得失记录出现英文」）：
+   * bondDrain 的**展示面**必须是可读人话——npc 名与前后好感从结算回写；
+   * 旧档 / 旧 feed 里只存 npc 字符串的形态也必须退「轻一句」，不许 bond.<id>.name / undefined 上屏。 */
+  const rfDr = await page.evaluate(() => {
+    const pack = SQ.Worlds.xiuxian.pack, D = pack.data;
+    const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const out = {};
+    ['jianyun_guiren', 'shengxian_yideng'].forEach((id) => {
+      const w = JSON.parse(JSON.stringify(st.worlds.xiuxian));
+      w.realm = 9; w.bonds = { aliang: 60, jingchun: 60 };
+      w.eventHistory = w.eventHistory || { feed: [], seen: {} };
+      w.eventHistory.feed = w.eventHistory.feed || [];
+      w.eventHistory.seen = w.eventHistory.seen || {};
+      w.eventCooldowns = w.eventCooldowns || {};
+      w.pendingChoice = null;
+      pack.recalcDerived(w, st.profile);
+      const mods = SQ.Mods.collect(st.profile, w, pack, D);
+      const r = SQ.Events.resolveBranch(w, pack, D, mods, id, 'evil', Date.now(), { log: function () {} });
+      out[id] = {
+        text: SQ.Events.effText(w, pack, D, r.eff),
+        drained: r.eff && r.eff.bondDrain,
+        info: !!(r.eff && r.eff.bondDrainInfo)
+      };
+    });
+    out.legacy = SQ.Events.effText({}, pack, D, { bondDrain: 'aliang' });
+    return out;
+  });
+  const rfDrOk = ['jianyun_guiren', 'shengxian_yideng'].every(function (id) {
+    const o = rfDr[id];
+    return o.text.indexOf('情谊生裂') >= 0 && !/bond\.|undefined/.test(o.text) && o.info;
+  }) && rfDr.legacy.indexOf('情谊生裂') >= 0 && !/bond\.|undefined/.test(rfDr.legacy);
+  T(rfDrOk, 'RF⑩ 情谊生裂的得失记录可读：npc 与前后好感从结算回写，旧档字符串形态也退人话（不再是 bond.undefined.name）',
+    JSON.stringify(rfDr));
   await page.click('#m-tabbar button:has-text("修行")');
   await page.waitForTimeout(500);
   const hasDot2 = await page.$('#m-tabbar button[data-v="event"] .dot');

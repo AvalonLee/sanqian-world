@@ -29,23 +29,51 @@
     'ui.error.save': '存档写入失败：{msg}（本次进度恐未记下）',
     'ui.error.sideflow': '历史日志与奇遇记事没能保存（修为进度已保存）',
     'ui.error.short': '读取失败',
-    /* ── 恶搞彩蛋 · 页游充值贴片（第卅九批 2026-10-15 · 用户令「修行页随机刷几种网页游戏常见的大礼包，
-     * 模拟页游充值获取资源的感觉」）：纯呈现，点击零发放、零落档、零 Ledger，六款走拼接前缀 eggs.gift.p{n}.── */
+    /* ── 天降礼包（原「页游彩蛋」· 2026-10-21 用户令重做）：模拟页游礼包套路——宣传天花乱坠，
+     * 实际开出的多是低档货或空包；**真扣资源**（灵石 / 修为按当前值百分比），确认与结果都如实说。
+     * 24 条宣传文案走拼接前缀 eggs.gift.p{n}.；扣费档位与类型按序号在 gifts.js 里派生。 ── */
     'eggs.gift.tag': '限时',
-    'eggs.gift.btn': '立即充值',
-    'eggs.gift.p0.name': '首充大礼包',
-    'eggs.gift.p0.offer': '6 元 · 绝品功法直接到手，七日登录再送神装',
-    'eggs.gift.p1.name': '至尊 648 礼盒',
-    'eggs.gift.p1.offer': '648 元 · 必出天品至宝（概率 0.0001%，出货以实际为准）',
-    'eggs.gift.p2.name': '屠龙宝刀',
-    'eggs.gift.p2.offer': '98 元 · 战力 +99999，一刀 999，跨服碾压不是梦',
-    'eggs.gift.p3.name': '仙君直通',
-    'eggs.gift.p3.offer': '198 元 · 连登七日即送飞升体验卡（三分钟后自动回落）',
-    'eggs.gift.p4.name': '霓裳道侣',
-    'eggs.gift.p4.offer': '30 元 · 她不会说话，但很好看',
-    'eggs.gift.p5.name': '榜末补偿礼包',
-    'eggs.gift.p5.offer': '6480 元 · 充完即可超越榜首那位（就是他，别问）',
-    'eggs.gift.deny': '仙商把袖子一摆：此界不通金银，只通苦修。（彩蛋，不收费也不发货）',
+    'eggs.gift.btn': '立即领取',
+    'eggs.gift.cd': '倒计时 {t}',
+    'eggs.gift.cool': '礼包已空 · 下一份 {t} 后刷新',
+    'eggs.gift.cost.stones': '支付灵石 {p}% · 约 {n}',
+    'eggs.gift.cost.qi': '支付修为 {p}% · 约 {n}',
+    'eggs.gift.confirm.title': '天降礼包',
+    'eggs.gift.confirm.body': '支付 {n} {res}（当前{res}的 {p}%），领取「{name}」？',
+    'eggs.gift.poor': '囊中不足——这点家底，礼包看不上',
+    'eggs.gift.result.title': '开箱结果',
+    'eggs.gift.result.cost': '已支付 {n} {res}。',
+    'eggs.gift.result.gear': '礼包开出：{item}（{tier}）。',
+    'eggs.gift.result.art': '礼包开出：《{art}》（{tier}）。',
+    'eggs.gift.result.none': '礼包里空空如也。',
+    'eggs.gift.result.close': '再接再厉',
+    'eggs.gift.log.gear': '天降礼包开出 {item}（{tier}）',
+    'eggs.gift.log.art': '天降礼包开出功法《{art}》（{tier}）',
+    'eggs.gift.log.none': '天降礼包开了个空',
+    'eggs.gift.p0.name': '毕业神兵·斩天龙渊', 'eggs.gift.p0.offer': '全服唯一，战力直涨三成，渡劫必成',
+    'eggs.gift.p1.name': '太古传承·九转金丹', 'eggs.gift.p1.offer': '一口证道，境界连跳三重',
+    'eggs.gift.p2.name': '绝版坐骑·九天玄凰', 'eggs.gift.p2.offer': '飞行速度 +300%，全服侧目',
+    'eggs.gift.p3.name': '道侣礼包·绝世仙子', 'eggs.gift.p3.offer': '倾国倾城，一见倾心，直接结缘',
+    'eggs.gift.p4.name': '至尊功法·万法归一', 'eggs.gift.p4.offer': '修炼速度 +500%，一学就会',
+    'eggs.gift.p5.name': '神装礼盒·混沌至宝', 'eggs.gift.p5.offer': '开箱必得红色神话装备',
+    'eggs.gift.p6.name': '洞府礼包·仙家福地', 'eggs.gift.p6.offer': '洞天福地直接入住，灵气翻倍',
+    'eggs.gift.p7.name': '灵宠礼包·吞天神兽', 'eggs.gift.p7.offer': '战力 +99999，可无限进化',
+    'eggs.gift.p8.name': '限时飞升·一步登天', 'eggs.gift.p8.offer': '跳过渡劫，当场飞升',
+    'eggs.gift.p9.name': '首充双倍·灵石山', 'eggs.gift.p9.offer': '充值即返，越充越多',
+    'eggs.gift.p10.name': '绝版称号·万古独尊', 'eggs.gift.p10.offer': '全服唯一称号，回头率百分百',
+    'eggs.gift.p11.name': '神兵锻造·必成券', 'eggs.gift.p11.offer': '打造必出传说，失败包赔',
+    'eggs.gift.p12.name': '机缘礼包·天道亲儿子', 'eggs.gift.p12.offer': '奇遇概率 +1000%',
+    'eggs.gift.p13.name': '丹药礼包·九转还魂', 'eggs.gift.p13.offer': '起死回生，寿元 +9999',
+    'eggs.gift.p14.name': '装备礼包·套装毕业', 'eggs.gift.p14.offer': '六件套直接毕业',
+    'eggs.gift.p15.name': '仙缘礼包·绝世美女', 'eggs.gift.p15.offer': '赠送一位道侣，好感直接满',
+    'eggs.gift.p16.name': '神秘宝箱·万物皆可', 'eggs.gift.p16.offer': '随机开出全服最强物品',
+    'eggs.gift.p17.name': '灵田礼包·无穷灵草', 'eggs.gift.p17.offer': '材料无限，炼丹不愁',
+    'eggs.gift.p18.name': '宗门礼包·一步登天', 'eggs.gift.p18.offer': '直接成为一宗之主',
+    'eggs.gift.p19.name': '天命礼包·气运之子', 'eggs.gift.p19.offer': '天赋全部满级',
+    'eggs.gift.p20.name': '至尊月卡·躺赢', 'eggs.gift.p20.offer': '挂机收益翻十倍',
+    'eggs.gift.p21.name': '绝版外观·仙气飘飘', 'eggs.gift.p21.offer': '全服唯一时装',
+    'eggs.gift.p22.name': '终极礼包·只此一次', 'eggs.gift.p22.offer': '错过再等一万年',
+    'eggs.gift.p23.name': '天道馈赠·有缘人', 'eggs.gift.p23.offer': '免费领取，童叟无欺',
     /* ── 一世洗髓（天赋池设计 v1.8 §十 · 洗髓批 2026-10-12）：世界无关的机制文案 ── */
     'talent.swap.title': '洗髓 · 换骨',
     'talent.swap.sub': '本世可换 {n}/{cap} 枚 · 手中缘 {owed} 枚',
@@ -159,9 +187,7 @@
     'settings.eventpref.desc': '自动抉择时优先选该倾向的分支；该分支不可选则随机其他分支。',
     'event.pref.none': '无倾向',
     'event.pref.right': '正道', 'event.pref.evil': '魔道', 'event.pref.neutral': '左道',
-    'settings.taborder.title': '菜单顺序',
-    'settings.taborder.desc': '「日志」「设置」固定在底部；其余游戏页可上下调整。',
-    'settings.taborder.up': '上移', 'settings.taborder.down': '下移',
+    /* 菜单顺序四键已随 UI v2 B2 退役（D5：字段 settings.tabOrder 保留但不再读；导航固定五区） */
     'settings.about.title': '关于',
     'settings.about.body': '三千世界 · 多世界放置修仙。离线照常结算，回来收功即可。',
     'sys.tag': '系统', 
@@ -207,6 +233,10 @@
        **要重新接线必须先改值**，否则是把已作废的机制搬回屏上。 */
     'arts.reset': '待重修',
     'arts.main': '主修', 'arts.main.empty': '主修虚位',
+    /* ── B16-g 功法页三格摘要（设计稿 .sum3：主修 / 在修 / 产出）── */
+    'arts.sum.main': '主 修',
+    'arts.sum.slots': '在 修',
+    'arts.sum.prod': '产 出',
     /* 主修可点定（GitHub issue #3）：非主修的在槽功法逐格挂此按钮，不必再「全拆重装」 */
     'arts.main.set': '设为主修',
     'arts.main.ok': '已转修「{name}」，此后此功修持最快',
@@ -227,6 +257,7 @@
      * 天阶与专属渠道功法不入此池 */
     'arts.selflearn': '于静修中自行领悟《{name}》',
     'arts.selflearn.sec': '自 行 领 悟',
+    'arts.selflearn.strip': '静 修',
     'arts.selflearn.cands': '可领悟 {n} 部',
     'arts.selflearn.pct': '自悟进度 {p}%',
     'arts.selflearn.hint': '修持中随机领悟市面传承功法（黄/玄阶；闭关易悟、历练难悟）；越悟越难，离线潜心悟道亦可缓进；进度满必得一部',
@@ -237,6 +268,7 @@
     'arts.sec.known': '已 学 会',
     'arts.known.empty': '尚未学会任何功法——去坊市求一部，或等一场奇遇。',
     'arts.codex.title': '功 法 图 鉴',
+    'arts.codex.rec': '已录 {n}/{total}',
     'arts.codex.known': '已学会 · Lv{lv}',
     'arts.codex.shelf': '待复检 · 要求未达',
     /* 已学会卡增益行（走查 v2.7 §3）：等级起点批（2026-10-14 · 入门即 Lv1）后「Lv0 未修持」态不可达，
@@ -252,19 +284,8 @@
      * ⚠️ `skill.system`（功法）与 `gear.system`（法器）**保留不动**——它们仍是日志页
      * 分类筛选标签（view 日志分类表 `{id:'arts',sys:'skill.system'}` /
      * `{id:'gear',sys:'gear.tag'}`），改它们会连带改日志分类语义。 */
-    'arts.system': '法与器',
     /* ① 概览条 `.laware`：一行三格，点格锚跳到对应段——合并页存在的理由 */
-    'arts.ov.main': '主修',
-    'arts.ov.main.none': '虚位以待',
-    'arts.ov.main.val': '{name} · Lv{lv}',
-    'arts.ov.gear': '佩器',
-    'arts.ov.gear.val': '{n}/{total} · 抗 {r}',
-    'arts.ov.power': '战力',
     /* ②④ 段标 `.secdiv`：分隔「法」「器」两段（单字大字 + 一句副标） */
-    'arts.seg.fa': '法',
-    'arts.seg.fa.sub': '功法主修，攻伐之本',
-    'arts.seg.qi': '器',
-    'arts.seg.qi.sub': '法器护身，择优自佩',
     /* 游戏历（v2.3）：{name} = 世界名去尾字（罗云州 → 罗云）；1 游戏日 = 现实 1 秒，360 日/年 */
     'calendar.date': '{name}历{y}年{m}月{d}日',
     /* 秘境 */
@@ -278,6 +299,10 @@
     /* 域主精英战（数值详设 §2.6 · 系统深化批 A4）：首通 → 现世 → 挑战 → 胜利才推进 */
     'zone.boss.appear': '域主现世——「{zone}」之主察觉了秘境之变',
     'zone.boss.tag': '域主现世',
+    /* UI v2 B15-d：秘境页改行式清单后新增的标签（域主行 / 词缀行 / 洞天行 / 未解锁角标） */
+    'zone.boss.name': '域 主', 'zone.boss.none': '此区暂无域主现世',
+    'affix.title': '本区词缀', 'cave.link.none': '本区暂无可开福地',
+    'zone.lockedtag': '未解锁',
     'zone.boss.dead': '域主已斩',
     'zone.boss.challenge': '挑战域主',
     'zone.boss.need': '域主线：战力 {need}（{m}×）',
@@ -307,6 +332,24 @@
     'zone.affix.left': '余 {t}',
     'zone.affix.none': '天时平平',
     'zone.affix.seclude': '闭关不涉天时（词缀只作用历练战斗）',
+    /* UI v2 B5：右栏（历练区）块标题 */
+    'rail.affix': '本区词缀', 'rail.war': '战报',
+    'rail.fire': '炉火', 'rail.restock': '坊市补货', 'rail.left': '余 {t}',
+    /* UI v2 B8：右栏（江湖区）块标题 */
+    'rail.jianghu': '江湖近况', 'rail.sect': '宗门', 'rail.none': '无',
+    /* UI v2 B15-b：右栏（修行区）块标题 —— 四柱 / 天象传闻 / 离线所得；B16-c 增页游彩蛋 */
+    'rail.pillars': '四柱', 'rail.tiandao': '天象 · 传闻', 'rail.offline': '离线所得',
+    'rail.eggs': '天降礼包',
+    'rail.cave.mult': '修为产出 ×{m}',
+    'bond.spouse.tag': '双修位',
+    'rail.offline.none': '本次上线暂无离线结算',
+    'offline.rail.line': '修为 +{qi} · 灵石 +{stones}',
+    /* UI v2 B15-c：修行页页尾段标（设计稿「天 命」小节；自动区已迁设置，见 D6） */
+    'idle.talent.title': '天 命',
+    /* UI v2 B15-f：道友页两张卡右下角的动作提示（设计稿 .bs-x） */
+    'bond.guard.swap': '换护法 ›', 'bond.spouse.cand': '查看候选 ›',
+    /* UI v2 B15-h：成就页三格摘要（已得 / 遗泽 / 九面） */
+    'achv.ui.sum.got': '已 得', 'achv.ui.sum.karma': '遗 泽', 'achv.ui.sum.faces': '九 面', 'achv.ui.sum.facesv': '{n} ／ {total} 面在录',
     'zone.cavelink': '福地「{name}」以此为凭', 'zone.cavelink.locked': '首通可开福地',
     'zone.pw.ok': '战力富余 {p}%', 'zone.pw.tight': '战力压线 {p}%', 'zone.pw.bad': '战力不足，差 {n}',
     /* 商店 */
@@ -319,6 +362,7 @@
     /* 第卌六批：买的是要求未达的功法时，确认框要把去向说一句（原本只有成交后的日志，而日志里也没有这一条） */
     'shop.confirm.shelf': '（此功要求未达，购入后先入待修习架，达标即自行入门）', 
     'shop.blackHint': '价高三成，慎入',
+    'shop.blackclosed': '黑市未开市——道心跌破 −200，才有人替你引路',
     'zone.unknown': '？？？',
     'gear.stat.atk': '攻击', 'gear.stat.resist': '渡劫抗性',
     /* 渡劫演出（F7：悬念 1s 不可跳 + 成败帧带损失明细/成算复盘） */
@@ -326,7 +370,9 @@
     'trib.manual.ready': '修为圆满 · 可渡劫', 'trib.manual.btn': '渡劫',
     'trib.manual.hint': '自动渡劫已关闭，需自行点按渡劫',
     'trib.suspense': '劫云压顶，天雷欲落——',
+    'trib.stage.clear': '清算', 'trib.stage.thunder': '落雷', 'trib.stage.fate': '定数',
     'trib.result.win': '雷歇云散 · 渡劫功成', 'trib.result.lose': '天雷加身 · 道基受创',
+    'trib.mark.win': '成', 'trib.mark.lose': '败', 'trib.bill.pct': '成 算',
     'trib.loss.line': '修为损失 {p}%', 'trib.recap.line': '劫前成算 {p}% · 第 {n} 次渡劫',
     /* 渡劫演出重做批：结果帧数据行标签（成算环 + 数据行陈列） */
     'trib.row.p': '劫前成算', 'trib.row.loss': '修为损失', 'trib.row.n': '渡劫次数',
@@ -355,6 +401,9 @@
     'event.check.type.gear': '法器判定', 'event.check.type.power': '战力判定',
     'event.branch.lack': '不足：{req}',
     'event.result.title': '缘已定', 'event.result.pass': '判定得成', 'event.result.fail': '判定失利 · 收益折半',
+    'event.mark.win': '成', 'event.mark.lose': '败',
+    'event.res.eff': '得失', 'event.res.excl': '独占', 'event.res.bond': '缘',
+    'branch.mark.right': '正', 'branch.mark.evil': '魔', 'branch.mark.neutral': '中',
     'event.exclusive.title': '宝物认主', 'event.exclusive.art': '道统传人',
     'event.exclusive.hint': '独占之珍不参与自动择优，替换须亲手确认。',
     /* ── 批 2 · 四柱 chip 行（B1）：财/法/地 激活，侣位灰置（批 3 解锁）── */
@@ -411,6 +460,22 @@
     'cave.enter.fail.unknown': '此处福地不存在',
     'cave.enter.fail.obtain': '缘法未至——此处福地不售灵石，只认修行',
     'cave.time.dhms': '{d}天 {h}:{m}:{s}', 'cave.time.hms': '{h}:{m}:{s}',
+    /* ── 洞天福地节版面（B16-d · 对齐设计稿 §洞天福地：段标 / 导语 / 状态条 / 四组分段 / 设施段）── */
+    'cave.shelf': '洞天福地 · {n} 处',
+    'cave.intro': '洞天是家不是战场：首通秘境可开福地；入驻给修为倍率，附属设施给材料、炼丹与产出。迁居冷却 1 游戏年，已入驻的福地不会掉。',
+    'cave.cv.d': '×{mult} 修为产出 · {sig}',
+    'cave.grp.current': '当前驻留 · {n}',
+    'cave.grp.owned': '已拥有 · 未驻留 · {n}',
+    'cave.grp.avail': '可入驻 · {n}',
+    'cave.grp.locked': '未解锁 · {n}',
+    'cave.grp.hint': '点开看资格与设施',
+    'cave.grp.hint.locked': '按境界 / 缘法逐处开',
+    'cave.strip.k': '当前驻留',
+    'cave.strip.v': '{name} · ×{mult}',
+    'cave.strip.x': '设施 {n}/{m} 生效 · {cd}',
+    'cave.fac.sec': '当前驻留设施',
+    'cave.fac.sec.hint': '0~3 级 · 仅驻留生效',
+    'cave.fac.note': '设施随福地所有权永久保留，搬离即失效；灵石投入记入洞府支出。灵田每 6 游戏月产本区材料，丹房加参悟，藏书阁加奇遇机缘，聚灵阵加离线效率。',
     /* ── G17 江湖传闻（传闻设计卷 v1.0）：茶楼口吻模糊转述模板 ×30 + 地点池 ×8；
      * 世界分卷可按 key 覆写（三级回落）。{place} = 地点词；不剧透事件名。 ── */
     'rumor.title': '江湖传闻',
@@ -477,7 +542,9 @@
     'arts.modal.title': '修习功法', 'arts.modal.sub': '已装备 {n}/{cap} · 挂「主修」角标者修持最快（点格子上的「设为主修」自由指定）',
     'arts.group.tier': '品阶', 'arts.group.align': '阵营', 'arts.group.all': '全部',
     'arts.tierchar.huang': '黄', 'arts.tierchar.xuan': '玄', 'arts.tierchar.di': '地', 'arts.tierchar.tian': '天',
-    'arts.sec.tier': '待修习架 · {g}字阶', 'arts.sec.align': '待修习架 · {g}',
+    /* B16-h：图鉴组头文案改正——旧值写作「待修习架 · {g}字阶」，指的是当年「未学者都算待修习」的
+     * 口径；现在组内是「已录在前、未录在后」，且它已是指向整组的折叠按钮，再叫待修习会误导。 */
+    'arts.sec.tier': '{g} 阶', 'arts.sec.align': '{g}',
     'arts.sec.excl': '含独占 {n} 部（奇遇限定）',
     'arts.state.unowned': '未获得 · 获取途径：{via}',
     'arts.state.lackline': '修习要求未达 · 需：{req}',
@@ -517,6 +584,13 @@
     'gear.sec.worn': '佩 戴 中', 'gear.sec.wornsub': '{n}/{total} · 自动择优 · 抗性合计 {r}',
     'toast.gear.exswap': '手动替换：{name}（{tier}）已穿上，旧件移入库藏阁',
     'gear.stash.hint': '境界提升自动复检',
+    /* ── B16-e 百器页版面（设计稿 §百器：三格摘要 / 四槽一行 / 百器录行 / 炼化条）── */
+    'gear.sum.worn': '在 身',
+    'gear.slot.none': '空',
+    'gear.hint': '百器随身穿戴、入战生效，可炼化为材料；法宝另立一页，只带一条签名效果，不介入战斗。',
+    'gear.codex.open': '全部 ›',
+    'gear.refine.strip.t': '炼 化',
+    'gear.refine.strip.v': '弃置的百器可炼为材料，已录格子不会消失',
     /* ── 批 2 · 奇遇回看浮层（交互说明 ★：图鉴格点按 = story + 首遇时间 + 上次选择）── */
     'event.recall.title': '奇遇回看 · {name}',
     'event.recall.first': '首遇 · {d}（{ago}）', 'event.recall.times': '累计相遇 {n} 次',
@@ -533,6 +607,9 @@
     'bond.title': '道友名录',
     'bond.sec.friend': '道友', 'bond.sec.spouse': '道侣候选',
     'bond.sec.count': '已结缘 {n} / {total}', 'bond.sec.countdead': '已结缘 {n} / {total} · 缘尽 {d}',
+    /* UI v2 B8：道友页两卡首屏之后只铺已结缘/缘尽行，未结缘收成一条入口（全名录浮层不变） */
+    'bond.sec.met': '已结缘', 'bond.sec.dead': '缘尽', 'bond.met.none': '尚未与任何人结缘',
+    'bond.unmet.line': '{n} 位道友 · 缘分未至', 'bond.unmet.go': '查看全名录 ›',
     'bond.sec.sptip': '「双」= 满档可结缘双修', 'bond.sec.spdoing': '双修中 {n}',
     'bond.badge.spouse': '双', 'bond.deadava': '缘', 'bond.guard.tag': '护法位', 'bond.fav.label': '好感度',
     'bond.spouse.form.yinyang': '阴阳双修', 'bond.spouse.form.huzhu': '互助双修', 'bond.spouse.form.luding': '炉鼎采补',

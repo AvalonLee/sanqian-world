@@ -56,6 +56,13 @@
   K['legacy.ui.settle.title'] = '一世终了';
   K['legacy.ui.settle.gain'] = '遗泽入账 +{n}';
   K['legacy.ui.bios'] = '前世书';
+  /* ── B16-l 版面（设计稿 §轮回：兵解居首 + 结算预览 detailbox + 商店整行）── */
+  K['legacy.ui.previewbox'] = '兵 解 结 算 预 览';
+  K['legacy.ui.preview.src'] = '与实结同源';
+  K['legacy.ui.preview.totallab'] = '折算遗泽';
+  K['legacy.ui.bingjie.sub'] = '此世所得折分 ×0.7 入遗泽 · 转世后重走创角三屏';
+  K['legacy.ui.karmalog.note'] = '入账即记 · 同事件合并';
+  K['legacy.ui.bios.n'] = '{n} 世';
   K['legacy.ui.bios.empty'] = '尚无前世传记。';
   K['legacy.ui.bio.source.local'] = '本地史笔';
   K['legacy.ui.bio.source.tiandao'] = '天道亲笔';
@@ -63,12 +70,18 @@
    * 「烧表请天道作传」整族下线（见 codex.js 同批注）；两行 `bio.source.*` **留下**——
    * 老档确有 source:'tiandao' 的条目，抹掉来源标记等于改史。 */
   K['legacy.ui.recap.title'] = '盖棺之传';
+  K['legacy.ui.recap.life'] = '{name} · 一生';
   K['legacy.ui.recap.go'] = '入世';
   K['legacy.ui.startRealm.pick'] = '起步境界（跳档不跳渡劫）';
   K['legacy.ui.legacyTalent.pick'] = '转世天赋（≤2，逐世可换）';
   K['legacy.ui.bondHeir.pick'] = '跨世之缘 · 赎回道友 1 人';
   K['legacy.ui.none'] = '无';
-  K['legacy.ui.stats'] = '跨世：{lives} 世 · 飞升 {asc} · 兵解 {dis} · 身死 {death} · 最高{realm}';
+  /* UI v2 B9：跨世统计改四格 + 最高境界一行（旧整句键退役） */
+  K['legacy.ui.stat.lives'] = '轮回世数';
+  K['legacy.ui.stat.asc'] = '飞升';
+  K['legacy.ui.stat.dis'] = '兵解';
+  K['legacy.ui.stat.death'] = '身死';
+  K['legacy.ui.stat.realm'] = '最高境界 · {realm}';
   /* 结算计分项名（§2.3 十一行） */
   K['legacy.score.realmMax'] = '最高境界档';
   K['legacy.score.ascend'] = '飞升';
@@ -152,6 +165,7 @@
   K['achv.system'] = '成就';
   K['achv.ui.gcount'] = '{n}/{total}';
   K['achv.ui.got'] = '已达成';
+  K['achv.ui.behavior'] = '行 为 成 就';
   K['achv.ui.q'] = '？';
   K['codex.ui.achv.hint'] = '提示：{t}';
   K['codex.ui.titles'] = '称号墙';
@@ -335,12 +349,12 @@
   /* ── 更新公告浮层（第册四批 · UI 卷 §3.4e · 玩家可见文案一律白话短句，零英文名词、零版本号）──
    * 消费侧 = `view/updatenote.js` 逐条字面取词（不走拼键，A2/A6 才看得见这七行）。 */
   K['update.note.title'] = '游戏更新公告';
-  K['update.note.l1'] = '本次更新共五项：一世结束的传记演出、法宝认主按件计算、历练寿元提醒、主修显示修正、丹毒提示下架。以下逐条说明。';
-  K['update.note.l2'] = '新增 · 一世结束时会演出「盖棺之传」。无论飞升、兵解、寿尽、道伤崩碎还是折寿，都会逐字写完这一世的经历，再回到创角屏开始下一世；演的那一份和轮回页「前世书」里读到的是同一份，不另写一套。';
-  K['update.note.l3'] = '调整 · 法宝认主改为按件计算。以前几件法宝共用一份进度，一件修满就会把其余几件一起冻住；现在每件单独计时计数，满阶的那件不再拖累其他件，新入手的法宝从零开始。';
-  K['update.note.l4'] = '新增 · 法宝卡片会写明「这件还差约几小时进一阶」。数字按这件法宝自己的进度算，未圆满的先天法宝才有这句，已经满阶的不显示。';
-  K['update.note.l5'] = '新增 · 修行页的寿元一栏多了折算提醒。驻在秘境历练时，修为来得比闭关快、寿元也耗得快，屏上会按当前节奏折算出还够修多少年，不必自己去猜。';
-  K['update.note.l6'] = '调整 · 两处显示不再误导。一是被别的功法顶下槽的那一部，不会再占着「主修」两个字；重新装回槽里也不会自动夺回主修，需要你再点一次。二是「丹毒已满」这句提示连同这条限制一起下架——它其实从来没有真正拦住了谁。此后不再按天限量，匣里有丹就能服（破障、镇劫那两枚的每境界限照旧），同一类增益依旧只保留最强的一条。';
+  K['update.note.l1'] = '本次是一次大更新：整个界面换成新版，另有天降礼包、势力名录与宗门治理、修行页重排三件新内容。以下逐条说明。';
+  K['update.note.l2'] = '界面 · 所有页面按新设计重排：纸面底与夜间深色主题、桌面三栏与手机底栏；宽屏下内容列居中，不再偏在左边；左栏页名缩短，页内仍是全名。';
+  K['update.note.l3'] = '新增 · 右栏「天降礼包」：礼包会自己换、自己倒计时，宣传写得天花乱坠，开出来可能是好东西，也可能什么都没有；点开前会先问一句，确认后才扣灵石或修为。';
+  K['update.note.l4'] = '调整 · 势力页变成名录，点进去能看介绍与关系，加入、叛投、叛离都在详情里办；宗门页按你的处境分三种：还没入伙、已入别家、自立门户。';
+  K['update.note.l5'] = '新增 · 自立宗门完全放开：可改名、改门规、写门规宣言、定税率、任免执事与长老、逐出弟子、花灵石单方停战，也可以解散宗门重新来过。';
+  K['update.note.l6'] = '调整 · 修行页重排：圆相下方直接给吐纳速率与飞升入口，境界、寿元、洞府收成收束到一块；「天命」行尾可直达洗髓；右栏侣柱同时显示护法与双修，地柱写明加成属于哪一方面；渡劫、抉择、盖棺与飞升的演出都换成了新画面。';
   K['update.note.l7'] = '本公告在你点「知道了」之后才记为已读，点旁边不算；下次更新会再弹一次。';
   K['update.note.close'] = '知道了';
 

@@ -27,15 +27,17 @@
     'idle.next': '下一境界：{realm}（还需 {n} {res}）',
     'idle.trib.eta': '按当前增速约 {time} 后可渡劫',   /* 第十八批 · 修行页渡劫倒计时（纯派生显示量，不入档） */
     'idle.maxed': '已臻化境',
-    'idle.detail': '含加成明细',
+    'idle.detail': '明细',
+    'idle.detail.title': '吐纳明细',
+    'idle.detail.note': '合计 = 境界基础 × 各乘区 + 各项加成；与顶部每秒产出同一式子。',
     'idle.base': '境界基础', 'idle.talent': '天赋', 'idle.arts': '功法',
     'idle.gear': '装备', 'idle.buff': '状态加成', 'idle.align': '阵营倍率',
 
     /* ── 修行状态（模式）：闭关修炼（v2.2 曾名「潜心问道」）/ 外出历练；离线回归 = 潜心悟道 ── */
     'idle.mode.title': '修行状态',
-    'idle.mode.seclude': '闭关修炼',
+    'idle.mode.seclude': '闭关',
     'idle.mode.seclude.desc': '修为增速 +30%，不产灵石；悟法加倍，奇遇减半，不出装备。',
-    'idle.mode.venture': '外出历练',
+    'idle.mode.venture': '历练',
     'idle.mode.venture.desc': '前往秘境历练：修为放缓，灵石与掉落全开；奇遇加倍，悟法放缓。',
     'idle.mode.seclude.at': '正在洞府潜心静修',
     'idle.mode.venture.at': '正在「{zone}」历练',
@@ -79,9 +81,14 @@
 
     /* ── 菜单描述（词族契约 tab. 族：由世界分卷拥有——换世界即换菜单名）── */
     'tab.idle': '修行', 'tab.event': '奇遇',
+    /* UI v2 B1：左带五区分组标题（世界分卷拥有；修行区标题复用 tab.idle 的「修行」） */
+    'nav.sec.idle': '修行', 'nav.sec.zone': '历练', 'nav.sec.arts': '道器',
+    'nav.sec.bonds': '江湖', 'nav.sec.life': '生平',
+    /* B16-y：导航短名（页内与商店分类仍用全名 alchemy.system「炼丹炼器」） */
+    'nav.alchemy': '丹器',
 
     /* ── G3 秘境 ── */
-    'combat.system': '秘境洞天',
+    'combat.system': '秘境',
     'combat.zone.0': '青云试炼地', 'combat.zone.1': '黑风寨', 'combat.zone.2': '万兽谷',
     'combat.zone.3': '焦土遗迹', 'combat.zone.4': '雷池禁地', 'combat.zone.5': '乱星秘窟',
     'combat.zone.6': '修罗战场', 'combat.zone.7': '天渊龙墟', 'combat.zone.8': '混沌雷海',
@@ -100,7 +107,7 @@
     'combat.tag': '历练',
 
     /* ── G4 法器（装备）── */
-    'gear.system': '法器',
+    'gear.system': '百器',
     'gear.slot.weapon': '兵刃', 'gear.slot.treasure': '灵器',
     'gear.slot.armor': '甲衣', 'gear.slot.accessory': '佩饰',
     'gear.tier.0': '凡品', 'gear.tier.1': '良品', 'gear.tier.2': '上品',
@@ -154,13 +161,13 @@
     'tribulation.reset': '功法不失，等级依旧',
     'tribulation.estimate': '渡劫成功率预估 {p}%',
     'tribulation.detail': '明细',
-    'tribulation.base': '境界基础', 'tribulation.resist': '法器抗性',
+    'tribulation.base': '境界基础', 'tribulation.resist': '百器抗性',
     'tribulation.power': '战力富余', 'tribulation.talent': '天赋/功法',
-    'tribulation.karma': '善恶', 'tribulation.next': '一次性修正',
+    'tribulation.karma': '道心', 'tribulation.next': '一次性修正',
     'tribulation.alignFlat': '正道光环', 'tribulation.guardian': '护法加持 · 虚位以待',
 
     /* ── 善恶 karma ── */
-    'karma.system': '善恶',
+    'karma.system': '道心',
     'karma.tier.right': '正道光环', 'karma.tier.neutral': '左道', 'karma.tier.evil': '魔道气息',
     'karma.part.arts': '功法', 'karma.part.gear': '装备', 'karma.part.events': '平生所为',
     'karma.part.drift': '初心倾向',
@@ -243,6 +250,8 @@
     'cave.fac.title': '附属设施',
     'cave.fac.hint': '只可在当前驻留的福地上营建；产业永存，唯驻留处生效。',
     'cave.fac.lv': '{n} 级',
+    'cave.fac.none': '未营建',
+    'cave.fac.idle.build': '未营建 · 可营建',
     'cave.fac.build': '营建 · {n} 灵石',
     'cave.fac.upgrade': '扩建 · {n} 灵石',
     'cave.fac.max': '已至满级',

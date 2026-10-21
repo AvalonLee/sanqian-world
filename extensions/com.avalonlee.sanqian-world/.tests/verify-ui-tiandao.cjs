@@ -37,7 +37,7 @@ async function buildSave() {
   ];
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-3' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-21-1' },
     meta: { unlockedWorlds: ['xiuxian'], stats: { lives: 1 } },
     settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
     worlds: { xiuxian: ws }
@@ -65,7 +65,10 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(url);
-  await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+  await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 }).catch((e) => {
+    console.log('BOOT_ERRORS', errors.slice(0, 4).join(' | '));
+    throw e;
+  });
   await page.waitForTimeout(700);
 
   const clearToasts = () => page.evaluate(() => { document.getElementById('toasts').innerHTML = ''; });
@@ -240,88 +243,211 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   await page.evaluate(() => { document.querySelectorAll('.mask,.trib-mask,.cave-stage,.spouse-stage,.excl-mask').forEach(function (x) { x.classList.add('hide'); }); });
   await page.waitForTimeout(250);
   const rowA = await page.evaluate(() => {
-    var r = document.querySelector('.tdrow');
-    if (!r) return { none: true };
-    var omen = r.querySelector('[data-act="openOmens"]');
-    var bj = r.querySelector('[data-act="dissolve"]');
-    var gift = r.querySelector('[data-act="giftBuy"]');
+    var r = document.querySelector('#tab-idle .tdrow');
+    var rail = document.getElementById('m-rail');
+    var omenRail = rail ? rail.querySelector('[data-act="openOmens"]') : null;
+    var giftRail = rail ? rail.querySelector('[data-act="giftBuy"]') : null;
     return {
-      justify: getComputedStyle(r).justifyContent,
-      sameRowOmen: !!omen, sameRowBingjie: !!bj,
-      gift: !!gift, giftText: gift ? gift.textContent.replace(/\s+/g, ' ').trim() : '',
-      /* `margin-left: auto` 在 flex 里会被解析成实际用值（px）——读到 >8px 才算真的把贴片推走了 */
-      giftML: gift ? getComputedStyle(gift).marginLeft : '',
-      giftLeftAuto: !!gift && parseFloat(getComputedStyle(gift).marginLeft) > 8,
-      residue: (r.textContent.match(/[{，}。]/g) || []).length ? (/\{\}/.test(r.textContent) ? 1 : 0) : 0
+      centerHidden: !r || r.offsetParent === null,
+      railOmen: !!omenRail, railGift: !!giftRail,
+      railVisible: !!(rail && rail.offsetParent),
+      giftText: giftRail && giftRail.closest('.giftcard') ? giftRail.closest('.giftcard').textContent.replace(/\s+/g, ' ').trim() : '',
+      hasRail: document.getElementById('sc-main').classList.contains('hasrail'),
+      centerOmen: !!(r && r.querySelector('[data-act="openOmens"]')),
+      centerBingjie: !!(r && r.querySelector('[data-act="dissolve"]')),
+      centerGift: !!(r && r.querySelector('[data-act="giftBuy"]')),
+      residue: r ? (/\{\}/.test(r.textContent) ? 1 : 0) : 0
     };
   });
-  /* G1 判据随批改口（第卌七批 · 用户令「修行页天象兵解等功能左对齐，模拟礼包的提示框右对齐」）：
-   * 第卅九批的口径是**整行右对齐**（justify=flex-end），本批反过来——功能群贴左、贴片独自贴右。
-   * 两个层级各钉一刀：G1 看计算样式（justify-content + 贴片的 margin-left 是否真为 auto 生效），
-   * G8 看几何像素（谁贴左沿、谁贴右沿、中间有没有推开、有没有重叠）。只留一层都会被另一层放过。 */
-  T(rowA.justify === 'flex-start' && rowA.giftLeftAuto,
-    'G1 天道行改左对齐、礼包贴片以 margin-left:auto 贴右（第卌七批改口，旧口径为整行 flex-end）',
-    'justify=' + rowA.justify + ' 贴片marginLeft=' + rowA.giftML + ' auto生效=' + rowA.giftLeftAuto);
-  T(rowA.sameRowOmen && rowA.sameRowBingjie, 'G2 天象与兵解转世在同一行（问天隐藏后两者同父 .tdrow）', JSON.stringify([rowA.sameRowOmen, rowA.sameRowBingjie]));
-  T(rowA.gift && /首充|648|屠龙|直通|霓裳|榜末/.test(rowA.giftText), 'G3 页游充值贴片在位且是当前六款之一', rowA.giftText.slice(0, 54));
-  T(rowA.residue === 0, 'G4 这一行无 {} 占位残留', 'residue=' + rowA.residue);
+  /* B16-w 改口（用户令「天象 / 兵解转世 / 彩蛋右栏已有，中区不要重复」）：
+   * 桌面有右栏时中区 .tdrow 收起（天象/兵解/彩蛋不重复）；右栏天象段条可点开天象浮层、彩蛋在右栏。
+   * 窄屏无右栏时中区那行仍在（天象/兵解/彩蛋入口不能因去重而消失）。 */
+  T(rowA.railVisible && rowA.centerHidden && rowA.railOmen && rowA.railGift,
+    'G1 桌面有右栏 ⇒ 中区天象/兵解/彩蛋行收起（不重复），入口改由右栏承担',
+    JSON.stringify(rowA));
+  T(rowA.railOmen && rowA.centerOmen && rowA.centerBingjie && rowA.centerGift,
+    'G2 右栏天象段条可点；中区那行仍保留天象/兵解/彩蛋（窄屏无右栏时可见，不是删功能）',
+    JSON.stringify([rowA.railOmen, rowA.centerOmen, rowA.centerBingjie, rowA.centerGift]));
+  T(rowA.railGift && /倒计时/.test(rowA.giftText) && /支付(灵石|修为)/.test(rowA.giftText) && /立即领取/.test(rowA.giftText),
+    'G3 天降礼包在右栏：宣传 + 倒计时 + 支付档位 + 领取钮四件齐全', rowA.giftText.slice(0, 80));
+  T(rowA.residue === 0, 'G4 中区那一行无 {} 占位残留', 'residue=' + rowA.residue);
   const keysG = await page.evaluate(() => {
     var out = [];
-    for (var i = 0; i < 6; i++) out.push(SQ.t('eggs.gift.p' + i + '.name'), SQ.t('eggs.gift.p' + i + '.offer'));
-    out.push(SQ.t('eggs.gift.tag'), SQ.t('eggs.gift.btn'), SQ.t('eggs.gift.deny'));
-    return out;
+    for (var i = 0; i < SQ.Gifts.N; i++) out.push(SQ.t('eggs.gift.p' + i + '.name'), SQ.t('eggs.gift.p' + i + '.offer'));
+    out.push(SQ.t('eggs.gift.tag'), SQ.t('eggs.gift.btn'));
+    return { n: SQ.Gifts.N, keys: out };
   });
-  T(keysG.length === 15 && keysG.every((x) => typeof x === 'string' && x.length > 0 && !/\{|undefined/.test(x)),
-    'G4b 礼包 15 枚词表键全部可解析（含 deny）', keysG.filter((x) => !x || /\{|undefined/.test(x)).slice(0, 2).join('|'));
-  const save0 = await page.evaluate(() => localStorage.getItem('sanqian-state-v1') || '');
-  await clearToasts();
-  await page.click('[data-act="giftBuy"]');
-  await page.waitForTimeout(400);
-  const afterG = await page.evaluate(() => ({
-    toasts: Array.prototype.map.call(document.querySelectorAll('#toasts .toast'), (x) => x.textContent),
-    save: localStorage.getItem('sanqian-state-v1') || '',
-    qi: (document.querySelector('.stathero') || {}).textContent || ''
+  T(keysG.n >= 20 && keysG.keys.length === keysG.n * 2 + 2 &&
+    keysG.keys.every((x) => typeof x === 'string' && x.length > 0 && !/\{|undefined/.test(x)),
+    'G4b 礼包宣传 ≥20 条且全部可解析（name/offer 非空、无占位残留）',
+    'N=' + keysG.n + ' bad=' + keysG.keys.filter((x) => !x || /\{|undefined/.test(x)).slice(0, 2).join('|'));
+  /* G5 确认 →（取消不扣）→ 确认 → 结果弹窗；扣费与三分支由 probe-gift 直证，这里只验屏上链路 */
+  await page.click('#m-rail [data-act="giftBuy"]');
+  await page.waitForTimeout(350);
+  const cfg = await page.evaluate(() => ({
+    open: !document.getElementById('modal-confirm').classList.contains('hide'),
+    title: (document.getElementById('cf-title').textContent || '').trim(),
+    body: (document.getElementById('cf-text').textContent || '').trim()
   }));
-  T(afterG.toasts.length === 1 && /不通金银|苦修|彩蛋/.test(afterG.toasts[0]), 'G5 点「立即充值」只出一句拒绝提示', afterG.toasts.join('|').slice(0, 60));
-  T(afterG.save === save0, 'G5b 点彩蛋**零落档**：localStorage 逐字节不变', 'len ' + save0.length + '→' + afterG.save.length);
+  T(cfg.open && /天降礼包/.test(cfg.title) && /支付/.test(cfg.body) && /%/.test(cfg.body),
+    'G5 点礼包先弹确认（写明支付金额与百分比，不在暗处扣）', JSON.stringify(cfg));
+  const g5b = await page.evaluate(async () => {
+    var SP = Object.getPrototypeOf(localStorage);
+    var orig = SP.setItem, writes = 0;
+    SP.setItem = function (k, v) { writes++; return orig.call(this, k, v); };
+    try {
+      var before = localStorage.getItem('sanqian-state-v1') || '';
+      document.getElementById('cf-cancel').click();
+      for (var i = 0; i < 12; i++) await Promise.resolve();
+      var after = localStorage.getItem('sanqian-state-v1') || '';
+      return { before: before, after: after, writes: writes,
+        closed: document.getElementById('modal-confirm').classList.contains('hide') };
+    } finally { SP.setItem = orig; }
+  });
+  T(g5b.closed && g5b.before === g5b.after && g5b.writes === 0,
+    'G5b 取消 = 分文不动、零落档（确认框只问不扣）',
+    'closed=' + g5b.closed + ' writes=' + g5b.writes);
+  await page.click('#m-rail [data-act="giftBuy"]');
+  await page.waitForTimeout(300);
+  await page.click('#cf-ok');
+  await page.waitForTimeout(700);
+  const gr = await page.evaluate(() => ({
+    open: !document.getElementById('modal-giftresult').classList.contains('hide'),
+    title: (document.getElementById('mgr-title').textContent || '').trim(),
+    wantTitle: SQ.t('eggs.gift.result.title', null, 'xiuxian'),
+    body: (document.getElementById('mgr-body').textContent || '').trim(),
+    paid: (document.getElementById('mgr-paid').textContent || '').trim(),
+    cost: (document.getElementById('mgr-paid').textContent || '').indexOf('已支付') >= 0,
+    outcome: /开出|空空如也/.test(document.getElementById('mgr-body').textContent || ''),
+    noPitch: !/宣传|礼包宣传|错过再等|下次一定/.test(document.getElementById('mgr-body').textContent || '')
+  }));
+  T(gr.open && gr.title === gr.wantTitle && gr.cost && gr.outcome && gr.noPitch,
+    'G5c 确认后真扣费并弹结果：只报实际开出什么 / 空空如也，不再回引宣传语', JSON.stringify(gr));
+  await page.click('#mgr-ok');
+  await page.waitForTimeout(250);
+  T(await page.evaluate(() => document.getElementById('modal-giftresult').classList.contains('hide')),
+    'G5d 结果弹窗「再接再厉」可关闭（不留遮罩拦后续点击）');
+  /* G5e：买完先空置（不立刻换下一条、也不留领取钮），到期才刷新 */
+  const coolI = await page.evaluate(() => {
+    const card = document.querySelector('#m-rail .giftcard');
+    return {
+      cool: !!(card && card.classList.contains('cool')),
+      text: card ? card.textContent.replace(/\s+/g, ' ').trim() : '',
+      buy: !!document.querySelector('#m-rail [data-act="giftBuy"]')
+    };
+  });
+  T(coolI.cool && /下一份/.test(coolI.text) && !coolI.buy,
+    'G5e 开完礼包先空置：卡片只报「下一份 N 后刷新」，不立刻换新、也不留领取钮',
+    JSON.stringify(coolI));
   const seen = new Set();
   for (let i = 0; i < 12 && seen.size < 2; i++) {
     await page.reload();
     await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
     await page.waitForTimeout(420);
     const t = await page.evaluate(() => {
-      var g = document.querySelector('[data-act="giftBuy"]');
-      return g ? g.textContent.replace(/\s+/g, ' ').trim() : '';
+      var g = document.querySelector('#m-rail [data-act="giftBuy"]');
+      var card = g && g.closest('.giftcard');
+      return card ? card.textContent.replace(/\s+/g, ' ').trim() : '';
     });
     if (t) seen.add(t.slice(0, 10));
   }
   T(seen.size >= 2, 'G6 重进 12 次至少换出 2 款（随机轮换为真，不是写死一张）', 'seen=' + seen.size);
-  /* G8（第卌七批 · 用户令「修行页天象兵解等功能左对齐，模拟礼包提示框右对齐」）：
-   * 同一行两种角色靠对齐分开——功能群一律贴左，恶搞贴片用 margin-left:auto 独自推到行尾。
-   * 判据取的是**几何**（boundingRect 边界差），不是 class 名：改回 justify-content: flex-end 必红。 */
-  const al = await page.evaluate(() => {
-    /* 按「含贴片的那一行」取，不按第一个 `.tdrow`——修行页与轮回页都有 tdrow，靠位置选会挑错行 */
-    const row = document.querySelector('.tdrow:has(.giftcard)');
-    const gift = row && row.querySelector('.giftcard');
-    if (!row || !gift || !gift.offsetParent) return { found: false };
-    const gb = gift.getBoundingClientRect();
-    const vis = Array.prototype.slice.call(row.children)
-      .filter(x => x !== gift && x.offsetParent !== null);
-    if (!vis.length) return { found: true, empty: true };
-    const bb = vis.map(x => x.getBoundingClientRect());
-    const rb = row.getBoundingClientRect();
-    const sameLine = bb.filter(r => Math.abs(r.top - gb.top) < 4);
+  /* G8（B16-w 改口 · 用户令「桌面右栏已有天象/彩蛋，中区不要重复」）：
+   * 桌面（有右栏）中区 .tdrow 收起；窄屏无右栏时必须仍在——去重不等于删入口。 */
+  await page.setViewportSize({ width: 900, height: 700 });
+  await page.waitForTimeout(500);
+  const narrowG = await page.evaluate(() => {
+    const main = document.getElementById('sc-main');
+    const rail = document.getElementById('m-rail');
+    const row = document.querySelector('#tab-idle .tdrow');
     return {
-      found: true, n: vis.length,
-      leftGap: Math.round(Math.min.apply(null, bb.map(r => r.left)) - rb.left),
-      rightGap: Math.round(rb.right - gb.right),
-      pushGap: Math.round(gb.left - Math.max.apply(null, (sameLine.length ? sameLine : bb).map(r => r.right))),
-      overlap: bb.some(r => r.right > gb.left + 1 && r.left < gb.right - 1 && Math.abs(r.top - gb.top) < 4)
+      hasRail: main.classList.contains('hasrail'),
+      railVisible: !!(rail && rail.offsetParent),
+      rowVisible: !!(row && row.offsetParent),
+      omen: !!(row && row.querySelector('[data-act="openOmens"]')),
+      bj: !!(row && row.querySelector('[data-act="dissolve"]')),
+      gift: !!(row && row.querySelector('[data-act="giftBuy"]'))
     };
   });
-  T(al.found && !al.empty && al.leftGap <= 2 && al.rightGap <= 2 && al.pushGap >= 8 && al.overlap === false,
-    'G8 功能群贴左（左边界差 ≤2px）· 礼包贴片贴右（右边界差 ≤2px）· 中间被推开 ≥8px 且互不重叠',
-    JSON.stringify(al));
+  T(!narrowG.railVisible && narrowG.rowVisible && narrowG.omen && narrowG.bj && narrowG.gift,
+    'G8 窄屏无右栏列时中区天象/兵解/彩蛋行仍在（桌面去重不删功能）', JSON.stringify(narrowG));
+  await page.setViewportSize({ width: 1440, height: 950 });
+  await page.waitForTimeout(300);
+
+  /* ── I 组（B16-w · 修行页构图）：大块次序对齐设计稿 v2 ──
+   * mode / 圆相 / 四格 / 境界 / 寿元 / 洞府 / 天象行 / 天命，逐对比较文档序。 */
+  const orderI = await page.evaluate(() => {
+    const tab = document.getElementById('tab-idle');
+    const kids = Array.prototype.slice.call(tab.children);
+    const at = (sel, txt) => {
+      const xs = Array.prototype.slice.call(tab.querySelectorAll(sel));
+      const hit = xs.filter((x) => !txt || x.textContent.indexOf(txt) >= 0)[0];
+      return hit ? kids.indexOf(hit) : -1;
+    };
+    return {
+      mode: at('.mode'), enso: at('.stathero'), stat: at('.statrow'),
+      meta: at('.statmeta'), td: at('.tdrow'), talent: at('.sechead'),
+      metaHas: (function () {
+        const m = tab.querySelector('.statmeta');
+        if (!m) return { life: false, cave: false, realm: false };
+        const tx = m.textContent;
+        return {
+          realm: tx.indexOf(SQ.t('realm.info.cur', { realm: SQ.t('realm.' + 0, null, 'xiuxian') }, 'xiuxian').slice(0, 2)) >= 0,
+          life: tx.indexOf('寿元') >= 0,
+          cave: tx.indexOf(SQ.t('idle.cave', null, 'xiuxian')) >= 0
+        };
+      })()
+    };
+  });
+  const seqI = [orderI.mode, orderI.enso, orderI.stat, orderI.meta, orderI.td, orderI.talent];
+  T(seqI.every((x, i) => x >= 0 && (i === 0 || x > seqI[i - 1])) && orderI.metaHas.realm && orderI.metaHas.life && orderI.metaHas.cave,
+    'I1 修行页大块次序 = 模式 → 圆相 → 四格 → 境界/寿元/洞府信息块 → 天象行 → 天命（设计稿 v2；信息块内三样齐全）',
+    JSON.stringify(orderI));
+
+  /* I2 吐纳明细浮层：纸面面板 + 加/乘标记 + 合计；关闭可收 */
+  await page.click('#tab-idle .rate [data-act="detailRate"]');
+  await page.waitForTimeout(300);
+  const dpI = await page.evaluate(() => ({
+    open: !!document.querySelector('.dp-sheet'),
+    title: ((document.querySelector('.dp-sheet .dp-t2') || {}).textContent || '').trim(),
+    total: ((document.querySelector('.dp-sheet .dp-total') || {}).textContent || '').trim(),
+    rows: document.querySelectorAll('.dp-sheet .dp-row').length,
+    add: document.querySelectorAll('.dp-sheet .dp-t.add').length,
+    mul: document.querySelectorAll('.dp-sheet .dp-t.mul').length
+  }));
+  T(dpI.open && !!dpI.title && /\/秒/.test(dpI.total) && dpI.rows >= 2 && dpI.add >= 1 && dpI.mul >= 1,
+    'I2 吐纳明细为独立纸面浮层（标题/合计/加项+/乘区× 齐全）', JSON.stringify(dpI));
+  await page.click('.dp-sheet [data-act="detailRate"]');
+  await page.waitForTimeout(250);
+  T(!(await page.$('.dp-sheet')), 'I3 点「收起」浮层消失（不留遮罩拦点击）');
+
+  /* I4（B16-ae）：闭关/历练切换时模式说明折行数不同，圆相不许上下跳 */
+  const topOf = () => page.evaluate(() => Math.round(document.querySelector('#tab-idle .stathero').getBoundingClientRect().top));
+  const t0 = await topOf();
+  await page.click('#tab-idle [data-act="setMode"][data-v="venture"]');
+  await page.waitForTimeout(350);
+  const t1 = await topOf();
+  const hMeta = await page.evaluate(() => Math.round(document.querySelector('#tab-idle .modemeta').getBoundingClientRect().height));
+  await page.click('#tab-idle [data-act="setMode"][data-v="seclude"]');
+  await page.waitForTimeout(350);
+  const t2 = await topOf();
+  T(Math.abs(t0 - t1) <= 1 && Math.abs(t0 - t2) <= 1 && hMeta >= 38,
+    'I4 闭关 ↔ 历练切换：模式说明行高度固定，圆相不上下移动',
+    JSON.stringify({ seclude: t0, venture: t1, back: t2, metaH: hMeta }));
+
+  /* I5（B16-af）：天命段标最右 = 洗髓快捷入口 */
+  const washI = await page.evaluate(() => {
+    const head = Array.prototype.slice.call(document.querySelectorAll('#tab-idle .sechead'))
+      .filter((x) => x.textContent.indexOf(SQ.t('idle.talent.title', null, 'xiuxian')) >= 0)[0];
+    const btn = head ? head.querySelector('[data-act="washOpen"]') : null;
+    return {
+      has: !!btn,
+      txt: btn ? btn.textContent.trim() : '',
+      right: !!(head && btn && (head.getBoundingClientRect().right - btn.getBoundingClientRect().right) <= 8)
+    };
+  });
+  T(washI.has && /洗髓/.test(washI.txt) && washI.right,
+    'I5 天命段标最右端有洗髓快捷入口（同一 showWash 入口）', JSON.stringify(washI));
   T(errors.length === 0, 'G7 第一台整轮零页错误', errors.slice(0, 3).join(' | '));
 
   await browser.close();

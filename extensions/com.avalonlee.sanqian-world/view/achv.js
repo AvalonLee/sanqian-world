@@ -58,9 +58,19 @@
     (meta.achv || []).forEach(function (id) { got[id] = 1; });
     var h = '<div class="pagehead split"><div class="chips"><button class="on">' + c.esc(c.t('achv.system')) + '</button></div>' +
       '<span class="tdtitle">' + c.esc(c.t('codex.ui.achv.done', { n: (meta.achv || []).length })) + '</span></div>';
+    /* 三格摘要（B15-h · 设计稿 .sum3）：已得 / 遗泽 / 九面在录 —— 三个数都取存档现算，不写死 */
+    var facesAll = (d.CODEX.FACES || []);
+    var faceIn = facesAll.filter(function (f) { return SQ.Codex.faceCount(meta, f) > 0; }).length;
+    h += '<div class="sum3">' +
+      '<div><div class="k">' + c.esc(c.t('achv.ui.sum.got')) + '</div><div class="v">' +
+      c.esc(c.t('codex.ui.collected', { n: (meta.achv || []).length, total: (d.CODEX.ACHV || []).length })) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('achv.ui.sum.karma')) + '</div><div class="v">' + SQ.fmt(meta.karma || 0) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('achv.ui.sum.faces')) + '</div><div class="v">' +
+      c.esc(c.t('achv.ui.sum.facesv', { n: faceIn, total: facesAll.length })) + '</div></div></div>';
     /* 图鉴九面（自轮回页迁入）：收集率 + 里程碑，卡片网格置顶 */
-    h += '<div class="secbar"><span>' + c.esc(c.t('codex.system')) + '</span>' +
-      '<span class="secnote">' + c.esc(c.t('codex.ui.codexnote')) + '</span></div>';
+    /* B16-k：段标统一走 `.sechead`——`.secbar` 一族已在 B16-d 退役（CSS 删了，旧写法的段标会裸成一行文字） */
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('codex.system')) + '</span>' +
+      '<span class="s">' + c.esc(c.t('codex.ui.codexnote')) + '</span></div>';
     h += '<div class="facegrid">';
     (d.CODEX.FACES || []).forEach(function (face) { h += codexFaceCard(c, face, meta, p, d); });
     /* 转世天赋子区（epic 专属池 · 只发遗泽不发 qiRate）——分母与档位同读引擎单源，不写死 8 与三档 */
@@ -77,22 +87,28 @@
     h += '</div>';
     /* 称号墙（自轮回页迁入）：已录称号 chips */
     if ((meta.titles || []).length) {
-      h += '<div class="secbar"><span>' + c.esc(c.t('codex.ui.titles')) + ' · ' + (meta.titles || []).length + '</span></div>';
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('codex.ui.titles')) + ' · ' + (meta.titles || []).length + '</span></div>';
       h += '<div class="chips">' + (meta.titles || []).map(function (id) {
         return '<span class="tdtitle">' + c.esc(c.t('codex.title.' + id)) + '</span>';
       }).join('') + '</div>';
     }
-    /* 行为成就六组 */
+    /* 行为成就（B16-k · 设计稿 §成就）：六组 chips（带各组 n/total）+ **单网格**只渲染选中组。
+     * 原先是六段各铺一张网格 ⇒ 一屏滚不完、也看不出「这一组还差几条」。chips 单选、纯 UI 态
+     * （`ui.achvGroup`，不落盘），默认第一组。 */
     var byG = {};
     (d.CODEX.ACHV || []).forEach(function (a) { (byG[a.g] = byG[a.g] || []).push(a); });
-    ['xiu', 'jie', 'chen', 'men', 'mi', 'ni'].forEach(function (g) {
+    var gOrder = ['xiu', 'jie', 'chen', 'men', 'mi', 'ni'].filter(function (g) { return (byG[g] || []).length; });
+    var curG = gOrder.indexOf(c.ui.achvGroup) >= 0 ? c.ui.achvGroup : gOrder[0];
+    var allN = (meta.achv || []).length;
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('achv.ui.behavior')) + '</span>' +
+      '<span class="s">' + c.esc(c.t('codex.ui.collected', { n: allN, total: (d.CODEX.ACHV || []).length })) + '</span></div>';
+    h += '<div class="chips achvchips">' + gOrder.map(function (g) {
       var list = byG[g] || [];
-      if (!list.length) return;
       var n = list.filter(function (a) { return got[a.id]; }).length;
-      h += '<div class="secbar"><span>' + c.esc(c.t('codex.achv.group.' + g)) + '</span>' +
-        '<span class="secnote">' + c.esc(c.t('achv.ui.gcount', { n: n, total: list.length })) + '</span></div>' +
-        '<div class="achvgrid">' + list.map(function (a) { return achvCard(c, a, !!got[a.id]); }).join('') + '</div>';
-    });
+      return '<button class="' + (curG === g ? 'on' : '') + '" data-act="achvGroup" data-v="' + g + '">' +
+        c.esc(c.t('codex.achv.group.' + g)) + ' ' + c.esc(c.t('achv.ui.gcount', { n: n, total: list.length })) + '</button>';
+    }).join('') + '</div>';
+    h += '<div class="achvgrid">' + (byG[curG] || []).map(function (a) { return achvCard(c, a, !!got[a.id]); }).join('') + '</div>';
     c.$('tab-achv').innerHTML = h;
   }
 

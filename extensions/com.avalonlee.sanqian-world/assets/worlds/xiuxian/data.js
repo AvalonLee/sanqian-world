@@ -1302,6 +1302,10 @@
       FOUND_RANK: 4,
       FOUND_REP_PEAK: 2000,
       NAME_MAX: 6,
+      MOTTO_MAX: 24,
+      TAX_K: 0.5,                    /* 宗门税：弟子所在区灵石基准 × 0.5 × 税率（0~30% 步长 5） */
+      TAX_STEPS: [0, 5, 10, 15, 20, 25, 30],
+      PEACE_COST_K: 2,               /* 停战费 = 宗门声望 × 2（下限 1000 灵石） */
       DISC_CAP_BASE: 1,
       APT_W: { right: [20, 55, 25], neutral: [15, 55, 30], evil: [10, 50, 40] },
       APT_MULT: { fine: 1.2, mid: 1.0, raw: 0.8 },

@@ -20,7 +20,7 @@ async function buildSave() {
   ws.lastSave = now; ws.lastOffline = null; ws.pendingChoice = null;
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-3' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-21-1' },
     meta: { unlockedWorlds: ['xiuxian'], achv: [] },
     settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
     worlds: { xiuxian: ws }
@@ -108,56 +108,107 @@ function hintTotal() {
     'A4e「下一档」只出现在未达三档的卡上（三档齐不给下一档）', 'dots3=' + msRows.filter((r) => r.dots === 3).length);
 
 
-  /* 成就六组 */
-  const wide = await page.evaluate(() => {
-    const grids = [...document.querySelectorAll('#tab-achv .achvgrid')];
-    const cards = [...document.querySelectorAll('#tab-achv .achvcard')];
-    const got = cards.filter((c) => c.classList.contains('got'));
-    const lock = cards.filter((c) => c.classList.contains('lock'));
-    const hint = [...document.querySelectorAll('#tab-achv .ahint')];
-    const secs = [...document.querySelectorAll('#tab-achv .secbar')];
-    return {
-      secN: secs.length,
-      gridN: grids.length,
-      cols: grids[0] ? getComputedStyle(grids[0]).gridTemplateColumns.split(' ').length : 0,
-      total: cards.length,
-      gotN: got.length,
-      lockN: lock.length,
-      lockNames: lock.map((c) => c.querySelector('.an').textContent.trim()),
-      lockQ: lock.every((c) => !!c.querySelector('.aq')),
-      lockQText: lock.length ? lock[0].querySelector('.aq').textContent.trim() : '',
-      hintN: hint.length,
-      hintAllLocked: hint.every((h) => h.closest('.achvcard').classList.contains('lock')),
-      head: document.querySelector('#tab-achv .pagehead') ? document.querySelector('#tab-achv .pagehead').textContent : ''
-    };
-  });
-  T(wide.gridN === 6, 'A5 成就六组网格齐全', 'grid=' + wide.gridN);
+  /* 成就六组（B16-k 改口：六段各一网格 → 六组 chips + 单网格只渲染选中组）。
+   * 覆盖面不降反升：逐组点开，把六组的卡数 / 未解锁 / 提示语全部加起来对总账。 */
+  const groupIds = ['xiu', 'jie', 'chen', 'men', 'mi', 'ni'];
+  const perG = [];
+  for (const g of groupIds) {
+    await page.evaluate((gv) => {
+      const b = document.querySelector('#tab-achv .achvchips [data-v="' + gv + '"]');
+      if (b) b.click();
+    }, g);
+    await page.waitForTimeout(180);
+    perG.push(await page.evaluate(() => {
+      const grids = [...document.querySelectorAll('#tab-achv .achvgrid')];
+      const cards = grids.length ? [...grids[0].querySelectorAll('.achvcard')] : [];
+      const got = cards.filter((c) => c.classList.contains('got'));
+      const lock = cards.filter((c) => c.classList.contains('lock'));
+      const hint = [...document.querySelectorAll('#tab-achv .ahint')];
+      const onBtn = document.querySelector('#tab-achv .achvchips button.on');
+      return {
+        gridN: grids.length,
+        cols: grids[0] ? getComputedStyle(grids[0]).gridTemplateColumns.split(' ').length : 0,
+        total: cards.length, gotN: got.length, lockN: lock.length,
+        lockNames: lock.map((c) => c.querySelector('.an').textContent.trim()),
+        lockQ: lock.every((c) => !!c.querySelector('.aq')),
+        hintN: hint.length,
+        hintAllLocked: hint.every((h) => h.closest('.achvcard').classList.contains('lock')),
+        on: onBtn ? onBtn.dataset.v : ''
+      };
+    }));
+  }
+  const wide = {
+    chips: await page.evaluate(() => document.querySelectorAll('#tab-achv .achvchips button').length),
+    secs: await page.evaluate(() => document.querySelectorAll('#tab-achv .sechead').length),
+    head: await page.evaluate(() => (document.querySelector('#tab-achv .pagehead') || {}).textContent || ''),
+    total: perG.reduce((a, r) => a + r.total, 0),
+    gotN: perG.reduce((a, r) => a + r.gotN, 0),
+    lockN: perG.reduce((a, r) => a + r.lockN, 0),
+    hintN: perG.reduce((a, r) => a + r.hintN, 0),
+    cols: perG[0] ? perG[0].cols : 0
+  };
+  T(wide.chips === 6 && perG.every((r, i) => r.gridN === 1 && r.total > 0 && r.on === groupIds[i]),
+    'A5 成就六组 chips 齐全，点哪组就只渲染哪组（单网格 · 选中态同步）',
+    'chips=' + wide.chips + ' 各组卡数=' + perG.map((r) => r.total).join('/'));
   T(wide.cols >= 2, 'A6 成就网格宽屏 ≥2 列', 'cols=' + wide.cols);
-  T(wide.total === 60, 'A7 成就图鉴 60 卡全在', 'n=' + wide.total);
+  T(wide.total === 60, 'A7 六组点遍合计 60 卡（原「一屏 60 卡」改为逐组对总账，少一组即红）', 'n=' + wide.total);
   T(wide.gotN + wide.lockN === 60 && wide.gotN === 0, 'A8 零成就态：60 卡全为未解锁', 'got=' + wide.gotN + ' lock=' + wide.lockN);
-  T(wide.lockNames.every((s) => s === '？？？') && wide.lockQ, 'A9 未解锁成就以问号形式存在', 'name=' + wide.lockNames[0] + ' q=' + wide.lockQText);
-  T(wide.hintN === HINT_N && wide.hintAllLocked, 'A10 特殊成就提示解锁条件（.ahint = ' + HINT_N + '）', 'n=' + wide.hintN);
+  T(perG.every((r) => r.lockNames.every((s) => s === '？？？') && r.lockQ),
+    'A9 未解锁成就以问号形式存在（六组逐组查，不再只看首组）', 'n=' + wide.lockN);
+  T(wide.hintN === HINT_N && perG.every((r) => r.hintAllLocked),
+    'A10 特殊成就提示解锁条件（六组合计 .ahint = ' + HINT_N + '）', 'n=' + wide.hintN);
   T(wide.head.indexOf('/60') >= 0, 'A11 页头显示总进度 N/60', wide.head.slice(0, 40));
-  T(wide.secN === 7, 'A12 分节条 = 图鉴 1 + 成就六组（称号墙空态不渲染）', 'sec=' + wide.secN);
+  T(wide.secs === 2, 'A12 段标 = 图鉴 + 行为成就（称号墙空态不渲染；原 secbar 六段随 B16-k 并入 chips）',
+    'sechead=' + wide.secs);
 
   /* 轮回页：图鉴九面 / 称号墙 / 成就入口全部迁出，只留转世机制 */
   await page.click('#m-tabbar button:has-text("轮回")');
   await page.waitForTimeout(300);
   const legacy = await page.evaluate(() => {
     const el = document.querySelector('#tab-legacy');
+    const st = (JSON.parse(localStorage.getItem('sanqian-state-v1')).meta.stats) || {};
+    const cells = Array.prototype.map.call(el.querySelectorAll('.legacygrid .lg-cell'), (x) => ({
+      n: parseInt(((x.querySelector('.lg-n') || {}).textContent || '').trim(), 10),
+      k: ((x.querySelector('.lg-k') || {}).textContent || '').trim()
+    }));
     return {
       codexCard: !!el.querySelector('.facecard'),
       codexGrid: !!el.querySelector('.facegrid'),
       titleWall: el.textContent.indexOf('称号墙') >= 0,
       achvPtr: !!el.querySelector('[data-act="tab"][data-v="achv"]'),
       achvWall: el.textContent.indexOf('首次秘境首通') >= 0 || el.textContent.indexOf('逆天行事') >= 0,
-      shop: !!el.querySelector('.shopgrid'),
-      bios: el.textContent.indexOf('前世书') >= 0
+      /* B16-l 改口：遗泽商店由 .shopgrid 卡片改整行（.atkrow），入口 data-act=lgBuy 仍在 */
+      shop: !!el.querySelector('.atkrow, .shopgrid') && !!el.querySelector('[data-act="lgBuy"]'),
+      bios: el.textContent.indexOf('前世书') >= 0,
+      cells: cells, want: [st.lives || 0, st.ascensions || 0, st.dissolutions || 0, st.deaths || 0]
     };
   });
   T(!legacy.codexCard && !legacy.codexGrid && !legacy.titleWall && !legacy.achvPtr && !legacy.achvWall,
     'A13 轮回页图鉴 / 称号墙 / 成就入口已迁出');
   T(legacy.shop && legacy.bios, 'A14 轮回页仍留遗泽商店 + 前世书', 'shop=' + legacy.shop + ' bios=' + legacy.bios);
+  /* B16-l：兵解入口与结算预览同进同退；预览里的折算遗泽必须 === SQ.Legacy.preview 现算值 */
+  const bj = await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
+    const el = document.getElementById('tab-legacy');
+    const det = el.querySelector('.detailbox');
+    const last = det ? det.querySelector('.kv:last-child b') : null;
+    return {
+      eligible: w.realm >= ((D.LEGACY || {}).BINGJIE_MIN_REALM || 4),
+      hasBox: !!el.querySelector('.bjbox'),
+      hasDet: !!det,
+      rows: det ? det.querySelectorAll('.kv').length : 0,
+      totTxt: last ? last.textContent.trim() : '',
+      want: '+' + SQ.fmt(SQ.Legacy.preview(w, st.meta, pack, D, 'bingjie', Date.now()).total || 0)
+    };
+  });
+  T((bj.eligible ? bj.hasBox : !bj.hasBox) && bj.hasBox === bj.hasDet &&
+    (!bj.hasDet || (bj.rows >= 5 && bj.totTxt === bj.want)),
+    'A14c 兵解入口与结算预览同进同退，预览末行折算遗泽 === SQ.Legacy.preview 现算值（视图不自算）',
+    '境界够=' + bj.eligible + ' box=' + bj.hasBox + ' det=' + bj.hasDet + ' rows=' + bj.rows + ' 屏=' + bj.totTxt + ' 引擎=' + bj.want);
+  T(legacy.cells.length === 4 && legacy.cells.every((x, i) => x.n === legacy.want[i] && x.k.length > 0),
+    'A14b 轮回页跨世四格（世数 / 飞升 / 兵解 / 身死）逐格 === meta.stats',
+    JSON.stringify(legacy.cells) + ' want=' + JSON.stringify(legacy.want));
 
   /* 窄屏退单列（回成就页） */
   await page.click('#m-tabbar button:has-text("成就")');

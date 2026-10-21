@@ -23,7 +23,8 @@ function T(ok, name, detail) {
 }
 
 /* ── 抽 view 侧映射表 + alFailText 兜底口 ── */
-const viewSrc = fs.readFileSync(path.join(ROOT, 'view/index.html'), 'utf8');
+/* 第册四十六批：这一族已外置成 view/alchemy.js ⇒ 抽源码的读点跟着走（指回 index.html 就抽不到，V0 判红是有意的） */
+const viewSrc = fs.readFileSync(path.join(ROOT, 'view/alchemy.js'), 'utf8');
 const tbl = viewSrc.match(/var AL_FAIL_KEYS = \{([\s\S]*?)\n\s*\};/);
 T(!!tbl, 'V0 view 里能抽到 AL_FAIL_KEYS 表（读点已从「拼字符串」换成显式表）');
 const mapRaw = tbl ? tbl[1].replace(/\/\*[\s\S]*?\*\//g, '') : '';

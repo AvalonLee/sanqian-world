@@ -27,6 +27,7 @@
  *   D10 module 卡片只读（禁一切写入口；第册三十批 · 排期 A2 立）
  *   D11 世界包双清单键集对账（initialState ⇔ normalize 双向相等；第册卅四批 · 排期 D2 立）
  *   D12 世界 id 点名封闭（通用层/视图/卡片不许硬写世界 id；第册卅五批 · 排期 D4 立）
+ *   D14 视图件导出面 ⇔ 引用面双向对表（导出没人读 = 入口丢了 ‖ 读点没出口 = 真机 undefined；第册四十六批 · 第十一刀自曝立）
  *   D13 外置件件内互调的实参形状对表（区内声明的函数被同件调用 ⇒ 实参数 === 形参数；第册四十二批 · N34 第十刀自曝立，销 N31 那半条）
  *   D4 唯一事实源自洽（扩展根七项齐备 ‖ entry 件存在 ‖ 仓库根不复活第二份源；2026-10-14 整理批取代 B9 立）
  *   D1 账本漂移判据不在本件——落 `.tests/gen-ledger.cjs`（只判漂、--fix 才写），由 run-dod 直接调件；
@@ -386,10 +387,8 @@ const SQ = sandbox.window.SQ;
 
   /* A3 DOM id 对账：脚本里取元素用的 id 必须在同一 HTML 内静态存在
    * （取不到 = null.textContent 直接白屏；动态拼接 id 如 'jline-'+i 按前缀白名单放行） */
-  /* 'lawsec-' = 法与器合并页两个段标锚点（`secDiv()` 拼 'lawsec-fa'/'lawsec-qi'，由概览条
-   * `lawJump` 以 `getElementById('lawsec-' + v)` 消费）——节点随 innerHTML 动态渲染，与
-   * `openCave()` 取 `#cave-sec` 同因（页面整合批 2026-10-06 登记）。 */
-  const DYN_PREFIX = ['jline-', 'lawsec-'];
+  /* UI v2 B3 拆页后 lawsec- 动态锚点已退役，白名单只剩 jline-（判定逐行演出）。 */
+  const DYN_PREFIX = ['jline-'];
   const a3 = [];
   for (const f of htmlFiles) {
     const src = fs.readFileSync(f, 'utf8');
@@ -403,7 +402,16 @@ const SQ = sandbox.window.SQ;
      * 否则「脚本引用的 id 必须静态存在」这条对账会随搬家出现盲区。 */
     const here = path.dirname(f);
     if (fs.existsSync(here)) fs.readdirSync(here).filter((x) => x.endsWith('.js'))
-      .forEach((x) => code.push(fs.readFileSync(path.join(here, x), 'utf8')));
+      .forEach((x) => {
+        const js = fs.readFileSync(path.join(here, x), 'utf8');
+        code.push(js);
+        /* 第册五十一批（N34 第十五刀 2026-10-19）：动态节点（`innerHTML` 字符串里的 `id="..."`）随视图件一起
+         * 搬出后，「创建侧」也跟着离开了本页 ⇒ 同目录 js 里的 id 字面量必须与引用侧**同源采集**，否则本判会把
+         * 「件内自己创建、自己取」这种合法形态判红（本批 `sect-name-input` 即此形，红得没有道理）。
+         * 判据方向一字未改：仍要求 id 在**源码里静态出现**，只是把「源码」的射程与引用侧对齐（引用侧从第册四批起
+         * 就已含同目录 js，创建侧是这处漏配）。 */
+        for (const mm of js.matchAll(/\bid="([^"]+)"/g)) ids.add(mm[1]);
+      });
     const body = code.join('\n');
     const refs = [...body.matchAll(/\$\('([^']+)'\)|getElementById\(\s*'([^']+)'\s*\)/g)]
       .map((x) => x[1] || x[2]);
@@ -908,13 +916,24 @@ const SQ = sandbox.window.SQ;
   const modSrc = fs.readFileSync(path.join(ROOT, 'module/index.html'), 'utf8');
   const b4 = [];
   if (!viewHasCss) b4.push('view/ui.css 不在（样式若仍内联，本关口径要同批改）');
-  if (!viewSrc.includes('background: var(--xhub-page-bg, transparent)')) b4.push('view 页面底非透明变量');
-  if (!viewSrc.includes('var(--xhub-surface')) b4.push('view 缺 --xhub-surface');
+  /* UI v2 B1（D1=B）：view 页面底由「宿主透明」改为「不透明宣纸」，两段分别判：
+   *   ① view 必须有 --sq2-paper 定义 + body 用它铺底 + 暗色有覆盖（自带的墨夜）；
+   *   ② module 卡仍必须透明（卡片嵌在宿主桌面里，不铺纸）。
+   * UI v2 B14（2026-10-20 · 用户报「浏览器预览正常、宿主里显旧 UI 配色」）**判据改口**：
+   *   原 `var(--xhub-surface` 那条「面/字/线仍映射宿主」的正向证据**反向**——view 全域不许再引用
+   *   `--xhub-*`。根因 = 旧令牌别名写成 `var(--xhub-*, 兜底)`，宿主注入后 accent（靛紫）/玻璃面 /
+   *   radius-lg 接管纸面配色。module 卡仍读宿主文字/线色（透明卡叠在宿主玻璃上，属正常，不在此判）。 */
+  /* 剥注释再扫：说明性注释里出现令牌名不算实现（本关第一次改口就是被自己的注释绊红的） */
+  const viewScan = viewSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+  if (!viewScan.includes('--sq2-paper:')) b4.push('view 缺 --sq2-paper 纸面令牌');
+  if (!/background(-color)?:\s*var\(--sq2-paper\)/.test(viewScan)) b4.push('view 页面底未铺 --sq2-paper 纸面');
+  if (!/data-xhub-theme="dark"[^}]*--sq2-paper:/.test(viewScan)) b4.push('view 缺墨夜纸面覆盖（--sq2-paper 暗色声明）');
+  if (/--xhub-/.test(viewScan)) b4.push('view 仍引用宿主 --xhub-* 令牌（B14 起纸面自成一套，宿主 accent 不许接管）');
   if (!/background:\s*transparent/.test(modSrc)) b4.push('module 卡底非透明');
   for (const [n, s] of [['view', viewSrc], ['module', modSrc]]) {
     if (!s.includes(':root[data-xhub-theme="dark"]')) b4.push(n + ' 缺深色双声明');
   }
-  ok('B4', '主题铁律（透明底 + 双声明）', b4.length === 0, b4.join(';'));
+  ok('B4', '主题铁律（v2 纸面 + module 透明 + 双声明）', b4.length === 0, b4.join(';'));
 
   /* B5 module 格子纪律 */
   const b5 = [];
@@ -1081,8 +1100,12 @@ const SQ = sandbox.window.SQ;
   const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
   /* 扫描窗原为 400 字符 ⇒ 桥每长一行注释就整关失明（第册卅六批第七刀给 ctx() 补两枚键时当场照到：
    * 报的是「找不到 ctx() 工厂」，看着像桥没了，其实是窗不够宽）。lazy 匹配仍停在第一个 `};`，
-   * 放宽上界只可能多收、不会跨过界，故取 1600。 */
-  const m = html.match(/function ctx\(\)[\s\S]{0,1600}?return \{([\s\S]{0,1600}?)\};/);
+   * 放宽上界只可能多收、不会跨过界，故取 1600。
+   * ⚠️ 第册五十二批（N34 第十六刀 2026-10-19）**再次撞上同一条**：桥从 35 枚长到 42 枚、注释又多七行 ⇒
+   * 1600 的两段窗都不够，D7 报「ctx 键 0 枚 / 找不到 ctx() 工厂」。⇒ 窗改成 **4000 × 2**，并把这条教训写在
+   * 这里：**这枚窗口是桥规模的函数，桥每次扩容都要复核**；它不是判据带宽（判的是「取不取得到字面量」），
+   * 所以放宽不改变任何判红方向，只让本关别在扩容时失明。 */
+  const m = html.match(/function ctx\(\)[\s\S]{0,4000}?return \{([\s\S]{0,4000}?)\};/);
   const keys = m ? (m[1].match(/(^|[,{\s])([A-Za-z0-9_$]+)\s*:/g) || [])
     .map((x) => x.replace(/[^A-Za-z0-9_$]/g, '')) : [];
   const bad = [];
@@ -1175,6 +1198,63 @@ const SQ = sandbox.window.SQ;
   ok('D13', '外置件件内互调的实参形状对表（改写完形参表漏加桥参数 = 位置错移 = 整页空白，静态即可判，别留给走查）',
     bad13.length === 0, '外置件 ' + files13.length + ' 件 · 区内声明 ' + decls + ' 枚 · 件内互调 ' + calls + ' 处' +
     (bad13.length ? ' ‖ ' + bad13.slice(0, 6).join(' ‖ ') : ' ‖ 个数全对'));
+})();
+
+/* ── D14 视图件导出面 ⇔ 引用面 双向对表（第册四十六批 2026-10-19 · 第十一刀自曝立）──────────────
+ * 立因：本批把炼丹页委托里的八枚动作分支整块搬进 `view/alchemy.js` 并导出，却**忘了把调用点接回内核**
+ *   ⇒ 静态四关全绿（件在、桥对、形状对），三篇走查（chains / market / talentswap）才照出来：点了「开炉」「服用」没反应。
+ *   D7 判「件用了桥没给的键」、D13 判「件内互调的实参个数」，**「导出了却没人调」这一维谁都不管**，
+ *   而它恰是搬片最容易犯的形状（删干净了 = 屏上少一条活路，零报错）。
+ * 判（双向）：① 件内 `SQ.UI.<ns> = { key: fn, … }` 的**每一枚 key** 都要在「视图全体件 + 内核 HTML + `.tests/**`」里被
+ *   `SQ.UI.<ns>.<key>` 引到一次以上（引不到 = 这片功能的入口没了）；② 反过来，凡出现 `SQ.UI.<ns>.<key>` 的引用，
+ *   `key` 必须真在那枚导出表里（打错的引用 = 真机 undefined 抛错）。
+ * 边界（如实）：只判**存在性**，不判调了几次、也不判参数（那是 D13）；导出表按**深度 1 的 `key:`** 取（本仓导出面实测全为平表）；
+ *   `.tests/**` 计入引用面 —— 走查直接驱动 `SQ.UI.*` 也算真消费者，别把它判成死面。 */
+(function () {
+  const dir14 = path.join(ROOT, 'view');
+  const files14 = fs.readdirSync(dir14).filter((f) => f.endsWith('.js'));
+  const srcOf = (p) => { try { return fs.readFileSync(p, 'utf8'); } catch (e) { return ''; } };
+  let pool = srcOf(path.join(dir14, 'index.html'));
+  files14.forEach((f) => { pool += '\n' + srcOf(path.join(dir14, f)); });
+  fs.readdirSync(ROOT).filter((f) => f.startsWith('module')).forEach(() => {});
+  pool += '\n' + srcOf(path.join(ROOT, 'module', 'index.html'));
+  const tdir = path.join(ROOT, '.tests');
+  fs.readdirSync(tdir).filter((f) => /\.(cjs|js|html)$/.test(f)).forEach((f) => { pool += '\n' + srcOf(path.join(tdir, f)); });
+  const exports14 = {};
+  let nExp = 0;
+  files14.forEach((f) => {
+    const s = srcOf(path.join(dir14, f));
+    [...s.matchAll(/SQ\.UI\.([A-Za-z_$][\w$]*)\s*=\s*\{/g)].forEach((m) => {
+      let i = m.index + m[0].length - 1, depth = 0, body = '';
+      for (; i < s.length; i++) {
+        const ch = s[i];
+        if (ch === '{') { depth++; if (depth === 1) continue; }
+        if (ch === '}') { depth--; if (depth === 0) break; }
+        if (depth === 1) body += ch;
+      }
+      const keys = (body.replace(/\{[\s\S]*?\}/g, '').match(/(^|,)\s*([A-Za-z_$][\w$]*)\s*:/g) || [])
+        .map((x) => x.replace(/[^A-Za-z_$0-9]/g, ''));
+      exports14[m[1]] = exports14[m[1]] || [];
+      keys.forEach((k) => { if (exports14[m[1]].indexOf(k) < 0) { exports14[m[1]].push(k); nExp++; } });
+    });
+  });
+  const refs = {};
+  /* 引用面**剥注释后**再扫：`view/faction.js:318` 的注释里写着散文式占位 `SQ.UI.faction.actXxx(ctx(), v)`，
+   * 不剥就会把「讲道理的一句注」判成「内核在叫一个不存在的出口」= 假阳（假阳教人关关卡，A9 前例）。 */
+  [...stripComments(pool).matchAll(/\bSQ\.UI\.([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)/g)]
+    .forEach((m) => { const id = m[1] + '.' + m[2]; refs[id] = (refs[id] || 0) + 1; });
+  const bad14 = [];
+  Object.keys(exports14).forEach((ns) => {
+    exports14[ns].forEach((k) => { if (!refs[ns + '.' + k]) bad14.push('导出没人引用 SQ.UI.' + ns + '.' + k + '（入口丢了或导出是死面）'); });
+  });
+  Object.keys(refs).forEach((id) => {
+    const ns = id.split('.')[0], k = id.split('.')[1];
+    if (exports14[ns] && exports14[ns].indexOf(k) < 0) bad14.push('引用了不存在的出口 SQ.UI.' + ns + '.' + k);
+  });
+  if (nExp < 20) bad14.push('导出面只抽到 ' + nExp + ' 枚（<20 ⇒ 本关失明，不许在空集上恒绿）');
+  ok('D14', '视图件导出面 ⇔ 引用面双向对表（搬片把调用点整块删掉而静态全绿 = 本批真实失败模式）',
+    bad14.length === 0, '导出 ' + nExp + ' 枚 · 引用点 ' + Object.keys(refs).length + ' 处 · 视图件 ' + files14.length + ' 件' +
+    (bad14.length ? ' ‖ ' + bad14.slice(0, 6).join(' ‖ ') : ' ‖ 枚枚有人读、处处有出口'));
 })();
 
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）

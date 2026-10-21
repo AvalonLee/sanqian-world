@@ -163,6 +163,18 @@
       });
     },
 
+    /* 天降礼包（2026-10-21 用户令）：先判后扣 + 掷结果；返回结果供结果弹窗消费。 */
+    giftBuy: function (ref, idx) {
+      var out = null;
+      return SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        var pack = packOf(s), D = dataOf(s);
+        var mods = SQ.Mods.collect(s.profile, ws, pack, D);
+        function log(cat, text) { SQ.Log.push(ws, cat, text); }
+        out = SQ.Gifts.buy(ws, pack, D, mods, idx, Date.now(), log);
+      }).then(function () { return out; });
+    },
+
     /* 选择奇遇分支（三分支抉择制：branchKey = 'right'|'evil'|'neutral'；模态框「必须选择才关闭」）；
      * 返回 {karma, karmaTxt, pass, eff, branch, ev} 供结果页 */
     resolveChoice: async function (ref, branchKey) {
@@ -872,6 +884,25 @@
         var pack = packOf(s), D = dataOf(s);
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
         out = SQ.Sect.succeed(ws, pack, D, s.meta, heirId, Date.now(), log);
+        if (out && out.ok) pack.recalcDerived(ws, s.profile);
+      });
+      return out;
+    },
+    /* B16-ad：自立宗门治理 / 人事 / 外交（统一走 mutate；返回结果供 toast） */
+    sectGov: async function (ref, kind, a, b) {
+      var out = null;
+      await SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        var pack = packOf(s), D = dataOf(s);
+        function log(cat, text) { SQ.Log.push(ws, cat, text); }
+        if (kind === 'rename') out = SQ.Sect.rename(ws, D, a);
+        else if (kind === 'rule') out = SQ.Sect.setRule(ws, D, a, b);
+        else if (kind === 'motto') out = SQ.Sect.setMotto(ws, D, a);
+        else if (kind === 'tax') out = SQ.Sect.setTax(ws, D, a);
+        else if (kind === 'appoint') out = SQ.Sect.appoint(ws, D, a, b);
+        else if (kind === 'expel') out = SQ.Sect.expel(ws, D, a);
+        else if (kind === 'disband') out = SQ.Sect.disband(ws, pack, D, Date.now(), log);
+        else if (kind === 'peace') out = SQ.Sect.makePeace(ws, pack, D, Date.now(), log);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
       });
       return out;

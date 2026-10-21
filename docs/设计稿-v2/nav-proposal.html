@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>三千世界 · 左侧导航整理方案（初稿）</title>
+<link rel="stylesheet" href="./style.css">
+<style>
+  body { background: #E4E0D6; }
+  .pv-wrap { max-width: 1280px; margin: 0 auto; padding: 34px 26px 70px; }
+  .pv-intro { margin-bottom: 30px; max-width: 860px; }
+  .pv-intro h1 {
+    font-family: var(--serif); font-size: 24px; letter-spacing: .22em;
+    color: #1F1C16; margin: 0 0 10px;
+  }
+  .pv-intro p { margin: 0; font-size: 12.5px; line-height: 1.95; color: #5C564B; }
+  .pv-intro b { color: #A5362C; font-weight: 500; }
+
+  .pv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  @media (max-width: 1080px) { .pv-grid { grid-template-columns: 1fr; } }
+
+  .pv-panel {
+    background: #FBFAF6; border: 1px solid rgba(0,0,0,.08);
+    border-radius: 12px; padding: 16px 16px 18px; display: flex; flex-direction: column;
+  }
+  .pv-head { display: flex; align-items: baseline; gap: 9px; margin-bottom: 14px; }
+  .pv-head b { font-family: var(--serif); font-size: 15px; letter-spacing: .12em; color: #1F1C16; }
+  .pv-head span { font-size: 11px; letter-spacing: .1em; color: #8A857A; }
+  .pv-head .rec {
+    margin-left: auto; font-size: 10px; letter-spacing: .08em;
+    color: #A5362C; border: 1px solid rgba(165,54,44,.4);
+    border-radius: 2px; padding: 1px 6px;
+  }
+  .pv-body {
+    display: flex; gap: 10px; height: 512px;
+    background: var(--paper); border-radius: 8px; overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.07);
+  }
+  .pv-ghost {
+    flex: 1; display: grid; place-items: center;
+    font-family: var(--serif); font-size: 11px; letter-spacing: .4em;
+    color: #C9C2B2; writing-mode: vertical-rl;
+  }
+  .pv-notes { margin: 14px 0 0; padding: 0; list-style: none; }
+  .pv-notes li {
+    font-size: 11.5px; line-height: 1.85; color: #5C564B;
+    padding-left: 14px; position: relative; margin-bottom: 4px;
+  }
+  .pv-notes li::before {
+    content: ""; position: absolute; left: 2px; top: 8px;
+    width: 4px; height: 4px; border-radius: 50%; background: #B9AE97;
+  }
+  .pv-notes li.no::before { background: #A5362C; }
+  .pv-notes .cost { color: #8A857A; }
+
+  /* ── 导航本体（覆盖 style.css 的 app 限定） ── */
+  .pv-rail {
+    display: flex !important; flex-direction: column;
+    width: 176px; flex: 0 0 176px; padding: 18px 0 12px;
+    border-right: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255,255,255,.22), transparent 40%);
+    overflow-y: auto;
+  }
+  .pv-rail .rn-brand { padding: 0 18px 16px; gap: 9px; }
+  .pv-rail .rn-title { font-size: 13.5px; letter-spacing: .24em; }
+  .pv-rail .rn-title small { font-size: 8px; letter-spacing: .14em; }
+
+  .sec {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    padding: 9px 18px; border: 0; background: none; cursor: pointer;
+    font: inherit; font-family: var(--serif); font-size: 13px;
+    letter-spacing: .2em; color: var(--ink-3); text-align: left;
+    position: relative; transition: color .18s;
+  }
+  .sec:hover { color: var(--ink); }
+  .sec .cnt {
+    margin-left: auto; font-family: var(--sans); font-size: 9.5px;
+    letter-spacing: 0; color: var(--ink-4);
+  }
+  .sec .chev {
+    font-family: var(--sans); font-size: 11px; color: var(--ink-4);
+    transition: transform .2s; margin-left: 5px; opacity: .75;
+  }
+  .sec.open .chev { transform: rotate(90deg); }
+  .sec.on { color: var(--ink); }
+  .sec.on::before {
+    content: ""; position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 12px; background: var(--cinnabar); border-radius: 2px;
+  }
+  .sec.solo.on::before { height: 12px; }
+
+  .kids { display: none; padding: 1px 0 6px; }
+  .sec.open + .kids { display: block; }
+  .kid {
+    display: flex; align-items: center; gap: 7px; width: 100%;
+    padding: 6px 18px 6px 30px; border: 0; background: none; cursor: pointer;
+    font: inherit; font-size: 12px; letter-spacing: .12em;
+    color: var(--ink-3); text-align: left; position: relative;
+  }
+  .kid::before {
+    content: ""; position: absolute; left: 22px; top: 50%; transform: translateY(-50%);
+    width: 1px; height: 13px; background: var(--line);
+  }
+  .kid:hover { color: var(--ink); }
+  .kid.on { color: var(--ink); font-weight: 500; }
+  .kid.on::before { width: 2px; height: 15px; background: var(--cinnabar); left: 21.5px; }
+  .kid .d {
+    margin-left: 6px; width: 4px; height: 4px; border-radius: 50%;
+    background: var(--cinnabar); flex: 0 0 auto;
+  }
+  .pv-rail .rn-foot {
+    margin-top: auto; padding: 12px 18px 2px;
+    border-top: 1px solid var(--line); margin-top: auto;
+  }
+  .pv-rail .rn-foot .sec { padding-left: 0; padding-right: 0; }
+
+  /* 方案 B：全展开 + 分带 */
+  .band { padding: 4px 0 2px; }
+  .band-h {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 18px 6px;
+    font-family: var(--serif); font-size: 12.5px; letter-spacing: .22em;
+    color: var(--ink-2);
+  }
+  .band-h::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .band.on .band-h { color: var(--ink); }
+  .band.on .band-h::before {
+    content: ""; width: 3px; height: 11px; background: var(--cinnabar);
+    border-radius: 2px; margin-left: -7px; margin-right: -1px;
+  }
+  .band .kid { padding-top: 5px; padding-bottom: 5px; font-size: 11.5px; }
+  .band.solo .band-h::after { display: none; }
+  .band.solo .band-h { padding-bottom: 10px; }
+
+  /* 方案 C：窄图标条 + 抽屉 */
+  .pv-icon { width: 58px; flex: 0 0 58px; border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; padding: 16px 0; gap: 4px; }
+  .pv-icon .ic {
+    width: 40px; height: 40px; border: 0; background: none; cursor: pointer;
+    font-family: var(--serif); font-size: 15px; color: var(--ink-3);
+    position: relative; border-radius: 3px;
+  }
+  .pv-icon .ic:hover { background: rgba(0,0,0,.04); color: var(--ink); }
+  .pv-icon .ic.on { color: var(--ink); background: var(--cinnabar-2); }
+  .pv-icon .ic.on::after {
+    content: ""; position: absolute; right: -9px; top: 50%; transform: translateY(-50%);
+    width: 2px; height: 16px; background: var(--cinnabar);
+  }
+  .flyout {
+    width: 132px; flex: 0 0 132px; padding: 16px 0;
+    border-right: 1px solid var(--line); background: var(--paper-2);
+  }
+  .flyout .fh {
+    font-size: 9.5px; letter-spacing: .3em; color: var(--ink-4);
+    padding: 0 16px 8px;
+  }
+  .flyout .kid { padding-left: 22px; font-size: 11.5px; }
+  .flyout .kid::before { display: none; }
+
+  /* 命名对照表 */
+  .pv-table { margin-top: 44px; }
+  .pv-table h2 {
+    font-family: var(--serif); font-size: 16px; letter-spacing: .2em;
+    color: #1F1C16; margin: 0 0 14px;
+  }
+  table.map {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+    background: #FBFAF6; border: 1px solid rgba(0,0,0,.08); border-radius: 10px;
+    overflow: hidden;
+  }
+  table.map th {
+    text-align: left; font-weight: 500; font-size: 10.5px; letter-spacing: .18em;
+    color: #8A857A; padding: 11px 14px; border-bottom: 1px solid rgba(0,0,0,.08);
+  }
+  table.map td {
+    padding: 9px 14px; border-bottom: 1px solid rgba(0,0,0,.05);
+    color: #4C463A;
+  }
+  table.map tr:last-child td { border-bottom: 0; }
+  table.map td.g { font-family: var(--serif); letter-spacing: .16em; color: #1F1C16; }
+  table.map td.new { color: #A5362C; }
+  table.map .dim { color: #A39C8C; }
+  .col2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 980px) { .col2 { grid-template-columns: 1fr; } }
+  .why {
+    background: #FBFAF6; border: 1px solid rgba(0,0,0,.08); border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .why h3 {
+    font-family: var(--serif); font-size: 13px; letter-spacing: .16em;
+    margin: 0 0 10px; color: #1F1C16; font-weight: 500;
+  }
+  .why p { margin: 0 0 9px; font-size: 11.5px; line-height: 1.9; color: #5C564B; }
+  .why p:last-child { margin-bottom: 0; }
+  .why b { color: #A5362C; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <div class="chrome-brand">
+    <span class="seal">三千</span>
+    <div>
+      <b>左侧导航整理 · 初稿</b>
+      <em>三套归纳方案 · 15 项 → 5 区 · 命名同步调整</em>
+    </div>
+  </div>
+  <div class="chrome-tools">
+    <button class="tbtn" id="btnTheme">墨夜</button>
+  </div>
+</div>
+
+<div class="pv-wrap">
+
+  <div class="pv-intro">
+    <h1>导航为什么会碎</h1>
+    <p>
+      现在这版把 15 个页面按「功能模块」平铺成 5 组，问题有三：<b>组的大小极不均衡</b>（1 / 2 / 3 / 5 / 4），
+      <b>「修行」区只有一个子项</b>，等于多套了一层壳；<b>子项和区标题的视觉权重几乎一样</b>，15 行读下来是一条没有停顿的长条。
+      下面三套方案都按「<b>玩家此刻想干什么</b>」而不是「系统归属」来分，并把 <b>15 项压到 5 区、每区 0～4 项</b>。
+    </p>
+  </div>
+
+  <div class="pv-grid">
+
+    <!-- ── 方案 A ── -->
+    <section class="pv-panel">
+      <div class="pv-head">
+        <b>方案 A · 折叠式</b><span>一次只展开一区</span>
+        <span class="rec">推荐</span>
+      </div>
+      <div class="pv-body">
+        <nav class="pv-rail" id="railA">
+          <div class="rn-brand">
+            <span class="seal">三千</span>
+            <div class="rn-title">三千世界<small>SANQIAN</small></div>
+          </div>
+
+          <button class="sec solo" data-sec="idle"><span>修行</span></button>
+
+          <button class="sec" data-sec="li"><span>历练</span><span class="cnt">2</span><span class="chev">›</span></button>
+          <div class="kids">
+            <button class="kid">秘境</button>
+            <button class="kid">奇遇<span class="d"></span></button>
+          </div>
+
+          <button class="sec" data-sec="qi"><span>道器</span><span class="cnt">5</span><span class="chev">›</span></button>
+          <div class="kids">
+            <button class="kid">功法</button>
+            <button class="kid">百器</button>
+            <button class="kid">法宝</button>
+            <button class="kid">炼丹炼器</button>
+            <button class="kid">坊市</button>
+          </div>
+
+          <button class="sec open on" data-sec="jh"><span>江湖</span><span class="cnt">4</span><span class="chev">›</span></button>
+          <div class="kids">
+            <button class="kid">道友</button>
+            <button class="kid on">势力</button>
+            <button class="kid">江湖榜</button>
+            <button class="kid">宗门</button>
+          </div>
+
+          <button class="sec" data-sec="sp"><span>生平</span><span class="cnt">4</span><span class="chev">›</span></button>
+          <div class="kids">
+            <button class="kid">成就</button>
+            <button class="kid">轮回</button>
+            <button class="kid">日志<span class="d"></span></button>
+            <button class="kid">设置</button>
+          </div>
+        </nav>
+        <div class="pv-ghost">主内容</div>
+      </div>
+      <ul class="pv-notes">
+        <li class="no">静止时只看到 <b>5 行</b>；进入某区才展开该区子项，最多 9 行。</li>
+        <li>区名右侧带计数，收起时也知道里面有几项。</li>
+        <li>「修行」不再套壳——它本身就是回主屏，点即到。</li>
+        <li class="cost">代价：跨区跳转多一次点击；靠 hover 预展开可缓解。</li>
+      </ul>
+    </section>
+
+    <!-- ── 方案 B ── -->
+    <section class="pv-panel">
+      <div class="pv-head">
+        <b>方案 B · 分带式</b><span>全部展开，用横线分区</span>
+      </div>
+      <div class="pv-body">
+        <nav class="pv-rail">
+          <div class="rn-brand">
+            <span class="seal">三千</span>
+            <div class="rn-title">三千世界<small>SANQIAN</small></div>
+          </div>
+
+          <div class="band solo">
+            <button class="band-h" style="border:0;background:none;cursor:pointer;width:100%;text-align:left">修行</button>
+          </div>
+
+          <div class="band">
+            <div class="band-h">历练</div>
+            <button class="kid">秘境</button>
+            <button class="kid">奇遇<span class="d"></span></button>
+          </div>
+
+          <div class="band">
+            <div class="band-h">道器</div>
+            <button class="kid">功法</button>
+            <button class="kid">百器</button>
+            <button class="kid">法宝</button>
+            <button class="kid">炼丹炼器</button>
+            <button class="kid">坊市</button>
+          </div>
+
+          <div class="band on">
+            <div class="band-h">江湖</div>
+            <button class="kid">道友</button>
+            <button class="kid">势力</button>
+            <button class="kid">江湖榜</button>
+            <button class="kid">宗门</button>
+          </div>
+
+          <div class="band">
+            <div class="band-h">生平</div>
+            <button class="kid">成就</button>
+            <button class="kid">轮回</button>
+            <button class="kid">日志<span class="d"></span></button>
+            <button class="kid">设置</button>
+          </div>
+        </nav>
+        <div class="pv-ghost">主内容</div>
+      </div>
+      <ul class="pv-notes">
+        <li class="no">全部可达，零额外点击；区标题 + 细线形成 5 条横带，层级一眼可分。</li>
+        <li>子项比区名小一号、颜色更淡，视觉上退到第二层。</li>
+        <li class="cost">代价：仍是 15 行，滚动到底部要滑一段；行高需压到 26px 左右。</li>
+      </ul>
+    </section>
+
+    <!-- ── 方案 C ── -->
+    <section class="pv-panel">
+      <div class="pv-head">
+        <b>方案 C · 图标条</b><span>5 字竖栏 + 抽屉</span>
+      </div>
+      <div class="pv-body">
+        <nav class="pv-icon">
+          <button class="ic">修</button>
+          <button class="ic">历</button>
+          <button class="ic">器</button>
+          <button class="ic on">江</button>
+          <button class="ic">生</button>
+        </nav>
+        <div class="flyout">
+          <div class="fh">江 湖</div>
+          <button class="kid">道友</button>
+          <button class="kid on">势力</button>
+          <button class="kid">江湖榜</button>
+          <button class="kid">宗门</button>
+        </div>
+        <div class="pv-ghost">主内容</div>
+      </div>
+      <ul class="pv-notes">
+        <li class="no">主区最宽，挂机时几乎不占视线。</li>
+        <li class="cost">代价：单字图标需要记忆成本（修/历/器/江/生）；触屏没有 hover，抽屉要么常开要么多点一次。</li>
+        <li class="cost">结论：桌面可用，手机端不能复用，两套 IA 会分叉。</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <!-- ── 命名对照 ── -->
+  <section class="pv-table">
+    <h2>命名与归属对照</h2>
+    <div class="col2">
+      <table class="map">
+        <tr><th>区</th><th>原页面</th><th>新名</th><th>变动</th></tr>
+        <tr><td class="g">修行</td><td>修行</td><td>修行</td><td class="dim">保留 · 不设子项，直接回主屏</td></tr>
+
+        <tr><td class="g" rowspan="2">历练</td><td>秘境洞天</td><td class="new">秘境</td><td>简称 · 洞天并入秘境页</td></tr>
+        <tr><td>奇遇</td><td>奇遇</td><td class="dim">保留</td></tr>
+
+        <tr><td class="g" rowspan="5">道器</td><td>法与器 · 法段</td><td class="new">功法</td><td>拆分 · 只留功法养成</td></tr>
+        <tr><td>法与器 · 器段</td><td class="new">百器</td><td>拆分 · 四槽 + 百器录</td></tr>
+        <tr><td>法宝</td><td>法宝</td><td class="dim">保留</td></tr>
+        <tr><td>炼丹炼器</td><td>炼丹炼器</td><td class="dim">保留</td></tr>
+        <tr><td>坊市</td><td class="new">坊市</td><td class="new">移入 · 原属江湖</td></tr>
+
+        <tr><td class="g" rowspan="4">江湖</td><td>道友</td><td>道友</td><td class="dim">保留</td></tr>
+        <tr><td>势力</td><td>势力</td><td class="dim">保留</td></tr>
+        <tr><td>江湖榜</td><td>江湖榜</td><td class="dim">保留</td></tr>
+        <tr><td>宗门</td><td>宗门</td><td class="dim">保留</td></tr>
+
+        <tr><td class="g" rowspan="4">生平</td><td>成就</td><td>成就</td><td class="dim">保留</td></tr>
+        <tr><td>轮回</td><td>轮回</td><td class="dim">保留</td></tr>
+        <tr><td>日志</td><td>日志</td><td class="dim">保留</td></tr>
+        <tr><td>设置</td><td class="new">设置</td><td class="new">移入 · 原为独立系统项</td></tr>
+      </table>
+
+      <div class="why">
+        <h3>为什么这么分</h3>
+        <p><b>修行</b>是「我此刻在做什么」——挂机主循环，永远是回主屏的那一下。</p>
+        <p><b>历练</b>是「我出门」——秘境打怪、奇遇遇事，都是离开洞府后的动作。</p>
+        <p><b>道器</b>是「我怎么变强」——功法、法宝、炼丹炼器是产出，坊市是补给。买和造放在一起，玩家不用在两个区之间跳。</p>
+        <p><b>江湖</b>是「我和谁」——道友、势力、江湖榜、宗门，全是人与势。</p>
+        <p><b>生平</b>是「我这一世」——成就、轮回、日志、设置。设置原本悬在底部，现在归入这一区，导航只剩 5 个入口。</p>
+        <p style="color:#8A857A">另一条路 ①：坊市留在江湖（江湖 5 项 / 道器 3 项）。我倾向前者，因为「缺货→买」和「缺丹→炼」是同一次决策。</p>
+        <p style="color:#8A857A">另一条路 ②：修行与历练并成一区（修行 · 秘境 · 奇遇），四区各 3～4 项最均衡；代价是主屏降为二级项，回主屏要多点一下。</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  document.getElementById('btnTheme').addEventListener('click', e => {
+    const dark = document.documentElement.dataset.theme !== 'dark';
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    e.currentTarget.textContent = dark ? '宣纸' : '墨夜';
+  });
+
+  // 方案 A：折叠交互
+  document.querySelectorAll('#railA .sec').forEach(sec => {
+    sec.addEventListener('click', () => {
+      if (sec.classList.contains('solo')) {
+        document.querySelectorAll('#railA .sec').forEach(s => s.classList.remove('on'));
+        sec.classList.add('on');
+        return;
+      }
+      const open = sec.classList.contains('open');
+      document.querySelectorAll('#railA .sec').forEach(s => s.classList.remove('open'));
+      if (!open) sec.classList.add('open');
+    });
+  });
+  document.querySelectorAll('#railA .kid').forEach(k => {
+    k.addEventListener('click', () => {
+      document.querySelectorAll('#railA .kid').forEach(x => x.classList.remove('on'));
+      k.classList.add('on');
+      const sec = k.closest('.kids').previousElementSibling;
+      document.querySelectorAll('#railA .sec').forEach(s => s.classList.remove('on'));
+      sec.classList.add('on');
+    });
+  });
+</script>
+</body>
+</html>

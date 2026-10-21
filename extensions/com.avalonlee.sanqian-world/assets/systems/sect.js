@@ -37,6 +37,8 @@
       nameIdx: (Array.isArray(raw.nameIdx) && raw.nameIdx.length === 2) ? [Math.floor(num(raw.nameIdx[0], 0)), Math.floor(num(raw.nameIdx[1], 0))] : null,
       gate: (SC.GATES || []).indexOf(raw.gate) >= 0 ? raw.gate : (SC.GATES || [])[0],
       align: (raw.align === 'right' || raw.align === 'evil') ? raw.align : 'neutral',
+      motto: (typeof raw.motto === 'string' ? raw.motto : '').slice(0, SC.MOTTO_MAX || 24),
+      tax: Math.max(0, Math.min(30, Math.round(num(raw.tax, 0) / 5) * 5)),
       disciples: [], fac: {}, everDefected: raw.everDefected === true,
       dispatchAt: Math.max(0, num(raw.dispatchAt, 0)),
       lastTribMonth: Math.max(0, num(raw.lastTribMonth, 0)),
@@ -88,6 +90,7 @@
        * 非法/名录外 id 整字段丢弃（弟子记录退回普通弟子形态，不炸档）。 */
       if (typeof dsc.pr === 'string' && /^pr\d+$/.test(dsc.pr)) rec.pr = dsc.pr;
       if (isOff) rec.offering = String(dsc.offering).slice(0, 24);
+      else if (dsc.post === 'steward' || dsc.post === 'elder') rec.post = dsc.post;
       var nI = parseInt(dsc.id.slice(1), 10);
       if (nI > out.seq) out.seq = nI;
       out.disciples.push(rec);
@@ -165,6 +168,9 @@
     if (d.tianjiao) base *= (SC.TIANJIAO_MULT || 1.2);
     return base;
   }
+  function hasPost(ws, post) {
+    return !!(ws.sect && (ws.sect.disciples || []).some(function (d) { return d.post === post && !d.offering; }));
+  }
   function sectPower(ws, pack, D, mods) {
     var SC = S(D);
     if (!ws.sect || ws.sect.succession) return 0;
@@ -172,7 +178,7 @@
     (ws.sect.disciples || []).forEach(function (d) { sum += discPower(ws, pack, D, d); });
     var fac = 1 + ((ws.sect.fac || {}).yanwu || 0) * (SC.YANWU_K || 0.05);
     var myP = mods ? SQ.Mods.powerOf(ws, pack, D, mods) : 0;
-    return sum * fac + myP * (SC.SELF_K || 0.5);
+    return (sum * fac + myP * (SC.SELF_K || 0.5)) * (hasPost(ws, 'elder') ? 1.1 : 1);
   }
   function sectRep(ws, D) {
     var SC = S(D);
@@ -183,6 +189,7 @@
     for (var fk in (ws.sect.fac || {})) facTotal += ws.sect.fac[fk] || 0;
     rep += facTotal * (SC.REP_FAC || 100);
     rep += ((ws.sect.warRecord || {}).wins || 0) * (SC.REP_WIN || 200);
+    if (hasPost(ws, 'steward')) rep = Math.round(rep * 1.1);
     return rep;
   }
   /* NPC 势力声望排行暂用口径（§5.2）：1500 + 500 × 档次（固定池序 0~3 循环映射 1~4 档）+ 宗门压制 */
@@ -409,6 +416,82 @@
     return { ok: true };
   }
 
+  /* ── B16-ad：自立宗门治理 / 人事 / 外交（全开放）────────────────────────── */
+  function ownSect(ws) { return !!(ws && ws.sect && !ws.sect.succession); }
+  function rename(ws, D, name) {
+    if (!ownSect(ws)) return { ok: false, reason: 'none' };
+    var nm = String(name == null ? '' : name).trim().slice(0, (S(D).NAME_MAX || 6));
+    if (!nm) return { ok: false, reason: 'empty' };
+    ws.sect.name = nm;
+    return { ok: true, name: nm };
+  }
+  function setRule(ws, D, gate, align) {
+    if (!ownSect(ws)) return { ok: false, reason: 'none' };
+    if ((S(D).GATES || []).indexOf(gate) < 0) return { ok: false, reason: 'gate' };
+    if (['right', 'neutral', 'evil'].indexOf(align) < 0) return { ok: false, reason: 'align' };
+    ws.sect.gate = gate; ws.sect.align = align;
+    return { ok: true };
+  }
+  function setMotto(ws, D, text) {
+    if (!ownSect(ws)) return { ok: false, reason: 'none' };
+    ws.sect.motto = String(text == null ? '' : text).trim().slice(0, (S(D).MOTTO_MAX || 24));
+    return { ok: true, motto: ws.sect.motto };
+  }
+  function setTax(ws, D, pct) {
+    if (!ownSect(ws)) return { ok: false, reason: 'none' };
+    var steps = S(D).TAX_STEPS || [0, 5, 10, 15, 20, 25, 30];
+    var n = Math.round(num(pct, 0) / 5) * 5;
+    if (steps.indexOf(n) < 0) return { ok: false, reason: 'step' };
+    ws.sect.tax = n;
+    return { ok: true, tax: n };
+  }
+  function appoint(ws, D, discId, post) {
+    if (!ownSect(ws)) return { ok: false, reason: 'none' };
+    var d = byDiscId(ws, discId);
+    if (!d || d.offering) return { ok: false, reason: 'none' };
+    if (post !== 'steward' && post !== 'elder') {
+      if (d.post) delete d.post;
+      return { ok: true, post: null };
+    }
+    (ws.sect.disciples || []).forEach(function (x) { if (x.post === post) delete x.post; });
+    d.post = post;
+    return { ok: true, post: post };
+  }
+  function expel(ws, D, discId) {
+    if (!ownSect(ws)) return { ok: false, reason: 'none' };
+    var list = ws.sect.disciples || [], idx = -1;
+    for (var i = 0; i < list.length; i++) { if (list[i].id === discId) { idx = i; break; } }
+    if (idx < 0) return { ok: false, reason: 'none' };
+    var d = list.splice(idx, 1)[0];
+    return { ok: true, disc: d };
+  }
+  function disband(ws, pack, D, now, log) {
+    if (!ownSect(ws)) return { ok: false, reason: 'none' };
+    var nm = ws.sect.name || '';
+    ws.sect = null;
+    ws.factionId = null;
+    if (ws.factionRep) delete ws.factionRep.sect;
+    ws.factions = (ws.factions || []).filter(function (f) { return f.id !== 'sect'; });
+    ws.factionWar = null;
+    if (log) log('sys', SQ.t('sect.gov.disband.log', { name: nm }, pack.worldId));
+    return { ok: true };
+  }
+  function peaceCost(ws, D) {
+    var rep = sectRep(ws, D);
+    return Math.max(1000, Math.round(rep * (S(D).PEACE_COST_K || 2)));
+  }
+  function makePeace(ws, pack, D, now, log) {
+    if (!ownSect(ws)) return { ok: false, reason: 'none' };
+    if (!ws.factionWar || !SQ.Factions || !SQ.Factions.warSideOf(ws)) return { ok: false, reason: 'nowar' };
+    var cost = peaceCost(ws, D);
+    if ((ws.stones || 0) < cost) return { ok: false, reason: 'poor', cost: cost };
+    ws.stones -= cost;
+    SQ.Ledger.note(ws, 'out', 'donate', cost);
+    ws.factionWar = null;
+    if (log) log('sys', SQ.t('sect.gov.peace.log', { n: SQ.fmt(cost) }, pack.worldId));
+    return { ok: true, cost: cost };
+  }
+
   /* ── 月度惰性结算（claim 内一次补齐经过月数，无 per-tick 掷判）：
    * 培养推进（PROG_NEED 暂用表升境余数结转，境界上限 = 宗主 −1）+ 供奉月缴（in.tribute）── */
   function tick(ws, pack, D, mods, dtMs, now, ctx) {
@@ -421,6 +504,7 @@
     if (months > 240) months = 240;                           /* catch-up 护栏（离线 12h 上限内天然 ≤1440） */
     var log = ctx && ctx.log;
     var tributeTotal = 0;
+    var taxTotal = 0;
     /* ── 材料供奉速率（N1 第二环 · 炼丹卷 §2.6 量表 = 唯一事实源；两路来源 `sect.tribute` 弟子供奉
        * 与 `sect.tributefac` 丹房产出）──**速率制不用掷判**：#221 红线「本模块月结零随机」为
        * sim-pacing 稳态带不被宗门侧污染而定。每月累加期望、满 1 缴 1、余数结转（同 PROG_NEED 升境
@@ -439,6 +523,8 @@
     for (var mi = 0; mi < months; mi++) {
       (ws.sect.disciples || []).forEach(function (d) {
         var zStones = ((D.ZONES || [])[Math.min(d.offering ? ws.realm : d.realm, (D.ZONES || []).length - 1)] || {}).stones || 3;
+        /* 宗门税（B16-ad）：按弟子所在区的灵石基准抽成，税率 0~30% 步长 5；入 in.tribute */
+        if ((ws.sect.tax || 0) > 0) taxTotal += Math.floor(zStones * (SC.TAX_K || 0.5) * (ws.sect.tax / 100));
         if (d.offering) {
           /* 供奉月缴 ×2（不培养不推进——自带境界） */
           tributeTotal += Math.max(1, Math.floor(zStones * (SC.TRIBUTE_K || 0.03))) * (SC.TRIBUTE_OFFERING_MULT || 2);
@@ -467,6 +553,11 @@
         if (d.realm >= realmCap) d.prog = Math.min(d.prog, (SC.PROG_NEED || [])[d.realm] != null ? (SC.PROG_NEED)[d.realm] : d.prog);
         tributeTotal += Math.max(1, Math.floor(zStones * (SC.TRIBUTE_K || 0.03)));
       });
+    }
+    if (taxTotal > 0) {
+      ws.stones += taxTotal;
+      SQ.Ledger.note(ws, 'in', 'tribute', taxTotal);
+      if (log) log('sys', SQ.t('sect.tax.log', { n: SQ.fmt(taxTotal) }, pack.worldId));
     }
     if (matRate > 0) {
       ws.sect.matAcc = (typeof ws.sect.matAcc === 'number' && isFinite(ws.sect.matAcc) ? ws.sect.matAcc : 0) + matRate * months;
@@ -659,6 +750,15 @@
     discipleMerit: discipleMerit,
     declareWar: declareWar,
     onWarSettled: onWarSettled,
-    succeed: succeed
+    succeed: succeed,
+    rename: rename,
+    setRule: setRule,
+    setMotto: setMotto,
+    setTax: setTax,
+    appoint: appoint,
+    expel: expel,
+    disband: disband,
+    peaceCost: peaceCost,
+    makePeace: makePeace
   };
 })();

@@ -46,23 +46,26 @@ const { chromium } = require('playwright-core');
 
   /* 需求 2：左侧菜单「秘境」改名「秘境洞天」 */
   const navTexts = await page.$$eval('#m-tabbar button', els => els.map(e => e.textContent.trim()));
-  T(navTexts.includes('秘境洞天'), 'R2 菜单含「秘境洞天」入口', navTexts.join('/'));
+  T(navTexts.includes('秘境'), 'R2 菜单含「秘境」入口', navTexts.join('/'));
 
-  /* 需求 2：秘境洞天页 = 秘境节（卡片网格）+ 洞天福地节（当前驻留摘要 + 福地卡片） */
-  await page.click('#m-tabbar button:has-text("秘境洞天")');
+  /* 需求 2：秘境页 = 秘境节（卡片网格）+ 洞天福地节（当前驻留摘要 + 福地卡片） */
+  await page.click('#m-tabbar button[data-v="combat"]');
   await page.waitForTimeout(300);
   const caveTxt = await page.$eval('#tab-combat', el => el.textContent);
   const idxZone = caveTxt.indexOf('秘境'), idxCur = caveTxt.indexOf('当前驻留'), idxDex = caveTxt.indexOf('洞天福地');
-  T(idxZone >= 0 && idxCur >= 0 && idxDex >= 0, 'R2 秘境洞天页两节齐全', 'zone=' + idxZone + ' cur=' + idxCur + ' dex=' + idxDex);
+  T(idxZone >= 0 && idxCur >= 0 && idxDex >= 0, 'R2 秘境页两节齐全', 'zone=' + idxZone + ' cur=' + idxCur + ' dex=' + idxDex);
   T(idxZone >= 0 && idxCur > idxZone && idxDex > idxZone, 'R2 页面序 秘境 → 洞天福地', idxZone + '<' + idxCur + '/' + idxDex);
   const caveCards = await page.$$eval('#tab-combat .cavegrid > .cavecard', els => els.length);
   T(caveCards >= 6, 'R2 洞天福地卡片网格（≥6 卡）', 'n=' + caveCards);
   const facBtns = await page.$$eval('#tab-combat [data-act="caveBuild"]', els => els.length);
   T(facBtns > 0, 'R2 营建按钮存在', 'n=' + facBtns);
   /* 附属设施升级选项只属于当前驻留福地：hero 卡有按钮，非驻留已持有卡无按钮 + 只读提示 */
-  const curBuild = await page.$$eval('#tab-combat .cavecard.hero [data-act="caveBuild"]', els => els.length);
-  const curTxt = await page.$eval('#tab-combat .cavecard.hero', el => el.textContent);
-  T(curBuild > 0 && curTxt.includes('生效中'), 'R2 当前驻留福地有营建选项', 'n=' + curBuild);
+  /* 附属设施升级选项只属于当前驻留福地：B16-d 起由页内「当前驻留设施」行承载（设计稿 §洞天福地），
+     非驻留的已持有福地仍在卡内只读内联（无按钮 + 只读提示），两处都不是空判 */
+  const curBuild = await page.$$eval('#tab-combat #cave-sec .faclist [data-act="caveBuild"]', els => els.length);
+  const curTxt = await page.$eval('#tab-combat #cave-sec .faclist', el => el.textContent);
+  T(curBuild === 4 && /生效中|可营建/.test(curTxt),
+    'R2 当前驻留福地有营建选项（四设施各一行；状态词随等级，本 fixture 为未营建）', 'n=' + curBuild);
   const otherBuild = await page.$$eval('#tab-combat .cavecard[data-cave="green_peak"] [data-act="caveBuild"]', els => els.length);
   const otherTxt = await page.$eval('#tab-combat .cavecard[data-cave="green_peak"]', el => el.textContent);
   T(otherBuild === 0 && otherTxt.includes('仅驻留中可营建'), 'R2 非驻留福地不显示营建选项', 'n=' + otherBuild);
@@ -81,14 +84,14 @@ const { chromium } = require('playwright-core');
   T(seal === '', 'R1 财浮层底部「白手起家」文案已去除', 'seal="' + seal + '"');
   await page.click('#mlg-close');
 
-  /* 需求 6：道友页 道侣位提示文案 */
+  /* 需求 6：道友页 道侣位提示文案（B15-f 改口：两行摘要 → 两张位卡，空态 = .bondslot.empty） */
   await page.click('#m-tabbar button:has-text("道友")');
   await page.waitForTimeout(200);
-  const spTip = await page.$eval('#tab-bonds .spouserow.none', el => el.textContent);
+  const spTip = await page.$eval('#tab-bonds .slots2 .bondslot.empty', el => el.textContent);
   T(spTip.includes('候选好感满档可结缘双修') && !/提亲/.test(spTip), 'R6 道侣位文案改为「可结缘双修」（且不留旧称）', spTip.slice(0, 40));
 
-  /* 需求 5：护法位点开择选浮层 */
-  await page.click('#tab-bonds .guardline.pickable');
+  /* 需求 5：护法位点开择选浮层（B15-f 改口：整卡即锚点） */
+  await page.click('#tab-bonds .slots2 .bondslot[data-act="guardPickOpen"]');
   await page.waitForTimeout(200);
   const gTitle = await page.$eval('#msp-title', el => el.textContent);
   T(gTitle.includes('择'), 'R5 护法位点开择选浮层', 'title=' + gTitle);
@@ -97,10 +100,10 @@ const { chromium } = require('playwright-core');
   T(gRows >= 3, 'R5 候选列表含恢复自动 + 3 位已结缘者', 'rows=' + gRows);
   T(!gNames.includes('候选') || !gNames.includes('？'), 'R5 未结缘者不显示');
   /* 点选「谢」出任护法（tier2 → bonus 应为 0）*/
-  const before = await page.$eval('#tab-bonds .guardline', el => el.textContent);
+  const before = await page.$eval('#tab-bonds .slots2 .bondslot[data-act="guardPickOpen"]', el => el.textContent);
   await page.click('#msp-body [data-act="guardSet"][data-v="xie"]');
   await page.waitForTimeout(500);
-  const after = await page.$eval('#tab-bonds .guardline', el => el.textContent);
+  const after = await page.$eval('#tab-bonds .slots2 .bondslot[data-act="guardPickOpen"]', el => el.textContent);
   T(after.includes('谢'), 'R5 点选后护法位换人', '"' + before.slice(0, 18) + '" → "' + after.slice(0, 18) + '"');
   const pickPersist = await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
@@ -109,7 +112,7 @@ const { chromium } = require('playwright-core');
   T(pickPersist === 'xie', 'R5 guardianPick 随档持久化', 'pick=' + pickPersist);
 
   /* 需求 5：道侣位点开择选浮层（suwan 满档 100 → 应在列；不满足者不显示）*/
-  await page.click('#tab-bonds .spouserow.pickable');
+  await page.click('#tab-bonds .slots2 .bondslot[data-act="spousePickOpen"]');
   await page.waitForTimeout(200);
   const sTitle = await page.$eval('#msp-title', el => el.textContent);
   const sBody = await page.$eval('#msp-body', el => el.textContent);
@@ -124,14 +127,14 @@ const { chromium } = require('playwright-core');
 
   /* 需求 4：道友页点解锁卡片 → 弹出详情浮层 */
   const cardVisibleBefore = await page.$eval('#modal-bonds', el => el.classList.contains('hide'));
-  await page.click('#tab-bonds .pal[data-act="bondOpen"]');
+  await page.click('#tab-bonds .brow[data-act="bondOpen"]');
   await page.waitForTimeout(300);
   const modalShown = await page.$eval('#modal-bonds', el => !el.classList.contains('hide'));
   const hasDetail = await page.$eval('#mbd-body .bd-head', el => !!el);
   T(modalShown && hasDetail, 'R4 点卡片弹出详情叠加层', 'wasHidden=' + cardVisibleBefore + ' detail=' + hasDetail);
   /* 浮层走查修复：跨至少一次秒级 tick，背后道友页必须保持名录、浮层保持详情 */
   await page.waitForTimeout(1600);
-  const tabStillRoster = await page.$eval('#tab-bonds', el => !!el.querySelector('.palgrid'));
+  const tabStillRoster = await page.$eval('#tab-bonds', el => !!el.querySelector('.browlist'));
   const modalStillDetail = await page.$eval('#mbd-body .bd-head', el => !!el);
   T(tabStillRoster && modalStillDetail, 'R4+ 秒级 tick 后背后道友页保持名录不跟跳', 'roster=' + tabStillRoster + ' detail=' + modalStillDetail);
   /* 浮层内返回名录 → 浮层回列表，道友页不受影响 */
@@ -141,24 +144,27 @@ const { chromium } = require('playwright-core');
   T(backRoster, 'R4+ 浮层内「返回名录」回到列表');
   await page.click('#mbd-close');
   await page.waitForTimeout(300);
-  const tabRestored = await page.$eval('#tab-bonds .palgrid', el => !!el);
+  const tabRestored = await page.$eval('#tab-bonds .browlist', el => !!el);
   T(tabRestored, 'R4 关闭浮层后道友页名录还原');
 
   /* 需求 3：势力页加入按钮置灰（先加入一个）*/
   await page.click('#m-tabbar button:has-text("势力")');
   await page.waitForTimeout(300);
-  /* 势力页按钮每秒随 tick 重渲染：裸 ElementHandle.click 会在重渲染瞬间脱挂且不自动重试，
-   * 改用 Locator（.first()）——重解析+重试，规避 elementHandle.click「not attached」抖动。 */
+  /* B16-ac：势力页是名录 ⇒ 先点一行进详情，加入钮在详情里 */
+  await page.click('#tab-faction .faccard[data-act="facDetail"]');
+  await page.waitForTimeout(300);
   const joinSel = '[data-act="joinFaction"]:not([disabled])';
   const joinCount = await page.locator(joinSel).count();
-  T(joinCount > 0, 'R3 未加入时可加入', 'enabled=' + joinCount);
+  T(joinCount > 0, 'R3 未加入时详情可加入', 'enabled=' + joinCount);
   await page.locator(joinSel).first().click();
   await page.waitForTimeout(300);
   await page.click('#cf-ok');   /* CONFIRM */
   await page.waitForTimeout(600);
-  const en = await page.$$eval('[data-act="joinFaction"]:not([disabled])', els => els.length);
-  const dis = await page.$$eval('[data-act="joinFaction"][disabled]', els => els.length);
-  T(en === 0 && dis > 0, 'R3 加入后其余势力按钮全部置灰', 'enabled=' + en + ' disabled=' + dis);
+  /* 加入后回到名录；再打开另一家详情 ⇒ 单一归属，不再给加入钮 */
+  await page.click('#tab-faction .faccard[data-act="facDetail"]');
+  await page.waitForTimeout(300);
+  const en2 = await page.$$eval('[data-act="joinFaction"]', els => els.length);
+  T(en2 === 0, 'R3 加入后再看别家：单一归属，不再给加入钮', 'joinBtn=' + en2);
 
   /* 地柱跳转回归：openCave → 切到「秘境洞天」页并落到洞天节（原浮层已内联本页）*/
   await page.click('#m-tabbar button:has-text("修行")');
@@ -172,7 +178,7 @@ const { chromium } = require('playwright-core');
   });
   T(caveJump.onCombat && caveJump.hasSec, '回归 地柱 → 跳「秘境洞天」页洞天节', JSON.stringify(caveJump));
   const caveEnterDis = await page.$$eval('#tab-combat [data-act="caveEnter"][disabled]', els => els.length);
-  console.log('INFO 秘境洞天页置灰入驻按钮数（资格/冷却所致）=', caveEnterDis);
+  console.log('INFO 秘境页置灰入驻按钮数（资格/冷却所致）=', caveEnterDis);
 
   T(errors.length === 0, '零页面报错', errors.join(' | ').slice(0, 200) || 'clean');
   console.log(fail === 0 ? 'UI_VERIFY_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_VERIFY_FAILED ' + fail);

@@ -80,7 +80,10 @@ const { load } = require('./sandbox.cjs');   /* 种子数值一律取自引擎�
       vis: !document.getElementById('modal-recap').classList.contains('hide'),
       title: (tt.textContent || '').trim(), titleH: Math.round(tt.getBoundingClientRect().height),
       titleDup: document.querySelectorAll('#mrp-title').length,
-      titleLex: SQ.t('legacy.ui.recap.title', null, 'xiuxian'),
+      kicker: (document.getElementById('mrp-kicker').textContent || '').trim(),
+      kickerLex: SQ.t('legacy.ui.recap.title', null, 'xiuxian'),
+      titleLex: SQ.t('legacy.ui.recap.life', { name: SQ.displayName(s) }, 'xiuxian'),
+      rows: document.querySelectorAll('#mrp-rows li').length,
       goLex: (document.getElementById('mrp-go').textContent || '').trim(),
       goKey: SQ.t('legacy.ui.recap.go', null, 'xiuxian'),
       n: got.length, full: (last.text || '').length,
@@ -96,10 +99,11 @@ const { load } = require('./sandbox.cjs');   /* 种子数值一律取自引擎�
   const recapJudges = async (page, T, tagOpen, tagClose, chan) => {
     const r1 = await recapOf(page);
     T(r1.vis && r1.title === r1.titleLex && r1.titleH > 0 && r1.titleDup === 1 &&
+      r1.kicker === r1.kickerLex && r1.rows === 4 &&
       r1.goLex === r1.goKey && r1.n > 0 && r1.prefix && r1.chan === chan,
-      tagOpen + ' 盖棺之传在位：浮层可见 ‖ 标题取词表值**且量得出高度、挂点全库唯一** ‖ 钮名取词表值 ‖ 正文恒为末条传记前缀且那条 channel=' + chan,
+      tagOpen + ' 盖棺之传在位：浮层可见 ‖ 题签 + 「道号 · 一生」标题都取词表值，标题量得出高度、挂点全库唯一 ‖ 本世四行在位 ‖ 钮名取词表值 ‖ 正文恒为末条传记前缀且那条 channel=' + chan,
       'vis=' + r1.vis + ' 标题=' + r1.title + '@' + r1.titleH + 'px/id=' + r1.titleDup +
-      ' 钮=' + r1.goLex + ' 字数=' + r1.n + '/' + r1.full + ' 前缀=' + r1.prefix + ' chan=' + r1.chan);
+      ' 行=' + r1.rows + ' 钮=' + r1.goLex + ' 字数=' + r1.n + '/' + r1.full + ' 前缀=' + r1.prefix + ' chan=' + r1.chan);
     await page.click('#mrp-go', { timeout: 4000 }).catch(() => {});   /* 浮层没开时别把整篇跑崩：让下一判定性判红 */
     const r2 = await recapOf(page);
     /* 这一判同时咬「开过」：演出压根没开时 r1.vis=false，此处必红——否则「关好之后落在创角屏」
@@ -284,6 +288,23 @@ const { load } = require('./sandbox.cjs');   /* 种子数值一律取自引擎�
     await page.waitForTimeout(400);
     const btn = await page.$$eval('[data-act="ascend"]', els => els.length);
     T(btn >= 1, 'F0 真仙盈满 ⇒ 修行页飞升入口在位（进得去这条终局）', '入口 ' + btn + ' 颗');
+    /* B16-af：飞升入口在圆相/速率下方、四格上方，且无外层方框 */
+    const fGeo = await page.evaluate(() => {
+      const c = document.querySelector('#tab-idle .hero-cta.ascend');
+      const rate = document.querySelector('#tab-idle .rate');
+      const st = document.querySelector('#tab-idle .statrow');
+      const cs = c ? getComputedStyle(c) : null;
+      const cb = c ? c.getBoundingClientRect() : null, rb = rate ? rate.getBoundingClientRect() : null,
+        sb = st ? st.getBoundingClientRect() : null;
+      return {
+        has: !!c, bw: cs ? cs.borderTopWidth : '', bg: cs ? cs.backgroundColor : '',
+        belowRate: !!(cb && rb && cb.top >= rb.bottom - 2),
+        aboveStat: !!(cb && sb && cb.bottom <= sb.top + 2)
+      };
+    });
+    T(fGeo.has && fGeo.bw === '0px' && (fGeo.bg === 'rgba(0, 0, 0, 0)' || fGeo.bg === 'transparent') &&
+      fGeo.belowRate && fGeo.aboveStat,
+      'F0b 飞升按钮无外层方框，位于吐纳速率下方、四格上方', JSON.stringify(fGeo));
     await page.click('[data-act="ascend"]');
     await page.waitForSelector('#modal-confirm:not(.hide)', { timeout: 8000 });
     await page.click('#cf-ok');

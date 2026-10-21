@@ -49,47 +49,55 @@
     if (s.type === 'exclusive') return '<div class="srcrow">' + c.esc(c.t('gear.src.exclusive')) + '</div>';
     return '';
   }
-  /* 法器卡（卡片化批）：槽位名 + 名号/品阶/阵营 + 属性行 + 评分 + 缺项红字 + 来源行 + 动作 */
-  function gearCard(c, it, w, slotLabel, stashIdx) {
-    if (!it) return '<div class="tcard dim"><div class="tslot">' + c.esc(slotLabel) + '</div>' +
-      '<div class="tdesc">' + c.esc(c.t('gear.empty')) + '</div></div>';
-    var h = '<div class="tcard">';
-    h += '<div class="tslot">' + c.esc(slotLabel) + '</div>';
-    h += '<div class="tname">' + c.esc(it.name) +
-         ' <span class="tierbadge t' + it.tier + '">' + c.esc(c.t('gear.tier.' + it.tier)) + '</span>' +
-         ' <span class="align-sym align-' + it.alignment + '">' + c.esc(c.t('align.sym.' + it.alignment)) + '</span>' +
-         (it.special ? ' <span class="special-mark">' + c.esc(c.t('gear.special.' + it.special)) + '</span>' : '') +
-         (it.prime ? ' <span class="primetag">' + c.esc(c.t('gear.prime')) + '</span>' : '') +
-         (it.exclusive ? ' <span class="ebadge gold">' + c.esc(c.t('event.badge.exGear')) + '</span>' : '') + '</div>';
-    h += '<div class="teff">' + c.esc(c.statLine(it)) + '</div>';
-    h += '<div class="tdesc">' + c.esc(c.t('gear.score', { n: SQ.fmt(SQ.Gear.scoreOf(it)) })) + '</div>';
+  /* 单槽（B16-e 起的设计稿 .gear4 / .gslot 形态）：槽名 + 名号（含品阶/阵营角标）+ 属性行。
+   * 空槽用虚线 +「尚无此件」，一眼看出还差几件；不再用整张卡片占位。 */
+  function gearSlot(c, it, w, slotLabel) {
+    if (!it) {
+      return '<div class="gslot empty"><div class="g-k">' + c.esc(slotLabel) + '</div>' +
+        '<div class="g-n dim">' + c.esc(c.t('gear.slot.none')) + '</div>' +
+        '<div class="g-e dim">' + c.esc(c.t('gear.empty')) + '</div></div>';
+    }
+    return '<div class="gslot on"><div class="g-k">' + c.esc(slotLabel) + '</div>' +
+      '<div class="g-n">' + c.esc(it.name) +
+      ' <span class="tierbadge t' + it.tier + '">' + c.esc(c.t('gear.tier.' + it.tier)) + '</span>' +
+      (it.special ? ' <span class="special-mark">' + c.esc(c.t('gear.special.' + it.special)) + '</span>' : '') +
+      (it.exclusive ? ' <span class="ebadge gold">' + c.esc(c.t('event.badge.exGear')) + '</span>' : '') + '</div>' +
+      '<div class="g-e">' + c.esc(c.statLine(it)) + '</div></div>';
+  }
+  /* 库藏阁整行（B16-e）：左「名 + 品阶/角标 + 属性 + 评分 + 缺项/来源」，右「换上 / 炼化」。
+   * 动作条件与 data-act 一字未改（独占手动替换口径、炼化指纹回传给引擎复查那条都不动）。 */
+  function gearStashRow(c, it, w, idx) {
+    var h = '<div class="lrow stroe">' +
+      '<span class="srn">' + c.esc(it.name) +
+      ' <span class="tierbadge t' + it.tier + '">' + c.esc(c.t('gear.tier.' + it.tier)) + '</span>' +
+      ' <span class="align-sym align-' + it.alignment + '">' + c.esc(c.t('align.sym.' + it.alignment)) + '</span>' +
+      (it.special ? ' <span class="special-mark">' + c.esc(c.t('gear.special.' + it.special)) + '</span>' : '') +
+      (it.prime ? ' <span class="primetag">' + c.esc(c.t('gear.prime')) + '</span>' : '') +
+      (it.exclusive ? ' <span class="ebadge gold">' + c.esc(c.t('event.badge.exGear')) + '</span>' : '') + '</span>' +
+      '<span class="srd">' + c.esc(c.statLine(it)) + ' · ' + c.esc(c.t('gear.score', { n: SQ.fmt(SQ.Gear.scoreOf(it)) })) + '</span>';
     if (!SQ.Gear.canWear(it, w)) {
-      /* 库藏阁红字：要求与剩余境界差（B5）；极品 ※ = 追加一阶的可解释性标注 */
-      h += '<div class="tdesc" style="color:var(--danger)">' + c.esc(c.t('gear.lack.stash', {
+      h += '<span class="srd" style="color:var(--danger)">' + c.esc(c.t('gear.lack.stash', {
         realm: c.t('realm.' + it.reqs.realm), star: it.prime ? '※' : '', n: Math.max(1, it.reqs.realm - w.realm)
-      })) + '</div>';
-      if (it.prime) h += '<div class="tdesc">' + c.esc(c.t('gear.prime.note')) + '</div>';
+      })) + '</span>';
+      if (it.prime) h += '<span class="srd hint">' + c.esc(c.t('gear.prime.note')) + '</span>';
     }
-    if (it.exclusive) h += '<div class="tdesc">' + c.esc(c.t(stashIdx != null ? 'gear.ex.lock' : 'gear.ex.norefine')) + '</div>';
+    if (it.exclusive) h += '<span class="srd hint">' + c.esc(c.t('gear.ex.lock')) + '</span>';
+    /* 来源行（B5 口径：秘境可跳、奇遇可回看）——改行后仍留在行内，不因版式换装丢出口 */
     h += gearSrcLine(c, it);
-    /* 库藏阁条目操作（批 2·B5 独占手动替换 + 道具处置打磨包手动炼化出口） */
-    if (stashIdx != null) {
-      var cur = w.gear[it.slot];
-      var acts = '';
-      if (SQ.Gear.canWear(it, w) && (it.exclusive || (cur && cur.exclusive))) {
-        acts += '<button data-act="swapGear" data-v="' + stashIdx + '">' +
-          c.esc(c.t(cur && cur.exclusive && !it.exclusive ? 'gear.swap.btn' : 'gear.swap.wear')) + '</button>';
-      }
-      if (!it.exclusive) {
-        acts += '<button data-act="refineGear" data-v="' + stashIdx + '">' +
-          c.esc(c.t('gear.refine.btn', { n: SQ.fmt(SQ.Gear.refineValue(it, w, c.d, c.mods)) })) + '</button>';
-      }
-      if (acts) h += '<div class="acts">' + acts + '</div>';
+    var acts = '', cur = w.gear[it.slot];
+    if (SQ.Gear.canWear(it, w) && (it.exclusive || (cur && cur.exclusive))) {
+      acts += '<button data-act="swapGear" data-v="' + idx + '">' +
+        c.esc(c.t(cur && cur.exclusive && !it.exclusive ? 'gear.swap.btn' : 'gear.swap.wear')) + '</button>';
     }
+    if (!it.exclusive) {
+      acts += '<button data-act="refineGear" data-v="' + idx + '">' +
+        c.esc(c.t('gear.refine.btn', { n: SQ.fmt(SQ.Gear.refineValue(it, w, c.d, c.mods)) })) + '</button>';
+    }
+    h += '<span class="srr">' + (acts ? '<span class="srb">' + acts + '</span>' : '') + '</span>';
     return h + '</div>';
   }
-  /* ⑤ 法器段（原 renderGear 主体逐段照搬：百器录横幅 / 已佩 4 槽 / 库藏阁）——
-   * 页面整合批 2026-10-06 由「写 #tab-gear」改为「返回 HTML 串」，供合并页拼接。
+  /* ⑤ 百器段（B16-e 对齐设计稿 §百器：三格摘要 → 四槽一行 → 百器录行 → 库藏阁行 → 炼化条）。
+   * 百器录一行点开仍是 12 格双节浮层（data-act 未改）；库藏阁换上/炼化的条件与顺序未改。
    * ⚠️ UI 卷 §3.4a 勘误：原设计文档末项「最近拾得滚动列表」在本函数里从来不存在，
    * 实际只有百器录 / 已佩 / 库藏阁三段；已按代码现实收敛登记，不在本批补做。 */
   function gearBody(c) {
@@ -99,24 +107,39 @@
     var exIds = Object.keys(d.EXCLUSIVE_GEAR || {});
     var sGot = spIds.filter(function (x) { return seen[x] != null; }).length;
     var eGot = exIds.filter(function (x) { return seen['ex_' + x] != null; }).length;
-    /* 页首百器录横幅（B5）：计数三分，点开 = 12 格双节浮层 */
-    var h = '<div class="gbanner" data-act="openGearCodex"><span class="l">' + c.esc(c.t('gear.codex.title')) + '</span>' +
-      '<span class="r">' + c.esc(c.t('gear.codex.banner', {
-        n: sGot + eGot, total: spIds.length + exIds.length, s: sGot, st: spIds.length, e: eGot, et: exIds.length
-      })) + ' ›</span></div>';
-    var worn = 0, resSum = 0;
-    d.GEAR_SLOTS.forEach(function (s) { if (w.gear[s]) { worn++; resSum += w.gear[s].resist || 0; } });
+    var worn = 0, atkSum = 0, resSum = 0;
+    d.GEAR_SLOTS.forEach(function (s) {
+      var it = w.gear[s];
+      if (it) { worn++; atkSum += it.atk || 0; resSum += it.resist || 0; }
+    });
+    /* ① 三格摘要（设计稿 .sum3）：三个数全部现算，不抄「9.8 万」这类演示值 */
+    var h = '<div class="sum3">' +
+      '<div><div class="k">' + c.esc(c.t('gear.sum.worn')) + '</div><div class="v">' +
+      worn + ' / ' + d.GEAR_SLOTS.length + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('gear.stat.atk')) + '</div><div class="v">' + SQ.fmt(atkSum) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('gear.stat.resist')) + '</div><div class="v">' + SQ.fmt(resSum) + '</div></div></div>';
+    /* ② 四槽一行（取数、角标与空槽语义同旧卡） */
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('gear.sec.worn')) + '</span><span class="s">' +
       c.esc(c.t('gear.sec.wornsub', { n: worn, total: d.GEAR_SLOTS.length, r: SQ.fmt(resSum) })) + '</span></div>';
-    h += '<div class="cards geargrid">' + d.GEAR_SLOTS.map(function (slot) {
-      return gearCard(c, w.gear[slot], w, c.t('gear.slot.' + slot), null);
+    h += '<div class="gear4">' + d.GEAR_SLOTS.map(function (slot) {
+      return gearSlot(c, w.gear[slot], w, c.t('gear.slot.' + slot));
     }).join('') + '</div>';
+    h += '<p class="hintline">' + c.esc(c.t('gear.hint')) + '</p>';
+    /* ③ 百器录：页首横幅改行（进度条 + 计数 + 全部），点开仍是双节浮层 */
+    var cdTotal = spIds.length + exIds.length, cdGot = sGot + eGot;
+    h += '<div class="lrow codexrow" data-act="openGearCodex"><span class="srn">' + c.esc(c.t('gear.codex.title')) +
+      ' <span class="hint">' + c.esc(c.t('gear.codex.banner', {
+        n: cdGot, total: cdTotal, s: sGot, st: spIds.length, e: eGot, et: exIds.length
+      })) + '</span></span>' +
+      '<span class="srd"><span class="bar thin"><i style="width:' + (cdTotal ? Math.round(cdGot / cdTotal * 100) : 0) + '%"></i></span></span>' +
+      '<span class="srr"><span class="srb"><b>' + c.esc(c.t('gear.codex.open')) + '</b></span></span></div>';
+    /* ④ 库藏阁：整行 */
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('gear.stash', { n: w.stash.length, cap: SQ.Gear.stashCap(w, d, c.mods) })) +
       '</span><span class="s">' + c.esc(c.t('gear.stash.hint')) + '</span></div>';
     if (!w.stash.length) h += '<div class="lrow locked"><div class="meta">' + c.esc(c.t('gear.empty')) + '</div></div>';
-    else h += '<div class="cards geargrid">' + w.stash.map(function (it, i) {
-      return gearCard(c, it, w, c.t('gear.slot.' + it.slot), i);
-    }).join('') + '</div>';
+    else h += w.stash.map(function (it, i) { return gearStashRow(c, it, w, i); }).join('');
+    h += '<div class="strip"><span class="t">' + c.esc(c.t('gear.refine.strip.t')) + '</span>' +
+      '<span class="v">' + c.esc(c.t('gear.refine.strip.v')) + '</span></div>';
     return h;
   }
   /* 百器录浮层（B5 · 帧四）：12 格双节；已录格点按 = 首获详情 toast；未录格点按 = 轻震 */
@@ -173,6 +196,7 @@
     h += '<p class="hint" style="margin-top:10px;line-height:1.7">' + c.esc(c.t('gear.codex.note')) + '</p>';
     c.$('mgc-body').innerHTML = h;
   }
+
   function openGearCodex(c) { renderGearCodex(c); c.$('modal-gearcodex').classList.remove('hide'); }
 
   /* act「openGearCodex」分支体（第册十批随片搬出，分派处留一行调用）*/
@@ -214,6 +238,6 @@
   }
 
   SQ.UI = SQ.UI || {};
-  SQ.UI.gear = { body: gearBody, card: gearCard, codex: renderGearCodex, openCodex: openGearCodex,
+  SQ.UI.gear = { body: gearBody, 
     actOpenCodex: actOpenGearCodex, actGcDetail: actGcDetail, actRefine: actRefineGear };
 })();

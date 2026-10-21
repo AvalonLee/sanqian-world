@@ -46,12 +46,12 @@ const { chromium } = require('playwright-core');
   /* 进「法与器」页（融合坛在法段页尾）——页面整合批 2026-10-06：原「功法」「法器」两 Tab
    * 并为「法与器」一页（UI 卷 §3.4a），故本脚本点击标签由「功法」改「法与器」，融合坛断言
    * 容器 #tab-arts 不变（本就写在功法页尾）。 */
-  await page.click('#m-tabbar button:has-text("法与器")');
+  await page.click('#m-tabbar button[data-v="arts"]');
   await page.waitForTimeout(400);
 
   /* ① 融合坛渲染 */
   const altarTxt = await page.$eval('#tab-arts', el => el.textContent);
-  T(altarTxt.indexOf('融合坛') >= 0, '法与器页法段页尾渲染「融合坛」', 'has=' + (altarTxt.indexOf('融合坛') >= 0));
+  T(altarTxt.indexOf('融合坛') >= 0, '功法页页尾渲染「融合坛」', 'has=' + (altarTxt.indexOf('融合坛') >= 0));
 
   /* ② 悟道门槛文案：{h}/{need} 时辰（现实时间），need=12 */
   const medTxt = await page.$eval('#tab-arts', el => {
@@ -118,9 +118,9 @@ const { chromium } = require('playwright-core');
   T(typed.val === '测试剑意', '自定义名不被 tick 抹掉（值同时进 ui.fuseName 单源）', 'val=' + typed.val);
   /* ⑧ 切标签把整段重渲染一遍（动作类重建，不是 tick）⇒ 打的字必须从 ui.fuseName 回填。
    * 去掉 input 监听 / value 回填任一半，这条就红（⑦ 只证焦点那半）。 */
-  await page.click('#tab-arts > .lawchips button[data-v="qi"]');
+  await page.click('#m-tabbar button[data-v="gear"]');
   await page.waitForTimeout(300);
-  await page.click('#tab-arts > .lawchips button[data-v="fa"]');
+  await page.click('#m-tabbar button[data-v="arts"]');
   await page.waitForTimeout(300);
   const backAgain = await page.evaluate(() => {
     const el = document.querySelector('.fusename');

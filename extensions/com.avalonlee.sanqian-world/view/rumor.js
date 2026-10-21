@@ -69,8 +69,9 @@
   }
   function renderRumors(c, now) {
     var cards = (c.w.rumors || []).slice().sort(function (a, b) { return a.expireAt - b.expireAt; });
-    var h = '<p class="hint" style="margin:10px 0 2px;font-weight:650">' +
-      c.esc(c.t('rumor.title')) + (cards.length ? ' · ' + cards.length : '') + '</p>';
+    /* B16-n：伪段标（加粗 `p.hint`）改 `.sechead`，计数落右 */
+    var h = '<div class="sechead"><span class="t">' + c.esc(c.t('rumor.title')) + '</span>' +
+      (cards.length ? '<span class="s">' + cards.length + '</span>' : '') + '</div>';
     if (!cards.length) return h + '<p class="hint" style="padding:8px 0">' + c.esc(c.t('rumor.empty')) + '</p>';
     cards.forEach(function (r) { h += rumorCard(c, r, now); });
     return h;
@@ -94,5 +95,5 @@
     return (w.rumors || []).some(function (r) { return r.expireAt > now && r.bornAt > c.ui.rumorSeenAt; });
   }
   SQ.UI = SQ.UI || {};
-  SQ.UI.rumor = { band: renderRumors, card: rumorCard, maxBorn: maxRumorBornAt, dotOn: rumorDotOn };
+  SQ.UI.rumor = { band: renderRumors, maxBorn: maxRumorBornAt, dotOn: rumorDotOn };
 })();

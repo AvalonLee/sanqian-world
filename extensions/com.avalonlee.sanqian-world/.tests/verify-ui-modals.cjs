@@ -84,10 +84,10 @@ const { chromium } = require('playwright-core');
   T(ids[0] && ids[1] && ids[2], 'M0 三枚浮层挂点在册', JSON.stringify(ids));
 
   /* ── M1 账本浮层（修行页四柱「财」点开） ── */
-  const hasLedgerTrigger = await exists('#tab-idle [data-act="openLedger"]');
+  const hasLedgerTrigger = await exists('#m-rail [data-act="openLedger"]');
   T(hasLedgerTrigger, 'M1a 修行页「财」柱触发点在位（拿不到触发点即判红，不许跳过浮层）');
   if (hasLedgerTrigger) {
-    await clickSel('#tab-idle [data-act="openLedger"]');
+    await clickSel('#m-rail [data-act="openLedger"]');
     await page.waitForTimeout(260);
     const m = await readModal('modal-ledger', '#modal-ledger');
     T(m.open && m.len >= 20 && m.cjk && !m.junk, 'M1b 账本浮层开且正文非空壳（含中文零 junk）',
@@ -114,15 +114,13 @@ const { chromium } = require('playwright-core');
     T(closed.hidden && closed.idleVisible, 'M1d 点关闭 ⇒ 浮层回 hide 且修行页仍可见（不卡层）', JSON.stringify(closed));
   }
 
-  /* ── M2 百器录浮层（法与器页「器」标签顶栏 banner 点开） ── */
-  await clickSel('#m-tabbar button[data-v="arts"]');
+  /* ── M2 百器录浮层（B3 拆页后：百器页顶栏 banner 点开） ── */
+  await clickSel('#m-tabbar button[data-v="gear"]');
   await page.waitForTimeout(700);
-  await clickSel('#tab-arts > .lawchips button[data-v="qi"]');
-  await page.waitForTimeout(600);
-  const hasCodexTrigger = await exists('#tab-arts [data-act="openGearCodex"]');
+  const hasCodexTrigger = await exists('#tab-gear [data-act="openGearCodex"]');
   T(hasCodexTrigger, 'M2a 器段「百器录」banner 在位（切到器标签后取不到即判红）');
   if (hasCodexTrigger) {
-    await clickSel('#tab-arts [data-act="openGearCodex"]');
+    await clickSel('#tab-gear [data-act="openGearCodex"]');
     await page.waitForTimeout(260);
     const m2 = await readModal('modal-gearcodex', '#mgc-body');
     T(m2.open && m2.len >= 8 && m2.cjk && !m2.junk, 'M2b 百器录浮层开且条目区非空（含中文零 junk）',
@@ -131,9 +129,9 @@ const { chromium } = require('playwright-core');
     await page.waitForTimeout(220);
     const c2 = await page.evaluate(() => ({
       hidden: document.getElementById('modal-gearcodex').classList.contains('hide'),
-      artsVisible: !document.getElementById('tab-arts').classList.contains('hide')
+      artsVisible: !document.getElementById('tab-gear').classList.contains('hide')
     }));
-    T(c2.hidden && c2.artsVisible, 'M2c 点关闭 ⇒ 回 hide 且法与器页仍可见', JSON.stringify(c2));
+    T(c2.hidden && c2.artsVisible, 'M2c 点关闭 ⇒ 回 hide 且百器页仍可见', JSON.stringify(c2));
   }
 
   /* ── M3 择护法浮层（道友页护法位摘要行点开） ── */

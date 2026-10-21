@@ -141,7 +141,7 @@ const KEY = 'sanqian-state-v1';
       const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
       pack.recalcDerived(w, st.profile);
       const mods = SQ.Mods.collect(st.profile, w, pack, D);
-      const box = document.querySelector('#tab-idle .detailbox');
+      const box = document.querySelector('#tab-idle .dp-sheet, #tab-idle .detailbox');
       const txt = box ? (box.innerText || '') : '';
       const srcs = Object.keys((mods.detail && mods.detail.qiRate) || {}).filter((k) => Math.abs(mods.detail.qiRate[k]) > 1e-9);
       const missing = [], bare = [];
@@ -164,22 +164,60 @@ const KEY = 'sanqian-state-v1';
   }
 
   if (await clickTab('宗门')) {
+    /* B16-ac 改口：已加入固定势力 ⇒ 宗门页 = 该势力主页（当前效力条 + 门中供给），
+     * 不再显示开宗门槛（门槛只在「无势力」态出现，由 verify-ui-join 专篇覆盖）。 */
     const gRow = await page.evaluate(() => {
       const st = JSON.parse(localStorage.getItem('sanqian-state-v1'));
-      const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
-      const g = SQ.Sect.foundGates(w, D, st.meta);
-      const spans = Array.prototype.slice.call(document.querySelectorAll('#tab-sect .reqchips span'));
-      const dom = spans.map((x) => x.classList.contains('ok'));
-      const eng = [g.realm, g.identity, g.peak, g.unlock];
-      const chk = SQ.Sect.canFound(w, pack, D, st.meta);
-      return { dom: dom.join(','), eng: eng.join(','), n: spans.length, everDef: w.everDefected === true,
-        reason: chk.reason, idEng: g.identity };
+      const w = st.worlds.xiuxian;
+      return {
+        fid: w.factionId || '',
+        strip: !!document.querySelector('#tab-sect .statestrip .s-v'),
+        gates: document.querySelectorAll('#tab-sect .gate').length,
+        supply: document.querySelectorAll('#tab-sect .matgrid > .matrow').length
+      };
     });
-    T(gRow.n === 4 && gRow.dom === gRow.eng,
-      'AT-G 宗门四门槛 chip 逐条 === SQ.Sect.foundGates（规则只留属主那一份）',
-      '屏=' + gRow.dom + ' 引擎=' + gRow.eng + ' 叛离过=' + gRow.everDef + ' canFound=' + gRow.reason);
+    T(!!gRow.fid && gRow.fid !== 'sect' && gRow.strip && gRow.gates === 0 && gRow.supply === 4,
+      'AT-G 已加入固定势力 ⇒ 宗门页显示该势力主页（效力条 + 供给四行），不再显示开宗门槛',
+      JSON.stringify(gRow));
   } else {
     T(false, 'AT-G 宗门页导航可定位', '找不到「宗门」页签');
+  }
+
+  /* AT-H（B16-ad）：自立宗门治理区（改名 / 门规 / 宣言 / 税率 / 任免 / 逐出 / 解散）在屏上 */
+  {
+    const sx = JSON.parse(fixture), wS = sx.worlds.xiuxian;
+    wS.factionId = 'sect';
+    wS.sect = {
+      name: '试剑宗', gate: 'wuyue', align: 'neutral', motto: '', tax: 0,
+      disciples: [{ id: 'd1', nm: [0, 0], tier: 'mid', realm: 2, prog: 0, inv: 0, perk: 'combatPower', tianjiao: false }],
+      fac: { zangjing: 0, danfang: 0, yanwu: 0, keshe: 0 }, seq: 1,
+      warRecord: { wins: 0, loses: 0 }, suppressed: {}, foundAt: Date.now()
+    };
+    wS.factions.push({ id: 'sect', name: '试剑宗', align: 'neutral', perk: { field: 'qiRate', v: 0 }, rel: {}, fixed: false });
+    const ctxS = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    await ctxS.addInitScript((a) => { try { localStorage.setItem(a.k, a.v); } catch (e) {} }, { k: KEY, v: JSON.stringify(sx) });
+    const pS = await ctxS.newPage();
+    const errS = [];
+    pS.on('pageerror', (e) => errS.push(String(e.message).slice(0, 90)));
+    await pS.goto(url);
+    await pS.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 }).catch((e) => { console.log('AT-H_ERR', errS.join(' | ') || 'no pageerror'); throw e; });
+    await pS.waitForTimeout(500);
+    await pS.evaluate(() => { var b = document.querySelector('#m-tabbar button[data-v="sect"]'); if (b) b.click(); });
+    await pS.waitForTimeout(400);
+    const gov = await pS.evaluate(() => ({
+      heads: Array.prototype.map.call(document.querySelectorAll('#tab-sect .sechead .t'), (x) => x.textContent.trim()),
+      want: SQ.t('sect.gov.title', null, 'xiuxian'),
+      tax: document.querySelectorAll('#tab-sect [data-act="sectGovTax"]').length,
+      posts: document.querySelectorAll('#tab-sect [data-act="sectPost"]').length,
+      expel: document.querySelectorAll('#tab-sect [data-act="sectExpel"]').length,
+      disband: !!document.querySelector('#tab-sect [data-act="sectDisband"]'),
+      inputs: !!document.querySelector('#sect-rename-input') && !!document.querySelector('#sect-motto-input'),
+      errs: 0
+    }));
+    T(gov.heads.indexOf(gov.want) >= 0 && gov.tax === 7 &&
+      gov.posts >= 2 && gov.expel >= 1 && gov.disband && gov.inputs && errS.length === 0,
+      'AT-H 自立宗门治理区齐备（改名/门规/宣言/税率七档/任免/逐出/解散 · 零报错）', JSON.stringify(gov));
+    await ctxS.close();
   }
 
   /* AT-SB 滚动条已换成主题样式（第十九批 · 用户令「整个游戏的滚动条和界面不太匹配，美化一下」）。

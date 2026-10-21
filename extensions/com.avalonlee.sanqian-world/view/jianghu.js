@@ -57,10 +57,11 @@
      * 读数全取引擎那份单槽 ws.revenge（一槽一仇，不是容器 ⇒ 这行不会随名录变长） */
     if (w.revenge) {
       var rvLeft = (w.revenge.nextAt || 0) - Date.now();
-      h += '<div class="lrow"><div class="nm"><span class="bad">' +
-        c.esc(c.t('prodigy.ambush.chain.n', { n: w.revenge.n || 0 })) + '</span></div>' +
-        '<div class="meta">' + c.esc(w.revenge.foe || '') + (rvLeft > 0 ?
-          ' · ' + c.esc(c.t('prodigy.ambush.chain.cd', { t: c.timeLeft(rvLeft) })) : '') + '</div></div>';
+      /* B16-r：寻仇链按设计稿改 .warstrip（朱砂小标 + 敌手/环数/余时） */
+      h += '<div class="warstrip"><span class="w-t">' + c.esc(c.t('prodigy.ambush.chain.title')) + '</span>' +
+        '<span class="w-v">' + c.esc(c.t('prodigy.ambush.chain.n', { n: w.revenge.n || 0 })) + ' · ' +
+        c.esc(w.revenge.foe || '') + (rvLeft > 0 ? ' · ' + c.esc(c.t('prodigy.ambush.chain.cd', { t: c.timeLeft(rvLeft) })) : '') +
+        '</span></div>';
     }
     /* 第册一批③：原「相识名录为空 ⇒ 只显一行提示」的早退**删除**——四榜席位由名录实时补位，
      * 榜面恒有四十个名字，「榜上无名」这一态在新口径下不存在了（走查 AT10 抓到这条：
@@ -70,19 +71,21 @@
      * 而榜本就是纯派生（读三次全等），留一份快照只是第二个口径（refresh 节律仍管战力重排播报）。 */
     var boards = SQ.Prodigy.board4(w, p, d, m);
     var cur = jbChipOf(c), bb = boards[cur];
-    h = '<div class="chips jbchips">' + [0, 1, 2, 3].map(function (b) {
+    h = '<div class="chips chipsrow jbchips">' + [0, 1, 2, 3].map(function (b) {
       return '<button type="button" class="' + (b === cur ? 'on' : '') + '" data-act="jbChip" data-v="' + b + '">' +
         c.esc(c.t('jianghu.band.' + b)) + '</button>';
-    }).join('') + '</div>' +
-      '<p class="hint" style="margin:0 0 8px">' + c.esc(c.t('prodigy.board.hint')) + '</p>' + h;
+    }).join('') + '</div>' + h;
     var myRank = bb.myRank;          /* 名次由引擎 board4 一并给出（视图不再数第二遍 ⇒ 无第二口径） */
     /* 玩家只在一个榜上有名次：看别的榜时那一格**不渲染**（早版在此显「第 0 位」，是截图目检抓到的谎）；
      * 右侧节律行改口成「名次播报每 N 游戏年一次」——榜面本身已是实时装配，再说「榜每 10 年一刷」
      * 就与「跨带即时换榜、出榜即时递补」两条播报互相打脸（那两条走的是同一枚 RANK_REFRESH_MS 之外的即时路径）。 */
-    h += '<div class="kv">' + (myRank > 0
-        ? '<span class="hint">' + c.esc(c.t('prodigy.board.myrank', { band: c.t('jianghu.band.' + cur), n: myRank })) + '</span>'
-        : '<span></span>') +
-      '<span class="hint">' + c.esc(c.t('prodigy.board.refresh', { y: Math.round((d.PRODIGY.RANK_REFRESH_MS) / 360000) })) + '</span></div>';
+    /* UI v2 B8：自己的名次条置顶（大号名次 + 名次播报周期）；本榜无名次时不写「第 0 位」 */
+    h += '<div class="selfrank' + (myRank > 0 ? '' : ' off') + '">' +
+      '<span class="rankno">' + (myRank > 0 ? myRank : '·') + '</span>' +
+      '<span class="sr-n">' + c.esc(myRank > 0
+        ? c.t('prodigy.board.myrank', { band: c.t('jianghu.band.' + cur), n: myRank })
+        : c.t('prodigy.board.norank')) + '</span>' +
+      '<span class="hint sr-x">' + c.esc(c.t('prodigy.board.refresh', { y: Math.round((d.PRODIGY.RANK_REFRESH_MS) / 360000) })) + '</span></div>';
     bb.rows.forEach(function (r, rank) {
       if (r === null) { h += '<p class="hint" style="text-align:center;margin:2px 0">⋯</p>'; return; }
       var isMe = !!r.me;
@@ -110,7 +113,7 @@
         if (srvSet[pr.id]) relTxt += ' <span class="tierbadge t3">' + c.esc(c.t('prodigy.detail.serving')) + '</span>';
       }
       /* 玩家跌出十席时榜尾那一行显**真实名次**（`bb.myRank`），不是尾行的行号（旧榜面同一条口径） */
-      h += '<div class="lrow' + (isMe ? ' cur' : '') + '"><div class="nm">' + (isMe ? myRank : rank + 1) + '. ' +
+      h += '<div class="lrow' + (isMe ? ' cur' : '') + '"><div class="nm"><span class="rankno">' + (isMe ? myRank : rank + 1) + '.</span> ' +
         (isMe ? '<b>' + c.esc(nm) + '</b>'
           : (pr ? '<button class="linkbtn" data-act="prodDetail" data-v="' + r.pid + '">' + c.esc(nm) + '</button>' : c.esc(nm))) +
         (jp && jp.ti && !r.hid && !isMe ? ' <span class="hint">' + c.esc(jp.ti) + '</span>' : '') +
@@ -179,6 +182,8 @@
         h += '</div>';
       }
     });
+    /* B16-r：榜面说明按设计稿落页尾（原先夹在 chip 与名次条之间） */
+    h += '<p class="hint" style="margin-top:12px">' + c.esc(c.t('prodigy.board.hint')) + '</p>';
     c.$('tab-prodigy').innerHTML = h;
   }
 

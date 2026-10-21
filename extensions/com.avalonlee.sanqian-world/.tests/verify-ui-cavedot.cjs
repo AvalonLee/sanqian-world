@@ -20,6 +20,7 @@ const { chromium } = require('playwright-core');
     w.lastSave = now0; w.lastOffline = null; w.pendingChoice = null;
     /* 场景构造：已入势力（首处）+ 足额灵石 + 清空声望/捐献窗口 + 仅初始福地已持有 */
     w.factionId = (w.factions && w.factions[0] && w.factions[0].id) || 'huangfeng';
+    w.realm = 4;   /* B16-ac：捐献搬到宗门页，宗门页签 lock 4 需解锁 */
     w.factionRep = {};
     w.factionDonate = { at: now0, used: 0 };
     w.stones = 500000;
@@ -37,7 +38,7 @@ const { chromium } = require('playwright-core');
 
   let pass = 0, fail = 0;
   const T = (ok, name, detail) => { if (ok) pass++; else fail++; console.log((ok ? 'PASS' : 'FAIL') + ' ' + name + (detail ? ' (' + detail + ')' : '')); };
-  const dotN = () => page.$$eval('[data-act="openCave"] .pk .pdot', els => els.length);
+  const dotN = () => page.$$eval('#m-rail [data-act="openCave"] .pdot', els => els.length);
 
   await page.goto(url);
   await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
@@ -49,11 +50,11 @@ const { chromium } = require('playwright-core');
   const dot0 = await dotN();
   T(dot0 === 0, '基线：地 chip 无红点（快照对齐不误报）', 'dot=' + dot0);
 
-  /* ② 触发解锁：势力页捐献 100 万 → rep 300 → 职级 2 → 水镜山庄解锁 */
-  await page.click('#m-tabbar button:has-text("势力")');
+  /* ② 触发解锁：宗门页捐献 100 万 → rep 300 → 职级 2 → 水镜山庄解锁（B16-ac：捐献搬到宗门页） */
+  await page.click('#m-tabbar button:has-text("宗门")');
   await page.waitForTimeout(300);
   const donBtn = '[data-act="facDonate"][data-v="1000000"]';
-  T(await page.$(donBtn) !== null, '势力页 100 万捐献档存在', donBtn);
+  T(await page.$(donBtn) !== null, '宗门页 100 万捐献档存在', donBtn);
   await page.click(donBtn);
   await page.waitForTimeout(250);
   await page.click('#cf-ok');

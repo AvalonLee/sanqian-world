@@ -129,6 +129,25 @@
   K['sect.ui.succ.confirm'] = '传位三后果：宗门转 NPC 位继续活着 / 你获称号「开山祖师」跨世保留 / 当世不可再开宗。传位？';
   K['sect.ui.succ.done'] = '已传位 · 一代宗师下山';
   K['sect.ui.nofound'] = '未开宗——四门槛达成后此处亮起「开宗立派」';
+  /* ── B16-j 版面（设计稿 §宗门：空态外壳 / 四门槛 .gate 行 / 立派之后三行 / 已开宗状态条与四格）── */
+  K['sect.ui.found.name'] = '尚未开宗';
+  K['sect.ui.found.tag'] = '未立';
+  K['sect.ui.gates'] = '四 门 槛';
+  K['sect.ui.after'] = '立 派 之 后';
+  K['sect.ui.after.rule'] = '门规三定';
+  K['sect.ui.after.rule.d'] = '定道统 · 定门风 · 定收徒门槛，决定门中供给与弟子资质';
+  K['sect.ui.after.supply'] = '门中供给';
+  K['sect.ui.after.supply.d'] = '按门规定期发放灵石、丹药与功法';
+  K['sect.ui.after.succ'] = '传位';
+  K['sect.ui.after.succ.d'] = '转世前可指定继承人，宗门不随你身死而散';
+  K['sect.ui.strip.k'] = '当前宗门';
+  K['sect.ui.sum.rec'] = '战 绩';
+  K['sect.ui.sum.fac'] = '设 施';
+  K['sect.ui.sum.rule'] = '门 规';
+  K['sect.ui.sum.succ'] = '传 位';
+  K['sect.ui.sum.none'] = '未立';
+  K['sect.ui.sum.set'] = '已定';
+  K['sect.ui.fac.n'] = '{n} 处';
   K['sect.ui.leave.lock'] = '宗门不可弃——传位方可下山';
   K['sect.ui.dispatch'] = '调遣';
   K['sect.ui.accept'] = '收入门墙';
@@ -160,6 +179,40 @@
   K['sect.chronicle.win.evil'] = '是日宗门大捷，「{name}」声威大振。这一仗的账另起一页。';
   K['sect.chronicle.succ.right'] = '是日传位{heir}，「{name}」自此有了自己的命数。师门有后。';
   K['sect.chronicle.succ.evil'] = '是日传位{heir}，「{name}」自此有了自己的命数。路后人接着走。';
+
+  /* ── B16-ad：自立宗门治理 / 人事 / 外交（全开放） ── */
+  K['sect.gov.title'] = '宗 门 治 理';
+  K['sect.gov.name'] = '宗名';
+  K['sect.gov.rename'] = '改名';
+  K['sect.gov.rename.ok'] = '宗门已改名「{name}」';
+  K['sect.gov.rename.empty'] = '宗名不能为空';
+  K['sect.gov.rule'] = '门规';
+  K['sect.gov.rule.ok'] = '门规已重定';
+  K['sect.gov.motto'] = '门规宣言';
+  K['sect.gov.motto.ph'] = '写一句本门戒律（24 字内）';
+  K['sect.gov.motto.ok'] = '门规宣言已更新';
+  K['sect.gov.motto.line'] = '门规宣言：「{m}」';
+  K['sect.gov.tax'] = '税率';
+  K['sect.gov.tax.hint'] = '按弟子所在区灵石基准抽成，每月结算；0~30%，步长 5%。';
+  K['sect.gov.disband'] = '解散宗门';
+  K['sect.gov.disband.confirm'] = '解散「{name}」：山门、弟子、设施尽数遣散，且不可撤销。确定？';
+  K['sect.gov.disband.ok'] = '宗门已解散';
+  K['sect.gov.disband.log'] = '「{name}」山门解散，弟子各奔前程。';
+  K['sect.gov.post.steward'] = '执事';
+  K['sect.gov.post.elder'] = '长老';
+  K['sect.gov.post.none'] = '撤职';
+  K['sect.gov.post.steward.eff'] = '宗门声望 +10%';
+  K['sect.gov.post.elder.eff'] = '宗门战力 +10%';
+  K['sect.gov.post.hint'] = '执事与长老各限一名，只领一份加成；逐出即离门。';
+  K['sect.gov.expel'] = '逐出';
+  K['sect.gov.expel.confirm'] = '将「{name}」逐出宗门？';
+  K['sect.gov.expel.ok'] = '已逐出「{name}」';
+  K['sect.gov.peace'] = '停战';
+  K['sect.gov.peace.cost'] = '停战（{n} 灵石）';
+  K['sect.gov.peace.confirm'] = '向战事双方各递一封和书，花费 {n} 灵石，当前战争立即结束。确定？';
+  K['sect.gov.peace.ok'] = '战事已休';
+  K['sect.gov.peace.log'] = '宗门以 {n} 灵石换来停战，山门闭门休养。';
+  K['sect.tax.log'] = '宗门税入账：灵石 +{n}';
 
   /* ── buff 来源 ── */
   K['buff.src.sect'] = '宗门调遣';

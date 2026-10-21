@@ -42,7 +42,7 @@ async function buildSave() {
   ws.lastSave = now; ws.lastOffline = null; ws.pendingChoice = null;
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-3' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-21-1' },
     meta: { unlockedWorlds: ['xiuxian'], unlocks: { prodigySlot: true } },
     settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
     worlds: { xiuxian: ws }
@@ -88,40 +88,106 @@ async function buildSave() {
   /* 格数随机批 2026-10-09：一次刷 10~16 件（用户令「不要固定为 10 个」）⇒ 判据从「恰 10」改「区间内」，
    * 区间硬界由冒烟 #285 逐值钉死（七刻度扫一遍必为 10..16），这里只量真机渲染出的卡数不落界外。 */
   T(shopWide.cards >= 10 && shopWide.cards <= 16, 'M2 坊市一次刷新 10~16 件随机物品（区间内，不是恒 10）', 'n=' + shopWide.cards);
-  T(shopWide.blackBtn, 'M3 黑市入口可见（karma ≤ −200）');
+  T(shopWide.blackBtn, 'M3 黑市入口常驻（道心 ≤ −200 时开市，未达则显示未开市）');
   await page.click('#tab-shop [data-act="shopTab"][data-v="1"]');
   await page.waitForTimeout(300);
   const blackCards = await page.$$eval('#tab-shop .shopcard', (els) => els.length);
   T(blackCards >= 10 && blackCards <= 16, 'M4 黑市同链路同区间（两架各自独立掷）', 'n=' + blackCards);
+  /* B16-o：黑市按设计稿先给段条（标题回词表现算 + 代价提示非空） */
+  const blackStrip = await page.evaluate(() => {
+    const el = document.querySelector('#tab-shop .strip');
+    return { t: el && el.querySelector('.t') ? el.querySelector('.t').textContent.trim() : '',
+      v: el && el.querySelector('.v') ? el.querySelector('.v').textContent.trim() : '',
+      want: SQ.t('shop.blackmarket', null, 'xiuxian').trim() };
+  });
+  T(blackStrip.t === blackStrip.want && blackStrip.v.length > 0,
+    'M4b 黑市段条在位（标题走词表 · 代价提示非空）', JSON.stringify(blackStrip));
 
-  /* ── ② 势力页：门中供给改卡片 ── */
-  await page.click('#m-tabbar button[data-v="faction"]');
+  /* B16-ab：神秘商人特席常驻——未触发奇遇时也留一块「未开市」 */
+  await page.click('#tab-shop [data-act="shopTab"][data-v="0"]');
+  await page.waitForTimeout(300);
+  const merchClosed = await page.evaluate(() => {
+    const b = document.querySelector('#tab-shop .merchbox.closed');
+    return { closed: !!b, txt: b ? b.textContent.replace(/\s+/g, ' ').trim() : '' };
+  });
+  T(merchClosed.closed && /未开市/.test(merchClosed.txt) && /奇遇/.test(merchClosed.txt),
+    'M4c 神秘商人特席常驻：未开市时给「未开市 + 留意奇遇」提示', JSON.stringify(merchClosed));
+
+  /* B16-ab：黑市页签常驻——道心未达标时进入给「未开市」，不渲染货架 */
+  {
+    const saveClear = JSON.parse(JSON.stringify(save));
+    saveClear.worlds.xiuxian.karmaEventScore = 0;
+    saveClear.worlds.xiuxian.karma = 0;
+    const ctxB = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    await ctxB.addInitScript((x) => { localStorage.setItem('sanqian-state-v1', JSON.stringify(x)); }, saveClear);
+    const pgB = await ctxB.newPage();
+    await pgB.goto(url);
+    await pgB.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+    await pgB.waitForTimeout(700);
+    await pgB.click('#m-tabbar button[data-v="shop"]');
+    await pgB.waitForTimeout(400);
+    const btnB = await pgB.$('#tab-shop [data-act="shopTab"][data-v="1"]');
+    if (btnB) await btnB.click();
+    await pgB.waitForTimeout(350);
+    const closedB = await pgB.evaluate(() => ({
+      hint: (document.querySelector('#tab-shop > p.hint') || {}).textContent || '',
+      cards: document.querySelectorAll('#tab-shop .shopgrid .shopcard').length
+    }));
+    T(!!btnB && /未开市/.test(closedB.hint) && closedB.cards === 0,
+      'M4d 黑市页签常驻：道心未达 −200 时进去给「未开市」提示，不渲染旧货', JSON.stringify(closedB));
+    await ctxB.close();
+  }
+
+  /* ── ② 宗门页（B16-ac：门中供给随日常管理搬到这里）：整行清单 ── */
+  await page.click('#m-tabbar button[data-v="sect"]');
   await page.waitForTimeout(400);
   const facWide = await page.evaluate(() => {
-    const g = document.querySelector('#tab-faction .cardgrid');
+    const g = document.querySelector('#tab-sect .matgrid');
     return {
       hasGrid: !!g,
       cols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      cards: document.querySelectorAll('#tab-faction .cardgrid > .faccard.carditem').length,
-      supplyTitle: !!document.querySelector('#tab-faction .cardgrid')
+      cards: document.querySelectorAll('#tab-sect .matgrid > .matrow').length,
+      supplyTitle: !!document.querySelector('#tab-sect .matgrid')
     };
   });
-  T(facWide.hasGrid && facWide.cols >= 2, 'M5 门中供给为卡片网格（宽屏 ≥2 列）', 'cols=' + facWide.cols);
-  T(facWide.cards === 4, 'M6 门中供给四档各一卡', 'n=' + facWide.cards);
+  T(facWide.hasGrid && facWide.cols === 1, 'M5 门中供给为整行清单（设计稿 .matrow 单列）', 'cols=' + facWide.cols);
+  T(facWide.cards === 4, 'M6 门中供给四档各一行', 'n=' + facWide.cards);
 
-  /* ── ③ 炼丹炼器页：信息改卡片 ── */
+  /* ── ③ 炼丹炼器页（B16-i 改口：设计语言已从「卡片网格」转为「段标 + 行/条/网格三态」——
+   *        丹方与图纸是整行、炉中是条、丹匣与材料是网格。原判据数 .cardgrid 段数与卡数，
+   *        在新结构下必然假红，故改为「五段段标齐全 + 行清单与网格各在位 + 两条产线入口都在」。 ── */
   await page.click('#m-tabbar button[data-v="alchemy"]');
   await page.waitForTimeout(400);
-  const alWide = await page.evaluate(() => {
-    const grids = Array.from(document.querySelectorAll('#tab-alchemy .cardgrid'));
-    return {
-      n: grids.length,
-      cols: grids.length ? getComputedStyle(grids[0]).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      items: document.querySelectorAll('#tab-alchemy .cardgrid > .carditem').length
-    };
-  });
-  T(alWide.n >= 3 && alWide.cols >= 2, 'M7 炼丹炼器信息为卡片网格（≥3 段 · 宽屏 ≥2 列）', 'grids=' + alWide.n + ' cols=' + alWide.cols);
-  T(alWide.items >= 6, 'M8 丹方/图纸/材料均以卡片呈现', 'items=' + alWide.items);
+  /* B16-t：丹房 / 器台分页 ⇒ 段标按页分别取（炉中与材料两段常驻、不分页） */
+  const alDan = await page.evaluate(() => ({
+    segs: Array.prototype.map.call(document.querySelectorAll('#tab-alchemy .sechead .t'), (x) => x.textContent.trim()),
+    rows: document.querySelectorAll('#tab-alchemy .rowlist > .lrow').length,
+    mat: document.querySelectorAll('#tab-alchemy .matgrid > .matrow').length,
+    mats: document.querySelectorAll('#tab-alchemy [data-matline]').length,
+    startBtns: document.querySelectorAll('#tab-alchemy button[data-act="alStart"][data-c="dan"]').length,
+    want: ['alchemy.ui.queue', 'alchemy.ui.dan', 'alchemy.ui.mats']
+      .map((k) => SQ.t(k, null, 'xiuxian').trim())
+  }));
+  await page.click('#tab-alchemy [data-act="alTab"][data-v="qi"]');
+  await page.waitForTimeout(300);
+  const alQi = await page.evaluate(() => ({
+    segs: Array.prototype.map.call(document.querySelectorAll('#tab-alchemy .sechead .t'), (x) => x.textContent.trim()),
+    rows: document.querySelectorAll('#tab-alchemy .rowlist > .lrow').length,
+    forgeBtns: document.querySelectorAll('#tab-alchemy button[data-act="forgeBp"]').length,
+    want: ['alchemy.ui.queue', 'alchemy.ui.bp.sec', 'alchemy.ui.mats']
+      .map((k) => SQ.t(k, null, 'xiuxian').trim())
+  }));
+  const hitDan = alDan.want.filter((w) => alDan.segs.indexOf(w) >= 0).length;
+  const hitQi = alQi.want.filter((w) => alQi.segs.indexOf(w) >= 0).length;
+  T(hitDan === 3 && hitQi === 3 && alDan.rows >= 1 && alQi.rows >= 1 && alDan.mats >= 1,
+    'M7 炼丹炼器分页后段标仍在：丹房（炉中/丹方/材料）与器台（炉中/图纸/材料）各齐全，丹方与图纸为整行',
+    'dan=' + hitDan + '/3 rows=' + alDan.rows + ' mats=' + alDan.mats + ' [' + alDan.segs.join('/') + '] qi=' + hitQi + '/3 rows=' + alQi.rows + ' [' + alQi.segs.join('/') + ']');
+  T(alDan.startBtns >= 1 && alQi.forgeBtns >= 1,
+    'M8 丹方与图纸的动作入口在位（alStart[dan] / forgeBp 都渲染出来了）',
+    'start=' + alDan.startBtns + ' forge=' + alQi.forgeBtns);
+  /* 回到丹房页（后续 D 相要在丹匣里点服用） */
+  await page.click('#tab-alchemy [data-act="alTab"][data-v="dan"]');
+  await page.waitForTimeout(250);
 
   /* ──  江湖榜：一榜十席 + 玩家名次行只在自己那一榜（第册一批③改口）── */
   await page.click('#m-tabbar button[data-v="prodigy"]');
@@ -147,31 +213,42 @@ async function buildSave() {
   /* ── 窄屏退单列 ── */
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);
-  await page.click('#m-tabbar button[data-v="shop"]');
+  /* B13：<720px 用五区底栏切区、子导航切页（16 项侧栏收起） */
+  const zoneTo = async (label) => {
+    await page.evaluate((l) => {
+      const b = Array.prototype.slice.call(document.querySelectorAll('#m-zonebar button'))
+        .filter((x) => x.textContent.trim() === l)[0];
+      if (b) b.click();
+    }, label);
+    await page.waitForTimeout(250);
+  };
+  await zoneTo('道器');
+  await page.click('#m-subnav button[data-v="shop"]');
   await page.waitForTimeout(300);
   const shopNarrow = await colsOf('#tab-shop .shopgrid');
-  await page.click('#m-tabbar button[data-v="faction"]');
-  await page.waitForTimeout(300);
-  const facNarrow = await colsOf('#tab-faction .cardgrid');
-  await page.click('#m-tabbar button[data-v="alchemy"]');
+  await page.click('#m-subnav button[data-v="alchemy"]');
   await page.waitForTimeout(300);
   const alNarrow = await colsOf('#tab-alchemy .cardgrid');
+  await zoneTo('江湖');
+  await page.click('#m-subnav button[data-v="sect"]');
+  await page.waitForTimeout(300);
+  const facNarrow = await colsOf('#tab-sect .matgrid');
   T(shopNarrow === 1, 'M12 窄屏坊市退单列', 'cols=' + shopNarrow);
-  T(facNarrow === 1, 'M13 窄屏门中供给退单列', 'cols=' + facNarrow);
+  T(facNarrow === 1, 'M13 窄屏门中供给仍单列', 'cols=' + facNarrow);
   T(alNarrow === 1, 'M14 窄屏炼丹炼器退单列', 'cols=' + alNarrow);
 
   /* M23 同型面第二处：门中供给（势力页）卖的就是 D.PILLS 那四颗丹，必须挂**同一对标签**
    * （坊市加了而那里不加 = 造一处新的不一致，正是本批在特席上刚修掉的毛病）。
    * 主存档已入势力、声望满 ⇒ 四档供给全解锁，卡片必为四张，逐张量 .fh 内的 chip。 */
-  await page.click('#m-tabbar button[data-v="faction"]');
+  /* 已停在宗门页（窄屏那一步刚切过来）⇒ M23 直接量，不再重复点导航 */
   await page.waitForTimeout(500);
   const sup = await page.evaluate(() => Array.prototype.map.call(
-    document.querySelectorAll('#tab-faction .faccard.carditem'), (c) => {
-      const fh = c.querySelector('.fh');
+    document.querySelectorAll('#tab-sect .matgrid > .matrow'), (c) => {
+      const mn = c.querySelector('.m-n');
       return {
-        text: fh ? fh.textContent.replace(/\s+/g, ' ').trim() : '',
-        tier: fh ? Array.prototype.map.call(fh.querySelectorAll('.tierbadge'), (x) => x.textContent.trim()) : [],
-        cat: fh ? Array.prototype.map.call(fh.querySelectorAll('.catbadge'), (x) => x.textContent.trim()) : []
+        text: mn ? mn.textContent.replace(/\s+/g, ' ').trim() : '',
+        tier: mn ? Array.prototype.map.call(mn.querySelectorAll('.tierbadge'), (x) => x.textContent.trim()) : [],
+        cat: mn ? Array.prototype.map.call(mn.querySelectorAll('.catbadge'), (x) => x.textContent.trim()) : []
       };
     }));
   T(sup.length >= 4 && sup.every((r) => r.cat.length === 1 && r.cat[0] === '丹药' && r.tier.length === 1
@@ -273,13 +350,13 @@ async function buildSave() {
     '货架=' + sh.length + ' 特席=' + mc.length);
   T(sh.every((r) => r.cat.length === 1) && mc.every((r) => r.cat.length === 1),
     'M16 每件货（含特席）都挂恰一枚分类 chip', '缺分类: ' + sh.concat(mc).filter((r) => r.cat.length !== 1).map((r) => r.text).join(' / ') || '无');
-  T(at(0).cat[0] === '法器' && at(1).cat[0] === '功法' && at(2).cat[0] === '丹药' && at(4).cat[0] === '法宝'
+  T(at(0).cat[0] === '百器' && at(1).cat[0] === '功法' && at(2).cat[0] === '丹药' && at(4).cat[0] === '法宝'
     && at(5).cat[0] === '炼丹炼器' && at(9).cat[0] === '耗材',
-    'M17 分类词与货类逐一对得上（法器/功法/丹药/法宝/炼丹炼器/耗材）',
+    'M17 分类词与货类逐一对得上（百器/功法/丹药/法宝/炼丹炼器/耗材）',
     [at(0).cat[0], at(1).cat[0], at(2).cat[0], at(4).cat[0], at(5).cat[0], at(9).cat[0]].join('/'));
   T(at(0).tier[0] === '灵品' && at(1).tier[0] === '黄字阶' && at(2).tier[0] === '地阶' && at(3).tier[0] === '黄阶'
     && (at(4).tier[0] === '先天' || at(4).tier[0] === '后天') && at(6).tier[0] === '地阶',
-    'M18 词缀逐类对表：法器品阶 / **功法品阶（此前坊市从没露过）** / 丹药品阶 / 法宝先天后天 / 丹方品阶',
+    'M18 词缀逐类对表：百器品阶 / **功法品阶（此前坊市从没露过）** / 丹药品阶 / 法宝先天后天 / 丹方品阶',
     [at(0).tier[0], at(1).tier[0], at(2).tier[0], at(3).tier[0], at(4).tier[0], at(6).tier[0]].join('/'));
   T([5, 7, 8, 9].every((i) => (at(i).tier || []).length === 0),
     'M19 **无档次的四类如实留空**（材料包 / 图纸 / 丹炉成品 / 灵石包不挂词缀，不编档次凑两枚）',
@@ -306,7 +383,6 @@ async function buildSave() {
       stones: w.stones
     };
   });
-  await page.click('#m-tabbar button[data-v="faction"]');
   await page.waitForSelector('[data-act="supplyBuy"][data-v="cuiti"]', { timeout: 8000 });
   const bD = await readPill();
   await page.click('[data-act="supplyBuy"][data-v="cuiti"]');
@@ -315,10 +391,12 @@ async function buildSave() {
   T(aD.pills === bD.pills + 1 && aD.buffs === bD.buffs && aD.stones < bD.stones,
     'M25 门中供给买丹：入丹匣且**不当场生效**（战力 buff 数不变、灵石照扣；🔧 N43 起「丹毒计数不占」那半随日限退役）',
     '匣 ' + bD.pills + '→' + aD.pills + ' buff ' + bD.buffs + '→' + aD.buffs + ' 灵石 ' + bD.stones + '→' + aD.stones);
-  await page.click('#m-tabbar button[data-v="alchemy"]');
+  await zoneTo('道器');
+  await page.click('#m-subnav button[data-v="alchemy"]');
   await page.waitForSelector('[data-act="alDrink"][data-v="cuiti"]', { timeout: 8000 });
   const rowD = await page.evaluate(() => {
-    const el = document.querySelector('[data-act="alDrink"][data-v="cuiti"]').closest('.carditem');
+    /* B16-i：丹匣由卡片改设计稿 .matrow 网格行 ⇒ 取行容器两种都认 */
+    const el = document.querySelector('[data-act="alDrink"][data-v="cuiti"]').closest('.matrow, .carditem');
     return { txt: (el.innerText || '').replace(/\s+/g, ' '), badge: (el.querySelector('.tierbadge') || {}).textContent || '' };
   });
   T(rowD.txt.indexOf('淬体丹') >= 0 && rowD.badge === '坊市' && rowD.txt.indexOf('undefined') < 0,

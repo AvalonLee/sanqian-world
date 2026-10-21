@@ -101,6 +101,8 @@
   keys['shop.merchant.title'] = '神秘商人';
   keys['shop.merchant.left'] = '离去 {t}';
   keys['shop.merchant.hint'] = '斗篷下的面孔看不清楚，货倒是真的——价格也是。';
+  keys['shop.merchant.closed'] = '未开市';
+  keys['shop.merchant.closed.hint'] = '留意江湖奇遇——与他交好，或许能请动他。';
   keys['shop.merchant.open'] = '神秘商人在坊市后巷支起了摊子';
   keys['shop.merchant.scout'] = '· 他认出了你，货比上次好';
 
@@ -149,6 +151,7 @@
   keys['faction.rank.cur'] = '职级 · {rank}（声望 {rep}/{next}）';
   keys['faction.rank.max'] = '职级 · {rank}（声望 {rep} · 已至人臣之极）';
   keys['faction.rank.perk'] = '职级放大 ×{m}';
+  keys['faction.sec.office'] = '职级 · 双技能';
   keys['faction.donate'] = '捐献供奉';
   keys['faction.donate.btn'] = '供奉 {n}（+{rep}）';
   keys['faction.donate.hint'] = '灵石 ÷1000 = 声望；每 2 小时至多 +{cap} 声望（超额按比例部分成交）。';

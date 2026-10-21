@@ -236,7 +236,8 @@ function buildSave() {
     await pg.click('#m-tabbar button[data-v="treasure"]');
     await pg.waitForTimeout(500);
     const r = await pg.evaluate(() => ({
-      cards: Array.prototype.slice.call(document.querySelectorAll('#tab-treasure .trgrid > .tcard'))
+      /* B16-e：法宝库由卡片网格改为整行 ⇒ 上屏证据 = 槽位卡 OR 库行（两者都是「真的渲染出来」） */
+      cards: Array.prototype.slice.call(document.querySelectorAll('#tab-treasure .trgrid > .tcard, #tab-treasure .trrow'))
         .map(n => (n.textContent || '').replace(/\s+/g, ' ').trim()),
       owned: (((JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.treasures) || {}).owned || []).map(x => x.id)
     }));
@@ -282,6 +283,23 @@ function buildSave() {
     T(r.open && r.h > 0 && r.title === nm && r.branches === nWant,
       'J17 浮层真在屏上打开：可见（height>0）· 标题 === 词表事件名 · 分支按钮数 === 该支声明的 choices 数',
       'h=' + r.h + ' title=' + r.title + ' 钮=' + r.branches + '/' + nWant);
+    await c.close();
+  }
+  {
+    /* B16-r：寻仇链在案 ⇒ 榜顶 .warstrip 段条（标题回词表现算，敌手与再战倒计时非空） */
+    const s4 = buildSave(), w4 = s4.worlds.xiuxian;
+    w4.revenge = { n: 2, nextAt: T0 + 3600000, foe: '沈孤云' };
+    const { c, pg } = await openWith(s4);
+    await pg.click('#m-tabbar button[data-v="prodigy"]');
+    await pg.waitForTimeout(500);
+    const r = await pg.evaluate(() => {
+      const el = document.querySelector('#tab-prodigy .warstrip');
+      return { t: el && el.querySelector('.w-t') ? el.querySelector('.w-t').textContent.trim() : '',
+        v: el && el.querySelector('.w-v') ? el.querySelector('.w-v').textContent.replace(/\s+/g, ' ').trim() : '' };
+    });
+    const wantT = S.t('prodigy.ambush.chain.title', null, 'xiuxian').trim();
+    T(r.t === wantT && r.v.indexOf('沈孤云') >= 0 && r.v.indexOf('后再战') >= 0,
+      'J18 寻仇链在案时榜顶给 .warstrip 段条（标题走词表 · 敌手与再战倒计时非空）', JSON.stringify(r));
     await c.close();
   }
 

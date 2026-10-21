@@ -79,11 +79,37 @@
       h += '<div class="resetbanner">' + c.esc(c.t('arts.slotpick.title', { name: c.t('skill.' + c.ui.slotPickFor + '.name') })) +
         ' <button class="linkbtn" data-act="slotPickCancel">' + c.esc(c.t('ui.cancel')) + '</button></div>';
     }
-    h += '<div class="kv"><span>' + c.esc(c.t('arts.slots', { n: w.artsSlots.length, cap: d.ARTS_SLOTS })) + ' · ' +
-      c.esc(c.t('arts.shelf', { n: (w.shelf || []).length, cap: d.SHELF_CAP })) + '</span></div>';
-    h += '<p class="hint" style="margin:0 0 8px">' + c.esc(c.t('arts.practice.hint')) + '</p>';
-    h += '<div class="cards" style="grid-template-columns:repeat(3,1fr)">';
+    /* ── ① 三格摘要（B16-g · 设计稿 §功法 .sum3）：主修 / 在修 / 产出 ──
+     * 三个数全部现算：主修读 `Arts.mainArt`（与精通增速同源），在修读槽位长度，
+     * 产出读 mods 里 **arts 这一路** 的实际加成（`detail.qiRate.arts`）——不是页面自造的合计。 */
     var mainId = SQ.Arts.mainArt(w);   /* issue #3：主修由玩家点定（w.artsMain），未点定回落第 1 位 */
+    var prodArts = (m.detail && m.detail.qiRate ? (m.detail.qiRate.arts || 0) : 0);
+    /* 「在修」= 真正装着功法的格数（`artsSlots` 是定长数组，直接取 length 会恒等于 6） */
+    var slotUsed = (w.artsSlots || []).filter(function (x) { return !!x; }).length;
+    h += '<div class="sum3">' +
+      '<div><div class="k">' + c.esc(c.t('arts.sum.main')) + '</div><div class="v">' +
+      c.esc(mainId ? c.t('skill.' + mainId + '.name') : c.t('arts.main.empty')) + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('arts.sum.slots')) + '</div><div class="v">' +
+      slotUsed + ' / ' + d.ARTS_SLOTS + '</div></div>' +
+      '<div><div class="k">' + c.esc(c.t('arts.sum.prod')) + '</div><div class="v">' +
+      (prodArts >= 0 ? '+' : '−') + c.pct(Math.abs(prodArts)) + '</div></div></div>';
+    /* 计数同一口径：`artsSlots` 是定长数组，旧写法直接取 length ⇒ 恒等于 6（装 1 部也显示 6/6） */
+    h += '<div class="kv"><span>' + c.esc(c.t('arts.slots', { n: slotUsed, cap: d.ARTS_SLOTS })) + ' · ' +
+      c.esc(c.t('arts.shelf', { n: (w.shelf || []).length, cap: d.SHELF_CAP })) + '</span></div>';
+    /* ── ② 筛选条上移页首（B16-g · 设计稿把品阶 chips 放在最上）：语义不变，
+     * 仍是「整段功法页共用」的一枚筛选态（`ui.artsGroup` / `ui.artsGroupVal`），不另立第二套。 ── */
+    var grp = c.ui.artsGroup;
+    h += '<div class="grouper"><span class="gseg">' +
+      '<span class="' + (grp === 'tier' ? 'on' : '') + '" data-act="artsGroup" data-v="tier">' + c.esc(c.t('arts.group.tier')) + '</span>' +
+      '<span class="' + (grp === 'align' ? 'on' : '') + '" data-act="artsGroup" data-v="align">' + c.esc(c.t('arts.group.align')) + '</span></span>';
+    (grp === 'tier' ? ['huang', 'xuan', 'di', 'tian'] : ['right', 'neutral', 'evil']).forEach(function (v) {
+      h += '<span class="gchip' + (c.ui.artsGroupVal === v ? ' on' : '') + '" data-act="artsGroupVal" data-v="' + v + '">' +
+        c.esc(grp === 'tier' ? c.t('arts.tierchar.' + v) : c.t('align.' + v)) + '</span>';
+    });
+    h += '</div>';
+    h += '<p class="hint" style="margin:0 0 8px">' + c.esc(c.t('arts.practice.hint')) + '</p>';
+    /* ③ 六槽（设计稿 .slots：槽位比卡片轻，只承担「谁在里面 + 升级」） */
+    h += '<div class="cards slots">';
     for (var i = 0; i < d.ARTS_SLOTS; i++) {
       var id = w.artsSlots[i];
       /* 角标 + 定位锚（法柱 chip 滚动到此）读 mainArt，与引擎修习增速指向同源。
@@ -140,24 +166,12 @@
        * 故这两行取局部、不许加 `c.`。改名会牵动上下文 ⇒ 就地注明，别靠下一个人的眼力。 */
       h += '<div class="sechead"><span class="t">' + c.esc(c.t('arts.selflearn.sec')) + '</span>' +
            '<span class="s">' + c.esc(c.t('arts.selflearn.cands', { n: cands })) + '</span></div>';
-      h += '<div class="tcard selflearn">' +
-           '<div class="tpract"><span class="pbar"><i style="width:' + pct.toFixed(0) + '%"></i></span>' +
-           '<span class="hint">' + c.esc(c.t('arts.selflearn.pct', { p: pct.toFixed(0) })) + '</span></div>' +
-           '<div class="hint">' + c.esc(c.t(cands ? 'arts.selflearn.hint' : 'arts.selflearn.none')) + '</div>' +
-           '</div>';
+      h += '<div class="strip selflearn">' +
+           '<span class="t">' + c.esc(c.t('arts.selflearn.strip')) + '</span>' +
+           '<span class="v">' + c.esc(c.t(cands ? 'arts.selflearn.hint' : 'arts.selflearn.none')) + '</span>' +
+           '<span class="tpract"><span class="pbar"><i style="width:' + pct.toFixed(0) + '%"></i></span>' +
+           '<span class="hint">' + c.esc(c.t('arts.selflearn.pct', { p: pct.toFixed(0) })) + '</span></span></div>';
     })();
-    /* ── 筛选条（体验批）：这排 chip 原先只管下方图鉴，现在**整段功法页**共用——已学会攒到三十余部后
-     * 找一部只能翻。复用 `ui.artsGroup`/`ui.artsGroupVal` 两枚内存态（零新状态、零新词表键），
-     * chip 位置随语义上移到「已学会」之前。选中值 null = 不筛（默认态整页不变）。 ── */
-    var grp = c.ui.artsGroup;
-    h += '<div class="grouper"><span class="gseg">' +
-      '<span class="' + (grp === 'tier' ? 'on' : '') + '" data-act="artsGroup" data-v="tier">' + c.esc(c.t('arts.group.tier')) + '</span>' +
-      '<span class="' + (grp === 'align' ? 'on' : '') + '" data-act="artsGroup" data-v="align">' + c.esc(c.t('arts.group.align')) + '</span></span>';
-    (grp === 'tier' ? ['huang', 'xuan', 'di', 'tian'] : ['right', 'neutral', 'evil']).forEach(function (v) {
-      h += '<span class="gchip' + (c.ui.artsGroupVal === v ? ' on' : '') + '" data-act="artsGroupVal" data-v="' + v + '">' +
-        c.esc(grp === 'tier' ? c.t('arts.tierchar.' + v) : c.t('align.' + v)) + '</span>';
-    });
-    h += '</div>';
     /* ── 已学会（走查 v2.5 §4）：紧贴修习槽——装入/精通一屏可达（升级钮在第卌七批④c 移到槽卡） ── */
     var knownS = (w.artsKnown || []).slice().sort(function (x, y) {
       return ((w.artsSlots || []).indexOf(y) >= 0 ? 1 : 0) - ((w.artsSlots || []).indexOf(x) >= 0 ? 1 : 0);
@@ -190,7 +204,9 @@
        * （`arts.sec.tier`/`arts.sec.align`，第册 B4 起如此），同页两个同名段标只会更糊。
        * 专名类 `shelfsec` / `shelfgrid` 供走查精确取数（裸 `.sechead` + 文案匹配会撞上图鉴那几节 = `.lawchips` 同型教训）。 */
       h += '<div class="sechead shelfsec"><span class="t">' + c.esc(c.t('arts.sec.shelf')) + ' · ' + shelfS.length + '</span></div>';
-      h += '<div class="cards artgrid shelfgrid">' + shelfS.map(function (x) {
+      /* B16-g：改「整行清单」——原先套在 `.cards .artgrid` 里被网格切成小卡，一屏看不完几部；
+         行式后每部一行（名 + 字阶 + 缺项 + 弃置），与设计稿 .shelf-row 同构。专名类 `shelfgrid` 保留。 */
+      h += '<div class="shelfgrid">' + shelfS.map(function (x) {
         return '<div class="lrow locked"><div class="meta"><b>' + c.esc(c.t('skill.' + x + '.name')) + '</b>' +
           '<span class="hint"> ' + c.esc(c.t('arts.tierchar.' + am[x].tier)) + ' · ' + c.esc(c.t('arts.codex.shelf')) + '</span>' +
           '<div class="hint">' + c.esc(artLackTexts(c, x).join(' ‖ ')) + '</div></div>' +
@@ -198,8 +214,12 @@
           c.esc(SQ.fmt(SQ.Arts.salvageValue(w, p, d, x))) + ' ' + c.esc(c.t('resource.currency')) + '</button></div></div>';
       }).join('') + '</div>';
     }
-    /* ── 功法图鉴（走查 v2.5 §4 + v2.8 §1：待修习架功法回归各品阶/阵营小节，弃置在卡内）── */
-    h += '<div class="sechead"><span class="t">' + c.esc(c.t('arts.codex.title')) + '</span></div>';
+    /* ── 功法图鉴（B16-h：默认按品阶/阵营**折叠**，点组头展开——设计稿「图鉴默认收起」口径；
+     * 70 部全铺是整页最长的一段空白墙。折叠态复用内核既有的 `ui.codexOpen`（键加 `ar_` 前缀，
+     * 与奇遇 `tian/di/ren`、法宝 `tr_*` 互不干扰），不新增动作名、不新增落盘字段。 ── */
+    var knownN = (w.artsKnown || []).length;
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('arts.codex.title')) + '</span>' +
+      '<span class="s">' + c.esc(c.t('arts.codex.rec', { n: knownN, total: Object.keys(am).length })) + '</span></div>';
     var groups = grp === 'tier' ? ['huang', 'xuan', 'di', 'tian'] : ['right', 'neutral', 'evil'];
     if (c.ui.artsGroupVal) groups = [c.ui.artsGroupVal];
     var allIds = Object.keys(am);
@@ -212,9 +232,15 @@
         if (SQ.Arts.owned(w, x)) ownedS.push(x);
         else unownedS.push(x);
       });
-      h += '<div class="sechead"><span class="t">' +
+      var gotN = ids.filter(function (x) { return SQ.Arts.owned(w, x); }).length;
+      var openG = !!(c.ui.codexOpen && c.ui.codexOpen['ar_' + gv]);
+      h += '<button type="button" class="sechead codexsec' + (openG ? ' open' : '') + '" data-act="codexTier" data-v="ar_' + gv + '">' +
+        '<span class="t">' +
         c.esc(grp === 'tier' ? c.t('arts.sec.tier', { g: c.t('arts.tierchar.' + gv) }) : c.t('arts.sec.align', { g: c.t('align.' + gv) })) +
-        '</span>' + (sil.length ? '<span class="s">' + c.esc(c.t('arts.sec.excl', { n: sil.length })) + '</span>' : '') + '</div>';
+        '</span><span class="s">' + c.esc(c.t('arts.codex.rec', { n: gotN, total: ids.length })) +
+        (sil.length ? ' · ' + c.esc(c.t('arts.sec.excl', { n: sil.length })) : '') +
+        ' ' + (openG ? '▾' : '›') + '</span></button>';
+      if (!openG) return;
       sil.forEach(function (x) { h += artSilhouette(c, x, am[x]); });
       h += '<div class="cards">' + ownedS.concat(unownedS).map(function (x) { return artCodexCard(c, x, w); }).join('') + '</div>';
     });
@@ -241,7 +267,11 @@
     var slotted = (w.artsSlots || []).indexOf(id) >= 0;
     var lv = w.artsLevels[id] || 0;
     var pr = SQ.Arts.practiceOf(w, id, d);
-    var h = '<div class="tcard ' + (a.alignment === 'evil' ? 'neg' : a.alignment === 'right' ? 'pos' : '') + '">';
+    /* B16-h：已学会由「卡片墙」改整行——`.artrow` 只加布局类，`.tcard` 与全部内层钩子
+     * （.tname / .hint / .meta / .pbar / .tierbadge.t1 / data-act）一字未动 ⇒ A11、H2 那组
+     * 「卡面 === 引擎 detail」的对表判据不需要改口。 */
+    var h = '<div class="tcard artrow ' + (a.alignment === 'evil' ? 'neg' : a.alignment === 'right' ? 'pos' : '') + '">' +
+      '<div class="ar-main">';
     h += '<div class="tname">' + c.esc(c.t('skill.' + id + '.name')) +
       ' <span class="tierbadge ' + c.artTier(a) + '">' + c.esc(c.t('skill.tier.' + a.tier)) + '</span>' +
       (slotted ? '<span class="tierbadge t1">' + c.esc(c.t('arts.slotted')) + '</span>' : '')   /* F16（N68）：不再借秘境洞天的 zone.current */ + '</div>';
@@ -260,7 +290,7 @@
       h += '<div class="pbar"><i style="width:' + pr.toFixed(0) + '%"></i></div>' +
         '<div class="hint">' + c.esc(c.t('arts.practice', { p: Math.floor(pr) })) + '</div>';
     }
-    h += '<div class="acts">';
+    h += '</div><div class="acts">';
     h += slotted
       ? '<button data-act="unslotArt" data-v="' + id + '">' + c.esc(c.t('arts.unequip')) + '</button>'
       : '<button data-act="slotArt" data-v="' + id + '">' + c.esc(c.t('arts.equip')) + '</button>';
@@ -360,10 +390,10 @@
     if (!SQ.Fusion || w.realm < 4) return '';
     var fu = w.fusion || { customs: [], meditate: 0, lastFuseAt: 0, seq: 0 };
     c.ui.fuseSel = c.ui.fuseSel || [];
-    var h = '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + c.esc(c.t('fuse.system')) + '</p>';
+    var h = '<div class="sechead"><span class="t">' + c.esc(c.t('fuse.system')) + '</span></div>';
     var chk = SQ.Fusion.canFuse(w, p, d, c.ui.fuseSel[0] || '', c.ui.fuseSel[1] || '', Date.now());
     var needH = (d.FUSE || {}).MEDITATE_NEED_H || 12;
-    h += '<p class="hint" style="margin:10px 0 2px;font-weight:650">' + c.esc(c.t('fuse.ui.wudao')) + '</p>';
+    h += '<div class="sechead"><span class="t">' + c.esc(c.t('fuse.ui.wudao')) + '</span></div>';
     h += '<div class="kv"><span>' + c.esc(c.t('fuse.ui.wudao.med', { h: Math.floor(fu.meditate || 0), need: needH })) + ' · ' +
       '<button class="linkbtn" data-act="matWudao" style="padding:0;vertical-align:baseline">' +
       c.esc(c.t('fuse.ui.wudao.stone', { n: (w.materials || {})['mat_wudao'] || 0 })) + '</button></span>' +
@@ -392,7 +422,7 @@
     }
     /* 自创部一览（融合扩容批：混沌签名徽标 + 淬炼按钮） */
     if ((fu.customs || []).length) {
-      h += '<p class="hint" style="margin:12px 0 2px;font-weight:650">' + c.esc(c.t('fuse.ui.customs')) + '</p>';
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('fuse.ui.customs')) + '</span></div>';
       h += '<div class="meta hint" style="margin-top:8px">' + c.esc(c.t('fuse.chaos.hint')) + '</div>';
     }
     var fuR0 = (fu.lastReforgeAt || 0) + ((d.FUSE || {}).REFORGE_CD_MS);
@@ -484,8 +514,8 @@
 
   SQ.UI = SQ.UI || {};
   SQ.UI.arts = {
-    body: artsBody, fuse: renderFuseAltar,
-    actMatWudao: actMatWudao, actFusePick: actFusePick, actFuseStart: actFuseStart, actCustomReforge: actCustomReforge, lack: artLackTexts, fxLine: artFxLine,
+    body: artsBody,
+    actMatWudao: actMatWudao, actFusePick: actFusePick, actFuseStart: actFuseStart, actCustomReforge: actCustomReforge,
     actSlot: actSlot, actReplace: actReplace, actSetMain: actSetMain, actSalvage: actSalvage
   };
 })();
