@@ -141,7 +141,7 @@ const KEY = 'sanqian-state-v1';
       const pack = SQ.Worlds.xiuxian.pack, D = pack.data, w = st.worlds.xiuxian;
       pack.recalcDerived(w, st.profile);
       const mods = SQ.Mods.collect(st.profile, w, pack, D);
-      const box = document.querySelector('#tab-idle .detailbox');
+      const box = document.querySelector('#tab-idle .dp-sheet, #tab-idle .detailbox');
       const txt = box ? (box.innerText || '') : '';
       const srcs = Object.keys((mods.detail && mods.detail.qiRate) || {}).filter((k) => Math.abs(mods.detail.qiRate[k]) > 1e-9);
       const missing = [], bare = [];

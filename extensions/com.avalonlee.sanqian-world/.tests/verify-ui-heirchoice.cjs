@@ -239,13 +239,18 @@ const { chromium } = require('playwright-core');
     T(nSw === 1 && nDis === 1, 'A1 有资格且有觉醒件 ⇒ 轮回页承继块「换一件」入口 + 兵解入口在位',
       'heirSwitch=' + nSw + ' dissolve=' + nDis);
 
-    /* 顶栏快捷入口同样受同一道前置门（承继门不挑入口，两入口同判据） */
+    /* 修行页捷径：B16-w 起桌面有右栏时中区那行收起（右栏已显示天象/彩蛋），
+     * 兵解捷径只在无右栏列的窄屏可见 ⇒ 本判先在 1000 宽取「捷径仍在」，再回 1440。 */
     await C.gotoTab('idle');
+    await page.setViewportSize({ width: 1000, height: 900 });
+    await page.waitForTimeout(400);
     const nDisIdle = await C.cnt('#tab-idle [data-act="dissolve"]');
     await page.click('#tab-idle [data-act="dissolve"]');
     T(nDisIdle === 1 && await C.shown('#modal-heirchoice'),
-      'A2 修行页「兵解转世」快捷入口同样触发选件浮层（门不挑入口）',
+      'A2 无右栏列的窄屏下，修行页「兵解转世」快捷入口仍在且同样触发选件浮层（门不挑入口）',
       'idleDissolve=' + nDisIdle);
+    await page.setViewportSize({ width: 1440, height: 950 });
+    await page.waitForTimeout(300);
 
     /* 取消 = 不转世（择定不写、确认不弹、境界不动） */
     await page.click('#hc-cancel');

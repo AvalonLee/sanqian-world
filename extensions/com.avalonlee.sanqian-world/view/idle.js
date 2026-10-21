@@ -13,6 +13,35 @@
  */
 (function () {
   var SQ = (window.SQ = window.SQ || {});
+  /* B16-w：吐纳明细改独立浮层（设计稿 data-sheet="rate" 的口径）。
+   * 加项与乘区分列标记：加项「+」、乘区「×」，末尾给合计——与顶部每秒产出一式同源。 */
+  function ratePanel(c, w, m, d, rate) {
+    var rows = '';
+    function rr(kind, label, val) {
+      return '<div class="dp-row"><span class="dp-k">' + c.esc(label) + '</span>' +
+        '<i class="dp-t ' + kind + '">' + (kind === 'mul' ? '×' : kind === 'add' ? '+' : '·') + '</i>' +
+        '<b class="dp-v">' + c.esc(val) + '</b></div>';
+    }
+    rows += rr('base', c.t('idle.base'), d.REALMS[w.realm].baseQi + '/s');
+    Object.keys(m.detail.qiRate || {}).forEach(function (src) {
+      var v = (m.detail.qiRate || {})[src] || 0;
+      if (v) rows += rr('add', c.t('idle.' + src), (v > 0 ? '+' : '') + c.pct(v));
+    });
+    var sys = c.p.worldSystems;
+    if (sys) rows += rr('mul', c.t('idle.align'), '×' + sys.alignMultOf(w).toFixed(2));
+    var cm = SQ.Cave.multOf(w, c.p, d, m);
+    if (cm !== 1) rows += rr('mul', c.t('idle.cave') + ' · ' + c.t('cave.' + SQ.Cave.current(w, c.p).id + '.name'), '×' + cm.toFixed(2));
+    var modeM = (d.MODES && d.MODES[w.mode]) ? d.MODES[w.mode].qiMult : 1;
+    if (modeM !== 1) rows += rr('mul', c.t('idle.mode.' + w.mode), '×' + modeM.toFixed(2));
+    var rampM = (d.NEWBIE_RAMP && w.realm <= d.NEWBIE_RAMP.realms) ? d.NEWBIE_RAMP.qiMult : 1;
+    if (rampM !== 1) rows += rr('mul', c.t('idle.newbie'), '×' + rampM.toFixed(2));
+    return '<div class="dp-mask"><div class="dp-sheet">' +
+      '<div class="dp-head"><span class="dp-t2">' + c.esc(c.t('idle.detail.title')) + '</span>' +
+      '<span class="dp-total">' + c.esc(c.t('idle.rate', { n: rate.toFixed(1) })) + '</span></div>' +
+      '<div class="dp-rows">' + rows + '</div>' +
+      '<p class="hint">' + c.esc(c.t('idle.detail.note')) + '</p>' +
+      '<button class="linkbtn" data-act="detailRate">' + c.esc(c.t('ui.close')) + '</button></div></div>';
+  }
   function render(c) {
     var w = c.w, m = c.mods, p = c.p, d = c.d;
     var cap = SQ.Idle.capOf(w, p, d, m);
@@ -87,40 +116,32 @@
         '<button class="linkbtn chip" data-act="detailTrib">' + c.esc(c.t('tribulation.detail')) + '</button></div></div>';
     }
     /* 四格修为身元（设计稿 .statrow）：战力 / 精 / 气 / 神 —— 战力从环心挪到这里 */
+    var buffHtml = '';
     h += '<div class="statrow">' +
       '<div><div class="k">' + c.esc(c.t('resource.power')) + '</div><div class="v">' + SQ.fmt(SQ.Mods.powerOf(w, p, d, m)) + '</div></div>' +
       (d.ATTRS || []).map(function (id) {
         return '<div><div class="k">' + c.esc(c.t('attr.' + id)) + '</div><div class="v">' +
           Math.floor((w.attrs || {})[id] || 0) + '</div></div>';
       }).join('') + '</div>';
-    /* 修为数字与进度条已收进圆相（B15-b）：环心全位数字 + 环即进度，这里只留「明细」入口 */
-    if (c.ui.detailRate) {
-      h += '<div class="detailbox">';
-      h += '<div class="kv"><span>' + c.esc(c.t('idle.base')) + '</span><span>' + d.REALMS[w.realm].baseQi + '/s</span></div>';
-      Object.keys(m.detail.qiRate || {}).forEach(function (src) {   /* 来源清单取 mods 自己记的键（审计 #11：原先硬列 10 项，漏 cave/caveFac/treasure/synergy/legacy ⇒ 明细相加 < 顶部数） */
-        var v = (m.detail.qiRate || {})[src] || 0;
-        if (v) h += '<div class="kv"><span>' + c.esc(c.t('idle.' + src)) + '</span><span>' + (v > 0 ? '+' : '') + c.pct(v) + '</span></div>';
+    /* 临时增益行（设计稿 .buffrow，紧跟 statrow）：来源 · 字段 ±值 · 剩余时长 */
+    var nowB = Date.now();
+    var buffChips = (w.buffs || []).filter(function (b) { return b.until > nowB; });
+    if (buffChips.length) {
+      var shieldN0 = buffChips.filter(function (b) { return b.field === 'eventShield'; }).length;
+      var chips0 = buffChips.filter(function (b) { return b.field !== 'eventShield'; }).map(function (b) {
+        var srcKey0 = b.source ? ('buff.src.' + b.source) : '';
+        var srcName0 = srcKey0 && c.t(srcKey0) !== srcKey0 ? c.t(srcKey0) : '';
+        var harmful0 = (b.field === 'shopCost') ? (b.mult > 0) : (b.mult < 0);
+        return '<span class="buffchip' + (harmful0 ? ' deb' : '') + '">' +
+          (srcName0 ? c.esc(srcName0) + ' · ' : '') +
+          c.esc(c.t('talent.field.' + b.field)) + ' ' + (b.mult >= 0 ? '+' : '−') + c.pct(Math.abs(b.mult)) +
+          ' · ' + c.esc(c.timeLeft(b.until - nowB)) + '</span>';
       });
-      var sys = p.worldSystems;
-      if (sys) h += '<div class="kv"><span>' + c.esc(c.t('idle.align')) + '</span><span>×' + sys.alignMultOf(w).toFixed(2) + '</span></div>';
-      /* caveMult 独立乘区（B7 · 数值详设 §8.2）：挂在末端单列一行，不混进 qiRate 加算池 */
-      var cm = SQ.Cave.multOf(w, p, d, m);
-      if (cm !== 1) {
-        h += '<div class="kv"><span>' + c.esc(c.t('idle.cave')) + ' · ' + c.esc(c.t('cave.' + SQ.Cave.current(w, p).id + '.name')) +
-          '</span><span>×' + cm.toFixed(2) + '</span></div>';
-      }
-      /* 模式乘区与初境加速（审计 #4 的可见面）：这两重以前只在引擎里乘，屏上看不见 ⇒ 明细各行相乘永远
-       * 对不上顶部的 N/秒。数字一律取自表（MODES[mode].qiMult / NEWBIE_RAMP），视图不再抄字面量。 */
-      var modeM225 = (d.MODES && d.MODES[w.mode]) ? d.MODES[w.mode].qiMult : 1;
-      if (modeM225 !== 1) {
-        h += '<div class="kv"><span>' + c.esc(c.t('idle.mode.' + w.mode)) + '</span><span>×' + modeM225.toFixed(2) + '</span></div>';
-      }
-      var rampM225 = (d.NEWBIE_RAMP && w.realm <= d.NEWBIE_RAMP.realms) ? d.NEWBIE_RAMP.qiMult : 1;
-      if (rampM225 !== 1) {
-        h += '<div class="kv"><span>' + c.esc(c.t('idle.newbie')) + '</span><span>×' + rampM225.toFixed(2) + '</span></div>';
-      }
-      h += '</div>';
+      if (shieldN0) chips0.push('<span class="buffchip">' + c.esc(c.t('buff.shield', { n: shieldN0 })) + '</span>');
+      buffHtml = '<div class="buffrow">' + chips0.join('') + '</div>';
     }
+    h += buffHtml;
+    /* 修为数字与进度条已收进圆相（B15-b）；吐纳明细 B16-w 起走独立浮层（ratePanel，末尾按 ui.detailRate 挂） */
     if (need != null) {
       /* 「距下一境界 / 渡劫倒计时」已并入圆相 sub 行（B15-b），此处不再重复印一遍 */
       var ti = p.worldSystems.tribInfo(w, p, d, m);
@@ -249,34 +270,18 @@
       h += '<div class="idlemeta"><span>' + c.esc(c.t('idle.cave')) + ' ' +
         c.esc(c.t('cave.' + caveNow.id + '.name')) + ' ×' + caveMNow.toFixed(2) + '</span></div>';
     }
-    /* B16-c：天道行仍落中区（问天入口 + 天象红点 + 逆天值）；传闻带与四柱行已移右栏（renderRail）。 */
+    /* B16-c：天道行仍落中区（问天入口 + 天象红点 + 逆天值）；传闻带与四柱行已移右栏（renderRail）。
+     * B16-w：右栏有「天象 · 传闻」与彩蛋块时，本行由 CSS 收起（不重复显示；窄屏无右栏时仍在此）。 */
     h += tiandaoHtml;
-    /* ── 临时增益图标行（系统深化批 B2）：破境高光 / 道伤封固 / 声威大振 / 同门来助等来源溯源展示；
-     * eventShield 为「护佑」层数 chip（冥佑层语义）。词表未登记的来源只显示字段与数值。 ── */
-    var nowB = Date.now();
-    var buffChips = (w.buffs || []).filter(function (b) { return b.until > nowB; });
-    if (buffChips.length) {
-      var shieldN = buffChips.filter(function (b) { return b.field === 'eventShield'; }).length;
-      var chips = buffChips.filter(function (b) { return b.field !== 'eventShield'; }).map(function (b) {
-        var srcKey = b.source ? ('buff.src.' + b.source) : '';
-        var srcName = srcKey && c.t(srcKey) !== srcKey ? c.t(srcKey) : '';
-        var harmful = (b.field === 'shopCost') ? (b.mult > 0) : (b.mult < 0);
-        return '<span class="buffchip' + (harmful ? ' deb' : '') + '">' +
-          (srcName ? c.esc(srcName) + ' · ' : '') +
-          c.esc(c.t('talent.field.' + b.field)) + ' ' + (b.mult >= 0 ? '+' : '−') + c.pct(Math.abs(b.mult)) +
-          ' · ' + c.esc(c.timeLeft(b.until - nowB)) + '</span>';
-      });
-      if (shieldN) chips.push('<span class="buffchip">' + c.esc(c.t('buff.shield', { n: shieldN })) + '</span>');
-      h += '<div class="buffrow">' + chips.join('') + '</div>';
-    }
-    /* ── 结算区（修行状态批 v2.1）：修行状态卡已上移页首 .mode 药丸（B16-c），此处只余修行所得 ── */
+    /* ── 离线所得（设计稿页尾 .strip；B16-w 起排在「天命」之后） ── */
+    var offHtml = '';
     if (w.lastOffline) {
       var lo = w.lastOffline;
       var ventureLo = lo.mode === 'venture';
       var lsecs = isFinite(lo.secs) ? lo.secs : 0;   /* 防脏字段：NaN/undefined 一律按 0 计 */
       var lh = Math.floor(lsecs / 3600), lm = Math.floor((lsecs % 3600) / 60);
       var lt = lh > 0 ? c.t('ui.time.hm', { h: lh, m: lm }) : c.t('ui.time.m', { m: Math.max(1, lm) });
-      h += '<div class="offbox"><div class="ot">' +
+      offHtml = '<div class="offbox"><div class="ot">' +
         c.esc(c.t(ventureLo ? 'offline.panel.title.v' : 'offline.panel.title') + ' · ' + c.timeAgo(lo.at)) + '</div>' +
         c.esc(c.t(ventureLo ? 'offline.panel.body.v' : 'offline.panel.body', {
           t: lt, res: c.t('resource.primary'), qi: SQ.fmt(lo.qi), cur: c.t('resource.currency'),
@@ -293,7 +298,10 @@
       var ch = c.talentCard(el, c.wid());
       return '<div class="' + ch.className + '">' + ch.innerHTML + '</div>';
     }).join('') + '</div>';
+    h += offHtml;
     /* 自动三开关与奇遇倾向已随 UI v2 B2 迁入设置页（§七A 154）；修行页尾不再挂自动区。 */
+    /* B16-w：吐纳明细浮层（按需挂；点遮罩或「收起」都走 detailRate 同一动作） */
+    if (c.ui.detailRate) h += ratePanel(c, w, m, d, rate);
     c.$('tab-idle').innerHTML = h;
   }
   SQ.UI = SQ.UI || {};

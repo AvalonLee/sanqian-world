@@ -27,7 +27,9 @@
     'idle.next': '下一境界：{realm}（还需 {n} {res}）',
     'idle.trib.eta': '按当前增速约 {time} 后可渡劫',   /* 第十八批 · 修行页渡劫倒计时（纯派生显示量，不入档） */
     'idle.maxed': '已臻化境',
-    'idle.detail': '含加成明细',
+    'idle.detail': '明细',
+    'idle.detail.title': '吐纳明细',
+    'idle.detail.note': '合计 = 境界基础 × 各乘区 + 各项加成；与顶部每秒产出同一式子。',
     'idle.base': '境界基础', 'idle.talent': '天赋', 'idle.arts': '功法',
     'idle.gear': '装备', 'idle.buff': '状态加成', 'idle.align': '阵营倍率',
 
