@@ -265,46 +265,63 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   T(rowA.railOmen && rowA.centerOmen && rowA.centerBingjie && rowA.centerGift,
     'G2 右栏天象段条可点；中区那行仍保留天象/兵解/彩蛋（窄屏无右栏时可见，不是删功能）',
     JSON.stringify([rowA.railOmen, rowA.centerOmen, rowA.centerBingjie, rowA.centerGift]));
-  T(rowA.railGift && /首充|648|屠龙|直通|霓裳|榜末/.test(rowA.giftText), 'G3 页游充值贴片在右栏且是当前六款之一', rowA.giftText.slice(0, 54));
+  T(rowA.railGift && /倒计时/.test(rowA.giftText) && /支付(灵石|修为)/.test(rowA.giftText) && /立即领取/.test(rowA.giftText),
+    'G3 天降礼包在右栏：宣传 + 倒计时 + 支付档位 + 领取钮四件齐全', rowA.giftText.slice(0, 80));
   T(rowA.residue === 0, 'G4 中区那一行无 {} 占位残留', 'residue=' + rowA.residue);
   const keysG = await page.evaluate(() => {
     var out = [];
-    for (var i = 0; i < 6; i++) out.push(SQ.t('eggs.gift.p' + i + '.name'), SQ.t('eggs.gift.p' + i + '.offer'));
-    out.push(SQ.t('eggs.gift.tag'), SQ.t('eggs.gift.btn'), SQ.t('eggs.gift.deny'));
-    return out;
+    for (var i = 0; i < SQ.Gifts.N; i++) out.push(SQ.t('eggs.gift.p' + i + '.name'), SQ.t('eggs.gift.p' + i + '.offer'));
+    out.push(SQ.t('eggs.gift.tag'), SQ.t('eggs.gift.btn'));
+    return { n: SQ.Gifts.N, keys: out };
   });
-  T(keysG.length === 15 && keysG.every((x) => typeof x === 'string' && x.length > 0 && !/\{|undefined/.test(x)),
-    'G4b 礼包 15 枚词表键全部可解析（含 deny）', keysG.filter((x) => !x || /\{|undefined/.test(x)).slice(0, 2).join('|'));
-  const save0 = await page.evaluate(() => localStorage.getItem('sanqian-state-v1') || '');
-  await clearToasts();
-  /* G5b 取数窗口（第册四十九批 2026-10-19 改口径 · 原口径在并发轮里 7 跑 4 红）：
-   * 旧写法 = 「读 save0 → page.click → 等 400ms → 读 save → 逐字节比」——窗口横跨两次 evaluate，
-   * 页内 tick 的落盘随时会插进来（实测 `len 15456→15450` 这类几字节差，产品侧零缺陷），负载越高越必红。
-   * 新写法 = 点击与两枚快照收进**同一次 evaluate**，且中途只 `await Promise.resolve()` 冲微任务、
-   * **一步也不进宏任务** ⇒ 页内秒级 tick（宏任务）不可能落进窗口；而 `SQ.save` 这条 async 写链的
-   * `localStorage.setItem` 恰好全在微任务层 ⇒ 真落档照样抓得住。另把 `Storage.prototype.setItem`
-   * 在窗口内计一次数（writes 必须 = 0），比「字节没变」更贴近「根本没有写动作」这件事。
-   * 这是**收紧**不是放宽：判据从「400ms 里字节没变」变成「点击这一下没有任何写动作」。 */
+  T(keysG.n >= 20 && keysG.keys.length === keysG.n * 2 + 2 &&
+    keysG.keys.every((x) => typeof x === 'string' && x.length > 0 && !/\{|undefined/.test(x)),
+    'G4b 礼包宣传 ≥20 条且全部可解析（name/offer 非空、无占位残留）',
+    'N=' + keysG.n + ' bad=' + keysG.keys.filter((x) => !x || /\{|undefined/.test(x)).slice(0, 2).join('|'));
+  /* G5 确认 →（取消不扣）→ 确认 → 结果弹窗；扣费与三分支由 probe-gift 直证，这里只验屏上链路 */
+  await page.click('#m-rail [data-act="giftBuy"]');
+  await page.waitForTimeout(350);
+  const cfg = await page.evaluate(() => ({
+    open: !document.getElementById('modal-confirm').classList.contains('hide'),
+    title: (document.getElementById('cf-title').textContent || '').trim(),
+    body: (document.getElementById('cf-text').textContent || '').trim()
+  }));
+  T(cfg.open && /天降礼包/.test(cfg.title) && /支付/.test(cfg.body) && /%/.test(cfg.body),
+    'G5 点礼包先弹确认（写明支付金额与百分比，不在暗处扣）', JSON.stringify(cfg));
   const g5b = await page.evaluate(async () => {
     var SP = Object.getPrototypeOf(localStorage);
     var orig = SP.setItem, writes = 0;
     SP.setItem = function (k, v) { writes++; return orig.call(this, k, v); };
     try {
       var before = localStorage.getItem('sanqian-state-v1') || '';
-      document.querySelector('#m-rail [data-act="giftBuy"]').click();
+      document.getElementById('cf-cancel').click();
       for (var i = 0; i < 12; i++) await Promise.resolve();
       var after = localStorage.getItem('sanqian-state-v1') || '';
-      return { before: before, after: after, writes: writes };
+      return { before: before, after: after, writes: writes,
+        closed: document.getElementById('modal-confirm').classList.contains('hide') };
     } finally { SP.setItem = orig; }
   });
-  await page.waitForTimeout(400);
-  const afterG = await page.evaluate(() => ({
-    toasts: Array.prototype.map.call(document.querySelectorAll('#toasts .toast'), (x) => x.textContent),
-    save: localStorage.getItem('sanqian-state-v1') || '',
-    qi: (document.querySelector('.stathero') || {}).textContent || ''
+  T(g5b.closed && g5b.before === g5b.after && g5b.writes === 0,
+    'G5b 取消 = 分文不动、零落档（确认框只问不扣）',
+    'closed=' + g5b.closed + ' writes=' + g5b.writes);
+  await page.click('#m-rail [data-act="giftBuy"]');
+  await page.waitForTimeout(300);
+  await page.click('#cf-ok');
+  await page.waitForTimeout(700);
+  const gr = await page.evaluate(() => ({
+    open: !document.getElementById('modal-giftresult').classList.contains('hide'),
+    title: (document.getElementById('mgr-title').textContent || '').trim(),
+    wantTitle: SQ.t('eggs.gift.result.title', null, 'xiuxian'),
+    body: (document.getElementById('mgr-body').textContent || '').trim(),
+    cost: (document.getElementById('mgr-body').textContent || '').indexOf('已支付') >= 0,
+    outcome: /开出|空空如也/.test(document.getElementById('mgr-body').textContent || '')
   }));
-  T(afterG.toasts.length === 1 && /不通金银|苦修|彩蛋/.test(afterG.toasts[0]), 'G5 点「立即充值」只出一句拒绝提示', afterG.toasts.join('|').slice(0, 60));
-  T(g5b.before === g5b.after && g5b.writes === 0, 'G5b 点彩蛋**零落档**：点击同步段 + 微任务冲干后零写动作（第册四十九批改口径：窗口不再横跨 tick）', 'len ' + g5b.before.length + '→' + g5b.after.length + ' writes=' + g5b.writes + '（窗口外 save0=' + save0.length + '）');
+  T(gr.open && gr.title === gr.wantTitle && gr.cost && gr.outcome,
+    'G5c 确认后真扣费并弹结果（结果如实说开出什么 / 空空如也，宣传语只作对照）', JSON.stringify(gr));
+  await page.click('#mgr-ok');
+  await page.waitForTimeout(250);
+  T(await page.evaluate(() => document.getElementById('modal-giftresult').classList.contains('hide')),
+    'G5d 结果弹窗「再接再厉」可关闭（不留遮罩拦后续点击）');
   const seen = new Set();
   for (let i = 0; i < 12 && seen.size < 2; i++) {
     await page.reload();

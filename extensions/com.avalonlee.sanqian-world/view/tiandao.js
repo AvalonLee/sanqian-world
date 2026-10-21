@@ -19,21 +19,25 @@
    * + 接旨粘贴解析；圣旨揭晓：卷轴展开 + 判词逐字 + 领旨/抗旨（抗旨 CONFIRM 明示逆天值收益与档位后果）；
    * 天象浮层：即开即消红点；逆天大劫入口在渡劫预估浮层（detailTrib 段）。 */
   var tdTypeTimer = null;
-  var GIFT_N = 6, GIFT_ROLL_MS = 600000;   /* 六款页游贴片 · 10 现实分钟换一张（会话态，不入存档） */
 
-  /* 恶搞彩蛋：修行页右侧那张贴在墙上的「充值大礼包」。
-   * 零机制是本条的底线——点击只出一句提示，不发资源、不写档、不入 Ledger、不碰 cooldown。 */
+  /* 天降礼包（B16-z）：窄屏无右栏时的中区入口；文案与扣费模型全读 SQ.Gifts，与右栏同源。 */
   function renderGiftPack(c) {
     var now = Date.now();
     if (c.ui.giftI < 0 || now >= c.ui.giftUntil) {
-      c.ui.giftI = Math.floor(Math.random() * GIFT_N);
-      c.ui.giftUntil = now + GIFT_ROLL_MS;
+      c.ui.giftI = Math.floor(Math.random() * SQ.Gifts.N);
+      c.ui.giftUntil = now + SQ.Gifts.ROLL_MS;
     }
-    var gk = 'eggs.gift.p' + c.ui.giftI + '.';   /* 前缀先落变量：内联在 t(' 里会被 A2 当成整键静态引用（本仓同款先例 = legacy.shop.qirate） */
-    return '<span class="giftcard" data-act="giftBuy">' +
+    var gp = SQ.Gifts.offer(c.ui.giftI);
+    var cost = SQ.Gifts.costOf(c.w, gp.idx);
+    var left = Math.max(0, (c.ui.giftUntil || 0) - now);
+    var mm = Math.floor(left / 60000), ss = Math.floor((left % 60000) / 1000);
+    var cd = (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+    return '<span class="giftcard" data-act="giftBuy" data-v="' + gp.idx + '">' +
       '<span class="gtag">' + c.esc(c.t('eggs.gift.tag')) + '</span>' +
-      '<span class="gname">' + c.esc(c.t(gk + 'name')) + '</span>' +
-      '<span class="goffer">' + c.esc(c.t(gk + 'offer')) + '</span>' +
+      '<span class="gname">' + c.esc(c.t(gp.nameKey)) + '</span>' +
+      '<span class="goffer">' + c.esc(c.t(gp.offerKey)) + '</span>' +
+      '<span class="gcost">' + c.esc(c.t('eggs.gift.cost.' + gp.costType, { p: Math.round(cost.pct * 100), n: SQ.fmt(cost.n) })) +
+      ' · ' + c.esc(c.t('eggs.gift.cd', { t: cd })) + '</span>' +
       '<span class="gbtn">' + c.esc(c.t('eggs.gift.btn')) + '</span></span>';
   }
 

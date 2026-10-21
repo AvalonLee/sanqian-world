@@ -163,6 +163,18 @@
       });
     },
 
+    /* 天降礼包（2026-10-21 用户令）：先判后扣 + 掷结果；返回结果供结果弹窗消费。 */
+    giftBuy: function (ref, idx) {
+      var out = null;
+      return SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        var pack = packOf(s), D = dataOf(s);
+        var mods = SQ.Mods.collect(s.profile, ws, pack, D);
+        function log(cat, text) { SQ.Log.push(ws, cat, text); }
+        out = SQ.Gifts.buy(ws, pack, D, mods, idx, Date.now(), log);
+      }).then(function () { return out; });
+    },
+
     /* 选择奇遇分支（三分支抉择制：branchKey = 'right'|'evil'|'neutral'；模态框「必须选择才关闭」）；
      * 返回 {karma, karmaTxt, pass, eff, branch, ev} 供结果页 */
     resolveChoice: async function (ref, branchKey) {

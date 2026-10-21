@@ -208,8 +208,8 @@ const { chromium } = require('playwright-core');
     };
   });
   T(rail.exists, 'SH12 右栏骨架元素在位');
-  T(rail.has && rail.titles.join(',') === '四柱,天象 · 传闻,页游彩蛋,离线所得',
-    'SH13 修行区右栏 = 四柱 + 天象·传闻 + 页游彩蛋 + 离线所得（B16-c，有块才开第三列）', JSON.stringify(rail));
+  T(rail.has && rail.titles.join(',') === '四柱,天象 · 传闻,天降礼包,离线所得',
+    'SH13 修行区右栏 = 四柱 + 天象·传闻 + 天降礼包 + 离线所得（B16-c，有块才开第三列）', JSON.stringify(rail));
   T(rail.duoLabels.join('|') === '护法位|双修位' && parseFloat(rail.duoFont) <= 10.5,
     'SH13c 侣柱同时显示护法位与双修位（框内小字，不再只显示其中一位）',
     'labels=' + rail.duoLabels.join('|') + ' font=' + rail.duoFont);
