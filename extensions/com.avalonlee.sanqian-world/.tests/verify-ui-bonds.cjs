@@ -195,6 +195,47 @@ async function mkPage(browser, S) {
       'rows=' + tabShape.rows + ' unmet=' + tabShape.unmet + ' pal格=' + list.n + ' lock=' + list.lockN +
       ' sp=' + list.spN + ' dead=' + list.deadN + ' act=' + list.act);
 
+    /* A1b（第册百一十七批 · 用户令「普通道友和可双修的道侣没有分开，无法确认哪个是哪个」）：
+     * 首屏那一族混铺的「已结缘」段按 category 拆成「道友」/「道侣」两段。
+     * 判据量的是**分组关系**而不是「一定要出现两段」——本 fixture 结缘的三位（suwan/xie/yewu）
+     * 恰好全属 spouse 族，硬要两段就是拿假数据验（本仓「测试数据按假设造」那一课）；
+     * 改判三条：① 段标只能是要族别的那两枚（回退成「已结缘」混铺当场红）
+     * ② 每段行数 === 段标里那个数（数字与实物对表）
+     * ③ 段与行的族别互相对应（`.brow.sp` 当且仅当它落在「道侣」段下 ⇒ 混排即红）。
+     * 另加行内族别一枚（段标会滚出屏幕，一行字自己得能读出身）。 */
+    const secsA = await page.evaluate(() => {
+      const S = (k) => SQ.t(k, null, 'xiuxian');
+      const ALLOW = [S('bond.sec.friend'), S('bond.sec.spousem')];
+      const groups = [];
+      let cur = null;
+      Array.prototype.forEach.call(document.getElementById('tab-bonds').children, (el) => {
+        const hd = el.classList.contains('sechead') ? el.querySelector('.t') : null;
+        if (hd) { cur = { head: hd.textContent.replace(/\s+/g, ' ').trim(), rows: [] }; groups.push(cur); return; }
+        if (el.classList.contains('browlist') && cur)
+          cur.rows = Array.prototype.slice.call(el.querySelectorAll('.brow'));
+      });
+      const sp = document.querySelector('#tab-bonds .brow.sp');
+      return {
+        groups: groups.map(g => ({
+          head: g.head, n: g.rows.length,
+          spOnly: g.rows.length > 0 && g.rows.every(r => r.classList.contains('sp')),
+          frOnly: g.rows.length > 0 && g.rows.every(r => !r.classList.contains('sp'))
+        })),
+        wantF: S('bond.sec.friend'), wantS: S('bond.sec.spousem'), oldHead: S('bond.sec.met'),
+        badges: sp ? Array.prototype.slice.call(sp.querySelectorAll('.tierbadge')).map(x => x.textContent.trim()) : [],
+        ok: [S('bond.sec.spousem'), S('bond.propose.ready')]
+      };
+    });
+    const rowsOf = secsA.groups.reduce((a, g) => a + g.n, 0);
+    T(rowsOf > 0 && secsA.groups.every(g =>
+        (g.spOnly && g.head.indexOf(secsA.wantS) === 0) || (g.frOnly && g.head.indexOf(secsA.wantF) === 0)) &&
+        secsA.groups.every(g => g.head.indexOf(' · ' + g.n) >= 0) &&
+        !secsA.groups.some(g => g.head.indexOf(secsA.oldHead) >= 0) &&
+        secsA.badges.length >= 1 && secsA.badges.some(b => secsA.ok.indexOf(b) >= 0),
+      'A1b 已结缘按族别分段（段标 = 词表族别名、段内行数与段标数字逐段对表、旧的混铺段标不再出现）+ 道侣行内一枚族别标',
+      '段=' + secsA.groups.map(g => g.head).join(',') + ' ‖ badges=' + JSON.stringify(secsA.badges) +
+      ' ‖ 旧段标=' + secsA.oldHead);
+
     /* A2 未识详情 = 隐匿详情：只有「往来」一段、无好感尺、零赠丹 chip、正文零真名 */
     await h.openDetail('huang');
     const unk = await page.evaluate(() => {

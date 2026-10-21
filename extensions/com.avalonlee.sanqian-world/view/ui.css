@@ -2534,3 +2534,32 @@
     #tab-prodigy .detailbox { padding: 10px 11px; }
     #tab-prodigy .detailbox .kv { gap: 10px; }
   }
+  /* ══ 第册一百一十七批 · 势力名录卡：从「一行挤五个块」改成「一张有轻重的卡」══
+   *    病灶不是审美，是结构：名录卡同时挂着 `.faccard` 与 `.facrow`，而 `.facrow` 是
+   *    `display:flex; align-items:center`（那是给「一行一项」的清单用的）⇒ 卡内六个块被横排到
+   *    同一行、上下无主次。这里把名录那族卡改回纵向分层，并给六层各自的字重与色阶：
+   *    名号（宋体 15px）‖ 身份行（阵营 · 门众，右贴小字）‖ 增益（数字提到朱砂 13px）
+   *    ‖ 掌门·太上（11.5px）‖ 介绍（降权灰 11.5px、行距 1.8、虚线之上另起）‖ 关系 chips（最末）。
+   *    射程只 `#tab-faction .faclist`，别处复用 `.facrow` 的清单不受影响。 */
+  #tab-faction .faclist .faccard {
+    display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+    padding: 12px 14px 11px; margin: 0 0 9px;
+    border: 1px solid var(--sq2-line); border-radius: var(--sq2-r); background: var(--sq2-paper-2);
+  }
+  #tab-faction .faclist .faccard.cur { border-color: var(--sq2-cinnabar); background: var(--sq2-paper-3); }
+  #tab-faction .faclist .faccard .fh {
+    padding-bottom: 7px; border-bottom: 1px solid var(--sq2-line); align-items: baseline;
+  }
+  #tab-faction .faclist .faccard .fn {
+    font-family: var(--sq2-serif); font-weight: 400; font-size: 15px; letter-spacing: .05em;
+    color: var(--sq2-ink); display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  }
+  #tab-faction .faclist .faccard .fm { font-size: 11px; color: var(--sq2-ink-3); letter-spacing: .06em; }
+  #tab-faction .faclist .faccard .fperk { font-size: 12px; color: var(--sq2-ink-2); }
+  #tab-faction .faclist .faccard .fperk b { color: var(--sq2-cinnabar); font-size: 13px; font-weight: 600; }
+  #tab-faction .faclist .faccard .fpeople { font-size: 11.5px; color: var(--sq2-ink-2); }
+  #tab-faction .faclist .faccard .fdesc {
+    margin-top: 2px; padding-top: 8px; border-top: 1px dashed var(--sq2-line);
+    font-size: 11.5px; line-height: 1.8; color: var(--sq2-ink-3);
+  }
+  #tab-faction .faclist .faccard .frel { margin-top: 0; }

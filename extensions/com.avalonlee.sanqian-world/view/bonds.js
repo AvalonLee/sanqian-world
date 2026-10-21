@@ -155,12 +155,20 @@
       var met = all.filter(function (x) { return SQ.Bonds.tierOf(w, x.id, d) >= 1; });
       var dead = all.filter(function (x) { return SQ.Bonds.locked(w, x.id); });
       var unmet = all.filter(function (x) { return SQ.Bonds.tierOf(w, x.id, d) < 1 && !SQ.Bonds.locked(w, x.id); });
-      h += '<div class="sechead"><span class="t">' + c.esc(c.t('bond.sec.met')) + ' · ' + met.length + '</span><span class="s">' +
-        c.esc(c.t('bond.sec.count', { n: met.length, total: all.length })) + '</span></div>';
+      /* 已结缘按两族分两段铺（第册一百一十七批 · 用户令「普通道友和可双修的道侣没有分开，
+       * 无法确认哪个是哪个」）：原先只有一行「已结缘」把两族混铺，区分全靠名号后一枚 ♡。
+       * 空段不留段标（与功法待修习架「只剩脏位就不渲染段标」同一条口径）。 */
       if (met.length) {
-        h += '<div class="browlist">';
-        met.forEach(function (ch) { h += bondRow(c, ch, w, d); });
-        h += '</div>';
+        [[met.filter(function (x) { return x.category !== 'spouse'; }), c.t('bond.sec.friend')],
+          [met.filter(function (x) { return x.category === 'spouse'; }), c.t('bond.sec.spousem')]]
+          .forEach(function (grp) {
+            var g = grp[0];
+            if (!g.length) return;
+            h += '<div class="sechead"><span class="t">' + c.esc(grp[1]) + ' · ' + g.length + '</span><span class="s">' +
+              c.esc(c.t('bond.sec.count', { n: g.length, total: all.length })) + '</span></div><div class="browlist">';
+            g.forEach(function (ch) { h += bondRow(c, ch, w, d); });
+            h += '</div>';
+          });
       } else {
         h += '<p class="hint">' + c.esc(c.t('bond.met.none')) + '</p>';
       }
@@ -206,7 +214,12 @@
     return '<button type="button" class="brow' + (ch.category === 'spouse' ? ' sp' : '') + '" data-act="bondOpen" data-v="' + ch.id + '">' +
       '<span class="br-av">' + c.esc(c.t('bond.' + ch.id + '.ava')) + '</span>' +
       '<span class="br-b"><b>' + c.esc(c.t('bond.' + ch.id + '.name')) +
-      (isSpouse ? ' ♡' : (isGuard ? ' ☂' : '')) + '</b>' +
+      (isSpouse ? ' ♡' : (isGuard ? ' ☂' : '')) +
+      /* 名号后直接写族别（第册一百一十七批）：段已经分开了，行内仍要一枚能读的标——
+       *  scrolled 到列表中间时只剩一行字，段标早已滚出屏幕。 */
+      (isSpouse ? ' <span class="tierbadge t1">' + c.esc(c.t('bond.sec.spousem')) + '</span>'
+        : (ch.category === 'spouse' ? ' <span class="tierbadge t2">' + c.esc(c.t('bond.propose.ready')) + '</span>' : '')) +
+      '</b>' +
       '<span class="br-d">' + c.esc(c.t('bond.' + ch.id + '.kind')) + ' · ' + c.esc(tierTxt) + '</span></span>' +
       '<span class="br-r"><span class="pb"><i style="width:' + Math.min(100, aff) + '%"></i></span>' +
       '<span class="br-t">' + c.esc(tier >= maxBondTier(c) ? c.t('bond.fv.max', { n: aff }) : c.t('bond.fv.next', { n: aff, next: nextBondThreshold(c, tier) })) + '</span></span></button>';
