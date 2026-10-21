@@ -35,6 +35,7 @@
     'eggs.gift.tag': '限时',
     'eggs.gift.btn': '立即领取',
     'eggs.gift.cd': '倒计时 {t}',
+    'eggs.gift.cool': '礼包已空 · 下一份 {t} 后刷新',
     'eggs.gift.cost.stones': '支付灵石 {p}% · 约 {n}',
     'eggs.gift.cost.qi': '支付修为 {p}% · 约 {n}',
     'eggs.gift.confirm.title': '天降礼包',

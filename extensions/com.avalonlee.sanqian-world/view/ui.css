@@ -1297,6 +1297,9 @@
 }
 .sq2-rail .giftcard .g-offer { margin-top: 4px; color: var(--sq2-ink-2); }
 .sq2-rail .giftcard .g-cost { margin-top: 4px; font-size: 10.5px; color: var(--sq2-cinnabar); }
+/* 买完后的空置态：只报下一份刷新倒计时，不给领取钮 */
+.giftcard.cool { opacity: .82; }
+.giftcard.cool .goffer, .sq2-rail .giftcard.cool .g-offer { color: var(--sq2-ink-3); font-size: 10.5px; }
 .sq2-rail .giftcard button {
   display: block; width: 100%; margin-top: 7px; font: inherit; font-size: 11px; cursor: pointer;
   padding: 4px 12px; min-height: 0; border-radius: var(--sq2-r);

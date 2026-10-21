@@ -1253,23 +1253,25 @@
           esc(t('tiandao.defy.val', { n: tdI.defy || 0 })) +
           (tdI.title ? ' · ' + esc(t('tiandao.title')) : '') +
           (tdI.shield ? ' · ' + esc(t('tiandao.shield')) : '') + '</span></button></div>';
-        /* 天降礼包（B16-z · 原页游彩蛋）：24 条轮播 + 10 分钟倒计时；真扣灵石/修为的百分比 */
-        if (ui.giftUntil == null || ui.giftUntil < Date.now()) {
-          ui.giftI = Math.floor(Math.random() * SQ.Gifts.N);
-          ui.giftUntil = Date.now() + SQ.Gifts.ROLL_MS;
+        /* 天降礼包（B16-z · 原页游彩蛋）：24 条轮播；买完先空置 3 分钟再换下一条 */
+        var gsI = SQ.Gifts.state(ui, Date.now());
+        var gpLeft = Math.max(0, gsI.until - Date.now());
+        var gpMm2 = Math.floor(gpLeft / 60000), gpSs2 = Math.floor((gpLeft % 60000) / 1000);
+        var gpCd2 = (gpMm2 < 10 ? '0' : '') + gpMm2 + ':' + (gpSs2 < 10 ? '0' : '') + gpSs2;
+        h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.eggs')) + '</div>';
+        if (gsI.mode === 'cool') {
+          h += '<div class="giftcard cool"><div class="g-offer">' + esc(t('eggs.gift.cool', { t: gpCd2 })) + '</div></div>';
+        } else {
+          var gpI = SQ.Gifts.offer(gsI.idx);
+          var gpCost = SQ.Gifts.costOf(wI, gpI.idx);
+          h += '<div class="giftcard"><div class="g-head"><b>' + esc(t(gpI.nameKey)) + '</b>' +
+            '<i class="tag red">' + esc(t('eggs.gift.tag')) + '</i>' +
+            '<span class="g-cd">' + esc(t('eggs.gift.cd', { t: gpCd2 })) + '</span></div>' +
+            '<div class="g-offer">' + esc(t(gpI.offerKey)) + '</div>' +
+            '<div class="g-cost">' + esc(t('eggs.gift.cost.' + gpI.costType, { p: Math.round(gpCost.pct * 100), n: SQ.fmt(gpCost.n) })) + '</div>' +
+            '<button data-act="giftBuy" data-v="' + gpI.idx + '">' + esc(t('eggs.gift.btn')) + '</button></div>';
         }
-        var gpI = SQ.Gifts.offer(ui.giftI);
-        var gpCost = SQ.Gifts.costOf(wI, gpI.idx);
-        var gpLeft = Math.max(0, (ui.giftUntil || 0) - Date.now());
-        var gpMm = Math.floor(gpLeft / 60000), gpSs = Math.floor((gpLeft % 60000) / 1000);
-        var gpCd = (gpMm < 10 ? '0' : '') + gpMm + ':' + (gpSs < 10 ? '0' : '') + gpSs;
-        h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.eggs')) + '</div>' +
-          '<div class="giftcard"><div class="g-head"><b>' + esc(t(gpI.nameKey)) + '</b>' +
-          '<i class="tag red">' + esc(t('eggs.gift.tag')) + '</i>' +
-          '<span class="g-cd">' + esc(t('eggs.gift.cd', { t: gpCd })) + '</span></div>' +
-          '<div class="g-offer">' + esc(t(gpI.offerKey)) + '</div>' +
-          '<div class="g-cost">' + esc(t('eggs.gift.cost.' + gpI.costType, { p: Math.round(gpCost.pct * 100), n: SQ.fmt(gpCost.n) })) + '</div>' +
-          '<button data-act="giftBuy" data-v="' + gpI.idx + '">' + esc(t('eggs.gift.btn')) + '</button></div></div>';
+        h += '</div>';
         if (wI.lastOffline) {
           var loI = wI.lastOffline;
           h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.offline')) + '</div>' +
@@ -2348,6 +2350,9 @@
     }), async function () {
       var r = await SQ.Actions.giftBuy(state, idx);
       if (!r || r.ok === false) { toast(t('eggs.gift.poor')); return; }
+      /* 买完先空置一段时间再换下一条（用户令：不要立刻刷新） */
+      ui.giftCooldownUntil = Date.now() + SQ.Gifts.COOLDOWN_MS;
+      ui.giftUntil = ui.giftCooldownUntil;
       showGiftResult(r);
       renderAll();
     });
