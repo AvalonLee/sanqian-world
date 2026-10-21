@@ -26,7 +26,7 @@ async function buildSave() {
   }
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now - 86400000, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-3' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now - 86400000, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-21-1' },
     meta: { unlockedWorlds: ['xiuxian'], achv: [] },
     settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
     worlds: { xiuxian: ws }
@@ -47,7 +47,7 @@ async function buildCapSave() {
   for (let i = 0; i < 260; i++) ws.log.push({ ts: now - (300 - i) * 1000, cat: 'trib', text: '渡劫日志 ' + (i + 1) });
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now - 86400000, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-17-3' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now - 86400000, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-21-1' },
     meta: { unlockedWorlds: ['xiuxian'], achv: [] },
     settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
     worlds: { xiuxian: ws }
