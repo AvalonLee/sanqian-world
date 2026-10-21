@@ -240,31 +240,33 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   await page.evaluate(() => { document.querySelectorAll('.mask,.trib-mask,.cave-stage,.spouse-stage,.excl-mask').forEach(function (x) { x.classList.add('hide'); }); });
   await page.waitForTimeout(250);
   const rowA = await page.evaluate(() => {
-    var r = document.querySelector('.tdrow');
-    if (!r) return { none: true };
-    var omen = r.querySelector('[data-act="openOmens"]');
-    var bj = r.querySelector('[data-act="dissolve"]');
-    var gift = r.querySelector('[data-act="giftBuy"]');
+    var r = document.querySelector('#tab-idle .tdrow');
+    var rail = document.getElementById('m-rail');
+    var omenRail = rail ? rail.querySelector('[data-act="openOmens"]') : null;
+    var giftRail = rail ? rail.querySelector('[data-act="giftBuy"]') : null;
     return {
-      justify: getComputedStyle(r).justifyContent,
-      sameRowOmen: !!omen, sameRowBingjie: !!bj,
-      gift: !!gift, giftText: gift ? gift.textContent.replace(/\s+/g, ' ').trim() : '',
-      /* `margin-left: auto` 在 flex 里会被解析成实际用值（px）——读到 >8px 才算真的把贴片推走了 */
-      giftML: gift ? getComputedStyle(gift).marginLeft : '',
-      giftLeftAuto: !!gift && parseFloat(getComputedStyle(gift).marginLeft) > 8,
-      residue: (r.textContent.match(/[{，}。]/g) || []).length ? (/\{\}/.test(r.textContent) ? 1 : 0) : 0
+      centerHidden: !r || r.offsetParent === null,
+      railOmen: !!omenRail, railGift: !!giftRail,
+      railVisible: !!(rail && rail.offsetParent),
+      giftText: giftRail && giftRail.closest('.giftcard') ? giftRail.closest('.giftcard').textContent.replace(/\s+/g, ' ').trim() : '',
+      hasRail: document.getElementById('sc-main').classList.contains('hasrail'),
+      centerOmen: !!(r && r.querySelector('[data-act="openOmens"]')),
+      centerBingjie: !!(r && r.querySelector('[data-act="dissolve"]')),
+      centerGift: !!(r && r.querySelector('[data-act="giftBuy"]')),
+      residue: r ? (/\{\}/.test(r.textContent) ? 1 : 0) : 0
     };
   });
-  /* G1 判据随批改口（第卌七批 · 用户令「修行页天象兵解等功能左对齐，模拟礼包的提示框右对齐」）：
-   * 第卅九批的口径是**整行右对齐**（justify=flex-end），本批反过来——功能群贴左、贴片独自贴右。
-   * 两个层级各钉一刀：G1 看计算样式（justify-content + 贴片的 margin-left 是否真为 auto 生效），
-   * G8 看几何像素（谁贴左沿、谁贴右沿、中间有没有推开、有没有重叠）。只留一层都会被另一层放过。 */
-  T(rowA.justify === 'flex-start' && rowA.giftLeftAuto,
-    'G1 天道行改左对齐、礼包贴片以 margin-left:auto 贴右（第卌七批改口，旧口径为整行 flex-end）',
-    'justify=' + rowA.justify + ' 贴片marginLeft=' + rowA.giftML + ' auto生效=' + rowA.giftLeftAuto);
-  T(rowA.sameRowOmen && rowA.sameRowBingjie, 'G2 天象与兵解转世在同一行（问天隐藏后两者同父 .tdrow）', JSON.stringify([rowA.sameRowOmen, rowA.sameRowBingjie]));
-  T(rowA.gift && /首充|648|屠龙|直通|霓裳|榜末/.test(rowA.giftText), 'G3 页游充值贴片在位且是当前六款之一', rowA.giftText.slice(0, 54));
-  T(rowA.residue === 0, 'G4 这一行无 {} 占位残留', 'residue=' + rowA.residue);
+  /* B16-w 改口（用户令「天象 / 兵解转世 / 彩蛋右栏已有，中区不要重复」）：
+   * 桌面有右栏时中区 .tdrow 收起（天象/兵解/彩蛋不重复）；右栏天象段条可点开天象浮层、彩蛋在右栏。
+   * 窄屏无右栏时中区那行仍在（天象/兵解/彩蛋入口不能因去重而消失）。 */
+  T(rowA.railVisible && rowA.centerHidden && rowA.railOmen && rowA.railGift,
+    'G1 桌面有右栏 ⇒ 中区天象/兵解/彩蛋行收起（不重复），入口改由右栏承担',
+    JSON.stringify(rowA));
+  T(rowA.railOmen && rowA.centerOmen && rowA.centerBingjie && rowA.centerGift,
+    'G2 右栏天象段条可点；中区那行仍保留天象/兵解/彩蛋（窄屏无右栏时可见，不是删功能）',
+    JSON.stringify([rowA.railOmen, rowA.centerOmen, rowA.centerBingjie, rowA.centerGift]));
+  T(rowA.railGift && /首充|648|屠龙|直通|霓裳|榜末/.test(rowA.giftText), 'G3 页游充值贴片在右栏且是当前六款之一', rowA.giftText.slice(0, 54));
+  T(rowA.residue === 0, 'G4 中区那一行无 {} 占位残留', 'residue=' + rowA.residue);
   const keysG = await page.evaluate(() => {
     var out = [];
     for (var i = 0; i < 6; i++) out.push(SQ.t('eggs.gift.p' + i + '.name'), SQ.t('eggs.gift.p' + i + '.offer'));
@@ -289,7 +291,7 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
     SP.setItem = function (k, v) { writes++; return orig.call(this, k, v); };
     try {
       var before = localStorage.getItem('sanqian-state-v1') || '';
-      document.querySelector('[data-act="giftBuy"]').click();
+      document.querySelector('#m-rail [data-act="giftBuy"]').click();
       for (var i = 0; i < 12; i++) await Promise.resolve();
       var after = localStorage.getItem('sanqian-state-v1') || '';
       return { before: before, after: after, writes: writes };
@@ -309,38 +311,73 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
     await page.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
     await page.waitForTimeout(420);
     const t = await page.evaluate(() => {
-      var g = document.querySelector('[data-act="giftBuy"]');
-      return g ? g.textContent.replace(/\s+/g, ' ').trim() : '';
+      var g = document.querySelector('#m-rail [data-act="giftBuy"]');
+      var card = g && g.closest('.giftcard');
+      return card ? card.textContent.replace(/\s+/g, ' ').trim() : '';
     });
     if (t) seen.add(t.slice(0, 10));
   }
   T(seen.size >= 2, 'G6 重进 12 次至少换出 2 款（随机轮换为真，不是写死一张）', 'seen=' + seen.size);
-  /* G8（第卌七批 · 用户令「修行页天象兵解等功能左对齐，模拟礼包提示框右对齐」）：
-   * 同一行两种角色靠对齐分开——功能群一律贴左，恶搞贴片用 margin-left:auto 独自推到行尾。
-   * 判据取的是**几何**（boundingRect 边界差），不是 class 名：改回 justify-content: flex-end 必红。 */
-  const al = await page.evaluate(() => {
-    /* 按「含贴片的那一行」取，不按第一个 `.tdrow`——修行页与轮回页都有 tdrow，靠位置选会挑错行 */
-    const row = document.querySelector('.tdrow:has(.giftcard)');
-    const gift = row && row.querySelector('.giftcard');
-    if (!row || !gift || !gift.offsetParent) return { found: false };
-    const gb = gift.getBoundingClientRect();
-    const vis = Array.prototype.slice.call(row.children)
-      .filter(x => x !== gift && x.offsetParent !== null);
-    if (!vis.length) return { found: true, empty: true };
-    const bb = vis.map(x => x.getBoundingClientRect());
-    const rb = row.getBoundingClientRect();
-    const sameLine = bb.filter(r => Math.abs(r.top - gb.top) < 4);
+  /* G8（B16-w 改口 · 用户令「桌面右栏已有天象/彩蛋，中区不要重复」）：
+   * 桌面（有右栏）中区 .tdrow 收起；窄屏无右栏时必须仍在——去重不等于删入口。 */
+  await page.setViewportSize({ width: 900, height: 700 });
+  await page.waitForTimeout(500);
+  const narrowG = await page.evaluate(() => {
+    const main = document.getElementById('sc-main');
+    const rail = document.getElementById('m-rail');
+    const row = document.querySelector('#tab-idle .tdrow');
     return {
-      found: true, n: vis.length,
-      leftGap: Math.round(Math.min.apply(null, bb.map(r => r.left)) - rb.left),
-      rightGap: Math.round(rb.right - gb.right),
-      pushGap: Math.round(gb.left - Math.max.apply(null, (sameLine.length ? sameLine : bb).map(r => r.right))),
-      overlap: bb.some(r => r.right > gb.left + 1 && r.left < gb.right - 1 && Math.abs(r.top - gb.top) < 4)
+      hasRail: main.classList.contains('hasrail'),
+      railVisible: !!(rail && rail.offsetParent),
+      rowVisible: !!(row && row.offsetParent),
+      omen: !!(row && row.querySelector('[data-act="openOmens"]')),
+      bj: !!(row && row.querySelector('[data-act="dissolve"]')),
+      gift: !!(row && row.querySelector('[data-act="giftBuy"]'))
     };
   });
-  T(al.found && !al.empty && al.leftGap <= 2 && al.rightGap <= 2 && al.pushGap >= 8 && al.overlap === false,
-    'G8 功能群贴左（左边界差 ≤2px）· 礼包贴片贴右（右边界差 ≤2px）· 中间被推开 ≥8px 且互不重叠',
-    JSON.stringify(al));
+  T(!narrowG.railVisible && narrowG.rowVisible && narrowG.omen && narrowG.bj && narrowG.gift,
+    'G8 窄屏无右栏列时中区天象/兵解/彩蛋行仍在（桌面去重不删功能）', JSON.stringify(narrowG));
+  await page.setViewportSize({ width: 1440, height: 950 });
+  await page.waitForTimeout(300);
+
+  /* ── I 组（B16-w · 修行页构图）：大块次序对齐设计稿 v2 ──
+   * mode / 圆相 / 四格 / 境界 / 寿元 / 洞府 / 天象行 / 天命，逐对比较文档序。 */
+  const orderI = await page.evaluate(() => {
+    const tab = document.getElementById('tab-idle');
+    const kids = Array.prototype.slice.call(tab.children);
+    const at = (sel, txt) => {
+      const xs = Array.prototype.slice.call(tab.querySelectorAll(sel));
+      const hit = xs.filter((x) => !txt || x.textContent.indexOf(txt) >= 0)[0];
+      return hit ? kids.indexOf(hit) : -1;
+    };
+    return {
+      mode: at('.mode'), enso: at('.stathero'), stat: at('.statrow'),
+      realm: at('.kv', SQ.t('realm.info.cur', { realm: SQ.t('realm.' + 0, null, 'xiuxian') }, 'xiuxian').slice(0, 2)),
+      life: at('.kv', SQ.t('life.row', { age: '', left: '' }, 'xiuxian').slice(0, 2)),
+      cave: at('.idlemeta'), td: at('.tdrow'), talent: at('.sechead')
+    };
+  });
+  const seqI = [orderI.mode, orderI.enso, orderI.stat, orderI.realm, orderI.life, orderI.cave, orderI.td, orderI.talent];
+  T(seqI.every((x, i) => x >= 0 && (i === 0 || x > seqI[i - 1])),
+    'I1 修行页大块次序 = 模式 → 圆相 → 四格 → 境界 → 寿元 → 洞府 → 天象行 → 天命（设计稿 v2）',
+    JSON.stringify(orderI));
+
+  /* I2 吐纳明细浮层：纸面面板 + 加/乘标记 + 合计；关闭可收 */
+  await page.click('#tab-idle .rate [data-act="detailRate"]');
+  await page.waitForTimeout(300);
+  const dpI = await page.evaluate(() => ({
+    open: !!document.querySelector('.dp-sheet'),
+    title: ((document.querySelector('.dp-sheet .dp-t2') || {}).textContent || '').trim(),
+    total: ((document.querySelector('.dp-sheet .dp-total') || {}).textContent || '').trim(),
+    rows: document.querySelectorAll('.dp-sheet .dp-row').length,
+    add: document.querySelectorAll('.dp-sheet .dp-t.add').length,
+    mul: document.querySelectorAll('.dp-sheet .dp-t.mul').length
+  }));
+  T(dpI.open && !!dpI.title && /\/秒/.test(dpI.total) && dpI.rows >= 2 && dpI.add >= 1 && dpI.mul >= 1,
+    'I2 吐纳明细为独立纸面浮层（标题/合计/加项+/乘区× 齐全）', JSON.stringify(dpI));
+  await page.click('.dp-sheet [data-act="detailRate"]');
+  await page.waitForTimeout(250);
+  T(!(await page.$('.dp-sheet')), 'I3 点「收起」浮层消失（不留遮罩拦点击）');
   T(errors.length === 0, 'G7 第一台整轮零页错误', errors.slice(0, 3).join(' | '));
 
   await browser.close();

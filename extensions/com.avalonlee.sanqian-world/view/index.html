@@ -1226,8 +1226,11 @@
         var stI = SQ.Tiandao ? SQ.Tiandao.stageOf(wI, dI) : null;
         h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.tiandao')) + '</div>' +
           SQ.UI.rumor.band(ctx(), Date.now()) +
-          '<div class="rb-b"><b>' + esc(stI ? t('tiandao.stage.' + stI) : t('rail.none')) + '</b><span>' +
-          esc(t('tiandao.defy.val', { n: tdI.defy || 0 })) + '</span></div></div>';
+          /* B16-w：天象段条可点开「天象」浮层（原入口在中区 .tdrow；桌面有右栏时中区那行已收起） */
+          '<button class="rb-b" data-act="openOmens"><b>' + esc(stI ? t('tiandao.stage.' + stI) : t('rail.none')) + '</b><span>' +
+          esc(t('tiandao.defy.val', { n: tdI.defy || 0 })) +
+          (tdI.title ? ' · ' + esc(t('tiandao.title')) : '') +
+          (tdI.shield ? ' · ' + esc(t('tiandao.shield')) : '') + '</span></button></div>';
         /* 页游彩蛋（设计稿 data-rail=idle 的 giftcard）：会话内轮换六款槽位，纯呈现 */
         if (ui.giftUntil == null || ui.giftUntil < Date.now()) {
           ui.giftI = Math.floor(Math.random() * 6);
