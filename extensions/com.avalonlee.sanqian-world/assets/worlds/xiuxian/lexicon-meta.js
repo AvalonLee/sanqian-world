@@ -183,7 +183,7 @@
   K['codex.face.talent'] = '天赋';
   K['codex.face.treasure'] = '法宝';
   K['codex.face.art'] = '功法';
-  K['codex.face.bond'] = '道友';
+  K['codex.face.bond'] = '缘法';
   K['codex.face.zone'] = '秘境';
   K['codex.face.faction'] = '势力';
   K['codex.face.title'] = '称号';
@@ -218,7 +218,7 @@
   K['codex.achv.achv_juefeng.name'] = '绝而复续'; K['codex.achv.achv_juefeng.desc'] = '绝交后经事件恢复好感';
   K['codex.achv.achv_xinjie.name'] = '心结曾系'; K['codex.achv.achv_xinjie.desc'] = '心结锁触发（炉鼎采补解除等）';
   K['codex.achv.achv_kuashi.name'] = '缘定三生'; K['codex.achv.achv_kuashi.desc'] = '使用跨世之缘赎回道友';
-  K['codex.achv.achv_shuangxiu.name'] = '双修有成'; K['codex.achv.achv_shuangxiu.desc'] = '双修满档维持 30 天';
+  K['codex.achv.achv_shuangxiu.name'] = '双修有成'; K['codex.achv.achv_shuangxiu.desc'] = '任一位道侣双修满档维持 30 天';
   K['codex.achv.achv_fudi.name'] = '福地安家'; K['codex.achv.achv_fudi.desc'] = '驻留福地且护法在位';
   K['codex.achv.achv_rumen.name'] = '拜入山门'; K['codex.achv.achv_rumen.desc'] = '首次加入势力';
   K['codex.achv.achv_zhishi.name'] = '执事之权'; K['codex.achv.achv_zhishi.desc'] = '职位达档 3';
@@ -349,12 +349,12 @@
   /* ── 更新公告浮层（第册四批 · UI 卷 §3.4e · 玩家可见文案一律白话短句，零英文名词、零版本号）──
    * 消费侧 = `view/updatenote.js` 逐条字面取词（不走拼键，A2/A6 才看得见这七行）。 */
   K['update.note.title'] = '游戏更新公告';
-  K['update.note.l1'] = '本次是一次大更新：整个界面换成新版，另有天降礼包、势力名录与宗门治理、修行页重排三件新内容。以下逐条说明。';
-  K['update.note.l2'] = '界面 · 所有页面按新设计重排：纸面底与夜间深色主题、桌面三栏与手机底栏；宽屏下内容列居中，不再偏在左边；左栏页名缩短，页内仍是全名。';
-  K['update.note.l3'] = '新增 · 右栏「天降礼包」：礼包会自己换、自己倒计时，宣传写得天花乱坠，开出来可能是好东西，也可能什么都没有；点开前会先问一句，确认后才扣灵石或修为。';
-  K['update.note.l4'] = '调整 · 势力页变成名录，点进去能看介绍与关系，加入、叛投、叛离都在详情里办；宗门页按你的处境分三种：还没入伙、已入别家、自立门户。';
-  K['update.note.l5'] = '新增 · 自立宗门完全放开：可改名、改门规、写门规宣言、定税率、任免执事与长老、逐出弟子、花灵石单方停战，也可以解散宗门重新来过。';
-  K['update.note.l6'] = '调整 · 修行页重排：圆相下方直接给吐纳速率与飞升入口，境界、寿元、洞府收成收束到一块；「天命」行尾可直达洗髓；右栏侣柱同时显示护法与双修，地柱写明加成属于哪一方面；渡劫、抉择、盖棺与飞升的演出都换成了新画面。';
+  K['update.note.l1'] = '这一版把整个界面换成了新版纸面风格：白天纸色、夜里墨色，桌面三栏、手机底栏；宽屏下内容列居中，所有页面重新排过。';
+  K['update.note.l2'] = '修行与长线：修行页重排，渡劫、飞升、盖棺都有了新演出；新增寿元衰老、道伤、袭击与族中寻仇，境界越高，风险越重。';
+  K['update.note.l3'] = '江湖与宗门：势力改成名录，加入、叛投、叛离都在详情里办；自立宗门可改名、定门规、定税率、任免弟子，也能结仇宣战、停战、解散。';
+  K['update.note.l4'] = '道友与双修：好感可通过拜访、赠丹、同贺积累；道侣可以同时多位，双修加成合计有上限；炉鼎采补仍是重代价。';
+  K['update.note.l5'] = '养成与收集：洞府福地可营建，坊市与图鉴扩容，法器、法宝、功法、炼丹炼器、自创功法、天赋洗髓、同代天骄与江湖榜都已接入。';
+  K['update.note.l6'] = '奇遇与天道：奇遇池扩容，江湖传闻、天象、问天、逆天改命都在；离线结算与自动渡劫可在设置里调。';
   K['update.note.l7'] = '本公告在你点「知道了」之后才记为已读，点旁边不算；下次更新会再弹一次。';
   K['update.note.close'] = '知道了';
 

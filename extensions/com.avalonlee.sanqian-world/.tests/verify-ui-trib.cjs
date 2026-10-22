@@ -292,9 +292,10 @@ const { chromium } = require('playwright-core');
 
   /* ── E 修行页渡劫倒计时（第十八批 · 用户令「修行页面，在合适地方增加一个倒计时，好让用户知道大约多少小时候可以渡劫」）──
    * 本项是**纯派生显示量**（不入存档、不改任何结算），所以判据必须落在屏上：
-   *   **E1** 未满 ⇒ 该行在，且时间桶（天 / 小时 / 分钟）与现场复算的 `(need − qi)/rate` 同桶 ⇒ 证它真按差额与实时增速算，不是常量；
-   *   **E2** qi 顶到 `need` ⇒ 该行**消失**、手动渡劫按钮出现 ⇒ 证口径是 `Realm.needEffOf` 而非 `Idle.capOf`
-   *          （cap = max(baseQi×CAP_HOURS×3600, need×CAP_NEED_FACTOR)×(1+qiCap) 恒 ≥ need ⇒ 写错成 cap 时这一行在圆满仍在屏上 ⇒ 本条红）。 */
+   *   **E1** 未满 ⇒ 圆心只剩倒计时一行，且时间桶（天 / 小时 / 分钟）与现场复算的 `(need − qi)/rate` 同桶；
+   *          环上阈值标记（needmark）的坐标 === `need / cap` 的角度 ⇒ 证标记与进度环同一把尺。
+   *   **E2** qi 顶到 `need` ⇒ 倒计时整枚消失、手动渡劫按钮出现、阈值标记仍在 ⇒ 证口径是 `Realm.needEffOf`
+   *          而非 `Idle.capOf`（cap 恒 ≥ need；写错成 cap 时圆满仍会印倒计时 ⇒ 本条红）。 */
   {
     const scan = () => {
       const pack = SQ.Worlds.xiuxian.pack, D = pack.data;
@@ -303,15 +304,24 @@ const { chromium } = require('playwright-core');
       const m = SQ.Mods.collect(s.profile, w, pack, D);
       const need = SQ.Realm.needEffOf(w, pack, D, m);
       const rate = SQ.Idle.effRate(w, pack, D, m, false);
-      const tmpl = (SQ.LEX.xiuxian || {})['idle.trib.eta'] || '';
-      const suffix = tmpl.split('{time}')[1] || '';
-      /* B15-b 改口：倒计时与「距下一境界」一起并进了圆相 sub 行（设计稿 .enso-core .sub），
-       * 不再是一条独立 .kv 行 ⇒ 取数面扩到 `.sub`，仍要求**恰一处**（多印一遍同样算红）。 */
-      const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-idle .kv, #tab-idle .enso-core .sub'))
-        .map(r => (r.innerText || '').replace(/\s+/g, ' ')).filter(x => suffix && x.indexOf(suffix) >= 0);
+      const cap = SQ.Idle.capOf(w, pack, D, m);
+      /* 册一百二十四批改口：圆心小字只剩倒计时（「距渡劫 X」），「下一境界」已移入环上 needmark
+       * 的 <title>。仍要求**恰一处**倒计时；圆满时整枚 .sub 不渲染。 */
+      const subs = Array.prototype.slice.call(document.querySelectorAll('#tab-idle .enso-core .sub'))
+        .map(r => (r.innerText || '').replace(/\s+/g, ' '));
       const sec = rate > 0 ? (need - w.qi) / rate : -1;
-      return { n: rows.length, text: rows[0] || '', need: need, qi: w.qi, rate: rate, sec: Math.round(sec),
-        bucket: sec >= 86400 ? '天' : (sec >= 3600 ? '小时' : '分钟'),
+      const bucket = sec >= 86400 ? '天' : (sec >= 3600 ? '小时' : '分钟');
+      const rows = subs.filter(x => x.indexOf(bucket) >= 0);
+      /* 环上阈值标记：need/cap 与进度环同一把尺（不是 need/need 也不是 qi/need）。 */
+      const md = document.querySelector('#tab-idle .needmark .nm-dot');
+      const mx = md ? parseFloat(md.getAttribute('cx')) : null;
+      const my = md ? parseFloat(md.getAttribute('cy')) : null;
+      const wantP = (need != null && cap > 0) ? need / cap : null;
+      const wantA = wantP != null ? wantP * Math.PI * 2 - Math.PI / 2 : null;
+      const wantX = wantA != null ? 118 + Math.cos(wantA) * 99 : null;
+      const wantY = wantA != null ? 118 + Math.sin(wantA) * 99 : null;
+      return { n: rows.length, total: subs.length, text: subs[0] || '', need: need, qi: w.qi, rate: rate, sec: Math.round(sec),
+        bucket: bucket, cap: cap, mx: mx, my: my, wantX: wantX, wantY: wantY, hasMark: !!md,
         hasBtn: !!document.querySelector('#tab-idle [data-act="trib"]') };
     };
     const sU = buildSave(0);
@@ -319,19 +329,21 @@ const { chromium } = require('playwright-core');
     Object.values(sU.worlds).forEach(w => { w.qi = 400; });     /* realm 0 的 need = 1000 ⇒ 未满 */
     const aU = await openPage(sU, false);
     const e1 = await aU.page.evaluate(scan);
-    T(e1.n === 1 && e1.need > e1.qi && e1.rate > 0 && e1.text.indexOf(e1.bucket) >= 0 &&
-      !/NaN|undefined|\{|idle\.trib\.eta/.test(e1.text),
-      'E1 未满 · 修行页有「约 X 后可渡劫」一行，时间桶 === 现场复算 (need−qi)/rate 的桶（非常量、无 NaN、无键名回落）',
-      e1.text + ' ‖ need=' + e1.need + ' qi=' + e1.qi + ' rate=' + e1.rate.toFixed(2) + ' 复算=' + e1.sec + 's 桶=' + e1.bucket);
+    T(e1.n === 1 && e1.total === 1 && e1.need > e1.qi && e1.rate > 0 && e1.text.indexOf(e1.bucket) >= 0 &&
+      !/NaN|undefined|\{|idle\.trib\.eta/.test(e1.text) &&
+      e1.hasMark && e1.wantX != null && Math.abs(e1.mx - e1.wantX) <= 1.2 && Math.abs(e1.my - e1.wantY) <= 1.2,
+      'E1 未满 · 圆心只留「距渡劫 X」一行（时间桶 === 现场复算）‖ 环上阈值标记落在 need/cap 的角度',
+      e1.text + ' ‖ need=' + e1.need + ' qi=' + e1.qi + ' cap=' + e1.cap + ' rate=' + e1.rate.toFixed(2) +
+      ' 复算=' + e1.sec + 's 桶=' + e1.bucket + ' mark=' + e1.mx + ',' + e1.my + '/应=' + e1.wantX + ',' + e1.wantY);
     await aU.ctx.close();
 
     const sF = buildSave(0);                                    /* qi = 1000 === realm 0 的 need ⇒ 圆满 */
     sF.settings.autoTrib = false;
     const aF = await openPage(sF, false);
     const e2 = await aF.page.evaluate(scan);
-    T(e2.n === 0 && e2.qi >= e2.need && e2.hasBtn,
-      'E2 圆满 · 倒计时行消失且手动渡劫按钮在（证按 needEffOf 计，不是按 capOf 那个上限）',
-      '行=' + e2.n + ' qi=' + e2.qi + ' need=' + e2.need + ' 按钮=' + e2.hasBtn);
+    T(e2.n === 0 && e2.total === 0 && e2.qi >= e2.need && e2.hasBtn && e2.hasMark,
+      'E2 圆满 · 倒计时行整枚消失（不印「可渡劫」，交给下方 CTA）且手动渡劫按钮在 ‖ 阈值标记仍在',
+      '行=' + e2.n + ' 总=' + e2.total + ' qi=' + e2.qi + ' need=' + e2.need + ' 按钮=' + e2.hasBtn + ' 标记=' + e2.hasMark);
     /* B16-aa：渡劫 hero 加宽且仍在圆相下方、四格上方，并与四格同轴居中 */
     const e3 = await aF.page.evaluate(() => {
       const r = (s) => { const el = document.querySelector(s); return el ? el.getBoundingClientRect() : null; };

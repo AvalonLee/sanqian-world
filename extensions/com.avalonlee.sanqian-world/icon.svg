@@ -1,10 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-     stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-  <!-- 三千世界：三横（三千）+ 一柄纵剑贯之 -->
-  <path d="M5 8h14"/>
-  <path d="M5 12.5h14"/>
-  <path d="M5 17h14"/>
-  <path d="M12 2.5v19"/>
-  <path d="M9.5 5.5 12 2.5l2.5 3"/>
-  <path d="M9 21.5h6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 对齐 UI v2 左上角品牌：宣纸圆角底 + 朱砂「三千」小方章（微旋转）。
+       宿主经 <img> 渲染，颜色全部写死，不依赖 currentColor。 -->
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="#F6F1E5"/>
+  <rect x="2.75" y="2.75" width="58.5" height="58.5" rx="11.25" fill="none" stroke="#D8CDB8" stroke-width="0.75"/>
+  <g transform="rotate(-2 32 32)">
+    <rect x="13" y="13" width="38" height="38" rx="4" fill="#A5362C" fill-opacity="0.10" stroke="#A5362C" stroke-width="2.6"/>
+    <text x="32" y="38.6" text-anchor="middle"
+          font-family="'Songti SC','STSong',SimSun,serif" font-size="17.5" font-weight="600"
+          letter-spacing="1.4" fill="#A5362C">三千</text>
+  </g>
 </svg>

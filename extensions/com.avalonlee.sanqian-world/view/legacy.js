@@ -129,8 +129,7 @@
     var w = c.w, d = c.d, p = c.p, m = c.mods;
     var meta = c.s.meta || {};
     var st = meta.stats || {};
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + c.esc(c.t('legacy.system')) + '</button></div>' +
-      '<span class="tdtitle">' + c.esc(c.t('legacy.ui.balance', { n: SQ.fmt(meta.karma || 0) })) + '</span></div>';
+    var h = '<div class="pagehead"><span class="tdtitle">' + c.esc(c.t('legacy.ui.balance', { n: SQ.fmt(meta.karma || 0) })) + '</span></div>';
     /* UI v2 B9：跨世四格（世数 / 飞升 / 兵解 / 身死）+ 最高境界一行；身死 = 被动了结（寿尽 / 道伤），与主动兵解分列 */
     h += '<div class="legacygrid">' +
       '<div class="lg-cell"><span class="lg-n">' + (st.lives || 0) + '</span><span class="lg-k">' + c.esc(c.t('legacy.ui.stat.lives')) + '</span></div>' +

@@ -267,6 +267,14 @@ for (const x of RG) {
 const typMinG = Math.min.apply(null, TYPICAL.map(daysG));
 chk('§九.12 典型画像（满驻+护法+双修）≥5 天', typMinG >= 5,
   TYPICAL.map((id) => id + '=' + f2(daysG(id))).join(' ') + ' · 最低 ' + f2(typMinG));
+/* 16b) 多道侣口径（册一百二十三批）：qiRate 求和封顶 22%，按最坏满额代入全部画像；
+ * 典型画像仍 ≥5 天（单人 6/10/18% 的旧表不动，只封总账） */
+const MULTI_Q = D.SPOUSE_QIRATE_CAP != null ? D.SPOUSE_QIRATE_CAP : 0.22;
+const RGM = PORTRAITS.map((pt) => solveG14(pt, MULTI_Q, true));
+const daysM = (id) => RGM.find((x) => x.pt.id === id).days * normC;
+const typMinM = Math.min.apply(null, TYPICAL.map(daysM));
+chk('§九.12 多道侣封顶 22% 典型画像 ≥5 天', typMinM >= 5,
+  TYPICAL.map((id) => id + '=' + f2(daysM(id))).join(' ') + ' · 最低 ' + f2(typMinM));
 /* 17) 速通魔道+炉鼎 破线登记 + 杠杆有效性实测：luding 18%→14% 仍 <5 天 ⇒ 杠杆无效（与批 2 杠杆1 同构），
  * 维持 +18% 不动表——速通画像按 §6.4.1 观察项② 带外单列（批 2 既有裁定延续） */
 const rushG = daysG('rush_dp');
@@ -282,6 +290,6 @@ chk('中段失败手感：护法后仍 >0 且降幅 ≤50%（右深画像）',
   midG > 0 && midG >= midNoG * 0.5, '中段败 ' + f2(midNoG) + ' → ' + f2(midG));
 
 console.log(fails.length === 0
-  ? 'PACING_ALL_GREEN ' + R.length + ' 画像 ×3 口径 / 18 断言'
+  ? 'PACING_ALL_GREEN ' + R.length + ' 画像 ×3 口径 / 19 断言'
   : 'PACING_FAILED ' + fails.join(','));
 process.exit(fails.length === 0 ? 0 : 1);

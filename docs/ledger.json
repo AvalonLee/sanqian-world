@@ -1,17 +1,17 @@
 {
  "generated_by": ".tests/gen-ledger.cjs",
- "at": "2026-10-21T12:10:12.229Z",
+ "at": "2026-10-22T05:55:37.993Z",
  "values": {
-  "ext_version": "0.5.128",
+  "ext_version": "0.6.0",
   "dod_items": 20,
-  "dod_asserts": 603,
-  "dod_secs": 20.1,
+  "dod_asserts": 605,
+  "dod_secs": 27.9,
   "smoke": 326,
   "audit_gates": 34,
   "versions_rows": null,
-  "probe_asserts": 243,
+  "probe_asserts": 245,
   "ui_files": 35,
-  "ui_asserts": 864,
+  "ui_asserts": 891,
   "sim_playthrough": true,
   "arts": 70,
   "events": 131,
@@ -31,7 +31,7 @@
   "visible_worlds": 6,
   "log_cats": 11,
   "name_pool": "9 × 7 × 5",
-  "lex_keys": 5009
+  "lex_keys": 5023
  },
  "segments": [
   {
@@ -47,11 +47,11 @@
    "name": "design"
   },
   {
-   "file": "docs/三千世界-工程规范与验收计划.md",
+   "file": "docs/总纲/三千世界-工程规范与验收计划.md",
    "name": "eng-spec"
   },
   {
-   "file": "docs/三千世界-项目设计文档.md",
+   "file": "docs/总纲/三千世界-项目设计文档.md",
    "name": "main-design"
   }
  ],
@@ -105,7 +105,7 @@
    "src": "core.js 编解码与压缩阶梯 ⓪~⑤",
    "touches": [
     "assets/core.js",
-    "docs/三千世界-工程规范与验收计划.md §3.6"
+    "docs/总纲/三千世界-工程规范与验收计划.md §3.6"
    ],
    "repro": "node .tests/probe-savecodec.cjs"
   },
@@ -132,8 +132,8 @@
     "docs/FACTS.md",
     "README.md",
     "DESIGN.md",
-    "docs/三千世界-工程规范与验收计划.md",
-    "docs/三千世界-项目设计文档.md"
+    "docs/总纲/三千世界-工程规范与验收计划.md",
+    "docs/总纲/三千世界-项目设计文档.md"
    ],
    "repro": "node .tests/gen-ledger.cjs --fix 后复跑"
   }

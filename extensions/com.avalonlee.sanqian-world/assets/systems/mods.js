@@ -165,13 +165,20 @@
         });
       }
 
-      /* 9) 结缘双修（G14 · 引擎卷 §3.8）：qiRate 加算（来源 spouse，与护法位并行不冲突）+
-       * 阴阳形态 offlineEff +10% 与心魔类 debuff −25%（后者走 bonds.debuffXinmo 合计封顶）。 */
-      if (SQ.Bonds && ws.spouse) {
-        var sform = (D.SPOUSE_FORMS || {})[ws.spouse.form] || {};
-        if (sform.qiRate) note('qiRate', 'spouse', sform.qiRate);
-        if (sform.offlineEff) note('offlineEff', 'spouse', sform.offlineEff);
-        if (sform.xinmoReduce) bonds.debuffXinmo += sform.xinmoReduce;
+      /* 9) 结缘双修（G14 · 引擎卷 §3.8 · 多道侣册一百二十三批）：qiRate 逐位相加后封顶
+       * SPOUSE_QIRATE_CAP（22%）；offlineEff / xinmoReduce 取最高一重不叠加（后者仍走
+       * bonds.debuffXinmo 合计封顶）。单人时逐字等于旧值。 */
+      if (SQ.Bonds && ws.spouses && ws.spouses.length) {
+        var sq = 0, soff = 0, sxin = 0;
+        ws.spouses.forEach(function (sp) {
+          var sform = (D.SPOUSE_FORMS || {})[sp.form] || {};
+          sq += sform.qiRate || 0;
+          if ((sform.offlineEff || 0) > soff) soff = sform.offlineEff;
+          if ((sform.xinmoReduce || 0) > sxin) sxin = sform.xinmoReduce;
+        });
+        if (sq) note('qiRate', 'spouse', Math.min(sq, D.SPOUSE_QIRATE_CAP != null ? D.SPOUSE_QIRATE_CAP : 0.22));
+        if (soff) note('offlineEff', 'spouse', soff);
+        if (sxin) bonds.debuffXinmo += sxin;
       }
 
       /* 9.5) 势力增益（G16 · 势力批 v2.4 + 深化批 v1.23）：当前效力势力的 perk × 职级放大

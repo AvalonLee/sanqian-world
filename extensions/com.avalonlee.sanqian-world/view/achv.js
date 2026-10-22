@@ -56,8 +56,7 @@
     var d = c.d, meta = (c.s && c.s.meta) || {}, p = c.p;
     var got = {};
     (meta.achv || []).forEach(function (id) { got[id] = 1; });
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + c.esc(c.t('achv.system')) + '</button></div>' +
-      '<span class="tdtitle">' + c.esc(c.t('codex.ui.achv.done', { n: (meta.achv || []).length })) + '</span></div>';
+    var h = '<div class="pagehead"><span class="tdtitle">' + c.esc(c.t('codex.ui.achv.done', { n: (meta.achv || []).length })) + '</span></div>';
     /* 三格摘要（B15-h · 设计稿 .sum3）：已得 / 遗泽 / 九面在录 —— 三个数都取存档现算，不写死 */
     var facesAll = (d.CODEX.FACES || []);
     var faceIn = facesAll.filter(function (f) { return SQ.Codex.faceCount(meta, f) > 0; }).length;

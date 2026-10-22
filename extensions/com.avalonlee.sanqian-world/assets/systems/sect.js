@@ -25,7 +25,7 @@
         align: (raw.align === 'right' || raw.align === 'evil') ? raw.align : 'neutral',
         disciples: [], fac: {}, everDefected: raw.everDefected === true,
         dispatchAt: 0, lastTribMonth: 0, monthClock: 0, matAcc: 0,
-        warRecord: { wins: 0, loses: 0 }, suppressed: {},
+        warRecord: { wins: 0, loses: 0 }, suppressed: {}, repCut: 1,
         recruitAt: 0, foundAt: Math.max(0, num(raw.foundAt, 0)), candidate: null, warAgg: null, seq: 0,
         succession: { done: true, heir: String(succ.heir || '').slice(0, 24), rep: Math.max(0, Math.floor(num(succ.rep, 0))), at: Math.max(0, num(succ.at, 0)) }
       };
@@ -48,6 +48,8 @@
       warRecord: { wins: Math.max(0, Math.floor(num((obj(raw.warRecord, {})).wins, 0))),
         loses: Math.max(0, Math.floor(num((obj(raw.warRecord, {})).loses, 0))) },
       suppressed: obj(raw.suppressed, {}),
+      /* 本宗声望乘区（第册一百二十二批 · 结仇宣战的自身代价）：永久累乘、下限 0.5，与「胜方压制对方声望」同形状 */
+      repCut: Math.max(0.5, Math.min(1, num(raw.repCut, 1))),
       recruitAt: Math.max(0, num(raw.recruitAt, 0)),
       foundAt: Math.max(0, num(raw.foundAt, 0)),
       declareAt: Math.max(0, num(raw.declareAt, 0)),
@@ -190,6 +192,9 @@
     rep += facTotal * (SC.REP_FAC || 100);
     rep += ((ws.sect.warRecord || {}).wins || 0) * (SC.REP_WIN || 200);
     if (hasPost(ws, 'steward')) rep = Math.round(rep * 1.1);
+    /* 结仇宣战的自身声望折损（第册一百二十二批）：乘区缺档按 1 计 ⇒ 旧档零迁移、读数不变 */
+    var repCut = num(ws.sect.repCut, 1);
+    if (repCut > 0 && repCut < 1) rep = Math.round(rep * repCut);
     return rep;
   }
   /* NPC 势力声望排行暂用口径（§5.2）：1500 + 500 × 档次（固定池序 0~3 循环映射 1~4 档）+ 宗门压制 */
@@ -202,6 +207,12 @@
     var sup = ((ws.sect || {}).suppressed || {})[fid];
     if (sup != null) rep = Math.round(rep * sup);
     return rep;
+  }
+  /* 结仇宣战的入场费（第册一百二十二批 · 用户裁定「开：重代价」）：与停战费同一把尺子（声望 × 2、下限 1000），
+   * 只是取的是**对方**的家底——打谁贵不贵由谁说得清就谁来定价。视图与引擎同取本函数 ⇒ 屏上标价 = 实扣。 */
+  function warOpenCost(ws, D, fid) {
+    var SC = S(D);
+    return Math.max(1000, Math.round(npcRepOf(ws, D, fid) * (SC.WAR_OPEN_COST_K != null ? SC.WAR_OPEN_COST_K : 2)));
   }
 
   /* ── 开宗四门槛（§1.2 逐项校验，缺一拒开）────────────── */
@@ -234,7 +245,7 @@
   }
 
   /* ── 立派（§1.4 开宗结算事务：专用脱离零叛离惩罚 + 三定 + 关系播种 + 公告）── */
-  function foundSect(ws, pack, D, meta, gateId, nameCustom, nameIdx, align, now, log) {
+  function foundSect(ws, pack, D, meta, gateId, nameCustom, nameIdx, align, now, log, motto) {
     var SC = S(D);
     var chk = canFound(ws, pack, D, meta);
     if (!chk.ok) return chk;
@@ -263,13 +274,17 @@
       ws.factionOffice = null;
       if (ws.tribulation) ws.tribulation.officeGuard = false;
     }
-    /* ② 立派三定写入 ws.sect */
+    /* ② 立派三定写入 ws.sect
+     * 门规宣言（第册一百一十八批 · 用户裁定「宣言立派时写一次，之后不可改」）：它是**这一次的参数**，
+     * 清洗口径与 normalize 的 motto 钳位同式（trim + 截 MOTTO_MAX）。全站没有第二条 motto 写口
+     * （治理段那枚 `setMotto` 编辑口随本批删除），所以「立派即定、此后只读」由构造成立。 */
     ws.sect = {
       name: name, nameIdx: nIdx, gate: gateId, align: align,
+      motto: String(motto == null ? '' : motto).trim().slice(0, SC.MOTTO_MAX || 24),
       disciples: [], fac: { zangjing: 0, danfang: 0, yanwu: 0, keshe: 0 },
       everDefected: ws.everDefected === true,
       dispatchAt: 0, lastTribMonth: 0, monthClock: 0,
-      warRecord: { wins: 0, loses: 0 }, suppressed: {},
+      warRecord: { wins: 0, loses: 0 }, suppressed: {}, repCut: 1,
       recruitAt: 0, foundAt: now, candidate: null, warAgg: null, seq: 0, succession: null
     };
     ws.factionId = 'sect';
@@ -416,27 +431,13 @@
     return { ok: true };
   }
 
-  /* ── B16-ad：自立宗门治理 / 人事 / 外交（全开放）────────────────────────── */
+  /* ── B16-ad：自立宗门治理 / 人事 / 外交（全开放）──────────────────────────
+   * 🔧 第册一百一十八批（用户裁定「宗名不能改、门规（立场）与阵营不能改、门规宣言创立即定」）：
+   *   原 `rename` / `setRule` / `setMotto` 三条写口**整族删除**——宗名与门规·阵营·宣言一律只在
+   *   `foundSect` 那一次落定（宣言现为 foundSect 的入参），治理段只剩税率 / 解散 / 人事 / 外交。
+   *   退役七处出口同批走完：写口（本处）‖ actions 的 sectGov 分派 ‖ 界面控件 ‖ act 分派 ‖
+   *   probe-sectgov V1~V3 判据（改为「一次写入 + 无第二写口 + 老档往返不丢」）‖ 走查 AT-H ‖ 词表（按纪律不删，转孤儿）。 */
   function ownSect(ws) { return !!(ws && ws.sect && !ws.sect.succession); }
-  function rename(ws, D, name) {
-    if (!ownSect(ws)) return { ok: false, reason: 'none' };
-    var nm = String(name == null ? '' : name).trim().slice(0, (S(D).NAME_MAX || 6));
-    if (!nm) return { ok: false, reason: 'empty' };
-    ws.sect.name = nm;
-    return { ok: true, name: nm };
-  }
-  function setRule(ws, D, gate, align) {
-    if (!ownSect(ws)) return { ok: false, reason: 'none' };
-    if ((S(D).GATES || []).indexOf(gate) < 0) return { ok: false, reason: 'gate' };
-    if (['right', 'neutral', 'evil'].indexOf(align) < 0) return { ok: false, reason: 'align' };
-    ws.sect.gate = gate; ws.sect.align = align;
-    return { ok: true };
-  }
-  function setMotto(ws, D, text) {
-    if (!ownSect(ws)) return { ok: false, reason: 'none' };
-    ws.sect.motto = String(text == null ? '' : text).trim().slice(0, (S(D).MOTTO_MAX || 24));
-    return { ok: true, motto: ws.sect.motto };
-  }
   function setTax(ws, D, pct) {
     if (!ownSect(ws)) return { ok: false, reason: 'none' };
     var steps = S(D).TAX_STEPS || [0, 5, 10, 15, 20, 25, 30];
@@ -658,7 +659,29 @@
     var target = SQ.Factions.byId(ws, targetFid);
     if (!target || targetFid === 'sect') return { ok: false, reason: 'unknown' };
     var sectEntry = SQ.Factions.byId(ws, 'sect');
-    if (!sectEntry || (sectEntry.rel || {})[targetFid] !== 'enemy') return { ok: false, reason: 'notenemy' };
+    if (!sectEntry) return { ok: false, reason: 'notenemy' };
+    /* 非敌对也能宣战，但当场付三笔（第册一百二十二批 · 用户裁定「开：重代价」）：
+     * ① 灵石 = warOpenCost（按对方面底，与停战同尺）；② 善恶 −30（无端启战，走 karmaEventScore 那条唯一入账口，
+     * 与叛离 LEAVE_KARMA 同量级）；③ 本宗声望永久 −10%（repCut 累乘、下限 0.5）。
+     * 另加一条连带：目标的**友好**势力一并与本宗成敌对——只追一跳（友好者的友好不动），口径见自立门户卷 §5.4。 */
+    var fee = 0, foes = [];
+    if ((sectEntry.rel || {})[targetFid] !== 'enemy') {
+      fee = warOpenCost(ws, D, targetFid);
+      if ((ws.stones || 0) < fee) return { ok: false, reason: 'poor', cost: fee };
+      ws.stones -= fee;
+      SQ.Ledger.note(ws, 'out', 'donate', fee);
+      ws.karmaEventScore = (ws.karmaEventScore || 0) + (SC.WAR_OPEN_KARMA != null ? SC.WAR_OPEN_KARMA : -30);
+      ws.sect.repCut = Math.max(0.5, (num(ws.sect.repCut, 1)) * (1 - (SC.WAR_REP_SELF_CUT != null ? SC.WAR_REP_SELF_CUT : 0.10)));
+      sectEntry.rel = sectEntry.rel || {};
+      sectEntry.rel[targetFid] = 'enemy';
+      (target.rel = target.rel || {})['sect'] = 'enemy';
+      (ws.factions || []).forEach(function (f) {
+        if (f.id === 'sect' || f.id === targetFid || (f.rel || {})[targetFid] !== 'friendly') return;
+        sectEntry.rel[f.id] = 'enemy';
+        (f.rel = f.rel || {})['sect'] = 'enemy';
+        foes.push(f.id);
+      });
+    }
     var cfg = D.FACTION_WAR || {};
     ws.factionWar = {
       aId: 'sect', bId: targetFid, bornAt: now,
@@ -667,9 +690,15 @@
     ws.sect.declareAt = now;
     ws.sect.warAgg = { bId: targetFid, until: ws.factionWar.until };
     if (log) log('sys', SQ.t('sect.war.declare', { a: sectEntry.name, b: target.name }, pack.worldId));
+    if (fee && log) log('sys', SQ.t('sect.war.open.log', {
+      name: target.name, n: SQ.fmt(fee),
+      karma: Math.abs(SC.WAR_OPEN_KARMA != null ? SC.WAR_OPEN_KARMA : -30),
+      cut: Math.round((SC.WAR_REP_SELF_CUT != null ? SC.WAR_REP_SELF_CUT : 0.10) * 100),
+      m: foes.length
+    }, pack.worldId));
     if (SQ.Rumors && SQ.Rumors.pushWar) SQ.Rumors.pushWar(ws, pack, D, now, { log: log });
     if (SQ.Tiandao && SQ.Tiandao.onWar) SQ.Tiandao.onWar(ws, pack, D, now);
-    return { ok: true };
+    return { ok: true, fee: fee, foes: foes };
   }
   function onWarSettled(ws, pack, D, win, war, now, ctx) {
     var SC = S(D);
@@ -705,7 +734,7 @@
       name: sectName, gate: ws.sect.gate, align: ws.sect.align,
       disciples: [], fac: {}, everDefected: ws.sect.everDefected,
       dispatchAt: 0, lastTribMonth: 0, monthClock: 0,
-      warRecord: { wins: 0, loses: 0 }, suppressed: {},
+      warRecord: { wins: 0, loses: 0 }, suppressed: {}, repCut: 1,
       recruitAt: 0, foundAt: ws.sect.foundAt, candidate: null, warAgg: null, seq: 0,
       succession: { done: true, heir: heirName, rep: rep, at: now }
     };
@@ -751,14 +780,12 @@
     declareWar: declareWar,
     onWarSettled: onWarSettled,
     succeed: succeed,
-    rename: rename,
-    setRule: setRule,
-    setMotto: setMotto,
     setTax: setTax,
     appoint: appoint,
     expel: expel,
     disband: disband,
     peaceCost: peaceCost,
+    warOpenCost: warOpenCost,
     makePeace: makePeace
   };
 })();

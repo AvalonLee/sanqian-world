@@ -118,10 +118,20 @@
   K['jianghu.band.3'] = '黄榜';
   K['jianghu.q'] = '？？？';                          /* 隐世三席的一切明细（裁定 2） */
   K['jianghu.hid.tag'] = '隐世';
-  K['jianghu.stranger'] = '素不相识';                  /* 名录补位的背景席位：在榜、可见、不给战书入口 */
+  K['jianghu.stranger'] = '素不相识';                  /* 名录补位的背景席位：在榜、可点开看人物，但递不出战书（战书仍只给相识天骄） */
   K['jianghu.lv.0'] = '可压';                          /* 三档徽标取代战力数字：阈值取切磋表值 */
   K['jianghu.lv.1'] = '相当';
   K['jianghu.lv.2'] = '悬殊';
+  /* ── 第册一百一十六批：四榜席位一律可点开看人物（看 = 只读）──────────────────
+   * 立因 = 用户令「榜上出现的角色都应该可以交互」；切磋 / 袭杀的通道仍只属于相识天骄
+   * （引擎对背景角色没有战斗对象，硬给按钮就是点了没反应的死入口），所以卡上只给身份与深浅。 */
+  K['jianghu.detail.realm'] = '境界';
+  K['jianghu.detail.weapon'] = '兵刃';
+  K['jianghu.detail.treasure'] = '法宝';
+  K['jianghu.detail.art'] = '主修';
+  K['jianghu.detail.bio'] = '人物小传';
+  K['jianghu.detail.nofight'] = '素不相识——看得到人，递不出战书。';
+  K['jianghu.hid.line'] = '隐世之辈，深浅不可测；榜上按境界表最顶一档计，不宜力敌。';
   K['prodigy.board.me'] = '你';
   /* 第册一批③：`prodigy.board.empty`「榜上无名」随早退分支删除——四榜席位由名录实时补位，
    * 新口径下这一态不存在（新建角色也看得见四十个名字），留着就是一枚永远取不到的孤儿键。 */

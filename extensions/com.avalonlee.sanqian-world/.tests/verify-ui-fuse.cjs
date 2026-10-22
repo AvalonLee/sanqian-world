@@ -128,6 +128,21 @@ const { chromium } = require('playwright-core');
   });
   T(backAgain === '测试剑意', '切走再切回（整段重建）后自定义名照旧回填', 'val=' + backAgain);
 
+  /* ⑨ 确认框里的冷却时长必须取表（第册一百一十五批：融合 CD 由 3 现实天改 2 现实小时，
+   * 那句原话写死「成败均记 3 日冷却」⇒ 改表不改话就是谎数，与 M34「开席文案的分钟数取表值」同族）。
+   * 反证形：把文案改回写死的「3 日」或将调用侧的 cd 撤掉 ⇒ 这两判必红（'2时' 不在句内 / 花括号漏上屏）。 */
+  await page.click('#tab-arts [data-act="fuseStart"]');
+  await page.waitForTimeout(300);
+  const cdFuse = await page.evaluate(() => {
+    const D = SQ.XDATA;
+    return { h: Math.floor(D.FUSE.CD_MS / 3600000), txt: (document.getElementById('cf-text') || {}).textContent || '' };
+  });
+  T(cdFuse.txt.indexOf(cdFuse.h + '时') >= 0 && cdFuse.txt.indexOf('日') < 0,
+    '融合确认框的冷却时长取自 FUSE.CD_MS（旧写死的「3 日」不得再上屏）', 'h=' + cdFuse.h + ' 句=' + cdFuse.txt.replace(/\s+/g, ' ').slice(0, 70));
+  T(cdFuse.txt.indexOf('{') < 0, '冷却句的参数真被替换（不许把 {cd} 裸上屏）', cdFuse.txt.slice(0, 40));
+  await page.click('#cf-cancel');
+  await page.waitForTimeout(250);
+
   T(errors.length === 0, '零页面报错', errors.join(' | ').slice(0, 200) || 'clean');
   console.log(fail === 0 ? 'UI_FUSE_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_FUSE_FAILED ' + fail);
   await browser.close();

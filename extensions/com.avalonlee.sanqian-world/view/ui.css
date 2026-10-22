@@ -687,7 +687,9 @@
   .chips button.on { border-color: var(--primary); color: var(--primary); background: var(--brand-soft); }
   /* 页头：仅右上角动作（坊市刷新）；页内不再重复 Tab 名（左栏导航已标） */
   .pagehead { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 8px; }
-  /* 左 chips + 右动作同排（坊市：左「坊市/黑市」右「刷新」），两端对齐、垂直居中 */
+  /* 左动作 + 右动作同排（详情页的返回钮那一类），两端对齐、垂直居中。
+   * 第册一百一十四批起「页头只放一枚不可点的页名」已五页清零（坊市 / 势力 / 宗门 / 成就 / 轮回）——
+   * Tab 名只在左栏导航出现一次。 */
   .pagehead.split { justify-content: space-between; }
   .pagehead .chips { margin-bottom: 0; }
   .refreshbtn { min-height: 34px; padding: 4px 14px; border-radius: 999px; font-size: 12px; color: var(--primary); border-color: var(--primary); background: var(--brand-soft); white-space: nowrap; }
@@ -1539,13 +1541,15 @@
 #tab-arts .codexsec.open .s { color: var(--sq2-cinnabar); }
 
 /* ── UI v2 B16-i：炼丹炼器页对齐设计稿（三格摘要 / 真段标 / 炉中条 / 丹匣网格 / 丹方与图纸整行）── */
-#tab-alchemy .seg2 { display: flex; border-bottom: 1px solid var(--sq2-line); margin: 2px 0 10px; }
-#tab-alchemy .seg2 button {
+/* `.seg2` 顶部切换：丹房 / 器台先立，道友页「道友 / 道侣」（第册一百一十九批）复用同一份样式
+   ——两处显示 = 一份公式，不再抄第二套按钮尺寸与下划线色。 */
+#tab-alchemy .seg2, #tab-bonds .seg2 { display: flex; border-bottom: 1px solid var(--sq2-line); margin: 2px 0 10px; }
+#tab-alchemy .seg2 button, #tab-bonds .seg2 button {
   flex: 1; padding: 9px 0; border: 0; border-bottom: 2px solid transparent;
   background: none; font: inherit; font-size: 12px; letter-spacing: .22em;
   color: var(--sq2-ink-3); cursor: pointer;
 }
-#tab-alchemy .seg2 button.on { color: var(--sq2-ink); border-bottom-color: var(--sq2-cinnabar); }
+#tab-alchemy .seg2 button.on, #tab-bonds .seg2 button.on { color: var(--sq2-ink); border-bottom-color: var(--sq2-cinnabar); }
 #tab-alchemy .rowlist { display: block; }
 #tab-alchemy .rowlist .lrow { margin: 6px 0; padding: 10px 12px; }
 #tab-alchemy .rowlist .lrow .nm { font-family: var(--sq2-serif); }
@@ -2113,7 +2117,18 @@
     letter-spacing: -.02em; color: var(--sq2-ink); font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  .stathero .enso-core .sub { font-size: 11px; color: var(--sq2-ink-3); margin-top: 6px; letter-spacing: .03em; }
+  /* 圆心小字只放一行倒计时：限宽 + 省略号，低境界也不再顶到环线（册一百二十四批） */
+  .stathero .enso-core .sub {
+    font-size: 11px; color: var(--sq2-ink-3); margin: 6px auto 0; letter-spacing: .03em;
+    max-width: 176px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  /* 下一境界阈值标记：环上一道金线 + 小圆点；与朱砂进度环区分，悬停可看完整文案 */
+  .stathero .enso .needmark .nm-line {
+    stroke: var(--sq2-gold); stroke-width: 1.5; stroke-linecap: round;
+  }
+  .stathero .enso .needmark .nm-dot {
+    fill: var(--sq2-paper); stroke: var(--sq2-gold); stroke-width: 1.6;
+  }
   .stathero .rate {
     display: flex; align-items: baseline; justify-content: center; gap: 6px;
     margin-top: 6px; font-size: 11.5px; color: var(--sq2-ink-3);
@@ -2244,14 +2259,9 @@
   .zrow.locked { opacity: .48; cursor: default; }
   .zrow.locked:hover { background: transparent; }
   @media (min-width: 720px) { #tab-combat { max-width: 780px; } }
-  /* ══ UI v2 B15-e：坊市（设计稿 .segmini / .refreshbtn / .warstrip / .shopgrid / .goods）══ */
-  .segmini { display: inline-flex; border: 1px solid var(--sq2-line-2); border-radius: 99px; padding: 2px; }
-  .segmini button {
-    font: inherit; font-size: 11.5px; letter-spacing: .14em;
-    padding: 5px 15px; border: 0; border-radius: 99px;
-    background: none; color: var(--sq2-ink-3); cursor: pointer; min-height: 34px;
-  }
-  .segmini button.on { background: var(--sq2-ink); color: var(--sq2-paper); }
+  /* ══ UI v2 B15-e：坊市（设计稿 .refreshbtn / .warstrip / .shopgrid / .goods）══
+   *    .segmini（页头那枚「坊市 / 黑市」药丸切换）随第册一百一十四批整族删除：两架已同页上下排，
+   *    段条就是架名，切换态不再需要（本仓没有第二处用它）。 */
   .refreshbtn {
     font-size: 11px; padding: 7px 13px; min-height: 34px; border-radius: 99px;
     letter-spacing: .06em; border: 1px solid var(--sq2-line-2); background: transparent;
@@ -2485,3 +2495,84 @@
   #tab-sect .reqchips > span.ok::before { background: var(--sq2-jade); border-color: var(--sq2-jade); }
   #tab-sect .sechead .t { font-family: var(--sq2-serif); letter-spacing: .16em; }
   @media (min-width: 720px) { #tab-prodigy, #tab-sect { max-width: 780px; } }
+  /* ══ 第册一百一十四批 · 坊市：一页两架 + 每卡「购入」钮（用户三令之一、二）══
+   *    ① 价格行由「钮就是价格」改「左价右钮」：朱砂衬线跟着价走，动作那枚收成小胶囊。
+   *       `width:auto` 是顶掉上方通用 `.acts button { width:100% }`（同 ID 前缀更具体）。
+   *    ② 段条两架各一条（.fasec / .heisec），右端刷新钮 = 刷这一架；走查按容器类分架取数，
+   *       不再靠「点页签之后再数」。 */
+  #tab-shop .goods .g-p { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  #tab-shop .goods .g-cost {
+    flex: 1; font-family: var(--sq2-serif); font-size: 12.5px; letter-spacing: .04em; color: var(--sq2-cinnabar);
+  }
+  #tab-shop .goods .g-buy {
+    flex: 0 0 auto; width: auto; min-height: 28px; padding: 2px 12px; text-align: center;
+    border: 1px solid var(--sq2-line-2); border-radius: 999px; background: transparent;
+  }
+  #tab-shop .goods .g-buy:hover {
+    background: var(--sq2-ink); border-color: var(--sq2-ink); color: var(--sq2-paper); text-decoration: none;
+  }
+  #tab-shop .goods .g-disc, #tab-shop .goods.sold .g-sold { flex: 1 1 100%; }
+  #tab-shop .strip .refreshbtn { flex: 0 0 auto; }
+  @media (max-width: 719px) { #tab-shop .goods .g-buy { flex: 1 1 auto; } }
+  /* ══ 第册一百一十六批 · 江湖榜：席位点开的人物卡（版式重排 · 用户令「文字离边界太近，要简洁高级」）══
+   *    旧 `.detailbox` 左右内距为 0（父行 .lrow 只有 2px 内距）⇒ 字贴卡边、信息无主次。
+   *    这一版分四层：卡头（宋体名号 + 灰头衔 + 深浅一枚）‖ 明细两列对齐（左标签灰小字 / 右值黑）
+   *    ‖ 小传独立成段（行距放宽）‖ 脚注一句。天骄那张卡（带切磋·袭杀）与只读人物卡同一套类名
+   *    ⇒ 一处版式两处显示（本仓「两处显示 = 一份公式」那条纪律）。 */
+  #tab-prodigy .detailbox {
+    margin: 10px 0 4px; padding: 12px 14px;
+    border: 1px solid var(--sq2-line); border-radius: var(--sq2-r);
+    background: var(--sq2-paper-2); font-size: 12px; color: var(--sq2-ink-2);
+  }
+  #tab-prodigy .detailbox .jh-h {
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    padding-bottom: 9px; margin-bottom: 3px; border-bottom: 1px solid var(--sq2-line-2);
+  }
+  #tab-prodigy .detailbox .jh-nm { font-family: var(--sq2-serif); font-size: 15px; letter-spacing: .04em; color: var(--sq2-ink); }
+  #tab-prodigy .detailbox .jh-ti { font-size: 11px; color: var(--sq2-ink-3); }
+  #tab-prodigy .detailbox .kv {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    margin: 0; padding: 6px 0; border-bottom: 1px dashed var(--sq2-line);
+  }
+  #tab-prodigy .detailbox .kv > span:first-child { color: var(--sq2-ink-3); font-size: 11px; letter-spacing: .08em; white-space: nowrap; }
+  #tab-prodigy .detailbox .kv > span:last-child { color: var(--sq2-ink); text-align: right; }
+  #tab-prodigy .detailbox .kv:last-of-type { border-bottom: 0; }
+  #tab-prodigy .detailbox .meta.hint { padding: 8px 0 0; font-size: 11px; line-height: 1.7; color: var(--sq2-ink-3); }
+  #tab-prodigy .detailbox .jh-bio { margin-top: 8px; padding-top: 9px; border-top: 1px solid var(--sq2-line-2); }
+  #tab-prodigy .detailbox .jh-bl { font-size: 11px; letter-spacing: .14em; color: var(--sq2-ink-3); margin-bottom: 4px; }
+  #tab-prodigy .detailbox .jh-bt { font-size: 11.5px; line-height: 1.85; color: var(--sq2-ink-2); }
+  #tab-prodigy .detailbox .jh-foot { margin: 10px 0 0; padding-top: 9px; border-top: 1px dashed var(--sq2-line); font-size: 11px; }
+  #tab-prodigy .detailbox .acts { margin-top: 10px; }
+  @media (max-width: 719px) {
+    #tab-prodigy .detailbox { padding: 10px 11px; }
+    #tab-prodigy .detailbox .kv { gap: 10px; }
+  }
+  /* ══ 第册一百一十七批 · 势力名录卡：从「一行挤五个块」改成「一张有轻重的卡」══
+   *    病灶不是审美，是结构：名录卡同时挂着 `.faccard` 与 `.facrow`，而 `.facrow` 是
+   *    `display:flex; align-items:center`（那是给「一行一项」的清单用的）⇒ 卡内六个块被横排到
+   *    同一行、上下无主次。这里把名录那族卡改回纵向分层，并给六层各自的字重与色阶：
+   *    名号（宋体 15px）‖ 身份行（阵营 · 门众，右贴小字）‖ 增益（数字提到朱砂 13px）
+   *    ‖ 掌门·太上（11.5px）‖ 介绍（降权灰 11.5px、行距 1.8、虚线之上另起）‖ 关系 chips（最末）。
+   *    射程只 `#tab-faction .faclist`，别处复用 `.facrow` 的清单不受影响。 */
+  #tab-faction .faclist .faccard {
+    display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+    padding: 12px 14px 11px; margin: 0 0 9px;
+    border: 1px solid var(--sq2-line); border-radius: var(--sq2-r); background: var(--sq2-paper-2);
+  }
+  #tab-faction .faclist .faccard.cur { border-color: var(--sq2-cinnabar); background: var(--sq2-paper-3); }
+  #tab-faction .faclist .faccard .fh {
+    padding-bottom: 7px; border-bottom: 1px solid var(--sq2-line); align-items: baseline;
+  }
+  #tab-faction .faclist .faccard .fn {
+    font-family: var(--sq2-serif); font-weight: 400; font-size: 15px; letter-spacing: .05em;
+    color: var(--sq2-ink); display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  }
+  #tab-faction .faclist .faccard .fm { font-size: 11px; color: var(--sq2-ink-3); letter-spacing: .06em; }
+  #tab-faction .faclist .faccard .fperk { font-size: 12px; color: var(--sq2-ink-2); }
+  #tab-faction .faclist .faccard .fperk b { color: var(--sq2-cinnabar); font-size: 13px; font-weight: 600; }
+  #tab-faction .faclist .faccard .fpeople { font-size: 11.5px; color: var(--sq2-ink-2); }
+  #tab-faction .faclist .faccard .fdesc {
+    margin-top: 2px; padding-top: 8px; border-top: 1px dashed var(--sq2-line);
+    font-size: 11.5px; line-height: 1.8; color: var(--sq2-ink-3);
+  }
+  #tab-faction .faclist .faccard .frel { margin-top: 0; }

@@ -31,7 +31,7 @@ const KEY = 'sanqian-state-v1';
   /* 一份「profile 在、worlds.xiuxian 在」的最小底档，逐例在其上做破坏 */
   const base = {
     v: 1,
-    profile: { name: '坏档验证', talents: [], worldId: 'xiuxian', worldName: '玄幻修仙', createdAt: 1700000000000, alignBias: 'neutral', seenNote: '2026-10-21-1' },
+    profile: { name: '坏档验证', talents: [], worldId: 'xiuxian', worldName: '玄幻修仙', createdAt: 1700000000000, alignBias: 'neutral', seenNote: '2026-10-22-1' },
     settings: {},
     meta: { achv: [], titles: [], legacy: 0, score: 0, codices: {}, unlocks: [], biographies: [], heirChoice: null, awakened: [] },
     worlds: { xiuxian: { qi: 12, total: 12, stones: 100, realm: 0, zone: 0, prog: {}, cleared: [], bonds: {}, log: [], eventHistory: { feed: [] } } }

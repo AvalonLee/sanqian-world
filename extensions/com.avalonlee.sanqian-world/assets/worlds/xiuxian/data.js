@@ -508,6 +508,10 @@
       huzhu:   { tier: 'neutral', qiRate: 0.10 },
       luding:  { tier: 'evil',    qiRate: 0.18, karmaCost: 20, scar: true }
     },
+    /* 多道侣双修（册一百二十三批 · 用户裁定「总加成封顶取 22%」）：qiRate 逐位相加后封顶，
+     * offlineEff / xinmoReduce 取最高一重不叠加；人数不设上限（无主动解除口，设人数上限会占死位子）。
+     * 单人时逐字等于旧值（6/10/18% 均低于 22%）。 */
+    SPOUSE_QIRATE_CAP: 0.22,
     COMPANIONS: [
       { id: 'huang', align: 'neutral',  category: 'friend', perk: { channel: 'debuffXinmo', perTier: 0.05 },  carrierEvents: ['stray_dog'] },
       { id: 'chiwei', align: 'neutral', category: 'friend', perk: { field: 'dropRate',        perTier: 0.02 },  carrierEvents: ['mine_fox'] },
@@ -1229,7 +1233,8 @@
       ETERNAL_COEF: 0.2,
       COEF_CAP: 1.6,
       RUMOR_CAP: 2,                             /* kind:'prodigy' 展示卡独立上限（不占 RUMORS.MAX） */
-      RUMOR_TTL_MIN: 40,                        /* 沿用 ren 档 */
+      RUMOR_TTL_MIN: 5,                         /* 第册一百一十五批：40 → **5 现实分钟**（用户令「同代天骄传闻持续时间改为 5 分钟」）
+                                                 * ⇒ 天骄卡**不再沿用 ren 档**，与事件传闻 `RUMOR_TTL.ren=40` 正式分家（那三档未动） */
       NAME_POOL: [9, 7, 5]                      /* 姓 9 × 名一 7 × 名二 5 = 315 组合 */
     },
 
@@ -1241,7 +1246,7 @@
       SHEN_PER: 6, SHEN_CAP_PP: 8,
       REALM_PP: 0.02,
       P_CLAMP: [0.60, 0.86],
-      CD_MS: 259200000,                         /* 全局 CD 3 现实天（成败均记） */
+      CD_MS: 7200000,                           /* 全局 CD 2 现实小时（成败均记）· 第册一百一十五批由 3 现实天改小 */
       MEDITATE_NEED_H: 12,                      /* 悟道通道 A：闭关累计现实小时（在线 seclude + 离线结算；12 时辰 = 半现实天） */
       MAIN_MULT: 1.1,
       GEN_MULT: { 1: 1.05, 2: 1.02, 3: 1.00 },
@@ -1256,11 +1261,13 @@
       /* 混沌淬炼（融合器灵卷 v1.3 §4.4）：自创部专属签名的唯一授予通道——
        * 悟道石 ×1（材料账既有口）+ 灵石 REFORGE_COST[tier]（out.arts 既有分类）→ 掷 CHAOS_P；
        * 命中 = 授予/升档混沌签名（覆盖原 special，grade = gen−1 只升不降），未命中零损失。
-       * CD 1 现实天（lastReforgeAt 全局，与融合 CD 独立）。悟道石第三消耗口（融合/丹方道合/淬炼竞争同一稀缺资源）。 */
+       * CD 30 现实分钟（lastReforgeAt 全局，与融合 CD 独立；第册一百一十五批由 1 现实天改小）。
+       * 悟道石第三消耗口（融合/丹方道合/淬炼竞争同一稀缺资源）。
+       * ⚠️ 改小带来的真实后果：淬炼频率上限提高 ⇒ 悟道石消耗节奏同步加快，稀缺度靠采集侧那条 10% 通道自然约束（未另立闸）。 */
       CHAOS_P: 0.30,
       CHAOS_BY_ATTR: { qi: 'hundun', jing: 'zaohua', shen: 'taiyi' },
       REFORGE_COST: { huang: 200, xuan: 800, di: 2500, tian: 8000 },   /* ≈同阶坊市功法半价 */
-      REFORGE_CD_MS: 86400000,
+      REFORGE_CD_MS: 1800000,
       /* ⚠️ 导出口，不独立调参：每格 = 全录该字段「每级值」的最大值（红线四类 = 其现行 clamp 值，不在此列）。
        * 第卅八批品阶强度重排（阶梯 黄1/玄2/地3.5/天6）随之整表重导：qiRate 0.13→0.225、qiCap 0.10→0.30、
        * combatPower 0.14→0.315 …… ⇒ **自创部的字段封顶同步抬高**。
@@ -1343,6 +1350,11 @@
       WAR_DISC_K: 2,
       WAR_DECLARE_CD_MS: 86400000,
       WAR_REP_SUPPRESS: 0.10,
+      /* 结仇宣战三笔代价（第册一百二十二批 · 用户裁定「开：重代价」；§5.4）：
+       * 费 = 目标势力声望 × K（下限 1000，与停战费同尺）‖ 善恶一次性 −30（同叛离量级）‖ 本宗声望永久 −10%（累乘下限 0.5） */
+      WAR_OPEN_COST_K: 2,
+      WAR_OPEN_KARMA: -30,
+      WAR_REP_SELF_CUT: 0.10,
       GATES: ['wuyue', 'baihong', 'panlong'],
       NPC_REP_BASE: 1500, NPC_REP_PER_TIER: 500   /* NPC 势力声望排行暂用口径（§5.2）：1500 + 500×档次 */
     }

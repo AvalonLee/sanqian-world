@@ -96,7 +96,7 @@
     'world.cthulhu.name': '克苏鲁世界',
     'world.tag.zhan': '战意',
     'world.tag.gate': '攻关',
-    'ui.sep': '，',
+    'ui.sep': '，', 'ui.listsep': '、',
     'module.empty': '未入世 · 请到工作区打开「三千世界」',   /* 第二十一批：卡片不再绑跳转，文案不许诺"点击"（API 名不写进被扫描的源码，见工程规范 §7.2 第 2 条） */
     'log.boot': '天地初开，灵气始生',
     /* ── 创角三屏（流程：起名 → 择界 → 观天赋；键族按屏语义命名，见「世界包词族契约」）──
@@ -358,8 +358,8 @@
     'shop.fail.poor': '手头不够，这一单买不下', 'shop.fail.owned': '这一件你已经有了', 'shop.fail.shelffull': '待修习的架子放满了，先装入或散功',
     'arts.slotted': '已入槽', 'shop.fail.pillfull': '丹匣已满（每种上限 99），先服几颗再来',
     'shop.buy': '购入', 'shop.price': '{n}', 'shop.qiprice': '修为 {p}',
-    'shop.confirm': '确认购入「{name}」？价格 {price}',
-    /* 第卌六批：买的是要求未达的功法时，确认框要把去向说一句（原本只有成交后的日志，而日志里也没有这一条） */
+    /* 第卌六批：买的是要求未达的功法时要把去向说一句（原在确认框；第册一百一十四批确认框下架后改挂卡面，
+     * 同批 `shop.confirm` 那句确认文案随之成孤儿，第册一百二十批清账删除） */
     'shop.confirm.shelf': '（此功要求未达，购入后先入待修习架，达标即自行入门）', 
     'shop.blackHint': '价高三成，慎入',
     'shop.blackclosed': '黑市未开市——道心跌破 −200，才有人替你引路',
@@ -604,12 +604,13 @@
     /* ── 批 3 · 侣柱 G14（B1~B9：chip / 名录浮层 / 详情五段式 / 双修三形态 / 护法叙事 / 未择之路）── */
     'pillar.lv.sub': '护法·{name}{num}', 'pillar.lv.subnone': '尚未结缘',
     'bond.tiernum.1': '①', 'bond.tiernum.2': '②', 'bond.tiernum.3': '③', 'bond.tiernum.4': '④',
-    'bond.title': '道友名录',
+    'bond.title': '缘法名录',
     'bond.sec.friend': '道友', 'bond.sec.spouse': '道侣候选',
+    'bond.sec.spousem': '道侣',                              /* 已结缘的那一族（第册一百一十七批：首屏不再与「道友」混铺一段） */
     'bond.sec.count': '已结缘 {n} / {total}', 'bond.sec.countdead': '已结缘 {n} / {total} · 缘尽 {d}',
     /* UI v2 B8：道友页两卡首屏之后只铺已结缘/缘尽行，未结缘收成一条入口（全名录浮层不变） */
     'bond.sec.met': '已结缘', 'bond.sec.dead': '缘尽', 'bond.met.none': '尚未与任何人结缘',
-    'bond.unmet.line': '{n} 位道友 · 缘分未至', 'bond.unmet.go': '查看全名录 ›',
+    'bond.unmet.line': '{n} 位{who} · 缘分未至', 'bond.unmet.go': '查看全名录 ›',
     'bond.sec.sptip': '「双」= 满档可结缘双修', 'bond.sec.spdoing': '双修中 {n}',
     'bond.badge.spouse': '双', 'bond.deadava': '缘', 'bond.guard.tag': '护法位', 'bond.fav.label': '好感度',
     'bond.spouse.form.yinyang': '阴阳双修', 'bond.spouse.form.huzhu': '互助双修', 'bond.spouse.form.luding': '炉鼎采补',
@@ -627,7 +628,8 @@
     'bond.spouse.active': '♡ {form} · {name} —— {eff} 生效中',
     'bond.spouse.luding.warn': '回头即散',
     'bond.spouse.pick': '择 道 侣',
-    'bond.spouse.pick.hint': '仅列当前满足结缘条件的道侣候选——点选即行双修，形态由结缘瞬间的业力档位决定。',
+    'bond.spouse.pick.hint': '仅列当前满足结缘条件的道侣候选——点选即行双修，形态由结缘瞬间的业力档位决定；可同时与多位道侣双修。',
+    'bond.spouse.etal': '等 {n} 人',
     'bond.spouse.pick.empty': '暂无满足条件的候选——好感满档（100）方可双修。',
     'bond.perk.active': '个体助力生效中 · 下一档「{title}」还需 {n} 点好感',
     'bond.perk.maxed': '个体助力生效中 · 已满档',
@@ -639,7 +641,7 @@
     'bond.perk.why.luding': '鼎炉被采，何暇助你（双修期间归零）',
     'bond.guard.record': '已为你护法 {n} 次 · 成功 {s} 次',
     'bond.origin.via': '出身 · 奇遇「{ev}」', 'bond.origin.go': '回看图鉴 ›',
-    'bond.spousecond.text': '好感满档（100）可双修 · 形态由结缘瞬间的业力档位决定 · 同时仅一位',
+    'bond.spousecond.text': '好感满档（100）可双修 · 形态由结缘瞬间的业力档位决定 · 可同时与多位道侣双修（加成合计至多 +{cap}%）',
     'bond.propose.btn': '双修 ♡', 'bond.propose.title': '双 修',
     'bond.propose.sub': '与 {name} 结为道侣 · 形态由结缘瞬间的业力档位决定',
     'bond.form.cur': '当前可达 · {align}', 'bond.form.off': '未达 · {align}',
@@ -651,12 +653,14 @@
     'bond.form.eff.luding': '主资源产出 +18%',
     'bond.form.cost.luding': '代价三重：道心 −20 即刻入账 · 其个体助力归零 · 回头（道心 > −200）即散，缘锁此生不再护法',
     'bond.propose.go': '结 · {form}', 'bond.propose.no': '且 慢',
-    'bond.propose.foot': '结契后将全屏停留一句结缘词 · 同时只能与一位道侣双修',
+    'bond.propose.foot': '结契后将全屏停留一句结缘词 · 可同时与多位道侣双修（加成合计至多 +{cap}%）',
     'bond.propose.fail.scar': '这段缘已被炉鼎心结锁死',
     'bond.propose.fail.occupied': '已有道侣在身', 'bond.propose.fail.cooldown': '解除后 {t} 内不可重新双修',
     'bond.propose.fail.affinity': '好感未满档',
     'bond.spouse.dissolve.karma': '道心跌破 +200，阴阳双修缘散——七日之后，方可重新双修。',
     'bond.spouse.dissolve.redemption': '道心回转向善，炉鼎之契应声而碎——这段缘就此锁死，此生不再护法。',
+    'bond.spouse.dissolve.karma.multi': '道心跌破 +200，与{names}的阴阳双修一同散了——七日之后，方可重新双修。',
+    'bond.spouse.dissolve.redemption.multi': '道心回转向善，与{names}的炉鼎之契一同碎了——这几段缘就此锁死，此生不再护法。',
     'bond.show.title': '结契 · {form}', 'bond.show.skip': '点击任意处继续',
     'bond.toast.tier': '{name} 好感升档 · {title}',
     'bond.toast.guardian': '{name} 愿为你护法',
@@ -680,7 +684,10 @@
     'tribulation.guardianNone': '雷云之下，唯你一人',
     'tribulation.guardian': '护法加项', 'tribulation.guardian.none': '无人护法',
     'shop.bond.discount': '消息灵通 −{p}% 已生效', 'arts.bond.discount': '心宽 −{p}% 已生效',
-    'ui.pillar.bond': '道友',
+    /* 页名三处同动（第册一百二十批 · 用户令「页面名与页内『道友』撞名」）：本键 = 底栏/四柱、
+     * bond.system = 日志分类、codex.face.bond = 图鉴面名；页内族别名仍叫「道友」（bond.sec.friend）。
+     * 三键必须同值，否则导航说一个名、页里说另一个名（走查 bonds A1c 咬这条关系）。 */
+    'ui.pillar.bond': '缘法',
     /* 离线所得（F4：常驻面板 + 回线弹窗；明细行含离线效率拆解与奇遇时钟冻结读数）。
      * 离线 = 潜心悟道：数值按原有离线规则结算不变，*.v 系列为「离山时在外历练」的叙事变体。
      * 命名（体验批 v2.4）：标题由「闭关所得」改「离线所得」——与在线模式「闭关修炼」彻底区分。 */

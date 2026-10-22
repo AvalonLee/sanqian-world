@@ -127,6 +127,15 @@ window.SQSmoke.frag('05-codex-log-capacity', async function () {
       w.cleared = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; w.bossKills = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
       for (var af = 0; af < 7; af++) w.affixSeen['affix_' + af] = 1;
       (pack.companions || []).forEach(function (cc) { w.bonds[cc.id] = 100; });
+      /* 多道侣（册一百二十三批）：14 位候选全部结缘 + 解除记录按 16 条硬截摆满。
+       * 不设人数上限 ⇒ 真实上界 = 候选人数（数据驱动，随池扩容自动跟随）。 */
+      var spouseIds206 = (pack.companions || []).filter(function (cc) { return cc.category === 'spouse'; });
+      w.spouses = spouseIds206.map(function (cc, si) { return { npcId: cc.id, form: 'yinyang', since: 1 + si }; });
+      w.spouseLogs = [];
+      for (var sl206 = 0; sl206 < 16; sl206++) {
+        var sp206 = spouseIds206[sl206 % (spouseIds206.length || 1)] || { id: 'x' };
+        w.spouseLogs.push({ npcId: sp206.id, form: 'yinyang', reason: 'karma', at: 1700000000000 + sl206 });
+      }
       /* 道友三本新名录满档（2026-10-06 天象扩容 · 缘尽收敛批补造 —— 与「天骄漏项」「feed 漏项」
        * 同类同因：最坏态模型未随内容批更新。三者都是**字符串 id 数组**、上界各不相同：
        *   juefengIds   ≤ 64（lock 内硬截），真实上界 = 道友全员 58（每人一生至多绝交一次）

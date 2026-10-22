@@ -1,25 +1,59 @@
 {
   "id": "com.avalonlee.sanqian-world",
   "name": "三千世界",
-  "version": "0.5.128",
+  "version": "0.6.0",
   "runtime": "web",
   "kind": "view",
-  "surfaces": ["module", "view", "window", "drawer"],
-  "openIn": ["view", "window", "drawer"],
+  "surfaces": [
+    "module",
+    "view",
+    "window",
+    "drawer"
+  ],
+  "openIn": [
+    "view",
+    "window",
+    "drawer"
+  ],
   "entry": {
     "module": "./module/index.html",
     "view": "./view/index.html",
     "window": "./view/index.html",
     "drawer": "./view/index.html"
   },
-  "minSize": { "w": 380, "h": 620 },
+  "minSize": {
+    "w": 380,
+    "h": 620
+  },
   "moduleVariants": [
-    { "id": "standard", "name": "标准", "minW": 3, "minH": 3, "idealW": 4, "idealH": 3 },
-    { "id": "compact", "name": "紧凑", "minW": 2, "minH": 2, "idealW": 2, "idealH": 2 },
-    { "id": "wide", "name": "通栏", "minW": 4, "minH": 2, "idealW": 6, "idealH": 2 }
+    {
+      "id": "standard",
+      "name": "标准",
+      "minW": 3,
+      "minH": 3,
+      "idealW": 4,
+      "idealH": 3
+    },
+    {
+      "id": "compact",
+      "name": "紧凑",
+      "minW": 2,
+      "minH": 2,
+      "idealW": 2,
+      "idealH": 2
+    },
+    {
+      "id": "wide",
+      "name": "通栏",
+      "minW": 4,
+      "minH": 2,
+      "idealW": 6,
+      "idealH": 2
+    }
   ],
   "icon": "./icon.svg",
   "description": "多世界框架的放置修仙人生模拟：起名 → 择界 → 抽天赋 → 挂机修炼 → 渡劫证道，一世终了兵解转世、携遗泽再来。天赋一世内可洗髓更换；现开放玄幻修仙一界，另五界灰显待开启。",
   "author": "avalonlee",
-  "permissions": []
+  "permissions": [],
+  "category": "休闲游戏"
 }

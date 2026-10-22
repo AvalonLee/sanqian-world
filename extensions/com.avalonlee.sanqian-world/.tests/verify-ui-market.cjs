@@ -42,7 +42,7 @@ async function buildSave() {
   ws.lastSave = now; ws.lastOffline = null; ws.pendingChoice = null;
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-21-1' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-22-1' },
     meta: { unlockedWorlds: ['xiuxian'], unlocks: { prodigySlot: true } },
     settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
     worlds: { xiuxian: ws }
@@ -72,40 +72,48 @@ async function buildSave() {
 
   const colsOf = (sel) => page.$eval(sel, (el) => getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean).length);
 
-  /* ── ① 坊市/黑市：卡片网格 + 每次 10 件 ── */
+  /* ──  坊市 / 黑市：一页两架（第册一百一十四批改口）──
+   * 旧三判（M3 页签在位 / M4 点页签后数黑市 / M4b 切过去看段条）依赖的是「同一时刻只有一架在屏上」，
+   * 页签摘了之后那套点击无从发起 ⇒ 覆盖的支路整条搬到「段容器」上重判：
+   * 架在不在（M3）→ 两架各自区间（M2/M4）→ 段条与刷新钮归属（M4b/M4e）。 */
   await page.click('#m-tabbar button[data-v="shop"]');
   await page.waitForTimeout(400);
   const shopWide = await page.evaluate(() => {
-    const g = document.querySelector('#tab-shop .shopgrid');
+    const fa = document.querySelector('#tab-shop .fasec .shopgrid');
+    const hei = document.querySelector('#tab-shop .heisec .shopgrid');
     return {
-      hasGrid: !!g,
-      cols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
-      cards: document.querySelectorAll('#tab-shop .shopcard').length,
-      blackBtn: !!document.querySelector('#tab-shop [data-act="shopTab"][data-v="1"]')
+      hasGrid: !!fa,
+      cols: fa ? getComputedStyle(fa).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+      cards: fa ? fa.querySelectorAll('.shopcard').length : 0,
+      heiCards: hei ? hei.querySelectorAll('.shopcard').length : 0,
+      segTabs: document.querySelectorAll('#tab-shop [data-act="shopTab"]').length,
+      refresh: Array.prototype.map.call(
+        document.querySelectorAll('#tab-shop .strip .refreshbtn'), (b) => b.dataset.v).join(',')
     };
   });
   T(shopWide.hasGrid && shopWide.cols >= 2, 'M1 坊市为卡片网格（宽屏 ≥2 列）', 'cols=' + shopWide.cols);
   /* 格数随机批 2026-10-09：一次刷 10~16 件（用户令「不要固定为 10 个」）⇒ 判据从「恰 10」改「区间内」，
-   * 区间硬界由冒烟 #285 逐值钉死（七刻度扫一遍必为 10..16），这里只量真机渲染出的卡数不落界外。 */
+   * 区间硬界由冒烟 #285 逐值钉死（七刻度扫一遍必为 10..16），这里只量真机渲染出的卡数不落界外。
+   * 计数按段取（`.fasec`），不再数全页 `.shopcard`——黑市那架如今同页，数全页会把两架并成一架。 */
   T(shopWide.cards >= 10 && shopWide.cards <= 16, 'M2 坊市一次刷新 10~16 件随机物品（区间内，不是恒 10）', 'n=' + shopWide.cards);
-  T(shopWide.blackBtn, 'M3 黑市入口常驻（道心 ≤ −200 时开市，未达则显示未开市）');
-  await page.click('#tab-shop [data-act="shopTab"][data-v="1"]');
-  await page.waitForTimeout(300);
-  const blackCards = await page.$$eval('#tab-shop .shopcard', (els) => els.length);
-  T(blackCards >= 10 && blackCards <= 16, 'M4 黑市同链路同区间（两架各自独立掷）', 'n=' + blackCards);
-  /* B16-o：黑市按设计稿先给段条（标题回词表现算 + 代价提示非空） */
+  T(shopWide.segTabs === 0 && shopWide.heiCards >= 10,
+    'M3 顶栏切换行已摘 ⇒ 黑市不再靠页签进入，而是同页第二段（全页零枚 shopTab ‖ 黑市架有货）',
+    'segTabs=' + shopWide.segTabs + ' 黑市卡=' + shopWide.heiCards);
+  T(shopWide.heiCards >= 10 && shopWide.heiCards <= 16, 'M4 黑市同链路同区间（两架各自独立掷）', 'n=' + shopWide.heiCards);
+  /* B16-o：黑市按设计稿先给一条 .strip 段条（黑市 / 一句代价提示）；第册一百一十四批起它归 `.heisec` */
   const blackStrip = await page.evaluate(() => {
-    const el = document.querySelector('#tab-shop .strip');
+    const el = document.querySelector('#tab-shop .heisec .strip');
     return { t: el && el.querySelector('.t') ? el.querySelector('.t').textContent.trim() : '',
       v: el && el.querySelector('.v') ? el.querySelector('.v').textContent.trim() : '',
       want: SQ.t('shop.blackmarket', null, 'xiuxian').trim() };
   });
   T(blackStrip.t === blackStrip.want && blackStrip.v.length > 0,
     'M4b 黑市段条在位（标题走词表 · 代价提示非空）', JSON.stringify(blackStrip));
+  /* 刷新钮归属（新机制唯一的「刷哪一架」入口）：两架各一枚，data-v 就是引擎的 black 实参 */
+  T(shopWide.refresh === '0,1',
+    'M4e 每架各带一枚刷新钮且归属可辨（data-v 0=坊市 / 1=黑市，费阶梯全局共用）', 'refresh=' + shopWide.refresh);
 
   /* B16-ab：神秘商人特席常驻——未触发奇遇时也留一块「未开市」 */
-  await page.click('#tab-shop [data-act="shopTab"][data-v="0"]');
-  await page.waitForTimeout(300);
   const merchClosed = await page.evaluate(() => {
     const b = document.querySelector('#tab-shop .merchbox.closed');
     return { closed: !!b, txt: b ? b.textContent.replace(/\s+/g, ' ').trim() : '' };
@@ -113,7 +121,8 @@ async function buildSave() {
   T(merchClosed.closed && /未开市/.test(merchClosed.txt) && /奇遇/.test(merchClosed.txt),
     'M4c 神秘商人特席常驻：未开市时给「未开市 + 留意奇遇」提示', JSON.stringify(merchClosed));
 
-  /* B16-ab：黑市页签常驻——道心未达标时进入给「未开市」，不渲染货架 */
+  /* B16-ab：黑市未开市 ⇒ 段条仍在（入口常驻），但不渲染货架（避免旧黑市货残留被误买）。
+   * 旧写法是「点页签进去看」，现在没有页签：同页量 `.heisec` 那一段。 */
   {
     const saveClear = JSON.parse(JSON.stringify(save));
     saveClear.worlds.xiuxian.karmaEventScore = 0;
@@ -126,15 +135,21 @@ async function buildSave() {
     await pgB.waitForTimeout(700);
     await pgB.click('#m-tabbar button[data-v="shop"]');
     await pgB.waitForTimeout(400);
-    const btnB = await pgB.$('#tab-shop [data-act="shopTab"][data-v="1"]');
-    if (btnB) await btnB.click();
-    await pgB.waitForTimeout(350);
-    const closedB = await pgB.evaluate(() => ({
-      hint: (document.querySelector('#tab-shop > p.hint') || {}).textContent || '',
-      cards: document.querySelectorAll('#tab-shop .shopgrid .shopcard').length
-    }));
-    T(!!btnB && /未开市/.test(closedB.hint) && closedB.cards === 0,
-      'M4d 黑市页签常驻：道心未达 −200 时进去给「未开市」提示，不渲染旧货', JSON.stringify(closedB));
+    const closedB = await pgB.evaluate(() => {
+      const sec = document.querySelector('#tab-shop .heisec');
+      return {
+        hasSec: !!sec,
+        strip: sec ? (sec.querySelector('.strip .v') || {}).textContent || '' : '',
+        heiCards: sec ? sec.querySelectorAll('.shopcard').length : -1,
+        faCards: document.querySelectorAll('#tab-shop .fasec .shopcard').length,
+        heiRefresh: sec ? sec.querySelectorAll('.strip .refreshbtn').length : -1
+      };
+    });
+    T(closedB.hasSec && /未开市/.test(closedB.strip) && closedB.heiCards === 0 && closedB.faCards >= 10,
+      'M4d 道心未达 −200 ⇒ 黑市段条仍在（说「未开市」）但不渲染旧货，坊市架照常',
+      JSON.stringify(closedB));
+    T(closedB.heiRefresh === 0,
+      'M4f 未开市那一段不给刷新钮（刷出一架玩家看不见的货 = 白扣一次费）', 'heiRefresh=' + closedB.heiRefresh);
     await ctxB.close();
   }
 
@@ -317,19 +332,39 @@ async function buildSave() {
   await page3.click('#m-tabbar button[data-v="shop"]');
   await page3.waitForTimeout(600);
   const tagDump = await page3.evaluate(() => {
-    /* 主货架要**排掉特席那张 grid**：特席在 DOM 里排在货架之前，两者都是 `#tab-shop .shopgrid`，
-     * 不排掉就会数成 13 张并把特席当成货架前三格（首跑就是这么错的，属选择器缺陷不是产品缺陷）。 */
-    const rows = (sel, skipMerch) => Array.prototype.filter.call(document.querySelectorAll(sel),
-      (c) => !(skipMerch && c.closest && c.closest('.merchbox'))).map((c) => {
+    /* 计数按段取：一页两架之后 `#tab-shop .shopgrid` 会同时命中坊市架与黑市架，
+     * 特席那三格又在另一段里 ⇒ 不但是「排掉特席」，而是各段各量（旧写法靠 closest('.merchbox') 排，
+     * 如今把黑市那一架也排掉了就是假绿）。 */
+    const rows = (sel) => Array.prototype.map.call(document.querySelectorAll(sel), (c) => {
       const nm = c.querySelector('.nm');
       return {
         text: nm ? nm.textContent.replace(/\s+/g, ' ').trim() : '',
         tier: nm ? Array.prototype.map.call(nm.querySelectorAll('.tierbadge'), (x) => x.textContent.trim()) : [],
         cat: nm ? Array.prototype.map.call(nm.querySelectorAll('.catbadge'), (x) => x.textContent.trim()) : [],
-        mark: nm ? Array.prototype.map.call(nm.querySelectorAll('.special-mark'), (x) => x.textContent.trim()) : []
+        mark: nm ? Array.prototype.map.call(nm.querySelectorAll('.special-mark'), (x) => x.textContent.trim()) : [],
+        buy: c.querySelectorAll('button[data-act="buy"]').length,
+        cost: (c.querySelector('.g-cost') || {}).textContent || ''
       };
     });
-    return { shelf: rows('#tab-shop .shopgrid .shopcard', true), merch: rows('#tab-shop .merchbox .shopcard', false) };
+    return {
+      shelf: rows('#tab-shop .fasec .shopcard'),
+      merch: rows('#tab-shop .merchbox .shopcard'),
+      hei: rows('#tab-shop .heisec .shopcard'),
+      /* 几何那一半与三组卡数同一次取样取完（ctx3 在 M22 之后就要关，判据只能吃这份快照）：
+       * 购入钮必须落在价格右侧、且不出卡宽——本仓立则「文案对得上不代表挂对了地方」。 */
+      geo: (() => {
+        const bad = [];
+        Array.prototype.forEach.call(document.querySelectorAll('#tab-shop .fasec .shopcard, #tab-shop .heisec .shopcard'), (c) => {
+          const cost = c.querySelector('.g-cost'), btn = c.querySelector('button[data-act="buy"]');
+          if (!cost || !btn) { bad.push('缺件'); return; }
+          const a = cost.getBoundingClientRect(), b = btn.getBoundingClientRect(), k = c.getBoundingClientRect();
+          if (!(b.left >= a.right - 1 && b.right <= k.right + 1 && b.width > 0)) {
+            bad.push('价右' + Math.round(a.right) + ' 钮' + Math.round(b.left) + '-' + Math.round(b.right) + ' 卡右' + Math.round(k.right));
+          }
+        });
+        return bad;
+      })()
+    };
   });
   const merchLeft = await page3.evaluate(() => {
     const box = document.querySelector('.merchbox');
@@ -343,13 +378,13 @@ async function buildSave() {
   T(copyM.txt.indexOf(copyM.mins + ' 分钟') >= 0 && copyM.txt.indexOf('{') < 0 && copyM.txt.indexOf('一炷香') < 0,
     'M34 开席文案的分钟数取表值（旧写法写死「一炷香」，改表不带动屏上话）', copyM.txt.slice(0, 56) + ' ‖ n=' + copyM.mins);
   await ctx3.close();
-  const sh = tagDump.shelf, mc = tagDump.merch;
+  const sh = tagDump.shelf, mc = tagDump.merch, he = tagDump.hei;
 
   const at = (i) => sh[i] || {};
   T(sh.length === 10 && mc.length === 3, 'M15 非空观测：货架十格 + 特席三格全部渲染（六类货各就位，后面每条 chip 断言才有对象可量）',
     '货架=' + sh.length + ' 特席=' + mc.length);
-  T(sh.every((r) => r.cat.length === 1) && mc.every((r) => r.cat.length === 1),
-    'M16 每件货（含特席）都挂恰一枚分类 chip', '缺分类: ' + sh.concat(mc).filter((r) => r.cat.length !== 1).map((r) => r.text).join(' / ') || '无');
+  T(sh.every((r) => r.cat.length === 1) && mc.every((r) => r.cat.length === 1) && he.every((r) => r.cat.length === 1),
+    'M16 每件货（含特席与黑市）都挂恰一枚分类 chip', '缺分类: ' + sh.concat(mc, he).filter((r) => r.cat.length !== 1).map((r) => r.text).join(' / ') || '无');
   T(at(0).cat[0] === '百器' && at(1).cat[0] === '功法' && at(2).cat[0] === '丹药' && at(4).cat[0] === '法宝'
     && at(5).cat[0] === '炼丹炼器' && at(9).cat[0] === '耗材',
     'M17 分类词与货类逐一对得上（百器/功法/丹药/法宝/炼丹炼器/耗材）',
@@ -370,6 +405,20 @@ async function buildSave() {
   T(mc.every((r) => r.cat.length === 1) && sh.filter((r) => r.cat[0] === '丹药').length === 2,
     'M22 同型面收口：两处置席 + 两类丹药，分类计数与货类计数互相对得上（可复算，不是只数总数）',
     '丹药卡=' + sh.filter((r) => r.cat[0] === '丹药').length + ' 特席=' + mc.length);
+
+  /* ── M35/M36（第册一百一十四批 · 一页两架 + 每卡购入钮）──
+   * M35 = 黑市那一格也走同一套 itemRow（同页第二段最容易长出「另一套卡片写法」，
+   *       本仓「两处显示 = 一份公式」那一族缺陷的前科都在坊市/特席/门中这三处）；
+   * M36 = 每格恰一枚「购入」钮 + 价格另有一处纯文本（用户令：钮要点就成交，价不该长在钮上）。 */
+  T(he.length === 1 && he[0].cat[0] === '百器' && he[0].tier.length === 1,
+    'M35 黑市那格与坊市同一套取数（段容器换了，卡片写法没换）',
+    he.map((r) => r.text + '[' + r.tier.join('') + '|' + r.cat.join('') + ']').join(' '));
+  T(sh.concat(he).every((r) => r.buy === 1 && r.cost.replace(/\s+/g, '').length > 0),
+    'M36 坊市与黑市每格都是「一段价格 + 一枚购入钮」（钮不是价格行本身）',
+    '缺钮/空价=' + sh.concat(he).filter((r) => r.buy !== 1 || !r.cost.replace(/\s+/g, '')).map((r) => r.text).join(' / ') || '无');
+  /* 几何那一半（量矩形，不量文本）：钮真在价的**右边**且不出卡。 */
+  T(tagDump.geo.length === 0,
+    'M37 购入钮落在价格右侧且不越卡宽', tagDump.geo.slice(0, 2).join(' ‖ ') || '全部 ' + (sh.length + he.length) + ' 格合格');
 
   /* ── D 相（第十七批 · 丹药两族合一）：门中供给买丹 → 入匣不当场生效 → 丹匣看得见 → 点服用才落效 ──
    * 选「淬体丹」这条 SKU：它的效果是 buff（战力 +20%/4h），"没挂上 buff" 是可确定的屏上证言；
@@ -409,14 +458,15 @@ async function buildSave() {
     'M27 点「服用」才落效：战力 buff 挂上且**只此一条**、库存 −1（🔧 N43 起「占丹毒日限」那半随日限退役，防连点改由「同字段同向不叠加」这一判接住）',
     '匣 ' + aD.pills + '→' + cD.pills + ' buff ' + aD.buffs + '→' + cD.buffs);
 
-  /* ── M28~M31（第廿六批 2026-10-13 · 买到的东西必须落得下）：弹窗与成交同源 + 先判后扣 ──
-   * 桩：货架钉成 [春风化雨篇]，并把 nextRestock 设到 1.2 秒后 ⇒ 无阻塞 CONFIRM 开着的那两秒多
-   * 里 tick 必然换架。旧写法按**旧序号**成交 ⇒ 弹窗写「春风化雨篇 · 2,300 灵石」而实扣另一件。
-   * M28 先证「换架真的发生了」，否则 M29/M30 是空集上的假绿（本仓老坑）。 */
-  const shop26 = (items, known, restockIn) => {
+  /* ── M28~M31（第册一百一十四批改口 · 用户令「点购买钮直接完成购买，不需要再弹窗确认」）──
+   * 第廿六批那三判量的是「无阻塞弹窗期间被补货换架 ⇒ 按旧序号买成别件」，弹窗这一环没了，UI 侧就无从
+   * 制造那个窗口（不是把判据放宽，是那条支路在界面上不存在了）。引擎里「指纹对不上分文不动地拒」仍在，
+   * 视图仍把 goodSig 递进去，那一判由冒烟 #298(e) 常驻守着。
+   * 这四判改为量新机制真正要保证的四面：当场成交 / 不弹窗 / 扣钱前的两类拒单仍回显中文且分文不动 / 买过的格不能再点。 */
+  const shop26 = (items, known, restockIn, stones) => {
     const s = JSON.parse(JSON.stringify(save));
     const w = s.worlds.xiuxian;
-    w.realm = 5; w.stones = 100000; w.qi = 100; w.total = 100;
+    w.realm = 5; w.stones = stones != null ? stones : 100000; w.qi = 100; w.total = 100;
     w.artsKnown = known; w.artsSlots = ['tuna']; w.artsLevels = {}; w.shelf = [];
     w.shop = { items: items, blackItems: [], nextRestock: Date.now() + restockIn, refreshStep: 0, discount: 0 };
     return s;
@@ -439,45 +489,56 @@ async function buildSave() {
     const first = ((w.shop || {}).items || [])[0] || {};
     return {
       stones: w.stones, knownChunyu: (w.artsKnown || []).indexOf('chunyu') >= 0,
+      shelfChunyu: (w.shelf || []).indexOf('chunyu') >= 0,
       firstRef: first.ref || first.kind || '(空)', soldFirst: !!first.sold,
       toast: Array.prototype.map.call(document.querySelectorAll('#toasts > *'),
         (x) => x.textContent.replace(/\s+/g, ' ').trim()).join('|')
     };
   });
+  const BUY0 = '#tab-shop .fasec [data-act="buy"][data-v="0"]';
 
   {
-    const o26 = await openShop26(shop26([artChunyu()], ['tuna'], 3500));
-    await o26.p.click('#tab-shop [data-act="buy"]');
-    await o26.p.waitForTimeout(250);
-    const dlg26 = await o26.p.evaluate(() => document.getElementById('cf-text').textContent.replace(/\s+/g, ' ').trim());
-    await o26.p.waitForTimeout(3600);
-    const mid26 = await readShop26(o26.p);
-    T(dlg26.indexOf('春风化雨篇') >= 0 && mid26.firstRef !== 'chunyu',
-      'M28 前置：无阻塞弹窗期间货架真被补货换掉了（不先证这条，M29/M30 就是空集假绿）',
-      '弹窗=' + dlg26.slice(0, 24) + ' 换架后首格=' + mid26.firstRef);
-    await o26.p.click('#cf-ok');
-    await o26.p.waitForTimeout(800);
-    const end26 = await readShop26(o26.p);
-    T(/换了新货/.test(end26.toast) && end26.toast.indexOf('原因不明') < 0 && !end26.soldFirst && !end26.knownChunyu,
-      'M29 序号已换 ⇒ 这一单不成交，且**屏上说的是「货架换了新货」这一种拒因**（F15 分键：旧判据认的正是那句兜底，等于没判）',
-      'toast=' + end26.toast.slice(0, 30) + ' 售罄=' + end26.soldFirst + ' 入门=' + end26.knownChunyu);
-    T(end26.stones === mid26.stones,
-      'M30 拒单分文不动（弹窗上写的 2,300 不会扣到别的货上）',
-      mid26.stones + '→' + end26.stones);
-    await o26.c.close();
+    const o28 = await openShop26(shop26([artChunyu()], ['tuna'], 86400000));
+    const pre28 = await readShop26(o28.p);
+    await o28.p.click(BUY0);
+    await o28.p.waitForTimeout(300);
+    const noDlg = await o28.p.evaluate(() => !document.querySelector('#modal-confirm:not(.hide)'));
+    const mid28 = await readShop26(o28.p);
+    T(noDlg && mid28.soldFirst && mid28.stones === pre28.stones - 2300 &&
+      (mid28.knownChunyu || mid28.shelfChunyu),
+      'M28 点「购入」当场成交：不弹确认框、按卡上那一件的价格扣钱、东西真落进去（未达标者落待修习架）',
+      '弹窗=' + !noDlg + ' 灵石 ' + pre28.stones + '→' + mid28.stones + ' 售罄=' + mid28.soldFirst +
+      ' 入门=' + mid28.knownChunyu + ' 上架=' + mid28.shelfChunyu);
+    const card28 = await o28.p.evaluate(() => {
+      const el = document.querySelector('#tab-shop .fasec .shopcard');
+      return { sold: !!el && el.classList.contains('sold'), btns: el ? el.querySelectorAll('button[data-act="buy"]').length : -1,
+        txt: el ? el.textContent.replace(/\s+/g, ' ').trim() : '' };
+    });
+    T(card28.sold && card28.btns === 0 && card28.txt.indexOf('已售罄') >= 0,
+      'M29 买过那一格转「已售罄」且钮撤下（没有确认框挡在中间，重复点击是唯一会被误扣的形状）',
+      JSON.stringify(card28).slice(0, 80));
+    await o28.c.close();
   }
   {
-    const o27 = await openShop26(shop26([artChunyu()], ['tuna', 'chunyu'], 86400000));
-    const st0 = (await readShop26(o27.p)).stones;
-    await o27.p.click('#tab-shop [data-act="buy"]');
-    await o27.p.waitForTimeout(250);
-    await o27.p.click('#cf-ok');
-    await o27.p.waitForTimeout(800);
-    const st1 = await readShop26(o27.p);
-    T(/你已经有了/.test(st1.toast) && st1.toast.indexOf('原因不明') < 0 && !st1.soldFirst && st1.stones === st0,
-      'M31 已拥有的功法还挂在货架上：扣钱前先拒，且文案点名「这一件你已经有了」（F15 = 不再与「换架」共用一句兜底）',
-      'toast=' + st1.toast.slice(0, 30) + ' 灵石=' + st0 + '→' + st1.stones + ' 售罄=' + st1.soldFirst);
-    await o27.c.close();
+    const o30 = await openShop26(shop26([artChunyu()], ['tuna', 'chunyu'], 86400000));
+    const st0 = (await readShop26(o30.p)).stones;
+    await o30.p.click(BUY0);
+    await o30.p.waitForTimeout(300);
+    const r30 = await readShop26(o30.p);
+    T(/你已经有了/.test(r30.toast) && r30.toast.indexOf('原因不明') < 0 && !r30.soldFirst && r30.stones === st0,
+      'M30 已拥有的功法还挂在货架上：扣钱前先拒，且文案点名「这一件你已经有了」（F15 分键，兜底那句不算）',
+      'toast=' + r30.toast.slice(0, 30) + ' 灵石=' + st0 + '→' + r30.stones + ' 售罄=' + r30.soldFirst);
+    await o30.c.close();
+  }
+  {
+    const o31 = await openShop26(shop26([artChunyu()], ['tuna'], 86400000, 10));
+    await o31.p.click(BUY0);
+    await o31.p.waitForTimeout(300);
+    const r31 = await readShop26(o31.p);
+    T(/手头不够/.test(r31.toast) && !r31.soldFirst && r31.stones === 10,
+      'M31 手头不足：点下去也是一句人话 + 分文不动（这一道回显原先藏在确认框之后，现在是第一道）',
+      'toast=' + r31.toast.slice(0, 30) + ' 灵石=' + r31.stones + ' 售罄=' + r31.soldFirst);
+    await o31.c.close();
   }
 
     T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 200) || 'clean');

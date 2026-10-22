@@ -391,13 +391,15 @@ window.SQSmoke.frag('06-karma-bond-writes', async function () {
     wC257.bonds[idC257[4]] = -5;     /* 厌恶 → 不入账 */
     wC257.bonds[idC257[5]] = -99;    /* 绝交锁 → 拒 */
     wC257.scars[idC257[6]] = T257; wC257.bonds[idC257[6]] = 50;   /* 心结锁 → 拒 */
-    wC257.spouse = { npcId: cs257[7].id, form: 'huzhu', since: T257 };
-    wC257.bonds[cs257[7].id] = 60;   /* 在任道侣 → 排除 */
+    wC257.spouses = [{ npcId: cs257[7].id, form: 'huzhu', since: T257 },
+      { npcId: cs257[8].id, form: 'huzhu', since: T257 }];
+    wC257.bonds[cs257[7].id] = 60;   /* 在任道侣 → 排除（可多位） */
+    wC257.bonds[cs257[8].id] = 60;
     var rC257 = SQ.Bonds.cheer(wC257, pack, D, D.BOND_CHEER_ON_BREAK, T257, log257);
     var j257 = rC257.hit === 3 && rC257.total === 3 &&
       wC257.bonds[idC257[0]] === 7 && wC257.bonds[idC257[1]] === 100 && wC257.bonds[idC257[2]] === 100 &&
       wC257.bonds[idC257[3]] === 0 && wC257.bonds[idC257[4]] === -5 && wC257.bonds[idC257[5]] === -99 &&
-      wC257.bonds[idC257[6]] === 50 && wC257.bonds[cs257[7].id] === 60 &&
+      wC257.bonds[idC257[6]] === 50 && wC257.bonds[cs257[7].id] === 60 && wC257.bonds[cs257[8].id] === 60 &&
       SQ.Bonds.cheer(mk257({}), pack, D, 2, T257, log257).hit === 0 &&
       SQ.Bonds.cheer(mk257({}), pack, D, 0, T257, log257).hit === 0;
     /* (k) 日志 cat 一律 bond */
@@ -598,7 +600,7 @@ window.SQSmoke.frag('06-karma-bond-writes', async function () {
     if (npcEnemy) w287.bonds[npcEnemy] = 5;
     if (npcFriend) w287.bonds[npcFriend] = 96;                 /* 压线：+10 只能到 100 */
     if (npcLone) w287.bonds[npcLone] = 7;                      /* 散人：无论好感都不动 */
-    if (npcSpare) { w287.bonds[npcSpare] = 50; w287.spouse = { npcId: npcSpare, tier: 1 }; }
+    if (npcSpare) { w287.bonds[npcSpare] = 50; w287.spouses = [{ npcId: npcSpare, form: 'huzhu', since: 1 }]; }
     var lockTarget = pickNpc287(function (id) { return id !== npcSame && id !== npcEnemy && id !== npcFriend && id !== npcLone && id !== npcSpare; });
     if (lockTarget) w287.bonds[lockTarget] = -99;
     var scarTarget = pickNpc287(function (id) { return id !== npcSame && id !== npcEnemy && id !== npcFriend && id !== npcLone && id !== npcSpare && id !== lockTarget; });
@@ -611,7 +613,7 @@ window.SQSmoke.frag('06-karma-bond-writes', async function () {
       (pack.companions || []).forEach(function (c) {
         var nf = (ws.factionNpcs || {})[c.id];
         if (!nf) return;
-        if (ws.spouse && ws.spouse.npcId === c.id) return;
+        if ((ws.spouses || []).some(function (sp) { return sp.npcId === c.id; })) return;
         if (bonds[c.id] === -99 || (ws.scars || {})[c.id]) return;
         var rel = nf === fA287.id ? 'same' : SQ.Factions.relationOf(ws, fA287.id, nf);
         var delta = rel === 'friendly' ? (cfg.JOIN_FRIENDLY || 10)

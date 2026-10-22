@@ -46,7 +46,8 @@
     var aff = Math.max(0, SQ.Bonds.affinityOf(w, ch.id));
     var g = SQ.Bonds.guardianOf(w, p, d);
     var isGuard = !!(g && g.npcId === ch.id && g.bonus > 0);
-    var isSpouse = !!(w.spouse && w.spouse.npcId === ch.id);
+    var sp = SQ.Bonds.spouseOf(w, ch.id);
+    var isSpouse = !!sp;
     if (SQ.Bonds.locked(w, ch.id)) {
       /* 缘尽格：身份永不揭示（稿一批注）——赎回成功才揭名，故 data-v 只作动作载荷不进可见文本。
        * 可赎者（未赎过 + 遗泽足）挂「赎」角标提示可点；不可赎者点按出原因 toast + 轻震。 */
@@ -76,13 +77,13 @@
     }
     var canP = ch.category === 'spouse' && SQ.Bonds.canPropose(w, p, d, ch.id, Date.now()).ok;
     var tierTxt = c.t('bond.' + ch.id + '.title.' + tier) + c.bondTier(tier) +
-      (isSpouse && w.spouse.form === 'luding' ? ' · ' + c.t('bond.spouse.form.luding') : '') +
+      (sp && sp.form === 'luding' ? ' · ' + c.t('bond.spouse.form.luding') : '') +
       (canP ? ' · ' + c.t('bond.propose.ready') : '');
     return '<div class="pal' + (ch.category === 'spouse' ? ' sp' : '') + '" data-act="bondOpen" data-v="' + ch.id + '">' + corner +
       '<div class="ava">' + c.esc(c.t('bond.' + ch.id + '.ava')) + '</div>' +
       '<div class="nm">' + c.esc(c.t('bond.' + ch.id + '.name')) + '</div>' +
-      '<div class="tier"' + (isSpouse && w.spouse.form === 'luding' ? ' style="color:var(--bad)"' : '') + '>' + c.esc(tierTxt) + '</div>' +
-      '<div class="pb"><i style="width:' + Math.min(100, aff) + '%;' + (isSpouse && w.spouse.form === 'luding' ? 'background:var(--bad)' : '') + '"></i></div>' +
+      '<div class="tier"' + (sp && sp.form === 'luding' ? ' style="color:var(--bad)"' : '') + '>' + c.esc(tierTxt) + '</div>' +
+      '<div class="pb"><i style="width:' + Math.min(100, aff) + '%;' + (sp && sp.form === 'luding' ? 'background:var(--bad)' : '') + '"></i></div>' +
       '<div class="fv">' + c.esc(tier >= maxBondTier(c) ? c.t('bond.fv.max', { n: aff }) : c.t('bond.fv.next', { n: aff, next: nextBondThreshold(c, tier) })) + '</div></div>';
   }
 
@@ -130,15 +131,18 @@
       '<div class="bs-v">' + c.esc(gName) + '</div>' +
       '<div class="bs-d">' + c.esc(gDesc) + '</div>' +
       (gX ? '<div class="bs-x">' + c.esc(gX) + '</div>' : '') + '</div>';
-    if (w.spouse) {
-      var sf = w.spouse.form;
-      top += '<div class="bondslot filled' + (sf === 'luding' ? ' luding' : '') + '" data-act="spousePickOpen">' +
-        '<div class="bs-k">' + c.esc(c.t('bond.sec.spouse')) + '</div>' +
-        '<div class="bs-v">' + c.esc(c.t('bond.' + w.spouse.npcId + '.name')) + '</div>' +
-        '<div class="bs-d">' + c.esc(c.t('bond.spouse.form.' + sf)) + ' · ' +
-        c.esc(c.t('bond.form.eff.' + sf).split(' · ')[0]) + '</div>' +
-        '<div class="bs-x' + (sf === 'luding' ? ' bad' : '') + '">' +
-        c.esc(sf === 'luding' ? c.t('bond.spouse.luding.warn') : c.t('bond.spouse.cand')) + '</div></div>';
+    var sps = SQ.Bonds.spousesOf(w);
+    if (sps.length) {
+      var sf = sps[0].form;
+      var luAny = sps.some(function (x) { return x.form === 'luding'; });
+      top += '<div class="bondslot filled' + (luAny ? ' luding' : '') + '" data-act="spousePickOpen">' +
+        '<div class="bs-k">' + c.esc(c.t('bond.sec.spousem')) + '</div>' +
+        '<div class="bs-v">' + c.esc(SQ.Bonds.spouseLine(w, p, 2)) + '</div>' +
+        '<div class="bs-d">' + c.esc(sps.length === 1
+          ? c.t('bond.spouse.form.' + sf) + ' · ' + c.t('bond.form.eff.' + sf).split(' · ')[0]
+          : c.t('bond.sec.spdoing', { n: sps.length })) + '</div>' +
+        '<div class="bs-x' + (luAny ? ' bad' : '') + '">' +
+        c.esc(luAny ? c.t('bond.spouse.luding.warn') : c.t('bond.spouse.cand')) + '</div></div>';
     } else {
       top += '<div class="bondslot empty" data-act="spousePickOpen">' +
         '<div class="bs-k">' + c.esc(c.t('bond.sec.spouse')) + '</div>' +
@@ -155,10 +159,27 @@
       var met = all.filter(function (x) { return SQ.Bonds.tierOf(w, x.id, d) >= 1; });
       var dead = all.filter(function (x) { return SQ.Bonds.locked(w, x.id); });
       var unmet = all.filter(function (x) { return SQ.Bonds.tierOf(w, x.id, d) < 1 && !SQ.Bonds.locked(w, x.id); });
-      h += '<div class="sechead"><span class="t">' + c.esc(c.t('bond.sec.met')) + ' · ' + met.length + '</span><span class="s">' +
-        c.esc(c.t('bond.sec.count', { n: met.length, total: all.length })) + '</span></div>';
+      /* 顶部切换（第册一百一十九批 · 用户令「参考丹器页顶部，列表太长找起来不方便」）：
+       * 与丹房 / 器台同一套 `.seg2` 组件、同样只存视图态（ui.bondsTab，不落盘）。
+       * 切到哪一族，「已结缘 / 缘尽 / 未结识入口」三段就都只算那一族——不是只切列表那一段，
+       * 否则缘尽与入口还留在另一族的数字上，读起来对不上账。 */
+      var bTab = c.ui.bondsTab === 'spouse' ? 'spouse' : 'friend';
+      var inTab = function (x) { return bTab === 'spouse' ? x.category === 'spouse' : x.category !== 'spouse'; };
+      var cntF = all.filter(function (x) { return x.category !== 'spouse'; }).length;
+      var cntS = all.length - cntF;
+      h += '<div class="seg2">' +
+        [['friend', c.t('bond.sec.friend'), cntF], ['spouse', c.t('bond.sec.spousem'), cntS]].map(function (t) {
+          return '<button type="button" class="' + (bTab === t[0] ? 'on' : '') + '" data-act="bondsTab" data-v="' + t[0] + '">' +
+            c.esc(t[1]) + ' · ' + t[2] + '</button>';
+        }).join('') + '</div>';
+      met = met.filter(inTab);
+      dead = dead.filter(inTab); unmet = unmet.filter(inTab);
+      /* 已结缘（第册一百一十七批按族分段的逻辑现在由这一枚切换承接：一个 tab 只剩一族一段，
+       * 段标仍写族别名 + 该段行数，空段不留段标）。 */
       if (met.length) {
-        h += '<div class="browlist">';
+        h += '<div class="sechead"><span class="t">' + c.esc(bTab === 'spouse' ? c.t('bond.sec.spousem') : c.t('bond.sec.friend')) +
+          ' · ' + met.length + '</span><span class="s">' +
+          c.esc(c.t('bond.sec.count', { n: met.length, total: all.length })) + '</span></div><div class="browlist">';
         met.forEach(function (ch) { h += bondRow(c, ch, w, d); });
         h += '</div>';
       } else {
@@ -170,8 +191,11 @@
         h += '</div>';
       }
       if (unmet.length) {
+        /* 入口句里的族别名跟着 tab 走（第册一百二十批）：写死「道友」在道侣 tab 上会说谎
+         * （那一段只数候选族），族别名直接取 tab 那两枚既有键，不新立文案。 */
         h += '<button type="button" class="lockedline" data-act="openBonds"><span>' +
-          c.esc(c.t('bond.unmet.line', { n: unmet.length })) + '</span><span>' + c.esc(c.t('bond.unmet.go')) + '</span></button>';
+          c.esc(c.t('bond.unmet.line', { n: unmet.length, who: bTab === 'spouse' ? c.t('bond.sec.spouse') : c.t('bond.sec.friend') })) +
+          '</span><span>' + c.esc(c.t('bond.unmet.go')) + '</span></button>';
       }
       c.$('tab-bonds').innerHTML = h;
       return;
@@ -185,7 +209,7 @@
     friends.forEach(function (ch) { h += palCell(c, ch, w, d); });
     h += '</div>';
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('bond.sec.spouse')) + ' · ' + spouses.length + '</span><span class="s">' +
-      c.esc(w.spouse ? c.t('bond.sec.spdoing', { n: 1 }) : c.t('bond.sec.sptip')) + '</span></div><div class="palgrid">';
+      c.esc(sps.length ? c.t('bond.sec.spdoing', { n: sps.length }) : c.t('bond.sec.sptip')) + '</span></div><div class="palgrid">';
     spouses.forEach(function (ch) { h += palCell(c, ch, w, d); });
     h += '</div>';
     c.$('mbd-body').innerHTML = h;
@@ -198,15 +222,21 @@
     var aff = Math.max(0, SQ.Bonds.affinityOf(w, ch.id));
     var g = SQ.Bonds.guardianOf(w, p, d);
     var isGuard = !!(g && g.npcId === ch.id && g.bonus > 0);
-    var isSpouse = !!(w.spouse && w.spouse.npcId === ch.id);
+    var sp = SQ.Bonds.spouseOf(w, ch.id);
+    var isSpouse = !!sp;
     var canP = ch.category === 'spouse' && SQ.Bonds.canPropose(w, p, d, ch.id, Date.now()).ok;
     var tierTxt = c.t('bond.' + ch.id + '.title.' + tier) + c.bondTier(tier) +
-      (isSpouse && w.spouse.form === 'luding' ? ' · ' + c.t('bond.spouse.form.luding') : '') +
+      (sp && sp.form === 'luding' ? ' · ' + c.t('bond.spouse.form.luding') : '') +
       (canP ? ' · ' + c.t('bond.propose.ready') : '');
     return '<button type="button" class="brow' + (ch.category === 'spouse' ? ' sp' : '') + '" data-act="bondOpen" data-v="' + ch.id + '">' +
       '<span class="br-av">' + c.esc(c.t('bond.' + ch.id + '.ava')) + '</span>' +
       '<span class="br-b"><b>' + c.esc(c.t('bond.' + ch.id + '.name')) +
-      (isSpouse ? ' ♡' : (isGuard ? ' ☂' : '')) + '</b>' +
+      (isSpouse ? ' ♡' : (isGuard ? ' ☂' : '')) +
+      /* 名号后直接写族别（第册一百一十七批）：段已经分开了，行内仍要一枚能读的标——
+       *  scrolled 到列表中间时只剩一行字，段标早已滚出屏幕。 */
+      (isSpouse ? ' <span class="tierbadge t1">' + c.esc(c.t('bond.sec.spousem')) + '</span>'
+        : (ch.category === 'spouse' ? ' <span class="tierbadge t2">' + c.esc(c.t('bond.propose.ready')) + '</span>' : '')) +
+      '</b>' +
       '<span class="br-d">' + c.esc(c.t('bond.' + ch.id + '.kind')) + ' · ' + c.esc(tierTxt) + '</span></span>' +
       '<span class="br-r"><span class="pb"><i style="width:' + Math.min(100, aff) + '%"></i></span>' +
       '<span class="br-t">' + c.esc(tier >= maxBondTier(c) ? c.t('bond.fv.max', { n: aff }) : c.t('bond.fv.next', { n: aff, next: nextBondThreshold(c, tier) })) + '</span></span></button>';
@@ -235,8 +265,9 @@
     var aff = Math.max(0, rawAff);
     var g = SQ.Bonds.guardianOf(w, p, d);
     var isGuard = !!(g && g.npcId === id && g.bonus > 0);
-    var isSpouse = !!(w.spouse && w.spouse.npcId === id);
-    var luOff = isSpouse && w.spouse.form === 'luding';
+    var sp = SQ.Bonds.spouseOf(w, id);
+    var isSpouse = !!sp;
+    var luOff = !!sp && sp.form === 'luding';
     /* 未识（含厌恶 −20~−2）→ 隐匿详情：身份不揭示（沿用名录格「？」口径），只给渠道 A 一条主动结识口。
      * 缘尽格（−99）不走此支——它由 palCell 的 bondDead 承接赎回，身份「赎回成功才揭名」。 */
     if (tier < 1 && !SQ.Bonds.locked(w, id)) { renderBondUnknown(c, id, rawAff); return; }
@@ -269,13 +300,15 @@
       '</span>' + c.esc(c.t('bond.' + id + '.flavor')) + '</div></div>';
     if (ch.category === 'spouse') {
       /* 候选：出身事件段替换为结缘条件段 + 满档「提亲 ♡」主按钮（稿二批注） */
-      h += '<div class="dsec"><div class="dt">' + c.esc(c.t('bond.detail.spousecond')) + '</div><div class="dd">' + c.esc(c.t('bond.spousecond.text')) + '</div>';
+      h += '<div class="dsec"><div class="dt">' + c.esc(c.t('bond.detail.spousecond')) + '</div><div class="dd">' + c.esc(c.t('bond.spousecond.text', {
+        cap: Math.round((d.SPOUSE_QIRATE_CAP != null ? d.SPOUSE_QIRATE_CAP : 0.22) * 100)
+      })) + '</div>';
       var chk = SQ.Bonds.canPropose(w, p, d, id, Date.now());
       if (isSpouse) {
         h += '<div class="dd" style="color:var(--spouse);margin-top:8px">' + c.esc(c.t('bond.spouse.active', {
-          form: c.t('bond.spouse.form.' + w.spouse.form), name: c.t('bond.' + id + '.name'),
-          eff: c.t('bond.form.eff.' + w.spouse.form).split(' · ')[0]
-        })) + (w.spouse.form === 'luding' ? ' · ' + c.esc(c.t('bond.spouse.luding.warn')) : '') + '</div>';
+          form: c.t('bond.spouse.form.' + sp.form), name: c.t('bond.' + id + '.name'),
+          eff: c.t('bond.form.eff.' + sp.form).split(' · ')[0]
+        })) + (sp.form === 'luding' ? ' · ' + c.esc(c.t('bond.spouse.luding.warn')) : '') + '</div>';
       } else if (chk.ok) {
         h += '<button class="primary" style="width:100%;margin-top:10px" data-act="proposeOpen" data-v="' + id + '">' + c.esc(c.t('bond.propose.btn')) + '</button>';
       } else {
@@ -473,12 +506,15 @@
     c.$('msp-hint').textContent = c.t('bond.spouse.pick.hint');
     c.$('msp-close').textContent = c.t('ui.close');
     var h = '';
-    if (w.spouse) {
-      /* 已有道侣：先呈现状（解除走详情页/叙事，不在此处） */
-      h += '<div class="spouserow"><span>' + c.esc(c.t('bond.spouse.active', {
-        form: c.t('bond.spouse.form.' + w.spouse.form), name: c.t('bond.' + w.spouse.npcId + '.name'),
-        eff: c.t('bond.form.eff.' + w.spouse.form).split(' · ')[0]
-      })) + '</span>' + (w.spouse.form === 'luding' ? '<span>' + c.esc(c.t('bond.spouse.luding.warn')) + '</span>' : '') + '</div>';
+    var sps = SQ.Bonds.spousesOf(w);
+    if (sps.length) {
+      /* 已有多位道侣：先逐位呈现状（解除走详情页/叙事，不在此处） */
+      sps.forEach(function (sp) {
+        h += '<div class="spouserow"><span>' + c.esc(c.t('bond.spouse.active', {
+          form: c.t('bond.spouse.form.' + sp.form), name: c.t('bond.' + sp.npcId + '.name'),
+          eff: c.t('bond.form.eff.' + sp.form).split(' · ')[0]
+        })) + '</span>' + (sp.form === 'luding' ? '<span>' + c.esc(c.t('bond.spouse.luding.warn')) + '</span>' : '') + '</div>';
+      });
     }
     /* 候选 = canPropose 全链通过者（满档 + 无心结 + 未结缘 + 无冷却）；不满足者不显示 */
     var cands = SQ.Bonds.list(p).filter(function (x) {
@@ -527,7 +563,9 @@
     c.$('mpr-forms').innerHTML = fh;
     c.$('mpr-no').textContent = c.t('bond.propose.no');
     c.$('mpr-ok').textContent = c.t('bond.propose.go', { form: c.t('bond.spouse.form.' + chk.form) });
-    c.$('mpr-foot').textContent = c.t('bond.propose.foot');
+    c.$('mpr-foot').textContent = c.t('bond.propose.foot', {
+      cap: Math.round((d.SPOUSE_QIRATE_CAP != null ? d.SPOUSE_QIRATE_CAP : 0.22) * 100)
+    });
     c.$('modal-propose').classList.remove('hide');
   }
   function cancelPropose(c) {
@@ -559,14 +597,28 @@
     clearTimeout(spouseStageTimer);
     c.$('spouse-stage').classList.add('hide');
   }
-  /* 双修解除叙事（B4 · v1.4 口径4）：spouseLog.at 键控会话消费一次；炉鼎文案自带缘锁提示 */
+  /* 双修解除叙事（B4 · v1.4 口径4 · 多道侣册一百二十三批）：spouseLogs 按 at|npcId 键控会话消费一次；
+   * 同一批解除按 reason 合并成一条，避免整批散时连弹十几条。炉鼎文案自带缘锁提示。 */
   function checkSpouseLog(c) {
     var w = c.w;
-    if (!w || !w.spouseLog) return;
-    var sl = w.spouseLog;
-    if (c.ui.spouseLogSeen === sl.at) return;
-    c.ui.spouseLogSeen = sl.at;
-    c.toast(c.t('bond.spouse.dissolve.' + sl.reason, { name: c.t('bond.' + sl.npcId + '.name') }));
+    if (!w || !w.spouseLogs || !w.spouseLogs.length) return;
+    var seen = c.ui.spouseLogSeen || (c.ui.spouseLogSeen = {});
+    var groups = {};
+    w.spouseLogs.forEach(function (sl) {
+      var key = sl.at + '|' + sl.npcId;
+      if (seen[key]) return;
+      seen[key] = 1;
+      (groups[sl.reason] || (groups[sl.reason] = [])).push(sl);
+    });
+    Object.keys(groups).forEach(function (reason) {
+      var list = groups[reason];
+      if (list.length === 1) {
+        c.toast(c.t('bond.spouse.dissolve.' + reason, { name: c.t('bond.' + list[0].npcId + '.name') }));
+      } else {
+        var names = list.map(function (sl) { return c.t('bond.' + sl.npcId + '.name'); }).join(c.t('ui.listsep'));
+        c.toast(c.t('bond.spouse.dissolve.' + reason + '.multi', { names: names }));
+      }
+    });
   }
 
   /* ── 动作分支（原内核分派处 4581~4644 那六条，随本族搬入）── */

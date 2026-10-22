@@ -215,6 +215,32 @@ const { chromium } = require('playwright-core');
     ' brace=' + m1.brace + ' empty=' + m1.empty +
     ' sample=' + m1.sample.replace(/.*?(掌门[^§]*)/, '$1').slice(0, 60));
 
+  /* C1/C2（第册一百一十七批 · 用户令「势力卡片信息挤在一起、没有轻重」）：
+   * 病灶是结构不是审美——名录卡同时挂 `.faccard` 与 `.facrow`，而 `.facrow` 是横排 flex（那是
+   * 「一行一项」清单用的），于是卡内六个块被压在同一行里。C1 量矩形证「块是上下叠的」且卡有内距；
+   * C2 证身份行里真有阵营字（默认「全部」筛选态下，此前屏上没一处说明这家是正还是邪），值取词表。 */
+  await page.click('#m-tabbar button[data-v="faction"]');
+  await page.waitForTimeout(400);
+  const cardC = await page.evaluate(() => {
+    const S = (k) => SQ.t(k, null, 'xiuxian');
+    const card = document.querySelector('#tab-faction .faclist .faccard');
+    if (!card) return { none: true };
+    const top = (sel) => { const e = card.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().top) : -1; };
+    const bot = (sel) => { const e = card.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().bottom) : -1; };
+    const fm = card.querySelector('.fm');
+    return {
+      stack: top('.fperk') >= bot('.fh') && top('.fdesc') >= bot('.fperk'),
+      pad: Math.round(parseFloat(getComputedStyle(card).paddingLeft)),
+      fmTxt: fm ? fm.textContent.replace(/\s+/g, ' ').trim() : '',
+      camps: [S('align.right'), S('align.neutral'), S('align.evil')]
+    };
+  });
+  T(!cardC.none && cardC.stack && cardC.pad >= 10,
+    'C1 势力名录卡为纵向分层（增益行在名号行之下、介绍在增益之下）且卡身有内距',
+    JSON.stringify(cardC).slice(0, 120));
+  T(!cardC.none && cardC.camps.some(a => a && cardC.fmTxt.indexOf(a) >= 0),
+    'C2 卡上身份行含阵营字（值取词表 align.*，「全部」筛选态下也读得出正邪）', cardC.fmTxt);
+
   T(errors.length === 0, 'Z 无控制台错误', errors.join(' | ') || 'ok');
 
   await browser.close();

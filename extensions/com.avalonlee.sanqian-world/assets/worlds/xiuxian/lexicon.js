@@ -25,7 +25,8 @@
     'idle.action': '打坐',
     'idle.rate': '产出 {n}/秒',
     'idle.next': '下一境界：{realm}（还需 {n} {res}）',
-    'idle.trib.eta': '按当前增速约 {time} 后可渡劫',   /* 第十八批 · 修行页渡劫倒计时（纯派生显示量，不入档） */
+    'idle.trib.eta': '距渡劫 {time}',                  /* 第十八批 · 修行页渡劫倒计时（纯派生显示量，不入档）；册一百二十四批缩短为圆心单行 */
+    'idle.trib.wait': '静修中',
     'idle.maxed': '已臻化境',
     'idle.detail': '明细',
     'idle.detail.title': '吐纳明细',

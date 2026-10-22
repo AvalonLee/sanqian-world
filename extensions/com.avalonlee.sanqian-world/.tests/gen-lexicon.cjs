@@ -15,8 +15,11 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '..');
-const DOC_COMMON = '/workspace/app/docs/三千世界-天赋池设计.md';
-const DOC_XIUXIAN = '/workspace/app/docs/玄幻修仙/专属天赋池（80条）.md';
+/* 2026-10-22 归类批改口：原 '/workspace/app/docs/…' 是旧容器时代死路径，改走 repo-root.cjs 现找
+ * （天赋池设计.md 已随批归入 docs/系统设计/）。 */
+const REPO = require('./repo-root.cjs')();
+const DOC_COMMON = path.join(REPO, 'docs', '系统设计', '三千世界-天赋池设计.md');
+const DOC_XIUXIAN = path.join(REPO, 'docs', '玄幻修仙', '专属天赋池（80条）.md');
 
 /* 天赋表行（两代格式）：
  * 6 列：| `id` | 名称 | 权重 | 普通/稀有 | 效果 | 描述 |

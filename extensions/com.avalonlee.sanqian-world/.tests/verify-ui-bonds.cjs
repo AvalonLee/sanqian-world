@@ -165,13 +165,76 @@ async function mkPage(browser, S) {
     await page.click('#m-tabbar button[data-v="bonds"]');
     await page.waitForTimeout(450);
 
-    /* A1（UI v2 B8）：道友页首屏只有已结缘行 + 未结缘一条；全名录仍在浮层里，
-     *   58 格（44 友 + 14 道侣候选）、未识格为可点开的剪影且格内零真名。 */
+    /* A1（UI v2 B8 → 第册一百一十九批改口）：顶部一枚「道友 / 道侣」切换（与丹房/器台同组件）。
+     *   旧判「首屏行数 === 3」在分页后不成立（本 fixture 结缘的三位全属道侣族，默认道友 tab 上 0 行）
+     *   ⇒ 覆盖不许缩：改为**两族各自 tab 行数之和 === 已结缘总数且互斥不重**（这才分页该有的判法），
+     *   再加段标族别、段内行数与段标数字对表、道侣行内族别标一枚。 */
     const tabShape = await page.evaluate(() => ({
+      tabs: Array.prototype.slice.call(document.querySelectorAll('#tab-bonds .seg2 button'))
+        .map((b) => ({ v: b.dataset.v, on: b.classList.contains('on'), t: b.textContent.replace(/\s+/g, ' ').trim() })),
       rows: document.querySelectorAll('#tab-bonds .brow').length,
+      spRows: Array.prototype.slice.call(document.querySelectorAll('#tab-bonds .brow'))
+        .filter((r) => r.classList.contains('sp')).length,
       unmet: !!document.querySelector('#tab-bonds [data-act="openBonds"]'),
-      pal: document.querySelectorAll('#tab-bonds .palgrid').length
+      unmetTxt: ((document.querySelector('#tab-bonds [data-act="openBonds"] span') || {}).textContent || '').trim(),
+      pal: document.querySelectorAll('#tab-bonds .palgrid').length,
+      /* A1c 用：页名三键（导航 / 日志分类 / 图鉴面名）+ 页内族别名 + 底栏那颗钮的实际文字 */
+      nav: (Array.prototype.slice.call(document.querySelectorAll('#m-tabbar button'))
+        .filter((b) => b.dataset.v === 'bonds')[0] || {}).textContent || '',
+      K: ['ui.pillar.bond', 'bond.system', 'codex.face.bond', 'bond.sec.friend'].map((k) => SQ.t(k, null, 'xiuxian'))
     }));
+    await page.evaluate(() => {
+      const b = document.querySelector('#tab-bonds .seg2 button[data-v="spouse"]');
+      if (b) b.click();
+    });
+    await page.waitForTimeout(400);
+    const tabSp = await page.evaluate(() => {
+      const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-bonds .brow'));
+      const head = document.querySelector('#tab-bonds .sechead .t');
+      const sp = document.querySelector('#tab-bonds .brow.sp');
+      const S = (k) => SQ.t(k, null, 'xiuxian');
+      return {
+        rows: rows.length,
+        onlySp: rows.length > 0 && rows.every((r) => r.classList.contains('sp')),
+        head: head ? head.textContent.replace(/\s+/g, ' ').trim() : '',
+        wantS: S('bond.sec.spousem'), wantF: S('bond.sec.friend'),
+        badges: sp ? Array.prototype.slice.call(sp.querySelectorAll('.tierbadge')).map((x) => x.textContent.trim()) : [],
+        okBadge: [S('bond.sec.spousem'), S('bond.propose.ready')],
+        oldHead: S('bond.sec.met'),
+        wantU: S('bond.sec.spouse'),
+        unmetTxt: ((document.querySelector('#tab-bonds [data-act="openBonds"] span') || {}).textContent || '').trim()
+      };
+    });
+    await page.evaluate(() => {
+      const b = document.querySelector('#tab-bonds .seg2 button[data-v="friend"]');
+      if (b) b.click();                       /* 切回默认那族，后面的段落判据不受本组影响 */
+    });
+    await page.waitForTimeout(300);
+    T(tabShape.tabs.length === 2 && tabShape.tabs[0].on === true && tabShape.tabs[0].v === 'friend' &&
+        tabShape.tabs[1].on === false && tabShape.tabs[1].v === 'spouse' &&
+        tabShape.unmet && tabShape.pal === 0 &&
+        tabShape.rows + tabSp.rows === 3 && tabShape.spRows === 0 && tabSp.onlySp &&
+        tabSp.head === tabSp.wantS + ' · ' + tabSp.rows &&
+        tabSp.head.indexOf(tabSp.oldHead) < 0 &&
+        tabSp.badges.length >= 1 && tabSp.badges.some((b) => tabSp.okBadge.indexOf(b) >= 0),
+      'A1 顶部「道友 / 道侣」切换（默认道友、两族行数之和 = 已结缘 3 且互斥不重）‖ 段标族别化且行数与段标数字对表 ‖ 道侣行内有族别标',
+      'tabs=' + JSON.stringify(tabShape.tabs.map((x) => x.v + (x.on ? '*' : ''))) +
+      ' 友tab行=' + tabShape.rows + ' 侣tab行=' + tabSp.rows + ' 侣段标=' + tabSp.head +
+      ' badges=' + JSON.stringify(tabSp.badges));
+    /* A1c（第册一百二十批 · 用户令「页面名称『道友』与页内族别名撞名」⇒ 页名改「缘法」）：
+     *   判的是**消费关系**不是某个字面值——① 底栏那颗钮真读 ui.pillar.bond；
+     *   ② 三处页名键（导航 / 日志分类 / 图鉴面名）同值（漏改一处就是导航说一个名、页里说另一个名）；
+     *   ③ 页名与族别名不再是同一个词（这一条就是把本批要修的缺陷钉成判据）；
+     *   ④ 未结缘入口那句的族别名跟着 tab 走（道侣 tab 上说「道友」= 上一批分页留下的谎）。 */
+    const nmPage = tabShape.K[0], nmFam = tabShape.K[3];
+    T(tabShape.nav.trim().indexOf(nmPage) >= 0 &&
+        nmPage === tabShape.K[1] && nmPage === tabShape.K[2] &&
+        nmPage !== nmFam && nmFam === '道友' &&
+        tabShape.unmetTxt.indexOf(nmFam) >= 0 &&
+        tabSp.unmetTxt.indexOf(tabSp.wantU) >= 0 && tabSp.unmetTxt.indexOf(nmFam) < 0,
+      'A1c 页名「缘法」三键同值且≠ 族别名「道友」‖ 底栏钮读该键 ‖ 未结缘入口族别名随 tab 走',
+      'nav=' + JSON.stringify(tabShape.nav.trim()) + ' 页名三键=' + JSON.stringify(tabShape.K.slice(0, 3)) +
+      ' 友入口=' + JSON.stringify(tabShape.unmetTxt) + ' 侣入口=' + JSON.stringify(tabSp.unmetTxt));
     await page.evaluate(() => {
       const l = document.querySelector('#tab-bonds [data-act="openBonds"]');
       if (l) l.click();
@@ -188,12 +251,15 @@ async function mkPage(browser, S) {
         cls: el ? el.className : '', act: el ? el.dataset.act : '', txt: el ? (el.textContent || '') : ''
       };
     });
-    T(tabShape.rows === 3 && tabShape.unmet && tabShape.pal === 0 &&
+    /* A1b（原 A1 的后半）：分页只收短首屏，名录一格不少——58 = 44 友 + 14 候选、
+     *   未识格是可点开的剪影且格内零真名。（首屏那笔行账由上一条 A1 判，两处不重复计。） */
+    T(tabShape.unmet && tabShape.pal === 0 &&
       list.n === 58 && list.spN === 14 && list.deadN === 0 && list.lockN === 55 &&
       list.act === 'bondOpen' && /lock/.test(list.cls) && list.txt.indexOf(nameHuang) < 0,
-      'A1 道友页首屏只铺已结缘行 + 未结缘一条；全名录浮层仍 58 格（44 友 + 14 候选）、未识格为剪影且零真名',
-      'rows=' + tabShape.rows + ' unmet=' + tabShape.unmet + ' pal格=' + list.n + ' lock=' + list.lockN +
+      'A1b 全名录浮层仍 58 格（44 友 + 14 候选）、未识格为剪影且零真名（分页不缩水）',
+      'unmet=' + tabShape.unmet + ' pal格=' + list.n + ' lock=' + list.lockN +
       ' sp=' + list.spN + ' dead=' + list.deadN + ' act=' + list.act);
+
 
     /* A2 未识详情 = 隐匿详情：只有「往来」一段、无好感尺、零赠丹 chip、正文零真名 */
     await h.openDetail('huang');
@@ -515,6 +581,79 @@ async function mkPage(browser, S) {
     T(modalE.pal === 58 && modalE.dead === 1,
       'E2 全名录浮层仍 58 格，缘尽格恰一枚（首屏收行不等于名录缩水）', JSON.stringify(modalE));
     T(mp.errors.length === 0, 'E3 场景E 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
+    await mp.ctx.close();
+  }
+
+  /* ══════════════ 场景 F：多道侣（册一百二十三批）══════════════
+   * 口径：位卡列多位 + 「双修中 N」；道侣页行逐人 ♡；详情各显「已结缘」；
+   * 择选浮层列出现任两位并排除他们；再提第三位能成交；屏上旧口径「同时仅一位」零命中。 */
+  {
+    const S = seed();
+    const w = S.save.worlds.xiuxian;
+    w.bonds.suwan = 100; w.bonds.xie = 100; w.bonds.shen = 100;
+    w.spouses = [{ npcId: 'suwan', form: 'huzhu', since: S.at - 2000 },
+      { npcId: 'xie', form: 'huzhu', since: S.at - 1000 }];
+    const mp = await mkPage(browser, S);
+    const page = mp.page, h = wire(page);
+    await page.click('#m-tabbar button[data-v="bonds"]');
+    await page.waitForTimeout(450);
+    await page.click('#tab-bonds .seg2 button[data-v="spouse"]');
+    await page.waitForTimeout(250);
+    const tabF = await page.evaluate(() => {
+      const slot = document.querySelector('#tab-bonds .slots2 .bondslot[data-act="spousePickOpen"]');
+      return {
+        slot: slot ? (slot.textContent || '').replace(/\s+/g, ' ') : '',
+        hearts: document.querySelectorAll('#tab-bonds .brow .tierbadge.t1').length,
+        body: (document.body.textContent || '').replace(/\s+/g, ' ')
+      };
+    });
+    T(tabF.slot.indexOf('苏晚') >= 0 && tabF.slot.indexOf('谢青鸾') >= 0 &&
+      tabF.slot.indexOf('双修中 2') >= 0 && tabF.hearts === 2,
+      'F1 位卡列两位道侣 +「双修中 2」，道侣页逐人 ♡（不是只认一位）',
+      'slot=' + tabF.slot.slice(0, 40) + ' hearts=' + tabF.hearts);
+    T(tabF.body.indexOf('同时仅一位') < 0 && tabF.body.indexOf('同时只能与一位') < 0,
+      'F2 屏上旧单人口径零命中', '旧句命中=' + /同时仅一位|同时只能与一位/.test(tabF.body));
+
+    await h.openDetail('suwan');
+    const dF = await h.detailTxt();
+    T(dF.indexOf('互助双修') >= 0 && dF.indexOf('生效中') >= 0 && dF.indexOf('苏晚') >= 0,
+      'F3 任一位道侣详情各显自己的形态与生效行', dF.slice(0, 60));
+
+    await page.evaluate(() => document.getElementById('modal-bonds').classList.add('hide'));
+    await page.evaluate(() => {
+      const s = document.querySelector('#tab-bonds .slots2 .bondslot[data-act="spousePickOpen"]');
+      if (s) s.click();
+    });
+    await page.waitForTimeout(300);
+    const pickF = await page.evaluate(() => ({
+      rows: document.querySelectorAll('#msp-body .spouserow').length,
+      cands: Array.prototype.map.call(document.querySelectorAll('#msp-body [data-act="spousePickPropose"]'), (x) => x.dataset.v),
+      txt: (document.getElementById('msp-body').textContent || '').replace(/\s+/g, ' ')
+    }));
+    T(pickF.rows === 2 && pickF.cands.indexOf('shen') >= 0 &&
+      pickF.cands.indexOf('suwan') < 0 && pickF.cands.indexOf('xie') < 0,
+      'F4 择选浮层列现任两位，候选只剩未结缘的满档者（同一位不重复上候选）',
+      JSON.stringify({ rows: pickF.rows, cands: pickF.cands }));
+
+    await page.click('#msp-body [data-act="spousePickPropose"][data-v="shen"]');
+    await page.waitForTimeout(250);
+    const proposeOpen = await page.evaluate(() => !document.getElementById('modal-propose').classList.contains('hide'));
+    await page.click('#mpr-ok');
+    await page.waitForTimeout(900);
+    await page.evaluate(() => { const st = document.getElementById('spouse-stage'); if (st) st.click(); });
+    const savedF = await page.evaluate((k) => {
+      const s = JSON.parse(localStorage.getItem(k) || 'null');
+      const ww = s.worlds[s.profile.worldId];
+      return { n: (ww.spouses || []).length, ids: (ww.spouses || []).map((x) => x.npcId).join(',') };
+    }, KEY);
+    const slotF = await page.evaluate(() => {
+      const s = document.querySelector('#tab-bonds .slots2 .bondslot[data-act="spousePickOpen"]');
+      return s ? (s.textContent || '').replace(/\s+/g, ' ') : '';
+    });
+    T(proposeOpen && savedF.n === 3 && savedF.ids === 'suwan,xie,shen' && slotF.indexOf('等 3 人') >= 0,
+      'F5 第三位提亲成交：spouses 落为 3 条、位卡转「等 3 人」',
+      JSON.stringify({ open: proposeOpen, n: savedF.n, ids: savedF.ids, slot: slotF.slice(0, 40) }));
+    T(mp.errors.length === 0, 'F6 场景F 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
     await mp.ctx.close();
   }
 

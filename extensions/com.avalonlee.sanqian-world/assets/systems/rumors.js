@@ -193,11 +193,11 @@
     },
 
     /* 同代天骄展示卡（天骄卷 §4.3 · war 卡先例口径）：纯展示、无查证按钮、不指向事件池；
-     * 不占 RUMORS.MAX 事件名额，独立上限 RUMOR_CAP(2) 溢出挤最旧；TTL 沿用 ren 档 40 分钟 */
+     * 不占 RUMORS.MAX 事件名额，独立上限 RUMOR_CAP(2) 溢出挤最旧；TTL 第册一百一十五批起**自成一档** `PRODIGY.RUMOR_TTL_MIN`（现 5 现实分钟，不再跟 ren 档 40） */
     pushProdigy: function (ws, pack, D, now, tplKey, vars) {
       if (!Array.isArray(ws.rumors)) ws.rumors = [];
       var cap = ((D.PRODIGY || {}).RUMOR_CAP) || 2;
-      var ttl = ((D.PRODIGY || {}).RUMOR_TTL_MIN) || 40;
+      var ttl = ((D.PRODIGY || {}).RUMOR_TTL_MIN) || 5;
       /* 挤最旧（仅 prodigy 卡计数） */
       var prod = ws.rumors.filter(function (r) { return r.kind === 'prodigy'; });
       /* 同话不重推（2026-10-18 用户报「江湖传闻里同代天骄那两条一模一样」）：`tpl` 与 `v` 全同 ⇒ 渲染逐字同文，
