@@ -176,7 +176,12 @@ async function mkPage(browser, S) {
       spRows: Array.prototype.slice.call(document.querySelectorAll('#tab-bonds .brow'))
         .filter((r) => r.classList.contains('sp')).length,
       unmet: !!document.querySelector('#tab-bonds [data-act="openBonds"]'),
-      pal: document.querySelectorAll('#tab-bonds .palgrid').length
+      unmetTxt: ((document.querySelector('#tab-bonds [data-act="openBonds"] span') || {}).textContent || '').trim(),
+      pal: document.querySelectorAll('#tab-bonds .palgrid').length,
+      /* A1c 用：页名三键（导航 / 日志分类 / 图鉴面名）+ 页内族别名 + 底栏那颗钮的实际文字 */
+      nav: (Array.prototype.slice.call(document.querySelectorAll('#m-tabbar button'))
+        .filter((b) => b.dataset.v === 'bonds')[0] || {}).textContent || '',
+      K: ['ui.pillar.bond', 'bond.system', 'codex.face.bond', 'bond.sec.friend'].map((k) => SQ.t(k, null, 'xiuxian'))
     }));
     await page.evaluate(() => {
       const b = document.querySelector('#tab-bonds .seg2 button[data-v="spouse"]');
@@ -195,7 +200,9 @@ async function mkPage(browser, S) {
         wantS: S('bond.sec.spousem'), wantF: S('bond.sec.friend'),
         badges: sp ? Array.prototype.slice.call(sp.querySelectorAll('.tierbadge')).map((x) => x.textContent.trim()) : [],
         okBadge: [S('bond.sec.spousem'), S('bond.propose.ready')],
-        oldHead: S('bond.sec.met')
+        oldHead: S('bond.sec.met'),
+        wantU: S('bond.sec.spouse'),
+        unmetTxt: ((document.querySelector('#tab-bonds [data-act="openBonds"] span') || {}).textContent || '').trim()
       };
     });
     await page.evaluate(() => {
@@ -214,6 +221,20 @@ async function mkPage(browser, S) {
       'tabs=' + JSON.stringify(tabShape.tabs.map((x) => x.v + (x.on ? '*' : ''))) +
       ' 友tab行=' + tabShape.rows + ' 侣tab行=' + tabSp.rows + ' 侣段标=' + tabSp.head +
       ' badges=' + JSON.stringify(tabSp.badges));
+    /* A1c（第册一百二十批 · 用户令「页面名称『道友』与页内族别名撞名」⇒ 页名改「缘法」）：
+     *   判的是**消费关系**不是某个字面值——① 底栏那颗钮真读 ui.pillar.bond；
+     *   ② 三处页名键（导航 / 日志分类 / 图鉴面名）同值（漏改一处就是导航说一个名、页里说另一个名）；
+     *   ③ 页名与族别名不再是同一个词（这一条就是把本批要修的缺陷钉成判据）；
+     *   ④ 未结缘入口那句的族别名跟着 tab 走（道侣 tab 上说「道友」= 上一批分页留下的谎）。 */
+    const nmPage = tabShape.K[0], nmFam = tabShape.K[3];
+    T(tabShape.nav.trim().indexOf(nmPage) >= 0 &&
+        nmPage === tabShape.K[1] && nmPage === tabShape.K[2] &&
+        nmPage !== nmFam && nmFam === '道友' &&
+        tabShape.unmetTxt.indexOf(nmFam) >= 0 &&
+        tabSp.unmetTxt.indexOf(tabSp.wantU) >= 0 && tabSp.unmetTxt.indexOf(nmFam) < 0,
+      'A1c 页名「缘法」三键同值且≠ 族别名「道友」‖ 底栏钮读该键 ‖ 未结缘入口族别名随 tab 走',
+      'nav=' + JSON.stringify(tabShape.nav.trim()) + ' 页名三键=' + JSON.stringify(tabShape.K.slice(0, 3)) +
+      ' 友入口=' + JSON.stringify(tabShape.unmetTxt) + ' 侣入口=' + JSON.stringify(tabSp.unmetTxt));
     await page.evaluate(() => {
       const l = document.querySelector('#tab-bonds [data-act="openBonds"]');
       if (l) l.click();

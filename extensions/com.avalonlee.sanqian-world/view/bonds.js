@@ -187,8 +187,11 @@
         h += '</div>';
       }
       if (unmet.length) {
+        /* 入口句里的族别名跟着 tab 走（第册一百二十批）：写死「道友」在道侣 tab 上会说谎
+         * （那一段只数候选族），族别名直接取 tab 那两枚既有键，不新立文案。 */
         h += '<button type="button" class="lockedline" data-act="openBonds"><span>' +
-          c.esc(c.t('bond.unmet.line', { n: unmet.length })) + '</span><span>' + c.esc(c.t('bond.unmet.go')) + '</span></button>';
+          c.esc(c.t('bond.unmet.line', { n: unmet.length, who: bTab === 'spouse' ? c.t('bond.sec.spouse') : c.t('bond.sec.friend') })) +
+          '</span><span>' + c.esc(c.t('bond.unmet.go')) + '</span></button>';
       }
       c.$('tab-bonds').innerHTML = h;
       return;

@@ -604,13 +604,13 @@
     /* ── 批 3 · 侣柱 G14（B1~B9：chip / 名录浮层 / 详情五段式 / 双修三形态 / 护法叙事 / 未择之路）── */
     'pillar.lv.sub': '护法·{name}{num}', 'pillar.lv.subnone': '尚未结缘',
     'bond.tiernum.1': '①', 'bond.tiernum.2': '②', 'bond.tiernum.3': '③', 'bond.tiernum.4': '④',
-    'bond.title': '道友名录',
+    'bond.title': '缘法名录',
     'bond.sec.friend': '道友', 'bond.sec.spouse': '道侣候选',
     'bond.sec.spousem': '道侣',                              /* 已结缘的那一族（第册一百一十七批：首屏不再与「道友」混铺一段） */
     'bond.sec.count': '已结缘 {n} / {total}', 'bond.sec.countdead': '已结缘 {n} / {total} · 缘尽 {d}',
     /* UI v2 B8：道友页两卡首屏之后只铺已结缘/缘尽行，未结缘收成一条入口（全名录浮层不变） */
     'bond.sec.met': '已结缘', 'bond.sec.dead': '缘尽', 'bond.met.none': '尚未与任何人结缘',
-    'bond.unmet.line': '{n} 位道友 · 缘分未至', 'bond.unmet.go': '查看全名录 ›',
+    'bond.unmet.line': '{n} 位{who} · 缘分未至', 'bond.unmet.go': '查看全名录 ›',
     'bond.sec.sptip': '「双」= 满档可结缘双修', 'bond.sec.spdoing': '双修中 {n}',
     'bond.badge.spouse': '双', 'bond.deadava': '缘', 'bond.guard.tag': '护法位', 'bond.fav.label': '好感度',
     'bond.spouse.form.yinyang': '阴阳双修', 'bond.spouse.form.huzhu': '互助双修', 'bond.spouse.form.luding': '炉鼎采补',
@@ -681,7 +681,10 @@
     'tribulation.guardianNone': '雷云之下，唯你一人',
     'tribulation.guardian': '护法加项', 'tribulation.guardian.none': '无人护法',
     'shop.bond.discount': '消息灵通 −{p}% 已生效', 'arts.bond.discount': '心宽 −{p}% 已生效',
-    'ui.pillar.bond': '道友',
+    /* 页名三处同动（第册一百二十批 · 用户令「页面名与页内『道友』撞名」）：本键 = 底栏/四柱、
+     * bond.system = 日志分类、codex.face.bond = 图鉴面名；页内族别名仍叫「道友」（bond.sec.friend）。
+     * 三键必须同值，否则导航说一个名、页里说另一个名（走查 bonds A1c 咬这条关系）。 */
+    'ui.pillar.bond': '缘法',
     /* 离线所得（F4：常驻面板 + 回线弹窗；明细行含离线效率拆解与奇遇时钟冻结读数）。
      * 离线 = 潜心悟道：数值按原有离线规则结算不变，*.v 系列为「离山时在外历练」的叙事变体。
      * 命名（体验批 v2.4）：标题由「闭关所得」改「离线所得」——与在线模式「闭关修炼」彻底区分。 */

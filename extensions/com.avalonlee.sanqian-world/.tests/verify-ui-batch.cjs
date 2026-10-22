@@ -84,8 +84,9 @@ const { chromium } = require('playwright-core');
   T(seal === '', 'R1 财浮层底部「白手起家」文案已去除', 'seal="' + seal + '"');
   await page.click('#mlg-close');
 
-  /* 需求 6：道友页 道侣位提示文案（B15-f 改口：两行摘要 → 两张位卡，空态 = .bondslot.empty） */
-  await page.click('#m-tabbar button:has-text("道友")');
+  /* 需求 6：道友页 道侣位提示文案（B15-f 改口：两行摘要 → 两张位卡，空态 = .bondslot.empty）
+   * 第册一百二十批：页名改「缘法」⇒ 此处按 data-v 定位（原先钉的是标签文字，会随词表漂）。 */
+  await page.click('#m-tabbar button[data-v="bonds"]');
   await page.waitForTimeout(200);
   const spTip = await page.$eval('#tab-bonds .slots2 .bondslot.empty', el => el.textContent);
   T(spTip.includes('候选好感满档可结缘双修') && !/提亲/.test(spTip), 'R6 道侣位文案改为「可结缘双修」（且不留旧称）', spTip.slice(0, 40));
