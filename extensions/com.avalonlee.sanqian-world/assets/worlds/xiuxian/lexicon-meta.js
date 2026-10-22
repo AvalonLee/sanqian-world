@@ -183,7 +183,7 @@
   K['codex.face.talent'] = '天赋';
   K['codex.face.treasure'] = '法宝';
   K['codex.face.art'] = '功法';
-  K['codex.face.bond'] = '道友';
+  K['codex.face.bond'] = '缘法';
   K['codex.face.zone'] = '秘境';
   K['codex.face.faction'] = '势力';
   K['codex.face.title'] = '称号';
