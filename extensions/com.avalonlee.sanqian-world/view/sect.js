@@ -127,6 +127,11 @@
     h += '<button class="danger" data-act="sectDisband" style="width:100%;margin-top:8px">' + c.esc(c.t('sect.gov.disband')) + '</button>';
     /* 弟子 */
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.ui.disciples', { n: sec.disciples.length, cap: SQ.Sect.discCap(w, d) })) + '</span></div>';
+    /* 任免规则上屏（第册一百二十批 · 孤儿键接线）：执事 / 长老两枚 chip 此前只给职位名，
+     * 「各限一名、只领一份加成」与两枚 +10% 实效一直只在引擎里（V5 已钉死数值，屏上没一句话）。 */
+    if (sec.disciples.length) h += '<p class="hint">' + c.esc(c.t('sect.gov.post.hint')) + ' (' +
+      c.esc(c.t('sect.gov.post.steward') + ' ' + c.t('sect.gov.post.steward.eff') + '‖' +
+        c.t('sect.gov.post.elder') + ' ' + c.t('sect.gov.post.elder.eff')) + ')</p>';
     /* N20 接线：继位择人的规则（供奉不可继位）此前只靠按钮 disabled 隐含，无一句释文 */
     if (sec.disciples.length) h += '<p class="hint">' + c.esc(c.t('sect.ui.succ.pick')) + '</p>';
     if (!sec.disciples.length) h += '<p class="hint">' + c.esc(c.t('sect.disc.empty')) + '</p>';
