@@ -795,13 +795,14 @@
 
     /* ── 自立门户（自立门户卷 v1.1 · 六向长线批 A6）：开宗 / 招收 / 供奉 / 投资 / 营建 /
      * 调遣 / 宣战 / 传位——全部显式动作（mutate 通道），培养与供奉是 claim 内惰性月结。 */
-    sectFound: async function (ref, gateId, nameCustom, nameIdx, align) {
+    sectFound: async function (ref, gateId, nameCustom, nameIdx, align, motto) {
       var out = null;
       await SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
         var pack = packOf(s), D = dataOf(s);
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
-        out = SQ.Sect.foundSect(ws, pack, D, s.meta, gateId, nameCustom, nameIdx, align, Date.now(), log);
+        /* 门规宣言 = 立派那一步的入参，随三定一次写入（foundSect 内清洗），此后无写口（第册一百一十八批）。 */
+        out = SQ.Sect.foundSect(ws, pack, D, s.meta, gateId, nameCustom, nameIdx, align, Date.now(), log, motto);
         if (out && out.ok) pack.recalcDerived(ws, s.profile);
       });
       return out;
@@ -888,17 +889,16 @@
       });
       return out;
     },
-    /* B16-ad：自立宗门治理 / 人事 / 外交（统一走 mutate；返回结果供 toast） */
+    /* B16-ad：自立宗门治理 / 人事 / 外交（统一走 mutate；返回结果供 toast）
+     * 🔧 第册一百一十八批：`rename` / `rule` / `motto` 三案随写口一并删除——宗名、门规（立场）与阵营、
+     * 门规宣言都在 `sectFound` 那一次定死，治理段只剩税率 / 人事 / 解散 / 停战。 */
     sectGov: async function (ref, kind, a, b) {
       var out = null;
       await SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
         var pack = packOf(s), D = dataOf(s);
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
-        if (kind === 'rename') out = SQ.Sect.rename(ws, D, a);
-        else if (kind === 'rule') out = SQ.Sect.setRule(ws, D, a, b);
-        else if (kind === 'motto') out = SQ.Sect.setMotto(ws, D, a);
-        else if (kind === 'tax') out = SQ.Sect.setTax(ws, D, a);
+        if (kind === 'tax') out = SQ.Sect.setTax(ws, D, a);
         else if (kind === 'appoint') out = SQ.Sect.appoint(ws, D, a, b);
         else if (kind === 'expel') out = SQ.Sect.expel(ws, D, a);
         else if (kind === 'disband') out = SQ.Sect.disband(ws, pack, D, Date.now(), log);

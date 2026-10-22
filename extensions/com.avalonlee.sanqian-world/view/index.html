@@ -2508,6 +2508,7 @@
     if (!t || t.tagName !== 'INPUT') return;
     if (t.classList.contains('fusename')) ui.fuseName = t.value;
     else if (t.id === 'sect-name-input') ui.sectRollName = t.value;
+    else if (t.id === 'sect-found-motto-input') ui.sectFoundMotto = t.value;   /* 第册一百一十八批：立派那一步的宣言 */
   });
 
   /* 输入闸（GitHub issue #5）：焦点在输入框里时 tick 不重建 DOM（见 startTick），
@@ -2913,9 +2914,15 @@
     if (act === 'sectRollName') { ui.sectRollName = SQ.Sect.nameOfIdx(SQ.Sect.rollIdx(), wid()); renderTab(); return; }
     if (act === 'sectFound') {
       var nameIn2 = document.getElementById('sect-name-input');
+      /* 门规宣言随立派一次写入（第册一百一十八批）：值取 `ui.sectFoundMotto`（input 监听回填，
+       * 与自定义名同一套防 tick 抹字的口径），成交即清空——下一门不该继承上一门的宣言。 */
+      var mottoIn2 = (ui.sectFoundMotto || '').trim();
       askConfirm(t('sect.found.btn'), t('sect.found.confirm'), async function () {
-        var rFd = await SQ.Actions.sectFound(state, (ui.sectPick || {}).gate || 'wuyue', nameIn2 ? nameIn2.value : '', null, (ui.sectPick || {}).align || 'neutral');
-        if (rFd && rFd.ok) toast(t('sect.found.log', { name: rFd.name, gate: t('sect.gate.' + ((ui.sectPick || {}).gate || 'wuyue') + '.name') }));
+        var rFd = await SQ.Actions.sectFound(state, (ui.sectPick || {}).gate || 'wuyue', nameIn2 ? nameIn2.value : '', null, (ui.sectPick || {}).align || 'neutral', mottoIn2);
+        if (rFd && rFd.ok) {
+          ui.sectFoundMotto = '';
+          toast(t('sect.found.log', { name: rFd.name, gate: t('sect.gate.' + ((ui.sectPick || {}).gate || 'wuyue') + '.name') }));
+        }
         else if (rFd) {
           var fkk = 'sect.ui.fail.' + rFd.reason;
           toast(t(fkk) !== fkk ? t(fkk) : rFd.reason);
@@ -2964,24 +2971,9 @@
       renderAll();
       return;
     }
-    /* B16-ad：自立宗门治理 / 人事 / 外交（全开放） */
-    if (act === 'sectGovField') {
-      var gvF = v === 'rename' ? ($('sect-rename-input') || {}).value : ($('sect-motto-input') || {}).value;
-      var rGF = await SQ.Actions.sectGov(state, v, gvF);
-      if (rGF && rGF.ok) toast(t(v === 'rename' ? 'sect.gov.rename.ok' : 'sect.gov.motto.ok', { name: rGF.name || '' }));
-      else if (rGF && rGF.reason === 'empty') toast(t('sect.gov.rename.empty'));
-      renderAll();
-      return;
-    }
-    if (act === 'sectGovRule') {
-      var wR = ws(), secR = wR.sect || {};
-      var gR = el.dataset.c === 'gate' ? v : secR.gate;
-      var aR = el.dataset.c === 'align' ? v : secR.align;
-      var rGR = await SQ.Actions.sectGov(state, 'rule', gR, aR);
-      if (rGR && rGR.ok) toast(t('sect.gov.rule.ok'));
-      renderAll();
-      return;
-    }
+    /* B16-ad：自立宗门治理 / 人事 / 外交
+     * 🔧 第册一百一十八批：`sectGovField`（改名 / 宣言）与 `sectGovRule`（门规 / 阵营）两条分派随写口
+     *    一并删除——那四样在立派那一步定死（宣言走 sectFound 的入参），治理段只剩税率 / 人事 / 解散 / 停战。 */
     if (act === 'sectGovTax') {
       var rGT = await SQ.Actions.sectGov(state, 'tax', parseInt(v, 10));
       renderAll();

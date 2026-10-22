@@ -187,8 +187,9 @@ const KEY = 'sanqian-state-v1';
   {
     const sx = JSON.parse(fixture), wS = sx.worlds.xiuxian;
     wS.factionId = 'sect';
+    wS.factionWar = null;   /* 宣战段的前提是「无在打的仗」；fixture 里可能带着上一批的战争态 ⇒ 钉成确定值 */
     wS.sect = {
-      name: '试剑宗', gate: 'wuyue', align: 'neutral', motto: '', tax: 0,
+      name: '试剑宗', gate: 'wuyue', align: 'neutral', motto: '戒贪戒躁', tax: 0,
       disciples: [{ id: 'd1', nm: [0, 0], tier: 'mid', realm: 2, prog: 0, inv: 0, perk: 'combatPower', tianjiao: false }],
       fac: { zangjing: 0, danfang: 0, yanwu: 0, keshe: 0 }, seq: 1,
       warRecord: { wins: 0, loses: 0 }, suppressed: {}, foundAt: Date.now()
@@ -204,6 +205,10 @@ const KEY = 'sanqian-state-v1';
     await pS.waitForTimeout(500);
     await pS.evaluate(() => { var b = document.querySelector('#m-tabbar button[data-v="sect"]'); if (b) b.click(); });
     await pS.waitForTimeout(400);
+    /* AT-H 改口（第册一百一十八批 · 用户裁定宗名 / 门规（立场）/ 阵营 / 门规宣言立派后即定）：
+     * 旧判据要「两枚编辑输入框同在」，那正是本批撤掉的东西。删除类断言必须同条咬一条正判据
+     *（本仓立则），所以这一判同时量两头：治理段**零编辑控件**（input 与两条旧 act 都不许在），
+     * 而那四样的值**仍要在屏上读得到**（宗名 / 门规 / 阵营 / 宣言）——锁改写口不等于把信息藏掉。 */
     const gov = await pS.evaluate(() => ({
       heads: Array.prototype.map.call(document.querySelectorAll('#tab-sect .sechead .t'), (x) => x.textContent.trim()),
       want: SQ.t('sect.gov.title', null, 'xiuxian'),
@@ -211,13 +216,79 @@ const KEY = 'sanqian-state-v1';
       posts: document.querySelectorAll('#tab-sect [data-act="sectPost"]').length,
       expel: document.querySelectorAll('#tab-sect [data-act="sectExpel"]').length,
       disband: !!document.querySelector('#tab-sect [data-act="sectDisband"]'),
-      inputs: !!document.querySelector('#sect-rename-input') && !!document.querySelector('#sect-motto-input'),
-      errs: 0
+      editors: document.querySelectorAll('#tab-sect input').length +
+        document.querySelectorAll('#tab-sect [data-act="sectGovField"], #tab-sect [data-act="sectGovRule"]').length,
+      txt: (document.getElementById('tab-sect') || {}).innerText || ''
     }));
+    const gateH = await pS.evaluate(() => SQ.t('sect.gate.wuyue.name', null, 'xiuxian'));
+    const alignH = await pS.evaluate(() => SQ.t('sect.align.neutral.name', null, 'xiuxian'));
     T(gov.heads.indexOf(gov.want) >= 0 && gov.tax === 7 &&
-      gov.posts >= 2 && gov.expel >= 1 && gov.disband && gov.inputs && errS.length === 0,
-      'AT-H 自立宗门治理区齐备（改名/门规/宣言/税率七档/任免/逐出/解散 · 零报错）', JSON.stringify(gov));
+      gov.posts >= 2 && gov.expel >= 1 && gov.disband && gov.editors === 0 &&
+      gov.txt.indexOf('试剑宗') >= 0 && gov.txt.indexOf(gateH) >= 0 && gov.txt.indexOf(alignH) >= 0 &&
+      gov.txt.indexOf('戒贪戒躁') >= 0 && errS.length === 0,
+      'AT-H 治理区只剩税率七档 / 任免 / 逐出 / 解散：宗名·门规·阵营·宣言零编辑控件而四样仍只读在屏 · 零报错',
+      JSON.stringify({ tax: gov.tax, posts: gov.posts, expel: gov.expel, editors: gov.editors }) +
+      ' 名/规/营/言在屏=' + ['试剑宗', gateH, alignH, '戒贪戒躁'].map((x) => gov.txt.indexOf(x) >= 0).join(','));
     await ctxS.close();
+  }
+  /* AT-H2（第册一百一十八批 · 用户裁定「门规宣言立派时写一次，之后不能改」）：
+   * 端到端验那一步真能写下宣言——输入框在立派段里 ‖ 打字跨两个秒级 tick 不被重绘抹掉（融合坛
+   * 自定义名 issue #5 同形坑，宣言框新加就必须同口径验一次）‖ 点「开宗立派」确认后**落盘的就是那句**。
+   * 反证形：把 sectFound 分派里那句 motto 入参摘掉 ⇒ saved.motto 为空 ⇒ 本判红。 */
+  {
+    const sF = JSON.parse(fixture), wF = sF.worlds.xiuxian;
+    /* 手造档纪律（.tests/README 立则）：进场前必须刷新时间锚并清 lastOffline / pendingChoice，
+     * 否则 dt 过大会弹「出关呈报」浮层把点击整个挡住（本批首跑就是被 #modal-offline 拦死的）。 */
+    const nowF = Date.now();
+    sF.profile.createdAt = nowF; wF.lastSave = nowF; wF.lastOffline = null; wF.pendingChoice = null;
+    wF.sect = null; wF.factionId = null; wF.realm = 6; wF.factionRepPeak = 9999; wF.everDefected = true;
+    sF.meta = sF.meta || {}; sF.meta.unlocks = sF.meta.unlocks || {}; sF.meta.unlocks.sect = true;
+    const ctxF = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+    await ctxF.addInitScript((a) => { try { localStorage.setItem(a.k, a.v); } catch (e) {} }, { k: KEY, v: JSON.stringify(sF) });
+    const pF = await ctxF.newPage();
+    const errF = [];
+    pF.on('pageerror', (e) => errF.push(String(e.message).slice(0, 90)));
+    await pF.goto(url);
+    await pF.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+    await pF.waitForTimeout(500);
+    await pF.evaluate(() => { var b = document.querySelector('#m-tabbar button[data-v="sect"]'); if (b) b.click(); });
+    await pF.waitForTimeout(400);
+    const hasIn = await pF.$('#sect-found-motto-input');
+    let typedF = '', savedF = { motto: null, name: null };
+    if (hasIn) {
+      await pF.type('#sect-found-motto-input', '戒欺戒傲');
+      await pF.waitForTimeout(2600);                       /* 跨至少两个秒级 tick */
+      typedF = await pF.inputValue('#sect-found-motto-input');
+      /* 点击一律走 evaluate：#tab-sect 每秒被 tick 整段重建，page.click 的「元素稳定」检查
+       * 会一直重试到超时（三浮层那篇立过的规矩：本篇点击全走 evaluate）。 */
+      await pF.evaluate(() => { document.querySelector('#tab-sect [data-act="sectFound"]').click(); });
+      await pF.waitForSelector('#modal-confirm:not(.hide)', { timeout: 8000 });
+      await pF.evaluate(() => { document.getElementById('cf-ok').click(); });
+      await pF.waitForTimeout(900);
+      savedF = await pF.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+        const sec = (s.worlds.xiuxian || {}).sect || {};
+        return { motto: sec.motto || '', name: sec.name || '' };
+      });
+    }
+    /* 立派完成后再量宣战段（第册一百一十八批 · 用户报「宣战入口在哪我没找到」）：
+     * 这一段现在**恒在**——有敌对就列名（chips ≥1），没有敌对就给一句「谁结仇谁才进来」。
+     * 放在这里量而不是 AT-H：AT-H 那份手造档的 `sect` 池条目会被 normalize 重建时丢掉，
+     * 只有真走过 `foundSect` 才有的出正确的sect势力条目（把判据挂在渲得出来的那一侧）。 */
+    const warF = await pF.evaluate(() => ({
+      heads: Array.prototype.map.call(document.querySelectorAll('#tab-sect .sechead .t'), (x) => x.textContent.trim()),
+      want: SQ.t('sect.war.btn', null, 'xiuxian'),
+      none: SQ.t('sect.war.none', null, 'xiuxian'),
+      chips: document.querySelectorAll('#tab-sect [data-act="sectWar"]').length,
+      txt: (document.getElementById('tab-sect') || {}).innerText || ''
+    }));
+    T(!!hasIn && typedF === '戒欺戒傲' && savedF.motto === '戒欺戒傲' && !!savedF.name && errF.length === 0,
+      'AT-H2 宣言在立派那一步写入且落盘（打字跨 tick 不被抹 · 确认后存档里就是那句 · 宗名同时落定）',
+      '有输入框=' + !!hasIn + ' 打完=' + typedF + ' 落档=' + JSON.stringify(savedF) + ' 报错=' + (errF[0] || '无'));
+    T(warF.heads.indexOf(warF.want) >= 0 && (warF.chips >= 1 || warF.txt.indexOf(warF.none.slice(0, 12)) >= 0),
+      'AT-H3 立派后宣战段恒在屏（有敌列名下战书 ‖ 无敌对也说明「谁结仇谁才进得来」）',
+      'heads=' + warF.heads.join('/') + ' chips=' + warF.chips + ' 解释句在屏=' + (warF.txt.indexOf(warF.none.slice(0, 12)) >= 0));
+    await ctxF.close();
   }
 
   /* AT-SB 滚动条已换成主题样式（第十九批 · 用户令「整个游戏的滚动条和界面不太匹配，美化一下」）。

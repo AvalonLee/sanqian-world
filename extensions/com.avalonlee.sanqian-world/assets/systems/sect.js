@@ -234,7 +234,7 @@
   }
 
   /* ── 立派（§1.4 开宗结算事务：专用脱离零叛离惩罚 + 三定 + 关系播种 + 公告）── */
-  function foundSect(ws, pack, D, meta, gateId, nameCustom, nameIdx, align, now, log) {
+  function foundSect(ws, pack, D, meta, gateId, nameCustom, nameIdx, align, now, log, motto) {
     var SC = S(D);
     var chk = canFound(ws, pack, D, meta);
     if (!chk.ok) return chk;
@@ -263,9 +263,13 @@
       ws.factionOffice = null;
       if (ws.tribulation) ws.tribulation.officeGuard = false;
     }
-    /* ② 立派三定写入 ws.sect */
+    /* ② 立派三定写入 ws.sect
+     * 门规宣言（第册一百一十八批 · 用户裁定「宣言立派时写一次，之后不可改」）：它是**这一次的参数**，
+     * 清洗口径与 normalize 的 motto 钳位同式（trim + 截 MOTTO_MAX）。全站没有第二条 motto 写口
+     * （治理段那枚 `setMotto` 编辑口随本批删除），所以「立派即定、此后只读」由构造成立。 */
     ws.sect = {
       name: name, nameIdx: nIdx, gate: gateId, align: align,
+      motto: String(motto == null ? '' : motto).trim().slice(0, SC.MOTTO_MAX || 24),
       disciples: [], fac: { zangjing: 0, danfang: 0, yanwu: 0, keshe: 0 },
       everDefected: ws.everDefected === true,
       dispatchAt: 0, lastTribMonth: 0, monthClock: 0,
@@ -416,27 +420,13 @@
     return { ok: true };
   }
 
-  /* ── B16-ad：自立宗门治理 / 人事 / 外交（全开放）────────────────────────── */
+  /* ── B16-ad：自立宗门治理 / 人事 / 外交（全开放）──────────────────────────
+   * 🔧 第册一百一十八批（用户裁定「宗名不能改、门规（立场）与阵营不能改、门规宣言创立即定」）：
+   *   原 `rename` / `setRule` / `setMotto` 三条写口**整族删除**——宗名与门规·阵营·宣言一律只在
+   *   `foundSect` 那一次落定（宣言现为 foundSect 的入参），治理段只剩税率 / 解散 / 人事 / 外交。
+   *   退役七处出口同批走完：写口（本处）‖ actions 的 sectGov 分派 ‖ 界面控件 ‖ act 分派 ‖
+   *   probe-sectgov V1~V3 判据（改为「一次写入 + 无第二写口 + 老档往返不丢」）‖ 走查 AT-H ‖ 词表（按纪律不删，转孤儿）。 */
   function ownSect(ws) { return !!(ws && ws.sect && !ws.sect.succession); }
-  function rename(ws, D, name) {
-    if (!ownSect(ws)) return { ok: false, reason: 'none' };
-    var nm = String(name == null ? '' : name).trim().slice(0, (S(D).NAME_MAX || 6));
-    if (!nm) return { ok: false, reason: 'empty' };
-    ws.sect.name = nm;
-    return { ok: true, name: nm };
-  }
-  function setRule(ws, D, gate, align) {
-    if (!ownSect(ws)) return { ok: false, reason: 'none' };
-    if ((S(D).GATES || []).indexOf(gate) < 0) return { ok: false, reason: 'gate' };
-    if (['right', 'neutral', 'evil'].indexOf(align) < 0) return { ok: false, reason: 'align' };
-    ws.sect.gate = gate; ws.sect.align = align;
-    return { ok: true };
-  }
-  function setMotto(ws, D, text) {
-    if (!ownSect(ws)) return { ok: false, reason: 'none' };
-    ws.sect.motto = String(text == null ? '' : text).trim().slice(0, (S(D).MOTTO_MAX || 24));
-    return { ok: true, motto: ws.sect.motto };
-  }
   function setTax(ws, D, pct) {
     if (!ownSect(ws)) return { ok: false, reason: 'none' };
     var steps = S(D).TAX_STEPS || [0, 5, 10, 15, 20, 25, 30];
@@ -751,9 +741,6 @@
     declareWar: declareWar,
     onWarSettled: onWarSettled,
     succeed: succeed,
-    rename: rename,
-    setRule: setRule,
-    setMotto: setMotto,
     setTax: setTax,
     appoint: appoint,
     expel: expel,

@@ -30,25 +30,43 @@ function mkSect() {
   return ws;
 }
 
-/* 1 改名 */
+/* 1 三写口已退役（第册一百一十八批 · 用户裁定「宗名不能改、门规（立场）与阵营不能改、宣言创立即定」）
+ *    负判据：`rename` / `setRule` / `setMotto` 不再是 SQ.Sect 的出口（有其一即红）。
+ *    配一条正判据（V2/V3 承担）：立派写下的那几样能一路带过 normalize，说明锁的是「改写口」而不是「值会被冲掉」。 */
 {
-  const ws = mkSect();
-  const r = SQ.Sect.rename(ws, D, '  凌霄阁  ');
-  ok('V1 改名：去空白 + 截到 NAME_MAX', r.ok && ws.sect.name === '凌霄阁' && SQ.Sect.rename(ws, D, '    ').ok === false, JSON.stringify(r));
+  const gone = ['rename', 'setRule', 'setMotto'].filter((k) => k in SQ.Sect);
+  ok('V1 治理三写口已整族退役（宗名 / 门规 / 阵营 / 宣言立派后无写口）',
+    gone.length === 0, '残留出口=' + (gone.join(',') || '无'));
 }
-/* 2 改门规 */
+/* 2 立派写入的四样过 normalize 原样保留（不改写、不重置） */
 {
-  const ws = mkSect();
   const g2 = (D.SECT.GATES || [])[1] || (D.SECT.GATES || [])[0];
-  const r = SQ.Sect.setRule(ws, D, g2, 'evil');
-  ok('V2 改门规：gate/align 同时重定，非法值拒绝', r.ok && ws.sect.gate === g2 && ws.sect.align === 'evil' && SQ.Sect.setRule(ws, D, 'nope', 'evil').ok === false, JSON.stringify(r));
+  const ws = pack.normalize({ sect: {
+    name: '凌霄阁', nameIdx: [0, 0], gate: g2, align: 'evil', motto: '戒贪戒躁',
+    disciples: [], fac: { zangjing: 0, danfang: 0, yanwu: 0, keshe: 0 },
+    warRecord: { wins: 0, loses: 0 }, suppressed: {}, foundAt: Date.now(), seq: 0
+  } });
+  const s2 = ws.sect || {};
+  ok('V2 宗名 / 门规 / 阵营 / 宣言读档后逐字仍在（锁的是写口，不是把值冲没）',
+    s2.name === '凌霄阁' && s2.gate === g2 && s2.align === 'evil' && s2.motto === '戒贪戒躁',
+    JSON.stringify({ name: s2.name, gate: s2.gate, align: s2.align, motto: s2.motto }));
 }
-/* 3 门规宣言 */
+/* 3 宣言清洗口径仍在（截 MOTTO_MAX；非字符串回落空串），只是不再有事后编辑器 */
 {
-  const ws = mkSect();
   const long = '一'.repeat(40);
-  const r = SQ.Sect.setMotto(ws, D, long);
-  ok('V3 门规宣言：纯文案，按 MOTTO_MAX 截断', r.ok && ws.sect.motto.length === (D.SECT.MOTTO_MAX || 24), 'len=' + ws.sect.motto.length);
+  const ws3 = pack.normalize({ sect: {
+    name: '青云门', gate: (D.SECT.GATES || [])[0], align: 'neutral', motto: long,
+    disciples: [], fac: { zangjing: 0, danfang: 0, yanwu: 0, keshe: 0 },
+    warRecord: { wins: 0, loses: 0 }, suppressed: {}, foundAt: Date.now(), seq: 0
+  } });
+  const ws3b = pack.normalize({ sect: {
+    name: '青云门', gate: (D.SECT.GATES || [])[0], align: 'neutral', motto: 5,
+    disciples: [], fac: { zangjing: 0, danfang: 0, yanwu: 0, keshe: 0 },
+    warRecord: { wins: 0, loses: 0 }, suppressed: {}, foundAt: Date.now(), seq: 0
+  } });
+  ok('V3 宣言仍按 MOTTO_MAX 截断、脏值回落空串（清洗未失修，事后无编辑口）',
+    ws3.sect.motto.length === (D.SECT.MOTTO_MAX || 24) && ws3b.sect.motto === '',
+    'len=' + ws3.sect.motto.length + ' 脏值=' + JSON.stringify(ws3b.sect.motto));
 }
 /* 4 税率档位 */
 {
