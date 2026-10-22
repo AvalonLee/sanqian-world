@@ -420,7 +420,7 @@
         var bn = cfg.WIN_BOND || 2;
         (pack.companions || []).forEach(function (c) {
           if ((ws.factionNpcs || {})[c.id] !== myFid) return;
-          if (ws.spouse && ws.spouse.npcId === c.id) return;
+          if (SQ.Bonds && SQ.Bonds.isSpouse(ws, c.id)) return;
           if (SQ.Bonds) SQ.Bonds.gain(ws, pack, D, c.id, bn, now);
         });
         /* §7.3 后效① 旧怨磨损：败方对胜方 enemy→neutral 概率 50%（对称写入，仅该交战对；
@@ -519,7 +519,7 @@
       (pack.companions || []).forEach(function (c) {
         var nf = (ws.factionNpcs || {})[c.id];
         if (!nf) return;                                   /* 散人不受影响 */
-        if (ws.spouse && ws.spouse.npcId === c.id) return; /* 道侣好感不因势力调整 */
+        if (SQ.Bonds && SQ.Bonds.isSpouse(ws, c.id)) return; /* 道侣好感不因势力调整（可多位） */
         var rel = nf === fid ? 'same' : SQ.Factions.relationOf(ws, fid, nf);
         var delta = rel === 'friendly' ? (cfg.JOIN_FRIENDLY || 10)
           : rel === 'enemy' ? (cfg.JOIN_ENEMY || -20)
@@ -588,7 +588,8 @@
       var c = SQ.Bonds ? SQ.Bonds.byId(pack, npcId) : null;
       if (!c) return { ok: false, reason: 'unknown' };
       if ((ws.factionNpcs || {})[npcId] !== ws.factionId) return { ok: false, reason: 'notsame' };
-      if (ws.spouse && ws.spouse.form === 'luding' && ws.spouse.npcId === npcId) return { ok: false, reason: 'chan' };
+      var spNpc = SQ.Bonds ? SQ.Bonds.spouseOf(ws, npcId) : null;
+      if (spNpc && spNpc.form === 'luding') return { ok: false, reason: 'chan' };
       var pk = c.perk || {};
       if (!(pk.field && SQ.Mods.FIELDS.indexOf(pk.field) >= 0 && pk.perTier)) return { ok: false, reason: 'chan' };
       var tier = SQ.Bonds.tierOf(ws, npcId, D);
@@ -658,7 +659,7 @@
       if (SQ.Bonds && SQ.Bonds.lose) {
         (pack.companions || []).forEach(function (c) {
           if ((ws.factionNpcs || {})[c.id] !== oldFid) return;
-          if (ws.spouse && ws.spouse.npcId === c.id) return;
+          if (SQ.Bonds && SQ.Bonds.isSpouse(ws, c.id)) return;
           var r = SQ.Bonds.lose(ws, pack, D, c.id, dbn, now);
           if (r && !r.blocked) bondHits++;
         });

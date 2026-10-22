@@ -36,6 +36,35 @@
       return null;
     },
 
+    /* ── 多道侣取数口（册一百二十三批）──────────────────────────────
+     * `ws.spouses = [{npcId, form, since}]`；旧档单值 `ws.spouse` 由 normalize 迁移。
+     * 所有人只看这一族，不再各自裸读 `.spouse.npcId`。 */
+    spousesOf: function (ws) { return (ws && ws.spouses) || []; },
+    spouseOf: function (ws, npcId) {
+      var sps = SQ.Bonds.spousesOf(ws);
+      for (var i = 0; i < sps.length; i++) if (sps[i].npcId === npcId) return sps[i];
+      return null;
+    },
+    isSpouse: function (ws, npcId) { return !!SQ.Bonds.spouseOf(ws, npcId); },
+    /* 炉鼎采补期间其个体助力归零：返回 {npcId: 1} 集合（可多位同时炉鼎） */
+    ludingSet: function (ws) {
+      var out = {};
+      SQ.Bonds.spousesOf(ws).forEach(function (sp) { if (sp.form === 'luding') out[sp.npcId] = 1; });
+      return out;
+    },
+    /* 名单行（呈现用，n 上限后以「等 N 人」收束）——codex 传记 / 右栏 / 位卡同读，避免各写一套 */
+    spouseLine: function (ws, pack, max) {
+      var sps = SQ.Bonds.spousesOf(ws);
+      if (!sps.length) return '';
+      var n = Math.max(1, max || 1), names = [];
+      for (var i = 0; i < sps.length && i < n; i++) {
+        names.push(SQ.t('bond.' + sps[i].npcId + '.name', null, pack.worldId));
+      }
+      var s = names.join(SQ.t('ui.listsep'));
+      if (sps.length > names.length) s += SQ.t('bond.spouse.etal', { n: sps.length }, pack.worldId);
+      return s;
+    },
+
     affinityOf: function (ws, npcId) {
       return (ws.bonds || {})[npcId] || 0;         /* −99（绝交锁）/ 负好感（厌恶）原样返回 */
     },
@@ -47,10 +76,10 @@
      * fn(companion, tier, perkValue)；perkValue = perTier × tier（channel 型为幅度值）。 */
     eachActive: function (ws, pack, D, fn) {
       var cs = SQ.Bonds.list(pack);
-      var luNpc = (ws.spouse && ws.spouse.form === 'luding') ? ws.spouse.npcId : null;
+      var lu = SQ.Bonds.ludingSet(ws);
       for (var i = 0; i < cs.length; i++) {
         var c = cs[i];
-        if (c.id === luNpc) continue;              /* 鼎炉被采，何暇助你 */
+        if (lu[c.id]) continue;                    /* 鼎炉被采，何暇助你（多位炉鼎逐位归零） */
         var tier = tierOf((ws.bonds || {})[c.id] || 0, D);
         if (tier < 1) continue;
         var pk = c.perk || {};
@@ -256,11 +285,10 @@
       if (!(n > 0)) return { hit: 0, total: 0, tierUp: 0 };
       now = (typeof now === 'number' && isFinite(now)) ? now : Date.now();
       var cs = SQ.Bonds.list(pack), bonds = ws.bonds || {};
-      var spouseId = ws.spouse ? ws.spouse.npcId : null;
       var hit = 0, up = 0, total = 0;
       for (var i = 0; i < cs.length; i++) {
         var c = cs[i];
-        if (c.id === spouseId) continue;                    /* 在任道侣另有双修叙事，不掺 */
+        if (SQ.Bonds.isSpouse(ws, c.id)) continue;           /* 在任道侣另有双修叙事，不掺（可多位） */
         if (!((bonds[c.id] || 0) >= 1)) continue;           /* 未相识 / 厌恶不白送档位 */
         var r = SQ.Bonds.gain(ws, pack, D, c.id, n, now);
         if (r.blocked) continue;                            /* 绝交锁 / 心结锁自动拒 */
@@ -340,9 +368,11 @@
         if (!(((bonds[npcId] || 0)) >= bmin)) return { ok: false, reason: 'bond' };
       }
       bonds[npcId] = LOCK;
-      if (ws.spouse && ws.spouse.npcId === npcId) {
-        /* 极端兜底：与在任道侣绝交（现有内容无此组合，防御性解除，不设冷却不留心结） */
-        ws.spouse = null;
+      var sps = SQ.Bonds.spousesOf(ws);
+      for (var si = sps.length - 1; si >= 0; si--) {
+        if (sps[si].npcId !== npcId) continue;
+        /* 极端兜底：与在任道侣绝交（现有内容无此组合，防御性解除该位，不设冷却不留心结） */
+        sps.splice(si, 1);
       }
       /* 天道编年史钩子（天道设计 §3.3）：陨落/恩断义绝记录（不解耦文案，存 k+v 供奏疏渲染） */
       if (SQ.Tiandao && SQ.Tiandao.onBond) SQ.Tiandao.onBond(ws, 'lock', npcId, Date.now());
@@ -404,14 +434,16 @@
       return 'huzhu';
     },
 
-    /* 提亲资格：候选 + 满档 + 未结缘 + 无心结锁 + 冷却已过 */
+    /* 提亲资格：候选 + 满档 + **这一位**尚未结缘 + 无心结锁 + 冷却已过。
+     * 多道侣（册一百二十三批）：不再要求「全局唯一」——已有别的道侣照样可提；
+     * 只拦同一人重复提（reason 仍沿用 occupied，屏上「已有道侣在身」对同一位仍为真）。 */
     canPropose: function (ws, pack, D, npcId, now) {
       var c = SQ.Bonds.byId(pack, npcId);
       if (!c) return { ok: false, reason: 'unknown' };
       if (c.category !== 'spouse') return { ok: false, reason: 'notspouse' };
       if (SQ.Bonds.scarred(ws, npcId)) return { ok: false, reason: 'scar' };
       if ((ws.bonds || {})[npcId] !== (D.BOND_MAX || 100)) return { ok: false, reason: 'affinity' };
-      if (ws.spouse) return { ok: false, reason: 'occupied' };
+      if (SQ.Bonds.isSpouse(ws, npcId)) return { ok: false, reason: 'occupied' };
       if ((ws.spouseCdUntil || 0) > now) return { ok: false, reason: 'cooldown' };
       return { ok: true, form: SQ.Bonds.formByTier(ws, pack, D) };
     },
@@ -419,7 +451,9 @@
     propose: function (ws, pack, D, npcId, now, log) {
       var chk = SQ.Bonds.canPropose(ws, pack, D, npcId, now);
       if (!chk.ok) return chk;
-      ws.spouse = { npcId: npcId, form: chk.form, since: now };
+      var sps = ws.spouses || (ws.spouses = []);
+      if (SQ.Bonds.isSpouse(ws, npcId)) return { ok: false, reason: 'occupied' };   /* 防御：canPropose 已拦 */
+      sps.push({ npcId: npcId, form: chk.form, since: now });
       var form = (D.SPOUSE_FORMS || {})[chk.form] || {};
       if (form.karmaCost) {
         /* 炉鼎采补代价①：结缘一次性 karmaEventScore −20 入账（采补之举赖不掉；karma 随后覆盖式重算） */
@@ -435,27 +469,33 @@
     },
 
     /* 维持检查（recalcDerived 内调用，karma 每次覆盖式重算后）：
-     * yinyang 跌破正道档 → 解除 + 7 天全局提亲冷却；luding 回升出魔道档 → 解除 + 心结锁；
-     * huzhu 永不自动解除（v1.4 口径1）。解除写 spouseLog 供视图消费叙事（v1.4 口径4）。 */
+     * 逐位判定——yinyang 跌破正道档 → 该位解除 + 7 天全局提亲冷却；luding 回升出魔道档 →
+     * 该位解除 + 心结锁；huzhu 永不自动解除（v1.4 口径1）。同形态共享维持条件 ⇒ 整批同时散。
+     * 解除记录写 spouseLogs（数组）供视图按 at|npcId 键控消费叙事（v1.4 口径4）。
+     * 返回本次解除的数组（无解除 = null）。 */
     maintain: function (ws, pack, D, now) {
-      if (!ws.spouse) return null;
-      var form = ws.spouse.form;
-      var def = (D.SPOUSE_FORMS || {})[form] || {};
+      var sps = SQ.Bonds.spousesOf(ws);
+      if (!sps.length) return null;
       var kt = pack.worldSystems && pack.worldSystems.tierOf ? pack.worldSystems.tierOf(ws) : 'neutral';
-      var out = null;
-      if (form === 'yinyang' && kt !== 'right') {
-        out = { npcId: ws.spouse.npcId, form: form, reason: 'karma', at: now };
-        ws.spouseCdUntil = now + (def.cooldownMs || 604800000);
-      } else if (form === 'luding' && kt !== 'evil') {
-        out = { npcId: ws.spouse.npcId, form: form, reason: 'redemption', at: now };
-        ws.scars = ws.scars || {};
-        ws.scars[out.npcId] = now;                 /* 心结锁三义：禁护法 / 好感锁死 / 禁再提亲 */
-      }
-      if (out) {
-        ws.spouse = null;
-        ws.spouseLog = out;
-      }
-      return out;
+      var keep = [], removed = [];
+      sps.forEach(function (sp) {
+        var def = (D.SPOUSE_FORMS || {})[sp.form] || {};
+        var reason = null;
+        if (sp.form === 'yinyang' && kt !== 'right') reason = 'karma';
+        else if (sp.form === 'luding' && kt !== 'evil') reason = 'redemption';
+        if (!reason) { keep.push(sp); return; }
+        if (reason === 'karma') ws.spouseCdUntil = now + (def.cooldownMs || 604800000);
+        else {
+          ws.scars = ws.scars || {};
+          ws.scars[sp.npcId] = now;                /* 心结锁三义：禁护法 / 好感锁死 / 禁再提亲 */
+        }
+        removed.push({ npcId: sp.npcId, form: sp.form, reason: reason, at: now });
+      });
+      if (!removed.length) return null;
+      ws.spouses = keep;
+      ws.spouseLogs = (ws.spouseLogs || []).concat(removed);
+      while (ws.spouseLogs.length > 16) ws.spouseLogs.shift();   /* 防御硬截：本世同时最多 14 位 */
+      return removed;
     },
 
     /* 冥佑（楚老拐，四柱卷 §五）：档 ≥2 每 7 天授 1 层 eventShield（层时长 14 天，场上 ≤2 层）。

@@ -141,8 +141,8 @@ const SEGMENTS = [
   { file: 'docs/FACTS.md', name: 'facts', render: factsTable },
   { file: 'README.md', name: 'readme', render: oneLine },
   { file: 'DESIGN.md', name: 'design', render: oneLine, at: 'ext' },   /* DESIGN.md 随扩展走（在扩展根，不在仓库根）*/
-  { file: 'docs/三千世界-工程规范与验收计划.md', name: 'eng-spec', render: oneLine },
-  { file: 'docs/三千世界-项目设计文档.md', name: 'main-design', render: oneLine }
+  { file: 'docs/总纲/三千世界-工程规范与验收计划.md', name: 'eng-spec', render: oneLine },
+  { file: 'docs/总纲/三千世界-项目设计文档.md', name: 'main-design', render: oneLine }
 ];
 
 /* ── 段抽取与判漂 ─────────────────────────────────────── */
@@ -246,10 +246,10 @@ const ATTRIB = {
   'versions-check': { src: '各卷卷头 = 事实源，docs/VERSIONS.md = 视图', touches: ['docs/*.md 卷头', 'docs/VERSIONS.md'], repro: 'node .tests/versions-check.cjs（先 --fix 再看）' },
   'sim-pacing': { src: '.tests/sim-pacing.cjs（画像 × 口径矩阵）', touches: ['assets/systems/idle.js', 'assets/systems/realm.js', 'assets/worlds/xiuxian/data.js'], repro: 'node .tests/sim-pacing.cjs' },
   'sim-event-economy': { src: '.tests/sim-event-economy.cjs（固定种子 20261008）', touches: ['assets/systems/events.js', 'assets/worlds/xiuxian/events.js', 'D.EVENT_* 权重与冷却'], repro: 'node .tests/sim-event-economy.cjs 2 20261008' },
-  'probe-savecodec': { src: 'core.js 编解码与压缩阶梯 ⓪~⑤', touches: ['assets/core.js', 'docs/三千世界-工程规范与验收计划.md §3.6'], repro: 'node .tests/probe-savecodec.cjs' },
+  'probe-savecodec': { src: 'core.js 编解码与压缩阶梯 ⓪~⑤', touches: ['assets/core.js', 'docs/总纲/三千世界-工程规范与验收计划.md §3.6'], repro: 'node .tests/probe-savecodec.cjs' },
   'probe-savegrowth': { src: '主档平坦 / 侧档增长（600 次真奇遇结算）', touches: ['assets/core.js', 'stripSideFlows', '侧档 LOG_KEY'], repro: 'node .tests/probe-savegrowth.cjs' },
   'probe-realsave': { src: '玩家真档 读→存→读 零丢失', touches: ['.tests/storage-read.cjs 候选路径', 'assets/core.js'], repro: 'node .tests/probe-realsave.cjs' },
-  'gen-ledger': { src: 'docs/ledger.json + 各文件哨兵段', touches: ['docs/FACTS.md', 'README.md', 'DESIGN.md', 'docs/三千世界-工程规范与验收计划.md', 'docs/三千世界-项目设计文档.md'], repro: 'node .tests/gen-ledger.cjs --fix 后复跑' }
+  'gen-ledger': { src: 'docs/ledger.json + 各文件哨兵段', touches: ['docs/FACTS.md', 'README.md', 'DESIGN.md', 'docs/总纲/三千世界-工程规范与验收计划.md', 'docs/总纲/三千世界-项目设计文档.md'], repro: 'node .tests/gen-ledger.cjs --fix 后复跑' }
 };
 /* shortcut: 归因表只覆盖无头件与账本件；全部走查篇共用一条「改 view/index.html 就跑 --ui」口径，
  * 待走查改成单浏览器会话（N36）时再按篇建目。 */

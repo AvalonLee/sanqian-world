@@ -76,6 +76,8 @@
   K['tiandao.memo.faction'] = '效力{name}，职级{rank}。';
   K['tiandao.memo.faction.none'] = '散修，无门无派。';
   K['tiandao.memo.bonds.spouse'] = '已与{name}结缘（{form}）。';
+  K['tiandao.memo.bonds.spouse.multi'] = '已与{names}结缘。';
+  K['tiandao.memo.bonds.spouse.item'] = '{name}（{form}）';
   K['tiandao.memo.bonds.guard'] = '护法位{name}。';
   K['tiandao.memo.bonds.none'] = '孤家寡人，一个道友都没有。';
   K['tiandao.memo.chronhead'] = '【编年史】';

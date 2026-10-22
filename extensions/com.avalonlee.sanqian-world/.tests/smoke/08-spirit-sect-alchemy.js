@@ -93,7 +93,12 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
     var karma220 = w220.karmaEventScore, bond220 = JSON.stringify(w220.bonds);
     var badName220 = SQ.Sect.foundSect(w220, pack, D, m220, 'wuyue', '赌博门', null, 'right', Date.now(), noopLog());
     var facN220b = w220.factions.length;                 /* 敏感词拒名零副作用 */
-    var fd220 = SQ.Sect.foundSect(w220, pack, D, m220, 'wuyue', null, [0, 0], 'right', Date.now(), noopLog());
+    /* 宣言随立派一次写入（第册一百一十八批）：前置空白被 trim、超长按表截到 MOTTO_MAX——
+     * 断言取「首字不是空格 + 长度 === 表值」这两个可观测量，不在测试里重抄一遍清洗式子。 */
+    var fd220 = SQ.Sect.foundSect(w220, pack, D, m220, 'wuyue', null, [0, 0], 'right', Date.now(), noopLog(),
+      '  戒贪戒躁 ' + '一'.repeat(40));
+    var motto220 = (w220.sect || {}).motto || '';
+    var mottoOk220 = motto220.charAt(0) === '戒' && motto220.length === (D.SECT.MOTTO_MAX || 24);
     var sectEntry220 = null;
     (w220.factions || []).forEach(function (ff) { if (ff.id === 'sect') sectEntry220 = ff; });
     var symOk220 = true, enemyOk220 = false;
@@ -106,7 +111,7 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
     ok('220', '开宗四门槛逐项拦截（realm/身份/峰值 2000/遗泽资格）；专用事务：敏感词拒名、零叛离惩罚（karma/bond 零扣）、旧门声望清零职位清理、factionId=sect 哨兵拒 join、第 17 位入池 perk v=0、关系播种对称、正↔魔固定敌对',
       cf220ok.ok === true && cf220r.reason === 'realm' && cf220i.reason === 'identity' &&
       cf220p.reason === 'peak' && cf220u.reason === 'unlock' &&
-      badName220.reason === 'name' && fd220.ok === true &&
+      badName220.reason === 'name' && fd220.ok === true && mottoOk220 &&
       w220.karmaEventScore === karma220 && JSON.stringify(w220.bonds) === bond220 &&
       w220.factionRep[f0id] == null && w220.factionOffice === null && (w220.factionQuests || []).length === 0 &&
       w220.tribulation.officeGuard === false && w220.factionId === 'sect' &&
@@ -277,7 +282,15 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
     var sectE224 = null;
     (w224.factions || []).forEach(function (ff) { if (ff.id === 'sect') sectE224 = ff; });
     if (!friendly224) { friendly224 = f1id220; sectE224.rel[f1id220] = 'friendly'; }
+    /* 主动宣战：非敌对者**不是不能打，是要先付得出**（第册一百二十二批 · 用户裁定「开：重代价」）。
+     * 旧边界「白手开不成战」由这条承接：抽干灵石 ⇒ reason 由 notenemy 换成 poor，且分文不动、不开战、不折损
+     *（三笔代价与连带敌对的正面判据在 probe-sectgov V10/V11，两处不重复计）。 */
+    var s224o = w224.stones;
+    w224.stones = 0;
     var notEnemy224 = SQ.Sect.declareWar(w224, pack, D, friendly224, Date.now(), noopLog());
+    var notEnemyHold = w224.stones === 0 && !w224.factionWar &&
+      Math.abs((w224.sect.repCut != null ? w224.sect.repCut : 1) - 1) < 1e-9;
+    w224.stones = s224o;
     sectE224.rel[evilF220] = 'enemy';
     (w224.factions || []).forEach(function (ff) { if (ff.id === evilF220) { ff.rel = ff.rel || {}; ff.rel.sect = 'enemy'; } });
     var war224 = SQ.Sect.declareWar(w224, pack, D, evilF220, Date.now(), noopLog());
@@ -329,8 +342,8 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
     SQ.Legacy.doBingjie(ref224, Date.now());
     var reb224 = ref224.worlds.xiuxian.sect === null && ref224.worlds.xiuxian.factionRepPeak === 0 &&
       ref224.meta.unlocks.sect === true;
-    ok('224', '战争与传承边界：enemy 校验/busy 拒双开；弟子出力 merit=Σfloor(战力/P[4])×2 对表；主动宣战胜=声望压制 −10%、NPC 势力不删除；战败弟子零损失；传位=realm 拦截/供奉不可继位/宗门转 NPC 位+称号跨世+当世不可再开宗+factionId 归 null；转世 ws.sect 重置而 meta 资格保留',
-      notEnemy224.reason === 'notenemy' && warOk224 && busy224.reason === 'busy' &&
+    ok('224', '战争与传承边界：非敌对者要付得出结仇费才开得成（灵石抽干 = poor 且分文不动）/busy 拒双开；弟子出力 merit=Σfloor(战力/P[4])×2 对表；主动宣战胜=声望压制 −10%、NPC 势力不删除；战败弟子零损失；传位=realm 拦截/供奉不可继位/宗门转 NPC 位+称号跨世+当世不可再开宗+factionId 归 null；转世 ws.sect 重置而 meta 资格保留',
+      notEnemy224.reason === 'poor' && notEnemyHold && warOk224 && busy224.reason === 'busy' &&
       merit224 === meritExp224 && joinMerit224 && win224 && lose224b &&
       suc224r.reason === 'realm' && suc224h.reason === 'heir' && succ224 &&
       (join224b.ok === true || join224b.reason === 'cooldown') && reb224);
@@ -711,11 +724,11 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
           parents: [{ id: 'parent_a_long_id', name: '父本名甲', tier: 3 }, { id: 'parent_b_long_id', name: '父本名乙', tier: 3 }],
           createdAt: 1730000000000 };
       }) });
-    ok('234', '混沌淬炼：悟道石 ×1（材料账 out）+ 灵石 REFORGE_COST[tier]（out.arts 既有分类）随尝试消耗；miss 零损失 + CD 1 日二发拒；hit = special 覆盖混沌池（attr 映射 qi→hundun/jing→zaohua/shen→taiyi、grade=gen−1、同池只升不降）+ XARTS 注册同步 + mods hooks 消费对表；poor/wudao/unknown 拒；normalize lastReforgeAt 钳位保留；fusion 最坏态容量 <1.6KB',
+    ok('234', '混沌淬炼：悟道石 ×1（材料账 out）+ 灵石 REFORGE_COST[tier]（out.arts 既有分类）随尝试消耗；miss 零损失 + CD 30 分钟二发拒（第册一百一十五批改值，判据仍读表）；hit = special 覆盖混沌池（attr 映射 qi→hundun/jing→zaohua/shen→taiyi、grade=gen−1、同池只升不降）+ XARTS 注册同步 + mods hooks 消费对表；poor/wudao/unknown 拒；normalize lastReforgeAt 钳位保留；fusion 最坏态容量 <1.6KB',
       miss234 && cd234.reason === 'cd' && hit234 && keep234 && mapOk234 &&
       poorR234.reason === 'poor' && wudaoR234.reason === 'wudao' && unkR234.reason === 'unknown' &&
       norm234 && worst234 < 1600 &&
-      D.FUSE.CHAOS_P === 0.30 && D.FUSE.REFORGE_CD_MS === 86400000,
+      D.FUSE.CHAOS_P === 0.30 && D.FUSE.REFORGE_CD_MS === 1800000,
       'miss=' + miss234 + ' hit=' + hit234 + ' keep=' + keep234 + ' worst=' + worst234 + 'B');
 
     /* #235 命名池扩容（24×20=480 → 36×30=1080）：PRE_N/SUF_N/COMBOS 对表自洽；词表 key 1~36/1~30 连续不缺不重；

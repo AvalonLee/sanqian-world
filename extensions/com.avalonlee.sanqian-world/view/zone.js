@@ -235,7 +235,8 @@
     var pw0 = pwText(zc0);
     var aff0 = SQ.Combat.affixDef(w, d);
     var meta0 = c.t('zone.need', { n: SQ.fmt(zc0.need) }) + ' · ' +
-      c.t('ui.kills', { n: SQ.fmt(w.kills) }) + (aff0 ? ' · ' + c.t('affix.' + aff0.id + '.name') : '');
+      c.t('ui.kills', { n: SQ.fmt(w.kills) }) + ' · ' + c.t('ui.total', { n: SQ.fmt(w.total || 0) }) +
+      (aff0 ? ' · ' + c.t('affix.' + aff0.id + '.name') : '');
     h += '<div class="curzone">' +
       '<svg class="cz-ink" viewBox="0 0 150 110" aria-hidden="true">' +
       '<path d="M0 110V74l18-22 12 10 16-32 16 28 12-14 18 26 12-12 16 20 30-16v48z" fill="currentColor"></path></svg>' +
@@ -315,7 +316,9 @@
       } else {
         var pw = pwText(z);
         right = '<div class="s ' + pw.cls + '">' + c.esc(pw.txt) + '</div>';
-        var sub = bn ? c.t('combat.bottleneck')
+        /* 瓶颈态补一句出路（第册一百二十批 · 孤儿键接线）：原先只标「瓶颈」两字，玩家看得到位次不够、
+         * 不知道该往哪儿使劲；三条建议都是真渠道（装备词条 / 功法等级 / 晋境抬境界表基值）。 */
+        var sub = bn ? c.t('combat.bottleneck') + ' · ' + c.t('combat.bottleneck.hint')
           : (caveByZone[i] ? c.t('cave.' + caveByZone[i].id + '.name')
             : (cleared.indexOf(i) >= 0 ? c.t('zone.cleared') : c.t('zone.enter')));
         right += '<div class="p">' + c.esc(sub) + '</div>';

@@ -33,8 +33,7 @@
   function renderHome(c) {
     var w = c.w, d = c.d;
     var cur = SQ.Factions.current(w);
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' +
-      c.esc(c.t('sect.system')) + '</button></div></div>';
+    var h = '';
     if (cur) {
       var rank = SQ.Factions.rankOf(w, d, cur.id);
       var rep = SQ.Factions.repOf(w, cur.id);
@@ -235,8 +234,7 @@
     if (c.ui.facPick) return renderDetail(c, c.ui.facPick);
     var w = c.w, d = c.d;
     var cur = SQ.Factions.current(w);
-    var h = '<div class="pagehead split"><div class="chips"><button class="on">' + c.esc(c.t('faction.system')) + '</button></div></div>';
-    h += '<p class="hint" style="margin:6px 0 2px">' + c.esc(c.t('faction.page.hint')) + '</p>';
+    var h = '<p class="hint" style="margin:6px 0 2px">' + c.esc(c.t('faction.page.hint')) + '</p>';
     var camp = c.ui.facCamp || 'all';
     var cnt = { all: (w.factions || []).length, right: 0, neutral: 0, evil: 0 };
     (w.factions || []).forEach(function (f) { if (cnt[f.align] != null) cnt[f.align]++; });
@@ -297,7 +295,8 @@
     c.$('tab-faction').innerHTML = h;
   }
 
-  /* 势力卡（走查 v2.5 §1 抽出 + 深化批 v1.23）：名称不带阵营字——阵营由所在栏表达；
+  /* 势力卡（走查 v2.5 §1 抽出 + 深化批 v1.23 + 第册一百一十七批分层）：名称那一行仍不带阵营字，
+   * 但**身份行（`.fm`）现在写阵营**——默认「全部」筛选态下屏上原先没一处说明这家是正还是邪；
    * 固定势力挂「名门」角标；当前效力卡显示职级放大后的 perk 实效 */
   function factionCard(c, w, f, cur, dir) {
     var isCur = cur && cur.id === f.id;
@@ -311,11 +310,16 @@
     var cdLeft = (w.factionCdUntil || 0) > Date.now();
     var rankC = isCur ? SQ.Factions.rankOf(w, c.d, f.id) : -1;
     /* 江湖名录取数（第卌七批）：固定势力在卡上写清「掌门 / 太上」是谁——名录认不出就不写这一行，
-     * 视图不编名字（同第卌四批「不编一个假境界出来」那条纪律）；行样式复用 `.fd`，不新增 CSS。 */
+     * 视图不编名字（同第卌四批「不编一个假境界出来」那条纪律）。第册一百一十七批起这一行自有类
+     * `.fpeople`（原先与介绍同为 `.fd` ⇒ 两者同字号同色，读不出谁是身份谁是描述）。 */
     var mst = f.fixed && SQ.Jianghu ? SQ.Jianghu.masterOf(c.p, f.id) : null;
     var eld = f.fixed && SQ.Jianghu ? SQ.Jianghu.elderOf(c.p, f.id) : null;
-    var mstLine = (mst && eld) ? '<div class="fd">' + c.esc(c.t('faction.master.line', {
+    var mstLine = (mst && eld) ? '<div class="fd fpeople">' + c.esc(c.t('faction.master.line', {
       name: mst.nm, realm: c.t('realm.' + mst.rlm), elder: eld.nm })) + '</div>' : '';
+    /* 分层顺序（第册一百一十七批 · 用户令「信息挤在一起、没有轻重」）：名号 ‖ 身份（阵营 · 门众）
+     * ‖ 增益（决策要看的那个数）‖ 掌门·太上 ‖ 介绍（降权小字）‖ 关系 chips。
+     * 阵营此前只由筛选 chip 表达——默认「全部」态下屏上没一处说明这家是正还是邪，现补进身份行；
+     * 名称那一行仍不带阵营字（line 298 那条旧口径未破）。 */
     var hc = '<div class="faccard facrow' + (isCur ? ' cur' : '') + '"' +
       (dir ? ' data-act="facDetail" data-v="' + f.id + '"' : '') + '>' +
       '<div class="fh"><span class="fn">' + c.esc(f.name) +
@@ -323,9 +327,10 @@
       (isCur ? '<span class="tierbadge t1">' + c.esc(c.t('faction.joined')) + '</span>' : '') +
       (isCur && rankC > 0 ? '<span class="tierbadge t2">' + c.esc(c.t('faction.rank.' + rankC)) + '</span>' : '') +
       '</span>' +
-      '<span class="fm">' + c.esc(c.t('faction.members', { n: factionMembers(c, w, f) })) + '</span></div>' +
-      '<div class="fd">' + c.esc(c.t(f.desc)) + '</div>' + mstLine +
-      '<div class="fperk">' + c.esc(c.t('faction.perk')) + ' · <b>' + c.esc(perkTxt) + '</b></div>' +
+      '<span class="fm">' + c.esc(c.t('align.' + f.align)) + ' · ' +
+      c.esc(c.t('faction.members', { n: factionMembers(c, w, f) })) + '</span></div>' +
+      '<div class="fperk">' + c.esc(c.t('faction.perk')) + ' · <b>' + c.esc(perkTxt) + '</b></div>' + mstLine +
+      '<div class="fd fdesc">' + c.esc(c.t(f.desc)) + '</div>' +
       '<div class="frel"><span class="lab">' + c.esc(c.t('faction.relations')) + '</span>' +
       '<span class="chipsx">' + factionRelChips(c, w, f) + '</span></div>';
     var isSectLord = w.factionId === 'sect' && w.sect && !w.sect.succession;
@@ -360,13 +365,13 @@
     var out = [];
     var fid = w.factionId;
     if (!fid) return out;
-    var luNpc = (w.spouse && w.spouse.form === 'luding') ? w.spouse.npcId : null;
+    var luSet = SQ.Bonds ? SQ.Bonds.ludingSet(w) : {};
     (((d || c.d).COMPANIONS) || []).forEach(function (cmp) {
       if ((w.factionNpcs || {})[cmp.id] !== fid) return;
       var pk = cmp.perk || {};
       var fieldOk = !!(pk.field && pk.perTier && SQ.Mods.FIELDS.indexOf(pk.field) >= 0);
       var tier = SQ.Bonds ? SQ.Bonds.tierOf(w, cmp.id, d || c.d) : 0;
-      var luding = cmp.id === luNpc;
+      var luding = !!luSet[cmp.id];
       out.push({
         id: cmp.id, pk: pk, tier: tier,
         canPick: fieldOk && !luding && tier >= 1,

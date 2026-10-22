@@ -27,7 +27,7 @@ async function buildSave(ov) {
   if (ov) Object.assign(ws, ov);
   return {
     v: 1,
-    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-21-1' },
+    profile: { name: '验证', worldId: 'xiuxian', createdAt: now, worldName: '罗云州', talents: [], alignBias: 'neutral', seenNote: '2026-10-22-1' },
     meta: { unlockedWorlds: ['xiuxian'] },
     settings: { autoTrib: false, autoEvent: false, tabOrder: [] },
     worlds: { xiuxian: ws }
@@ -97,6 +97,32 @@ async function buildSave(ov) {
   T(wide.secs === 2, 'R6 清单两段（可入 / 已首通）', 'sect=' + wide.secs);
   T(wide.rowsClick === 5, 'R7 非当前已解锁行均可点进（data-act=setZone）', 'n=' + wide.rowsClick);
   T(wide.lockedRows > 0, 'R7b 未解锁行仍以灰行占位（？？？）', 'n=' + wide.lockedRows);
+
+  /* R7c / R7d（第册一百二十批 · 孤儿键接线批）：两枚从未上屏的真文案各归其位——
+   *   hero 那行补「累计产出」（`ui.total`，兄弟 `ui.kills` 早在屏），瓶颈行补一句出路（`combat.bottleneck.hint`）。
+   * 取词一律走词表（不写死中文），数值只验「有数字跟着」不验等值——秒级 tick 会让存档里的产出继续走。
+   * R7d 是正负配平：本 fixture 恰有一行成瓶颈（realm 5 战力 4,972 < z5 门槛 7,200；z6~z9 未解锁不出一句建议），
+   *   所以「建议句出现的格数」必须等于「瓶颈格数」，多出来就是挂错行。 */
+  const bnCells = await page.evaluate(() => {
+    const S = (k, v) => SQ.t(k, v, 'xiuxian');
+    const st = JSON.parse(localStorage.getItem('sanqian-state-v1') || '{}');
+    const w = (st.worlds || {}).xiuxian || {};
+    return {
+      hero: ((document.querySelector('#tab-combat .curzone .cz-meta') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+      lab: S('ui.total', { n: '' }).replace(/\s+/g, ' ').trim(),
+      nInSave: SQ.fmt(w.total || 0),
+      cells: Array.prototype.slice.call(document.querySelectorAll('#tab-combat .zlist .zrow .z-r .p'))
+        .map((x) => (x.textContent || '').replace(/\s+/g, ' ').trim()),
+      bn: S('combat.bottleneck'), hint: S('combat.bottleneck.hint')
+    };
+  });
+  T(bnCells.hero.indexOf(bnCells.lab) >= 0 && new RegExp(bnCells.lab.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' \\d').test(bnCells.hero),
+    'R7c hero 行「累计产出」上屏（ui.total 接线：词表取词 + 后面跟真数）', 'hero="' + bnCells.hero + '" 存档=' + bnCells.nInSave);
+  const bnHit = bnCells.cells.filter((x) => x.indexOf(bnCells.bn) >= 0);
+  T(bnHit.length >= 1 && bnHit.every((x) => x.indexOf(bnCells.hint) >= 0) &&
+    bnCells.cells.filter((x) => x.indexOf(bnCells.hint) >= 0).length === bnHit.length,
+    'R7d 瓶颈行带出建议句、非瓶颈与未解锁行不带（正负配平）',
+    '瓶颈格=' + bnHit.length + ' 建议格=' + bnCells.cells.filter((x) => x.indexOf(bnCells.hint) >= 0).length + ' 例=' + (bnHit[0] || ''));
   /* B16-d 改口：洞天节从「单张通栏 hero + 一列 13 卡」改成设计稿「状态条 + 四组分段
      （当前驻留 / 已拥有未驻留 / 可入驻 / 未解锁）+ 当前驻留设施行」。守的东西照旧：
      十三处一张不少、当前驻留独占一行、入驻按钮在位、设施可营建。 */

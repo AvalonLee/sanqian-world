@@ -160,6 +160,16 @@
   /* ── 战争与传位 ── */
   K['sect.war.declare'] = '{a}向{b}下战书——二十分钟内见分晓';
   K['sect.war.btn'] = '下战书';
+  /* 第册一百一十八批：用户报「宣战入口在哪我没找到」——旧写法在「无敌对」时整段不渲染，
+   * 于是玩家看不到任何解释，只以为没有这个功能。这一段现在恒在，没得打时说一句为什么、怎么结仇。 */
+  K['sect.war.none'] = '四方势力都还没入册，这一列空着。';
+  /* 结仇宣战（第册一百二十二批 · 用户裁定「开：重代价」）：非敌对也能开战，代价当场写在钮上与段尾一句里。
+   * 折损百分比与善恶值一律由视图取表插值（改 `WAR_OPEN_KARMA` / `WAR_REP_SELF_CUT` 即改屏，不留写死数）。 */
+  K['sect.war.open.cost'] = '结仇宣战 {n}';
+  K['sect.war.open.why'] = '与它本无仇：这一笔除灵石（按对家家底计价）外，另折本宗声望永久 −{cut}%、善恶 −{karma}，且它的友好势力一并与你结仇。';
+  K['sect.war.open.log'] = '{name}素与本宗无仇，一战自此：费灵石 {n}、本宗声望折 {cut}%、善恶 −{karma}，另将 {m} 家友好者一并结仇。';
+  K['sect.war.open.poor'] = '灵石不够这一笔结仇费（要 {n}）';
+  K['sect.war.reject'] = '这一战眼下开不成（不是没人就是仗还没散）。';
   K['sect.war.guard'] = '亲率弟子守山';
   K['sect.war.win'] = '{name}大捷——弟子出力，山门增辉（声望上行）';
   K['sect.war.lose'] = '{name}败了一阵——弟子零损失，回去再练';
@@ -182,15 +192,13 @@
 
   /* ── B16-ad：自立宗门治理 / 人事 / 外交（全开放） ── */
   K['sect.gov.title'] = '宗 门 治 理';
-  K['sect.gov.name'] = '宗名';
-  K['sect.gov.rename'] = '改名';
-  K['sect.gov.rename.ok'] = '宗门已改名「{name}」';
-  K['sect.gov.rename.empty'] = '宗名不能为空';
-  K['sect.gov.rule'] = '门规';
-  K['sect.gov.rule.ok'] = '门规已重定';
+  /* 改名 / 重定门规 / 改宣言一族文案随第册一百一十八批的三条写口同批退役（第册一百二十批清账：
+   * 宗名与门规·阵营仍由 `.statestrip` 与四格摘要只读呈现，取 `sect.ui.sum.*` / `sect.gate.*` / `sect.align.*`）。 */
   K['sect.gov.motto'] = '门规宣言';
-  K['sect.gov.motto.ph'] = '写一句本门戒律（24 字内）';
-  K['sect.gov.motto.ok'] = '门规宣言已更新';
+  /* 字数从表取（第册一百一十八批）：原先把「24 字」写进文案，改 MOTTO_MAX 不动屏上话就是谎数
+   * （与「开席文案的分钟数取表值」同一条口径）。 */
+  K['sect.gov.motto.ph'] = '写一句本门戒律（{n} 字内）';
+  K['sect.gov.motto.once'] = '立派时写一次，之后不能改';
   K['sect.gov.motto.line'] = '门规宣言：「{m}」';
   K['sect.gov.tax'] = '税率';
   K['sect.gov.tax.hint'] = '按弟子所在区灵石基准抽成，每月结算；0~30%，步长 5%。';

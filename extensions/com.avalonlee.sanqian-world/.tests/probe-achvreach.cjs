@@ -49,12 +49,12 @@ const BUILD = {
   achv_chuyuan: (c) => { c.w.bonds[compIds[0]] = 1; },
   achv_guangjie: (c) => { compIds.slice(0, 20).forEach((id) => { c.w.bonds[id] = 5; }); },
   achv_renhou: (c) => { compIds.slice(0, 40).forEach((id) => { c.w.bonds[id] = 5; }); },
-  achv_daolv: (c) => { c.w.spouse = { npcId: SPOUSE0, form: 'yinyang', since: Date.now() }; },
+  achv_daolv: (c) => { c.w.spouses = [{ npcId: SPOUSE0, form: 'yinyang', since: Date.now() }]; },
   achv_shuangxiu: (c) => {
     /* 道侣位只收 category==='spouse' 的道友（index.js:393 的 normalize 门），且需满好感 + 30 日；
        since 给 1 而不是 Date.now()：本探针的 Codex.scan 用的是固定 now = 1.7e12，给当前时刻会落在未来 */
     c.w.bonds[SPOUSE0] = D.BOND_MAX || 100;
-    c.w.spouse = { npcId: SPOUSE0, form: 'yinyang', since: 1 };
+    c.w.spouses = [{ npcId: SPOUSE0, form: 'yinyang', since: 1 }];
   },
   achv_xinjie: (c) => { c.w.scars = { [compIds[1]]: 1 }; },
   achv_juefeng: (c) => { c.w.juefengIds = [compIds[2]]; c.w.bonds[compIds[2]] = 10; },

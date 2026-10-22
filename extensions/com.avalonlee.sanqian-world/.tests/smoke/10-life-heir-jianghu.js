@@ -1301,7 +1301,7 @@ window.SQSmoke.frag('10-life-heir-jianghu', async function () {
     var s320 = SQ.defaultState();
     var prof320 = function (p) { return SQ.normalize({ v: s320.v, profile: p, worlds: {}, meta: {} }).profile; };
     var a320 = s320.profile.seenNote === null;
-    var b320 = prof320({ name: '甲', seenNote: '2026-10-21-1' }).seenNote === '2026-10-21-1';
+    var b320 = prof320({ name: '甲', seenNote: '2026-10-22-1' }).seenNote === '2026-10-22-1';
     var c320 = prof320({ seenNote: { a: 1 } }).seenNote === null && prof320({ seenNote: 7 }).seenNote === null &&
       prof320({ seenNote: '' }).seenNote === null;
     var d320 = prof320({ name: '甲' }).seenNote === null;                       /* 旧档无此键 ⇒ 补 null（不是 undefined） */

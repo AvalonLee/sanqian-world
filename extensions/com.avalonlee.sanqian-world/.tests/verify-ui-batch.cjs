@@ -84,8 +84,9 @@ const { chromium } = require('playwright-core');
   T(seal === '', 'R1 财浮层底部「白手起家」文案已去除', 'seal="' + seal + '"');
   await page.click('#mlg-close');
 
-  /* 需求 6：道友页 道侣位提示文案（B15-f 改口：两行摘要 → 两张位卡，空态 = .bondslot.empty） */
-  await page.click('#m-tabbar button:has-text("道友")');
+  /* 需求 6：道友页 道侣位提示文案（B15-f 改口：两行摘要 → 两张位卡，空态 = .bondslot.empty）
+   * 第册一百二十批：页名改「缘法」⇒ 此处按 data-v 定位（原先钉的是标签文字，会随词表漂）。 */
+  await page.click('#m-tabbar button[data-v="bonds"]');
   await page.waitForTimeout(200);
   const spTip = await page.$eval('#tab-bonds .slots2 .bondslot.empty', el => el.textContent);
   T(spTip.includes('候选好感满档可结缘双修') && !/提亲/.test(spTip), 'R6 道侣位文案改为「可结缘双修」（且不留旧称）', spTip.slice(0, 40));
@@ -125,9 +126,18 @@ const { chromium } = require('playwright-core');
   T(proposeShown, 'R5 点候选进入双修 CONFIRM（复用既有三形态）');
   await page.click('#mpr-no');
 
-  /* 需求 4：道友页点解锁卡片 → 弹出详情浮层 */
+  /* 需求 4：道友页点解锁卡片 → 弹出详情浮层
+   * 第册一百一十九批：道友页顶部多了「道友 / 道侣」切换，默认落在道友一族，
+   * 而本件 fixture 已结缘的三位（suwan / xie / yewu）全属道侣族 ⇒ 默认 tab 上没有行。
+   * 所以先切到那一族再点卡（不是放宽判据：点卡弹详情这条一字未动，只是把行取回来）。 */
+  await page.evaluate(() => {
+    const b = document.querySelector('#tab-bonds .seg2 button[data-v="spouse"]');
+    if (b) b.click();
+  });
+  await page.waitForTimeout(350);
+  const rowOnTab = await page.$('#tab-bonds .brow[data-act="bondOpen"]');
   const cardVisibleBefore = await page.$eval('#modal-bonds', el => el.classList.contains('hide'));
-  await page.click('#tab-bonds .brow[data-act="bondOpen"]');
+  await rowOnTab.click();
   await page.waitForTimeout(300);
   const modalShown = await page.$eval('#modal-bonds', el => !el.classList.contains('hide'));
   const hasDetail = await page.$eval('#mbd-body .bd-head', el => !!el);

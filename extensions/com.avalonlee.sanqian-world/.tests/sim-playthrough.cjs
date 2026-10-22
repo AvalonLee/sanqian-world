@@ -54,8 +54,17 @@ const violations = [];
  *   （锚 = 这条种子下的那份逐路线读数）；② 把每一行读数同时收进数组；③ 在打末行 marker **之前**对数组
  *   `join('\n')` 求 md5 与 `ANCHOR_MD5` 对表，漂了就打 FAIL 行并判红。末行 marker 不参与哈希（避免自指）。
  * 用法：`SQ_ANCHOR=1 node .tests/sim-playthrough.cjs 1` ⇒ 末行 `PLAYTHROUGH_ALL_GREEN … ‖ 锚对表相同 d93d11d0`。
- * 改锚纪律照 §4.42：换值要写归因（哪一批改了结算 / 掉率 / 呈现计数），不许顺手把锚改成新值。 */
-const ANCHOR_MD5 = 'd93d11d01f419b9235c68ead54a9d45e';
+ * 改锚纪律照 §4.42：换值要写归因（哪一批改了结算 / 掉率 / 呈现计数），不许顺手把锚改成新值。
+ * ────────────────────────────────────────────────────────────────────────────────
+ * 🆕 **第册一百一十五批 2026-10-21 换值归因**（`d93d11d0…` → `6fc2f20b…`，同参数 轮数 1 ‖ 在册种子 20261008）：
+ *   本批改小两枚**进入结算路径**的冷却 —— `FUSE.CD_MS` 3 现实天 → 2 小时、`FUSE.REFORGE_CD_MS` 1 现实天 → 30 分钟
+ *   （定种轨迹里融合与混沌淬炼的尝试次数随之变多，成就与死因计数跟着位移）。逐路线读数差（改前 = 本会话在
+ *   `bcaf379` 实跑、末行打「锚对表相同 d93d11d0」那一份 ‖ 改后 = 本批实跑 `e:/下载/sanqian-testlogs/anchor115.log`）：
+ *   `己·情缘` 入账 30/60 → 36/60（缺项由 `achv_shuangxiu` 换成 `achv_panzong`）‖ `庚·满藏` 入账 33/60 → 37/60 ‖
+ *   `DEATHS 强制转世 1 次（zhesou=1，戊·累世）` → `0 次（零）`。
+ *   同批另一处「天骄传闻 TTL 40 → 5 现实分钟」不走结算（`pushProdigy` 只写展示卡 `expireAt`，sim 无一条读点），
+ *   已按 `SQ_ANCHOR=1` 复跑一遍自证新值可复现（本行末注：复跑打「锚对表相同 6fc2f20b」后方提交）。 */
+const ANCHOR_MD5 = '6fc2f20b207a109388bd5cf08639b360';
 const TRAJ = [];
 if (ANCHOR_ON) {
   const logRaw = console.log;
@@ -542,7 +551,7 @@ async function playerStep(ref, tag, opts) {
   /* 9b. 混沌淬炼（融合扩容批 §4.4）：在档自创部 + 悟道石 ≥1 + CD 过 → 50% 意愿淬炼 */
   const w6b = ref.worlds[ref.profile.worldId];
   if (((w6b.fusion || {}).customs || []).length && (w6b.materials || {}).mat_wudao >= 1 &&
-    ((w6b.fusion.lastReforgeAt || 0) + (D.FUSE.REFORGE_CD_MS || 86400000) <= Date.now()) && Math.random() < 0.5) {
+    ((w6b.fusion.lastReforgeAt || 0) + (D.FUSE.REFORGE_CD_MS || 1800000) <= Date.now()) && Math.random() < 0.5) {
     const rr6 = await asafe(tag + '.reforge', () => SQ.Actions.customReforge(ref, randPick(w6b.fusion.customs).id));
     if (rr6 && rr6.ok) { craftStats.reforgeTry++; if (rr6.hit) craftStats.reforgeOk++; }
     else if (rr6) craftStats.reforgeFail[rr6.reason || 'null'] = (craftStats.reforgeFail[rr6.reason || 'null'] || 0) + 1;
@@ -701,8 +710,10 @@ async function playerStep(ref, tag, opts) {
         }
         continue;
       }
-      /* 满档 → 提亲（spouse 名录成员；非 spouse 类目直接跳过，不空掷） */
-      if (bt.spouse && !wB2.spouse) {
+      /* 满档 → 提亲（spouse 名录成员；非 spouse 类目直接跳过，不空掷）。
+       * 多道侣（册一百二十三批）：本脚本保留**单道侣策略**以守住轨迹锚（多修收益口径由
+       * sim-pacing 单独覆盖）；只判「当前一位都没有」，不按人判，避免行为随新机制漂移。 */
+      if (bt.spouse && !(wB2.spouses || []).length) {
         const chkP = SQ.Bonds.canPropose(wB2, pack, D, bt.npc, nowB);
         if (chkP.ok) {
           const pr = await asafe(tag + '.propose', () => SQ.Actions.proposeSpouse(ref, bt.npc));

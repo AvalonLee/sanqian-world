@@ -607,7 +607,7 @@
   var ui = {
     tab: 'idle',
     detailRate: false, detailTrib: false,
-    logFilter: 'all', shopBlack: false,
+    logFilter: 'all',
     lastAttempts: 0, lastLogKey: '', toasts: [],
     announcedLogKey: '',                    /* 动作处已就同一日志提示过的标识：tick 侧据此避免同文重复呈报 */
     newLogDot: false,                       /* 日志页未读红点（afterClaim 置位，进页清除） */
@@ -626,10 +626,11 @@
     codexOpen: {},                          /* 奇遇图鉴段折叠（UI v2 B9）：tier 键控，纯 UI 态、不入档 */
     achvGroup: 'xiu',                       /* 成就页行为成就分组（UI v2 B16-k）：六组 chips 单选，纯 UI 态 */
     alTab: 'dan',                           /* 炼丹炼器页分页（UI v2 B16-t）：丹房 / 器台，纯 UI 态、不落盘 */
+    bondsTab: 'friend',                     /* 道友页分页（第册一百一十九批）：道友 / 道侣，纯 UI 态、不落盘 */
     bondSnap: null,                         /* 侣 chip 红点快照（B1）：升档/可提亲变化检测 */
     caveSnap: null,                         /* 地 chip 红点快照（B1）：新福地解锁变化检测 */
     achvSnap: null,                         /* 成就页红点快照：新成就达成变化检测（meta.achv 只增） */
-    spouseLogSeen: 0,                       /* 双修解除叙事已消费标记（B4）：spouseLog.at 键控，会话一次 */
+    spouseLogSeen: {},                      /* 双修解除叙事已消费标记（B4 · 多道侣）：at|npcId 键控，会话一次 */
     giftI: -1, giftUntil: 0,                /* 页游礼包彩蛋（第卅九批）：会话内轮换槽位与下次重掷时刻——纯呈现，不入存档 */
     lastMerchUntil: 0,                      /* 神秘商人开席时刻（第卅九批）：席期只 MERCHANT_DURATION_MS，靠它把「到货」这件事提示出来 */
     karmaRank: ''                           /* 善恶名号段位基线（善恶名号批）：跨段即触发名号更迭演出 */
@@ -1216,7 +1217,8 @@
         var gI = SQ.Bonds.guardianOf(wI, pI, dI);
         /* B16-x：侣柱同时显示护法位与双修位（两行小字，框内可读） */
         var gNameI = gI ? t('bond.' + gI.npcId + '.name') : t('rail.none');
-        var sNameI = wI.spouse ? t('bond.' + wI.spouse.npcId + '.name') : t('rail.none');
+        var spsI = SQ.Bonds.spousesOf(wI);
+        var sNameI = spsI.length ? SQ.Bonds.spouseLine(wI, pI, 1) : t('rail.none');
         /* 红点签名（自原 renderPillars 迁入：侣 = 升档/可提亲、地 = 新福地解锁——进浮层/洞天节即消） */
         var sigP = bondRedDotSig();
         if (ui.bondSnap == null) ui.bondSnap = sigP;
@@ -1234,7 +1236,7 @@
           '<span class="rb-pair"><i>' + esc(t('bond.guard.tag')) + '</i><b>' + esc(gNameI) +
           (gI ? esc(bondTierNum(gI.tier)) : '') + '</b></span>' +
           '<span class="rb-pair"><i>' + esc(t('bond.spouse.tag')) + '</i><b>' + esc(sNameI) +
-          (wI.spouse ? ' · ' + esc(t('bond.spouse.form.' + wI.spouse.form)) : '') + '</b></span>' +
+          (spsI.length === 1 ? ' · ' + esc(t('bond.spouse.form.' + spsI[0].form)) : '') + '</b></span>' +
           '</div></button>' +
           '<button class="rb-slot" data-act="openArtsModal"><div class="rb-sk">' + esc(t('pillar.fa')) + '</div>' +
           '<div class="rb-sv">' + esc(mainI ? t('skill.' + mainI + '.name') : t('pillar.fa.empty')) + '</div>' +
@@ -1326,8 +1328,8 @@
         h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.jianghu')) + '</div>' +
           '<div class="rb-b"><b>' + esc(t('bond.guard.tag')) + '</b><span>' + esc(gJ && gJ.bonus > 0
             ? t('bond.' + gJ.npcId + '.name') : t('rail.none')) + '</span></div>' +
-          '<div class="rb-b"><b>' + esc(t('bond.sec.spouse')) + '</b><span>' + esc(wJ.spouse
-            ? t('bond.' + wJ.spouse.npcId + '.name') : t('pillar.lv.subnone')) + '</span></div>' +
+          '<div class="rb-b"><b>' + esc(t('bond.sec.spouse')) + '</b><span>' + esc(SQ.Bonds.spousesOf(wJ).length
+            ? SQ.Bonds.spouseLine(wJ, pJ, 1) : t('pillar.lv.subnone')) + '</span></div>' +
           '<div class="rb-b"><b>' + esc(t('bond.sec.met')) + '</b><span>' + metJ + ' / ' + listJ.length + '</span></div>' +
           '<div class="rb-b"><b>' + esc(t('faction.system')) + '</b><span>' + esc(facJ ? facJ.name : t('rail.none')) + '</span></div>' +
           '<div class="rb-b"><b>' + esc(t('jianghu.system')) + '</b><span>' + esc(boardJ && boardJ.myRank > 0
@@ -1432,9 +1434,11 @@
     var cv = SQ.Cave.current(w, p);
     /* 侣 chip 副标（B1 · 交互说明 §4.2 ★）：结缘后 = 道号·形态名；否则护法·道号③；再否则尚未结缘 */
     var gP = SQ.Bonds.guardianOf(w, p, d);
+    var spsP = SQ.Bonds.spousesOf(w);
     var lvSub;
-    if (w.spouse) {
-      lvSub = t('bond.' + w.spouse.npcId + '.name') + ' · ' + t('bond.spouse.form.' + w.spouse.form);
+    if (spsP.length) {
+      lvSub = SQ.Bonds.spouseLine(w, p, 1) +
+        (spsP.length === 1 ? ' · ' + t('bond.spouse.form.' + spsP[0].form) : '');
     } else if (gP && gP.bonus > 0) {
       lvSub = t('pillar.lv.sub', { name: t('bond.' + gP.npcId + '.name'), num: bondTierNum(gP.tier) });
     } else if (gP) {
@@ -1972,7 +1976,7 @@
     $('tab-journal').innerHTML = '';
     $('tab-settings').innerHTML = '';
     renderTab();
-    SQ.UI.bonds.checkSpouseLog(ctx());   /* 双修解除叙事（B4）：spouseLog.at 键控会话一次 */
+    SQ.UI.bonds.checkSpouseLog(ctx());   /* 双修解除叙事（B4 · 多道侣）：spouseLogs 按 at|npcId 键控会话一次 */
   }
 
   /* ── 渡劫演出族已随第册五十八批整片外置 view/trib.js（N34 第二十刀 · 阶段 A1）：
@@ -2508,6 +2512,7 @@
     if (!t || t.tagName !== 'INPUT') return;
     if (t.classList.contains('fusename')) ui.fuseName = t.value;
     else if (t.id === 'sect-name-input') ui.sectRollName = t.value;
+    else if (t.id === 'sect-found-motto-input') ui.sectFoundMotto = t.value;   /* 第册一百一十八批：立派那一步的宣言 */
   });
 
   /* 输入闸（GitHub issue #5）：焦点在输入框里时 tick 不重建 DOM（见 startTick），
@@ -2648,6 +2653,7 @@
     if (act === 'artsGroupVal') { ui.artsGroupVal = ui.artsGroupVal === v ? null : v; renderTab(); return; }
     if (act === 'achvGroup') { ui.achvGroup = v; renderTab(); return; }   /* UI v2 B16-k：成就六组 chips（纯 UI 态，单选不取消） */
     if (act === 'alTab') { ui.alTab = v === 'qi' ? 'qi' : 'dan'; renderTab(); return; }   /* UI v2 B16-t：丹房 / 器台分页（纯 UI 态） */
+    if (act === 'bondsTab') { ui.bondsTab = v === 'spouse' ? 'spouse' : 'friend'; renderTab(); return; }   /* 第册一百一十九批：道友 / 道侣分页（纯 UI 态，与 alTab 同口径） */
     if (act === 'unslotArt') { await SQ.Actions.unslotArt(state, v); renderAll(); return; }
     /* 设主修（GitHub issue #3）：六槽任一都可选，选中即换人；被引擎拒（不在槽内）给如实文案 */
     if (act === 'setMainArt') {
@@ -2655,9 +2661,10 @@
       return;
     }
     if (act === 'upgradeArt') { await SQ.Actions.upgradeArt(state, v); renderAll(); return; }
-    if (act === 'shopTab') { ui.shopBlack = v === '1'; renderTab(); return; }
+    /* 坊市刷新（第册一百一十四批：一页两架 ⇒ 每架一枚钮，data-v 就是「刷哪一架」；
+     * 原先那行「坊市/黑市」页签与 ui.shopBlack 一并退役） */
     if (act === 'refreshShop') {
-      await SQ.UI.shop.actRefresh(ctx());
+      await SQ.UI.shop.actRefresh(ctx(), v === '1');
       return;
     }
     if (act === 'toggleAutoTrib') {
@@ -2877,7 +2884,10 @@
     if (act === 'forgeBp') { SQ.UI.alchemy.actForgeBp(ctx(), v); return; }
     if (act === 'forgeDir') { SQ.UI.alchemy.actForgeDir(ctx(), v); return; }
     if (act === 'forgeAttr') { SQ.UI.alchemy.actForgeAttr(ctx(), v); return; }
-    if (act === 'prodDetail') { ui.prodOpen = (ui.prodOpen === v ? null : v); renderTab(); return; }
+    if (act === 'prodDetail') { ui.prodOpen = (ui.prodOpen === v ? null : v); ui.jhOpen = null; renderTab(); return; }
+    /* 只读人物卡（第册一百一十六批 · 用户令「四榜角色都应该能交互」）：与 prodDetail 互斥，
+     * 一次只展开一张卡；两族闸门不同——天骄那张带切磋/袭杀，这张只给身份与深浅。 */
+    if (act === 'jhDetail') { ui.jhOpen = (ui.jhOpen === v ? null : v); ui.prodOpen = null; renderTab(); return; }
     if (act === 'sparProd') {
       SQ.UI.jianghu.actSpar(ctx(), v, el.dataset.c || 'std');
       return;
@@ -2909,9 +2919,15 @@
     if (act === 'sectRollName') { ui.sectRollName = SQ.Sect.nameOfIdx(SQ.Sect.rollIdx(), wid()); renderTab(); return; }
     if (act === 'sectFound') {
       var nameIn2 = document.getElementById('sect-name-input');
+      /* 门规宣言随立派一次写入（第册一百一十八批）：值取 `ui.sectFoundMotto`（input 监听回填，
+       * 与自定义名同一套防 tick 抹字的口径），成交即清空——下一门不该继承上一门的宣言。 */
+      var mottoIn2 = (ui.sectFoundMotto || '').trim();
       askConfirm(t('sect.found.btn'), t('sect.found.confirm'), async function () {
-        var rFd = await SQ.Actions.sectFound(state, (ui.sectPick || {}).gate || 'wuyue', nameIn2 ? nameIn2.value : '', null, (ui.sectPick || {}).align || 'neutral');
-        if (rFd && rFd.ok) toast(t('sect.found.log', { name: rFd.name, gate: t('sect.gate.' + ((ui.sectPick || {}).gate || 'wuyue') + '.name') }));
+        var rFd = await SQ.Actions.sectFound(state, (ui.sectPick || {}).gate || 'wuyue', nameIn2 ? nameIn2.value : '', null, (ui.sectPick || {}).align || 'neutral', mottoIn2);
+        if (rFd && rFd.ok) {
+          ui.sectFoundMotto = '';
+          toast(t('sect.found.log', { name: rFd.name, gate: t('sect.gate.' + ((ui.sectPick || {}).gate || 'wuyue') + '.name') }));
+        }
         else if (rFd) {
           var fkk = 'sect.ui.fail.' + rFd.reason;
           toast(t(fkk) !== fkk ? t(fkk) : rFd.reason);
@@ -2956,28 +2972,22 @@
     }
     if (act === 'sectWar') {
       var rW = await SQ.Actions.sectWar(state, v);
-      if (rW && !rW.ok) toast(rW.reason === 'cd' ? t('sect.war.cd', { t: timeLeftText(rW.until - Date.now()) }) : (rW.reason === 'busy' ? t('sect.war.busy') : rW.reason));
+      /* 拒因一律走表内键（#272/#273 那条「不许把内部字段名打上屏」，原先 else 直接 toast(rW.reason)）；
+       * 结仇宣战（第册一百二十二批）多一枚 poor：灵石不够要把这一笔的价说出口。 */
+      if (rW && !rW.ok) toast(rW.reason === 'cd' ? t('sect.war.cd', { t: timeLeftText(rW.until - Date.now()) })
+        : (rW.reason === 'busy' ? t('sect.war.busy')
+          : (rW.reason === 'poor' ? t('sect.war.open.poor', { n: SQ.fmt(rW.cost || 0) }) : t('sect.war.reject'))));
+      else if (rW && rW.ok && rW.fee > 0) toast(t('sect.war.open.log', {
+        name: (SQ.Factions.nameOf(ws(), v) || ''), n: SQ.fmt(rW.fee),
+        cut: Math.round((D().SECT.WAR_REP_SELF_CUT != null ? D().SECT.WAR_REP_SELF_CUT : 0.10) * 100),
+        karma: Math.abs(D().SECT.WAR_OPEN_KARMA != null ? D().SECT.WAR_OPEN_KARMA : -30), m: (rW.foes || []).length
+      }));
       renderAll();
       return;
     }
-    /* B16-ad：自立宗门治理 / 人事 / 外交（全开放） */
-    if (act === 'sectGovField') {
-      var gvF = v === 'rename' ? ($('sect-rename-input') || {}).value : ($('sect-motto-input') || {}).value;
-      var rGF = await SQ.Actions.sectGov(state, v, gvF);
-      if (rGF && rGF.ok) toast(t(v === 'rename' ? 'sect.gov.rename.ok' : 'sect.gov.motto.ok', { name: rGF.name || '' }));
-      else if (rGF && rGF.reason === 'empty') toast(t('sect.gov.rename.empty'));
-      renderAll();
-      return;
-    }
-    if (act === 'sectGovRule') {
-      var wR = ws(), secR = wR.sect || {};
-      var gR = el.dataset.c === 'gate' ? v : secR.gate;
-      var aR = el.dataset.c === 'align' ? v : secR.align;
-      var rGR = await SQ.Actions.sectGov(state, 'rule', gR, aR);
-      if (rGR && rGR.ok) toast(t('sect.gov.rule.ok'));
-      renderAll();
-      return;
-    }
+    /* B16-ad：自立宗门治理 / 人事 / 外交
+     * 🔧 第册一百一十八批：`sectGovField`（改名 / 宣言）与 `sectGovRule`（门规 / 阵营）两条分派随写口
+     *    一并删除——那四样在立派那一步定死（宣言走 sectFound 的入参），治理段只剩税率 / 人事 / 解散 / 停战。 */
     if (act === 'sectGovTax') {
       var rGT = await SQ.Actions.sectGov(state, 'tax', parseInt(v, 10));
       renderAll();

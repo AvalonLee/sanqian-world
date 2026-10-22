@@ -84,9 +84,9 @@
         streak: 0, officeGuard: false },
       /* G14 护法结缘（引擎卷 §五 · v1.4）：好感只增（−1 = 绝交锁）/ 护法记录 / 冥佑计日锚
        * / 心结锁（炉鼎解除）/ 提亲冷却 / 双修状态与解除叙事待消费记录 */
-      bonds: {}, spouse: null, guardLog: { count: 0, success: 0 },
+      bonds: {}, spouses: [], guardLog: { count: 0, success: 0 },
       guardianPick: null,           /* 护法自选批：玩家手选护法位（null = 自动·好感最高者） */
-      chuBlessAt: 0, scars: {}, spouseCdUntil: 0, spouseLog: null,
+      chuBlessAt: 0, scars: {}, spouseCdUntil: 0, spouseLogs: [],
       /* G15 法宝（灵宝 · 法宝全录）：独立于四槽法器，栏位 3 / 库无上限 / 不炼化 */
       treasures: SQ.Treasures.blank(),
       /* 天道系统（天道设计 v1.1 §8.1 · 唯一写口 systems/tiandao.js） */
@@ -317,7 +317,7 @@
     out.tribulation.officeGuard = out.tribulation.officeGuard === true;
     /* ── G14 护法结缘（批 3 · A1）+ 势力批 v2.4 迁移：bonds 只收名录内 id，值域 =
      * −99（绝交锁哨兵；旧档 −1 自动迁移）/ −20~−2（厌恶，合法负好感）/ 0~100 整数；
-     * spouse/scars/spouseLog 逐字段校验，脏档一律回落缺省（好感是荣誉资产，宁丢脏不造假）── */
+     * spouses/scars/spouseLogs 逐字段校验，脏档一律回落缺省（好感是荣誉资产，宁丢脏不造假）── */
     var compIds = {};
     (D.COMPANIONS || []).forEach(function (c) { compIds[c.id] = c; });
     /* 天骄好感与同道友同池（天骄卷 §6.1 唯一来源 = 切磋 / 专属事件写 `ws.bonds.pr{n}`），
@@ -467,10 +467,19 @@
     out.rumors = (SQ.Rumors && SQ.Rumors.normalizeList)
       ? SQ.Rumors.normalizeList(raw.rumors, pack, D, nowN) : [];
     out.rumorClock = Math.max(0, num(raw.rumorClock, 0));
-    var sp = obj(raw.spouse, null);
-    out.spouse = (sp && compIds[sp.npcId] && compIds[sp.npcId].category === 'spouse' &&
-      (D.SPOUSE_FORMS || {})[sp.form])
-      ? { npcId: sp.npcId, form: sp.form, since: num(sp.since, 0) } : null;
+    /* 多道侣（册一百二十三批）：`spouses` 数组；旧档单值 `spouse` 在此一次性迁移。
+     * 名录外 / 非候选 / 未知形态 / 同一人重复一律丢弃；人数不设上限（内容池 14 位为自然上界）。 */
+    var rawSp = Array.isArray(raw.spouses) ? raw.spouses : (obj(raw.spouse, null) ? [raw.spouse] : []);
+    var seenSp = {};
+    out.spouses = [];
+    rawSp.forEach(function (sp) {
+      if (!sp || typeof sp !== 'object') return;
+      if (!compIds[sp.npcId] || compIds[sp.npcId].category !== 'spouse') return;
+      if (!(D.SPOUSE_FORMS || {})[sp.form]) return;
+      if (seenSp[sp.npcId]) return;
+      seenSp[sp.npcId] = 1;
+      out.spouses.push({ npcId: sp.npcId, form: sp.form, since: Math.max(0, num(sp.since, 0)) });
+    });
     var gl = obj(raw.guardLog, {});
     out.guardLog = { count: Math.max(0, Math.floor(num(gl.count, 0))), success: Math.max(0, Math.floor(num(gl.success, 0))) };
     out.guardLog.success = Math.min(out.guardLog.success, out.guardLog.count);
@@ -483,10 +492,16 @@
     for (var scn in rawSc) if (compIds[scn]) scars[scn] = num(rawSc[scn], 0);
     out.scars = scars;
     out.spouseCdUntil = Math.max(0, num(raw.spouseCdUntil, 0));
-    var sl = obj(raw.spouseLog, null);
-    out.spouseLog = (sl && compIds[sl.npcId] && (D.SPOUSE_FORMS || {})[sl.form] &&
-      (sl.reason === 'karma' || sl.reason === 'redemption'))
-      ? { npcId: sl.npcId, form: sl.form, reason: sl.reason, at: num(sl.at, 0) } : null;
+    /* 解除叙事待消费记录：数组（多道侣同刻整批散）；旧档单条 `spouseLog` 在此迁移。 */
+    var rawSl = Array.isArray(raw.spouseLogs) ? raw.spouseLogs : (obj(raw.spouseLog, null) ? [raw.spouseLog] : []);
+    out.spouseLogs = [];
+    rawSl.forEach(function (sl) {
+      if (!sl || typeof sl !== 'object') return;
+      if (!compIds[sl.npcId] || !(D.SPOUSE_FORMS || {})[sl.form]) return;
+      if (sl.reason !== 'karma' && sl.reason !== 'redemption') return;
+      out.spouseLogs.push({ npcId: sl.npcId, form: sl.form, reason: sl.reason, at: Math.max(0, num(sl.at, 0)) });
+    });
+    out.spouseLogs = out.spouseLogs.slice(-16);
     out.realm = Math.max(0, Math.min(D.REALMS.length - 1, Math.floor(out.realm)));
     out.zone = Math.max(0, Math.min(D.ZONES.length - 1, Math.floor(out.zone)));
     /* ── 系统深化批 A4/A6 新字段幂等补齐（数值详设 §2.5~§2.7 / §8.3 存档表）── */
@@ -564,8 +579,8 @@
      * 玩家主动移槽不会被每 tick 覆写。 */
     if (!ws.artsAutoInit) { SQ.Arts.autoSlot(ws, pack, D, null); ws.artsAutoInit = true; }
     /* 双修维持检查（引擎卷 §3.8 · v1.4 口径1）：karma 每次重算后校验形态门槛——
-     * 阴阳跌破正道档 / 炉鼎回升出魔道档 → 解除（互助不自动解除）；解除写 spouseLog 供视图消费叙事 */
-    if (SQ.Bonds && ws.spouse) SQ.Bonds.maintain(ws, pack, D, Date.now());
+     * 阴阳跌破正道档 / 炉鼎回升出魔道档 → 解除（互助不自动解除）；解除写 spouseLogs 供视图消费叙事 */
+    if (SQ.Bonds && ws.spouses && ws.spouses.length) SQ.Bonds.maintain(ws, pack, D, Date.now());
   }
 
   /* ── 契约只读视图（module/view 消费）── */

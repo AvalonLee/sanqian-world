@@ -324,11 +324,22 @@
       ? SQ.t('tiandao.memo.faction', { name: facName, rank: SQ.t('faction.rank.' + SQ.Factions.rankOf(ws, D), null, wid) }, wid)
       : SQ.t('tiandao.memo.faction.none', null, wid) });
     var bondLine;
-    if (ws.spouse) {
+    var sps = SQ.Bonds ? SQ.Bonds.spousesOf(ws) : [];
+    if (sps.length === 1) {
       bondLine = SQ.t('tiandao.memo.bonds.spouse', {
-        name: SQ.t('bond.' + ws.spouse.npcId + '.name', null, wid),
-        form: SQ.t('bond.spouse.form.' + ws.spouse.form, null, wid)
+        name: SQ.t('bond.' + sps[0].npcId + '.name', null, wid),
+        form: SQ.t('bond.spouse.form.' + sps[0].form, null, wid)
       }, wid);
+    } else if (sps.length > 1) {
+      /* 多道侣：名单最多列三位，余者以「等 N 人」收束（奏疏是一行摘要，不铺全表） */
+      var names = sps.slice(0, 3).map(function (sp) {
+        return SQ.t('tiandao.memo.bonds.spouse.item', {
+          name: SQ.t('bond.' + sp.npcId + '.name', null, wid),
+          form: SQ.t('bond.spouse.form.' + sp.form, null, wid)
+        }, wid);
+      }).join(SQ.t('tiandao.listsep', null, wid));
+      if (sps.length > 3) names += SQ.t('bond.spouse.etal', { n: sps.length }, wid);
+      bondLine = SQ.t('tiandao.memo.bonds.spouse.multi', { names: names }, wid);
     } else {
       var g = SQ.Bonds ? SQ.Bonds.guardianOf(ws, pack, D) : null;
       bondLine = g
