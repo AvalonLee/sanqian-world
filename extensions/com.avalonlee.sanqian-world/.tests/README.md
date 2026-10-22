@@ -268,7 +268,7 @@ npm install --no-save --registry=https://registry.npmmirror.com playwright-core
 | 文件 | 用途 | 事实源 |
 | --- | --- | --- |
 | `gen-arts.cjs` | 生成 `assets/worlds/xiuxian/arts.js`（70 部纯机制数据）+ `lexicon-arts.js` | `docs/玄幻修仙/功法全录（51部）.md` |
-| `gen-lexicon.cjs` | 生成 `assets/lexicon/talents.js`（天赋 name/desc + 羁绊） | `docs/三千世界-天赋池设计.md` + `docs/玄幻修仙/专属天赋池（80条）.md` |
+| `gen-lexicon.cjs` | 生成 `assets/lexicon/talents.js`（天赋 name/desc + 羁绊） | `docs/系统设计/三千世界-天赋池设计.md` + `docs/玄幻修仙/专属天赋池（80条）.md`（2026-10-22 归类批：前者迁入系统设计/，脚本 DOC_COMMON 同步改走 repo-root 动态定位，旧 `/workspace/app` 死路径一并修复） |
 
 > ⚠ 生成器**只读文档、不写数据文件**（幂等纪律）。本扩展包内**不含 `docs/`**，正典文档在源仓库
 > `E:\下载\sanqian-world-b836d9da-source\docs\`（53 份）。因此生成器只有在正典文档就位时才能复跑；
