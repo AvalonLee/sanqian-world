@@ -358,8 +358,8 @@
     'shop.fail.poor': '手头不够，这一单买不下', 'shop.fail.owned': '这一件你已经有了', 'shop.fail.shelffull': '待修习的架子放满了，先装入或散功',
     'arts.slotted': '已入槽', 'shop.fail.pillfull': '丹匣已满（每种上限 99），先服几颗再来',
     'shop.buy': '购入', 'shop.price': '{n}', 'shop.qiprice': '修为 {p}',
-    'shop.confirm': '确认购入「{name}」？价格 {price}',
-    /* 第卌六批：买的是要求未达的功法时，确认框要把去向说一句（原本只有成交后的日志，而日志里也没有这一条） */
+    /* 第卌六批：买的是要求未达的功法时要把去向说一句（原在确认框；第册一百一十四批确认框下架后改挂卡面，
+     * 同批 `shop.confirm` 那句确认文案随之成孤儿，第册一百二十批清账删除） */
     'shop.confirm.shelf': '（此功要求未达，购入后先入待修习架，达标即自行入门）', 
     'shop.blackHint': '价高三成，慎入',
     'shop.blackclosed': '黑市未开市——道心跌破 −200，才有人替你引路',

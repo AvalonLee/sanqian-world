@@ -185,18 +185,13 @@
 
   /* ── B16-ad：自立宗门治理 / 人事 / 外交（全开放） ── */
   K['sect.gov.title'] = '宗 门 治 理';
-  K['sect.gov.name'] = '宗名';
-  K['sect.gov.rename'] = '改名';
-  K['sect.gov.rename.ok'] = '宗门已改名「{name}」';
-  K['sect.gov.rename.empty'] = '宗名不能为空';
-  K['sect.gov.rule'] = '门规';
-  K['sect.gov.rule.ok'] = '门规已重定';
+  /* 改名 / 重定门规 / 改宣言一族文案随第册一百一十八批的三条写口同批退役（第册一百二十批清账：
+   * 宗名与门规·阵营仍由 `.statestrip` 与四格摘要只读呈现，取 `sect.ui.sum.*` / `sect.gate.*` / `sect.align.*`）。 */
   K['sect.gov.motto'] = '门规宣言';
   /* 字数从表取（第册一百一十八批）：原先把「24 字」写进文案，改 MOTTO_MAX 不动屏上话就是谎数
    * （与「开席文案的分钟数取表值」同一条口径）。 */
   K['sect.gov.motto.ph'] = '写一句本门戒律（{n} 字内）';
   K['sect.gov.motto.once'] = '立派时写一次，之后不能改';
-  K['sect.gov.motto.ok'] = '门规宣言已更新';
   K['sect.gov.motto.line'] = '门规宣言：「{m}」';
   K['sect.gov.tax'] = '税率';
   K['sect.gov.tax.hint'] = '按弟子所在区灵石基准抽成，每月结算；0~30%，步长 5%。';

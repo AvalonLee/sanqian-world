@@ -218,7 +218,11 @@ const KEY = 'sanqian-state-v1';
       disband: !!document.querySelector('#tab-sect [data-act="sectDisband"]'),
       editors: document.querySelectorAll('#tab-sect input').length +
         document.querySelectorAll('#tab-sect [data-act="sectGovField"], #tab-sect [data-act="sectGovRule"]').length,
-      txt: (document.getElementById('tab-sect') || {}).innerText || ''
+      txt: (document.getElementById('tab-sect') || {}).innerText || '',
+      /* AT-H4 用（第册一百二十批 · 任免三句孤儿文案上屏）：词表取词拼成期望串，视图只许照搬 */
+      postLine: [SQ.t('sect.gov.post.hint', null, 'xiuxian'),
+        SQ.t('sect.gov.post.steward', null, 'xiuxian') + ' ' + SQ.t('sect.gov.post.steward.eff', null, 'xiuxian'),
+        SQ.t('sect.gov.post.elder', null, 'xiuxian') + ' ' + SQ.t('sect.gov.post.elder.eff', null, 'xiuxian')]
     }));
     const gateH = await pS.evaluate(() => SQ.t('sect.gate.wuyue.name', null, 'xiuxian'));
     const alignH = await pS.evaluate(() => SQ.t('sect.align.neutral.name', null, 'xiuxian'));
@@ -229,6 +233,13 @@ const KEY = 'sanqian-state-v1';
       'AT-H 治理区只剩税率七档 / 任免 / 逐出 / 解散：宗名·门规·阵营·宣言零编辑控件而四样仍只读在屏 · 零报错',
       JSON.stringify({ tax: gov.tax, posts: gov.posts, expel: gov.expel, editors: gov.editors }) +
       ' 名/规/营/言在屏=' + ['试剑宗', gateH, alignH, '戒贪戒躁'].map((x) => gov.txt.indexOf(x) >= 0).join(','));
+    /* AT-H4（第册一百二十批 · 孤儿键接线）：任免规则与两枚职位实效此前只在引擎里（probe-sectgov V5 钉着
+     * 执事 +10% 声望 / 长老 +10% 战力），屏上只有一颗颗「执事」「长老」钮。判的是**渲染结果含这三句**，
+     * 期望串由词表拼出来 ⇒ 改文案不会假红，删掉接线一定红。 */
+    T(gov.posts >= 2 && gov.postLine.every((x) => gov.txt.indexOf(x) >= 0),
+      'AT-H4 弟子段一句任免规则 + 执事/长老各挂自己的 +10% 实效（三枚孤儿键上屏）',
+      'posts=' + gov.posts + ' 命中=' + gov.postLine.map((x) => gov.txt.indexOf(x) >= 0).join(',') +
+      ' 句=' + JSON.stringify(gov.postLine));
     await ctxS.close();
   }
   /* AT-H2（第册一百一十八批 · 用户裁定「门规宣言立派时写一次，之后不能改」）：
