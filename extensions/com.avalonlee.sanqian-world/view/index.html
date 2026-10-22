@@ -626,6 +626,7 @@
     codexOpen: {},                          /* 奇遇图鉴段折叠（UI v2 B9）：tier 键控，纯 UI 态、不入档 */
     achvGroup: 'xiu',                       /* 成就页行为成就分组（UI v2 B16-k）：六组 chips 单选，纯 UI 态 */
     alTab: 'dan',                           /* 炼丹炼器页分页（UI v2 B16-t）：丹房 / 器台，纯 UI 态、不落盘 */
+    bondsTab: 'friend',                     /* 道友页分页（第册一百一十九批）：道友 / 道侣，纯 UI 态、不落盘 */
     bondSnap: null,                         /* 侣 chip 红点快照（B1）：升档/可提亲变化检测 */
     caveSnap: null,                         /* 地 chip 红点快照（B1）：新福地解锁变化检测 */
     achvSnap: null,                         /* 成就页红点快照：新成就达成变化检测（meta.achv 只增） */
@@ -2649,6 +2650,7 @@
     if (act === 'artsGroupVal') { ui.artsGroupVal = ui.artsGroupVal === v ? null : v; renderTab(); return; }
     if (act === 'achvGroup') { ui.achvGroup = v; renderTab(); return; }   /* UI v2 B16-k：成就六组 chips（纯 UI 态，单选不取消） */
     if (act === 'alTab') { ui.alTab = v === 'qi' ? 'qi' : 'dan'; renderTab(); return; }   /* UI v2 B16-t：丹房 / 器台分页（纯 UI 态） */
+    if (act === 'bondsTab') { ui.bondsTab = v === 'spouse' ? 'spouse' : 'friend'; renderTab(); return; }   /* 第册一百一十九批：道友 / 道侣分页（纯 UI 态，与 alTab 同口径） */
     if (act === 'unslotArt') { await SQ.Actions.unslotArt(state, v); renderAll(); return; }
     /* 设主修（GitHub issue #3）：六槽任一都可选，选中即换人；被引擎拒（不在槽内）给如实文案 */
     if (act === 'setMainArt') {
