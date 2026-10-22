@@ -299,6 +299,39 @@ const KEY = 'sanqian-state-v1';
     T(warF.heads.indexOf(warF.want) >= 0 && (warF.chips >= 1 || warF.txt.indexOf(warF.none.slice(0, 12)) >= 0),
       'AT-H3 立派后宣战段恒在屏（有敌列名下战书 ‖ 无敌对也说明「谁结仇谁才进得来」）',
       'heads=' + warF.heads.join('/') + ' chips=' + warF.chips + ' 解释句在屏=' + (warF.txt.indexOf(warF.none.slice(0, 12)) >= 0));
+    /* AT-H5（第册一百二十二批 · 结仇宣战上屏）：判的三件事都是「消费关系」——
+     *   ① 每一枚 sectWar 钮要么挂敌对口（只有名字）、要么挂结仇口（名字 + 引擎那口 `warOpenCost` 的标价），
+     *      两类之和必须等于「势力池除去本门的条目数」⇒ 这一判天然非空（固定五门恒在），不会栽在空集恒真上；
+     *   ② 价由 `SQ.Sect.warOpenCost` 现算，与钮上那几个字逐字对表 ⇒ 视图另立一把尺子当场红；
+     *   ③ 段尾那句代价说明「有结仇钮才出现」——开·关是同一条件的两面（foundSect 的关系档带随机，
+     *      全敌对是小概率支路，出现与否都算这条判据成立，读数一并打出来便于下回诊断）。 */
+    const warOpen = await pF.evaluate((k) => {
+      const S = (key, v) => SQ.t(key, v, 'xiuxian');
+      const st = JSON.parse(localStorage.getItem(k) || '{}');
+      const w = (st.worlds || {}).xiuxian || {};
+      const pool = (w.factions || []).filter((f) => f.id !== 'sect');
+      const btns = Array.prototype.slice.call(document.querySelectorAll('#tab-sect [data-act="sectWar"]'))
+        .map((b) => ({ v: b.dataset.v, t: (b.textContent || '').replace(/\s+/g, ' ').trim() }));
+      const openWord = S('sect.war.open.cost', { n: '' }).replace(/\s+/g, ' ').trim().split(' ')[0];
+      const opens = btns.filter((b) => b.t.indexOf(openWord) >= 0);
+      return {
+        pool: pool.length, btnN: btns.length, openN: opens.length,
+        priceOk: opens.every((b) => b.t.indexOf(S('sect.war.open.cost', { n: SQ.fmt(SQ.Sect.warOpenCost(w, SQ.XDATA, b.v)) })) >= 0),
+        plainOk: btns.filter((b) => b.t.indexOf(openWord) < 0).every((b) => {
+          const f = pool.filter((x) => x.id === b.v)[0];
+          return !!f && b.t === f.name;
+        }),
+        why: S('sect.war.open.why', {
+          cut: Math.round((SQ.XDATA.SECT.WAR_REP_SELF_CUT != null ? SQ.XDATA.SECT.WAR_REP_SELF_CUT : 0.10) * 100),
+          karma: Math.abs(SQ.XDATA.SECT.WAR_OPEN_KARMA != null ? SQ.XDATA.SECT.WAR_OPEN_KARMA : -30)
+        }),
+        txt: (document.getElementById('tab-sect') || {}).innerText || ''
+      };
+    }, KEY);
+    T(warOpen.btnN === warOpen.pool && warOpen.pool >= 1 && warOpen.priceOk && warOpen.plainOk &&
+      ((warOpen.openN >= 1) === (warOpen.txt.indexOf(warOpen.why.slice(0, 14)) >= 0)) && errF.length === 0,
+      'AT-H5 宣战段列全池：敌对钮只挂名、非敌对钮挂「结仇宣战 + 引擎标价」，代价句随结仇钮同现同隐',
+      JSON.stringify({ pool: warOpen.pool, btnN: warOpen.btnN, openN: warOpen.openN, priceOk: warOpen.priceOk, plainOk: warOpen.plainOk }));
     await ctxF.close();
   }
 

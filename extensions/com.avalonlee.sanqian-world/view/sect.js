@@ -210,7 +210,9 @@
     var sectEntry = null;
     (w.factions || []).forEach(function (f) { if (f.id === 'sect') sectEntry = f; });
     if (sectEntry && !w.factionWar) {
-      var enemies = (w.factions || []).filter(function (f) { return f.id !== 'sect' && (sectEntry.rel || {})[f.id] === 'enemy'; });
+      var foes = (w.factions || []).filter(function (f) { return f.id !== 'sect'; });
+      var enemies = foes.filter(function (f) { return (sectEntry.rel || {})[f.id] === 'enemy'; });
+      var others = foes.filter(function (f) { return (sectEntry.rel || {})[f.id] !== 'enemy'; });
       var dCd0 = (sec.declareAt || 0) > 0 && Date.now() - sec.declareAt < (d.SECT.WAR_DECLARE_CD_MS);
       h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.war.btn')) + '</span></div>';
       if (enemies.length) {
@@ -219,11 +221,23 @@
           h += '<button data-act="sectWar" data-v="' + f.id + '"' + (dCd0 ? ' disabled' : '') + '>' + c.esc(f.name) + '</button>';
         });
         h += '</div>';
-        if (dCd0) h += '<p class="hint">' + c.esc(c.t('sect.war.cd', {
-          t: c.timeLeft((sec.declareAt || 0) + (d.SECT.WAR_DECLARE_CD_MS || 86400000) - Date.now()) })) + '</p>';
-      } else {
-        h += '<p class="hint">' + c.esc(c.t('sect.war.none')) + '</p>';
       }
+      /* 结仇宣战（第册一百二十二批 · 用户裁定「开：重代价」）：非敌对势力也列得进来，但每颗钮当场标出这一笔的价——
+       * 价由引擎那一口 `warOpenCost` 算（视图不另立第二把尺子），折损百分比一律取表，改数即改屏。 */
+      if (others.length) {
+        h += '<div class="chips">' + others.map(function (f) {
+          var fee = SQ.Sect.warOpenCost(w, d, f.id);
+          return '<button data-act="sectWar" data-v="' + f.id + '"' + ((dCd0 || w.stones < fee) ? ' disabled' : '') + '>' +
+            c.esc(f.name + ' · ' + c.t('sect.war.open.cost', { n: SQ.fmt(fee) })) + '</button>';
+        }).join('') + '</div>' +
+        '<p class="hint">' + c.esc(c.t('sect.war.open.why', {
+          cut: Math.round((d.SECT.WAR_REP_SELF_CUT != null ? d.SECT.WAR_REP_SELF_CUT : 0.10) * 100),
+          karma: Math.abs(d.SECT.WAR_OPEN_KARMA != null ? d.SECT.WAR_OPEN_KARMA : -30)
+        })) + '</p>';
+      }
+      if (!enemies.length && !others.length) h += '<p class="hint">' + c.esc(c.t('sect.war.none')) + '</p>';
+      if (dCd0) h += '<p class="hint">' + c.esc(c.t('sect.war.cd', {
+        t: c.timeLeft((sec.declareAt || 0) + (d.SECT.WAR_DECLARE_CD_MS || 86400000) - Date.now()) })) + '</p>';
     }
     if (w.factionWar && SQ.Factions.warSideOf(w)) {
       /* B16-ad：花灵石单方停战（世界级战争计时立即结束） */

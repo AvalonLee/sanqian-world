@@ -1346,6 +1346,11 @@
       WAR_DISC_K: 2,
       WAR_DECLARE_CD_MS: 86400000,
       WAR_REP_SUPPRESS: 0.10,
+      /* 结仇宣战三笔代价（第册一百二十二批 · 用户裁定「开：重代价」；§5.4）：
+       * 费 = 目标势力声望 × K（下限 1000，与停战费同尺）‖ 善恶一次性 −30（同叛离量级）‖ 本宗声望永久 −10%（累乘下限 0.5） */
+      WAR_OPEN_COST_K: 2,
+      WAR_OPEN_KARMA: -30,
+      WAR_REP_SELF_CUT: 0.10,
       GATES: ['wuyue', 'baihong', 'panlong'],
       NPC_REP_BASE: 1500, NPC_REP_PER_TIER: 500   /* NPC 势力声望排行暂用口径（§5.2）：1500 + 500×档次 */
     }
