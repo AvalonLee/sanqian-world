@@ -93,7 +93,12 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
     var karma220 = w220.karmaEventScore, bond220 = JSON.stringify(w220.bonds);
     var badName220 = SQ.Sect.foundSect(w220, pack, D, m220, 'wuyue', '赌博门', null, 'right', Date.now(), noopLog());
     var facN220b = w220.factions.length;                 /* 敏感词拒名零副作用 */
-    var fd220 = SQ.Sect.foundSect(w220, pack, D, m220, 'wuyue', null, [0, 0], 'right', Date.now(), noopLog());
+    /* 宣言随立派一次写入（第册一百一十八批）：前置空白被 trim、超长按表截到 MOTTO_MAX——
+     * 断言取「首字不是空格 + 长度 === 表值」这两个可观测量，不在测试里重抄一遍清洗式子。 */
+    var fd220 = SQ.Sect.foundSect(w220, pack, D, m220, 'wuyue', null, [0, 0], 'right', Date.now(), noopLog(),
+      '  戒贪戒躁 ' + '一'.repeat(40));
+    var motto220 = (w220.sect || {}).motto || '';
+    var mottoOk220 = motto220.charAt(0) === '戒' && motto220.length === (D.SECT.MOTTO_MAX || 24);
     var sectEntry220 = null;
     (w220.factions || []).forEach(function (ff) { if (ff.id === 'sect') sectEntry220 = ff; });
     var symOk220 = true, enemyOk220 = false;
@@ -106,7 +111,7 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
     ok('220', '开宗四门槛逐项拦截（realm/身份/峰值 2000/遗泽资格）；专用事务：敏感词拒名、零叛离惩罚（karma/bond 零扣）、旧门声望清零职位清理、factionId=sect 哨兵拒 join、第 17 位入池 perk v=0、关系播种对称、正↔魔固定敌对',
       cf220ok.ok === true && cf220r.reason === 'realm' && cf220i.reason === 'identity' &&
       cf220p.reason === 'peak' && cf220u.reason === 'unlock' &&
-      badName220.reason === 'name' && fd220.ok === true &&
+      badName220.reason === 'name' && fd220.ok === true && mottoOk220 &&
       w220.karmaEventScore === karma220 && JSON.stringify(w220.bonds) === bond220 &&
       w220.factionRep[f0id] == null && w220.factionOffice === null && (w220.factionQuests || []).length === 0 &&
       w220.tribulation.officeGuard === false && w220.factionId === 'sect' &&

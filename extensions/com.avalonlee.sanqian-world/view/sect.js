@@ -67,6 +67,15 @@
         h += '<div class="sectnamebox"><input id="sect-name-input" class="tdta" style="min-height:38px" maxlength="6" placeholder="' + c.esc(c.t('sect.ui.name.ph')) + '" value="' + c.esc(c.ui.sectRollName || '') + '"></div>';
         /* N20 接线：正典「掷名可重掷 · 免费无限次」（自立门户卷 §2.2）此前在 UI 完全没有入口，         * sectFound 的 nameIdx 形参一直闲置 ⇒ 补钮并走引擎同一式子（SQ.Sect.rollIdx / nameOfIdx，不抄第二份表名） */
         h += '<button class="linkbtn" data-act="sectRollName" style="margin-top:6px">' + c.esc(c.t('sect.ui.name.roll')) + '</button>';
+        /* 门规宣言（第册一百一十八批 · 用户裁定「立派时写一次，之后不可改」）：它从这一版起是**立派流程的
+         * 一个入参**（随 foundSect 一次落定），治理段不再有编辑口。值走 `ui.sectFoundMotto` 单源——
+         * 秒级 tick 会重绘整段，input 不回填就会打字打一半丢字（融合坛自定义名 issue #5 那一课）。 */
+        var mmaxF = ((d.SECT || {}).MOTTO_MAX || 24);
+        h += '<p class="hint" style="margin-top:10px">' + c.esc(c.t('sect.gov.motto')) + ' · ' +
+          c.esc(c.t('sect.gov.motto.once')) + '</p>' +
+          '<input id="sect-found-motto-input" class="tdta" style="min-height:34px;width:100%" maxlength="' +
+          mmaxF + '" placeholder="' + c.esc(c.t('sect.gov.motto.ph', { n: mmaxF })) +
+          '" value="' + c.esc(c.ui.sectFoundMotto || '') + '">';
         h += '<button class="primary" data-act="sectFound" style="width:100%;margin-top:8px">' + c.esc(c.t('sect.found.btn')) + '</button>';
       }
       /* 立派之后：三行预告（门规三定 / 门中供给 / 传位）——开宗前也看得到路 */
@@ -104,23 +113,12 @@
     if (SQ.Sect.discipleMerit(w, p, d) > 0) {
       h += '<p class="hintline">' + c.esc(c.t('sect.war.merit', { n: SQ.fmt(SQ.Sect.discipleMerit(w, p, d)) })) + '</p>';
     }
-    /* B16-ad：自立宗门完全开放——改名 / 改门规 / 门规宣言 / 税率 / 解散 */
+    /* B16-ad「完全开放」→ 第册一百一十八批收紧（用户裁定：宗名不能改、门规（立场）与阵营不能改、
+     * 门规宣言创立即定）：这四样都在立派那一步一次落定，本段随之**撤掉三行编辑控件**
+     * （改名输入 / 门规·阵营两组 chips / 宣言输入），只剩税率与解散；引擎侧 `rename`/`setRule`/`setMotto`
+     * 三条写口同批删除。宗名与门规·阵营顶部状态条 `.statestrip` 与四格摘要本就只读呈现，
+     * 这里不再抄第二遍（去重口径）。宣言同样只读回显。 */
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.gov.title')) + '</span></div>';
-    h += '<div class="setrow"><span class="sl">' + c.esc(c.t('sect.gov.name')) + '</span>' +
-      '<span style="display:flex;gap:6px;align-items:center"><input id="sect-rename-input" class="tdta" style="max-width:140px;min-height:32px" maxlength="' + (d.SECT.NAME_MAX || 6) + '" value="' + c.esc(sec.name) + '">' +
-      '<button data-act="sectGovField" data-v="rename">' + c.esc(c.t('sect.gov.rename')) + '</button></span></div>';
-    h += '<div class="setrow col"><span class="sl">' + c.esc(c.t('sect.gov.rule')) + '</span><div class="chips">' +
-      (d.SECT.GATES || []).map(function (g) {
-        return '<button class="' + (sec.gate === g ? 'on' : '') + '" data-act="sectGovRule" data-c="gate" data-v="' + g + '">' +
-          c.esc(c.t('sect.gate.' + g + '.name')) + '</button>';
-      }).join('') +
-      ['right', 'neutral', 'evil'].map(function (a) {
-        return '<button class="' + (sec.align === a ? 'on' : '') + '" data-act="sectGovRule" data-c="align" data-v="' + a + '">' +
-          c.esc(c.t('sect.align.' + a + '.name')) + '</button>';
-      }).join('') + '</div></div>';
-    h += '<div class="setrow"><span class="sl">' + c.esc(c.t('sect.gov.motto')) + '</span>' +
-      '<span style="display:flex;gap:6px;align-items:center"><input id="sect-motto-input" class="tdta" style="max-width:200px;min-height:32px" maxlength="' + (d.SECT.MOTTO_MAX || 24) + '" placeholder="' + c.esc(c.t('sect.gov.motto.ph')) + '" value="' + c.esc(sec.motto || '') + '">' +
-      '<button data-act="sectGovField" data-v="motto">' + c.esc(c.t('sect.gov.motto')) + '</button></span></div>';
     if (sec.motto) h += '<p class="hint" style="margin:2px 0">' + c.esc(c.t('sect.gov.motto.line', { m: sec.motto })) + '</p>';
     h += '<div class="setrow col"><span class="sl">' + c.esc(c.t('sect.gov.tax')) + '</span><div class="chips">' +
       (d.SECT.TAX_STEPS || [0, 5, 10, 15, 20, 25, 30]).map(function (n) {
@@ -200,18 +198,26 @@
         '<div class="acts"><button data-act="sectBuild" data-v="' + fid + '"' + ((maxed || w.stones < cost) ? ' disabled' : '') + '>' +
         c.esc(maxed ? c.t('sect.fac.max') : c.t('sect.fac.cost', { n: SQ.fmt(cost) })) + '</button></div></div>';
     });
-    /* 战争：对敌下战书；进行中战争走既有应战入口（势力页/传闻卡同源） */
+    /* 战争：对敌下战书；进行中战争走既有战报条（势力页 / 传闻卡同源）。
+     * 第册一百一十八批：段标与解释**恒渲染**（旧写法只在「已有敌对」时出现 ⇒ 用户报「宣战入口找不到」，
+     * 而引擎的 declareWar 本就要求先成敌对，玩家看到的是一段完全不存在的面，只能猜）。
+     * 射程仍是自立宗门：寄居固定势力的玩家在宗门页看到的是「我的门派」主页，那一手要等开宗立派。 */
     var sectEntry = null;
     (w.factions || []).forEach(function (f) { if (f.id === 'sect') sectEntry = f; });
     if (sectEntry && !w.factionWar) {
       var enemies = (w.factions || []).filter(function (f) { return f.id !== 'sect' && (sectEntry.rel || {})[f.id] === 'enemy'; });
+      var dCd0 = (sec.declareAt || 0) > 0 && Date.now() - sec.declareAt < (d.SECT.WAR_DECLARE_CD_MS);
+      h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.war.btn')) + '</span></div>';
       if (enemies.length) {
-        h += '<div class="sechead"><span class="t">' + c.esc(c.t('sect.war.btn')) + '</span></div><div class="chips">';
-        var dCd = (sec.declareAt || 0) > 0 && Date.now() - sec.declareAt < (d.SECT.WAR_DECLARE_CD_MS);
+        h += '<div class="chips">';
         enemies.forEach(function (f) {
-          h += '<button data-act="sectWar" data-v="' + f.id + '"' + (dCd ? ' disabled' : '') + '>' + c.esc(f.name) + '</button>';
+          h += '<button data-act="sectWar" data-v="' + f.id + '"' + (dCd0 ? ' disabled' : '') + '>' + c.esc(f.name) + '</button>';
         });
         h += '</div>';
+        if (dCd0) h += '<p class="hint">' + c.esc(c.t('sect.war.cd', {
+          t: c.timeLeft((sec.declareAt || 0) + (d.SECT.WAR_DECLARE_CD_MS || 86400000) - Date.now()) })) + '</p>';
+      } else {
+        h += '<p class="hint">' + c.esc(c.t('sect.war.none')) + '</p>';
       }
     }
     if (w.factionWar && SQ.Factions.warSideOf(w)) {
