@@ -365,13 +365,13 @@
     var out = [];
     var fid = w.factionId;
     if (!fid) return out;
-    var luNpc = (w.spouse && w.spouse.form === 'luding') ? w.spouse.npcId : null;
+    var luSet = SQ.Bonds ? SQ.Bonds.ludingSet(w) : {};
     (((d || c.d).COMPANIONS) || []).forEach(function (cmp) {
       if ((w.factionNpcs || {})[cmp.id] !== fid) return;
       var pk = cmp.perk || {};
       var fieldOk = !!(pk.field && pk.perTier && SQ.Mods.FIELDS.indexOf(pk.field) >= 0);
       var tier = SQ.Bonds ? SQ.Bonds.tierOf(w, cmp.id, d || c.d) : 0;
-      var luding = cmp.id === luNpc;
+      var luding = !!luSet[cmp.id];
       out.push({
         id: cmp.id, pk: pk, tier: tier,
         canPick: fieldOk && !luding && tier >= 1,

@@ -150,7 +150,7 @@
       case 'achv_chuyuan': return bondsPos >= 1;
       case 'achv_guangjie': return bondsPos >= 20;
       case 'achv_renhou': return bondsPos >= 40;
-      case 'achv_daolv': return !!(ws.spouse || ws.spouseLog || (ws.spouseCdUntil || 0) > 0);
+      case 'achv_daolv': return !!((ws.spouses && ws.spouses.length) || (ws.spouseLogs && ws.spouseLogs.length) || (ws.spouseCdUntil || 0) > 0);
       case 'achv_hufa': {
         var g = SQ.Bonds ? SQ.Bonds.guardianOf(ws, pack, D) : null;
         return !!g && g.tier >= 3 && g.bonus > 0;
@@ -168,8 +168,11 @@
        * （缘尽赎回）。旧注「由 redeem 唯一写入」自 v1.13 起不实，N24 批随件勘正 */
       case 'achv_kuashi': return !!ws.heirBond;
       case 'achv_shuangxiu':
-        return !!(ws.spouse && (ws.bonds || {})[ws.spouse.npcId] >= (D.BOND_MAX || 100) &&
-          (now - (ws.spouse.since || now)) >= 30 * 86400000);
+        /* 多道侣：任一位满档且维持满 30 天即达成 */
+        return !!(ws.spouses || []).some(function (sp) {
+          return (ws.bonds || {})[sp.npcId] >= (D.BOND_MAX || 100) &&
+            (now - (sp.since || now)) >= 30 * 86400000;
+        });
       case 'achv_fudi': {
         var cv = SQ.Cave ? SQ.Cave.current(ws, pack) : null;
         var g2 = SQ.Bonds ? SQ.Bonds.guardianOf(ws, pack, D) : null;
@@ -320,14 +323,14 @@
       karma: SQ.t('karma.tier.' + (pack.worldSystems.tierOf(ws) || 'neutral'), null, wid)
     }, wid);
     /* ④ 三段式评语（特征加权抽取） */
-    var spouseName = ws.spouse ? SQ.t('bond.' + ws.spouse.npcId + '.name', null, wid) : '';
+    var spouseName = SQ.Bonds ? SQ.Bonds.spouseLine(ws, pack, 1) : '';
     var qi;
     if ((st.lives || 0) > 0) qi = Math.random() < 0.6 ? 2 : 5;      /* 转世者/承继开局句式 */
     else qi = [1, 3, 4][Math.floor(Math.random() * 3)];
     var xing;
     if ((tri.attempts || 0) >= 5) xing = 1;
     else if ((td.defy || 0) >= 30 || (td.stats || {}).defy >= 3) xing = 2;
-    else if (ws.spouse || bondsN >= 5) xing = 3;
+    else if ((ws.spouses && ws.spouses.length) || bondsN >= 5) xing = 3;
     else if ((ws.karma || 0) <= -500) xing = 4;
     else if (ws.factionId && SQ.Factions && SQ.Factions.rankOf(ws, D) >= 3) xing = 5;
     else xing = 1 + Math.floor(Math.random() * 5);

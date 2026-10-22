@@ -508,6 +508,10 @@
       huzhu:   { tier: 'neutral', qiRate: 0.10 },
       luding:  { tier: 'evil',    qiRate: 0.18, karmaCost: 20, scar: true }
     },
+    /* 多道侣双修（册一百二十三批 · 用户裁定「总加成封顶取 22%」）：qiRate 逐位相加后封顶，
+     * offlineEff / xinmoReduce 取最高一重不叠加；人数不设上限（无主动解除口，设人数上限会占死位子）。
+     * 单人时逐字等于旧值（6/10/18% 均低于 22%）。 */
+    SPOUSE_QIRATE_CAP: 0.22,
     COMPANIONS: [
       { id: 'huang', align: 'neutral',  category: 'friend', perk: { channel: 'debuffXinmo', perTier: 0.05 },  carrierEvents: ['stray_dog'] },
       { id: 'chiwei', align: 'neutral', category: 'friend', perk: { field: 'dropRate',        perTier: 0.02 },  carrierEvents: ['mine_fox'] },

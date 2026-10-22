@@ -40,7 +40,10 @@
         guardNpc: ti.parts.guardianNpc || null, guardBonus: ti.parts.guardian || 0,
         guardTier: g ? g.tier : 0,
         evil: p.worldSystems.tierOf(w) === 'evil',
-        spouseForm: (w.spouse && ti.parts.guardianNpc === w.spouse.npcId) ? w.spouse.form : null
+        spouseForm: (function () {
+          var gsp = ti.parts.guardianNpc ? SQ.Bonds.spouseOf(w, ti.parts.guardianNpc) : null;
+          return gsp ? gsp.form : null;
+        })()
       } : null;
     } catch (e) { c.ui.tribSnap = null; }
   }

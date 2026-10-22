@@ -80,15 +80,33 @@
      * 几何取设计稿原值：218×218 容器 / viewBox 236 / r99 / 周长 622.035。 */
     var ringP = Math.max(0, Math.min(100, cap > 0 ? (w.qi / cap) * 100 : 0));
     var RING_C = 622.035;   /* 2π × r99 */
-    var subLine;
+    /* 圆心小字只留倒计时（第册一百二十四批 · 用户报「低境界时下一境界文案太长，和圆环重叠」）：
+     * 「下一境界 · 还需 N」不再上屏，改由环上的 needmark 标出阈值；完整文案只进 <title> 供悬停查看。
+     * 已圆满时不印倒计时（下方渡劫 CTA 已经说「可渡劫」）；增速为 0 才退回「静修中」。 */
+    var subLine = '';
     if (need != null) {
-      subLine = c.esc(c.t('idle.next', { realm: c.t('realm.' + (w.realm + 1)), n: SQ.fmt(Math.max(0, need - w.qi)), res: c.t('resource.primary') }));
-      /* 渡劫倒计时（第十八批）：差额取 needEffOf、增速取 effRate，与 settle 同一式子；增速为 0 不印 */
       if (need > w.qi && rate > 0) {
-        subLine += ' · ' + c.esc(c.t('idle.trib.eta', { time: c.timeLeft((need - w.qi) / rate * 1000) }));
+        subLine = c.esc(c.t('idle.trib.eta', { time: c.timeLeft((need - w.qi) / rate * 1000) }));
+      } else if (need > w.qi) {
+        subLine = c.esc(c.t('idle.trib.wait'));
       }
     } else {
       subLine = c.esc(c.t('idle.maxed'));
+    }
+    /* 下一境界阈值在环上的标记：need / cap 与环进度同一把尺（环满 = capOf，不是 needEffOf）；
+     * 只在可晋升时画，极限境界不画。完整「下一境界」文案进 <title>，不参与圆心排版。 */
+    var needTitle = need != null
+      ? c.t('idle.next', { realm: c.t('realm.' + (w.realm + 1)), n: SQ.fmt(Math.max(0, need - w.qi)), res: c.t('resource.primary') })
+      : '';
+    var needP = (need != null && cap > 0) ? Math.max(0, Math.min(100, (need / cap) * 100)) : null;
+    var markHtml = '';
+    if (needP != null) {
+      var ma = (needP / 100) * Math.PI * 2 - Math.PI / 2;
+      var mc = Math.cos(ma), ms = Math.sin(ma);
+      markHtml = '<g class="needmark"><title>' + c.esc(needTitle) + '</title>' +
+        '<line class="nm-line" x1="' + (118 + mc * 91).toFixed(1) + '" y1="' + (118 + ms * 91).toFixed(1) +
+        '" x2="' + (118 + mc * 107).toFixed(1) + '" y2="' + (118 + ms * 107).toFixed(1) + '"></line>' +
+        '<circle class="nm-dot" cx="' + (118 + mc * 99).toFixed(1) + '" cy="' + (118 + ms * 99).toFixed(1) + '" r="2.8"></circle></g>';
     }
     /* 数字自适应字号：环内可用宽度约 198px（260 容器 / r99 经 236 viewBox 缩放后的内径），
      * 衬线数字按 0.62em 估宽 ⇒ 位数越多字越小。上限 42（短数字与设计稿 40 同档）、下限 20。
@@ -101,10 +119,10 @@
       '<circle class="ticks" cx="118" cy="118" r="113"></circle>' +
       '<circle class="track" cx="118" cy="118" r="99"></circle>' +
       '<circle class="prog" cx="118" cy="118" r="99" stroke-dasharray="' + RING_C +
-      '" stroke-dashoffset="' + (RING_C * (1 - ringP / 100)).toFixed(1) + '"></circle></svg>' +
+      '" stroke-dashoffset="' + (RING_C * (1 - ringP / 100)).toFixed(1) + '"></circle>' + markHtml + '</svg>' +
       '<div class="enso-core"><div class="lab">' + c.esc(c.t('resource.primary')) + '</div>' +
       '<div class="val num-full" style="font-size:' + qiFs + 'px">' + qiTxt + '</div>' +
-      '<div class="sub">' + subLine + '</div></div></div>' +
+      (subLine ? '<div class="sub">' + subLine + '</div>' : '') + '</div></div>' +
       '<div class="rate">' + c.esc(c.t('idle.rate', { n: rate.toFixed(1) })) +
       '<button class="linkbtn chip" data-act="detailRate">' + c.esc(c.t('idle.detail')) + '</button></div></div>';
     /* B16-c 渡劫 hero（设计稿 .hero-cta）：圆满时「渡劫」是唯一朱砂实心按钮，

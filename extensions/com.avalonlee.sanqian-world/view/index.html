@@ -630,7 +630,7 @@
     bondSnap: null,                         /* 侣 chip 红点快照（B1）：升档/可提亲变化检测 */
     caveSnap: null,                         /* 地 chip 红点快照（B1）：新福地解锁变化检测 */
     achvSnap: null,                         /* 成就页红点快照：新成就达成变化检测（meta.achv 只增） */
-    spouseLogSeen: 0,                       /* 双修解除叙事已消费标记（B4）：spouseLog.at 键控，会话一次 */
+    spouseLogSeen: {},                      /* 双修解除叙事已消费标记（B4 · 多道侣）：at|npcId 键控，会话一次 */
     giftI: -1, giftUntil: 0,                /* 页游礼包彩蛋（第卅九批）：会话内轮换槽位与下次重掷时刻——纯呈现，不入存档 */
     lastMerchUntil: 0,                      /* 神秘商人开席时刻（第卅九批）：席期只 MERCHANT_DURATION_MS，靠它把「到货」这件事提示出来 */
     karmaRank: ''                           /* 善恶名号段位基线（善恶名号批）：跨段即触发名号更迭演出 */
@@ -1217,7 +1217,8 @@
         var gI = SQ.Bonds.guardianOf(wI, pI, dI);
         /* B16-x：侣柱同时显示护法位与双修位（两行小字，框内可读） */
         var gNameI = gI ? t('bond.' + gI.npcId + '.name') : t('rail.none');
-        var sNameI = wI.spouse ? t('bond.' + wI.spouse.npcId + '.name') : t('rail.none');
+        var spsI = SQ.Bonds.spousesOf(wI);
+        var sNameI = spsI.length ? SQ.Bonds.spouseLine(wI, pI, 1) : t('rail.none');
         /* 红点签名（自原 renderPillars 迁入：侣 = 升档/可提亲、地 = 新福地解锁——进浮层/洞天节即消） */
         var sigP = bondRedDotSig();
         if (ui.bondSnap == null) ui.bondSnap = sigP;
@@ -1235,7 +1236,7 @@
           '<span class="rb-pair"><i>' + esc(t('bond.guard.tag')) + '</i><b>' + esc(gNameI) +
           (gI ? esc(bondTierNum(gI.tier)) : '') + '</b></span>' +
           '<span class="rb-pair"><i>' + esc(t('bond.spouse.tag')) + '</i><b>' + esc(sNameI) +
-          (wI.spouse ? ' · ' + esc(t('bond.spouse.form.' + wI.spouse.form)) : '') + '</b></span>' +
+          (spsI.length === 1 ? ' · ' + esc(t('bond.spouse.form.' + spsI[0].form)) : '') + '</b></span>' +
           '</div></button>' +
           '<button class="rb-slot" data-act="openArtsModal"><div class="rb-sk">' + esc(t('pillar.fa')) + '</div>' +
           '<div class="rb-sv">' + esc(mainI ? t('skill.' + mainI + '.name') : t('pillar.fa.empty')) + '</div>' +
@@ -1327,8 +1328,8 @@
         h += '<div class="sq2-rb"><div class="rb-t">' + esc(t('rail.jianghu')) + '</div>' +
           '<div class="rb-b"><b>' + esc(t('bond.guard.tag')) + '</b><span>' + esc(gJ && gJ.bonus > 0
             ? t('bond.' + gJ.npcId + '.name') : t('rail.none')) + '</span></div>' +
-          '<div class="rb-b"><b>' + esc(t('bond.sec.spouse')) + '</b><span>' + esc(wJ.spouse
-            ? t('bond.' + wJ.spouse.npcId + '.name') : t('pillar.lv.subnone')) + '</span></div>' +
+          '<div class="rb-b"><b>' + esc(t('bond.sec.spouse')) + '</b><span>' + esc(SQ.Bonds.spousesOf(wJ).length
+            ? SQ.Bonds.spouseLine(wJ, pJ, 1) : t('pillar.lv.subnone')) + '</span></div>' +
           '<div class="rb-b"><b>' + esc(t('bond.sec.met')) + '</b><span>' + metJ + ' / ' + listJ.length + '</span></div>' +
           '<div class="rb-b"><b>' + esc(t('faction.system')) + '</b><span>' + esc(facJ ? facJ.name : t('rail.none')) + '</span></div>' +
           '<div class="rb-b"><b>' + esc(t('jianghu.system')) + '</b><span>' + esc(boardJ && boardJ.myRank > 0
@@ -1433,9 +1434,11 @@
     var cv = SQ.Cave.current(w, p);
     /* 侣 chip 副标（B1 · 交互说明 §4.2 ★）：结缘后 = 道号·形态名；否则护法·道号③；再否则尚未结缘 */
     var gP = SQ.Bonds.guardianOf(w, p, d);
+    var spsP = SQ.Bonds.spousesOf(w);
     var lvSub;
-    if (w.spouse) {
-      lvSub = t('bond.' + w.spouse.npcId + '.name') + ' · ' + t('bond.spouse.form.' + w.spouse.form);
+    if (spsP.length) {
+      lvSub = SQ.Bonds.spouseLine(w, p, 1) +
+        (spsP.length === 1 ? ' · ' + t('bond.spouse.form.' + spsP[0].form) : '');
     } else if (gP && gP.bonus > 0) {
       lvSub = t('pillar.lv.sub', { name: t('bond.' + gP.npcId + '.name'), num: bondTierNum(gP.tier) });
     } else if (gP) {
@@ -1973,7 +1976,7 @@
     $('tab-journal').innerHTML = '';
     $('tab-settings').innerHTML = '';
     renderTab();
-    SQ.UI.bonds.checkSpouseLog(ctx());   /* 双修解除叙事（B4）：spouseLog.at 键控会话一次 */
+    SQ.UI.bonds.checkSpouseLog(ctx());   /* 双修解除叙事（B4 · 多道侣）：spouseLogs 按 at|npcId 键控会话一次 */
   }
 
   /* ── 渡劫演出族已随第册五十八批整片外置 view/trib.js（N34 第二十刀 · 阶段 A1）：

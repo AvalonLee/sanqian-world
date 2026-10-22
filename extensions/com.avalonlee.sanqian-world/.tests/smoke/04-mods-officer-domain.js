@@ -163,7 +163,7 @@ window.SQSmoke.frag('04-mods-officer-domain', async function () {
     w180.factionRep = { jianqi: 1001 };                                 /* floor(1001×0.5) = 500 */
     w180.factionNpcs = { tie: 'jianqi', chiwei: 'jianqi', pei: 'jianqi', suwan: 'laolong' };
     w180.bonds = { tie: 30, chiwei: 5, pei: -99, suwan: 50 };
-    w180.spouse = null;
+    w180.spouses = [];
     var d180 = SQ.Factions.defect(w180, pack, D, 'laolong', true, Date.now(), noopLog());
     var intelIds180 = Object.keys(w180.intelArts || {});
     var intelArt180 = intelIds180.length === 1 ? pack.artsMap()[intelIds180[0]] : null;

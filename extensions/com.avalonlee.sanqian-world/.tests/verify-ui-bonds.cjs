@@ -584,6 +584,79 @@ async function mkPage(browser, S) {
     await mp.ctx.close();
   }
 
+  /* ══════════════ 场景 F：多道侣（册一百二十三批）══════════════
+   * 口径：位卡列多位 + 「双修中 N」；道侣页行逐人 ♡；详情各显「已结缘」；
+   * 择选浮层列出现任两位并排除他们；再提第三位能成交；屏上旧口径「同时仅一位」零命中。 */
+  {
+    const S = seed();
+    const w = S.save.worlds.xiuxian;
+    w.bonds.suwan = 100; w.bonds.xie = 100; w.bonds.shen = 100;
+    w.spouses = [{ npcId: 'suwan', form: 'huzhu', since: S.at - 2000 },
+      { npcId: 'xie', form: 'huzhu', since: S.at - 1000 }];
+    const mp = await mkPage(browser, S);
+    const page = mp.page, h = wire(page);
+    await page.click('#m-tabbar button[data-v="bonds"]');
+    await page.waitForTimeout(450);
+    await page.click('#tab-bonds .seg2 button[data-v="spouse"]');
+    await page.waitForTimeout(250);
+    const tabF = await page.evaluate(() => {
+      const slot = document.querySelector('#tab-bonds .slots2 .bondslot[data-act="spousePickOpen"]');
+      return {
+        slot: slot ? (slot.textContent || '').replace(/\s+/g, ' ') : '',
+        hearts: document.querySelectorAll('#tab-bonds .brow .tierbadge.t1').length,
+        body: (document.body.textContent || '').replace(/\s+/g, ' ')
+      };
+    });
+    T(tabF.slot.indexOf('苏晚') >= 0 && tabF.slot.indexOf('谢青鸾') >= 0 &&
+      tabF.slot.indexOf('双修中 2') >= 0 && tabF.hearts === 2,
+      'F1 位卡列两位道侣 +「双修中 2」，道侣页逐人 ♡（不是只认一位）',
+      'slot=' + tabF.slot.slice(0, 40) + ' hearts=' + tabF.hearts);
+    T(tabF.body.indexOf('同时仅一位') < 0 && tabF.body.indexOf('同时只能与一位') < 0,
+      'F2 屏上旧单人口径零命中', '旧句命中=' + /同时仅一位|同时只能与一位/.test(tabF.body));
+
+    await h.openDetail('suwan');
+    const dF = await h.detailTxt();
+    T(dF.indexOf('互助双修') >= 0 && dF.indexOf('生效中') >= 0 && dF.indexOf('苏晚') >= 0,
+      'F3 任一位道侣详情各显自己的形态与生效行', dF.slice(0, 60));
+
+    await page.evaluate(() => document.getElementById('modal-bonds').classList.add('hide'));
+    await page.evaluate(() => {
+      const s = document.querySelector('#tab-bonds .slots2 .bondslot[data-act="spousePickOpen"]');
+      if (s) s.click();
+    });
+    await page.waitForTimeout(300);
+    const pickF = await page.evaluate(() => ({
+      rows: document.querySelectorAll('#msp-body .spouserow').length,
+      cands: Array.prototype.map.call(document.querySelectorAll('#msp-body [data-act="spousePickPropose"]'), (x) => x.dataset.v),
+      txt: (document.getElementById('msp-body').textContent || '').replace(/\s+/g, ' ')
+    }));
+    T(pickF.rows === 2 && pickF.cands.indexOf('shen') >= 0 &&
+      pickF.cands.indexOf('suwan') < 0 && pickF.cands.indexOf('xie') < 0,
+      'F4 择选浮层列现任两位，候选只剩未结缘的满档者（同一位不重复上候选）',
+      JSON.stringify({ rows: pickF.rows, cands: pickF.cands }));
+
+    await page.click('#msp-body [data-act="spousePickPropose"][data-v="shen"]');
+    await page.waitForTimeout(250);
+    const proposeOpen = await page.evaluate(() => !document.getElementById('modal-propose').classList.contains('hide'));
+    await page.click('#mpr-ok');
+    await page.waitForTimeout(900);
+    await page.evaluate(() => { const st = document.getElementById('spouse-stage'); if (st) st.click(); });
+    const savedF = await page.evaluate((k) => {
+      const s = JSON.parse(localStorage.getItem(k) || 'null');
+      const ww = s.worlds[s.profile.worldId];
+      return { n: (ww.spouses || []).length, ids: (ww.spouses || []).map((x) => x.npcId).join(',') };
+    }, KEY);
+    const slotF = await page.evaluate(() => {
+      const s = document.querySelector('#tab-bonds .slots2 .bondslot[data-act="spousePickOpen"]');
+      return s ? (s.textContent || '').replace(/\s+/g, ' ') : '';
+    });
+    T(proposeOpen && savedF.n === 3 && savedF.ids === 'suwan,xie,shen' && slotF.indexOf('等 3 人') >= 0,
+      'F5 第三位提亲成交：spouses 落为 3 条、位卡转「等 3 人」',
+      JSON.stringify({ open: proposeOpen, n: savedF.n, ids: savedF.ids, slot: slotF.slice(0, 40) }));
+    T(mp.errors.length === 0, 'F6 场景F 零页面报错', mp.errors.join(' | ').slice(0, 200) || 'clean');
+    await mp.ctx.close();
+  }
+
   console.log(fail === 0 ? 'UI_BONDS_ALL_GREEN ' + pass + '/' + (pass + fail)
     : 'UI_BONDS_FAILED ' + fail + '/' + (pass + fail));
   await browser.close();

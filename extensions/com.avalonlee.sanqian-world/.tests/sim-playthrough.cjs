@@ -710,8 +710,10 @@ async function playerStep(ref, tag, opts) {
         }
         continue;
       }
-      /* 满档 → 提亲（spouse 名录成员；非 spouse 类目直接跳过，不空掷） */
-      if (bt.spouse && !wB2.spouse) {
+      /* 满档 → 提亲（spouse 名录成员；非 spouse 类目直接跳过，不空掷）。
+       * 多道侣（册一百二十三批）：本脚本保留**单道侣策略**以守住轨迹锚（多修收益口径由
+       * sim-pacing 单独覆盖）；只判「当前一位都没有」，不按人判，避免行为随新机制漂移。 */
+      if (bt.spouse && !(wB2.spouses || []).length) {
         const chkP = SQ.Bonds.canPropose(wB2, pack, D, bt.npc, nowB);
         if (chkP.ok) {
           const pr = await asafe(tag + '.propose', () => SQ.Actions.proposeSpouse(ref, bt.npc));

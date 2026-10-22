@@ -112,49 +112,54 @@ window.SQSmoke.frag('03-bonds-spouse', async function () {
       Math.abs(hrs112 - 12) < 0.01 && perOk112,
       'hours=' + hrs112.toFixed(2) + '/12 perOk=' + perOk112);
 
-    /* #114 结缘双修：仅 spouse 候选 + 满档可提亲；形态按结缘瞬间档位三档映射；spouse 唯一 */
+    /* #114 结缘双修：仅 spouse 候选 + 满档可提亲；形态按结缘瞬间档位三档映射；
+     * 多道侣（册一百二十三批）：不同候选可同时结，只有**同一位**重复提才 occupied */
     var w114 = mkWs({ realm: 3, karmaEventScore: 900 });
-    w114.bonds = { suwan: 100, huang: 100, xie: 99 };
+    w114.bonds = { suwan: 100, huang: 100, xie: 99, shen: 99 };
     /* 隔离同道相吸（阵营名号联动批）：karma 900 → 名号跨段会给同向已相识道友 +好感，
      * 把 xie（正道）从 99 顶到 100，本断言的「未满档 → affinity」前提即失效。
      * 预置 rankGiftSeen 全段名号 = 本世已发过，gift 零发放；同道相吸本身由 #252 独立断言覆盖。 */
     w114.rankGiftSeen = (D.KARMA_RANKS || []).map(function (r) { return r[1]; });
     pack.recalcDerived(w114, mkProf());
     var r114 = SQ.Bonds.propose(w114, pack, D, 'suwan', Date.now(), noopLog());
-    var spouse114 = w114.spouse && w114.spouse.npcId;    /* 先捕获——下方会置 null 测非候选 */
-    var rej114a = SQ.Bonds.propose(w114, pack, D, 'xie', Date.now(), noopLog());   /* 已有 spouse → occupied */
+    var rej114a = SQ.Bonds.propose(w114, pack, D, 'xie', Date.now(), noopLog());   /* 未满档 → affinity（仍可之后再提） */
     w114.bonds.xie = 100;
-    var rej114b = SQ.Bonds.canPropose(w114, pack, D, 'xie', Date.now());           /* 满档候选但 occupied */
+    var r114b = SQ.Bonds.propose(w114, pack, D, 'xie', Date.now(), noopLog());     /* 不同候选 → 第二位成功 */
+    var rej114b = SQ.Bonds.canPropose(w114, pack, D, 'xie', Date.now());           /* 同一位重复 → occupied */
     var rej114c = SQ.Bonds.canPropose(w114, pack, D, 'huang', Date.now());         /* 非候选 */
-    w114.spouse = null;
-    w114.bonds.xie = 99;
-    var rej114d = SQ.Bonds.canPropose(w114, pack, D, 'xie', Date.now());            /* 未满档 */
-    ok('114', '提亲：候选+满档+唯一；形态按瞬间档位（正道→阴阳）',
-      r114.ok && r114.form === 'yinyang' && spouse114 === 'suwan' &&
-      rej114a.ok === false && rej114a.reason === 'affinity' && rej114b.reason === 'occupied' &&   /* xie 99 → 先 affinity；置 100 后 → occupied */
-      rej114c.reason === 'notspouse' && rej114d.reason === 'affinity',
-      JSON.stringify([r114.form, rej114a.reason, rej114b.reason, rej114c.reason, rej114d.reason]));
+    var rej114d = SQ.Bonds.canPropose(w114, pack, D, 'shen', Date.now());          /* 未满档 */
+    var ids114 = SQ.Bonds.spousesOf(w114).map(function (s) { return s.npcId; }).join(',');
+    ok('114', '提亲：候选+满档+可多位（不同人放行、同一位 occupied）；形态按瞬间档位（正道→阴阳）',
+      r114.ok && r114.form === 'yinyang' && ids114 === 'suwan,xie' &&
+      r114b.ok && r114b.form === 'yinyang' &&
+      rej114a.ok === false && rej114a.reason === 'affinity' &&
+      rej114b.reason === 'occupied' && rej114c.reason === 'notspouse' && rej114d.reason === 'affinity',
+      JSON.stringify([r114.form, r114b.form, ids114, rej114a.reason, rej114b.reason, rej114c.reason, rej114d.reason]));
 
-    /* #115 炉鼎三代价：−20 入账 / 助力归零 / 回升解除 + 心结锁（好感数值不变、永不再护法、不可再提亲） */
+    /* #115 炉鼎三代价：−20/位入账 / 逐位助力归零 / 回升整批解除 + 各得心结锁（多道侣） */
     var w115 = mkWs({ realm: 3, karmaEventScore: -900 });
-    w115.bonds = { yewu: 100, chen: 70 };
+    w115.bonds = { yewu: 100, shen: 100, chen: 70 };
     pack.recalcDerived(w115, mkProf());
     var kes115 = w115.karmaEventScore;
     var r115 = SQ.Bonds.propose(w115, pack, D, 'yewu', Date.now(), noopLog());
-    var cost115 = r115.ok && r115.form === 'luding' && w115.karmaEventScore === kes115 - 20;
+    var r115b = SQ.Bonds.propose(w115, pack, D, 'shen', Date.now(), noopLog());
+    var cost115 = r115.ok && r115.form === 'luding' && r115b.ok && r115b.form === 'luding' &&
+      w115.karmaEventScore === kes115 - 40;
     pack.recalcDerived(w115, mkProf());
     var m115 = M(mkProf(), w115);
-    var zero115 = !((m115.detail.eventLuck || {}).bond) && Math.abs((m115.detail.qiRate || {}).spouse - 0.18) < 1e-9 &&
-      Math.abs((m115.bonds.debuffAll || 0) - 0.12) < 1e-9;   /* yewu 归零、双修 +18% 在、chen 药箱档3 = 12% 保留 */
+    var zero115 = !((m115.detail.eventLuck || {}).bond) && !((m115.detail.gearLuck || {}).bond) &&
+      Math.abs((m115.detail.qiRate || {}).spouse - 0.22) < 1e-9 &&   /* 两位炉鼎 18+18 → 封顶 22% */
+      Math.abs((m115.bonds.debuffAll || 0) - 0.12) < 1e-9;           /* 两位炉鼎归零、chen 药箱档3 = 12% 保留 */
     w115.karmaEventScore = 0;                                /* 回头：karma 回升出魔道档 */
     pack.recalcDerived(w115, mkProf());
-    var diss115 = w115.spouse === null && !!w115.scars.yewu && w115.bonds.yewu === 100 &&
-      w115.spouseLog && w115.spouseLog.reason === 'redemption';
+    var diss115 = w115.spouses.length === 0 && !!w115.scars.yewu && !!w115.scars.shen &&
+      w115.bonds.yewu === 100 && w115.bonds.shen === 100 &&
+      w115.spouseLogs.length === 2 && w115.spouseLogs.every(function (x) { return x.reason === 'redemption'; });
     var g115 = SQ.Bonds.guardianOf(w115, pack, D);
-    var lock115 = g115.npcId === 'chen' &&                                   /* yewu 100 最高但心结锁 → 排除 */
+    var lock115 = g115.npcId === 'chen' &&                                   /* 两位 100 最高但心结锁 → 排除 */
       SQ.Bonds.canPropose(w115, pack, D, 'yewu', Date.now()).reason === 'scar' &&
       SQ.Bonds.gain(w115, pack, D, 'yewu', 5, Date.now()).blocked === 'scar';
-    ok('115', '炉鼎三代价：−20 入账 / 助力归零 / 回头即散 + 心结锁三义',
+    ok('115', '炉鼎三代价（多道侣）：−20/位入账 / 逐位助力归零 / 回升整批散 + 各得心结锁三义',
       cost115 && zero115 && diss115 && lock115,
       JSON.stringify({ cost: cost115, zero: zero115, diss: diss115, lock: lock115 }));
 
@@ -170,8 +175,8 @@ window.SQSmoke.frag('03-bonds-spouse', async function () {
     w116.karma = 0;
     SQ.XKarma.recalc(w116, D);
     SQ.Bonds.maintain(w116, pack, D, t116 + 1000);
-    var diss116 = w116.spouse === null && w116.spouseCdUntil === t116 + 1000 + (D.SPOUSE_FORMS.yinyang.cooldownMs) &&
-      w116.spouseLog.reason === 'karma';
+    var diss116 = w116.spouses.length === 0 && w116.spouseCdUntil === t116 + 1000 + (D.SPOUSE_FORMS.yinyang.cooldownMs) &&
+      w116.spouseLogs.length === 1 && w116.spouseLogs[0].reason === 'karma';
     var cd116 = SQ.Bonds.canPropose(w116, pack, D, 'suwan', t116 + 2000).reason === 'cooldown';
     var rate116off = SQ.Idle.rateOf(w116, pack, D, M(mkProf(), w116));
     /* 互助：左道结 → karma 漂到正道档也不解除（v1.4 口径1） */
@@ -179,10 +184,10 @@ window.SQSmoke.frag('03-bonds-spouse', async function () {
     w116b.bonds = { suwan: 100 };
     pack.recalcDerived(w116b, mkProf());
     SQ.Bonds.propose(w116b, pack, D, 'suwan', t116, noopLog());
-    var huzhu116 = w116b.spouse && w116b.spouse.form === 'huzhu';
+    var huzhu116 = w116b.spouses.length === 1 && w116b.spouses[0].form === 'huzhu';
     w116b.karmaEventScore = 900;
     pack.recalcDerived(w116b, mkProf());
-    var keep116 = huzhu116 && w116b.spouse !== null && w116b.spouse.form === 'huzhu';
+    var keep116 = huzhu116 && w116b.spouses.length === 1 && w116b.spouses[0].form === 'huzhu';
     /* 反复结离 100 次：乘区即时生效与回收，rateOf 零漂移 */
     var drift116 = 0;
     for (var i116 = 0; i116 < 100; i116++) {
@@ -198,9 +203,23 @@ window.SQSmoke.frag('03-bonds-spouse', async function () {
       var rOff = SQ.Idle.rateOf(w116, pack, D, M(mkProf(), w116));
       if (Math.abs(rOn - rate116on) > 1e-6 || Math.abs(rOff - rate116off) > 1e-6) drift116++;
     }
-    ok('116', '阴阳跌破散+7天冷却 / 互助不自动解除 / 反复结离 100 次零漂移',
-      diss116 && cd116 && keep116 && drift116 === 0 && w116.bonds.suwan === 100,
-      JSON.stringify({ diss: diss116, cd: cd116, huzhu: keep116, drift: drift116 }));
+    /* 多道侣：两位阴阳同刻整批散、冷却只置一次、解除记录两条 */
+    var w116m = mkWs({ realm: 3, karmaEventScore: 900 });
+    w116m.bonds = { suwan: 100, shen: 100 };
+    pack.recalcDerived(w116m, mkProf());
+    SQ.Bonds.propose(w116m, pack, D, 'suwan', t116, noopLog());
+    SQ.Bonds.propose(w116m, pack, D, 'shen', t116, noopLog());
+    var sp116m = w116m.spouses.length;
+    w116m.karmaEventScore = 0;
+    w116m.karma = 0;
+    SQ.XKarma.recalc(w116m, D);
+    SQ.Bonds.maintain(w116m, pack, D, t116 + 1000);
+    var diss116m = sp116m === 2 && w116m.spouses.length === 0 &&
+      w116m.spouseCdUntil === t116 + 1000 + (D.SPOUSE_FORMS.yinyang.cooldownMs) &&
+      w116m.spouseLogs.length === 2 && w116m.spouseLogs.every(function (x) { return x.reason === 'karma'; });
+    ok('116', '阴阳跌破散+7天冷却 / 互助不自动解除 / 多道侣整批散+冷却单次 / 反复结离 100 次零漂移',
+      diss116 && cd116 && keep116 && diss116m && drift116 === 0 && w116.bonds.suwan === 100,
+      JSON.stringify({ diss: diss116, cd: cd116, huzhu: keep116, multi: diss116m, drift: drift116 }));
 
     /* #129 道友助力 + 双修预算对表（数值详设 §8.2 / 引擎卷 §3.4：逐字段 58 人满档合计 = 文档登记值）
      * 恢复批 2026-10-03 · 58 人预算基线 = 批3 20 人基线 + 扩容增量（§四 8 字段）+ 二批增量（§五 13 字段：
@@ -224,11 +243,22 @@ window.SQSmoke.frag('03-bonds-spouse', async function () {
     for (var c129 in EXP129C) {
       if (Math.abs((m129.bonds[c129] || 0) - EXP129C[c129]) > 1e-9) bad129.push(c129 + '=' + (m129.bonds[c129] || 0) + '/' + EXP129C[c129]);
     }
-    /* 双修三形态登记值（§8.2）：qiRate 6/10/18%、阴阳 offlineEff 10% + 心魔 −25% */
+    /* 双修三形态登记值（§8.2）：qiRate 6/10/18%、阴阳 offlineEff 10% + 心魔 −25%；多修合济封顶 22% */
     if (D.SPOUSE_FORMS.yinyang.qiRate !== 0.06 || D.SPOUSE_FORMS.huzhu.qiRate !== 0.10 ||
       D.SPOUSE_FORMS.luding.qiRate !== 0.18 || D.SPOUSE_FORMS.yinyang.offlineEff !== 0.10 ||
-      D.SPOUSE_FORMS.yinyang.xinmoReduce !== 0.25) bad129.push('spouseForms');
-    ok('129', '助力+双修预算对表 §8.2（58 人满档逐字段 + 通道 + 三形态 · 恢复批正典口径）',
+      D.SPOUSE_FORMS.yinyang.xinmoReduce !== 0.25 || D.SPOUSE_QIRATE_CAP !== 0.22) bad129.push('spouseForms');
+    var w129s = mkWs({ realm: 3 });
+    w129s.bonds = { suwan: 100 }; w129s.spouses = [{ npcId: 'suwan', form: 'huzhu', since: 1 }];
+    var w129m = mkWs({ realm: 3 });
+    w129m.bonds = { suwan: 100, xie: 100, shen: 100 };
+    w129m.spouses = [{ npcId: 'suwan', form: 'huzhu', since: 1 },
+      { npcId: 'xie', form: 'huzhu', since: 2 }, { npcId: 'shen', form: 'huzhu', since: 3 }];
+    pack.recalcDerived(w129s, mkProf()); pack.recalcDerived(w129m, mkProf());
+    var q129s = ((M(mkProf(), w129s).detail.qiRate) || {}).spouse || 0;
+    var q129m = ((M(mkProf(), w129m).detail.qiRate) || {}).spouse || 0;
+    if (Math.abs(q129s - 0.10) > 1e-9) bad129.push('single=' + q129s + '/0.1');
+    if (Math.abs(q129m - 0.22) > 1e-9) bad129.push('multi=' + q129m + '/0.22');
+    ok('129', '助力+双修预算对表 §8.2（58 人满档逐字段 + 通道 + 三形态 + 多修封顶 22% · 单人逐字不变）',
       bad129.length === 0, bad129.join(','));
 
     /* #130 冥佑（楚老拐）：档 ≥2 每 7 天 1 层、层时长 14 天、场上 ≤2 层；档 <2 停授不清存量 */

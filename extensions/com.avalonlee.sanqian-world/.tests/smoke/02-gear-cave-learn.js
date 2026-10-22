@@ -1088,21 +1088,40 @@ window.SQSmoke.frag('02-gear-cave-learn', async function () {
     w109.scars = { qin: Date.now() };
     var g109c = SQ.Bonds.gain(w109, pack, D, 'qin', 5, Date.now());
     var gainOk = g109a.after === 100 && g109a.tierAfter === 4 && g109b.blocked === 'nonpos' && g109c.blocked === 'scar';
-    /* normalize：脏 bonds 过滤/clamp，spouse/scars/spouseLog 校验回落 */
+    /* normalize：脏 bonds 过滤/clamp，spouses/spouseLogs 校验回落（册一百二十三批多道侣） */
     var n109 = pack.normalize(Object.assign(pack.initialState(), {
       bonds: { qin: 500, huang: 'abc', unknown_npc: 50, chiwei: -1 },
-      spouse: { npcId: 'huang', form: 'yinyang', since: 1 },      /* huang 非候选 → null */
-      guardLog: { count: -3, success: 9 }, scars: { nobody: 1 }, spouseLog: { npcId: 'x' }
+      spouses: [
+        { npcId: 'huang', form: 'yinyang', since: 1 },            /* 非候选 → 丢弃 */
+        { npcId: 'suwan', form: 'huzhu', since: 2 },              /* 合法 */
+        { npcId: 'suwan', form: 'yinyang', since: 3 }             /* 同一人重复 → 丢弃 */
+      ],
+      spouse: { npcId: 'xie', form: 'huzhu', since: 4 },          /* 新键在场 ⇒ 旧单值不并读 */
+      guardLog: { count: -3, success: 9 }, scars: { nobody: 1 },
+      spouseLogs: [{ npcId: 'x' }]                                /* 名录外 → 丢弃 */
     }));
     var normOk = n109.bonds.qin === 100 && !('huang' in n109.bonds) && !('unknown_npc' in n109.bonds) &&
-      n109.bonds.chiwei === -99 && n109.spouse === null &&   /* 势力批 v2.4：旧哨兵 −1 → −99 迁移 */
+      n109.bonds.chiwei === -99 &&                                /* 势力批 v2.4：旧哨兵 −1 → −99 迁移 */
+      n109.spouses.length === 1 && n109.spouses[0].npcId === 'suwan' &&
+      n109.spouses[0].form === 'huzhu' && n109.spouses[0].since === 2 &&
       n109.guardLog.count === 0 && n109.guardLog.success === 0 &&
-      Object.keys(n109.scars).length === 0 && n109.spouseLog === null;
+      Object.keys(n109.scars).length === 0 && n109.spouseLogs.length === 0;
+    /* 旧单值档迁移：spouse → spouses、spouseLog → spouseLogs（各一条） */
+    var migSeed = Object.assign(pack.initialState(), {
+      spouse: { npcId: 'suwan', form: 'yinyang', since: 5 },
+      spouseLog: { npcId: 'xie', form: 'huzhu', reason: 'karma', at: 6 }
+    });
+    delete migSeed.spouses; delete migSeed.spouseLogs;   /* 真旧档：新键根本不存在 */
+    var mig109 = pack.normalize(migSeed);
+    normOk = normOk && mig109.spouses.length === 1 && mig109.spouses[0].npcId === 'suwan' &&
+      mig109.spouses[0].form === 'yinyang' && mig109.spouses[0].since === 5 &&
+      mig109.spouseLogs.length === 1 && mig109.spouseLogs[0].npcId === 'xie' &&
+      mig109.spouseLogs[0].reason === 'karma' && mig109.spouseLogs[0].at === 6;
     /* 旧档迁移（R7）：批 2 形态存档（无任何 G14 字段）→ normalize 补齐全套缺省 */
     var old109 = pack.initialState();
-    ['bonds', 'spouse', 'guardLog', 'chuBlessAt', 'scars', 'spouseCdUntil', 'spouseLog'].forEach(function (k) { delete old109[k]; });
+    ['bonds', 'spouses', 'guardLog', 'chuBlessAt', 'scars', 'spouseCdUntil', 'spouseLogs'].forEach(function (k) { delete old109[k]; });
     var m109 = pack.normalize(JSON.parse(JSON.stringify(old109)));
-    normOk = normOk && JSON.stringify(m109.bonds) === '{}' && m109.spouse === null &&
+    normOk = normOk && JSON.stringify(m109.bonds) === '{}' && m109.spouses.length === 0 &&
       m109.guardLog.count === 0 && m109.chuBlessAt === 0 && JSON.stringify(m109.scars) === '{}' &&
-      m109.spouseCdUntil === 0 && m109.spouseLog === null;
+      m109.spouseCdUntil === 0 && m109.spouseLogs.length === 0;
 });
