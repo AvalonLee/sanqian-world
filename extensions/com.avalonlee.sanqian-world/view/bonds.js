@@ -155,20 +155,29 @@
       var met = all.filter(function (x) { return SQ.Bonds.tierOf(w, x.id, d) >= 1; });
       var dead = all.filter(function (x) { return SQ.Bonds.locked(w, x.id); });
       var unmet = all.filter(function (x) { return SQ.Bonds.tierOf(w, x.id, d) < 1 && !SQ.Bonds.locked(w, x.id); });
-      /* 已结缘按两族分两段铺（第册一百一十七批 · 用户令「普通道友和可双修的道侣没有分开，
-       * 无法确认哪个是哪个」）：原先只有一行「已结缘」把两族混铺，区分全靠名号后一枚 ♡。
-       * 空段不留段标（与功法待修习架「只剩脏位就不渲染段标」同一条口径）。 */
+      /* 顶部切换（第册一百一十九批 · 用户令「参考丹器页顶部，列表太长找起来不方便」）：
+       * 与丹房 / 器台同一套 `.seg2` 组件、同样只存视图态（ui.bondsTab，不落盘）。
+       * 切到哪一族，「已结缘 / 缘尽 / 未结识入口」三段就都只算那一族——不是只切列表那一段，
+       * 否则缘尽与入口还留在另一族的数字上，读起来对不上账。 */
+      var bTab = c.ui.bondsTab === 'spouse' ? 'spouse' : 'friend';
+      var inTab = function (x) { return bTab === 'spouse' ? x.category === 'spouse' : x.category !== 'spouse'; };
+      var cntF = all.filter(function (x) { return x.category !== 'spouse'; }).length;
+      var cntS = all.length - cntF;
+      h += '<div class="seg2">' +
+        [['friend', c.t('bond.sec.friend'), cntF], ['spouse', c.t('bond.sec.spousem'), cntS]].map(function (t) {
+          return '<button type="button" class="' + (bTab === t[0] ? 'on' : '') + '" data-act="bondsTab" data-v="' + t[0] + '">' +
+            c.esc(t[1]) + ' · ' + t[2] + '</button>';
+        }).join('') + '</div>';
+      met = met.filter(inTab);
+      dead = dead.filter(inTab); unmet = unmet.filter(inTab);
+      /* 已结缘（第册一百一十七批按族分段的逻辑现在由这一枚切换承接：一个 tab 只剩一族一段，
+       * 段标仍写族别名 + 该段行数，空段不留段标）。 */
       if (met.length) {
-        [[met.filter(function (x) { return x.category !== 'spouse'; }), c.t('bond.sec.friend')],
-          [met.filter(function (x) { return x.category === 'spouse'; }), c.t('bond.sec.spousem')]]
-          .forEach(function (grp) {
-            var g = grp[0];
-            if (!g.length) return;
-            h += '<div class="sechead"><span class="t">' + c.esc(grp[1]) + ' · ' + g.length + '</span><span class="s">' +
-              c.esc(c.t('bond.sec.count', { n: g.length, total: all.length })) + '</span></div><div class="browlist">';
-            g.forEach(function (ch) { h += bondRow(c, ch, w, d); });
-            h += '</div>';
-          });
+        h += '<div class="sechead"><span class="t">' + c.esc(bTab === 'spouse' ? c.t('bond.sec.spousem') : c.t('bond.sec.friend')) +
+          ' · ' + met.length + '</span><span class="s">' +
+          c.esc(c.t('bond.sec.count', { n: met.length, total: all.length })) + '</span></div><div class="browlist">';
+        met.forEach(function (ch) { h += bondRow(c, ch, w, d); });
+        h += '</div>';
       } else {
         h += '<p class="hint">' + c.esc(c.t('bond.met.none')) + '</p>';
       }

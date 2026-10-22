@@ -1541,13 +1541,15 @@
 #tab-arts .codexsec.open .s { color: var(--sq2-cinnabar); }
 
 /* ── UI v2 B16-i：炼丹炼器页对齐设计稿（三格摘要 / 真段标 / 炉中条 / 丹匣网格 / 丹方与图纸整行）── */
-#tab-alchemy .seg2 { display: flex; border-bottom: 1px solid var(--sq2-line); margin: 2px 0 10px; }
-#tab-alchemy .seg2 button {
+/* `.seg2` 顶部切换：丹房 / 器台先立，道友页「道友 / 道侣」（第册一百一十九批）复用同一份样式
+   ——两处显示 = 一份公式，不再抄第二套按钮尺寸与下划线色。 */
+#tab-alchemy .seg2, #tab-bonds .seg2 { display: flex; border-bottom: 1px solid var(--sq2-line); margin: 2px 0 10px; }
+#tab-alchemy .seg2 button, #tab-bonds .seg2 button {
   flex: 1; padding: 9px 0; border: 0; border-bottom: 2px solid transparent;
   background: none; font: inherit; font-size: 12px; letter-spacing: .22em;
   color: var(--sq2-ink-3); cursor: pointer;
 }
-#tab-alchemy .seg2 button.on { color: var(--sq2-ink); border-bottom-color: var(--sq2-cinnabar); }
+#tab-alchemy .seg2 button.on, #tab-bonds .seg2 button.on { color: var(--sq2-ink); border-bottom-color: var(--sq2-cinnabar); }
 #tab-alchemy .rowlist { display: block; }
 #tab-alchemy .rowlist .lrow { margin: 6px 0; padding: 10px 12px; }
 #tab-alchemy .rowlist .lrow .nm { font-family: var(--sq2-serif); }
