@@ -3,7 +3,7 @@
 | 项 | 值 |
 |---|---|
 | 日期 | 2026-10-20 |
-| 对照对象 | [`docs/设计稿-v2/`](./设计稿-v2/)（index.html / style.css / nav-proposal.html / naming-review.html） |
+| 对照对象 | [`docs/设计稿-v2/`](../设计稿-v2/)（index.html / style.css / nav-proposal.html / naming-review.html） |
 | 当前基线 | 扩展 `0.5.91` · 16 页 · 冒烟 326 · 审计 34 · 探针 228 · 走查 35 篇 811 |
 | 状态 | **D7/D8 已拍板（2026-10-20）**：B1 → B13 → 决策收口 → B14 → **B15-a…k**（形 / 圆相 / 修行 / 秘境 / 坊市 / 道友 / 奇遇 / 成就 / 轮回 / 势力 / 榜单·宗门）全部完成；16 页全部过一遍，剩 **设置页复核** 与全站视觉终审 |
 | 建议起点 | 从 `dev` 新开 `ui-v2-shell`，不要叠在当前 `d15-listener-extract` 上 |

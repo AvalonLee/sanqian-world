@@ -8,7 +8,7 @@ VibeX 已退役：不再打 ZIP 回传、不再跑 `npm run dev` / `build` / `ts
 
 ## 改动前按顺序读
 
-1. `docs/三千世界-工程规范与验收计划.md` — 存档字段契约 / 世界包契约 / 断言总表 / 平台关卡 / §八 工作树持久化纪律。
+1. `docs/总纲/三千世界-工程规范与验收计划.md` — 存档字段契约 / 世界包契约 / 断言总表 / 平台关卡 / §八 工作树持久化纪律。
 2. `docs/README.md` — 全卷索引。现行计数看 `docs/FACTS.md` 顶部**账本段**；各卷版本看 `docs/VERSIONS.md`；还没做什么看任务清单「现行未实施表」（销号唯一落点）。
 3. `extensions/com.avalonlee.sanqian-world/.tests/README.md` — 怎么验收、每件判据的末行标记是什么。
 
