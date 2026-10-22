@@ -127,6 +127,67 @@ function mkSect() {
     JSON.stringify({ before: before, after: ws.stones, inn: led1 - led0 }));
 }
 
+/* mkSect 里 initialState 的势力池是空的（固定五门由创角流程播种）⇒ 结仇那两判自带三枚在册势力。
+ * 三枚都挂 fixed：`npcRepOf` 的档次按「固定池序 0~3 循环」取，非固定条目会算不出价。 */
+function withFoes(ws) {
+  ['fA', 'fB', 'fC'].forEach(function (id) {
+    ws.factions.push({ id: id, name: id, align: 'neutral', perk: { field: 'qiRate', v: 0 }, rel: {}, fixed: true });
+  });
+  return ws;
+}
+/* 10 结仇宣战（第册一百二十二批 · 用户裁定「开：重代价」）：三笔代价 + 连带敌对 + 拒付零副作用。
+ *    三处重点：① 视图标价 = 引擎实扣（同取 `warOpenCost`，不留第二把尺子）；
+ *    ② 敌对**只追一跳**——目标的友好者成敌对，友好者的友好不成（写成假敌对就是说谎）；
+ *    ③ 「poor」必须分文不动（负判据），零费老口径由 V11 的正判据配平。 */
+{
+  const ws = withFoes(mkSect());
+  const se = SQ.Factions.byId(ws, 'sect');
+  const others = (ws.factions || []).filter((f) => f.id !== 'sect');
+  const tgt = others[0], frd = others[1], far = others[2];
+  const rel = (a, b) => (a.rel || {})[b.id];
+  se.rel[tgt.id] = 'neutral'; (tgt.rel = tgt.rel || {})['sect'] = 'neutral';
+  se.rel[frd.id] = 'neutral'; (frd.rel = frd.rel || {})['sect'] = 'neutral';
+  tgt.rel[frd.id] = 'friendly'; frd.rel[tgt.id] = 'friendly';
+  frd.rel[far.id] = 'friendly'; (far.rel = far.rel || {})[frd.id] = 'friendly';
+  const fee = SQ.Sect.warOpenCost(ws, D, tgt.id);
+  const s0 = ws.stones, k0 = ws.karmaEventScore || 0;
+  ws.stones = fee - 1;
+  const rNo = SQ.Sect.declareWar(ws, pack, D, tgt.id, Date.now(), function () {});
+  const held = rNo.ok === false && rNo.reason === 'poor' && rNo.cost === fee &&
+    ws.stones === fee - 1 && (ws.karmaEventScore || 0) === k0 && rel(se, tgt) === 'neutral' && !ws.factionWar;
+  ws.stones = s0;
+  const r = SQ.Sect.declareWar(ws, pack, D, tgt.id, Date.now(), function () {});
+  ok('V10 结仇宣战：灵石不足即拒且分文不动；付得起则费=标价、善恶 −30、声望折 10%，敌对只追一跳',
+    held && !!fee && r.ok && r.fee === fee && ws.stones === s0 - fee &&
+    (ws.karmaEventScore || 0) === k0 + (D.SECT.WAR_OPEN_KARMA != null ? D.SECT.WAR_OPEN_KARMA : -30) &&
+    Math.abs(ws.sect.repCut - 0.9) < 1e-9 && rel(se, tgt) === 'enemy' && rel(tgt, se) === 'enemy' &&
+    rel(se, frd) === 'enemy' && rel(se, far) !== 'enemy' && !!ws.factionWar,
+    JSON.stringify({ fee: fee, held: held, stones: ws.stones, karma: (ws.karmaEventScore || 0) - k0,
+      cut: ws.sect.repCut, rel: [rel(se, tgt), rel(tgt, se), rel(se, frd), rel(se, far)] }));
+}
+/* 11 声望乘区落进取数口 + 读档保值与 clamp + 已敌对者零费（老口径零回归） */
+{
+  const ws = mkSect();
+  const rep1 = SQ.Sect.sectRep(ws, D);
+  ws.sect.repCut = 0.9;
+  const rep2 = SQ.Sect.sectRep(ws, D);
+  const base = Object.assign({}, ws.sect);
+  const rt = SQ.Sect.normalize(Object.assign({}, base, { repCut: 0.72 }), D).repCut;
+  const cl = SQ.Sect.normalize(Object.assign({}, base, { repCut: 0.1 }), D).repCut;
+  const dirty = SQ.Sect.normalize(Object.assign({}, base, { repCut: 'x' }), D).repCut;
+  const ws2 = withFoes(mkSect());
+  const se2 = SQ.Factions.byId(ws2, 'sect');
+  const foe = (ws2.factions || []).filter((f) => f.id !== 'sect')[0];
+  se2.rel[foe.id] = 'enemy'; (foe.rel = foe.rel || {})['sect'] = 'enemy';
+  const s2 = ws2.stones, k2 = ws2.karmaEventScore || 0;
+  const r2 = SQ.Sect.declareWar(ws2, pack, D, foe.id, Date.now(), function () {});
+  ok('V11 声望折损进 sectRep（×0.9 逐字对表）且 normalize 保值 / 越界 clamp / 脏值回落；已敌对者宣战零费零折损',
+    rep1 > 0 && rep2 === Math.round(rep1 * 0.9) && rt === 0.72 && cl === 0.5 && dirty === 1 &&
+    r2.ok && r2.fee === 0 && ws2.stones === s2 && (ws2.karmaEventScore || 0) === k2 &&
+    Math.abs(ws2.sect.repCut - 1) < 1e-9,
+    JSON.stringify({ rep1: rep1, rep2: rep2, rt: rt, cl: cl, dirty: dirty, fee: r2.fee, stones: ws2.stones }));
+}
+
 const pass = R.filter((x) => x.ok).length;
 R.forEach((x) => console.log((x.ok ? 'PASS ' : 'FAIL ') + x.name + (x.detail ? ' (' + x.detail + ')' : '')));
 console.log(pass === R.length ? 'PROBE_SECTGOV_ALL_GREEN ' + pass + '/' + R.length : 'PROBE_SECTGOV_FAILED ' + (R.length - pass));

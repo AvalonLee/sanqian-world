@@ -875,6 +875,8 @@
         var pack = packOf(s), D = dataOf(s);
         function log(cat, text) { SQ.Log.push(ws, cat, text); }
         out = SQ.Sect.declareWar(ws, pack, D, targetFid, Date.now(), log);
+        /* 结仇宣战会动灵石与 karmaEventScore（第册一百二十二批）⇒ 与 sectGov 同口径补一次派生重算 */
+        if (out && out.ok) pack.recalcDerived(ws, s.profile);
       });
       return out;
     },

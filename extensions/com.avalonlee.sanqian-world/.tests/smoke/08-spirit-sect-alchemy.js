@@ -282,7 +282,15 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
     var sectE224 = null;
     (w224.factions || []).forEach(function (ff) { if (ff.id === 'sect') sectE224 = ff; });
     if (!friendly224) { friendly224 = f1id220; sectE224.rel[f1id220] = 'friendly'; }
+    /* 主动宣战：非敌对者**不是不能打，是要先付得出**（第册一百二十二批 · 用户裁定「开：重代价」）。
+     * 旧边界「白手开不成战」由这条承接：抽干灵石 ⇒ reason 由 notenemy 换成 poor，且分文不动、不开战、不折损
+     *（三笔代价与连带敌对的正面判据在 probe-sectgov V10/V11，两处不重复计）。 */
+    var s224o = w224.stones;
+    w224.stones = 0;
     var notEnemy224 = SQ.Sect.declareWar(w224, pack, D, friendly224, Date.now(), noopLog());
+    var notEnemyHold = w224.stones === 0 && !w224.factionWar &&
+      Math.abs((w224.sect.repCut != null ? w224.sect.repCut : 1) - 1) < 1e-9;
+    w224.stones = s224o;
     sectE224.rel[evilF220] = 'enemy';
     (w224.factions || []).forEach(function (ff) { if (ff.id === evilF220) { ff.rel = ff.rel || {}; ff.rel.sect = 'enemy'; } });
     var war224 = SQ.Sect.declareWar(w224, pack, D, evilF220, Date.now(), noopLog());
@@ -334,8 +342,8 @@ window.SQSmoke.frag('08-spirit-sect-alchemy', async function () {
     SQ.Legacy.doBingjie(ref224, Date.now());
     var reb224 = ref224.worlds.xiuxian.sect === null && ref224.worlds.xiuxian.factionRepPeak === 0 &&
       ref224.meta.unlocks.sect === true;
-    ok('224', '战争与传承边界：enemy 校验/busy 拒双开；弟子出力 merit=Σfloor(战力/P[4])×2 对表；主动宣战胜=声望压制 −10%、NPC 势力不删除；战败弟子零损失；传位=realm 拦截/供奉不可继位/宗门转 NPC 位+称号跨世+当世不可再开宗+factionId 归 null；转世 ws.sect 重置而 meta 资格保留',
-      notEnemy224.reason === 'notenemy' && warOk224 && busy224.reason === 'busy' &&
+    ok('224', '战争与传承边界：非敌对者要付得出结仇费才开得成（灵石抽干 = poor 且分文不动）/busy 拒双开；弟子出力 merit=Σfloor(战力/P[4])×2 对表；主动宣战胜=声望压制 −10%、NPC 势力不删除；战败弟子零损失；传位=realm 拦截/供奉不可继位/宗门转 NPC 位+称号跨世+当世不可再开宗+factionId 归 null；转世 ws.sect 重置而 meta 资格保留',
+      notEnemy224.reason === 'poor' && notEnemyHold && warOk224 && busy224.reason === 'busy' &&
       merit224 === meritExp224 && joinMerit224 && win224 && lose224b &&
       suc224r.reason === 'realm' && suc224h.reason === 'heir' && succ224 &&
       (join224b.ok === true || join224b.reason === 'cooldown') && reb224);

@@ -2969,7 +2969,16 @@
     }
     if (act === 'sectWar') {
       var rW = await SQ.Actions.sectWar(state, v);
-      if (rW && !rW.ok) toast(rW.reason === 'cd' ? t('sect.war.cd', { t: timeLeftText(rW.until - Date.now()) }) : (rW.reason === 'busy' ? t('sect.war.busy') : rW.reason));
+      /* 拒因一律走表内键（#272/#273 那条「不许把内部字段名打上屏」，原先 else 直接 toast(rW.reason)）；
+       * 结仇宣战（第册一百二十二批）多一枚 poor：灵石不够要把这一笔的价说出口。 */
+      if (rW && !rW.ok) toast(rW.reason === 'cd' ? t('sect.war.cd', { t: timeLeftText(rW.until - Date.now()) })
+        : (rW.reason === 'busy' ? t('sect.war.busy')
+          : (rW.reason === 'poor' ? t('sect.war.open.poor', { n: SQ.fmt(rW.cost || 0) }) : t('sect.war.reject'))));
+      else if (rW && rW.ok && rW.fee > 0) toast(t('sect.war.open.log', {
+        name: (SQ.Factions.nameOf(ws(), v) || ''), n: SQ.fmt(rW.fee),
+        cut: Math.round((D().SECT.WAR_REP_SELF_CUT != null ? D().SECT.WAR_REP_SELF_CUT : 0.10) * 100),
+        karma: Math.abs(D().SECT.WAR_OPEN_KARMA != null ? D().SECT.WAR_OPEN_KARMA : -30), m: (rW.foes || []).length
+      }));
       renderAll();
       return;
     }
