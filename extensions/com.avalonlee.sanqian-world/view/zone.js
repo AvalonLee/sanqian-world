@@ -361,6 +361,82 @@
   }
 
 
+  /* ── 秘境页动作四支（第册一百四十一批 2026-10-23 · B1 = D15 阶段 B 第一刀 · 自内核派发器整支搬入）
+   * 为什么是这四支：勘察档 §七 B1 判据 = 「动作的数据与浮层都属本页」，且秘境是全仓走查覆盖最厚的一页
+   *   （`verify-ui-zone` / `verify-ui-cavedot` / `verify-ui-alltabs` 三篇都碰这几条路）⇒ 拿来先证「搬动作」的形状。
+   * 桥**零新增**：`c.w` / `c.p` / `c.d` / `c.mods` / `c.t` / `c.toast` / `c.ask` / `c.renderAll` / `c.timeLeft` /
+   *   `c.reducedMotion` / `c.fresh` / `c.s` 全在册（D7 逐键对账）。
+   * ⚠️ 嵌套回调里一律重取 `c.fresh()`：`enterCave` 走 `SQ.mutate` 会深拷贝 world（`core.js cpWorld`），
+   *   拿动作开始时的快照去开轻演出，读到的是改前的 mult 与洞府归属——这就是 ctx 里 `fresh` 那条注记的前科。
+   * ⚠️ 本件已有「福地对象叫 cv」的改名先例（桥占了 `c`），这四个动作的形参同样不许出现 `c` 之外的桥名冲突。 */
+
+  /* 域主挑战（系统深化批 B3）：一次性掷判，胜负 toast + 引擎日志 */
+  async function actChallengeBoss(c) {
+    var zbZ = c.w.zoneBoss ? c.w.zoneBoss.zone : c.w.zone;
+    var resB = await SQ.Actions.challengeBoss(c.s);
+    if (resB && resB.ok) {
+      c.toast(resB.win
+        ? c.t('zone.boss.win', { zone: c.t('combat.zone.' + zbZ), gear: resB.item.name, stones: SQ.fmt(resB.stones) })
+        : c.t('zone.boss.lose', { zone: c.t('combat.zone.' + zbZ) }));
+    } else if (resB && resB.reason === 'cd') {
+      c.toast(c.t('zone.boss.cd', { t: c.timeLeft(resB.retryAt - Date.now()) }));
+    }
+    c.renderAll();
+  }
+
+  /* 残片兑换（z6~8 带 choice）：`cc` = 卡上 data-c（第三参，缺省 null = 无指定） */
+  async function actExchangeShard(c, v, cc) {
+    var resS = await SQ.Actions.exchangeShard(c.s, parseInt(v, 10), cc || null);
+    if (resS && resS.ok) c.toast(c.t('zone.shard.done'));
+    else if (resS && resS.reason === 'shards') c.toast(c.t('zone.shard.fail', { n: resS.have, need: resS.need }));
+    else if (resS && resS.reason === 'pillfull') c.toast(c.t('zone.shard.fail.pillfull'));
+    else if (resS && resS.ok !== true) c.toast(c.t('zone.shard.fail.other'));   /* 原为静默无提示（pool / zone 两因点了没反应） */
+    c.renderAll();
+  }
+
+  /* 入洞天（v2.0）：先判可入 → 算倍率差与代价 → 确认框；首次拥有给轻演出，其余走 toast */
+  function actCaveEnter(c, v) {
+    var chkC = SQ.Cave.canEnter(c.w, c.p, c.d, v, Date.now());
+    if (!chkC.ok || !chkC.cave) return;
+    var fromC = SQ.Cave.multOf(c.w, c.p, c.d, c.mods);
+    var toC = Math.min(c.d.CAVE_MULT_CAP, chkC.cave.mult);
+    var deltaP = Math.round((toC / fromC - 1) * 1000) / 10;
+    var deltaTxt = c.t(deltaP >= 0 ? 'cave.delta.up' : 'cave.delta.down', { p: Math.abs(deltaP) });
+    var bodyC = c.t(chkC.cost > 0 ? 'cave.confirm.pay' : 'cave.confirm.free', {
+      from: fromC.toFixed(2), to: toC.toFixed(2), delta: deltaTxt,
+      cost: SQ.fmt(chkC.cost) + ' ' + c.t('resource.currency')
+    }) + '\n' + c.t('cave.confirm.cd', { y: Math.round(c.d.CAVE_SWITCH_CD_MS / 1000 / 360) });
+    var wasOwned = chkC.owned;               /* 轻演出只给「第一次拥有」（B3 · 稿三） */
+    c.ask(c.t('cave.confirm.title', { name: c.t('cave.' + chkC.cave.id + '.name') }), bodyC, async function () {
+      var res = await SQ.Actions.enterCave(c.s, v);
+      if (res && res.ok) {
+        if (!wasOwned && !c.reducedMotion()) SQ.UI.show.caveEnter(c.fresh(), res.cave.id, toC);
+        else c.toast(c.t('cave.enter.ok', { name: c.t('cave.' + res.cave.id + '.name'), mult: toC.toFixed(2) }));
+      } else if (res) {
+        c.toast(c.t('cave.enter.fail.' + res.reason));
+      }
+      c.renderAll();
+    });
+  }
+
+  /* 福地扩池批 v2.0：附属设施营建（CONFIRM 后走 mutate 单一通道）；`fId` = 卡上 data-f */
+  function actCaveBuild(c, v, fId) {
+    var chkB = SQ.Cave.canBuildFac(c.w, c.p, c.d, v, fId);
+    if (!chkB.ok) { c.toast(c.t('cave.fac.lack.' + ((chkB.lack[0] || {}).kind === 'stones' ? 'stones' : 'owned'))); return; }
+    var bodyB = c.t('cave.fac.' + fId + '.desc') + '\n' +
+      c.t(chkB.lv === 0 ? 'cave.fac.build' : 'cave.fac.upgrade', { n: SQ.fmt(chkB.cost) + ' ' + c.t('resource.currency') });
+    c.ask(c.t('cave.fac.' + fId + '.name') + ' · Lv' + (chkB.lv + 1), bodyB, async function () {
+      var rB = await SQ.Actions.buildFacility(c.s, v, fId);
+      if (rB && rB.ok) c.toast(c.t('log.cave.fac.built', {
+        cave: c.t('cave.' + v + '.name'), fac: c.t('cave.fac.' + fId + '.name'), lv: rB.lv
+      }));
+      c.renderAll();
+    });
+  }
+
   SQ.UI = SQ.UI || {};
-  SQ.UI.zone = { render: render, realmInfo: realmInfo };
+  /* 导出面 ⇔ 引用面（审计 D14）：四支各由派发器一行转发引用，别无他处 ⇒ 不许再外露区内助手。 */
+  SQ.UI.zone = { render: render, realmInfo: realmInfo,
+    actChallengeBoss: actChallengeBoss, actExchangeShard: actExchangeShard,
+    actCaveEnter: actCaveEnter, actCaveBuild: actCaveBuild };
 })();

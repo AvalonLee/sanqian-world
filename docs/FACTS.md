@@ -9,11 +9,11 @@
 <!-- SQ:LEDGER:BEGIN facts 现行读数由 .tests/gen-ledger.cjs 生成，手改即漂；段外不参与覆盖 -->
 | 现行读数 | 值 | 唯一事实源 |
 |---|---|---|
-| 扩展版本 | `0.6.4` | `manifest.json`（唯一事实源；D4 守仓库根不复活第二份副本） |
+| 扩展版本 | `0.6.5` | `manifest.json`（唯一事实源；D4 守仓库根不复活第二份副本） |
 | 冒烟断言 | 327 | `.tests/run-smoke.cjs` 末行 `SMOKE_ALL_GREEN` |
 | 静态审计关数 | 37 关 | `.tests/audit.cjs` 末行 `AUDIT_ALL_GREEN` |
 | 常驻探针合计 | 245 断言 | `.tests/probe-*.cjs` 逐件末行求和（run-dod 求和，不手算） |
-| 界面走查 | 37 篇 / 906 断言 | `.tests/verify-ui-*.cjs` 目录清单 + 逐篇末行 |
+| 界面走查 | 37 篇 / 912 断言 | `.tests/verify-ui-*.cjs` 目录清单 + 逐篇末行 |
 | 功法（修仙） | 70 部 | `pack.artsMap()` 键数（拆分口径见下方人写表，文档为正典） |
 | 奇遇池（生效） | 131 条 | `SQ.Events.allIds(pack)`（通用+专属+独立通道合计；拆分口径见下方人写表） |
 | 天赋池 | 196 条 | `SQ.TALENTS[世界].{positive,negative}` 逐世界求和（含古武 0 条） |
