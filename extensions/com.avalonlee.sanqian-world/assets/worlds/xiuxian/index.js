@@ -17,8 +17,10 @@
       artsKnown: ['tuna', 'juling'], artsLevels: { tuna: 1, juling: 1 }, artsSlots: [], shelf: [],
       artsAutoInit: false, artsLearnClock: 0, artsSelfLearnN: 0, artsMain: null,
       /* 自动炼化开关（GitHub issue #2）：false = 换下的旧件 / 不如在件的新件先入库藏阁。
-       * 认 ws 而不是 state.settings：autoEquip 的十一个调用点签名各异，只有 ws 一定在场。 */
-      gearAutoRefine: true,
+       * 认 ws 而不是 state.settings：autoEquip 的十一个调用点签名各异，只有 ws 一定在场。
+       * 第册一百四十九批（用户令「三个自动开关默认关」）：新档初值改 **false**——自动渡劫 /
+       * 自动奇遇核内本就缺省关，此处补齐第三枚；旧档读 normalize 保留显式真值，行为不变。 */
+      gearAutoRefine: false,
       zone: 0, prog: {}, cleared: [], combatAcc: 0, kills: 0,
       /* 系统深化批 A4（数值详设 §2.5~§2.7）：区域词缀 {affixId, until} / 域主 {zone, state, retryAt}
        * / 探宝残片 10 元分区计数；A6：天道垂青 fateSeen [{id, realm}]（同境界段排除） */

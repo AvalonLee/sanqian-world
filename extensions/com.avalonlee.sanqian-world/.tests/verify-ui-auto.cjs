@@ -54,6 +54,14 @@ function buildSave(autoEvent, withPend, eventPref) {
   }
 
   /* ── A. 需求 2：修行页传闻区 + 需求 1 开关落位 ── */
+  /* 行序读数（册149 行序判共用）：把「自动」段的四类 .setrow 映射成标记串，存档段两行读 '?' 过滤掉。 */
+  const rowsOf = (page) => page.evaluate(() =>
+    Array.prototype.map.call(document.querySelectorAll('#tab-settings .setrow'), (r) =>
+      r.querySelector('[data-act="toggleAutoTrib"]') ? 'trib' :
+      r.querySelector('[data-act="toggleAutoEvent"]') ? 'event' :
+      r.querySelector('[data-act="setEventPref"]') ? 'pref' :
+      r.querySelector('[data-act="toggleGearRefine"]') ? 'refine' : '?')
+      .filter((x) => x !== '?').join(','));
   {
     const { ctx, page, errors } = await boot(false);
     /* 传闻区紧随游戏时间（calrow）之下 */
@@ -144,6 +152,12 @@ function buildSave(autoEvent, withPend, eventPref) {
     await page.waitForTimeout(300);
     const chips = await page.$$eval('#tab-settings [data-act="setEventPref"]', els => els.map(e => e.textContent.trim()));
     T(chips.length === 4 && chips.join('|') === '无倾向|正道|魔道|左道', 'R3 自动奇遇开启 → 设置页奇遇倾向四 chips', chips.join('|'));
+    /* 行序判（第册一百四十九批 · 用户令「自动奇遇与奇遇倾向上下相邻，中间不隔自动炼化」）：
+     * 开倾向态 = 渡劫 → 奇遇 → 倾向(col) → 炼化。按 .setrow 出现序对表；存档段那两行
+     * （清增益/重置）不含自动段 act ⇒ 读成 '?'，过滤后再对表，不钉全页行数。 */
+    const rowOrderOn = await rowsOf(page);
+    T(rowOrderOn === 'trib,event,pref,refine',
+      'R3 开倾向态行序 = 渡劫 → 奇遇 → 倾向 → 炼化（倾向紧跟其父开关，册149 用户令）', rowOrderOn);
     const onTxt = await page.$eval('#tab-settings [data-act="setEventPref"].on', el => el.textContent.trim());
     T(onTxt === '无倾向', 'R3 默认高亮无倾向', onTxt);
     await page.click('#tab-settings [data-act="setEventPref"][data-v="evil"]');
@@ -160,6 +174,10 @@ function buildSave(autoEvent, withPend, eventPref) {
     await page.waitForTimeout(300);
     const chipsOff = await page.$$eval('#tab-settings [data-act="setEventPref"]', els => els.length);
     T(chipsOff === 0, 'R3 自动奇遇关闭 → 设置页倾向 chips 收起', 'n=' + chipsOff);
+    /* 关倾向态（册149）：倾向块不渲染 ⇒ 奇遇行与炼化行直接相邻（中间不许再隔任何行）。 */
+    const rowOrderOff = await rowsOf(page);
+    T(rowOrderOff === 'trib,event,refine',
+      'R3 关倾向态行序 = 渡劫 → 奇遇 → 炼化（倾向随父开关收起后两行直接相邻）', rowOrderOff);
     await ctx.close();
   }
   /* D3 倾向优先：pref=neutral 且该分支可用（stone 检定 5000≫30）→ 自动抉择必落 neutral（非随机） */

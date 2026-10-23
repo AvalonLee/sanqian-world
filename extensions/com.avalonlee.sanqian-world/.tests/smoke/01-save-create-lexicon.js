@@ -428,6 +428,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
     var it35 = { atk: 10, qiBonus: 0.1, resist: 40, attrValue: { attr: 'jing', value: 5 }, special: null };
     var it35s = Object.assign({}, it35, { special: 'sword_heart' });
     var w35 = mkWs({ realm: 9 });
+    w35.gearAutoRefine = true;   /* 册149：新档缺省改关，本例专测「开」路径（替换即炼化），显式落真值 */
     var m35 = M(mkProf(), w35);
     var a1 = SQ.Gear.autoEquip(w35, pack, D, m35, mkGear('weapon', { tier: 2, atk: 10, qiBonus: 0.1, resist: 40, attrValue: { attr: 'jing', value: 5 } }), null);
     var a2 = SQ.Gear.autoEquip(w35, pack, D, m35, mkGear('weapon', { tier: 0, atk: 1 }), null);
@@ -473,7 +474,8 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
     var n35x = pack.normalize({ gearAutoRefine: 'yes' }, {}).gearAutoRefine;
     ok(35, '评分公式 + 择优只在更高时 + 自动炼化开关（issue #2：关 ⇒ 低分新件与被换旧件都入库藏阁（含**独占授予**那条口），' +
       '库满才回落炼化，灵石与总账零流动；两条新文案真解析、屏上不落裸键名——A2 静态扫描对 itemLog 第三形参是盲区，本条补上；' +
-      'normalize 三态 缺省 true / false 保留 / 脏值归 true）',
+      'normalize 三态 无字段 true（issue #2 前旧档兼容）/ false 保留 / 脏值归 true；' +
+      '册149 用户令「三自动开关默认关」＝新档 initialState 显式 false，本条一并看守）',
       SQ.Gear.scoreOf(it35) === 55 && SQ.Gear.scoreOf(it35s) === Math.round(55 * 1.15 * 100) / 100 &&
       a1.action === 'equip' && a2.action === 'refine' && held35 && a3.action === 'replace' && w35.gear.weapon.atk === 99 &&
       b1.action === 'equip' && b2.action === 'stash' && b3.action === 'replace' && b3.gained === 0 &&
@@ -481,7 +483,8 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       st35b === 2 && w35b.stash.length === 3 && w35b.gear.weapon.atk === 99 &&
       w35b.stones === mkWs({ realm: 9 }).stones &&
       bLedger.action === 'stash' && JSON.stringify(w35b.ledger) === led35b &&
-      c35.action === 'refine' && d35 && n35d === true && n35f === false && n35x === true,
+      c35.action === 'refine' && d35 && n35d === true && n35f === false && n35x === true &&
+      pack.initialState().gearAutoRefine === false,
       'score=' + SQ.Gear.scoreOf(it35) + '/' + SQ.Gear.scoreOf(it35s) + ' acts=' + [a1.action, a2.action, a3.action].join(',') + ' held=' + held35 +
       ' ‖ 开关关 acts=' + [b1.action, b2.action, b3.action, bLedger.action].join(',') + ' 库=' + w35b.stash.length +
       ' 灵石=' + w35b.stones + ' Ledger同=' + (JSON.stringify(w35b.ledger) === led35b) +
