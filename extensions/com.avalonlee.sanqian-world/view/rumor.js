@@ -94,6 +94,35 @@
     var now = Date.now();
     return (w.rumors || []).some(function (r) { return r.expireAt > now && r.bornAt > c.ui.rumorSeenAt; });
   }
+  /* ── 前往查证（G17 · 江湖传闻；第册一百四十六批 2026-10-23 · B5a 自内核派发器搬入）
+   * 先判可触发 → 战况传闻给观望/切页 → 触发后按「自动奇遇」设定走自动代择或弹抉择浮层。
+   * 桥 +3（本刀唯二的新增面）：`switchTab` / `autoEventOn` / `autoResolveChoice` ——
+   *   前一枚是页签机器（战况传闻要我方参战时切去势力页），后两枚是「自动奇遇」代择链，
+   *   与 afterClaim 的 tick 侧同一条口径，借桥复用、不抄第二份。 */
+  async function actGo(c, v) {
+    var chkRm = SQ.Rumors.canTrigger(c.w, c.p, c.d, v, Date.now());
+    if (!chkRm.ok) {
+      c.toast(c.t(chkRm.reason === 'busy' ? 'rumor.busy' : (chkRm.reason === 'expired' ? 'rumor.expired.grey' : 'rumor.gone')));
+      c.renderAll();
+      return;
+    }
+    if (chkRm.war) {
+      var warR = c.w.factionWar;
+      if (warR && SQ.Factions.warSideOf(c.w)) { c.switchTab('faction'); return; }
+      c.toast(c.t('faction.war.watch'));
+      return;
+    }
+    var rRm = await SQ.Actions.triggerRumor(c.s, v);
+    /* 传闻触发的奇遇同样遵守「自动奇遇」设定（体验批）：开启 → 自动择分支结算不弹窗；
+     * 关闭 → 维持抉择模态。与 afterClaim 的 tick 侧口径一致。 */
+    if (rRm && rRm.ok && rRm.pending) {
+      if (c.autoEventOn()) c.autoResolveChoice();
+      else SQ.UI.event.choice(c.fresh());
+    }
+    else if (rRm && !rRm.ok) { c.toast(c.t('rumor.gone')); }
+    c.renderAll();
+  }
+
   SQ.UI = SQ.UI || {};
-  SQ.UI.rumor = { band: renderRumors, maxBorn: maxRumorBornAt, dotOn: rumorDotOn };
+  SQ.UI.rumor = { band: renderRumors, maxBorn: maxRumorBornAt, dotOn: rumorDotOn, actGo: actGo };
 })();
