@@ -453,6 +453,12 @@
         var got8 = bn > 0 ? Math.max(0, Math.min(bn, room8)) : bn;
         if (got8 !== 0) {
           ws.attrEventBonus[e.attrBonus.attr] = (ws.attrEventBonus[e.attrBonus.attr] || 0) + got8;
+          /* N76（第册一百三十批 · 文案与实付同源）：把**实付值** `got8`（经 attrBonusAmp 放大 + 截到剩余）
+           * 回写两处文案源 —— · `e.attrBonus.n`：failE 路径的 `effText(e.fail)` 读它（该路径 ctx 无 applied）；
+           * · `ctx.applied.attrBonus.n`：主路径的 `effText(applied)` 读它（两者是不同对象：gainToEff 预写时各建一枚）。
+           * 无 amp 无截断时 got8 === bn === 原 n ⇒ 写回幂等、那一支逐字不变。 */
+          e.attrBonus.n = got8;
+          if (ctx.applied && ctx.applied.attrBonus) ctx.applied.attrBonus.n = got8;
         } else {
           /* 满上限被整笔丢弃（既有设计，改不改属产品裁定 ⇒ 转 N27/N28 登记）或取整后为 0 ⇒
            * 一律撤销标签与 applied（审计 #6）：否则文案写「悟性永久 +3」而玩家一分没拿到。 */
@@ -719,7 +725,11 @@
           : Math.min(1, Math.pow(kk / D.EVENT_CLOCK_PITY_MIN, 2) * rateMult);
         if (Math.random() < p) {
           var r = SQ.Events.fire(ws, pack, D, mods, eff, now, ctx);
-          if (r && r.pending) { result = r; break; }
+          /* N60（第册一百三十四批）：把「20 分钟硬保底触发」与「常规掷点触发」分开标记 ——
+           * 判据侧（sim-event-economy）此前只有 fired 总数，保底对三档一律 p=1 会把相邻两档的
+           * 乘区差压平（×1.3 与 ×1.0 并排）⇒ 时钟乘数判据只能退到「≥ + 两端差 ≥0.5」。
+           * 标记只加在**返回值**上、不写 ws/pendingChoice、不落盘 ⇒ 零结算影响。 */
+          if (r && r.pending) { r.pityTriggered = kk >= D.EVENT_CLOCK_PITY_MIN; result = r; break; }
           if (r && r.blocked) result = r; /* 被护身符抵消：时钟保留，继续走后续分钟段 */
           /* r=null 流产：时钟保留，继续 */
         }
