@@ -81,6 +81,10 @@
   keys['faction.rel.enemy'] = '敌对';
   keys['faction.rel.neutral'] = '持平';
   keys['faction.rel.same'] = '同门';
+  /* 第册一百四十四批（N86 处置）：关系行右端「全部 / 收起」开关文案——中立关系默认不列，
+   * 这两枚是它唯一的开合词（此前产出按钮在 UI v2 某次换版里丢了，本批补回）。 */
+  keys['faction.rel.all'] = '全部';
+  keys['faction.rel.hide'] = '收起';
   keys['faction.members'] = '同道 {n} 人';
   /* 江湖名录取数（第卌七批）：固定势力卡上写清「掌门是谁」——名录认不出就不写这行（视图不编名字） */
   keys['faction.master.line'] = '掌门 {name}（{realm}）· 太上 {elder}';

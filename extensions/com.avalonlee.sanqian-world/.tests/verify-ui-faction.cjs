@@ -152,7 +152,37 @@ const { chromium } = require('playwright-core');
   await page.click('#cf-cancel');
   await page.waitForTimeout(200);
 
+  /* ── R6 关系全列开关（N86 已修 · 第册一百四十四批）：中立关系默认不列，「全部」展开、「收起」收回 ──
+   * 立因：UI v2 某次换版把这枚按钮丢了 ⇒ `ui.facRelAll` 只剩读点、中立关系永远看不到（D15② 死枝在册）。
+   * 本批补回后，这条同时是「补得对」的凭证：必须真开合，不只是按钮在位。 */
+  await page.click('#m-tabbar button:has-text("势力")');
+  await page.waitForTimeout(400);
+  await page.click('#tab-faction .faccard[data-act="facDetail"]');
+  await page.waitForTimeout(300);
+  const relRead = () => page.evaluate(() => ({
+    n: document.querySelectorAll('#tab-faction .frel .relchip').length,
+    btn: ((document.querySelector('#tab-faction .frel [data-act="facRelAll"]') || {}).textContent || '').trim()
+  }));
+  const rel0 = await relRead();
+  /* 点不动就记 false、不抛（§4.60 定则 5：抛异常会把整篇后续组全带走 —— 本组反向取证踩过一次） */
+  const clickSafeRel = async (sel) => { try { await page.click(sel, { timeout: 4000 }); return true; } catch (e) { return false; } };
+  const okOpen = await clickSafeRel('#tab-faction .frel [data-act="facRelAll"]');
+  await page.waitForTimeout(300);
+  const rel1 = await relRead();
+  const okClose = await clickSafeRel('#tab-faction .frel [data-act="facRelAll"]');
+  await page.waitForTimeout(300);
+  const rel2 = await relRead();
+  T(okOpen && okClose && rel0.n > 0 && rel1.n > rel0.n && rel2.n === rel0.n && /全部/.test(rel0.btn) && /收起/.test(rel1.btn),
+    'R6 关系行「全部 / 收起」开关在位且真开合（中立关系此前永远看不到 · N86 处置）',
+    'chips ' + rel0.n + '→' + rel1.n + '→' + rel2.n + ' 文案 ' + rel0.btn + '→' + rel1.btn);
+  /* 关系行的开关在**详情**页；验完必须退回名录，否则后面的 M/C 组看到的是详情而不是卡（同型假红踩过一次） */
+  await clickSafeRel('#tab-faction [data-act="facBack"]');
+  await page.waitForTimeout(300);
+
   /* ── Q 组：门中委托一次贴三张、类型互不相同、各交各的 ── */
+  /* R6 之后停在势力页详情（R6 自己切过去），Q 组验的是宗门页委托板 ⇒ 先切回宗门页 */
+  await page.click('#m-tabbar button:has-text("宗门")');
+  await page.waitForTimeout(400);
   await page.click('#tab-sect');
   await page.waitForTimeout(600);
   const qread = () => page.evaluate(() => {
