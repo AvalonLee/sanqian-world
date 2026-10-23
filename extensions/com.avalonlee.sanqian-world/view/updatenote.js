@@ -45,6 +45,14 @@
     var m = document.getElementById('modal-updatenote');
     if (m) m.classList.add('hide');
   }
-  SQ.UI = SQ.UI || {};                    /* 视图件命名空间，与 SQ.Idle / SQ.Mods 同一家族体例 */
-  SQ.UI.updateNote = { id: ID, needed: needed, show: show, hide: hide };
+  /* 「知道了」动作（第册四批立 · 第册一百四十六批 B5a 自内核搬入）：点按才落库并收层；
+   * 落库走 `SQ.mutate` 事务口——直写内存态会被下一次 claim 覆盖。桥零新增（只用 `s`）。 */
+  async function actClose(c) {
+    hide();
+    await SQ.mutate(c.s, function (s) { s.profile.seenNote = ID; });
+  }
+  SQ.UI = SQ.UI || {};                    /* 视图件命名空间，与 SQ.Idle / SQ.Mods 同一家族体例
+   * `hide` 不再外露（B5a 后它只被件内 `actClose` 调，内核唯一外部调用点已随 noteClose 搬走）
+   * ⇒ D14 按「枚枚有人读」判，外露无人读 = 死 key。`show` 仍由核内弹层栈调用。 */
+  SQ.UI.updateNote = { id: ID, needed: needed, show: show, actClose: actClose };
 })();

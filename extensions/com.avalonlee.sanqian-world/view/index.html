@@ -703,6 +703,9 @@
       ambushHalt: ambushHalt, ambushCountdown: ambushCountdown, mirrorWorn: mirrorWorn,
       findEvent: findEvent, allEventList: allEventList, exclusiveOf: exclusiveOf,
       branchChecks: branchChecks, checkPreview: checkPreview,
+      /* B5a（第册一百四十六批）：`rumorGo` 外迁要借的三枚核内函数——页签机器与「自动奇遇」代择链
+       * （与 afterClaim 的 tick 侧同一份，不抄第二份）。 */
+      switchTab: switchTab, autoEventOn: autoEventOn, autoResolveChoice: autoResolveChoice,
       /* B4（第册一百四十五批）：`clearJudging` 桥位随定时器数组整族外迁而退役；换入 `renderTop`
        * （抉择作答后顶栏资源要立即刷新，原来调的是核内函数）。 */
       renderTop: renderTop };
@@ -2384,15 +2387,9 @@
     var act = el.dataset.act, v = el.dataset.v;
     var keepScroll = document.querySelector('.tabbody') ? document.querySelector('.tabbody').scrollTop : 0;
     if (act === 'tab') { switchTab(v); return; }
-    /* 更新公告（第册四批）：点「知道了」才落库并收层；落库走 SQ.mutate 事务口（直写内存态会被下一次 claim 覆盖） */
-    if (act === 'noteClose') {
-      if (SQ.UI && SQ.UI.updateNote) {
-        var noteId = SQ.UI.updateNote.id;
-        SQ.UI.updateNote.hide();
-        await SQ.mutate(state, function (s) { s.profile.seenNote = noteId; });
-      }
-      return;
-    }
+    /* 更新公告（第册四批）：点「知道了」才落库并收层——noteClose 原块已随 B5a（第册一百四十六批）
+     * 搬入 `view/updatenote.js`，此处一行转发；落库走 SQ.mutate 事务口（直写内存态会被下一次 claim 覆盖）。 */
+    if (act === 'noteClose') { await SQ.UI.updateNote.actClose(ctx()); return; }
     /* 法与器合并页已随 UI v2 B3 拆成「功法」「百器」两页：`lawChip` / `lawJump` 旧入口一并退役。 */
     /* 江湖榜换榜（第册一批③）：`ui.jhb` 只在内存（与 `ui.logFilter` / `ui.artsGroup` 同纪律——选看哪一榜不是角色状态，
      * 写进存档等于给主档加一个与游玩时长相关的增长项）；切榜等价换页 ⇒ 滚动归零。 */
@@ -2522,32 +2519,9 @@
     if (act === 'officeDispatch') { await SQ.UI.faction.actDispatch(ctx(), v); return; }
     if (act === 'officeGuard') { await SQ.UI.faction.actGuard(ctx()); return; }
     if (act === 'supplyBuy') { await SQ.UI.faction.actSupply(ctx(), v); return; }
-    /* ── G17 江湖传闻：前往查证（war 卡 → 转跳势力页应战 CONFIRM）── */
-    if (act === 'rumorGo') {
-      var wRm = ws();
-      var chkRm = SQ.Rumors.canTrigger(wRm, pack(), D(), v, Date.now());
-      if (!chkRm.ok) {
-        toast(t(chkRm.reason === 'busy' ? 'rumor.busy' : (chkRm.reason === 'expired' ? 'rumor.expired.grey' : 'rumor.gone')));
-        renderAll();
-        return;
-      }
-      if (chkRm.war) {
-        var warR = wRm.factionWar;
-        if (warR && SQ.Factions.warSideOf(wRm)) { switchTab('faction'); return; }
-        toast(t('faction.war.watch'));
-        return;
-      }
-      var rRm = await SQ.Actions.triggerRumor(state, v);
-      /* 传闻触发的奇遇同样遵守「自动奇遇」设定（体验批）：开启 → 自动择分支结算不弹窗；
-       * 关闭 → 维持抉择模态。与 afterClaim 的 tick 侧口径一致。 */
-      if (rRm && rRm.ok && rRm.pending) {
-        if (autoEventOn()) autoResolveChoice();
-        else SQ.UI.event.choice(ctx());
-      }
-      else if (rRm && !rRm.ok) { toast(t('rumor.gone')); }
-      renderAll();
-      return;
-    }
+    /* ── G17 江湖传闻：前往查证（war 卡 → 转跳势力页应战 CONFIRM）——rumorGo 原块已随 B5a
+     * （第册一百四十六批）搬入 `view/rumor.js`，此处一行转发；桥 +3（switchTab / autoEventOn / autoResolveChoice）。 */
+    if (act === 'rumorGo') { await SQ.UI.rumor.actGo(ctx(), v); return; }
     /* ── 天道系统（天道系统批 B1~B4）：问天/天象浮层 + 卦位香火选择 + 逆天大劫挑战 ── */
     if (act === 'openTiandao') { SQ.UI.tiandao.open(ctx()); return; }
     /* 页游充值贴片彩蛋：只回一句拒绝，零发放 / 零落档 / 零账（判据 = 走查 G 组「点完存档字节不变」）。
