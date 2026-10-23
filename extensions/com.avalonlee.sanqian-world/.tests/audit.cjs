@@ -1261,6 +1261,337 @@ const SQ = sandbox.window.SQ;
     (bad14.length ? ' ‖ ' + bad14.slice(0, 6).join(' ‖ ') : ' ‖ 枚枚有人读、处处有出口'));
 })();
 
+/* ── D15 三关共用的小工具（第册一百四十批 2026-10-23 · B0 立 · N82/D15 本体）──────────────
+ * 为什么单列一层：D15①（监听体收敛）、D15②（act 面双向）、D16（跨件调用形状）都要「括号配对 + 顶层逗号切分
+ *   + 有效语句计数」三件同一口径的活。各写一份必然漂（第册一百卅七批刚吃过「同一判据两处实现」的亏）。
+ * 词法纪律：一律吃 `stripComments` 之后的源（A8：普查类关卡先剥注释）；本层只叠「引号 / 括号深度」两态。 */
+function sqCloseAt(src, open) {
+  let d = 0, q = '';
+  for (let i = open; i < src.length; i++) {
+    const ch = src[i];
+    if (q) { if (ch === '\\') { i++; continue; } if (ch === q) q = ''; continue; }
+    if (ch === '"' || ch === "'" || ch === '`') { q = ch; continue; }
+    if (ch === '(' || ch === '[' || ch === '{') { d++; continue; }
+    if (ch === ')' || ch === ']' || ch === '}') { d--; if (d === 0) return i; }
+  }
+  return -1;
+}
+/* 顶层逗号切分（嵌套括号 / 字面量 / 模板串不参与）⇒ 实参个数 = 返回数组长度 */
+function sqCutArgs(s) {
+  const out = []; let d = 0, q = '', cur = '';
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (q) { cur += ch; if (ch === '\\') { cur += s[i + 1] || ''; i++; continue; } if (ch === q) q = ''; continue; }
+    if (ch === '"' || ch === "'" || ch === '`') { q = ch; cur += ch; continue; }
+    if (ch === '(' || ch === '[' || ch === '{') { d++; cur += ch; continue; }
+    if (ch === ')' || ch === ']' || ch === '}') { d--; cur += ch; continue; }
+    if (ch === ',' && d === 0) { out.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  if (cur.trim()) out.push(cur);
+  return out.map((x) => x.trim());
+}
+/* 回调实参 → 花括号内的体；非函数形（裸函数引用 / 箭头单表达式）返回 null */
+function sqBodyOf(arg) {
+  const s = String(arg || '').trim();
+  const i = s.indexOf('{');
+  if (i < 0) return null;
+  const end = sqCloseAt(s, i);
+  return end < 0 ? null : s.slice(i + 1, end);
+}
+/* 有效语句数 = 深度 0 的分号（排除裸 return / break / continue，它们不是「做事」）+ 深度 0 的控制块各计 1。
+ * 口径与勘察档 §九一致（那边叫「有效语句」），差别只有一条：裸 return 不计 —— 否则任何单调用转发
+ * （`SQ.UI.x.y(...); return;`）都会被数成 2 句，「≤1 语句」的判据当场恒红（本批首次试跑即踩到）。 */
+function sqStmtCount(body) {
+  const b = String(body || '');
+  let semi = 0, ctrl = 0, q = '', d = 0;
+  for (let i = 0; i < b.length; i++) {
+    const ch = b[i];
+    if (q) { if (ch === '\\') { i++; continue; } if (ch === q) q = ''; continue; }
+    if (ch === '"' || ch === "'" || ch === '`') { q = ch; continue; }
+    if (ch === '(' || ch === '[' || ch === '{') { d++; continue; }
+    if (ch === ')' || ch === ']' || ch === '}') { d--; continue; }
+    if (d !== 0) continue;
+    if (ch === ';') {
+      const seg = b.slice(0, i).split(/[;{}]/).pop();
+      if (!/^\s*(return|break|continue)\s*$/.test(seg)) semi++;
+      continue;
+    }
+    if (/[\w$.]/.test(b[i - 1] || '')) continue;
+    const rest = b.slice(i, i + 12);
+    if (/^(if|for|while|switch|try|do)\b/.test(rest)) {
+      /* `else if` 是同一支链的续，不重复计 */
+      if (!(rest.startsWith('if') && /(^|\})\s*else\s*$/.test(b.slice(0, i)))) ctrl++;
+    }
+  }
+  return semi + ctrl;
+}
+/* 单语句里是否含「逻辑」（赋值 / 声明 / 条件 / 循环 / 异常 / 短路）——含则不是「一行转发」 */
+function sqHasLogic(body) {
+  const b = String(body || '');
+  if (/^\s*return\s*;?\s*$/.test(b)) return false;
+  return /(^|[^=!<>+\-*/%&|^])=(?!=)|\bvar\s|\blet\s|\bconst\s|\bif\s*\(|\bfor\s*\(|\bwhile\s*\(|\btry\b|\bswitch\s*\(|&&|\|\||\+\+|--/.test(b);
+}
+
+/* ── D15① 监听体收敛（第册一百四十批 2026-10-23 · B0 立 · N82/D15 本体 B0）──────────────
+ * 立因：勘察档 §四.1 的首判——「一片 = 一页的呈现 + 它的动作」，呈现已外置完毕，动作还锁在内核派发器里。
+ *   要搬动作就得先有一条**不许再回涨**的线：监听体只许做一行转发，凡带逻辑的必须挂册，搬走一支销一条。
+ * 判（三向）：
+ *   ① 每个 `addEventListener` 的回调体（剥注释后）有效语句 ≤1 且不含逻辑 ⇒ 合规；否则必须在 `EXC_LISTEN` 在册。
+ *   ② 在册项**只减不增**：实际语句数 > 钉值 ⇒ 红（回涨）；站点已合规却仍挂在册 ⇒ 红（例外失效，同 D3 口径）。
+ *   ③ 在册项在源里找不到 ⇒ 红（改名 / 删除后没销号）。
+ * 派发器（全局 `data-act` 委托）**整体**算一处在册例外，另钉两个数：分支数、业务支数（语句 ≥2）。逐支销号
+ *   交给任务清单 N82 的 B1–B5（人工账）——**边界如实登记**：不逐支钉表，原因是支的名字会随搬动改，
+ *   硬钉表会让「搬家」变成「改判据」；钉总数 + 任务清单账已足以防回涨。
+ * 反向取证（B0 收口实跑）：把 `$('mr-close')` 那行合规转发改成两行（先 hide 再 renderAll）⇒ 本关应红。 */
+(function () {
+  /* 在册例外：键 = `#id@事件`（取不到 id 时用 `document` / 变量名），值 = 钉住的语句数。
+   * 逐条都带「为什么还不能搬」的一句话，别让它变成无名账。 */
+  const EXC_LISTEN = {
+    /* 创角三屏（B0 首跑 2026-10-23 在册 7 处）——**不搬**：draft / MASKS / 创角态是「创角机器不跨件」的边界（用户 Q1 裁定同口径），
+     * 搬它们等于把创角链拖进外置件。语句数钉死只减不增；哪天创角屏重构，这批随重构一起销。 */
+    '#c1-random@click': 2,        /* L812  · 随机道号（写 input.value + 清错行） */
+    '#c1-next@click': 5,          /* L817  · 起名校验 → 屏 3 */
+    'card@click': 2,              /* L900  · 择界卡：写 draft.bias + 重渲 */
+    '#c2-confirm@click': 2,       /* L954  · 世界确认 → 开天命锁浮层 */
+    '#mk-ok@click': 5,            /* L957  · 入定：写档 + enterMain */
+    'card@click#2': 4,            /* L1023 · 择界卡点选（屏 3） */
+    '#c3-go@click': 3,            /* L1035 · 入界校验 */
+    /* 浮层纪律机器（在册 6 处）——**不搬**：遮罩 / ESC / 输入收口 / 确认框是「谁能关掉什么」的单一机器，
+     * 搬走会把浮层栈的时序拆成两处（勘察档 §五 R1 点名的 confirmCb / confirmCancelCb 重绑就在这条线上）。 */
+    '#cf-cancel@click': 6,        /* L2152 · 确认框取消（含 cancelCb 派发） */
+    '#cf-ok@click': 6,            /* L2158 · 确认框确认（含回调清位） */
+    'document@click': 9,          /* L2297 · 浮层遮罩点击关闭 */
+    'document@keydown': 3,        /* L2316 · ESC 逐层关闭 */
+    'document@input': 9,          /* L2327 · 输入态收口（炼丹名 / 宗门名 / 门训） */
+    'document@focusout': 6,       /* L2337 · 输入态失焦收口 */
+    /* 待搬（B3/B4/B5 的射程，在册 6 处）——每条都是「还能再拆一刀」的活口，别当永久例外。 */
+    '#mc-ok@click': 2,            /* L2098 · 抉择结果页确认（hide + renderAll ⇒ 可收成件内一口） */
+    '#mr-karma@click': 2,         /* L2128 · 角色浮层 → 善恶（hide + SQ.UI.self.karma）*/
+    '#mtd-parse@click': 4,        /* L2242 · 奏疏解析（天道族，B5 计划搬 tiandao.js） */
+    '#mdc-accept@click': 9,       /* L2251 · 天道旨意「奉旨」（B5） */
+    '#mdc-defy@click': 8,         /* L2269 · 天道旨意「抗旨」（B5） */
+    'document@visibilitychange': 1 /* L3092 · 1 语句但含逻辑（if + && ）⇒ 后台回前台补渲，属 tick 机器，B5 后再议 */
+  };
+  /* 派发器两个钉值（2026-10-23 B0 首跑实测）：分支 138（删 `claim` 死支后）、业务支 60。
+   * **只减不增**：每搬走一支（B1–B5）同批下调；新增 act 支须先在任务清单登记再改这里。 */
+  const DISP_PIN = { key: 'document@click#dispatcher', branches: 138, business: 60 };
+  const htmlPath = path.join(ROOT, 'view', 'index.html');
+  let code = '';
+  try { code = stripComments(fs.readFileSync(htmlPath, 'utf8')); } catch (e) { /* 走失明红 */ }
+  const bad = [];
+  if (!code) bad.push('view/index.html 读不到 ⇒ 本关失明');
+  const sites = [];
+  const used = {};
+  const re = /addEventListener\s*\(/g;
+  let m;
+  while ((m = re.exec(code))) {
+    const open = m.index + m[0].length - 1;
+    const close = sqCloseAt(code, open);
+    if (close < 0) { bad.push('addEventListener 实参括号不配对（第 ' + code.slice(0, m.index).split('\n').length + ' 行）'); continue; }
+    const args = sqCutArgs(code.slice(open + 1, close));
+    const ev = (args[0] || '').replace(/['"]/g, '').trim();
+    const body = args[1] ? sqBodyOf(args[1]) : null;
+    const prev = code.slice(Math.max(0, m.index - 160), m.index);
+    const ids = [...prev.matchAll(/\$\('([^']+)'\)/g)];
+    let recv;
+    if (ids.length) recv = '#' + ids[ids.length - 1][1];
+    else if (/document\.\s*$/.test(prev)) recv = 'document';
+    else {
+      const vm = prev.match(/([A-Za-z_$][\w$]*)\.\s*$/);
+      recv = vm ? vm[1] : 'other';
+    }
+    const isDisp = !!(body && body.indexOf('.dataset.act') >= 0 && ev === 'click');
+    let key = recv + '@' + ev;
+    if (isDisp) key += '#dispatcher';
+    used[key] = (used[key] || 0) + 1;
+    if (used[key] > 1) key += '#' + used[key];
+    sites.push({
+      key, ev, line: code.slice(0, m.index).split('\n').length, isDisp,
+      n: body === null ? 0 : sqStmtCount(body),
+      logic: body === null ? false : sqHasLogic(body),
+      body: String(body || '')
+    });
+  }
+  /* 派发器：钉分支数与业务支数 */
+  const dispSites = sites.filter((s) => s.isDisp);
+  if (dispSites.length !== 1) bad.push('全局 data-act 派发器应恰 1 处，实测 ' + dispSites.length + ' 处（改名或拆支 ⇒ 本关失明）');
+  else {
+    const d = dispSites[0];
+    let branches = 0, business = 0;
+    const bre = /if\s*\(\s*act\s*===\s*'([A-Za-z0-9_]+)'/g;
+    let bm;
+    while ((bm = bre.exec(d.body))) {
+      const braceAt = d.body.indexOf('{', bm.index);
+      if (braceAt < 0) continue;
+      const braceEnd = sqCloseAt(d.body, braceAt);
+      branches++;
+      if (braceEnd > braceAt && sqStmtCount(d.body.slice(braceAt + 1, braceEnd)) >= 2) business++;
+    }
+    if (DISP_PIN.branches && branches > DISP_PIN.branches) bad.push('派发器分支 ' + branches + ' 支 > 在册 ' + DISP_PIN.branches + '（只减不增：新支须先在任务清单登记）');
+    if (DISP_PIN.business && business > DISP_PIN.business) bad.push('派发器业务支 ' + business + ' 支 > 在册 ' + DISP_PIN.business + '（同上）');
+    if (!branches) bad.push('派发器里认不出任何 `act === \'x\'` 支 ⇒ 本关失明');
+    DISP_PIN.actual = branches; DISP_PIN.actualBusiness = business;
+  }
+  /* 逐站点对账 */
+  const liveKeys = {};
+  sites.forEach((s) => {
+    if (s.isDisp) return;
+    liveKeys[s.key] = true;
+    const okShape = s.n <= 1 && !s.logic;
+    const pin = EXC_LISTEN[s.key];
+    if (pin == null) { if (!okShape) bad.push(s.key + ' 监听体不合规（语句 ' + s.n + (s.logic ? ' · 含逻辑' : '') + '，第 ' + s.line + ' 行）⇒ 搬走或挂册'); }
+    else if (okShape) bad.push(s.key + ' 已合规却仍在册（例外失效 ⇒ 删表项）');
+    else if (s.n > pin) bad.push(s.key + ' 语句数回涨 ' + s.n + ' > 在册 ' + pin);
+  });
+  Object.keys(EXC_LISTEN).forEach((k) => { if (!liveKeys[k]) bad.push(k + ' 在册但源里找不到（改名/搬走后没销号）'); });
+  const over = sites.filter((s) => !s.isDisp && (s.n > 1 || s.logic)).length;
+  ok('D15①', '监听体收敛（每处监听体 ≤1 有效语句且不含逻辑，例外在册只减不增；派发器钉分支数与业务支数）',
+    bad.length === 0, '监听 ' + sites.length + ' 处 · 不合规 ' + over + ' 处 · 在册 ' + Object.keys(EXC_LISTEN).length +
+    ' 件 · 派发器 ' + (DISP_PIN.actual || 0) + ' 支（业务 ' + (DISP_PIN.actualBusiness || 0) + '，在册 ' + DISP_PIN.business + '）' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 8).join(' ‖ ') : ' ‖ 全部在册或已合规'));
+})();
+
+/* ── D15② `act` 面双向对表（第册一百四十批 2026-10-23 · B0 立 · N82/D15 本体 B0）──────────────
+ * 立因：勘察档 §四.1 第二判——渲染面产出的 `data-act` 与派发器注册面必须双向相等。产出侧有孤儿 = 点了没反应；
+ *   注册侧有孤儿 = 死枝（`claim` 就是这样被照出来的，本批已按用户裁定 Q2 删除）。
+ * 产出面三形（射程 = 内核内联 + `view/*.js` 全部外置件）：
+ *   A `data-act="x"` / `data-act=\"x\"`（JS 字符串里的转义形）  B 表字段 `act: 'x'`（由 `data-act="' + … + '"` 渲染）
+ *   C **在册动态产出**：`setAttribute('data-act', <变量>)` 的件——act 名由函数实参给（如 `washCard(…, 'washSlot')`），
+ *     静态抽不出「谁产谁」，故按件在册登记（`EXC_SETATTR`），失效（件里没了 setAttribute / 字面量没了 / act 不在注册面）同判红。
+ * 注册侧 = 派发器里 `act === 'x'` 的字面量集合。
+ * 在册无产出（`EXC_NOPROD`）：注册了但静态找不到产出点的支，必须逐条带理由（当前 = 旧入口兼容桩 + 一条待裁定死路）。
+ * 边界如实：不判「产出点是否真的会被执行到」（那是走查的事）；不判同一 act 产出几次。
+ * 反向取证：往 `view/journal.js` 里加一行 `data-act="zzzReverseTest"` ⇒ 本关应红「有产出无处理器」。 */
+(function () {
+  /* A/C 两形的在册动态产出：键 = 件名，值 = { acts: [...], via: 'setAttribute' } */
+  const EXC_SETATTR = {
+    'talentswap.js': {                                   /* 第册一百三十九批 A3 搬片带进来的形：洗髓卡由 washCard 现造 DOM */
+      acts: ['washSlot', 'washPick'], via: 'setAttribute'
+      /* 立册理由：`washCard(c, el, i, act, picked)` 把 act 名当**实参**传进来，再 `setAttribute('data-act', act)`
+       * ⇒ 静态抽不出「谁产谁」。B1–B5 若再出现同形，照此逐件登记，不许放宽 A 形抽法（放宽 = 满盘假绿）。 */
+    }
+  };
+  /* 注册了但零产出的支（逐条带理由，失效同判红） */
+  const EXC_NOPROD = {
+    'facRelAll': '势力页「关系全列」开关：渲染侧只剩读（`if (rel === "neutral" && !c.ui.facRelAll) return`），**产出按钮在**' +
+                 ' UI v2 某次改版里丢了 ⇒ 中立关系永远看不到。本批只登记不处置（补按钮 or 删支属产品裁定，同 Q2 口径）',
+    'tabUp': '菜单顺序已下线（UI v2 B2 / D5）：旧入口的静默忽略桩，留着只为兼容旧档里可能残留的点击',
+    'tabDown': '同上（菜单顺序下线的第二枚兼容桩）'
+  };
+  const dir = path.join(ROOT, 'view');
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.js'));
+  const bad = [];
+  const produced = new Map();
+  const addP = (a, where) => { if (!produced.has(a)) produced.set(a, []); if (produced.get(a).indexOf(where) < 0) produced.get(a).push(where); };
+  const scanFiles = files.concat(['index.html']);
+  scanFiles.forEach((f) => {
+    let s = '';
+    try { s = stripComments(fs.readFileSync(path.join(dir, f), 'utf8')); } catch (e) { return; }
+    [...s.matchAll(/data-act=\\?["']([A-Za-z0-9_]+)\\?["']/g)].forEach((mm) => addP(mm[1], f));
+    [...s.matchAll(/\bact\s*:\s*'([A-Za-z0-9_]+)'/g)].forEach((mm) => addP(mm[1], f + ':field'));
+  });
+  let html = '';
+  try { html = stripComments(fs.readFileSync(path.join(dir, 'index.html'), 'utf8')); } catch (e) { bad.push('view/index.html 读不到 ⇒ 本关失明'); }
+  const registered = new Set();
+  [...html.matchAll(/act\s*===\s*'([A-Za-z0-9_]+)'/g)].forEach((mm) => registered.add(mm[1]));
+  if (registered.size < 80) bad.push('注册面只抽到 ' + registered.size + ' 枚 act（<80 ⇒ 本关失明，不许在空集上恒绿）');
+  if (produced.size < 80) bad.push('产出面只抽到 ' + produced.size + ' 枚 act（<80 ⇒ 同上）');
+  /* A 形孤儿：有产出无处理器 = 点了没反应 */
+  [...produced.keys()].forEach((a) => {
+    if (!registered.has(a)) bad.push('有产出无处理器 act="' + a + '"（' + produced.get(a).join(',') + '）');
+  });
+  /* C 形在册动态产出：逐件核验 */
+  Object.keys(EXC_SETATTR).forEach((rel) => {
+    const spec = EXC_SETATTR[rel];
+    let s = '';
+    try { s = stripComments(fs.readFileSync(path.join(dir, rel.replace(/^view\//, '')), 'utf8')); } catch (e) { bad.push(rel + ' 在册但件读不到（失效 ⇒ 删表项）'); return; }
+    if (spec.via === 'setAttribute' && s.indexOf("setAttribute('data-act'") < 0) bad.push(rel + ' 在册理由是 setAttribute 动态产出，但件内已无该写法（失效 ⇒ 删表项）');
+    spec.acts.forEach((a) => {
+      if (s.indexOf("'" + a + "'") < 0) bad.push(rel + ' 在册 act "' + a + '" 在件内找不到字面量（失效 ⇒ 删表项）');
+      if (!registered.has(a)) bad.push(rel + ' 在册 act "' + a + '" 已不在注册面（失效 ⇒ 删表项）');
+      if (produced.has(a)) bad.push(rel + ' 在册 act "' + a + '" 另有静态产出（无需在册 ⇒ 删表项）');
+    });
+  });
+  /* B 形：注册了但零产出 */
+  [...registered].forEach((a) => {
+    if (produced.has(a)) return;
+    const dyn = Object.keys(EXC_SETATTR).some((rel) => EXC_SETATTR[rel].acts.indexOf(a) >= 0);
+    if (dyn) return;
+    if (EXC_NOPROD[a] == null) bad.push('有处理器无产出 act="' + a + '"（死枝：删支或补产出点，不许静默留着）');
+  });
+  Object.keys(EXC_NOPROD).forEach((a) => {
+    if (!registered.has(a)) bad.push('在册无产出 act="' + a + '" 已不在注册面（失效 ⇒ 删表项）');
+    else if (produced.has(a)) bad.push('在册无产出 act="' + a + '" 现在有产出了（销号 ⇒ 删表项）');
+  });
+  ok('D15②', 'act 面双向对表（产出 ⇔ 注册；产出侧零孤儿，注册侧死枝须挂册且只减不增）',
+    bad.length === 0, '产出 ' + produced.size + ' 枚 · 注册 ' + registered.size + ' 枚 · 动态产出件 ' + Object.keys(EXC_SETATTR).length +
+    ' · 在册死枝 ' + Object.keys(EXC_NOPROD).length +
+    (bad.length ? ' ‖ ' + bad.slice(0, 8).join(' ‖ ') : ' ‖ 双向相等（含在册例外）'));
+})();
+
+/* ── D16 跨件调用形状对表（第册一百四十批 2026-10-23 · B0 立 · 勘察档 Q4 = 独立成关）──────────────
+ * 立因：D13 只判「件内互调」的实参个数，**跨件调用**（`SQ.UI.<ns>.<key>(…)`）一直是走查兜着的
+ *   （D13 的边界注释、D7 的注释都写明「那里由走查判形状」）。勘察档 §四.1 建议独立成关，用户 Q4 裁定采纳。
+ * 判：导出面从 `view/*.js` 现取 `SQ.UI.<ns> = { key: fn }` → 查 `function fn(形参表)` 的形参数；
+ *   调用面扫 `view/*.js` + `view/index.html` 内联的每一处 `SQ.UI.<ns>.<key>(…)`，顶层逗号数必须 === 形参数。
+ * 边界：只判个数（类型与顺序不管，与 D13 同口径）；导出值不是本件 `function` 声明的（箭头 / 匿名 / 外部赋值）
+ *   记入「形状未知」并只做计数守卫；`.tests/**` 不算调用面（测试可以直接喂假参数）。
+ * 反向取证：把 `SQ.UI.settings.render(ctx())` 改成 `(ctx(), 0)` ⇒ 本关应红。 */
+(function () {
+  const dir = path.join(ROOT, 'view');
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.js'));
+  const exp = {};
+  files.forEach((f) => {
+    let s = '';
+    try { s = stripComments(fs.readFileSync(path.join(dir, f), 'utf8')); } catch (e) { return; }
+    const params = {};
+    [...s.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g)].forEach((mm) => {
+      const open = mm.index + mm[0].length - 1;
+      params[mm[1]] = sqCutArgs(s.slice(open + 1, sqCloseAt(s, open))).length;
+    });
+    [...s.matchAll(/SQ\.UI\.([A-Za-z_$][\w$]*)\s*=\s*\{/g)].forEach((mm) => {
+      /* ⚠️ 导出面按**花括号配对**取，不许用 `/\{[^}]*\}/` 或「换行 + `};`」式正则：
+       * 单行写法的导出表（`SQ.UI.spirit = { render: render };` 这类）用后者抽不到，本关首跑当场把
+       * spirit.render / rumor.band / rumor.dotOn / faction.home / talentswap.open 五枚真出口判成「不存在」
+       * ——假红教人改判据（A9 前例）。D14 早已改用配对，这里照抄。 */
+      const open = mm.index + mm[0].length - 1;
+      const close = sqCloseAt(s, open);
+      if (close < 0) return;
+      [...s.slice(open + 1, close).matchAll(/([A-Za-z_$][\w$]*)\s*:\s*([A-Za-z_$][\w$]*)/g)].forEach((kv) => {
+        exp[mm[1] + '.' + kv[1]] = { fn: kv[2], n: params[kv[2]], file: f };
+      });
+    });
+  });
+  const unknown = Object.keys(exp).filter((k) => exp[k].n === undefined);
+  /* 「形状未知」= 导出值不是本件的 `function` 声明（数据字段 / 箭头 / 外部赋值）。本仓实测 **1 枚**：
+   * `updateNote.id`（`updatnote.js` 里 `id: ID` 是当前公告 id 的数据字段，不是函数）⇒ 钉 ≤1，长出新的即红，
+   * 免得「判不了」悄悄变成「不判」（失明守卫，同 D14 的「导出只抽到 N 枚」那条）。 */
+  const UNKNOWN_PIN = 1;
+  let calls = 0;
+  const bad = [];
+  files.concat(['index.html']).forEach((f) => {
+    let s = '';
+    try { s = stripComments(fs.readFileSync(path.join(dir, f), 'utf8')); } catch (e) { return; }
+    [...s.matchAll(/\bSQ\.UI\.([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)\s*\(/g)].forEach((mm) => {
+      const id = mm[1] + '.' + mm[2];
+      const open = mm.index + mm[0].length - 1;
+      const n = sqCutArgs(s.slice(open + 1, sqCloseAt(s, open))).length;
+      calls++;
+      const e = exp[id];
+      if (!e) { bad.push(f + ' 调用了不存在的出口 SQ.UI.' + id + '（D14 也管这个方向，两关互为兜底）'); return; }
+      if (e.n === undefined) return;   /* 形状未知：只计数，见上方边界 */
+      if (e.n !== n) bad.push(f + ' SQ.UI.' + id + ' 形参 ' + e.n + ' ‖ 实参 ' + n + '（第 ' + s.slice(0, mm.index).split('\n').length + ' 行）');
+    });
+  });
+  if (Object.keys(exp).length < 40) bad.push('导出面只抽到 ' + Object.keys(exp).length + ' 枚（<40 ⇒ 本关失明）');
+  if (unknown.length > UNKNOWN_PIN) bad.push('形状未知的导出长出 ' + unknown.length + ' 枚（在册 ' + UNKNOWN_PIN + '）：' + unknown.slice(0, 4).join(',') + ' ⇒ 补形参抽取或改导出写法');
+  if (calls < 100) bad.push('跨件调用点只扫到 ' + calls + ' 处（<100 ⇒ 本关失明）');
+  ok('D16', '跨件调用形状对表（SQ.UI.<ns>.<key>(…) 实参数 ⇔ 件内 function 形参数；D13 只判件内，这是它自陈的边界）',
+    bad.length === 0, '导出 ' + Object.keys(exp).length + ' 枚（形状未知 ' + unknown.length + '）· 跨件调用 ' + calls + ' 处' +
+    (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 逐处个数相合'));
+})();
+
 /* ── D2 加载顺序单源（2026-10-14 结构整治批B · 方案 §六 D2 四判）
  * 射程说明（批A 自发现的盲区，写在这里免得下次又按错口径造反证）：`view/index.html` 是装载顺序的
  * **唯一事实源**，所以「HTML 少挂一个标签」本身是有意卸载、不是漂移，本关绝不判 HTML 自比。判这四件
