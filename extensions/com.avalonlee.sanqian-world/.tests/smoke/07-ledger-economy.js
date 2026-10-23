@@ -36,6 +36,30 @@ window.SQSmoke.frag('07-ledger-economy', async function () {
       ' ‖ (f) ' + rc295.join('/') + ' 越界=' + SQ.Fusion.reforgeCostOf({ tier: 9 }, D) +
       ' ‖ (g) 改表=' + gA295 + ' 原=' + gB295 + ' ‖ (h) 改表留 ' + mLK.karmaLog.length + ' 条 / 原留 ' + mLK0.karmaLog.length + ' 条');
 
+    /* ═══ #327 N76（第册一百三十批 · 文案与实付同源）═══
+     * 病根：`log.eff.attrBonus` 走 `applied.attrBonus.n`（gainToEff 预写的**原始掷点值**），
+     *   而实付是 applyEffects 里经 `attrBonusAmp` 放大 + 截到剩余后的 `got8` ⇒ 有 amp / 有截断时
+     *   「文案 +3 / 实得 +4」与「文案 +5 / 实得 +2」两族会说谎。修法 = 写作侧把实付值回写两处文案源。 */
+    var w327a = mkWs({});                                    /* (a) amp 生效：n=3 ×(1+0.2) ⇒ 实付 4 */
+    var e327a = { attrBonus: { attr: 'gunt', n: 3 } }; var ap327a = { attrBonus: { attr: 'gunt', n: 3 } };
+    var M327a = M(mkProf(), w327a); M327a.sum.attrBonusAmp = 0.2;
+    SQ.Events.applyEffects(w327a, pack, D, M327a, e327a, { applied: ap327a, log: noop295, now: 1700000096000 });
+    var a327 = w327a.attrEventBonus.gunt === 4 && e327a.attrBonus.n === 4 && ap327a.attrBonus.n === 4;
+    var w327b = mkWs({}); w327b.attrEventBonus = { mind: CAP295 - 2 };   /* (b) 截到剩余：余 2 掷 5 ⇒ 实付 2 */
+    var e327b = { attrBonus: { attr: 'gunt', n: 5 } }; var ap327b = { attrBonus: { attr: 'gunt', n: 5 } };
+    SQ.Events.applyEffects(w327b, pack, D, M(mkProf(), w327b), e327b, { applied: ap327b, log: noop295, now: 1700000096000 });
+    var b327 = w327b.attrEventBonus.gunt === 2 && e327b.attrBonus.n === 2 && ap327b.attrBonus.n === 2;
+    var w327c = mkWs({});                                    /* (c) 无 amp 无截断 ⇒ 逐字不变（写回幂等） */
+    var e327c = { attrBonus: { attr: 'gunt', n: 3 } }; var ap327c = { attrBonus: { attr: 'gunt', n: 3 } };
+    SQ.Events.applyEffects(w327c, pack, D, M(mkProf(), w327c), e327c, { applied: ap327c, log: noop295, now: 1700000096000 });
+    var c327 = w327c.attrEventBonus.gunt === 3 && e327c.attrBonus.n === 3 && ap327c.attrBonus.n === 3;
+    ok('327', 'N76 文案与实付同源（第册一百三十批）：`attrBonus` 经 `attrBonusAmp` 放大 / 经 `ATTR_EVENT_BONUS_CAP` 截到剩余后，**文案源 === 实付额**（回写 `e.attrBonus.n` 与 `ctx.applied.attrBonus.n` 两处）：' +
+      '(a) amp 1.2、n=3 ⇒ 实付 4 且两处文案源均 4；(b) 余 2 掷 5 ⇒ 实付 2 且两处均 2；(c) 无 amp 无截断 ⇒ 三值同为 3（写回幂等、原支逐字不变）',
+      a327 && b327 && c327,
+      '(a) 实付=' + w327a.attrEventBonus.gunt + ' e=' + e327a.attrBonus.n + ' applied=' + ap327a.attrBonus.n +
+      ' ‖ (b) 实付=' + w327b.attrEventBonus.gunt + ' e=' + e327b.attrBonus.n + ' applied=' + ap327b.attrBonus.n +
+      ' ‖ (c) 实付=' + w327c.attrEventBonus.gunt + ' e=' + e327c.attrBonus.n + ' applied=' + ap327c.attrBonus.n);
+
 
     /* #258 容量级⑧b「无损序列化折叠」（2026-10-07 折叠批 · 轮回卷 §二 收集类项的账实收口）：
      * 正典说收集类项（法宝/功法满级/称号/里程碑/成就）复用图鉴账本作幂等键、不在 meta.earnedKeys

@@ -120,7 +120,7 @@
     color: var(--ink);
   }
   /* UI v2 B15-a：数字与关键数值走衬线（设计稿 .num / .serif 口径），字重 500（原 700 是玻璃卡时代的粗黑） */
-  .pillar .pk, .kv b, .nm b, .big, .fullcap {
+  .kv b, .nm b, .big, .fullcap {
     font-family: var(--sq2-serif); font-variant-numeric: tabular-nums; letter-spacing: .01em;
   }
   :root[data-xhub-wallpaper-clear="1"] .panel {
@@ -695,16 +695,6 @@
   .refreshbtn { min-height: 34px; padding: 4px 14px; border-radius: 999px; font-size: 12px; color: var(--primary); border-color: var(--primary); background: var(--brand-soft); white-space: nowrap; }
   .refreshbtn:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
   :root[data-xhub-theme="dark"] .refreshbtn:hover { color: #1c1a12; }
-
-  /* ── 批 2 · 四柱 chip 行（B1）：财/法/地 激活，侣位灰置「虚位以待」（批 3 解锁）── */
-  .pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0 2px; }
-  .pillar { text-align: left; padding: 7px 8px; min-height: 0; border-radius: var(--sq2-r);
-    border: 1px solid var(--line); background: var(--well); cursor: pointer; }
-  .pillar .pk { font-size: 12px; font-weight: 700; color: var(--primary); letter-spacing: .1em; }
-  .pillar .pv { display: block; font-size: 11px; color: var(--ink-2); margin-top: 2px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pillar.locked { cursor: not-allowed; opacity: .55; }
-  .pillar.locked .pk { color: var(--ink-3); }
 
   /* ── 批 2 · 财柱总账（B2）：恒等式 + 收支条形（区内归一）── */
   .lg-ident { font-size: 13px; font-weight: 650; text-align: center; padding: 8px 0 2px;

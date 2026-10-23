@@ -186,7 +186,7 @@ function pickBranch(evId, ws, mods, pol) {
 function runHour(realm, pol, mode) {
   const b = buildWs(realm, pol, mode);
   const ws = b.ws, profile = b.profile;
-  const st = { fired: 0, blocked: 0, aborted: 0, stones: 0, qi: 0, exclusive: 0, ids: {}, branches: {} };
+  const st = { fired: 0, pity: 0, norm: 0, blocked: 0, aborted: 0, stones: 0, qi: 0, exclusive: 0, ids: {}, branches: {} };
   let now = T0;
   for (let m = 0; m < 60; m++) {
     now += 60000;
@@ -201,6 +201,8 @@ function runHour(realm, pol, mode) {
       const res = SQ.Events.resolveBranch(ws, pack, D, mods, id, bk, now, Object.assign({ profile: profile }, ctx));
       if (res) {
         st.fired++;
+        /* N60：按引擎送来的标记分「保底 / 常规」两计数 —— 时钟乘数的真实信号只在常规段里 */
+        if (r && r.pityTriggered) st.pity++; else st.norm++;
         st.ids[id] = (st.ids[id] || 0) + 1;
         st.branches[bk] = (st.branches[bk] || 0) + 1;
         st.stones += ws.stones - s0;
@@ -220,7 +222,7 @@ function runHour(realm, pol, mode) {
   const emods = SQ.Mods.collect(profile, ws, pack, D);
   const idleQi = SQ.Idle.rateOf(ws, pack, D, emods) * 3600;
   return {
-    realm: realm, pol: pol, fired: st.fired, blocked: st.blocked, unique: Object.keys(st.ids).length,
+    realm: realm, pol: pol, fired: st.fired, pity: st.pity, norm: st.norm, blocked: st.blocked, unique: Object.keys(st.ids).length,
     exclusive: st.exclusive, stones: st.stones, qi: st.qi, farmStones: combat.stones, kills: combat.kills,
     idleQi: idleQi, karmaEnd: ws.karma
   };
@@ -236,16 +238,16 @@ function pct(n) { return (Math.round(n * 1000) / 10).toFixed(1) + '%'; }
 const rows = [];
 for (const pol of POLICIES) {
   for (const realm of REALMS) {
-    const acc = { fired: 0, stones: 0, qi: 0, farm: 0, idle: 0, blocked: 0, unique: 0, exclusive: 0 };
+    const acc = { fired: 0, pity: 0, norm: 0, stones: 0, qi: 0, farm: 0, idle: 0, blocked: 0, unique: 0, exclusive: 0 };
     for (let i = 0; i < REPEATS; i++) {
       const r = runHour(realm, pol);
-      acc.fired += r.fired; acc.stones += r.stones; acc.qi += r.qi; acc.farm += r.farmStones;
+      acc.fired += r.fired; acc.pity += r.pity; acc.norm += r.norm; acc.stones += r.stones; acc.qi += r.qi; acc.farm += r.farmStones;
       acc.idle += r.idleQi; acc.blocked += r.blocked; acc.unique += r.unique; acc.exclusive += r.exclusive;
     }
     const n = REPEATS;
     rows.push({
       pol: pol, realm: realm,
-      fired: acc.fired / n, blocked: acc.blocked / n, unique: acc.unique / n, exclusive: acc.exclusive / n,
+      fired: acc.fired / n, pity: acc.pity / n, norm: acc.norm / n, blocked: acc.blocked / n, unique: acc.unique / n, exclusive: acc.exclusive / n,
       evStones: acc.stones / n, farmStones: acc.farm / n,
       evQi: acc.qi / n, idleQi: acc.idle / n,
       stoneRatio: acc.farm > 0 ? acc.stones / acc.farm : 0,
@@ -353,17 +355,20 @@ const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
 const densR = mean(byPol('right').map((r) => r.fired));
 const densN = mean(byPol('neutral').map((r) => r.fired));
 const densE = mean(byPol('evil').map((r) => r.fired));
-/* 时钟乘数排序（第卌八批改口 · 由寿元内容改动的种子相位逼出来，见下）：
- * 原判据 `正 > 左 > 魔` 把**相邻两档**也要求严格大于，而 20 分钟硬保底对三档一律生效（下一条判据就是它）——
- * ×1.3 与 ×1.0 的密度差被保底非线性抬升压到只剩零点几条，repeats=2 时一格样本 0.5 条的量化步长下
- * 「正 == 左」是常态而非缺陷（本批给两枚事件词条加 life 后掷点序列整体错位，20261008 就正好并排 5.10/5.10，
- * 换 20261009~11 与 repeats=4 又能拉开 ⇒ 典型采样族偶发红，同 N33⑩ 那一族）。
- * 现在的口径：**相邻档不许反向**（乘区生效的下限），**两端必须拉开 ≥0.5 条/时**（×1.3 对 ×0.5 的真实信号）。
- * shortcut: 想回到严格排序，先把「保底触发」与「常规掷点」分开计数（本件现在只有 fired 总数），
- *           用未封顶的那一段比 ×1.3/×1.0 —— 届时随事件池 §十二.1 一并处置。 */
-chk('时钟乘数生效：正 ≥ 左 > 魔 且两端差 ≥0.5（相邻档被 20 分钟保底压平是机制本身，不做严格大于）',
-  densR >= densN && densN > densE && densR - densE >= 0.5,
-  f2(densR) + ' / ' + f2(densN) + ' / ' + f2(densE) + '（两端差 ' + f2(densR - densE) + '）');
+/* N60（第册一百三十四批）：**非保底段**密度 —— 时钟乘数的真实信号只在这一段里。
+ * 引擎 `tickOnline` 现按 `kk >= EVENT_CLOCK_PITY_MIN` 给返回值打 `pityTriggered`，
+ * sim 据此把 fired 拆成 pity / norm 两计数（此前只有总数 ⇒ 保底对三档一律 p=1 把
+ * ×1.3 与 ×1.0 的差压平，判据只能退到「≥ + 两端差 ≥0.5」）。 */
+const normR = mean(byPol('right').map((r) => r.norm));
+const normN = mean(byPol('neutral').map((r) => r.norm));
+const normE = mean(byPol('evil').map((r) => r.norm));
+const pityAll = mean(rows.map((r) => r.pity));
+/* 时钟乘数排序（第卌八批改口 → 第册一百三十四批 **恢复严格排序** · N60）：
+ * 原口径 `正 ≥ 左 > 魔 且两端差 ≥0.5` 是「保底压平相邻档」的妥协；分计数后，
+ * 拿**非保底段**比 ×1.3/×1.0 就能回到严格大于（保底那一段对三档一视同仁，本就该排除）。 */
+chk('时钟乘数生效（非保底段严格排序）：正 > 左 > 魔',
+  normR > normN && normN > normE,
+  f2(normR) + ' / ' + f2(normN) + ' / ' + f2(normE) + '（保底段均值 ' + f2(pityAll) + '）');
 chk('20 分钟硬保底：任何画像 ≥3 条/小时', rows.every((r) => r.fired >= 3), 'min=' + f1(Math.min.apply(null, rows.map((r) => r.fired))));
 chk('左道密度 闭关口径 ≈4.7/h（eventMult ×0.5 + 20 分钟保底非线性抬升）',
   densN >= LIMIT.densityLo && densN <= LIMIT.densityHi, f2(densN));

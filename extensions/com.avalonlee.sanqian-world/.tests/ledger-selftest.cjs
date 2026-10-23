@@ -49,7 +49,7 @@ ok('⑤ 段外历史注逐字存活（生成器只动标记之间）',
   next.indexOf('换掉的内容') >= 0 && next.indexOf(regClean.body) < 0);
 
 /* ⑥ 拒写守卫（第册四一批 G2 演练立）：本机缺证据时 --fix 不许把降级读数写进正典 */
-const PREVD = { ui_asserts: 776, probe_asserts: 250 };
+const PREVD = { ui_files: 35, ui_asserts: 776, probe_asserts: 250 };
 const degraded = Object.assign({}, v, { ui_asserts: null, probe_asserts: 238 });
 const r6 = G.refuseFix(degraded, PREVD);
 ok('⑥ 未跑 / 探针被压低 ⇒ 拒写（两条都报）', r6.length === 2, r6.join(' ‖ '));
@@ -57,6 +57,32 @@ ok('⑥ 读数齐且不低于在册 ⇒ 不拒写（正常收口不受影响）'
   G.refuseFix(Object.assign({}, v, { ui_asserts: 776, probe_asserts: 250 }), PREVD).length === 0 &&
     G.refuseFix(Object.assign({}, v, { ui_asserts: 776, probe_asserts: 251 }), PREVD).length === 0,
   'degraded 判 ' + r6.length + ' 条');
+const r81 = (o) => G.refuseFix(Object.assign({}, v, { probe_asserts: 250 }, o), PREVD).length;
+ok('⑥ 篇数齐 / 篇增但断言合计下降 ⇒ 拒写（N81：走查有篇红、该篇整篇不计这一形）',
+  r81({ ui_files: 35, ui_asserts: 700 }) === 1 &&
+  r81({ ui_files: 36, ui_asserts: 700 }) === 1 &&
+  r81({ ui_files: 35, ui_asserts: 776 }) === 0 &&
+  r81({ ui_files: 35, ui_asserts: 800 }) === 0 &&
+  r81({ ui_files: 30, ui_asserts: 700 }) === 0,
+  '篇齐+降=' + r81({ ui_files: 35, ui_asserts: 700 }) + ' 篇增+降=' + r81({ ui_files: 36, ui_asserts: 700 }) +
+  ' 齐平=' + r81({ ui_files: 35, ui_asserts: 776 }) + ' 升=' + r81({ ui_files: 35, ui_asserts: 800 }) +
+  ' 篇减=' + r81({ ui_files: 30, ui_asserts: 700 }));
+
+/* ⑦ 交接锚判造漂反证（第册一百三十八批）：锚相等必绿；滞后 / 超前 / 缺锚 / 判据失明必红 */
+const A = G.handoffAnchor;
+const SNAP_OK = '正文 <!-- SQ:HANDOFF:ANCHOR §7A:181 --> 尾';
+const MAIN_OK = '…§七A 加第 **181** 条。〔旧注…';
+ok('⑦ 锚相等 ⇒ 绿', A(SNAP_OK, MAIN_OK).bad.length === 0, JSON.stringify(A(SNAP_OK, MAIN_OK).bad));
+ok('⑦ 锚滞后（快照 180 ‖ 主设计 181）⇒ 恰 1 红', A('<!-- SQ:HANDOFF:ANCHOR §7A:180 -->', MAIN_OK).bad.length === 1,
+  JSON.stringify(A('<!-- SQ:HANDOFF:ANCHOR §7A:180 -->', MAIN_OK).bad));
+ok('⑦ 锚超前（快照 190 ‖ 主设计 181）⇒ 恰 1 红', A('<!-- SQ:HANDOFF:ANCHOR §7A:190 -->', MAIN_OK).bad.length === 1);
+ok('⑦ 缺锚行 ⇒ 红（不许静默放行）', A('没有锚行', MAIN_OK).bad.length === 1);
+ok('⑦ 主设计抓不到条号 ⇒ 红（判据失明防护）', A(SNAP_OK, '版本注格式变了').bad.length === 1);
+
+/* ⑧ 交接锚 live 判：现行树快照锚必须与主设计最新条号一致 */
+const live = G.handoffAnchorLive();
+ok('⑧ 现行树交接锚一致（快照 §7A:' + live.snapN + ' ‖ 主设计 §7A:' + live.mainN + '）',
+  live.bad.length === 0, live.bad.join(' ‖ '));
 
 console.log(fails ? 'LEDGER_SELFTEST_FAILED ' + fails + '/' + n : 'LEDGER_SELFTEST_DONE ' + n + ' 判');
 process.exit(fails ? 1 : 0);

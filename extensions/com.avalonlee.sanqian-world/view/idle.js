@@ -1,6 +1,8 @@
 /* 修行页（引擎主面板 · 挂机 / 修为 / 四柱 / 天道行 / 离线呈报 / 自动区 ‖ 第册五十二批 2026-10-19 从 view/index.html 整片搬出 · N34 第十六刀）
  * 范围 = 单一渲染器 `render`（原 `renderIdle`，295 行）；纯拼串，零监听零定时器（本刀唯一的「凑巧干净」件）。
- * 桥 35 → **43 枚**（本刀新增八枚，全是「件外调用才进桥」）：`renderPillars`（四柱 chip 行）‖ `renderTiandaoRow`（天道行）
+ * 桥 35 → **43 枚**（本刀新增八枚，全是「件外调用才进桥」）：`renderPillars`（四柱 chip 行）〔⚠️ 第册一百三十七批退役：
+ *   自 UI v2 B16-c（第册七十八批）四柱移入右栏 `renderRail` 起，本件里那处「renderPillars 桥调用」已删、函数零调用，
+ *   桥位与死 CSS 同批一并退役 ⇒ 现行桥为 **42 枚**〕‖ `renderTiandaoRow`（天道行）
  *   ‖ `fmtFull`（大数全写）‖ `caveSigOf`（洞府印记加成）‖ `talentCard`（天赋卡，两参）‖ `autoEventPref`（奇遇倾向现值）‖ `offlineDetail`（离线呈报的效率/时长那格）
  *   ‖ `wid`（当前世界 id）。另有两枚**已有桥名**直接复用：好感档汉字数（桥名 bondTier）、`ctx()` → `c.fresh()`。
  * ⚠️ `ctx()` 那一处是给**外置渲染器**递快照（`SQ.UI.rumor.band(ctx(), Date.now())`）：桥位 `fresh` 就是「取一份新快照」，

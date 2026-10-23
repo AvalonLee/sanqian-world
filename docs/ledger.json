@@ -1,18 +1,18 @@
 {
  "generated_by": ".tests/gen-ledger.cjs",
- "at": "2026-10-22T05:55:37.993Z",
+ "at": "2026-10-23T01:24:28.179Z",
  "values": {
-  "ext_version": "0.6.0",
-  "dod_items": 20,
-  "dod_asserts": 605,
-  "dod_secs": 27.9,
-  "smoke": 326,
+  "ext_version": "0.6.2",
+  "dod_items": 56,
+  "dod_asserts": 1501,
+  "dod_secs": 336,
+  "smoke": 327,
   "audit_gates": 34,
   "versions_rows": null,
   "probe_asserts": 245,
-  "ui_files": 35,
-  "ui_asserts": 891,
-  "sim_playthrough": true,
+  "ui_files": 36,
+  "ui_asserts": 895,
+  "sim_playthrough": false,
   "arts": 70,
   "events": 131,
   "talents": 196,
@@ -53,6 +53,10 @@
   {
    "file": "docs/总纲/三千世界-项目设计文档.md",
    "name": "main-design"
+  },
+  {
+   "file": "docs/交接快照.md",
+   "name": "handoff"
   }
  ],
  "attrib": {
@@ -127,13 +131,14 @@
    "repro": "node .tests/probe-realsave.cjs"
   },
   "gen-ledger": {
-   "src": "docs/ledger.json + 各文件哨兵段",
+   "src": "docs/ledger.json + 各文件哨兵段 + 交接快照 anchor 判",
    "touches": [
     "docs/FACTS.md",
     "README.md",
     "DESIGN.md",
     "docs/总纲/三千世界-工程规范与验收计划.md",
-    "docs/总纲/三千世界-项目设计文档.md"
+    "docs/总纲/三千世界-项目设计文档.md",
+    "docs/交接快照.md"
    ],
    "repro": "node .tests/gen-ledger.cjs --fix 后复跑"
   }
