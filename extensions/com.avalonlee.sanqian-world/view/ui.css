@@ -1261,8 +1261,11 @@
   width: min(440px, calc(100vw - 40px)); max-height: 80vh; overflow-y: auto; cursor: default;
   background: var(--sq2-paper); border: 1px solid var(--sq2-line-2); border-radius: 3px;
   box-shadow: 0 22px 60px -18px rgba(0,0,0,.6); padding: 18px 20px 16px;
-  animation: stageIn .28s cubic-bezier(.2,.9,.3,1) both;
 }
+/* 第册一百四十七批（用户报「明细弹窗一直闪烁」）：浮层随 tick 每秒整页重建，动画常驻会把
+ * stageIn 每秒重播一遍。改挂 .fresh（动作行记 detailRateAt、渲染器按 <300ms 判新帧）——
+ * 只有刚点开那一轮播入场，其余重渲静止；动画末帧（opacity 1 / transform none）即自然态，摘类不跳。 */
+.dp-sheet.fresh { animation: stageIn .28s cubic-bezier(.2,.9,.3,1) both; }
 .dp-head {
   display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
   border-bottom: 1px solid var(--sq2-line); padding-bottom: 9px;

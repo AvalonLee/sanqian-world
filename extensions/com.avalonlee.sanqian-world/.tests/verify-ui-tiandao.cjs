@@ -417,6 +417,17 @@ const norm = (s) => String(s == null ? '' : s).replace(/\r\n/g, '\n');
   }));
   T(dpI.open && !!dpI.title && /\/秒/.test(dpI.total) && dpI.rows >= 2 && dpI.add >= 1 && dpI.mul >= 1,
     'I2 吐纳明细为独立纸面浮层（标题/合计/加项+/乘区× 齐全）', JSON.stringify(dpI));
+  /* I2b（第册一百四十七批）：浮层随 tick 每秒整页重建，入场动画不得跟着重播（用户报「弹窗一直闪烁」）。
+   * 开着浮层等过一拍 tick（合计 >1.3s，必经一次 renderAll 重渲），再读 computed animation-name：
+   * 修后 fresh 类已被下一轮重渲摘掉 ⇒ none；坏形（动画常驻）则恒为 stageIn，逐跑必红不抽风。 */
+  await page.waitForTimeout(1300);
+  const dpAnimI = await page.evaluate(() => {
+    const s = document.querySelector('.dp-sheet');
+    return s ? { open: true, anim: getComputedStyle(s).animationName } : { open: false, anim: '' };
+  });
+  T(dpAnimI.open && dpAnimI.anim === 'none',
+    'I2b 明细浮层开着熬过一次 tick 重渲后不再带入场动画（闪烁根因消除）',
+    JSON.stringify(dpAnimI));
   await page.click('.dp-sheet [data-act="detailRate"]');
   await page.waitForTimeout(250);
   T(!(await page.$('.dp-sheet')), 'I3 点「收起」浮层消失（不留遮罩拦点击）');
