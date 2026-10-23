@@ -10,11 +10,10 @@
  * 建场：全走引擎真入口 `SQ.Sect.foundSect` 造档（照 `probe-sectwire` 口径，不手搓 `ws.sect`——
  *   手搓的档过一遍 `normalize` 就与真档不同形，假红假绿两头都可能）。
  *
- * ⚠️ **N87 在册（第册一百四十二批发现，本批只登记不处置）**：`sectAccept` / `sectReject` 两支**在真机不可达**——
- *   `sect.candidate` 是临时态，`assets/worlds/xiuxian/sect.js` 的 normalize 把它硬写成 `null`，而 `SQ.mutate`
- *   提交时会过一次 normalize ⇒ 招贤刚掷出的候选**在 render 之前就被抹掉**，屏上永远不出现「收下 / 逐客」。
- *   ⇒ 本篇 C2b 是**断链守门判**：断言「候选恒空 + 两钮不出现」。哪天修好（候选改落盘或改即时结算），
- *   这条会**如实变红**，届时改成正面断言并销 N87 —— 这就是在册例外的「失效同判红」口径。
+ * ⚠️ **N87 已于第册一百四十四批修复**（用户裁定 ① 候选改落盘）：`sect.candidate` 原先是纯临时态（normalize
+ *   硬写 null），而 `SQ.mutate` 提交即过一次 normalize ⇒ 招贤掷出的候选在 render 之前就被抹掉，
+ *   「收下 / 逐客」真机不可达。现改为**候选落盘**（`Sect.candidateOf` 逐字段校验、脏档归 null）⇒ 本篇
+ *   C2b / C2c / C2d 已从「断链守门」改为**正面断言**（候选落盘 → 收下 → 逐客，逐条真点读盘上真值）。
  */
 'use strict';
 const path = require('path');
@@ -139,15 +138,27 @@ function residue(txt) {
     'C2 点「广纳门徒」⇒ 盘上 recruitAt 前进 + 屏上一句中文（不静默）',
     'recruitAt=' + (s2 ? s2.recruitAt : 0) + ' toast=' + JSON.stringify(tst2));
 
-  /* ── C2b N87 断链守门：候选被发现即刻抹掉 ⇒ 收下/逐客永不出现（修好则本判变红并销账）── */
+  /* ── C2b 候选落盘（N87 已修 · 第册一百四十四批）：招贤后盘上有候选、屏上出现「收下/逐客」── */
   const dl = await page.evaluate(() => ({
     cand: (JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.sect || {}).candidate,
     accept: !!document.querySelector('#tab-sect [data-act="sectAccept"]'),
     reject: !!document.querySelector('#tab-sect [data-act="sectReject"]')
   }));
-  T(dl.cand == null && !dl.accept && !dl.reject,
-    'C2b【N87 在册·断链守门】招贤候选被 normalize 抹掉 ⇒ 屏上无「收下/逐客」（修好后本判应变红 ⇒ 改成正面断言并销 N87）',
+  const candOk = (await sectOf()).candidate;
+  T(!!dl.cand && !!candOk && dl.accept && dl.reject,
+    'C2b 招贤候选落盘（N87 已修 ⇒ normalize 不再抹掉）且屏上出现「收下 / 逐客」',
     'candidate=' + JSON.stringify(dl.cand) + ' accept=' + dl.accept + ' reject=' + dl.reject);
+
+  /* ── C2c 收下 ⇒ 候选清空、名录 +1（此前该路真机不可达）── */
+  const discBefore = ((await sectOf()).disciples || []).length;
+  const okAccept = await clickSafe('#tab-sect [data-act="sectAccept"]');
+  const s2c = await poll(async () => {
+    const s = await sectOf();
+    return (!s.candidate && (s.disciples || []).length === discBefore + 1) ? s : false;
+  }, 6000);
+  T(okAccept && !!s2c,
+    'C2c 点「收下」⇒ 候选清空、名录 +1（`sectAccept`，N87 修好后才可达）',
+    s2c ? '名录=' + s2c.disciples.length + ' ids=' + s2c.disciples.map((x) => x.id).join(',') : '未落盘');
 
   /* ── C3 投资 ⇒ 该弟子 inv 置档、灵石扣减 ── */
   const stones3a = (await read()).worlds.xiuxian.stones;
@@ -224,6 +235,29 @@ function residue(txt) {
 
   T(errors.length === 0, 'C 组零页面报错', errors.join('|').slice(0, 160) || 'clean');
   await ctx.close();
+
+  /* ══ 页一之二：同一档另开一页 —— 「逐客」走一遍（招贤有 24h 冷却，同一页里收下/逐客只能二选一）══ */
+  const e1b = [];
+  const pb = await mkPage(saveSect);
+  pb.page.on('pageerror', (e) => e1b.push('pageerror: ' + e.message));
+  pb.page.on('console', (m) => { if (m.type() === 'error') e1b.push('console: ' + m.text()); });
+  const pageB = pb.page;
+  const clickB = async (sel, ms) => { try { await pageB.click(sel, { timeout: ms || 5000 }); return true; } catch (e) { return false; } };
+  const sectB = async () => (await pageB.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1') || '{}'))).worlds.xiuxian.sect || {};
+  await pageB.click('#m-tabbar button:has-text("宗门")');
+  await pageB.waitForTimeout(400);
+  const discB0 = ((await sectB()).disciples || []).length;
+  await clickB('#tab-sect [data-act="sectRecruit"]');
+  await poll(async () => (await sectB()).candidate || false, 6000);
+  const okReject = await clickB('#tab-sect [data-act="sectReject"]', 4000);
+  const sB = await poll(async () => {
+    const s = await sectB();
+    return (!s.candidate && (s.disciples || []).length === discB0) ? s : false;
+  }, 6000);
+  T(okReject && !!sB, 'C2d 点「逐客」⇒ 候选清空且名录不变（`sectReject`，N87 修好后才可达）',
+    sB ? '名录=' + sB.disciples.length + '（原 ' + discB0 + '）' : '未落盘');
+  T(e1b.length === 0, 'C2d 组零页面报错', e1b.join('|').slice(0, 120) || 'clean');
+  await pb.ctx.close();
 
   /* ══ 页二：无宗门无势力 → 立派 ══ */
   const e2 = [];

@@ -24,6 +24,15 @@
     });
     return chips;
   }
+  /* 关系行右端的「全部 / 收起」开关（第册一百四十四批 · N86 处置）：
+   * 中立关系默认不列（见 `factionRelChips` 那条 early return），这枚钮是它**唯一的产出点**——
+   * UI v2 某次换版把按钮丢了，中立关系因此永远看不到（D15② 的死枝在册表登记过，本批补回后销账）。
+   * 两处渲染（详情页 / 名录卡）共用同一枚，`act === 'facRelAll'` 仍由派发器一行转发到 `actRelAll`。 */
+  function relAllBtn(c) {
+    return '<button class="linkbtn" data-act="facRelAll">' +
+      c.esc(c.t(c.ui.facRelAll ? 'faction.rel.hide' : 'faction.rel.all')) + '</button>';
+  }
+
   function factionMembers(c, w, f) {
     var n = 0;
     for (var k in (w.factionNpcs || {})) if (w.factionNpcs[k] === f.id) n++;
@@ -273,7 +282,7 @@
       '<div class="fperk">' + c.esc(c.t('faction.perk')) + ' · <b>' + c.esc(c.t('talent.field.' + f.perk.field)) + ' +' +
       (f.perk.field === 'tribBonus' ? f.perk.v.toFixed(2) : Math.round(f.perk.v * 100) + '%') + '</b></div>' +
       '<div class="frel"><span class="lab">' + c.esc(c.t('faction.relations')) + '</span><span class="chipsx">' +
-      factionRelChips(c, w, f) + '</span></div></div>';
+      factionRelChips(c, w, f) + '</span>' + relAllBtn(c) + '</div></div>';
     var isSectLord = w.factionId === 'sect' && w.sect && !w.sect.succession;
     if (isCur) {
       h += '<button class="primary" data-act="tab" data-v="sect" style="width:100%;margin-top:12px">' +
@@ -332,7 +341,7 @@
       '<div class="fperk">' + c.esc(c.t('faction.perk')) + ' · <b>' + c.esc(perkTxt) + '</b></div>' + mstLine +
       '<div class="fd fdesc">' + c.esc(c.t(f.desc)) + '</div>' +
       '<div class="frel"><span class="lab">' + c.esc(c.t('faction.relations')) + '</span>' +
-      '<span class="chipsx">' + factionRelChips(c, w, f) + '</span></div>';
+      '<span class="chipsx">' + factionRelChips(c, w, f) + '</span>' + relAllBtn(c) + '</div>';
     var isSectLord = w.factionId === 'sect' && w.sect && !w.sect.succession;
     if (dir) return hc + '</div>';   /* 目录行只负责打开详情 */
     if (!isCur) {
