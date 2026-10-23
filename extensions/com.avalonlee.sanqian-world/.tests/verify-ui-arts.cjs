@@ -277,18 +277,20 @@ async function buildSave() {
     'knownLv=' + gain.knownLv.join('/') + ' 屏上有Lv0=' + gain.anyLv0);
   T(gBy.emotionless.upgradeBtns === 0 && gBy.emotionless.txt.indexOf(gain.maxTxt) >= 0 &&
     gBy.tuna.upgradeBtns === 0 && gBy.juling.upgradeBtns === 0,
-    'A11g **判据改口**（第卌七批④c）：已学会网格一张都不许有升级钮（未满级的 tuna/juling 也 0 颗），' +
-    '满级卡另须仍显「满级」——升级口本批起只留槽卡，缺席面在这一条判、正面由 H 组判',
+    'A11g **判据改口**（册148 再改口）：卡上升级钮只给**槽外**的已学会功法——fixture 三部全在槽，' +
+    '故已学会网格 0 颗（「已学会一概不给」是第卌七批④c 旧口径，随册148 用户裁定退役）；' +
+    '槽外正面由 H2 判、满级卡另须仍显「满级」',
     'Lv9钮=' + gBy.emotionless.upgradeBtns + ' Lv3钮=' + gBy.tuna.upgradeBtns +
     ' Lv1钮=' + gBy.juling.upgradeBtns + ' 文本含满级=' + (gBy.emotionless.txt.indexOf(gain.maxTxt) >= 0));
 
-  /* ── H 组（第卌七批④c · 用户令「修习槽那六张卡里就该有升级功法的按钮，下方已学会不必再给升级」）：
-   * 口径依据 = 引擎 `Arts.tickPractice` 只遍历 `ws.artsSlots` ⇒ 未入槽的功法精通恒 0、永不会顿悟，
-   * 升级口因此跟着「会长进的那一侧」走。两侧各判一刀，缺一不可：
-   * 只判「槽上有」会放过满级槽卡多留一颗死钮；只判「列表没有」会放过整页一个都不出。
+  /* ── H 组（升级口两则 · 册148 用户裁定「已学会的功法不在修习槽里也应可升级」改口）：
+   * 口径 = 手动升级耗修为、走 `SQ.Arts.upgrade`（只查修为与等级上限，不查槽位），与「槽外精通
+   * 恒 0」无涉（那件事只关乎精通条，F3/H2b 管）。两面各判一刀，缺一不可：
+   *   槽内口在槽卡（第卌七批④c 保留：H1/H1b）‖ 槽外口在已学会卡（册148 新口：H2/H2d）。
+   * 只判「槽上有」会放过满级槽卡多留一颗死钮；只判「列表有」会放过 disabled 与引擎脱钩。
    * ⚠️ fixture 三部（tuna Lv3 / juling Lv1 / emotionless Lv9）**全部在槽**——`Arts.autoSlot`
-   *   在载入时按 artsKnown 补空槽（数值详设 §4.4 v1.26），头注那句「emotionless 只学会不入槽」
-   *   说的是旧行为。好处是 H1 一次读数就同屏拿到「未满级两张 + 满级一张」；槽外那一侧由 H2 卸下真造。 ── */
+   *   在载入时按 artsKnown 补空槽（数值详设 §4.4 v1.26）。好处是 H1 一次读数就同屏拿到
+   *   「未满级两张 + 满级一张」；槽外那一侧由 H2 卸下真造。 ── */
   const slotRead = (ids) => page.evaluate((ids) => {
     const wf = (k, o) => SQ.t(k, o || null, 'xiuxian');
     const cells = Array.prototype.slice.call(document.querySelectorAll('#tab-arts [data-slot]'));
@@ -312,10 +314,11 @@ async function buildSave() {
         var bg = c.querySelector('.tierbadge.t1');
         return c ? { up: one(c), slot: !!c.querySelector('[data-act="slotArt"]'),
           unslot: !!c.querySelector('[data-act="unslotArt"]'), salv: !!c.querySelector('[data-act="salvageArt"]'),
+          upDis: (function (b) { return b ? !!b.disabled : null; })(c.querySelector('[data-act="upgradeArt"]')),
           fx: ((c.querySelector('.meta') || {}).textContent || '').trim(),
           bar: !!c.querySelector('.pbar'), badge: !!bg,
           badgeTxt: bg ? bg.textContent.trim() : '' }
-          : { up: -1, slot: false, unslot: false, salv: false, fx: '', bar: false, badge: false, badgeTxt: '' };
+          : { up: -1, slot: false, unslot: false, salv: false, upDis: null, fx: '', bar: false, badge: false, badgeTxt: '' };
       }),
       /* 槽卡那一行按 id 带回（槽序会变：autoSlot 补位、卸下再装会挪到尾部 ⇒ 钉序必假红） */
       slotFx: cells.reduce(function (o, c) {
@@ -334,7 +337,8 @@ async function buildSave() {
   T(h1.n === 3 && h1.max.filter((x) => x).length === 1 &&
     h1.btn.every((b, i) => b === (h1.max[i] ? 0 : 1)) &&
     h1.knownBtn === 0 && h1.knownN === 3,
-    'H1 同一屏两侧：未满级槽卡恰 1 颗升级钮 ‖ Lv9 那张 0 颗且显「满级」 ‖ 已学会三张合计 0 颗（按满级位判、不钉槽序）',
+    'H1 同一屏两侧：未满级槽卡恰 1 颗升级钮 ‖ Lv9 那张 0 颗且显「满级」 ‖ 已学会三张合计 0 颗' +
+    '（三部都在槽 ⇒ 卡上钮 0 颗，不与槽卡重复；槽外口由 H2 卸下真造）',
     '槽=' + h1.n + ' 名=' + h1.ids.join('/') + ' 钮=' + h1.btn.join(',') + ' 满级格=' + h1.max.join(',') +
     ' 已学会钮=' + h1.knownBtn + '/' + h1.knownN);
   T(h1.dis[0] === (h1.qi < h1.costTuna),
@@ -348,15 +352,21 @@ async function buildSave() {
   T(Object.keys(h1.slotFx).length === 3 && hFx.every((x) => x[1] !== '' && x[1] === x[2]),
     'H4 槽卡有属性加成行 ‖ 与同 id 已学会卡逐字相同（一条式子两处显示，不抄第二份）',
     hFx.map((x) => x[0] + '[' + x[1].slice(0, 24) + ']').join(' ‖ '));
-  /* H2 把吐纳法卸下 ⇒ 造出「已学会且槽外」那一侧（用户原话「下方已学会不需要升级功能」指的正是它），
-   * 判完立即装回：autoSlot 只在载入时补空槽，不装回就一直缺这一格，后面的组会跟着换形。 */
+  /* H2 把吐纳法卸下 ⇒ 造出「已学会且槽外」那一侧（册148 用户裁定「已学会不在槽的也该能升级」
+   * 正面落点），判完立即装回：autoSlot 只在载入时补空槽，不装回就一直缺这一格，后面的组会跟着换形。 */
   await page.evaluate(() => { const b = document.querySelector('#tab-arts [data-act="unslotArt"][data-v="tuna"]'); if (b) b.click(); });
   await page.waitForTimeout(300);
   const h2 = await slotRead(IDS);
   const ht = h2.cards[0];
-  T(h2.n === 2 && ht.up === 0 && ht.slot === true && ht.unslot === false && h2.knownBtn === 0,
-    'H2 槽外那一侧：卸下吐纳法后它的已学会卡**不给升级钮**（只留装入 + 弃置），槽里少一格',
-    '槽=' + h2.n + ' 该卡升级钮=' + ht.up + ' 装入=' + ht.slot + ' 卸下=' + ht.unslot + ' 全文钮=' + h2.knownBtn);
+  T(h2.n === 2 && ht.up === 1 && ht.slot === true && ht.unslot === false,
+    'H2 槽外那一侧（册148 改口）：卸下吐纳法后它的已学会卡**给升级钮**（装入 + 升级两口在；' +
+    '弃置随 `canSalvage`——tuna 初始自带不可散功，故不出，不在此判）',
+    '槽=' + h2.n + ' 该卡升级钮=' + ht.up + ' 装入=' + ht.slot + ' 卸下=' + ht.unslot + ' 弃置=' + ht.salv);
+  /* H2d（册148 新增）：槽外升级钮的 disabled 与引擎同式——`upgradeCost` 在卸下前后不变
+   * （等级与修为都没动），直接复用同一读数口的 costTuna 对表；写死可点/写死禁用都算假在跑。 */
+  T(ht.upDis === (h2.qi < h2.costTuna),
+    'H2d 槽外升级钮的 disabled === 引擎 `upgradeCost` 与实有修为之比（与 H1b 槽卡同一式、同一口）',
+    'qi=' + Math.round(h2.qi) + ' cost=' + h2.costTuna + ' disabled=' + ht.upDis);
   /* H2b F3（N59）+ F16（N68）：**同一张卡**卸下前有精通条有角标、卸下后两者一起消失 ——
    * 两判一起（只判「消失」会放过「两边都没条」那种假绿）。角标文本必须等于**引擎取数口**出来的
    * `arts.slotted`（页内现算，不抄第二份），且不许再是借来的秘境洞天词。 */
