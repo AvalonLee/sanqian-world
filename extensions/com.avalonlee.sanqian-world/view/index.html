@@ -559,15 +559,15 @@
 <script src="../assets/systems/shop.js"></script>
 <script src="../assets/systems/events.js"></script>
 <script src="../assets/systems/rumors.js"></script>
-<script src="../assets/systems/tiandao.js"></script>
+<script src="../assets/worlds/xiuxian/tiandao.js"></script>
 <script src="../assets/systems/legacy.js"></script>
 <script src="../assets/systems/codex.js"></script>
-<script src="../assets/systems/alchemy.js"></script>
-<script src="../assets/systems/prodigy.js"></script>
+<script src="../assets/worlds/xiuxian/alchemy.js"></script>
+<script src="../assets/worlds/xiuxian/prodigy.js"></script>
 <script src="../assets/systems/gifts.js"></script>
 <script src="../assets/systems/jianghu.js"></script>
-<script src="../assets/systems/fusion.js"></script>
-<script src="../assets/systems/sect.js"></script>
+<script src="../assets/worlds/xiuxian/fusion.js"></script>
+<script src="../assets/worlds/xiuxian/sect.js"></script>
 <script src="../assets/systems/actions.js"></script>
 <script src="../assets/worlds/xiuxian/karma.js"></script>
 <script src="../assets/worlds/xiuxian/tribulation.js"></script>
@@ -576,6 +576,7 @@
 <script src="../assets/core.js"></script>
 <script src="updatenote.js"></script>
 <script src="journal.js"></script>
+<script src="ledger.js"></script>
 <script src="achv.js"></script>
 <script src="shop.js"></script>
 <script src="jianghu.js"></script>
@@ -1467,42 +1468,9 @@
     }).join('') + '</div>';
   }
 
-  /* B2 · 财柱总账：恒等式置顶 + 收支八行条形（区内归一）+ 占比 + 字段小注 + 印章分档 */
-  var LEDGER_SEAL_2 = 5520000, LEDGER_SEAL_3 = 55200000;   /* 档界 = 主线六福地总投入 552 万 / ×10（UI §3.3 v2.5；扩池批别院/设施为带外可选投入不改档界） */
-  function ledgerRows(dir, cats, max) {
-    var w = ws(), l = w.ledger || { in: {}, out: {} };
-    return cats.map(function (c) {
-      var v = (l[dir] && l[dir][c]) || 0;
-      var pctv = max > 0 ? (v / max) * 100 : 0;
-      return '<div class="lgrow ' + (dir === 'in' ? 'in' : 'out') + '">' +
-        '<div class="lgl"><span class="nm">' + esc(t('ledger.cat.' + c)) + '</span>' +
-        '<span class="vl">' + SQ.fmt(v) + (v > 0 ? ' · ' + esc(t('ledger.share', { p: Math.round(pctv) })) : '') + '</span></div>' +
-        '<div class="lgb"><i style="width:' + pctv.toFixed(1) + '%"></i></div>' +
-        '<div class="lgn">' + esc(t('ledger.field', { dir: t('ledger.dir.' + dir), cat: t('ledger.cat.' + c) })) + '</div></div>';
-    }).join('');
-  }
-  function renderLedger() {
-    var w = ws(), s = ledgerSums();
-    $('mlg-title').textContent = t('ledger.title');
-    $('mlg-ident').textContent = t('ledger.ident', {
-      start: SQ.Ledger.START_STONES, inn: SQ.fmt(s.inn), out: SQ.fmt(s.out), now: SQ.fmt(w.stones)
-    });
-    $('mlg-identnote').textContent = t('ledger.identnote');
-    $('mlg-intitle').textContent = t('ledger.in.title');
-    $('mlg-outtitle').textContent = t('ledger.out.title');
-    var inMax = Math.max.apply(null, SQ.Ledger.IN_CATS.map(function (c) { return (w.ledger.in[c] || 0); }).concat([1]));
-    var outMax = Math.max.apply(null, SQ.Ledger.OUT_CATS.map(function (c) { return (w.ledger.out[c] || 0); }).concat([1]));
-    $('mlg-in').innerHTML = ledgerRows('in', SQ.Ledger.IN_CATS, inMax);
-    $('mlg-out').innerHTML = ledgerRows('out', SQ.Ledger.OUT_CATS, outMax);
-    var tier = s.inn >= LEDGER_SEAL_3 ? 3 : (s.inn >= LEDGER_SEAL_2 ? 2 : 1);
-    /* 印章分档（需求 1）：初档「白手起家」文案不再展示，仅中/高两档留存里程碑印记 */
-    $('mlg-seal').textContent = tier >= 2 ? t('ledger.epitaph.' + tier) : '';
-    var empty = s.inn === 0 && s.out === 0;
-    $('mlg-empty').textContent = empty ? t('ledger.empty') : '';
-    $('mlg-empty').classList.toggle('hide', !empty);
-    $('mlg-close').textContent = t('ui.close');
-  }
-  function openLedger() { renderLedger(); $('modal-ledger').classList.remove('hide'); }
+  /* B2 财柱总账浮层已外置 `view/ledger.js`（N82/A2 · 第册一百三十五批 2026-10-22）；
+   * 三件（ledgerRows / renderLedger / openLedger）与常量 LEDGER_SEAL_2/3 整段搬出，调用点见派发器 openLedger。
+   * ⚠️ `ledgerSums` 留在核内（上方定义）—— `renderPillars` 仍用它，本片不涉。 */
   $('mlg-close').addEventListener('click', function () { $('modal-ledger').classList.add('hide'); });
 
   /* B3 · 地柱洞府：福地名录四态卡（主线 6 + 别院 4 + 隐世 3，扩池批 v2.0）+ 缺项 chips 三段红绿 + 附属设施行 + 叙事折叠（未达资格不剧透）+ 迁居冷却倒计时 */
@@ -2706,7 +2674,7 @@
       return;
     }
     /* ── 批 2 · 四柱 chip（B1）与洞府入驻（B3）── */
-    if (act === 'openLedger') { openLedger(); return; }
+    if (act === 'openLedger') { SQ.UI.ledger.openLedger(ctx()); return; }
     if (act === 'openCave') { openCave(); return; }
     if (act === 'openArtsModal') { openArtsModal(); return; }
     if (act === 'openRealm') { openRealmInfo(); return; }
