@@ -1125,7 +1125,11 @@ const SQ = sandbox.window.SQ;
   });
   let used = 0;
   viewJs.forEach((f) => {
-    const src = fs.readFileSync(path.join(dir, f), 'utf8');
+    /* 🔧 第册一百三十七批：先剥注释再扫。在此之前本关扫的是原始文本 ⇒ **注释里写一句 `c.xxx` 也算「用了」**
+     * （本批当场踩到：`view/idle.js` 头注写了一句 `c.renderPillars()` 就被判「用了 ctx 没给的键」，而那句只是散文）。
+     * 与 A8（「普查类关卡一律先 stripComments」，它自己也曾被关头说明注释绊红）／D14（同样剥注释）同一条纪律；
+     * 注释不是「用」，剥掉只可能去掉假阳、不会放宽判红方向（真读点都在代码段里）。 */
+    const src = stripComments(fs.readFileSync(path.join(dir, f), 'utf8'));
     (src.match(/\bc\.[A-Za-z0-9_$]+/g) || []).forEach((x) => {
       const k = x.slice(2);
       used++;

@@ -675,12 +675,13 @@
        * ‖ `playRecap` = 盖棺之传演出入口（演出族，第十四刀才搬） */
       enterRebirth: enterRebirthCreation, playRecap: playRecapLastBio,
       /* 第十六刀补七枚（修行页外置 `view/idle.js`，全是「件外调用才进桥」）：
-       * `renderPillars` = 四柱 chip 行 ‖ `renderTiandaoRow` = 天道行（问天入口 + 天象红点）‖
+       * `renderPillars` = 四柱 chip 行〔⚠️ 第册一百三十七批退役：自 UI v2 B16-c 把四柱移入右栏 `renderRail` 起它已零调用〕‖
+       * `renderTiandaoRow` = 天道行（问天入口 + 天象红点）‖
        * `fmtFull` = 大数全写（灵气的「/ 上限」那一格）‖ `caveSigOf` = 洞府印记加成 ‖
        * `talentCard` = 天赋卡（件内 `talentCard(el, wid())` 两参）‖
        * `wid` = 当前世界 id。修行页同时复用两枚已有桥名：`bondTierNum` → `bondTier`、`ctx()` → `fresh`。
        * 〔UI v2 B2 缩回一枚〕`autoEventPref` 随自动三开关迁回设置页（核内直调）⇒ 修行页不再用，桥 53 → 52 枚。 */
-      renderPillars: renderPillars, renderTiandaoRow: renderTiandaoRow, fmtFull: fmtFull,
+      renderTiandaoRow: renderTiandaoRow, fmtFull: fmtFull,
       caveSigOf: caveSigOf, talentCard: talentCard, wid: wid,
       /* 同刀补第八枚（本刀实测漏网一枚，走查前由 boot catch 抓到）：`offlineDetail` = 离线呈报的
        * 「效率 / 时长」那一格文案。⚠️ 教训：机械改写后必须跑「内核函数名 × 件内裸调用」全表对扫，
@@ -1424,53 +1425,18 @@
   }
   function ledgerSums() { return SQ.Ledger.sums(ws()); }
 
-  function renderPillars() {
-    var w = ws(), p = pack(), d = D(), m = mods();
-    var s = ledgerSums();
-    var main = SQ.Arts.mainArt(w);
-    var am = p.artsMap();
-    var faSub = main
-      ? t('pillar.fa.sub', { name: t('skill.' + main + '.name'), lv: w.artsLevels[main] || 0 })
-      : t('pillar.fa.empty');
-    var cv = SQ.Cave.current(w, p);
-    /* 侣 chip 副标（B1 · 交互说明 §4.2 ★）：结缘后 = 道号·形态名；否则护法·道号③；再否则尚未结缘 */
-    var gP = SQ.Bonds.guardianOf(w, p, d);
-    var spsP = SQ.Bonds.spousesOf(w);
-    var lvSub;
-    if (spsP.length) {
-      lvSub = SQ.Bonds.spouseLine(w, p, 1) +
-        (spsP.length === 1 ? ' · ' + t('bond.spouse.form.' + spsP[0].form) : '');
-    } else if (gP && gP.bonus > 0) {
-      lvSub = t('pillar.lv.sub', { name: t('bond.' + gP.npcId + '.name'), num: bondTierNum(gP.tier) });
-    } else if (gP) {
-      lvSub = t('bond.' + gP.npcId + '.name') + bondTierNum(gP.tier);
-    } else {
-      lvSub = t('pillar.lv.subnone');
-    }
-    /* 红点（§2.2）：侣 = 升档/可提亲、地 = 新福地解锁——签名对比，进浮层/洞天节即消 */
-    var sigP = bondRedDotSig();
-    if (ui.bondSnap == null) ui.bondSnap = sigP;
-    var lvDot = ui.bondSnap !== sigP;
-    var sigD = caveRedDotSig();
-    if (ui.caveSnap == null) ui.caveSnap = sigD;
-    var diDot = ui.caveSnap !== sigD;
-    var cells = [
-      { k: 'cai', act: 'openLedger', sub: t('pillar.cai.sub', { inn: SQ.fmt(s.inn), out: SQ.fmt(s.out) }) },
-      { k: 'fa', act: 'openArtsModal', sub: faSub },
-      { k: 'di', act: 'openCave', sub: t('pillar.di.sub', { name: t('cave.' + cv.id + '.name'), mult: SQ.Cave.multOf(w, p, d, m).toFixed(2) }), dot: diDot },
-      { k: 'lv', act: 'openBonds', sub: lvSub, dot: lvDot }
-    ];
-    return '<div class="pillars">' + cells.map(function (c) {
-      return '<button class="pillar' + (c.locked ? ' locked' : '') + '"' +
-        (c.act ? ' data-act="' + c.act + '"' : ' disabled') + '>' +
-        '<span class="pk">' + esc(t('pillar.' + c.k)) + (c.dot ? '<i class="pdot"></i>' : '') + '</span>' +
-        '<span class="pv">' + esc(c.sub) + '</span></button>';
-    }).join('') + '</div>';
-  }
+  /* ── 旧「四柱 chip 行」`renderPillars` 整族退役（N82 / A2 余量 · 第册一百三十七批 2026-10-23）──
+   * 取证：自第册七十八批（UI v2 B16-c）把四柱移进右栏可点槽位 `renderRail` 起，`view/idle.js` 里那处
+   * `c.renderPillars()` 调用即被删除 ⇒ 本函数**零调用**（全仓 grep 只剩定义 + 桥位 + 三处注释）。
+   * 本批连**桥位**（第十六刀补的那一枚，见上方 ctx 注）与**死 CSS**（`view/ui.css` 的 `.pillars` / `.pillar*`）一并退役；
+   * 右栏槽位自己重算红点签名 ⇒ 取数口 `bondRedDotSig` / `caveRedDotSig` 仍被 `renderRail` 消费，不随之退役。
+   * ⚠️ 只被它消费的三枚词表键（`pillar.fa.sub` / `pillar.di.sub` / `pillar.lv.sub`）就此转孤儿
+   * ⇒ 按 **N20 纪律「删文案属产品裁定」只登记不删**，读数见任务清单 N82 行与 FACTS 孤儿词表键行。 */
 
   /* B2 财柱总账浮层已外置 `view/ledger.js`（N82/A2 · 第册一百三十五批 2026-10-22）；
    * 三件（ledgerRows / renderLedger / openLedger）与常量 LEDGER_SEAL_2/3 整段搬出，调用点见派发器 openLedger。
-   * ⚠️ `ledgerSums` 留在核内（上方定义）—— `renderPillars` 仍用它，本片不涉。 */
+   * ⚠️ `ledgerSums` 留在核内（上方定义）——右栏四柱槽 `renderRail` 取它算财柱收支。
+   * 🔧 第册一百三十七批勘正本注原半句「`renderPillars` 仍用它」：该函数经复核为**零调用死码**，已整族退役。 */
   $('mlg-close').addEventListener('click', function () { $('modal-ledger').classList.add('hide'); });
 
   /* B3 · 地柱洞府：福地名录四态卡（主线 6 + 别院 4 + 隐世 3，扩池批 v2.0）+ 缺项 chips 三段红绿 + 附属设施行 + 叙事折叠（未达资格不剧透）+ 迁居冷却倒计时 */
