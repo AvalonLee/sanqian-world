@@ -439,9 +439,73 @@
     c.renderAll();
   }
 
+  /* ── 势力四支动作（第册一百四十三批 2026-10-23 · B3 = D15 阶段 B 第三刀 · 自内核派发器整支搬入）
+   * 四支 = 供奉 / 委托交付 / 应战 / 好聚好散。搬前先把走查网补齐：`warJoin` 此前在 `.tests` 里**零引用**，
+   *   `leavePlain` 只被数过按钮没被点过，`facDonate` 只验了确认框预览（那次是取消）——本批在
+   *   `.tests/verify-ui-faction.cjs` D 组补了三判真点（确认 → 读盘上真值），再搬。
+   * 桥**零新增**：`s` / `w` / `d` / `ui` / `t` / `ask` / `toast` / `renderAll` / `renderTab` 全在册。
+   * ⚠️ 供奉的预览与引擎必须同口径：**窗口过期则 used 视为 0**（原实现漏判窗口，短窗口下预览会低估），
+   *   这段判断留在件内一处，别再抄第二份到渲染侧。 */
+
+  /* 供奉：三档按钮各带金额（`v` = 灵石数），确认框里给「声望 +N」预览 */
+  function actDonate(c, v) {
+    var amt = parseInt(v, 10);
+    var cfgD = c.d.FACTION_DONATE || {};
+    var cur0 = SQ.Factions.current(c.w);
+    if (!cur0) return;
+    /* 预览与引擎同口径：窗口过期则 used 视为 0 */
+    var donPv = c.w.factionDonate || {};
+    var inWinPv = Date.now() - (donPv.at || 0) <= (cfgD.WINDOW_MS);
+    var usedPv = inWinPv ? (donPv.used || 0) : 0;
+    c.ask(c.t('faction.donate'), c.t('faction.confirm.donate', {
+      name: cur0.name, n: SQ.fmt(amt), cur: c.t('resource.currency'),
+      rep: Math.min(Math.floor(amt / (cfgD.STONES_PER_REP)),
+        Math.max(0, (cfgD.WINDOW_CAP || 300) - usedPv))
+    }), async function () {
+      var rD = await SQ.Actions.donateFaction(c.s, amt);
+      if (rD && rD.ok) c.toast(c.t('faction.log.donate', { name: cur0.name, n: rD.rep }));
+      else if (rD) c.toast(c.t('faction.donate.fail.' + rD.reason));
+      c.renderAll();
+    });
+  }
+
+  /* 委托交付：`v` = 委托类型（板面同类型至多一张 ⇒ type 就是地址） */
+  async function actQuestClaim(c, v) {
+    var rQ = await SQ.Actions.deliverQuest(c.s, v);
+    if (rQ && rQ.ok) c.toast(c.t('faction.quest.claim.ok') + ' · ' + c.t('faction.quest.done', { n: rQ.rep }));
+    else if (rQ) c.toast(c.t('faction.quest.fail.' + rQ.reason));
+    c.renderAll();
+  }
+
+  /* 应战（战功制入场 · 势力全录卷 §七.1）：确认弹窗讲战功规则，不展示战力线 */
+  function actWarJoin(c) {
+    var warW = c.w;
+    if (!warW.factionWar || warW.factionWar.joined) return;
+    c.ask(c.t('faction.war.confirm.title'), c.t('faction.confirm.war'), async function () {
+      var rW = await SQ.Actions.joinWar(c.s);
+      if (rW && rW.ok) c.toast(c.t('faction.war.merit.joined', { name: SQ.Factions.nameOf(warW, warW.factionId) }));
+      else if (rW) c.toast(c.t('faction.war.fail.' + rW.reason));
+      c.renderAll();
+    });
+  }
+
+  /* 好聚好散（常规离山 · 叛离去向选择的第一级已由页签机器记在 `ui.leavePick`） */
+  function actLeavePlain(c) {
+    c.ui.leavePick = false;
+    var curF = SQ.Factions.current(c.w);
+    if (!curF) { c.renderTab(); return; }
+    c.ask(c.t('faction.leave'), c.t('faction.confirm.leave', { name: curF.name }), async function () {
+      await SQ.Actions.leaveFaction(c.s);
+      c.toast(c.t('faction.log.leave', { name: curF.name }));
+      c.renderAll();
+    });
+  }
+
   SQ.UI = SQ.UI || {};
+  /* 四支各由派发器一行转发引用（D14 枚枚有人读） */
   SQ.UI.faction = { render: renderFaction, home: renderHome, actDetail: actDetail, actBack: actBack,
     actRelAll: actRelAll, actCamp: actCamp, actJoin: actJoin,
     actDefect: actDefect, actOfficePick: actOfficePick, actOfficePickCancel: actOfficePickCancel,
-    actDispatch: actDispatch, actGuard: actGuard, actSupply: actSupply };
+    actDispatch: actDispatch, actGuard: actGuard, actSupply: actSupply,
+    actDonate: actDonate, actQuestClaim: actQuestClaim, actWarJoin: actWarJoin, actLeavePlain: actLeavePlain };
 })();
