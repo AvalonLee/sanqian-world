@@ -703,8 +703,9 @@
       ambushHalt: ambushHalt, ambushCountdown: ambushCountdown, mirrorWorn: mirrorWorn,
       findEvent: findEvent, allEventList: allEventList, exclusiveOf: exclusiveOf,
       branchChecks: branchChecks, checkPreview: checkPreview,
-      /* 同刀补一枚：clearJudging = 判定动画定时器清点（定时器数组仍在核内，件内只借这一枚） */
-      clearJudging: clearJudgingTimers };
+      /* B4（第册一百四十五批）：`clearJudging` 桥位随定时器数组整族外迁而退役；换入 `renderTop`
+       * （抉择作答后顶栏资源要立即刷新，原来调的是核内函数）。 */
+      renderTop: renderTop };
   }
   /* `fresh` 桥位的取值别名（见上注：不许让 `ctx` 这个私名进 D7 的私名表） */
   function freshCtx() { return ctx(); }
@@ -1887,10 +1888,9 @@
   $('trib-stage').addEventListener('click', function () { SQ.UI.trib.skip(ctx()); });
 
   /* ── 抉择模态（F3）：三分支 + 信息层（成算/花费/缺项置灰）+ 判定演出 + 结果页 + 独占全屏演出。
-   * karma 不预告（按钮无道心数值）；确定性判定不满足 → 置灰；attr/power 类给出成算或可预判结果。── */
-  var judgingTimers = [];
-  /* 判定动画的定时器数组（内核作答流 push，奇遇族每次开抉择前清）⇒ 清点收在这里一枚 */
-  function clearJudgingTimers() { judgingTimers.forEach(function (t) { clearTimeout(t); }); judgingTimers = []; }
+   * karma 不预告（按钮无道心数值）；确定性判定不满足 → 置灰；attr/power 类给出成算或可预判结果。──
+   * `judgingTimers` / `clearJudgingTimers` 已随 B4（第册一百四十五批）整族迁入 `view/event.js`，
+   * 桥位 `clearJudging` 退役、换入 `renderTop`（作答后顶栏要立即刷新）。 */
   function findEvent(id) { return SQ.Events.findById(pack(), id); }
   function branchChecks(br) { return br.check ? (Array.isArray(br.check) ? br.check : [br.check]) : []; }
 
@@ -2747,49 +2747,8 @@
     }
     if (act === 'feedMore') { ui.feedExpand = !ui.feedExpand; renderTab(); return; }
     if (act === 'codexTier') { ui.codexOpen = ui.codexOpen || {}; ui.codexOpen[v] = !ui.codexOpen[v]; renderTab(); return; }   /* UI v2 B9：图鉴段折叠（纯 UI 态） */
-    if (act === 'choose') {
-      var bk = v;                                    /* 'right' | 'evil' | 'neutral' */
-      var pendC = ws().pendingChoice;
-      if (!pendC) return;
-      var evC = findEvent(pendC.id);
-      var brC = evC && evC.choices ? evC.choices[bk] : null;
-      var chks = brC ? branchChecks(brC) : [];
-      var finishChoose = async function () {
-        var res = await SQ.Actions.resolveChoice(state, bk);
-        if (!res) return;
-        if (res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) SQ.UI.show.exclusive(ctx(), res.eff);
-        /* bond 升档 toast（B7 · 交互说明 §2.3 白名单）：达档 3 另弹「愿为你护法」 */
-        var bd = res.eff && res.eff.bond;
-        if (bd && bd.tierUp && !bd.blocked) {
-          toast(t('bond.toast.tier', { name: t('bond.' + bd.npc + '.name'), title: t('bond.' + bd.npc + '.title.' + bd.tier) }));
-          if (bd.tier === 3) toast(t('bond.toast.guardian', { name: t('bond.' + bd.npc + '.name') }));
-        }
-        SQ.UI.event.choiceResult(ctx(), res);
-        renderTop();
-      };
-      if (chks.length && !reducedMotion()) {
-        /* 判定演出 ≈1s：链逐级点亮（引擎已出结果，演出纯表现；交互说明 §4.3） */
-        $('mc-branches').classList.add('hide');
-        $('mc-foot').classList.add('hide');
-        var jd = $('mc-judging');
-        jd.innerHTML = '<div style="font-weight:650">' + esc(t('event.modal.judging')) + '</div>' +
-          chks.map(function (c, i) {
-            return '<div class="jline" id="jline-' + i + '">' + esc(checkPreview(c).label) + '</div>';
-          }).join('');
-        jd.classList.remove('hide');
-        var step = Math.max(150, Math.floor(1000 / (chks.length + 1)));
-        chks.forEach(function (c, i) {
-          judgingTimers.push(setTimeout(function () {
-            var el = $('jline-' + i);
-            if (el) el.classList.add('lit');
-          }, step * (i + 1)));
-        });
-        judgingTimers.push(setTimeout(function () { jd.classList.add('hide'); finishChoose(); }, step * (chks.length + 1) + 200));
-      } else {
-        await finishChoose();
-      }
-      return;
-    }
+    /* `choose` 原块已随 B4（第册一百四十五批）搬入 `view/event.js` —— 下面这行转发即其入口。 */
+    if (act === 'choose') { await SQ.UI.event.actChoose(ctx(), v); return; }
     if (document.querySelector('.tabbody')) document.querySelector('.tabbody').scrollTop = keepScroll;
   });
 
