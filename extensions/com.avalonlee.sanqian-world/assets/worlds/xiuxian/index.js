@@ -21,6 +21,11 @@
        * 第册一百四十九批（用户令「三个自动开关默认关」）：新档初值改 **false**——自动渡劫 /
        * 自动奇遇核内本就缺省关，此处补齐第三枚；旧档读 normalize 保留显式真值，行为不变。 */
       gearAutoRefine: false,
+      /* 自动佩戴开关（册150 · 用户令「对自动择优佩戴进行开关」）：false = 掉落新件一律先入库
+       * 藏阁，由玩家手动佩戴（库藏阁行新增「佩戴」钮）；true = 旧行为（择优上身）。缺省开 =
+       * 旧行为逐字不变——这是全局体验开关，与册149「默认关」那三枚性质不同（关掉会截断核心
+       * 成长回路），不随批改缺省。 */
+      gearAutoEquip: true,
       zone: 0, prog: {}, cleared: [], combatAcc: 0, kills: 0,
       /* 系统深化批 A4（数值详设 §2.5~§2.7）：区域词缀 {affixId, until} / 域主 {zone, state, retryAt}
        * / 探宝残片 10 元分区计数；A6：天道垂青 fateSeen [{id, realm}]（同境界段排除） */
@@ -153,6 +158,7 @@
       gear: Object.assign({}, d.gear, obj(raw.gear, {})),
       stash: arr(raw.stash, []).slice(0, D.STASH_CAP + 4),
       gearAutoRefine: raw.gearAutoRefine !== false,   /* issue #2：缺省 = 开（旧档行为逐字不变）*/
+      gearAutoEquip: raw.gearAutoEquip !== false,     /* 册150：自动佩戴，缺省 = 开（旧行为逐字不变）*/
       gearSeen: obj(raw.gearSeen, {}),
       /* 洞府：脏 id / 缺 owned 一律回落初始洞府；cooldownUntil 只收绝对时间戳（负数归零）；
        * fac 附属设施（v2.0）：只收已拥有福地 × 在册设施 id，等级钳位 0~MAX_LV */

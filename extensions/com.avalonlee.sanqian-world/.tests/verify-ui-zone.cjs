@@ -94,6 +94,14 @@ async function buildSave(ov) {
   T(wide.czProg, 'R3 hero 内含首通进度条');
   T(wide.czKv === 3, 'R4 hero 三行身元（域主 / 词缀 / 洞天）', 'n=' + wide.czKv);
   T(wide.bossBtn && wide.shardBtn, 'R5 hero 内含域主挑战 + 残片兑换入口', 'boss=' + wide.bossBtn + ' shard=' + wide.shardBtn);
+  /* R5b（册150 · 用户令「挑战域主按钮更醒目更明显」）：挑战钮不再是灰字链（linkbtn），
+   * 改为页内唯一朱砂实心钮（button.primary + 专属 .bossgo 缩高样式）。按 class 断言钉住。 */
+  const bossGo = await page.evaluate(() => {
+    const b = document.querySelector('#tab-combat .curzone [data-act="challengeBoss"]');
+    return b ? { primary: b.classList.contains('primary'), go: b.classList.contains('bossgo'), link: b.classList.contains('linkbtn') } : null;
+  });
+  T(bossGo && bossGo.primary && bossGo.go && !bossGo.link,
+    'R5b 域主挑战钮 = 朱砂实心 primary + bossgo 专属样式（不再灰字链，册150）', JSON.stringify(bossGo));
   T(wide.secs === 2, 'R6 清单两段（可入 / 已首通）', 'sect=' + wide.secs);
   T(wide.rowsClick === 5, 'R7 非当前已解锁行均可点进（data-act=setZone）', 'n=' + wide.rowsClick);
   T(wide.lockedRows > 0, 'R7b 未解锁行仍以灰行占位（？？？）', 'n=' + wide.lockedRows);

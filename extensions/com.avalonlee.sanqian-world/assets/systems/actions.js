@@ -247,6 +247,20 @@
       return out;
     },
 
+    /* 库藏阁手动佩戴（册150）：常规件强制上身，同槽旧件按自动炼化开关入库/炼化；
+     * 直接执行不弹确认（玩家主动点击 = 明确意图），返回 {ok, item?, old?, reason?} */
+    wearGear: async function (ref, idx) {
+      var out = null;
+      await SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        var pack = packOf(s), D = dataOf(s);
+        var mods = SQ.Mods.collect(s.profile, ws, pack, D);
+        function log(cat, text) { SQ.Log.push(ws, cat, text); }
+        out = SQ.Gear.equipFromStash(ws, pack, D, mods, idx, log);
+      });
+      return out;
+    },
+
     /* 提亲（G14 结缘双修 · 引擎卷 §3.8）：CONFIRM 三形态后调用；形态按结缘瞬间 karma 档位；
      * 炉鼎代价①（karmaEventScore −20）在 propose 内入账；返回 {ok, form} 供结契轻演出消费 */
     proposeSpouse: async function (ref, npcId) {
@@ -544,6 +558,14 @@
       return SQ.mutate(ref, function (s) {
         var ws = s.worlds[s.profile.worldId];
         ws.gearAutoRefine = !!on;
+      });
+    },
+
+    /* 自动佩戴开关（册150 · 缺省开）：同 setGearRefine 同型——择优上身与否都吃 ws.gearAutoEquip */
+    setGearEquip: function (ref, on) {
+      return SQ.mutate(ref, function (s) {
+        var ws = s.worlds[s.profile.worldId];
+        ws.gearAutoEquip = !!on;
       });
     },
 

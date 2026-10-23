@@ -1378,7 +1378,7 @@ function sqHasLogic(body) {
    * 走势：B0 首跑（删 `claim` 后）= 138 / 60 ⇒ B1 搬秘境四支 = 138 / **56** ⇒ B2 搬宗门十支 = 138 / **47**
    * ⇒ B3 搬势力四支 = 138 / **43** ⇒ B4 搬奇遇 `choose` 连族 = 138 / **42** ⇒ B5a 搬传闻 + 公告两支 = 138 / **41**
    * （`branches` 仍是 138：一行转发不删支）。 */
-  const DISP_PIN = { key: 'document@click#dispatcher', branches: 138, business: 41 };
+  const DISP_PIN = { key: 'document@click#dispatcher', branches: 140, business: 43 };   /* 册150：+2 新支（wearGear / toggleGearEquip），任务清单 N88 在册 */
   const htmlPath = path.join(ROOT, 'view', 'index.html');
   let code = '';
   try { code = stripComments(fs.readFileSync(htmlPath, 'utf8')); } catch (e) { /* 走失明红 */ }

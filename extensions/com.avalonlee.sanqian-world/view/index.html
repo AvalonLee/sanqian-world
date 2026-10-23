@@ -2476,6 +2476,12 @@
       renderTab();
       return;
     }
+    /* 自动佩戴（册150）：镜像 setGearRefine 同型——存 ws.gearAutoEquip（autoEquip 调用点只有 ws 在场） */
+    if (act === 'toggleGearEquip') {
+      await SQ.Actions.setGearEquip(state, ws().gearAutoEquip === false);
+      renderTab();
+      return;
+    }
     if (act === 'tabUp' || act === 'tabDown') { return; }   /* 菜单顺序已下线（UI v2 B2）：旧入口静默忽略 */
     /* 奇遇倾向（体验批）：改偏好即落盘；下次自动抉择按新倾向取分支 */
     if (act === 'setEventPref') {
@@ -2698,6 +2704,13 @@
       return;
     }
     /* ── 道具处置打磨包：功法散功/弃置 + 库藏阁手动炼化（CONFIRM 后走 mutate 单一通道）── */
+    if (act === 'wearGear') {
+      var idxW = parseInt(v, 10);
+      var rW = await SQ.Actions.wearGear(state, idxW);
+      if (rW && rW.ok) toast(t('gear.wear.done', { name: rW.item.name, tier: t('gear.tier.' + rW.item.tier) }));
+      renderAll();
+      return;
+    }
     if (act === 'salvageArt') {
       await SQ.UI.arts.actSalvage(ctx(), v);
       return;

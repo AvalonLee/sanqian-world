@@ -54,12 +54,14 @@ function buildSave(autoEvent, withPend, eventPref) {
   }
 
   /* ── A. 需求 2：修行页传闻区 + 需求 1 开关落位 ── */
-  /* 行序读数（册149 行序判共用）：把「自动」段的四类 .setrow 映射成标记串，存档段两行读 '?' 过滤掉。 */
+  /* 行序读数（册149 行序判共用；册150 加自动佩戴一枚）：把「自动」段五类 .setrow 映射成标记串，
+   * 存档段两行读 '?' 过滤掉。 */
   const rowsOf = (page) => page.evaluate(() =>
     Array.prototype.map.call(document.querySelectorAll('#tab-settings .setrow'), (r) =>
       r.querySelector('[data-act="toggleAutoTrib"]') ? 'trib' :
       r.querySelector('[data-act="toggleAutoEvent"]') ? 'event' :
       r.querySelector('[data-act="setEventPref"]') ? 'pref' :
+      r.querySelector('[data-act="toggleGearEquip"]') ? 'equip' :
       r.querySelector('[data-act="toggleGearRefine"]') ? 'refine' : '?')
       .filter((x) => x !== '?').join(','));
   {
@@ -91,9 +93,12 @@ function buildSave(autoEvent, withPend, eventPref) {
     const swT = await page.$$eval('#tab-settings [data-act="toggleAutoTrib"].switch', els => els.length);
     const swE = await page.$$eval('#tab-settings [data-act="toggleAutoEvent"].switch', els => els.length);
     const swR = await page.$$eval('#tab-settings [data-act="toggleGearRefine"].switch', els => els.length);
-    T(swT === 1 && swE === 1 && swR === 1, 'R1 设置页 = 自动渡劫 + 自动奇遇 + 自动炼化三开关',
-      'trib=' + swT + ' event=' + swE + ' refine=' + swR);
-    T(setTxt.includes('自动渡劫') && setTxt.includes('自动奇遇') && setTxt.includes('自动炼化'), 'R1 三开关文案齐备');
+    const swQ = await page.$$eval('#tab-settings [data-act="toggleGearEquip"].switch', els => els.length);
+    T(swT === 1 && swE === 1 && swR === 1 && swQ === 1,
+      'R1 设置页 = 自动渡劫 + 自动奇遇 + 自动炼化 + 自动佩戴四开关（佩戴随册150 入列）',
+      'trib=' + swT + ' event=' + swE + ' refine=' + swR + ' equip=' + swQ);
+    T(setTxt.includes('自动渡劫') && setTxt.includes('自动奇遇') && setTxt.includes('自动炼化') &&
+      setTxt.includes('自动佩戴'), 'R1 四开关文案齐备');
     T(!setTxt.includes('菜单顺序') && setTxt.includes('存档'), 'R1 菜单顺序已下线（D5），存档块保留');
     /* B16-s：三段次序 = 存档 → 自动 → 关于（设计稿重排；原先自动在最上），段标统一 .sechead */
     const setOrder = await page.evaluate(() => {
@@ -156,8 +161,8 @@ function buildSave(autoEvent, withPend, eventPref) {
      * 开倾向态 = 渡劫 → 奇遇 → 倾向(col) → 炼化。按 .setrow 出现序对表；存档段那两行
      * （清增益/重置）不含自动段 act ⇒ 读成 '?'，过滤后再对表，不钉全页行数。 */
     const rowOrderOn = await rowsOf(page);
-    T(rowOrderOn === 'trib,event,pref,refine',
-      'R3 开倾向态行序 = 渡劫 → 奇遇 → 倾向 → 炼化（倾向紧跟其父开关，册149 用户令）', rowOrderOn);
+    T(rowOrderOn === 'trib,event,pref,equip,refine',
+      'R3 开倾向态行序 = 渡劫 → 奇遇 → 倾向 → 佩戴 → 炼化（倾向紧跟其父开关，册149；佩戴在炼化前，册150 改口）', rowOrderOn);
     const onTxt = await page.$eval('#tab-settings [data-act="setEventPref"].on', el => el.textContent.trim());
     T(onTxt === '无倾向', 'R3 默认高亮无倾向', onTxt);
     await page.click('#tab-settings [data-act="setEventPref"][data-v="evil"]');
@@ -174,10 +179,10 @@ function buildSave(autoEvent, withPend, eventPref) {
     await page.waitForTimeout(300);
     const chipsOff = await page.$$eval('#tab-settings [data-act="setEventPref"]', els => els.length);
     T(chipsOff === 0, 'R3 自动奇遇关闭 → 设置页倾向 chips 收起', 'n=' + chipsOff);
-    /* 关倾向态（册149）：倾向块不渲染 ⇒ 奇遇行与炼化行直接相邻（中间不许再隔任何行）。 */
+    /* 关倾向态（册149）：倾向块不渲染 ⇒ 奇遇行与佩戴/炼化行直接相邻（中间不许再隔任何行）。 */
     const rowOrderOff = await rowsOf(page);
-    T(rowOrderOff === 'trib,event,refine',
-      'R3 关倾向态行序 = 渡劫 → 奇遇 → 炼化（倾向随父开关收起后两行直接相邻）', rowOrderOff);
+    T(rowOrderOff === 'trib,event,equip,refine',
+      'R3 关倾向态行序 = 渡劫 → 奇遇 → 佩戴 → 炼化（倾向随父开关收起，册150 改口）', rowOrderOff);
     await ctx.close();
   }
   /* D3 倾向优先：pref=neutral 且该分支可用（stone 检定 5000≫30）→ 自动抉择必落 neutral（非随机） */
@@ -217,6 +222,32 @@ function buildSave(autoEvent, withPend, eventPref) {
     const on2 = await page.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.gearAutoRefine);
     T(on2 === true, 'E3 再点 ⇒ 回开（开关可逆，不是一次性旗标）', 'gearAutoRefine=' + on2);
     T(errors.length === 0, 'E 零页面报错', errors.join('|').slice(0, 150) || 'clean');
+    await ctx.close();
+  }
+
+  /* ── F. 自动佩戴开关（册150）：缺省开（旧行为逐字不变）、点一下随档持久化到 ws.gearAutoEquip、可逆 ── */
+  {
+    const { ctx, page, errors } = await boot(false, false);
+    await page.click('#m-tabbar button:has-text("设置")');
+    await page.waitForTimeout(300);
+    const sw = await page.$eval('#tab-settings [data-act="toggleGearEquip"]', el => ({
+      cls: /(^| )on( |$)/.test(el.className), aria: el.getAttribute('aria-checked'),
+      label: (el.textContent || '').trim()
+    }));
+    T(sw.cls === true && sw.aria === 'true' && sw.label === '已开启',
+      'F1 自动佩戴开关缺省为开（手造旧档无该字段 ⇒ 读档补 true，旧行为逐字不变）', JSON.stringify(sw));
+    await page.click('#tab-settings [data-act="toggleGearEquip"]');
+    await page.waitForTimeout(400);
+    const off = await page.evaluate(() => ({
+      saved: JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.gearAutoEquip,
+      aria: document.querySelector('#tab-settings [data-act="toggleGearEquip"]').getAttribute('aria-checked')
+    }));
+    T(off.saved === false && off.aria === 'false', 'F2 点一下 ⇒ 关：落盘字段与 aria-checked 同变', JSON.stringify(off));
+    await page.click('#tab-settings [data-act="toggleGearEquip"]');
+    await page.waitForTimeout(400);
+    const on2 = await page.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian.gearAutoEquip);
+    T(on2 === true, 'F3 再点 ⇒ 回开（开关可逆，不是一次性旗标）', 'gearAutoEquip=' + on2);
+    T(errors.length === 0, 'F 零页面报错', errors.join('|').slice(0, 150) || 'clean');
     await ctx.close();
   }
 
