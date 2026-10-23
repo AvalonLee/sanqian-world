@@ -49,7 +49,7 @@ ok('⑤ 段外历史注逐字存活（生成器只动标记之间）',
   next.indexOf('换掉的内容') >= 0 && next.indexOf(regClean.body) < 0);
 
 /* ⑥ 拒写守卫（第册四一批 G2 演练立）：本机缺证据时 --fix 不许把降级读数写进正典 */
-const PREVD = { ui_asserts: 776, probe_asserts: 250 };
+const PREVD = { ui_files: 35, ui_asserts: 776, probe_asserts: 250 };
 const degraded = Object.assign({}, v, { ui_asserts: null, probe_asserts: 238 });
 const r6 = G.refuseFix(degraded, PREVD);
 ok('⑥ 未跑 / 探针被压低 ⇒ 拒写（两条都报）', r6.length === 2, r6.join(' ‖ '));
@@ -57,6 +57,16 @@ ok('⑥ 读数齐且不低于在册 ⇒ 不拒写（正常收口不受影响）'
   G.refuseFix(Object.assign({}, v, { ui_asserts: 776, probe_asserts: 250 }), PREVD).length === 0 &&
     G.refuseFix(Object.assign({}, v, { ui_asserts: 776, probe_asserts: 251 }), PREVD).length === 0,
   'degraded 判 ' + r6.length + ' 条');
+const r81 = (o) => G.refuseFix(Object.assign({}, v, { probe_asserts: 250 }, o), PREVD).length;
+ok('⑥ 篇数齐 / 篇增但断言合计下降 ⇒ 拒写（N81：走查有篇红、该篇整篇不计这一形）',
+  r81({ ui_files: 35, ui_asserts: 700 }) === 1 &&
+  r81({ ui_files: 36, ui_asserts: 700 }) === 1 &&
+  r81({ ui_files: 35, ui_asserts: 776 }) === 0 &&
+  r81({ ui_files: 35, ui_asserts: 800 }) === 0 &&
+  r81({ ui_files: 30, ui_asserts: 700 }) === 0,
+  '篇齐+降=' + r81({ ui_files: 35, ui_asserts: 700 }) + ' 篇增+降=' + r81({ ui_files: 36, ui_asserts: 700 }) +
+  ' 齐平=' + r81({ ui_files: 35, ui_asserts: 776 }) + ' 升=' + r81({ ui_files: 35, ui_asserts: 800 }) +
+  ' 篇减=' + r81({ ui_files: 30, ui_asserts: 700 }));
 
 console.log(fails ? 'LEDGER_SELFTEST_FAILED ' + fails + '/' + n : 'LEDGER_SELFTEST_DONE ' + n + ' 判');
 process.exit(fails ? 1 : 0);

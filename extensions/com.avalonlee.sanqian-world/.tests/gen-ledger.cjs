@@ -218,6 +218,13 @@ function refuseFix(v, prevIn) {
   }
   const bad = [];
   if (v.ui_asserts === null && prev.ui_asserts != null) bad.push('界面走查本机未跑（在册 ' + prev.ui_asserts + ' 断言）');
+  /* N81（第册一百三十一批）：篇数齐、但断言合计比在册低 ⇒ 疑有篇判红、该篇断言整篇不计。
+   * 旧守卫只拦「整批未跑（ui_asserts === null）」，拦不到「跑了但有篇红 ⇒ 合计缩水」——
+   * 那一形会让降级读数被 --fix 静默写进正典（N81 原形）。有意压低在册值仍走同一出口：先手工删 ledger.json 那格。 */
+  if (v.ui_files != null && prev.ui_files != null && v.ui_files >= prev.ui_files &&
+    v.ui_asserts != null && prev.ui_asserts != null && v.ui_asserts < prev.ui_asserts)
+    bad.push('界面走查篇数齐（' + v.ui_files + ' 篇）但断言合计下降（' + v.ui_asserts + ' < 在册 ' + prev.ui_asserts +
+      '）⇒ 疑有篇判红、该篇断言整篇不计');
   if (prev.probe_asserts != null && v.probe_asserts !== null && v.probe_asserts < prev.probe_asserts)
     bad.push('探针合计 ' + v.probe_asserts + ' < 在册 ' + prev.probe_asserts +
       '（probe-realsave 要 .storage.json ‖ savecodec F 相应平台档 ⇒ 本机缺真机档必然少这一截）');

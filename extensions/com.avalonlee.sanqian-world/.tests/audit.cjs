@@ -1333,8 +1333,7 @@ const SQ = sandbox.window.SQ;
   /* 例外计数 = **出现次数**（一行两处算两处），不是行数 */
   const EXC = {
     'assets/core.js': 4,            /* BioCaps.keep/store 两行，每行各读两次 ⇒ 4 处；meta 层数值正典住在世界表内，随 N35 归位 */
-    'assets/systems/legacy.js': 1,  /* legacyCap(k)：metaNormalize 无 D 形参（卷注 shortcut 已记） */
-    'assets/systems/tiandao.js': 1  /* chronPush 上界：天道本属修仙专属，目录名实不符同属 N35 */
+    'assets/systems/legacy.js': 1   /* legacyCap(k)：metaNormalize 无 D 形参（卷注 shortcut 已记） */
   };
   const seen = {}, bad = [];
   const count = (code) => (code.match(/SQ\.XDATA/g) || []).length;
@@ -1420,7 +1419,7 @@ const SQ = sandbox.window.SQ;
   const bad = [];
   let lines = null;
   try { lines = fs.readFileSync(path.join(REPO, 'docs/FACTS.md'), 'utf8').split('\n'); } catch (e) { bad.push('读不到 docs/FACTS.md ⇒ 本关失明'); }
-  let rowN = 0;
+  let rowN = 0, rowN2 = 0;
   if (lines) {
     const gs = lines.findIndex((x) => x.indexOf('SQ:LEDGER:BEGIN') >= 0);
     const ge = lines.findIndex((x) => x.indexOf('SQ:LEDGER:END') >= 0);
@@ -1441,8 +1440,33 @@ const SQ = sandbox.window.SQ;
     });
     if (rowN < 10) bad.push('登记表只数到 ' + rowN + ' 行（<10 ⇒ 表被搬走或改名，本关失明）');
   }
-  ok('D9', 'FACTS 登记表行结构对账（哨兵段之外每条 | 行恰三格且首尾有格线 ‖ 无被硬换行切断的续行 ‖ 表没整段消失；只判形状不判内容）',
-    bad.length === 0, '登记表 ' + rowN + ' 行' + (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 逐行三格、无续行'));
+  /* ── 泛化第二表（第册一百三十二批 · N75）：任务清单「现行未实施表」按 **6 格** 校验 ──
+   * 立因：该表 73 行里 49 行格数 ≠ 表头（3/4/7/8/12/13 格混排，成因 = 历批把结案注用 `|` 切成额外格），
+   *   而 FACTS 那侧早有 D9 守、这张表一直没有对应判据。射程 = 标题行到下一个 `## ` 之间；
+   *   只判「`|` 起头的行恰六格且行尾有格线」，**刻意不判「被切断的续行」**——本节正文混着引用块与
+   *   转义竖线，判二那一刀在这里会假阳。 */
+  {
+    let tl = null;
+    try { tl = fs.readFileSync(path.join(REPO, 'docs/总纲/三千世界-代码实施任务清单.md'), 'utf8').split('\n'); }
+    catch (e) { bad.push('读不到任务清单 ⇒ 本关失明'); }
+    if (tl) {
+      const s2 = tl.findIndex((x) => /^## 现行未实施表/.test(x));
+      const e2 = tl.findIndex((x, i) => i > s2 && /^## /.test(x));
+      const end2 = e2 < 0 ? tl.length : e2;
+      const pipesOf2 = (L) => { let n = 0; for (let i = 0; i < L.length; i++) if (L[i] === '|' && L[i - 1] !== '\\') n++; return n; };
+      if (s2 < 0) bad.push('任务清单找不到「## 现行未实施表」节 ⇒ 本关失明');
+      for (let i = s2; s2 >= 0 && i < end2; i++) {
+        const L = tl[i];
+        if (i <= s2 || !/^\|/.test(L) || /^\|\s*-{2,}/.test(L)) continue;
+        rowN2++;
+        const c = pipesOf2(L) - 1;
+        if (c !== 6 || L[L.length - 1] !== '|') bad.push('任务清单 L' + (i + 1) + ' 格=' + c + (L[L.length - 1] !== '|' ? '（行尾无格线）' : ''));
+      }
+      if (s2 >= 0 && rowN2 < 10) bad.push('任务清单未实施表只数到 ' + rowN2 + ' 行（<10 ⇒ 表被搬走或改名，本关失明）');
+    }
+  }
+  ok('D9', '登记表行结构对账（FACTS 哨兵段之外每条 | 行恰三格 ‖ 任务清单「现行未实施表」每条恰六格；均须首尾有格线 ‖ FACTS 无被硬换行切断的续行 ‖ 表没整段消失；只判形状不判内容）',
+    bad.length === 0, 'FACTS ' + rowN + ' 行 ‖ 任务清单 ' + rowN2 + ' 行' + (bad.length ? ' ‖ ' + bad.slice(0, 6).join(' ‖ ') : ' ‖ 三格/六格各合规'));
 })();
 
 /* ── A11 坊市拒因 ⇔ 词表在册 双向对账（第册廿八批 2026-10-18 · F15 / N33② 立）─────
