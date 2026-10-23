@@ -2505,62 +2505,16 @@
      * `v` = 洞府 id，第三参取卡上 data-f（设施 id）。 */
     if (act === 'caveEnter') { SQ.UI.zone.actCaveEnter(ctx(), v); return; }
     if (act === 'caveBuild') { SQ.UI.zone.actCaveBuild(ctx(), v, el.dataset.f); return; }
-    /* ── G16 势力深化批（v1.23）：捐献 / 委托交付 / 应战 / 供给兑换 ── */
-    if (act === 'facDonate') {
-      var amt = parseInt(v, 10);
-      var cfgD = D().FACTION_DONATE || {};
-      var cur0 = SQ.Factions.current(ws());
-      if (!cur0) return;
-      /* 预览与引擎同口径：窗口过期则 used 视为 0（原实现漏判窗口，短窗口下预览会低估） */
-      var donPv = ws().factionDonate || {};
-      var inWinPv = Date.now() - (donPv.at || 0) <= (cfgD.WINDOW_MS);
-      var usedPv = inWinPv ? (donPv.used || 0) : 0;
-      askConfirm(t('faction.donate'), t('faction.confirm.donate', {
-        name: cur0.name, n: SQ.fmt(amt), cur: t('resource.currency'),
-        rep: Math.min(Math.floor(amt / (cfgD.STONES_PER_REP)),
-          Math.max(0, (cfgD.WINDOW_CAP || 300) - usedPv))
-      }), async function () {
-        var rD = await SQ.Actions.donateFaction(state, amt);
-        if (rD && rD.ok) toast(t('faction.log.donate', { name: cur0.name, n: rD.rep }));
-        else if (rD) toast(t('faction.donate.fail.' + rD.reason));
-        renderAll();
-      });
-      return;
-    }
-    if (act === 'questClaim') {
-      var rQ = await SQ.Actions.deliverQuest(state, v);   /* v = 委托类型（板面同类型至多一张 ⇒ type 就是地址） */
-      if (rQ && rQ.ok) toast(t('faction.quest.claim.ok') + ' · ' + t('faction.quest.done', { n: rQ.rep }));
-      else if (rQ) toast(t('faction.quest.fail.' + rQ.reason));
-      renderAll();
-      return;
-    }
-    if (act === 'warJoin') {
-      /* 战功制入场（势力全录卷 §7.1 · B4）：确认弹窗改战功规则说明，不再展示战力线 */
-      var wW = ws(), warW = wW.factionWar;
-      if (!warW || warW.joined) return;
-      askConfirm(t('faction.war.confirm.title'), t('faction.confirm.war'), async function () {
-        var rW = await SQ.Actions.joinWar(state);
-        if (rW && rW.ok) toast(t('faction.war.merit.joined', { name: SQ.Factions.nameOf(wW, wW.factionId) }));
-        else if (rW) toast(t('faction.war.fail.' + rW.reason));
-        renderAll();
-      });
-      return;
-    }
+    /* ── 势力四支（B3 = 第册一百四十三批搬入 `view/faction.js`，此处各留一行转发）──
+     * 供奉 / 委托交付 / 应战 / 好聚好散 */
+    if (act === 'facDonate') { SQ.UI.faction.actDonate(ctx(), v); return; }
+    if (act === 'questClaim') { await SQ.UI.faction.actQuestClaim(ctx(), v); return; }
+    if (act === 'warJoin') { SQ.UI.faction.actWarJoin(ctx()); return; }
     /* ── 叛离去向选择（势力全录卷 §九 · B4 两级弹窗）：第一级去向（敌对红标叛投）→
      * 第二级献秘确认（确认 = 带秘 / 取消 = 好聚好散）；非敌对沿用现行单级确认 ── */
     if (act === 'leaveFaction') { ui.leavePick = !ui.leavePick; ui.officePick = false; renderTab(); return; }
     if (act === 'leavePick') { ui.leavePick = false; renderTab(); return; }
-    if (act === 'leavePlain') {
-      ui.leavePick = false;
-      var curF = SQ.Factions.current(ws());
-      if (!curF) { renderTab(); return; }
-      askConfirm(t('faction.leave'), t('faction.confirm.leave', { name: curF.name }), async function () {
-        await SQ.Actions.leaveFaction(state);
-        toast(t('faction.log.leave', { name: curF.name }));
-        renderAll();
-      });
-      return;
-    }
+    if (act === 'leavePlain') { SQ.UI.faction.actLeavePlain(ctx()); return; }
     if (act === 'defectGo') { SQ.UI.faction.actDefect(ctx(), v); return; }
     /* ── 职级实权双技能（势力全录卷 §八 · B4）：调遣 = 选择列表；门中护法 = 直接发动 ── */
     if (act === 'officePick') { SQ.UI.faction.actOfficePick(ctx()); return; }

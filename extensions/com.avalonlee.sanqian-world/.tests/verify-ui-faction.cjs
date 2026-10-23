@@ -241,6 +241,87 @@ const { chromium } = require('playwright-core');
   T(!cardC.none && cardC.camps.some(a => a && cardC.fmTxt.indexOf(a) >= 0),
     'C2 卡上身份行含阵营字（值取词表 align.*，「全部」筛选态下也读得出正邪）', cardC.fmTxt);
 
+  /* ── D 组（第册一百四十三批 · D15/B3）：供奉真提交 / 应战 / 好聚好散 —— 三支动作真点 ──────
+   * 为什么补：这三支此前只有「按钮在不在」的静态断言（`warJoin` 更是**零引用**），而它们正是本批要从派发器
+   *   搬进 `view/faction.js` 的三支。搬动作最贵的失误是「按钮还在、点了没反应」⇒ 一律真点 + 读盘上真值。
+   * ⚠️ 供奉那一档 R4 走过「开确认框→取消」，本组把「确认」这一步补完（先问后动本身就是被验的行为）。 */
+  const waitFor = async (fn, ms) => {
+    const t0 = Date.now();
+    for (;;) {
+      const v = await fn();
+      if (v) return v;
+      if (Date.now() - t0 > (ms || 6000)) return false;
+      await new Promise((r) => setTimeout(r, 120));
+    }
+  };
+  const read1 = () => page.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1') || '{}'));
+
+  const sD0 = await read1();
+  /* 供奉三档在「宗门页 = 我的门派」（加入势力后势力页只铺名录）⇒ 先把页签切回去 */
+  await page.click('#m-tabbar button:has-text("宗门")');
+  await page.waitForTimeout(400);
+  await page.click('#tab-sect [data-act="facDonate"]');
+  await page.waitForTimeout(300);
+  const okConfirm = await page.$('#modal-confirm:not(.hide)');
+  await page.click('#cf-ok');
+  const sD1 = await waitFor(async () => {
+    const s = await read1();
+    return (s.worlds.xiuxian.factionRep || {}).yanue > (sD0.worlds.xiuxian.factionRep || {}).yanue ? s : false;
+  }, 6000);
+  T(!!okConfirm && !!sD1 && sD1.worlds.xiuxian.stones < sD0.worlds.xiuxian.stones &&
+    (sD1.worlds.xiuxian.factionDonate || {}).used > 0,
+    'D1 供奉确认 ⇒ 声望涨、灵石扣、窗口计数前进（`facDonate` 搬件后整链仍通）',
+    sD1 ? 'rep ' + (sD0.worlds.xiuxian.factionRep || {}).yanue + '→' + sD1.worlds.xiuxian.factionRep.yanue +
+      ' stones ' + sD0.worlds.xiuxian.stones + '→' + sD1.worlds.xiuxian.stones +
+      ' used=' + (sD1.worlds.xiuxian.factionDonate || {}).used : '未落盘');
+
+  /* D2/D3 另开一页：`factionWar` 与「叛离」都会改写势力态，混在本页会让上面的 R 组读数漂 */
+  const ctx2 = await browser.newContext();
+  const save2 = buildSave();
+  save2.worlds.xiuxian.factionWar = { aId: 'yanue', bId: 'liumo', until: Date.now() + 3600000, joined: null, merit: 0 };
+  await ctx2.addInitScript((s) => { localStorage.setItem('sanqian-state-v1', s); }, JSON.stringify(save2));
+  const page2 = await ctx2.newPage();
+  const e2 = [];
+  page2.on('pageerror', (e) => e2.push('pageerror: ' + e.message));
+  page2.on('console', (m) => { if (m.type() === 'error') e2.push('console: ' + m.text()); });
+  await page2.goto(url);
+  await page2.waitForSelector('#sc-main:not(.hide)', { timeout: 15000 });
+  await page2.waitForTimeout(400);
+  const read2 = () => page2.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1') || '{}'));
+  const click2 = async (sel, ms) => { try { await page2.click(sel, { timeout: ms || 5000 }); return true; } catch (e) { return false; } };
+
+  /* 应战横幅在「宗门页 = 我的门派」（`renderHome`），不在势力名录页 */
+  await page2.click('#m-tabbar button:has-text("宗门")');
+  await page2.waitForTimeout(400);
+  const okWarBtn = await click2('#tab-sect [data-act="warJoin"]', 4000);
+  const cfWar = await waitFor(() => page2.$('#modal-confirm:not(.hide)'), 5000);
+  await click2('#cf-ok', 3000);
+  const sD2 = await waitFor(async () => {
+    const s = await read2();
+    return ((s.worlds.xiuxian.factionWar || {}).joined === 'in') ? s : false;
+  }, 6000);
+  T(okWarBtn && !!cfWar && !!sD2,
+    'D2 点「应战」⇒ 确认框 → 盘上 factionWar.joined = in（`warJoin`，此前零走查引用）',
+    '钮=' + okWarBtn + ' 框=' + !!cfWar + ' joined=' + JSON.stringify(sD2 ? sD2.worlds.xiuxian.factionWar.joined : null));
+
+  /* D3 好聚好散（常规离山）：二级弹窗第一级 → 点「好聚好散」→ 确认 ⇒ factionId 清空 */
+  await page2.click('#m-tabbar button:has-text("宗门")');
+  await page2.waitForTimeout(400);
+  const okPickOpen = await click2('#tab-sect [data-act="leaveFaction"]', 4000);
+  await page2.waitForTimeout(250);
+  const okLeave = await click2('#tab-sect [data-act="leavePlain"]', 4000);
+  const cfLeave = await waitFor(() => page2.$('#modal-confirm:not(.hide)'), 5000);
+  await click2('#cf-ok', 3000);
+  const sD3 = await waitFor(async () => {
+    const s = await read2();
+    return s.worlds.xiuxian.factionId == null ? s : false;
+  }, 6000);
+  T(okPickOpen && okLeave && !!cfLeave && !!sD3,
+    'D3 点「好聚好散」⇒ 确认框 → 盘上 factionId 清空（`leavePlain`，此前只数过按钮没点过）',
+    '两级钮=' + okPickOpen + '/' + okLeave + ' 框=' + !!cfLeave + ' factionId=' + JSON.stringify(sD3 ? sD3.worlds.xiuxian.factionId : 'n/a'));
+  T(e2.length === 0, 'D 组零页面报错', e2.join('|').slice(0, 150) || 'clean');
+  await ctx2.close();
+
   T(errors.length === 0, 'Z 无控制台错误', errors.join(' | ') || 'ok');
 
   await browser.close();
