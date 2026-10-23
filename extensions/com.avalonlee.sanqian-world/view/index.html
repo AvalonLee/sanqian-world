@@ -2671,74 +2671,18 @@
     if (act === 'sectGate') { ui.sectPick = ui.sectPick || {}; ui.sectPick.gate = v; renderTab(); return; }
     if (act === 'sectAlign') { ui.sectPick = ui.sectPick || {}; ui.sectPick.align = v; renderTab(); return; }
     if (act === 'sectRollName') { ui.sectRollName = SQ.Sect.nameOfIdx(SQ.Sect.rollIdx(), wid()); renderTab(); return; }
-    if (act === 'sectFound') {
-      var nameIn2 = document.getElementById('sect-name-input');
-      /* 门规宣言随立派一次写入（第册一百一十八批）：值取 `ui.sectFoundMotto`（input 监听回填，
-       * 与自定义名同一套防 tick 抹字的口径），成交即清空——下一门不该继承上一门的宣言。 */
-      var mottoIn2 = (ui.sectFoundMotto || '').trim();
-      askConfirm(t('sect.found.btn'), t('sect.found.confirm'), async function () {
-        var rFd = await SQ.Actions.sectFound(state, (ui.sectPick || {}).gate || 'wuyue', nameIn2 ? nameIn2.value : '', null, (ui.sectPick || {}).align || 'neutral', mottoIn2);
-        if (rFd && rFd.ok) {
-          ui.sectFoundMotto = '';
-          toast(t('sect.found.log', { name: rFd.name, gate: t('sect.gate.' + ((ui.sectPick || {}).gate || 'wuyue') + '.name') }));
-        }
-        else if (rFd) {
-          var fkk = 'sect.ui.fail.' + rFd.reason;
-          toast(t(fkk) !== fkk ? t(fkk) : rFd.reason);
-        }
-        renderAll();
-      });
-      return;
-    }
-    if (act === 'sectRecruit') { var rRc = await SQ.Actions.sectRecruit(state); if (rRc && rRc.reason === 'cap') toast(t('sect.disc.cap.full')); renderAll(); return; }
-    if (act === 'sectAccept') { var rAc = await SQ.Actions.sectAccept(state); if (rAc && rAc.reason === 'cap') toast(t('sect.disc.cap.full')); renderAll(); return; }
-    if (act === 'sectReject') { await SQ.Actions.sectReject(state); toast(t('sect.disc.reject')); renderAll(); return; }
-    if (act === 'sectOffer') {
-      var rOf = await SQ.Actions.sectOffer(state, v);
-      if (rOf && !rOf.ok) toast(rOf.reason === 'refuse' ? t('sect.disc.offer.refuse', { name: t('bond.' + v + '.name') }) : t('sect.disc.offer.need'));
-      renderAll();
-      return;
-    }
-    if (act === 'sectInvest') { await SQ.Actions.sectInvest(state, v, parseInt(el.dataset.c, 10)); renderAll(); return; }
-    if (act === 'sectBuild') {
-      var rBd = await SQ.Actions.sectBuild(state, v);
-      /* 失败原因四路全给中文：原 `: rBd.reason` 直落 ⇒ 'none' / 'unknown' 裸英文上屏
-       *（与 N16 炼丹失败族同形）；兜底键 sect.ui.build.other 保证任何新 reason 也不外泄内部字段名 */
-      if (rBd && !rBd.ok) {
-        var kBd = 'sect.ui.build.' + rBd.reason;
-        toast(rBd.reason === 'poor' ? t('legacy.ui.poor') : (rBd.reason === 'max' ? t('sect.fac.max') :
-          (t(kBd) !== kBd ? t(kBd) : t('sect.ui.build.other'))));
-      }
-      renderAll();
-      return;
-    }
-    if (act === 'sectDispatch') {
-      var rDp = await SQ.Actions.sectDispatch(state, v);
-      /* 引擎 Sect.dispatch 有四种拒因（cd / none / unknown / chan），原先只提示 cd ⇒ 其余三因**点了零反馈
-       * 零变化**（第十四批审计 #12，本仓头号「静默拒绝」类；势力页 dispatchCandidates 早已同口径说明，宗门页漏了）。
-       * 表外新 reason 走 `.other` 兜底，不再把内部字段名打上屏（#272/#273 同一纪律）。 */
-      if (rDp && !rDp.ok) {
-        var rk295 = ['cd', 'none', 'chan', 'unknown'].indexOf(rDp.reason) >= 0 ? rDp.reason : 'other';
-        toast(t('faction.office.dispatch.' + rk295));
-      }
-      renderAll();
-      return;
-    }
-    if (act === 'sectWar') {
-      var rW = await SQ.Actions.sectWar(state, v);
-      /* 拒因一律走表内键（#272/#273 那条「不许把内部字段名打上屏」，原先 else 直接 toast(rW.reason)）；
-       * 结仇宣战（第册一百二十二批）多一枚 poor：灵石不够要把这一笔的价说出口。 */
-      if (rW && !rW.ok) toast(rW.reason === 'cd' ? t('sect.war.cd', { t: timeLeftText(rW.until - Date.now()) })
-        : (rW.reason === 'busy' ? t('sect.war.busy')
-          : (rW.reason === 'poor' ? t('sect.war.open.poor', { n: SQ.fmt(rW.cost || 0) }) : t('sect.war.reject'))));
-      else if (rW && rW.ok && rW.fee > 0) toast(t('sect.war.open.log', {
-        name: (SQ.Factions.nameOf(ws(), v) || ''), n: SQ.fmt(rW.fee),
-        cut: Math.round((D().SECT.WAR_REP_SELF_CUT != null ? D().SECT.WAR_REP_SELF_CUT : 0.10) * 100),
-        karma: Math.abs(D().SECT.WAR_OPEN_KARMA != null ? D().SECT.WAR_OPEN_KARMA : -30), m: (rW.foes || []).length
-      }));
-      renderAll();
-      return;
-    }
+    /* ── 宗门动作十支（B2 = 第册一百四十二批搬入 `view/sect.js`，此处各留一行转发）──
+     * 立派 / 招贤 / 收下 / 逐客 / 供奉 / 投资 / 营建 / 调遣 / 宣战 / 接任 */
+    if (act === 'sectFound') { SQ.UI.sect.actFound(ctx()); return; }
+    if (act === 'sectRecruit') { await SQ.UI.sect.actRecruit(ctx()); return; }
+    if (act === 'sectAccept') { await SQ.UI.sect.actAccept(ctx()); return; }
+    if (act === 'sectReject') { await SQ.UI.sect.actReject(ctx()); return; }
+    if (act === 'sectOffer') { await SQ.UI.sect.actOffer(ctx(), v); return; }
+    if (act === 'sectInvest') { await SQ.UI.sect.actInvest(ctx(), v, el.dataset.c); return; }
+    if (act === 'sectBuild') { await SQ.UI.sect.actBuild(ctx(), v); return; }
+    if (act === 'sectDispatch') { await SQ.UI.sect.actDispatch(ctx(), v); return; }
+    if (act === 'sectWar') { await SQ.UI.sect.actWar(ctx(), v); return; }
+    if (act === 'sectSucceed') { SQ.UI.sect.actSucceed(ctx(), v); return; }
     /* B16-ad：自立宗门治理 / 人事 / 外交
      * 🔧 第册一百一十八批：`sectGovField`（改名 / 宣言）与 `sectGovRule`（门规 / 阵营）两条分派随写口
      *    一并删除——那四样在立派那一步定死（宣言走 sectFound 的入参），治理段只剩税率 / 人事 / 解散 / 停战。 */
@@ -2781,15 +2725,7 @@
       });
       return;
     }
-    if (act === 'sectSucceed') {
-      askConfirm(t('sect.ui.succ.btn'), t('sect.ui.succ.confirm'), async function () {
-        var rSc = await SQ.Actions.sectSucceed(state, v);
-        if (rSc && rSc.ok) toast(t('sect.succ.log', { name: (ws().sect || {}).name || '', heir: '' }));
-        else if (rSc && rSc.reason === 'realm') toast(t('legacy.ui.feisheng.lock.realm'));
-        renderAll();
-      });
-      return;
-    }
+    /* `sectSucceed` 原块已随 B2（第册一百四十二批）搬入 `view/sect.js` —— 上方那行转发即其入口。 */
     if (act === 'nijie') {
       askConfirm(t('tiandao.nijie.btn'), t('tiandao.nijie.confirm'), async function () {
         var rNj = await SQ.Actions.tryNijie(state);

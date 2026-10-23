@@ -1375,8 +1375,10 @@ function sqHasLogic(body) {
   };
   /* 派发器两个钉值：分支数 / 业务支数（**只减不增**）。每搬走一支（B1–B5）同批下调业务支数；
    * 分支数只有「把整支删掉」时才会降（改成一行转发不改变支数）。新支须先在任务清单登记再改这里。
-   * 走势：B0 首跑（删 `claim` 后）= 138 / 60 ⇒ B1 搬秘境四支 = 138 / **56**。 */
-  const DISP_PIN = { key: 'document@click#dispatcher', branches: 138, business: 56 };
+   * 走势：B0 首跑（删 `claim` 后）= 138 / 60 ⇒ B1 搬秘境四支 = 138 / **56** ⇒ B2 搬宗门十支 = 138 / **47**
+   * （十支里 `sectRecruit`/`sectAccept`/`sectReject`/`sectInvest` 原本各只 2~3 句，搬走后一律 1 句转发）；
+   * `branches` 仍是 138：一行转发不删支。 */
+  const DISP_PIN = { key: 'document@click#dispatcher', branches: 138, business: 47 };
   const htmlPath = path.join(ROOT, 'view', 'index.html');
   let code = '';
   try { code = stripComments(fs.readFileSync(htmlPath, 'utf8')); } catch (e) { /* 走失明红 */ }
