@@ -9,6 +9,13 @@
  *   MISSING（绝不拿 0 顶掉一条真实读数 —— 本仓 SKIP 假绿的同型面）。
  * 哨兵段纪律：只重写 `<!-- SQ:LEDGER:BEGIN <名> -->` 与 `<!-- SQ:LEDGER:END -->` 之间的行；
  *   **段外一字不动**（历史注不可改写的机械保证）。
+ * 交接锚判（2026-10-23 第册一百三十八批 · 交接快照机制）：`docs/交接快照.md` 是多 agent 接手的
+ *   滚动叙述件，叙述段（「现在进行时 / 下一步 / 批次脉络」）没法机器生成，滞后就没人发现——
+ *   本件新增 `HANDOFF_STALE` 判：快照内 `<!-- SQ:HANDOFF:ANCHOR §7A:N -->` 的 N 必须等于主设计
+ *   卷头版本注里最新的「§七A 加第 **N** 条」（每批收口必登记 §七A ⇒ 条号严格单调，快照锚小于它
+ *   = 叙述滞后；大于它 = §七A 漏登记或锚写错，两向都红）。**anchor 是手写件，--fix 不代写**；
+ *   判据失明（抓不到锚 / 抓不到条号）一律红，不许静默放行（本仓 SKIP 假绿同型面）。反证常驻
+ *   `ledger-selftest.cjs`。
  * 用法：node .tests/gen-ledger.cjs          只判漂 → 末行 LEDGER_IN_SYNC n / LEDGER_DRIFT m（漂 ⇒ 退码 1）
  *       node .tests/gen-ledger.cjs --fix    写 docs/ledger.json + 刷各段，末行 LEDGER_FIXED m / LEDGER_IN_SYNC
  * 反证常驻件：.tests/ledger-selftest.cjs（造漂必红 / 干净必绿 / 段外改动必报）。
@@ -142,8 +149,10 @@ const SEGMENTS = [
   { file: 'README.md', name: 'readme', render: oneLine },
   { file: 'DESIGN.md', name: 'design', render: oneLine, at: 'ext' },   /* DESIGN.md 随扩展走（在扩展根，不在仓库根）*/
   { file: 'docs/总纲/三千世界-工程规范与验收计划.md', name: 'eng-spec', render: oneLine },
-  { file: 'docs/总纲/三千世界-项目设计文档.md', name: 'main-design', render: oneLine }
+  { file: 'docs/总纲/三千世界-项目设计文档.md', name: 'main-design', render: oneLine },
+  { file: 'docs/交接快照.md', name: 'handoff', render: oneLine }        /* 交接快照：哨兵段自动刷读数，段外叙述与 anchor 手写 */
 ];
+const segFile = (name) => { const s = SEGMENTS.find((x) => x.name === name); return s ? s.file : null; };
 
 /* ── 段抽取与判漂 ─────────────────────────────────────── */
 function region(text, name) {
@@ -202,6 +211,36 @@ function inlineDrift(text, v) {
   });
   return bad;
 }
+/* ── 交接锚判（第册一百三十八批 2026-10-23）：快照叙述的滞后探针 ───────────────
+ * 立因：`docs/交接快照.md` 的叙述段（进行时 / 下一步 / 批次脉络）只能手写，门禁原有各关都
+ *   照不到「写没写、新不新」。每批收口必在主设计 §七A 登记（条号严格单调递增），故快照内
+ *   的 anchor 条号一旦 ≠ 主设计最新条号，就说明快照叙述没随批更。纯函数 + 文本注入 =
+ *   `ledger-selftest.cjs` 可造漂反证。 */
+function handoffAnchor(snapText, mainText) {
+  const bad = [];
+  const m = (snapText || '').match(/SQ:HANDOFF:ANCHOR\s+§7A:(\d+)/);
+  const snapN = m ? parseInt(m[1], 10) : null;
+  const mm = (mainText || '').match(/§七A 加第 \*\*(\d+)\*\* 条/);
+  const mainN = mm ? parseInt(mm[1], 10) : null;
+  if (!mainN) bad.push('主设计卷头抓不到「§七A 加第 **N** 条」（版本注格式变了 ⇒ anchor 判失明，须修判据，不许静默放行）');
+  if (!snapN) bad.push('交接快照缺 `SQ:HANDOFF:ANCHOR §7A:N` 行（补一行并写本批 §七A 条号）');
+  if (snapN != null && mainN != null) {
+    if (snapN < mainN) bad.push('交接快照锚 §7A:' + snapN + ' 落后于主设计最新 §7A:' + mainN + ' ⇒ 快照叙述滞后，随批更新叙述并推锚（--fix 不代写）');
+    if (snapN > mainN) bad.push('交接快照锚 §7A:' + snapN + ' 超前于主设计最新 §7A:' + mainN + ' ⇒ §七A 漏登记本批或锚写错（§七A 是批次唯一账本，快照不许超前）');
+  }
+  return { bad: bad, snapN: snapN, mainN: mainN };
+}
+/* 读真文件版：读不到文件本身也算红（缺件/搬走都不许静默跳过） */
+function handoffAnchorLive() {
+  const hf = segFile('handoff'), mf = segFile('main-design');
+  if (!hf || !mf) return { bad: ['SEGMENTS 缺 handoff / main-design 段配置 ⇒ anchor 判无所依'], snapN: null, mainN: null };
+  try {
+    return handoffAnchor(fs.readFileSync(path.join(REPO, hf), 'utf8'), fs.readFileSync(path.join(REPO, mf), 'utf8'));
+  } catch (e) {
+    return { bad: ['交接锚判读不到宿主件（' + (hf + ' / ' + mf) + '）：' + e.message.slice(0, 80)], snapN: null, mainN: null };
+  }
+}
+
 /* ── 拒写：证据不足的机器上不许把降级读数刷进正典（第册四一批 2026-10-18 · G2 恢复演练立）──────
  * 立因：账本里两枚读数是**机器相关**的 —— `probe-realsave`（10 断言）与 `probe-savecodec` F 相（2 断言）
  *   要读 gitignore 掉的 `.storage.json`，界面走查要显式跑过 `--ui`。裸 clone 上它们取不到，旧行为是
@@ -256,7 +295,7 @@ const ATTRIB = {
   'probe-savecodec': { src: 'core.js 编解码与压缩阶梯 ⓪~⑤', touches: ['assets/core.js', 'docs/总纲/三千世界-工程规范与验收计划.md §3.6'], repro: 'node .tests/probe-savecodec.cjs' },
   'probe-savegrowth': { src: '主档平坦 / 侧档增长（600 次真奇遇结算）', touches: ['assets/core.js', 'stripSideFlows', '侧档 LOG_KEY'], repro: 'node .tests/probe-savegrowth.cjs' },
   'probe-realsave': { src: '玩家真档 读→存→读 零丢失', touches: ['.tests/storage-read.cjs 候选路径', 'assets/core.js'], repro: 'node .tests/probe-realsave.cjs' },
-  'gen-ledger': { src: 'docs/ledger.json + 各文件哨兵段', touches: ['docs/FACTS.md', 'README.md', 'DESIGN.md', 'docs/总纲/三千世界-工程规范与验收计划.md', 'docs/总纲/三千世界-项目设计文档.md'], repro: 'node .tests/gen-ledger.cjs --fix 后复跑' }
+  'gen-ledger': { src: 'docs/ledger.json + 各文件哨兵段 + 交接快照 anchor 判', touches: ['docs/FACTS.md', 'README.md', 'DESIGN.md', 'docs/总纲/三千世界-工程规范与验收计划.md', 'docs/总纲/三千世界-项目设计文档.md', 'docs/交接快照.md'], repro: 'node .tests/gen-ledger.cjs --fix 后复跑' }
 };
 /* shortcut: 归因表只覆盖无头件与账本件；全部走查篇共用一条「改 view/index.html 就跑 --ui」口径，
  * 待走查改成单浏览器会话（N36）时再按篇建目。 */
@@ -269,6 +308,9 @@ if (require.main === module) {
   const r = check(v);
   r.missing.forEach((x) => console.log('MISSING ' + x));
   r.drift.forEach((d) => console.log('DRIFT ' + d.seg.file + ' [' + d.seg.name + ']' + (d.inline ? ' 段外行内 ' + d.inline : '')));
+  /* 交接锚判与段对账同跑、同红；--fix 修段体但不代写 anchor（那是叙述件，机器写不了） */
+  const anchor = handoffAnchorLive();
+  anchor.bad.forEach((x) => console.log('HANDOFF_STALE ' + x));
   if (FIX) {
     const refuse = refuseFix(v);
     if (refuse.length) {
@@ -279,14 +321,16 @@ if (require.main === module) {
     applyFix(v, r.drift);
     /* 段体本来就对、漂在段外人写行 ⇒ `--fix` **不代人改行**（改了就是把口径写进文档），照旧判红 */
     const left = r.drift.filter((d) => d.bodyOk).length;
+    const stale = anchor.bad.length;
     console.log((r.drift.length ? 'LEDGER_FIXED ' + r.drift.length : 'LEDGER_IN_SYNC segments=' + SEGMENTS.length) +
-      (left ? ' INLINE_DRIFT ' + left : '') + ' (missing=' + r.missing.length + ')');
-    process.exit(r.missing.length || left ? 1 : 0);
+      (left ? ' INLINE_DRIFT ' + left : '') + (stale ? ' HANDOFF_STALE ' + stale : '') + ' (missing=' + r.missing.length + ')');
+    process.exit(r.missing.length || left || stale ? 1 : 0);
   }
-  console.log(r.drift.length || r.missing.length
-    ? 'LEDGER_DRIFT ' + (r.drift.length + r.missing.length) + ' (drift=' + r.drift.length + ' missing=' + r.missing.length + ')'
-    : 'LEDGER_IN_SYNC segments=' + SEGMENTS.length);
-  process.exit(r.drift.length || r.missing.length ? 1 : 0);
+  const anyRed = r.drift.length || r.missing.length || anchor.bad.length;
+  console.log(anyRed
+    ? 'LEDGER_DRIFT ' + (r.drift.length + r.missing.length + anchor.bad.length) + ' (drift=' + r.drift.length + ' missing=' + r.missing.length + ' anchor=' + anchor.bad.length + ')'
+    : 'LEDGER_IN_SYNC segments=' + SEGMENTS.length + ' anchor=§7A:' + anchor.snapN);
+  process.exit(anyRed ? 1 : 0);
 }
 
-module.exports = { compute, check, region, SEGMENTS, BEGIN, END, oneLine, factsTable, ATTRIB, ROOT, REPO, refuseFix };
+module.exports = { compute, check, region, SEGMENTS, BEGIN, END, oneLine, factsTable, handoffAnchor, handoffAnchorLive, ATTRIB, ROOT, REPO, refuseFix };

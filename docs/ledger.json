@@ -1,11 +1,11 @@
 {
  "generated_by": ".tests/gen-ledger.cjs",
- "at": "2026-10-23T00:41:13.599Z",
+ "at": "2026-10-23T01:24:28.179Z",
  "values": {
   "ext_version": "0.6.2",
   "dod_items": 56,
   "dod_asserts": 1501,
-  "dod_secs": 337.8,
+  "dod_secs": 336,
   "smoke": 327,
   "audit_gates": 34,
   "versions_rows": null,
@@ -53,6 +53,10 @@
   {
    "file": "docs/总纲/三千世界-项目设计文档.md",
    "name": "main-design"
+  },
+  {
+   "file": "docs/交接快照.md",
+   "name": "handoff"
   }
  ],
  "attrib": {
@@ -127,13 +131,14 @@
    "repro": "node .tests/probe-realsave.cjs"
   },
   "gen-ledger": {
-   "src": "docs/ledger.json + 各文件哨兵段",
+   "src": "docs/ledger.json + 各文件哨兵段 + 交接快照 anchor 判",
    "touches": [
     "docs/FACTS.md",
     "README.md",
     "DESIGN.md",
     "docs/总纲/三千世界-工程规范与验收计划.md",
-    "docs/总纲/三千世界-项目设计文档.md"
+    "docs/总纲/三千世界-项目设计文档.md",
+    "docs/交接快照.md"
    ],
    "repro": "node .tests/gen-ledger.cjs --fix 后复跑"
   }
