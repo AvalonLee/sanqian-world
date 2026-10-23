@@ -309,7 +309,7 @@
     /* 收功按钮已移除（v2.2）：自动心跳每秒做同一套结算+落盘，手动按钮语义重复——
      * 结算区收敛为「修行状态 → 修行所得」纯展示区块 */
     /* B15-c：天赋卡归并到「天命」段标之下（设计稿 .shelf-head；自动区已随 D6 迁设置页，不在本页）
-     * B16-af：段标最右补洗髓快捷入口（同一枚 showWash） */
+     * B16-af：段标最右补洗髓快捷入口（同一枚入口 = `SQ.UI.talentswap.open`，第册一百三十九批整族外置） */
     var swCap = (d.TALENT_SWAP || {}).PER_LIFE || 0;
     var swLeft = Math.max(0, swCap - (w.talentUsed || 0));
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('idle.talent.title')) + '</span>' +

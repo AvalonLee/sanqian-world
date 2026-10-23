@@ -597,6 +597,9 @@
 <script src="spirit.js"></script>
 <script src="trib.js"></script>
 <script src="event.js"></script>
+<script src="talentswap.js"></script>
+<script src="settings.js"></script>
+<script src="offline.js"></script>
 <script>
 (function () {
   var SQ = window.SQ;
@@ -662,8 +665,9 @@
       nudge: nudgeEl,
       /* 第八刀补三枚（都是「件外调用」才进桥）：fmtLeft = 沙漏剩余时长 ‖ fmtDur = 游戏历时长 ‖ bondTier = 好感档汉字数字 */
       fmtLeft: fmtLeft, fmtDur: fmtGameDur, bondTier: bondTierNum,
-      /* 第十一刀补一枚：showWash = 洗髓浮层的内核入口（服丹成功即开 = 件外调用才进桥） */
-      showWash: showWash,
+      /* 第十一刀那枚 `showWash` 已随第册一百三十九批（N82/A3 洗髓族 → `view/talentswap.js`）**退役**：
+       * 洗髓浮层整族外置，件外唯一调用点（炼丹服丹成功）改成件对件直调 `SQ.UI.talentswap.open(c)`。
+       * 这正是第册五十八批 `spiritPanel` 的同型收口——**桥只在「核→件」需要时才留键**。 */
       /* 第十二刀补三枚：`toastAction` = 带动作的提示（拜访 / 赠丹 / 缘尽赎回三处成功态）‖ `reducedMotion` =
        * 结契轻演出的时长分支 ‖ `bondDotSig` = 侣 chip 红点签名（页签机器留内核，浮层 opener 要拿它记基线）。
        * 再补 `fresh`：取一份**新的**桥快照——`SQ.mutate` 会深拷贝 world（core.js `cpWorld`），
@@ -689,6 +693,9 @@
       offlineDetail: offlineDetail,
       /* 第十八刀补一枚（自我浮层外置 `view/self.js`）：`identityParts` = 道号 / 世界 / 境界三段拼装（角色卡标题用） */
       identityParts: identityParts,
+      /* 第册一百三十九批（N82/A3 设置页 → `view/settings.js`）补回一枚：`autoEventPref` = 奇遇倾向当前值
+       * （UI v2 B2 把自动三开关迁回设置页时曾把它缩回核内直调；本刀起设置页在件内 ⇒ 只能经桥取）。 */
+      autoEventPref: autoEventPref,
       /* 第十九刀补八枚（奇遇族外置 `view/event.js`；这八枚家族外都有调用 ⇒ 只能留内核、经桥取）：
        * `ambushHalt` / `ambushCountdown` = 袭击抉择倒计时（收口 / 读秒）‖ `mirrorWorn` = 照世镜是否佩戴 ‖
        * `findEvent` / `allEventList` = 奇遇池取值 ‖ `exclusiveOf` = 专属奖励判定 ‖ `branchChecks` = 分支检查项 ‖
@@ -1772,53 +1779,11 @@
 
   /* 日志页整段（LOG_CATS / journalLines / renderJournal）已外置成 view/journal.js（第册五批） */
 
-  /* ── Tab 8 设置（重置存档：覆盖为新档 → 回填引用 → 停 tick → 关浮层 → 回创角）──
-   * UI v2 B2：菜单顺序整块下线（D5；`settings.tabOrder` 字段保留但不再读，旧档照常加载）；
-   * 自动三开关与奇遇倾向自修行页迁入本页（D6，用户令「日志 + 设置试点，按 B2 开干」）。 */
-  function renderSettings() {
-    var h = '';
-    var autoT = !!(state.settings && state.settings.autoTrib);
-    var autoE = !!(state.settings && state.settings.autoEvent);
-    var autoR = ws().gearAutoRefine !== false;   /* 自动炼化（issue #2）：缺省开 = 旧行为 */
-    /* B16-s：按设计稿次序「存档 → 自动 → 关于」重排（原先自动在最上、存档其次），
-     * 段标统一 .sechead；开关与动作锚点（data-act / aria-checked）一字未动。 */
-    h += '<div class="dsec"><div class="sechead"><span class="t">' + esc(t('settings.save.title')) + '</span></div>' +
-      '<div class="dd">' + esc(t('settings.save.now', identityParts())) + '</div>' +
-      '<p class="hint">' + esc(t('settings.reset.note')) + '</p>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.clearbuffs')) +
-      '<span class="sd">' + esc(t('settings.clearbuffs.desc')) + '</span></span>' +
-      '<button class="mini" data-act="clearBuffs">' + esc(t('settings.clearbuffs.btn')) + '</button></div>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.reset')) +
-      '<span class="sd">' + esc(t('settings.reset.desc')) + '</span></span>' +
-      '<button class="danger" data-act="resetSave">' + esc(t('settings.reset.btn')) + '</button></div></div>';
-    h += '<div class="dsec"><div class="sechead"><span class="t">' + esc(t('idle.auto.sec')) + '</span></div>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.auto.title')) +
-      '<span class="sd">' + esc(t('settings.auto.desc')) + '</span></span>' +
-      '<button class="switch' + (autoT ? ' on' : '') + '" data-act="toggleAutoTrib" role="switch" aria-checked="' + autoT + '">' +
-      '<i></i><span>' + esc(autoT ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.autoevent.title')) +
-      '<span class="sd">' + esc(t('settings.autoevent.desc')) + '</span></span>' +
-      '<button class="switch' + (autoE ? ' on' : '') + '" data-act="toggleAutoEvent" role="switch" aria-checked="' + autoE + '">' +
-      '<i></i><span>' + esc(autoE ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.gearrefine.title')) +
-      '<span class="sd">' + esc(t('settings.gearrefine.desc')) + '</span></span>' +
-      '<button class="switch' + (autoR ? ' on' : '') + '" data-act="toggleGearRefine" role="switch" aria-checked="' + autoR + '">' +
-      '<i></i><span>' + esc(autoR ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>';
-    if (autoE) {
-      var prefNow = autoEventPref();
-      h += '<div class="setrow col"><span class="sl">' + esc(t('settings.eventpref.title')) +
-        '<span class="sd">' + esc(t('settings.eventpref.desc')) + '</span></span>' +
-        '<div class="chips">' +
-        ['none', 'right', 'evil', 'neutral'].map(function (pk) {
-          return '<button class="' + (prefNow === pk ? 'on' : '') + '" data-act="setEventPref" data-v="' + pk + '">' +
-            esc(t('event.pref.' + pk)) + '</button>';
-        }).join('') + '</div></div>';
-    }
-    h += '</div>';
-    h += '<div class="dsec"><div class="sechead"><span class="t">' + esc(t('settings.about.title')) + '</span></div>' +
-      '<div class="dd">' + esc(t('settings.about.body')) + '</div></div>';
-    $('tab-settings').innerHTML = h;
-  }
+  /* ── Tab 8 设置页渲染器已整段外置 `view/settings.js`（N82/A3 · 第册一百三十九批）：
+   * 调用点 = `renderTab` 的 `ui.tab === 'settings'` 一支与「清增益」动作回渲一处，均改走 `SQ.UI.settings.render(ctx())`。
+   * 三个自动开关与两个危险动作（清增益 / 重置）**仍由核内分派器受理**——本刀只搬「谁拼这段 HTML」，
+   * 不搬「谁改状态」；`resetSave` / `identityParts` / `autoEventPref` 三个核内服务原位保留。
+   * 桥位变化：`autoEventPref` 重新进桥（UI v2 B2 曾把它缩回核内直调，本刀起设置页在件内，只能经桥取）。 ── */
 
   async function resetSave() {
     stopTick();
@@ -1899,7 +1864,7 @@
     else if (ui.tab === 'achv') SQ.UI.achv.render(ctx());
     else if (ui.tab === 'legacy') SQ.UI.legacy.render(ctx());
     else if (ui.tab === 'journal') SQ.UI.journal.render(ctx());
-    else if (ui.tab === 'settings') renderSettings();
+    else if (ui.tab === 'settings') SQ.UI.settings.render(ctx());
   }
 
   function renderAll() {
@@ -2149,33 +2114,10 @@
 
   /* 出关呈报（F4：lastOffline.at 键控 · 会话一次 · EVENT_CHOICE 优先顺延）
    * 正文改为数据网格：只陈列本次离线所得的数字（修为/灵石/时长/渡劫），不再走散文句式 */
-  function showOfflineReport() {
-    var lo = ws().lastOffline;
-    if (!lo) return;
-    ui.seenOfflineAt = lo.at;
-    var lsecs = isFinite(lo.secs) ? lo.secs : 0;   /* 防脏字段：NaN/undefined 一律按 0 计 */
-    var lh = Math.floor(lsecs / 3600), lm = Math.floor((lsecs % 3600) / 60);
-    var lt = lh > 0 ? t('ui.time.hm', { h: lh, m: lm }) : t('ui.time.m', { m: Math.max(1, lm) });
-    var ventureLo = lo.mode === 'venture';
-    var trib = lo.trib || { n: 0, s: 0, f: 0 };
-    $('mo-title').textContent = t('offline.report.title');
-    $('mo-sub').textContent = t(ventureLo ? 'offline.panel.title.v' : 'offline.panel.title');
-    $('mo-stats').innerHTML =
-      '<div class="o"><div class="on">' + esc(t('resource.primary')) + '</div>' +
-        '<div class="ov">+' + SQ.fmt(lo.qi) + '</div></div>' +
-      '<div class="o"><div class="on">' + esc(t('resource.currency')) + '</div>' +
-        '<div class="ov">+' + SQ.fmt(lo.stones || 0) + '</div></div>' +
-      '<div class="o"><div class="on">' + esc(t('offline.stat.dur')) + '</div>' +
-        '<div class="ov">' + esc(lt) + '</div></div>' +
-      '<div class="o"><div class="on">' + esc(t('tribulation.tag')) + '</div>' +
-        '<div class="ov">' + trib.n + '<span class="u">' + esc(t('offline.stat.times')) + '</span></div>' +
-        (trib.n > 0 ? '<div class="os">' + esc(t('offline.stat.trib.split', { s: trib.s, f: trib.f })) + '</div>' : '') +
-      '</div>';
-    $('mo-hint').textContent = offlineDetail(lo) + ' · ' +
-      t(ventureLo ? 'offline.report.hint.v' : 'offline.report.hint');
-    $('mo-ok').textContent = t('offline.report.ok');
-    $('modal-offline').classList.remove('hide');
-  }
+  /* 出关呈报 `showOfflineReport` 已整段外置 `view/offline.js`（N82/A3 · 第册一百三十九批）：
+   * 调用点 = `afterClaim` 弹层栈与 boot 进场两处，均改走 `SQ.UI.offline.report(ctx())`。
+   * ⚠️ `offlineDetail`（上面那枚）**留内核**：核内 5 处调用，搬它换来的反向调用比省下的行多（勘察档 §七「不做」行）；
+   * 件内经桥 `c.offlineDetail` 取它的成品文案。 */
   /* 坐化呈报（`deathReport`）与确认收口（`okDeath`）已整片外置 `view/show.js`（N34 第十四刀 · 第册五十批）：
    * 这里只留确认键的一行转发——`deathPending` 那条分支（进创角 + 盖棺之传）在件内走桥位。 */
   $('mo-ok').addEventListener('click', function () { SQ.UI.show.okDeath(ctx()); });
@@ -2185,71 +2127,12 @@
   $('mr-close').addEventListener('click', function () { $('modal-role').classList.add('hide'); });
   $('mr-karma').addEventListener('click', function () { $('modal-role').classList.add('hide'); SQ.UI.self.karma(ctx()); });
 
-  /* ── 洗髓浮层（天赋池设计 v1.8 §十 · 洗髓批）：三格择一替换 + 三候选择一 ──
-   * 候选只掷一次并存在 washDraft 里（选格不重掷，否则「看着换」变成「赌着换」）；
-   * 真正改档只走 SQ.Talents.applySwap 单口，视图不自带判定。 */
-  var washDraft = { slot: -1, cand: -1, cands: [] };
-  function washCard(el, i, act, picked) {
-    var d = talentCard(el, wid());
-    d.setAttribute('data-act', act);
-    d.setAttribute('data-v', i);
-    d.className += ' pickable' + (picked ? ' pick' : '');
-    return d;
-  }
-  function renderWash() {
-    var sl = $('tw-slots');
-    sl.innerHTML = '';
-    (state.profile.talents || []).forEach(function (el, i) { sl.appendChild(washCard(el, i, 'washSlot', i === washDraft.slot)); });
-    var cb = $('tw-cands');
-    cb.innerHTML = '';
-    washDraft.cands.forEach(function (el, i) { cb.appendChild(washCard(el, i, 'washPick', i === washDraft.cand)); });
-    $('tw-ok').disabled = !(washDraft.slot >= 0 && washDraft.cand >= 0);
-  }
-  function showWash() {
-    var w = ws(), cap = (D().TALENT_SWAP || {}).PER_LIFE || 0;
-    if (!(cap > 0)) return;
-    if (!((w.talentOwed || 0) > 0)) { toast(t('talent.swap.none')); return; }
-    washDraft.cands = SQ.Talents.candidates(wid(), state.profile, 3);
-    washDraft.slot = -1; washDraft.cand = -1;
-    $('tw-title').textContent = t('talent.swap.title');
-    $('tw-sub').textContent = t('talent.swap.sub', {
-      n: Math.max(0, cap - (w.talentUsed || 0)), cap: cap, owed: w.talentOwed || 0
-    });
-    $('tw-pick-label').textContent = t('talent.swap.pick');
-    $('tw-cand-label').textContent = t('talent.swap.cand');
-    $('tw-close').textContent = t('ui.cancel');
-    $('tw-ok').textContent = t('talent.swap.ok');
-    renderWash();
-    $('modal-role').classList.add('hide');
-    $('modal-talentwash').classList.remove('hide');
-  }
-  async function doWash() {
-    var cand = washDraft.cands[washDraft.cand];
-    if (washDraft.slot < 0 || !cand) { toast(t('talent.swap.need')); return; }
-    var res = null;
-    await SQ.mutate(state, function (s) {
-      var id = s.profile.worldId;
-      res = SQ.Talents.applySwap(id, s.profile, s.worlds[id], SQ.Worlds[id].pack.data, washDraft.slot, cand.id);
-      if (res.ok) SQ.Log.push(s.worlds[id], 'sys', SQ.t('talent.swap.done', {
-        from: SQ.t('talent.' + res.from + '.name', null, id),
-        to: SQ.t('talent.' + res.to + '.name', null, id)
-      }, id));
-    });
-    if (!res || !res.ok) {
-      /* 引擎拒因只有 none（无缘）与形状类（格号/候选非法、撞已持有）两类 ⇒ 前者说「手中没有洗髓缘」，
-       * 后者属档面异常，一律回「本世之数已尽」并重的渲染，绝不打裸英文 */
-      toast(t(res && res.reason === 'none' ? 'talent.swap.none' : 'talent.swap.cap'));
-      renderAll();
-      return;
-    }
-    $('modal-talentwash').classList.add('hide');
-    toast(t('talent.swap.done', {
-      from: t('talent.' + res.from + '.name', null, wid()),
-      to: t('talent.' + res.to + '.name', null, wid())
-    }));
-    renderAll();
-  }
-  $('tw-close').addEventListener('click', function () { $('modal-talentwash').classList.add('hide'); });
+  /* ── 洗髓浮层族（washDraft / washCard / renderWash / showWash / doWash + 五个动作口）已整族外置
+   * `view/talentswap.js`（N82/A3 · 第册一百三十九批）：件内私有态 `washDraft` 随族搬走，内核不再直接读写；
+   * 入口 = `SQ.UI.talentswap.open(ctx())`（角色浮层 `#mr-wash` / 修行页段标快捷入口 / 炼丹服丹成功三处），
+   * 动作 = 分派器 `washSlot` / `washPick` / `washOk` 三支一行转发。桥位 `showWash` 随之退役（桥 −1 枚）：
+   * 件外那唯一一处调用（炼丹服丹成功）改成件对件直调，不再过桥。 ── */
+  $('tw-close').addEventListener('click', function () { SQ.UI.talentswap.close(ctx()); });
 
   /* ── karma 浮层（F5）已外置 `view/self.js`（N34 第十八刀 · 第册五十四批）：调用点 = 派发器 `data-act="karma"`。 ── */
   $('mkd-close').addEventListener('click', function () { $('modal-karma').classList.add('hide'); });
@@ -2528,10 +2411,10 @@
     if (act === 'detailRate') { ui.detailRate = !ui.detailRate; renderTab(); return; }
     if (act === 'detailTrib') { ui.detailTrib = !ui.detailTrib; renderTab(); return; }
     if (act === 'role') { SQ.UI.self.role(ctx()); return; }
-    if (act === 'washOpen') { showWash(); return; }
-    if (act === 'washSlot') { washDraft.slot = parseInt(v, 10); renderWash(); return; }
-    if (act === 'washPick') { washDraft.cand = parseInt(v, 10); renderWash(); return; }
-    if (act === 'washOk') { await doWash(); return; }
+    if (act === 'washOpen') { SQ.UI.talentswap.open(ctx()); return; }
+    if (act === 'washSlot') { SQ.UI.talentswap.slot(ctx(), v); return; }
+    if (act === 'washPick') { SQ.UI.talentswap.pick(ctx(), v); return; }
+    if (act === 'washOk') { await SQ.UI.talentswap.ok(ctx()); return; }
     if (act === 'karma') { SQ.UI.self.karma(ctx()); return; }
     if (act === 'matWudao') { SQ.UI.arts.actMatWudao(ctx()); return; }
     if (act === 'setZone') { await SQ.Actions.setZone(state, parseInt(v)); renderAll(); return; }
@@ -3031,7 +2914,7 @@
     if (act === 'clearBuffs') {
       askConfirm(t('settings.clearbuffs'), t('settings.clearbuffs.confirm'), async function () {
         await SQ.Actions.clearBuffs(state);
-        renderSettings();
+        SQ.UI.settings.render(ctx());
       });
       return;
     }
@@ -3094,7 +2977,7 @@
       if (autoEventOn()) autoResolveChoice();
       else SQ.UI.event.choice(ctx());
     }
-    else if (w.lastOffline && w.lastOffline.at !== ui.seenOfflineAt) showOfflineReport();
+    else if (w.lastOffline && w.lastOffline.at !== ui.seenOfflineAt) SQ.UI.offline.report(ctx());
     else if (w.tribulation.attempts > prevAttempts) SQ.UI.trib.show(ctx());
     /* 未读红点：基线（lastLogKey / lastFeedKey）每 tick 都要推进——toast 去重靠它。
      所以「有没有新内容」必须在推进基线之前判定，再记到独立的 dot 标志上；
@@ -3246,7 +3129,7 @@
       if (autoEventOn()) autoResolveChoice();   /* 自动批：进线即自动结算，不弹窗 */
       else SQ.UI.event.choice(ctx());
     }
-    else if (w0.lastOffline && w0.lastOffline.at !== ui.seenOfflineAt) showOfflineReport();
+    else if (w0.lastOffline && w0.lastOffline.at !== ui.seenOfflineAt) SQ.UI.offline.report(ctx());
     /* 更新公告（第册四批 · 判定与渲染全在 view/updatenote.js）：排在遇袭抉择与出关呈报**之后**，
        公告是最低优先级的打断，不能盖掉那些要玩家做决定的层。 */
     if (SQ.UI && SQ.UI.updateNote && SQ.UI.updateNote.needed((state.profile || {}).seenNote)) SQ.UI.updateNote.show(wid());
