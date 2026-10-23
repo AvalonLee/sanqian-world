@@ -191,6 +191,110 @@ async function buildSave(ov) {
 
   T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 150) || 'clean');
 
+  /* ── B1 搬动作回归（第册一百四十一批 · N82/D15 阶段 B 第一刀）──────────────────────────
+   * 立因：本批把 `caveEnter` / `caveBuild` 两支从内核派发器搬进 `view/zone.js`。上面那几判只照
+   *   「按钮在不在、置灰几个」——**照不到「点了之后那条链走不走得通」**，而搬动作最贵的失误正是
+   *   「按钮还在、点了没反应」（D14 立例那次的形状）。⇒ 另开一页真点：确认框 → 落盘 → 首次入驻轻演出。
+   * 为什么另开档：本页主档是「零福地 + 5000 灵石」，进不了任何有代价的福地；这一页给
+   *   8 万灵石 / 已通 z0~z5 / 驻留回初始洞府，才能把「付费入驻 + 营建」两条走完。
+   * ⚠️ 本组还兼证 `c.fresh()`：`show.caveEnter` 拿的是**动作后**的新快照，写错成动作前的 `c`
+   *   会在轻演出里显示旧倍率（不抛错、静态判据也看不见）。 */
+  const save2 = await buildSave({ realm: 7, stones: 80000, cleared: [0, 1, 2, 3, 4, 5], shards: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] });
+  save2.worlds.xiuxian.cave = { current: 'market_yard', cooldownUntil: 0, owned: [], fac: {} };
+  const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 950 } });
+  await ctx2.addInitScript((s) => { localStorage.setItem('sanqian-state-v1', JSON.stringify(s)); }, save2);
+  const page2 = await ctx2.newPage();
+  const errors2 = [];
+  page2.on('pageerror', (e) => errors2.push('pageerror: ' + e.message));
+  page2.on('console', (m) => { if (m.type() === 'error') errors2.push('console: ' + m.text()); });
+  const poll2 = async (fn, ms) => {
+    const t0 = Date.now();
+    for (;;) {
+      const v = await fn();
+      if (v) return v;
+      if (Date.now() - t0 > (ms || 6000)) return false;
+      await new Promise((r) => setTimeout(r, 120));
+    }
+  };
+  const read2 = () => page2.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1') || '{}'));
+  /* 点不动就返回 false，不抛：本仓 §4.60 定则 5 —— 「拿不到元素」若走成抛异常，
+   * 一条失败会把整篇后续组全带走（上面 B1 组第一次反向取证就这么丢过证据）。 */
+  const clickSafe = async (sel, ms) => {
+    try { await page2.click(sel, { timeout: ms || 4000 }); return true; } catch (e) { return false; }
+  };
+  await page2.goto(url);
+  await page2.waitForSelector('#sc-main:not(.hide)', { timeout: 20000 });
+  await page2.click('#m-tabbar button:has-text("秘境")');
+  await page2.waitForTimeout(500);
+
+  /* V1 · 入驻确认框（只开不确认 ⇒ 盘上零副作用） */
+  const st0 = await read2();
+  const enterSel = '#tab-combat [data-act="caveEnter"][data-v="green_peak"]:not([disabled])';
+  const hasEnter = !!(await page2.$(enterSel));
+  const okEnter1 = await clickSafe(enterSel);
+  const cf1 = await poll2(() => page2.$('#modal-confirm:not(.hide)'), 5000);
+  const cv1 = await page2.evaluate(() => ({
+    title: (document.getElementById('cf-title') || {}).textContent || '',
+    body: (document.getElementById('cf-text') || {}).textContent || '',
+    want: (window.SQ && SQ.t) ? SQ.t('cave.green_peak.name', null, 'xiuxian') : ''
+  }));
+  T(okEnter1 && hasEnter && !!cf1 && cv1.title.indexOf(cv1.want) >= 0 && cv1.body.length > 12,
+    'V1 点「入驻」→ 确认框浮出且标题带福地名、正文非空（`caveEnter` 搬件后那条组文案链仍通）',
+    'btn=' + hasEnter + ' 框=' + !!cf1 + ' 标题=' + JSON.stringify(cv1.title) + ' 正文长=' + cv1.body.length);
+  await clickSafe('#cf-cancel');
+  await poll2(() => page2.$('#modal-confirm.hide'), 4000);
+  const st1 = await read2();
+  T(st1.worlds.xiuxian.cave.current === st0.worlds.xiuxian.cave.current &&
+    st1.worlds.xiuxian.stones === st0.worlds.xiuxian.stones,
+    'V1b 取消入驻 ⇒ 驻留与灵石一字未动（先问后动）',
+    'cave=' + st1.worlds.xiuxian.cave.current + ' stones=' + st1.worlds.xiuxian.stones);
+
+  /* V2 · 真入驻 ⇒ 扣灵石 + 进 owned + 首次拥有给轻演出（`c.fresh()` 的活体证明） */
+  const okEnter2 = await clickSafe(enterSel);
+  const cf2 = await poll2(() => page2.$('#modal-confirm:not(.hide)'), 5000);
+  const okConfirm2 = await clickSafe('#cf-ok');
+  const st2 = await poll2(async () => {
+    const s = await read2();
+    return s.worlds.xiuxian.cave.current === 'green_peak' ? s : false;
+  }, 8000);
+  const stage = await page2.evaluate(() => !document.getElementById('cave-stage').classList.contains('hide'));
+  T(okEnter2 && !!cf2 && okConfirm2 && !!st2 && st2.worlds.xiuxian.cave.owned.indexOf('green_peak') >= 0 &&
+    st2.worlds.xiuxian.stones === st0.worlds.xiuxian.stones - 20000,
+    'V2 确认入驻 ⇒ 驻留切到 green_peak、进 owned[]、扣 20000 灵石',
+    '点=' + okEnter2 + '/' + okConfirm2 + ' ' + (st2 ? 'owned=' + st2.worlds.xiuxian.cave.owned.join(',') + ' stones=' + st2.worlds.xiuxian.stones : '未落盘'));
+  T(stage === true, 'V2b 首次拥有 ⇒ 入驻轻演出打开（`show.caveEnter(c.fresh(), …)` 这条路真被走到）', 'stage=' + stage);
+
+  /* V3 · 营建 ⇒ 扣灵石 + 设施等级 +1
+   * ⚠️ 轻演出是**整屏遮罩**（4.2s 自动收，点任意处即关）：不先收掉，下面那次点击会被它吃掉，
+   *   表现为「按钮在、点不动、确认框根本没开」——本组第一版就这么假红过一次。 */
+  if (stage) await clickSafe('#cave-stage', 3000);
+  await page2.waitForTimeout(300);
+  const buildInfo = await page2.evaluate(() => {
+    const b = document.querySelector('#tab-combat [data-act="caveBuild"]:not([disabled])');
+    return b ? { v: b.getAttribute('data-v'), f: b.getAttribute('data-f') } : null;
+  });
+  if (buildInfo) {
+    const okBuild = await clickSafe('#tab-combat [data-act="caveBuild"][data-v="' + buildInfo.v + '"][data-f="' + buildInfo.f + '"]');
+    const cf3 = await poll2(() => page2.$('#modal-confirm:not(.hide)'), 5000);
+    const cv3 = await page2.evaluate(() => (document.getElementById('cf-title') || {}).textContent || '');
+    await clickSafe('#cf-ok');
+    const st3 = await poll2(async () => {
+      const s = await read2();
+      const fac = (((s.worlds.xiuxian.cave || {}).fac) || {}).green_peak || {};
+      return (fac[buildInfo.f] || 0) >= 1 ? s : false;
+    }, 6000);
+    const st3b = st3 || (await read2());
+    const fac = (((st3b.worlds.xiuxian.cave || {}).fac) || {}).green_peak || {};
+    T(okBuild && !!cf3 && /Lv/.test(cv3) && (fac[buildInfo.f] || 0) === 1 &&
+      st3b.worlds.xiuxian.stones === 60000 - 30000,
+      'V3 点营建 → 确认框标题带 Lv、确认后设施升 1 级且扣 30000（`caveBuild` 搬件后整条 mutate 链仍通）',
+      'f=' + buildInfo.f + ' lv=' + (fac[buildInfo.f] || 0) + ' stones=' + st3b.worlds.xiuxian.stones + ' 标题=' + JSON.stringify(cv3));
+  } else {
+    T(false, 'V3 点营建', '驻留福地上没有可点的营建按钮（设施表或置灰口径变了？）');
+  }
+  T(errors2.length === 0, 'B1 组零页面报错', errors2.join('|').slice(0, 150) || 'clean');
+  await ctx2.close();
+
   console.log(fail === 0 ? 'UI_ZONE_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_ZONE_FAILED ' + fail);
   await browser.close();
   process.exit(fail === 0 ? 0 : 1);

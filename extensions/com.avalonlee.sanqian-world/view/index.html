@@ -2412,29 +2412,9 @@
     if (act === 'karma') { SQ.UI.self.karma(ctx()); return; }
     if (act === 'matWudao') { SQ.UI.arts.actMatWudao(ctx()); return; }
     if (act === 'setZone') { await SQ.Actions.setZone(state, parseInt(v)); renderAll(); return; }
-    /* ── 系统深化批 B3：域主挑战（一次性掷判，胜负 toast + 引擎日志）/ 残片兑换（z6~8 带 choice）── */
-    if (act === 'challengeBoss') {
-      var zbZ = ws().zoneBoss ? ws().zoneBoss.zone : ws().zone;
-      var resB = await SQ.Actions.challengeBoss(state);
-      if (resB && resB.ok) {
-        toast(resB.win
-          ? t('zone.boss.win', { zone: t('combat.zone.' + zbZ), gear: resB.item.name, stones: SQ.fmt(resB.stones) })
-          : t('zone.boss.lose', { zone: t('combat.zone.' + zbZ) }));
-      } else if (resB && resB.reason === 'cd') {
-        toast(t('zone.boss.cd', { t: timeLeftText(resB.retryAt - Date.now()) }));
-      }
-      renderAll();
-      return;
-    }
-    if (act === 'exchangeShard') {
-      var resS = await SQ.Actions.exchangeShard(state, parseInt(v), el.dataset.c || null);
-      if (resS && resS.ok) toast(t('zone.shard.done'));
-      else if (resS && resS.reason === 'shards') toast(t('zone.shard.fail', { n: resS.have, need: resS.need }));
-      else if (resS && resS.reason === 'pillfull') toast(t('zone.shard.fail.pillfull'));
-      else if (resS && resS.ok !== true) toast(t('zone.shard.fail.other'));   /* 原为静默无提示（pool / zone 两因点了没反应） */
-      renderAll();
-      return;
-    }
+    /* ── 系统深化批 B3：域主挑战 / 残片兑换（B1 = 第册一百四十一批搬入 `view/zone.js`，此处只留一行转发）── */
+    if (act === 'challengeBoss') { await SQ.UI.zone.actChallengeBoss(ctx()); return; }
+    if (act === 'exchangeShard') { await SQ.UI.zone.actExchangeShard(ctx(), v, el.dataset.c || null); return; }
     /* 修行状态切换（模式二选一）：mutate 内幂等 + 写日志；重绘全页（修行页选中态/秘境页提示联动） */
     if (act === 'setMode') { await SQ.Actions.setMode(state, v); renderAll(); return; }
     /* ── G16 势力（势力批 v2.4）：加入 CONFIRM / 叛离 CONFIRM / 特席购买 / 关系全列开关 ── */
@@ -2521,47 +2501,10 @@
     if (act === 'openCave') { openCave(); return; }
     if (act === 'openArtsModal') { openArtsModal(); return; }
     if (act === 'openRealm') { openRealmInfo(); return; }
-    if (act === 'caveEnter') {
-      var wC = ws(), pC = pack(), dC = D(), mC = mods();
-      var chkC = SQ.Cave.canEnter(wC, pC, dC, v, Date.now());
-      if (!chkC.ok || !chkC.cave) return;
-      var fromC = SQ.Cave.multOf(wC, pC, dC, mC);
-      var toC = Math.min(dC.CAVE_MULT_CAP, chkC.cave.mult);
-      var deltaP = Math.round((toC / fromC - 1) * 1000) / 10;
-      var deltaTxt = t(deltaP >= 0 ? 'cave.delta.up' : 'cave.delta.down', { p: Math.abs(deltaP) });
-      var bodyC = t(chkC.cost > 0 ? 'cave.confirm.pay' : 'cave.confirm.free', {
-        from: fromC.toFixed(2), to: toC.toFixed(2), delta: deltaTxt,
-        cost: SQ.fmt(chkC.cost) + ' ' + t('resource.currency')
-      }) + '\n' + t('cave.confirm.cd', { y: Math.round(dC.CAVE_SWITCH_CD_MS / 1000 / 360) });
-      var wasOwned = chkC.owned;               /* 轻演出只给「第一次拥有」（B3 · 稿三） */
-      askConfirm(t('cave.confirm.title', { name: t('cave.' + chkC.cave.id + '.name') }), bodyC, async function () {
-        var res = await SQ.Actions.enterCave(state, v);
-        if (res && res.ok) {
-          if (!wasOwned && !reducedMotion()) SQ.UI.show.caveEnter(ctx(), res.cave.id, toC);
-          else toast(t('cave.enter.ok', { name: t('cave.' + res.cave.id + '.name'), mult: toC.toFixed(2) }));
-        } else if (res) {
-          toast(t('cave.enter.fail.' + res.reason));
-        }
-        renderAll();
-      });
-      return;
-    }
-    /* ── 福地扩池批 v2.0：附属设施营建（CONFIRM 后走 mutate 单一通道）── */
-    if (act === 'caveBuild') {
-      var fId = el.dataset.f;
-      var chkB = SQ.Cave.canBuildFac(ws(), pack(), D(), v, fId);
-      if (!chkB.ok) { toast(t('cave.fac.lack.' + ((chkB.lack[0] || {}).kind === 'stones' ? 'stones' : 'owned'))); return; }
-      var bodyB = t('cave.fac.' + fId + '.desc') + '\n' +
-        t(chkB.lv === 0 ? 'cave.fac.build' : 'cave.fac.upgrade', { n: SQ.fmt(chkB.cost) + ' ' + t('resource.currency') });
-      askConfirm(t('cave.fac.' + fId + '.name') + ' · Lv' + (chkB.lv + 1), bodyB, async function () {
-        var rB = await SQ.Actions.buildFacility(state, v, fId);
-        if (rB && rB.ok) toast(t('log.cave.fac.built', {
-          cave: t('cave.' + v + '.name'), fac: t('cave.fac.' + fId + '.name'), lv: rB.lv
-        }));
-        renderAll();
-      });
-      return;
-    }
+    /* 入洞天 / 福地营建（B1 = 第册一百四十一批搬入 `view/zone.js`，此处只留一行转发）：
+     * `v` = 洞府 id，第三参取卡上 data-f（设施 id）。 */
+    if (act === 'caveEnter') { SQ.UI.zone.actCaveEnter(ctx(), v); return; }
+    if (act === 'caveBuild') { SQ.UI.zone.actCaveBuild(ctx(), v, el.dataset.f); return; }
     /* ── G16 势力深化批（v1.23）：捐献 / 委托交付 / 应战 / 供给兑换 ── */
     if (act === 'facDonate') {
       var amt = parseInt(v, 10);
