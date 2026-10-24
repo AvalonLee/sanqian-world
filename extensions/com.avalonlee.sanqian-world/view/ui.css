@@ -1261,8 +1261,11 @@
   width: min(440px, calc(100vw - 40px)); max-height: 80vh; overflow-y: auto; cursor: default;
   background: var(--sq2-paper); border: 1px solid var(--sq2-line-2); border-radius: 3px;
   box-shadow: 0 22px 60px -18px rgba(0,0,0,.6); padding: 18px 20px 16px;
-  animation: stageIn .28s cubic-bezier(.2,.9,.3,1) both;
 }
+/* 第册一百四十七批（用户报「明细弹窗一直闪烁」）：浮层随 tick 每秒整页重建，动画常驻会把
+ * stageIn 每秒重播一遍。改挂 .fresh（动作行记 detailRateAt、渲染器按 <300ms 判新帧）——
+ * 只有刚点开那一轮播入场，其余重渲静止；动画末帧（opacity 1 / transform none）即自然态，摘类不跳。 */
+.dp-sheet.fresh { animation: stageIn .28s cubic-bezier(.2,.9,.3,1) both; }
 .dp-head {
   display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
   border-bottom: 1px solid var(--sq2-line); padding-bottom: 9px;
@@ -2224,6 +2227,12 @@
   .curzone .cz-kv b { font-weight: 400; color: var(--sq2-ink-2); }
   .curzone .cz-kv b.ok { color: var(--sq2-jade); }
   .curzone .cz-kv b.bad { color: var(--sq2-cinnabar); }
+  /* 册150：域主挑战 = 页内唯一朱砂实心钮（用户令「更醒目更明显」；原 linkbtn 灰字链易被当小字略过）。
+   * 行内 align-items:baseline ⇒ 按钮用 align-self:center 缩高不撑行， nowrap 防换行破坏行形。 */
+  .curzone .cz-kv .bossgo {
+    align-self: center; min-height: 0; padding: 7px 18px; white-space: nowrap;
+    font-weight: 650; letter-spacing: .1em; font-size: 12.5px;
+  }
   .curzone .cz-sub { font-style: normal; font-size: 10.5px; color: var(--sq2-ink-3); }
   .curzone .cz-sub.ok { color: var(--sq2-jade); }
   .curzone .cz-sub.bad { color: var(--sq2-cinnabar); }
@@ -2436,14 +2445,17 @@
   #tab-faction .matrow .m-d { flex: 1; min-width: 0; color: var(--sq2-ink-2); font-size: 10.5px; line-height: 1.5; }
   #tab-faction .matrow button { min-height: 26px; padding: 1px 9px; font-size: 11px; white-space: nowrap; }
   @media (max-width: 719px) { #tab-faction .matrow { flex-wrap: wrap; } }
-  /* B16-q：势力战 = 设计稿 .warstrip */
-  #tab-faction .warstrip, #tab-prodigy .warstrip {
+  /* B16-q：势力战 = 设计稿 .warstrip。⚠️ 册150 勘正：横幅实际渲染在「宗门页 = 我的门派」（renderHome，
+   * #tab-sect）而非势力名录页——原选择器只挂 #tab-faction/#tab-prodigy ⇒ 宗门页上 .w-v 的 flex:1
+   * 整套不生效，应战按钮紧贴文字排布、右侧留白 194px（用户报「按钮没有右对齐，和文字重叠」）。 */
+  #tab-faction .warstrip, #tab-prodigy .warstrip, #tab-sect .warstrip {
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     border: 1px solid var(--sq2-line-2); border-radius: var(--sq2-r);
     background: var(--sq2-paper-3); padding: 9px 12px; margin: 10px 0;
   }
-  #tab-faction .warstrip .w-t, #tab-prodigy .warstrip .w-t { font-family: var(--sq2-serif); letter-spacing: .08em; color: var(--sq2-cinnabar); white-space: nowrap; }
-  #tab-faction .warstrip .w-v, #tab-prodigy .warstrip .w-v { flex: 1; color: var(--sq2-ink-2); font-size: 11px; }
+  #tab-faction .warstrip .w-t, #tab-prodigy .warstrip .w-t, #tab-sect .warstrip .w-t { font-family: var(--sq2-serif); letter-spacing: .08em; color: var(--sq2-cinnabar); white-space: nowrap; }
+  #tab-faction .warstrip .w-v, #tab-prodigy .warstrip .w-v, #tab-sect .warstrip .w-v { flex: 1; color: var(--sq2-ink-2); font-size: 11px; }
+  #tab-sect .warstrip button.primary { min-height: 0; padding: 6px 14px; white-space: nowrap; flex-shrink: 0; }
   @media (min-width: 720px) { #tab-faction { max-width: 780px; } }
   /* ══ UI v2 B15-k：江湖榜 + 宗门（设计稿 .chipsrow / .selfrank / .rankno / .gate）══
    *    两页在 B8 已改成 lrow 行式（类名也就是设计稿那套），本批只补视觉：榜位序号列、

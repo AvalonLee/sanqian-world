@@ -2399,7 +2399,9 @@
     }
     /* `act === 'claim'` 支已于第册一百四十批（B0 · 用户裁定 Q2）**删除**：全库零 `data-act="claim"` 产出，
      * 且修行页「收功」按钮按 v2.2 撤销后结算只走每秒心跳 ⇒ 该支是死枝。`afterClaim` 仍由 tick 调用，功能不动。 */
-    if (act === 'detailRate') { ui.detailRate = !ui.detailRate; renderTab(); return; }
+    /* 第册一百四十七批：记点开时刻——浮层随 tick 每秒整页重建，渲染器按「距点开 <300ms」判新帧，
+     * 只给刚点开那一轮挂 stageIn 入场动画；之后的每秒重渲不再重播（用户报「明细弹窗一直闪烁」根因）。 */
+    if (act === 'detailRate') { ui.detailRate = !ui.detailRate; if (ui.detailRate) ui.detailRateAt = Date.now(); renderTab(); return; }
     if (act === 'detailTrib') { ui.detailTrib = !ui.detailTrib; renderTab(); return; }
     if (act === 'role') { SQ.UI.self.role(ctx()); return; }
     if (act === 'washOpen') { SQ.UI.talentswap.open(ctx()); return; }
@@ -2471,6 +2473,12 @@
     /* 自动炼化（GitHub issue #2）：开关存 ws.gearAutoRefine（autoEquip 只认得到 ws） */
     if (act === 'toggleGearRefine') {
       await SQ.Actions.setGearRefine(state, ws().gearAutoRefine === false);   /* 关→开、开→关 */
+      renderTab();
+      return;
+    }
+    /* 自动佩戴（册150）：镜像 setGearRefine 同型——存 ws.gearAutoEquip（autoEquip 调用点只有 ws 在场） */
+    if (act === 'toggleGearEquip') {
+      await SQ.Actions.setGearEquip(state, ws().gearAutoEquip === false);
       renderTab();
       return;
     }
@@ -2696,6 +2704,13 @@
       return;
     }
     /* ── 道具处置打磨包：功法散功/弃置 + 库藏阁手动炼化（CONFIRM 后走 mutate 单一通道）── */
+    if (act === 'wearGear') {
+      var idxW = parseInt(v, 10);
+      var rW = await SQ.Actions.wearGear(state, idxW);
+      if (rW && rW.ok) toast(t('gear.wear.done', { name: rW.item.name, tier: t('gear.tier.' + rW.item.tier) }));
+      renderAll();
+      return;
+    }
     if (act === 'salvageArt') {
       await SQ.UI.arts.actSalvage(ctx(), v);
       return;

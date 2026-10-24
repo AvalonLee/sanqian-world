@@ -18,6 +18,10 @@
   /* B16-w：吐纳明细改独立浮层（设计稿 data-sheet="rate" 的口径）。
    * 加项与乘区分列标记：加项「+」、乘区「×」，末尾给合计——与顶部每秒产出一式同源。 */
   function ratePanel(c, w, m, d, rate) {
+    /* 第册一百四十七批（用户报「明细弹窗一直闪烁」）：renderAll 每秒整页重建 #tab-idle 的 innerHTML，
+     * .dp-sheet 连带重建 ⇒ ui.css 里的 stageIn 入场动画每秒重播一遍 = 闪烁。修法 = 动作行点开时记
+     * ui.detailRateAt，此处只给「距点开 <300ms」的那一轮渲染带 fresh 类挂动画，其余重渲不挂（见 ui.css）。 */
+    var fresh = (c.ui.detailRateAt && Date.now() - c.ui.detailRateAt < 300) ? ' fresh' : '';
     var rows = '';
     function rr(kind, label, val) {
       return '<div class="dp-row"><span class="dp-k">' + c.esc(label) + '</span>' +
@@ -37,7 +41,7 @@
     if (modeM !== 1) rows += rr('mul', c.t('idle.mode.' + w.mode), '×' + modeM.toFixed(2));
     var rampM = (d.NEWBIE_RAMP && w.realm <= d.NEWBIE_RAMP.realms) ? d.NEWBIE_RAMP.qiMult : 1;
     if (rampM !== 1) rows += rr('mul', c.t('idle.newbie'), '×' + rampM.toFixed(2));
-    return '<div class="dp-mask"><div class="dp-sheet">' +
+    return '<div class="dp-mask"><div class="dp-sheet' + fresh + '">' +
       '<div class="dp-head"><span class="dp-t2">' + c.esc(c.t('idle.detail.title')) + '</span>' +
       '<span class="dp-total">' + c.esc(c.t('idle.rate', { n: rate.toFixed(1) })) + '</span></div>' +
       '<div class="dp-rows">' + rows + '</div>' +

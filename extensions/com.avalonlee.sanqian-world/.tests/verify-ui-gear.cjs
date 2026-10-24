@@ -20,6 +20,11 @@ const { chromium } = require('playwright-core');
   fx.profile.createdAt = now;
   Object.values(fx.worlds).forEach((w) => {
     w.lastSave = now; w.lastOffline = null; w.pendingChoice = null; w.realm = 9;
+    /* G13/G14（册150 佩戴钮判）造景：在身一件旧剑 + 库藏阁一件新剑；自动炼化显式关
+     * ⇒ 佩戴后旧件的去向钉「入库藏阁」而非「炼化」，判据不随炼化开关歧义。 */
+    w.gearAutoRefine = false;
+    w.gear = Object.assign({}, w.gear, { weapon: { slot: 'weapon', name: '在身旧剑', alignment: 'neutral', tier: 2, atk: 10, resist: 0, reqs: { realm: 0 }, special: null, source: { type: 'zone', ref: 0 } } });
+    w.stash = [{ slot: 'weapon', name: '库藏新剑', alignment: 'neutral', tier: 3, atk: 60, resist: 0, reqs: { realm: 0 }, special: null, prime: false, source: { type: 'zone', ref: 0 } }];
   });
 
   const browser = await chromium.launch({ channel: 'msedge', headless: true });
@@ -91,6 +96,31 @@ const { chromium } = require('playwright-core');
   T(codexOpen, 'G12b 点百器录行 → 12 格双节浮层打开');
   await page.evaluate(() => document.getElementById('mgc-close').click());
   await page.waitForTimeout(200);
+
+  /* ── G13/G14（册150 · 用户令「库藏阁对应物品增加佩戴按钮，佩戴后自动替换对应装备」）──
+   * G13 = 常规件行给「佩戴」钮（wearGear）；G14 = 实点：新剑上身、旧剑按自动炼化=关入库藏阁，
+   * 全程真点不走引擎直调（handler → Actions.wearGear → Gear.equipFromStash 整链）。 */
+  const stashBtns = await page.evaluate(() => {
+    const rows = Array.prototype.slice.call(document.querySelectorAll('#tab-gear .lrow.stroe'));
+    return rows.map((r) => ({
+      name: ((r.querySelector('.srn') || {}).textContent || '').trim().slice(0, 4),
+      wear: !!r.querySelector('[data-act="wearGear"]'),
+      swap: !!r.querySelector('[data-act="swapGear"]'),
+      refine: !!r.querySelector('[data-act="refineGear"]')
+    }));
+  });
+  T(stashBtns.length === 1 && stashBtns[0].name === '库藏新剑' && stashBtns[0].wear && !stashBtns[0].swap && stashBtns[0].refine,
+    'G13 库藏阁常规件行 = 佩戴 + 炼化两钮（无独占 ⇒ 不出手动替换钮）', JSON.stringify(stashBtns));
+  await page.click('#tab-gear [data-act="wearGear"]');
+  await page.waitForTimeout(500);
+  const worn14 = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const w = s.worlds.xiuxian;
+    return { worn: (w.gear.weapon || {}).name, stash: (w.stash || []).map((x) => x.name), n: (w.stash || []).length };
+  });
+  T(worn14.worn === '库藏新剑' && worn14.n === 1 && worn14.stash.indexOf('在身旧剑') >= 0,
+    'G14 点佩戴 ⇒ 新剑上身、旧剑按自动炼化=关退回库藏阁（佩戴后自动替换对应装备）',
+    JSON.stringify(worn14));
 
   await page.click('#m-tabbar button[data-v="arts"]');
   await page.waitForTimeout(300);

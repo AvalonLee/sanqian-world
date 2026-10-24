@@ -534,6 +534,7 @@ window.SQSmoke.frag('02-gear-cave-learn', async function () {
 
     /* #105b 百器录 gearSeen：获得即入录 · 炼化/替换不除名 · 重复获得不刷新首获 ts · 零数值加成 · normalize 幂等 */
     var w105b = mkWs({ realm: 4, stones: 0 });
+    w105b.gearAutoRefine = true;   /* 册149：新档缺省改关，本例「替换 → 旧件炼化」专测开路径，显式落真值 */
     pack.recalcDerived(w105b, mkProf());
     var m105b = M(mkProf(), w105b);
     var ts105b = Date.now();

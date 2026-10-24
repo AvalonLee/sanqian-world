@@ -63,8 +63,13 @@ const violations = [];
  *   `己·情缘` 入账 30/60 → 36/60（缺项由 `achv_shuangxiu` 换成 `achv_panzong`）‖ `庚·满藏` 入账 33/60 → 37/60 ‖
  *   `DEATHS 强制转世 1 次（zhesou=1，戊·累世）` → `0 次（零）`。
  *   同批另一处「天骄传闻 TTL 40 → 5 现实分钟」不走结算（`pushProdigy` 只写展示卡 `expireAt`，sim 无一条读点），
- *   已按 `SQ_ANCHOR=1` 复跑一遍自证新值可复现（本行末注：复跑打「锚对表相同 6fc2f20b」后方提交）。 */
-const ANCHOR_MD5 = '6fc2f20b207a109388bd5cf08639b360';
+ *   已按 `SQ_ANCHOR=1` 复跑一遍自证新值可复现（本行末注：复跑打「锚对表相同 6fc2f20b」后方提交）。
+ * 🆕 **第册一百四十九批 2026-10-23 换值归因**（`6fc2f20b…` → `903a1ad3…`，同参数 轮数 1 ‖ 在册种子 20261008）：
+ *   本批用户令「三自动开关默认关」＝ `initialState.gearAutoRefine` true → false（normalize 与读式不动，旧档不受影响）
+ *   ⇒ 定种轨迹（新档起跑）内战斗掉落的**低分装备从「即刻炼化」改「先入库藏阁」**，灵石时序与库藏水位随之位移。
+ *   逐路线读数差未逐项誊抄（漂移面广、无单点可归），漂移根源唯一且已锚定本批初值改动；首跑 `crashes=0 violations=0
+ *   ascend=true life2=true` 零崩溃零违规，纯行为差异。同参数复跑自证见本行末注（复跑打「锚对表相同 903a1ad3」后方提交）。 */
+const ANCHOR_MD5 = '903a1ad3feda154a2f314ad031b01323';
 const TRAJ = [];
 if (ANCHOR_ON) {
   const logRaw = console.log;

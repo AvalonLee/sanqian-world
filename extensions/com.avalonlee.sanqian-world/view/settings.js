@@ -15,7 +15,8 @@
     var h = '';
     var autoT = !!(c.s.settings && c.s.settings.autoTrib);
     var autoE = !!(c.s.settings && c.s.settings.autoEvent);
-    var autoR = c.w.gearAutoRefine !== false;   /* 自动炼化（issue #2）：缺省开 = 旧行为 */
+    var autoR = c.w.gearAutoRefine !== false;   /* 自动炼化（issue #2）：读式不动——新档缺省关由 initialState 显式落 false（册149），无字段老档兼容为开 */
+    var autoQ = c.w.gearAutoEquip !== false;    /* 自动佩戴（册150）：缺省开 = 旧行为，同上兼容口径 */
     /* B16-s：按设计稿次序「存档 → 自动 → 关于」重排（原先自动在最上、存档其次），
      * 段标统一 .sechead；开关与动作锚点（data-act / aria-checked）一字未动。 */
     h += '<div class="dsec"><div class="sechead"><span class="t">' + c.esc(c.t('settings.save.title')) + '</span></div>' +
@@ -35,11 +36,9 @@
       '<div class="setrow"><span class="sl">' + c.esc(c.t('settings.autoevent.title')) +
       '<span class="sd">' + c.esc(c.t('settings.autoevent.desc')) + '</span></span>' +
       '<button class="switch' + (autoE ? ' on' : '') + '" data-act="toggleAutoEvent" role="switch" aria-checked="' + autoE + '">' +
-      '<i></i><span>' + c.esc(autoE ? c.t('settings.auto.on') : c.t('settings.auto.off')) + '</span></button></div>' +
-      '<div class="setrow"><span class="sl">' + c.esc(c.t('settings.gearrefine.title')) +
-      '<span class="sd">' + c.esc(c.t('settings.gearrefine.desc')) + '</span></span>' +
-      '<button class="switch' + (autoR ? ' on' : '') + '" data-act="toggleGearRefine" role="switch" aria-checked="' + autoR + '">' +
-      '<i></i><span>' + c.esc(autoR ? c.t('settings.auto.on') : c.t('settings.auto.off')) + '</span></button></div>';
+      '<i></i><span>' + c.esc(autoE ? c.t('settings.auto.on') : c.t('settings.auto.off')) + '</span></button></div>';
+    /* 奇遇倾向紧跟自动奇遇（第册一百四十九批 · 用户令「上下关系，中间不隔自动炼化」）：
+     * 自动炼化整行挪到倾向块之后；倾向仍随父开关渐进披露（autoE 关 ⇒ 整块不渲染）。 */
     if (autoE) {
       var prefNow = c.autoEventPref();
       h += '<div class="setrow col"><span class="sl">' + c.esc(c.t('settings.eventpref.title')) +
@@ -50,6 +49,15 @@
             c.esc(c.t('event.pref.' + pk)) + '</button>';
         }).join('') + '</div></div>';
     }
+    /* 自动佩戴（册150 用户令）：与自动炼化同族、行序在其前（先穿后炼的逻辑链）；缺省开 = 旧行为。 */
+    h += '<div class="setrow"><span class="sl">' + c.esc(c.t('settings.gearequip.title')) +
+      '<span class="sd">' + c.esc(c.t('settings.gearequip.desc')) + '</span></span>' +
+      '<button class="switch' + (autoQ ? ' on' : '') + '" data-act="toggleGearEquip" role="switch" aria-checked="' + autoQ + '">' +
+      '<i></i><span>' + c.esc(autoQ ? c.t('settings.auto.on') : c.t('settings.auto.off')) + '</span></button></div>';
+    h += '<div class="setrow"><span class="sl">' + c.esc(c.t('settings.gearrefine.title')) +
+      '<span class="sd">' + c.esc(c.t('settings.gearrefine.desc')) + '</span></span>' +
+      '<button class="switch' + (autoR ? ' on' : '') + '" data-act="toggleGearRefine" role="switch" aria-checked="' + autoR + '">' +
+      '<i></i><span>' + c.esc(autoR ? c.t('settings.auto.on') : c.t('settings.auto.off')) + '</span></button></div>';
     h += '</div>';
     h += '<div class="dsec"><div class="sechead"><span class="t">' + c.esc(c.t('settings.about.title')) + '</span></div>' +
       '<div class="dd">' + c.esc(c.t('settings.about.body')) + '</div></div>';

@@ -89,6 +89,11 @@
       acts += '<button data-act="swapGear" data-v="' + idx + '">' +
         c.esc(c.t(cur && cur.exclusive && !it.exclusive ? 'gear.swap.btn' : 'gear.swap.wear')) + '</button>';
     }
+    /* 佩戴钮（册150 · 用户令「库藏阁对应物品增加佩戴按钮，佩戴后自动替换对应装备」）：
+     * 常规件（或空槽）强制上身——独占相关那口仍走上方 swapGear（CONFIRM 前置），两面不重复。 */
+    if (SQ.Gear.canWear(it, w) && !it.exclusive && !(cur && cur.exclusive)) {
+      acts += '<button data-act="wearGear" data-v="' + idx + '">' + c.esc(c.t('gear.wear.btn')) + '</button>';
+    }
     if (!it.exclusive) {
       acts += '<button data-act="refineGear" data-v="' + idx + '">' +
         c.esc(c.t('gear.refine.btn', { n: SQ.fmt(SQ.Gear.refineValue(it, w, c.d, c.mods)) })) + '</button>';

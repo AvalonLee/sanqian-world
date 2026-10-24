@@ -262,7 +262,8 @@
       }
     }
     h += '</div>';
-    /* ③ 三行：域主 / 本区词缀 / 洞天 */
+    /* ③ 三行：域主 / 本区词缀 / 洞天。域主挑战钮（册150 用户令「更醒目更明显」）：
+     * linkbtn（灰字链）→ 朱砂实心 primary + 专属 .bossgo 缩身高亮（页内唯一实心钮）。 */
     var zb0 = w.zoneBoss;
     h += '<div class="cz-kv"><span>' + c.esc(c.t('zone.boss.name')) + '</span>';
     if (zb0 && zb0.zone === zi && zb0.state === 'ready') {
@@ -270,7 +271,7 @@
       var cdLeft = (zb0.retryAt || 0) - Date.now();
       h += cdLeft > 0
         ? '<b class="bad">' + c.esc(c.t('zone.boss.cd', { t: c.timeLeft(cdLeft) })) + '</b>'
-        : '<button class="linkbtn" data-act="challengeBoss">' + c.esc(c.t('zone.boss.challenge')) + '</button>';
+        : '<button class="primary bossgo" data-act="challengeBoss">' + c.esc(c.t('zone.boss.challenge')) + '</button>';
       h += '<i class="cz-sub ' + (power >= bossNeed ? 'ok' : 'bad') + '">' +
         c.esc(c.t('zone.boss.need', { need: SQ.fmt(bossNeed), m: (d.BOSS_MULT != null ? d.BOSS_MULT : 1.8) })) + '</i>';
     } else if (zb0 && zb0.zone === zi && zb0.state === 'dead') {

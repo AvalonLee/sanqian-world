@@ -181,6 +181,8 @@
     /* 自动炼化开关（GitHub issue #2 · 用户报「系统判断不符合要求就自动炼化更好更强的装备」）*/
     'settings.gearrefine.title': '自动炼化',
     'settings.gearrefine.desc': '开启时，换下的旧件与不如在件的新件直接炼化回灵石；关闭则先进库藏阁，由你定夺（库藏阁满时仍需炼化腾位）',
+    'settings.gearequip.title': '自动佩戴',
+    'settings.gearequip.desc': '开启时，战斗与奇遇获得的装备自动择优上身；关闭则一律先进库藏阁，由你在百器页手动佩戴（独占法器不受此开关约束）',
     'event.auto.resolved': '奇遇「{name}」已自动抉择 · {branch}',
     /* 奇遇倾向（体验批）：自动抉择时的分支偏好；选项复用 branch 名，none 另起 */
     'settings.eventpref.title': '奇遇倾向',
@@ -581,6 +583,8 @@
     'gear.swap.text3': '将独占「{nw}」穿上身？',
     'gear.swap.note': '独占法器不参与自动择优与炼化，替换不受评分高低限制，无灵石流动。',
     'gear.swap.btn': '手动替换', 'gear.swap.wear': '穿戴独占',
+    'gear.wear.btn': '佩戴',
+    'gear.wear.done': '已佩戴「{name}」（{tier}），同槽旧件按自动炼化设置处理',
     'gear.sec.worn': '佩 戴 中', 'gear.sec.wornsub': '{n}/{total} · 自动择优 · 抗性合计 {r}',
     'toast.gear.exswap': '手动替换：{name}（{tier}）已穿上，旧件移入库藏阁',
     'gear.stash.hint': '境界提升自动复检',

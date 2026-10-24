@@ -113,14 +113,15 @@ function residue(txt) {
     'S3 危险动作两枚锚点在位（清增益 / 重置存档）',
     '锚点=' + (p1 ? p1.danger.join(',') : '—'));
 
-  /* ── S4 三枚开关 aria 与盘上同源（关 / 关 / 开）── */
+  /* ── S4 四枚开关 aria 与盘上同源（关 / 关 / 开 / 开）── */
   const sw4 = p1 ? p1.switches : [];
   const byAct = {};
   sw4.forEach(x => { byAct[x.act] = x; });
-  T(sw4.length === 3 && byAct.toggleAutoTrib && byAct.toggleAutoEvent && byAct.toggleGearRefine &&
+  T(sw4.length === 4 && byAct.toggleAutoTrib && byAct.toggleAutoEvent && byAct.toggleGearRefine &&
+    byAct.toggleGearEquip &&
     byAct.toggleAutoTrib.aria === 'false' && byAct.toggleAutoEvent.aria === 'false' &&
-    byAct.toggleGearRefine.aria === 'true',
-    'S4 三枚开关在位且 aria-checked 与盘上同源（false / false / true）',
+    byAct.toggleGearRefine.aria === 'true' && byAct.toggleGearEquip.aria === 'true',
+    'S4 四枚开关在位且 aria-checked 与盘上同源（关 / 关 / 开 / 开；自动佩戴随册150 入列，缺省开）',
     sw4.map(x => x.act + '=' + x.aria).join(' '));
 
   /* ── S5 自动奇遇关 ⇒ 奇遇倾向四 chips 不渲染（条件块随开关生灭）── */
