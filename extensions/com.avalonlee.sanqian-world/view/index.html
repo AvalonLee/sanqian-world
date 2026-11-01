@@ -572,6 +572,9 @@
 <script src="../assets/worlds/xiuxian/karma.js"></script>
 <script src="../assets/worlds/xiuxian/tribulation.js"></script>
 <script src="../assets/worlds/xiuxian/index.js"></script>
+<script src="../assets/worlds/wuxia/lexicon.js"></script>
+<script src="../assets/worlds/wuxia/data.js"></script>
+<script src="../assets/worlds/wuxia/index.js"></script>
 <script src="../assets/talents/engine.js"></script>
 <script src="../assets/core.js"></script>
 <script src="updatenote.js"></script>
@@ -966,7 +969,7 @@
         name: draft.name,
         talents: draft.roll.talents,
         worldId: w,
-        worldName: draft.worldNames[w],
+        worldName: draft.worldNames[w] || '',   /* 册154：无界名池的世界（武侠）落空串，不留 undefined */
         createdAt: Date.now(),
         alignBias: draft.bias,   /* 问道初心（锁定态；gender/race 走 normalize 缺省，本期无入口） */
         gender: 'male',
@@ -1009,16 +1012,20 @@
     list.innerHTML = '';
     draft.worldId = null;
     SQ.visibleWorlds().forEach(function (w) {
-      if (!draft.worldNames[w.id] && w.status === 'live') {
+      /* 世界名只在「该界有界名池」时生成：册154 起加 `w.nameParts` 判——武侠世界 `nameParts:null`
+       * （江湖即世界，没有「XX 界」这种说法）⇒ 永不生成随机界名、卡面回落界系名「武侠江湖」。
+       * 这与其是否 live 无关：将来武侠转 live 时，卡面仍是界系名而不是一片空白。 */
+      if (!draft.worldNames[w.id] && w.status === 'live' && w.nameParts) {
         draft.worldNames[w.id] = SQ.generateWorldName(w.id);
       }
       var card = document.createElement('div');
       var coming = w.status !== 'live';
+      var hasName = !!w.nameParts;   /* 该界是否真有随机界名（false ⇒ 卡面与入世都走界系名/空） */
       card.className = 'wcard' + (coming ? ' coming' : '');
       var tags = (w.tagsKeys || []).map(function (k) { return SQ.t(k, null, w.id); }).join(' · ');
       card.innerHTML =
         '<span class="wstatus">' + esc(SQ.t(coming ? 'world.status.coming' : 'world.status.live', null, w.id)) + '</span>' +
-        '<div class="wname">' + esc(coming ? SQ.t('world.' + w.id + '.name', null, w.id) : (draft.worldNames[w.id] || '')) + '</div>' +
+        '<div class="wname">' + esc((coming || !hasName) ? SQ.t('world.' + w.id + '.name', null, w.id) : (draft.worldNames[w.id] || '')) + '</div>' +
         /* 副行只放「还多出来的信息」：live 卡的 .wname 是随机界名，故副行要带上界系名（玄幻修仙 · 标签…）；
          * coming 卡的 .wname 已经是界系名，副行再抄一遍就是重复排字（第二十批克苏鲁入列后 4/6 张卡都这样）*/
         (coming ? (tags ? '<div class="wtags">' + esc(tags) + '</div>' : '')
