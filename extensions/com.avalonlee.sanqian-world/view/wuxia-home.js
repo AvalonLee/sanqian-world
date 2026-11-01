@@ -53,6 +53,48 @@
       w.artsSlots.push(aid);
     }, function (f) { refresh(f); });
   }
+  /* 闯荡一步（精力 3）：推进/遇敌/撞剧情——战报落 lastReport */
+  function doTravel(slot) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var pk = SQ.Worlds[s.profile.worldId].pack;
+      var r = pk.travel(w, {});
+      if (r && r.err === 'stamina') { slot.toast(tw('wh.rep.stamina', null)); return; }
+      if (r && r.err === 'hurt') { slot.toast(tw('wh.rep.hurt', null)); return; }
+      if (r && r.err) return;
+      if (r.kind === 'battle') {
+        var foeName = tw('event.' + r.foe + '.name', null);
+        if (r.win) SQ.Log.push(w, 'sys', tw('wh.rep.battle.win', { foe: foeName, loot: r.loot }));
+        else if (r.big) SQ.Log.push(w, 'sys', tw('wh.rep.battle.big', { foe: foeName, n: w.injury }));
+        else SQ.Log.push(w, 'sys', tw('wh.rep.battle.lose', { foe: foeName, n: w.injury }));
+      }
+    }, function (f) { refresh(f); });
+  }
+  /* 前往地界（免费；visited 记见闻） */
+  function goZone(slot, zid) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var pk = SQ.Worlds[s.profile.worldId].pack;
+      if (!pk.zoneUnlocked(w, zid)) { slot.toast(tw('wh.zone.locked', null)); return; }
+      w.place = zid;
+      if ((w.visited || []).indexOf(zid) < 0) w.visited.push(zid);
+    }, function (f) { refresh(f); });
+  }
+  /* 剧情直选（批书语义摘除：玩家直接选支） */
+  function chooseKnot(slot, knotId, optK) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var pk = SQ.Worlds[s.profile.worldId].pack;
+      pk.knotChoose(w, knotId, optK);
+    }, function (f) { refresh(f); });
+  }
+  /* 模态切换（闯荡 0.6 / 闭关 1.0） */
+  function toggleMode(slot) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      w.mode = w.mode === 'seclude' ? 'travel' : 'seclude';
+    }, function (f) { refresh(f); });
+  }
   /* 强行冲关（数值卷 §四 唯一失败路径；精力 20；p = 0.5×(见闻/门槛)×(1+心性/400)） */
   function doForceBreak(slot) {
     act(slot, function (s) {
@@ -100,13 +142,58 @@
     h += '<div class="wh-row"><button class="btn" id="wh-force">' + tw('wh.act.force', null) + '</button>' +
       '</div><div class="wh-muted">' + tw('wh.act.forcenote', null) + '</div></div>';
     if (p.canBreak(w)) h += '<div class="wh-muted">' + tw('wh.home.breakReady', null) + '</div>';
-    /* 挂机态卡 */
+    /* 挂机态卡（P3：模态切换 + 闯荡钮） */
     h += '<div class="wh-card"><h3>' + tw('wh.home.idle', null) + '</h3><div class="wh-row">' +
-      '<span class="wh-cell">' + tw('wh.home.modes', { place: tw('zone.' + (w.place || 'luoyang') + '.name', null) }) + '</span></div>' +
-      '<div class="wh-muted">' + tw('wh.home.idlenote', null) + '</div></div>';
+      '<span class="wh-cell">' + tw('wh.mode.cur', { m: tw(w.mode === 'seclude' ? 'wh.mode.seclude' : 'wh.mode.travel', null) }) + '</span>' +
+      '<button class="btn" id="wh-mode">' + tw('wh.mode.toggle', null) + '</button>' +
+      '<button class="btn primary" id="wh-travel">' + tw('wh.zone.travel', null) + '</button>' +
+      '</div><div class="wh-muted">' + tw('wh.mode.note', null) + '</div></div>';
+    /* 战报卡（最近一次闯荡） */
+    h += reportBody(w);
     /* 修习槽一览 */
     h += slotsBody(w, true);
     return h;
+  }
+  /* 战报卡（册216 P3）：battle/knot/quiet 三态 + 剧情抉择钮组 */
+  function reportBody(w) {
+    var r = w.lastReport;
+    if (!r || !r.kind) return '';
+    var h = '<div class="wh-card"><h3>' + tw('wh.rep.title', null) + '</h3>';
+    if (r.kind === 'battle') {
+      var foeName = tw('event.' + r.foe + '.name', null);
+      h += '<div class="wh-row">' + (r.win ? tw('wh.rep.battle.win', { foe: foeName, loot: r.loot })
+        : (r.big ? tw('wh.rep.battle.big', { foe: foeName, n: w.injury }) : tw('wh.rep.battle.lose', { foe: foeName, n: w.injury }))) + '</div>';
+    } else if (r.kind === 'knot') {
+      h += '<div class="wh-row">' + tw('wh.rep.knot.ask', { title: tw(r.title, null) }) + '</div><div class="wh-row">';
+      for (var i = 0; i < (r.opts || []).length; i++) {
+        h += '<button class="btn" data-knot="' + r.knot + '" data-opt="' + r.opts[i].k + '">' + tw('wh.chose.' + r.opts[i].k, null) + '</button>';
+      }
+      h += '</div>';
+    } else if (r.kind === 'knotDone') {
+      h += '<div class="wh-row">' + tw('wh.rep.knotDone', { chose: tw('wh.chose.' + r.chose, null) }) + '</div>';
+    } else if (r.kind === 'quiet') {
+      h += '<div class="wh-row">' + tw('wh.rep.quiet', { place: tw('zone.' + r.place + '.name', null), n: r.scene, loot: r.loot || 0 }) + '</div>';
+    }
+    return h + '</div>';
+  }
+  /* 行走页（册216 P3）：十三地列表（解锁态/进度/前往） */
+  function zonesBody(cf) {
+    var w = cf.w, p = cf.p;
+    var Z = (p.data && p.data.ZONES) || [];
+    var h = '<div class="wh-card"><h3>' + tw('wh.zone.title', null) + '</h3>';
+    for (var i = 0; i < Z.length; i++) {
+      var z = Z[i];
+      var unlocked = p.zoneUnlocked(w, z.i);
+      var cur = w.place === z.i;
+      var prog = (w.sceneProg || {})[z.i] | 0;
+      var total = (z.scenes || ['1']).length;
+      h += '<div class="wh-row">' +
+        '<span class="wh-cell"><b>' + tw('zone.' + z.i + '.name', null) + '</b>' + (cur ? tw('wh.zone.cur', null) : '') + '</span>' +
+        '<span class="wh-muted">' + (unlocked ? tw('wh.zone.scene', { n: Math.min(prog, total), t: total }) : tw('wh.zone.locked', null)) + '</span>' +
+        (unlocked && !cur ? '<button class="btn" data-zone="' + z.i + '">' + tw('wh.zone.go', null) + '</button>' : '') +
+        '</div>';
+    }
+    return h + '</div>';
   }
   /* 修习槽卡：full = 主页只读版；否则带出槽操作 */
   function slotsBody(w, full) {
@@ -177,7 +264,7 @@
         tw(TABS[i].key, null) + '</button>';
     }
     tabs += '</div>';
-    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : wipBody(cur))) + '</div>';
+    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : (cur === 'zones' ? zonesBody(cf) : wipBody(cur)))) + '</div>';
     return top + tabs + body;
   }
 
@@ -197,6 +284,10 @@
       if (b.disabled) return;
       f2 = cf.fresh ? cf.fresh() : cf;
       if (b.id === "wh-force") doForceBreak(f2);
+      else if (b.id === "wh-travel") doTravel(f2);
+      else if (b.id === "wh-mode") toggleMode(f2);
+      else if (b.getAttribute("data-zone")) goZone(f2, b.getAttribute("data-zone"));
+      else if (b.getAttribute("data-knot")) chooseKnot(f2, b.getAttribute("data-knot"), b.getAttribute("data-opt"));
       else if (slot) toggleSlot(f2, slot);
     };
   }

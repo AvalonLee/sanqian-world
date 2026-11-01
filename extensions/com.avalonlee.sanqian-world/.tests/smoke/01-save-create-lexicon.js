@@ -176,6 +176,10 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var before = ws.qi;
       pk.claim(ws, 60 * 60000, Date.now(), {}, {});
       var gain = ws.qi - before;
+      var wsSe = pk.normalize(pk.initialState()); wsSe.mode = 'seclude';
+      var beforeSe = wsSe.qi;
+      pk.claim(wsSe, 60 * 60000, Date.now(), {}, {});
+      var gainSe = wsSe.qi - beforeSe;   /* 闭关 1.0 = 624（模态系数差分见证，册216） */
       /* ② 第一档无附加门槛：功力到 400 即破，随后封在第二档 1200（**破关不清零**） */
       var w2 = pk.normalize(pk.initialState());
       pk.claim(w2, 100 * 86400000, Date.now(), {}, {});
@@ -190,7 +194,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       pk.claim(w3, 60000, Date.now(), {}, {});
       var passed = w3.realm === 2 && w3.qi === 1200;
       ok('E8', '武侠数值内核（产出 ⇔ 一档即破且封二档 ⇔ 双门槛挡二档 ⇔ 补足即破、功力不清零）',
-        Math.abs(gain - 624) < 0.01 && first && stuck && passed,
+        Math.abs(gain - 374.4) < 0.01 && Math.abs(gainSe - 624) < 0.01 && first && stuck && passed,
         'gain=' + gain.toFixed(2) + ' first=' + first + ' stuck=' + stuck + ' passed=' + passed +
         ' realm=' + w3.realm + ' qi=' + w3.qi);
     })();
@@ -327,7 +331,9 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
      * ④ 心性 xing 冲关成功率（stub 0.5 同值下 xing 差分可辨）。 */
     (function () {
       var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
-      if (!pk || !pk.breakThrough || !pk.staminaCapOf) { ok('E17', '武侠 P2 核心循环口', false, '无 breakThrough/staminaCapOf 口'); return; }
+      if (!pk || !pk.breakThrough || !pk.staminaCapOf) { 
+
+    ok('E17', '武侠 P2 核心循环口', false, '无 breakThrough/staminaCapOf 口'); return; }
       /* ① 精力恢复 */
       var wsS = pk.normalize(pk.initialState());
       wsS.stamina = 0;
@@ -358,6 +364,47 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       ok('E17', '武侠 P2 核心循环口（精力 1 分/点恢复且封 cap 随境界 ‖ breakThrough 双条件足破/不足拒 ‖ 悟性 20 vs 30 分每层差分 ‖ 心性冲关 ×1.25 差分）',
         rec && rec2 && brk && zhiOk && xingOk,
         '恢复=' + rec + '(cap2界=' + rec2 + ') 破关=' + brk + ' 悟性=' + zhiOk + ' 心性=' + xingOk);
+    })();
+
+    /* E18 · 武侠闯荡推图（册216 P3）：① travel 精力闸与重伤拒出 ‖ ② 子场景推进与平安花销 ‖
+     * ③ 遭遇战四态合法（win/big/injury 字段形状 + 胜率随境界上行）‖ ④ KNOTS 直选：轴微调 + knotDone 一次性（撞过不重弹）‖ ⑤ 解锁档表（ZONES 序）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.travel || !pk.knotChoose) { ok('E18', '武侠闯荡推图', false, '无 travel/knotChoose 口'); return; }
+      var ws = pk.normalize(pk.initialState());
+      /* ① 精力闸 */
+      ws.stamina = 0;
+      var rS = pk.travel(ws, {});
+      /* ② 平安推进（realm0 无敌可遇——新手村原则） */
+      ws.stamina = 99;
+      var kinds = {};
+      for (var i = 0; i < 40; i++) { ws.worldDay += 1; var r2 = pk.travel(ws, { salt: i }); kinds[r2.kind || r2.err] = (kinds[r2.kind || r2.err] || 0) + 1; }
+      var progOk = (ws.sceneProg.luoyang | 0) >= 1;
+      /* ③ 遭遇战（realm1+ 对手池开启）：40 步内应有 battle 且字段形状合法 */
+      ws.realm = 1; ws.qi = 1200; ws.worldDay = 1000;
+      var battles = 0, shapeOk = true;
+      for (var j = 0; j < 80; j++) {
+        ws.stamina = 99; ws.worldDay += 1;
+        var r3 = pk.travel(ws, { salt: j + 500 });
+        if (r3.kind === 'battle') {
+          battles++;
+          if (typeof r3.win !== 'boolean' || (r3.win && r3.loot == null) || (!r3.win && r3.injury == null)) shapeOk = false;
+        }
+      }
+      var battleOk = battles >= 3 && shapeOk;
+      /* ④ KNOTS 直选：轴微调 + knotDone */
+      var wsK = pk.normalize(pk.initialState());
+      wsK.realm = 3; wsK.qi = 3000;
+      wsK.realm = 6; wsK.stones = 500;   /* help 支 req = realm4 + 银200——直接给足，直选判的是轴与一次性 */
+      var k1 = pk.knotChoose(wsK, 'knot_juxian', 'help');
+      var knotOk = k1 && k1.ok && wsK.persona.xia === 4 && wsK.knotDone.knot_juxian === 1 && wsK.stones > 100;
+      /* ⑤ 解锁档 */
+      var ulOk = pk.zoneUnlocked(ws, 'luoyang') && pk.zoneUnlocked(ws, 'shaolin') && !pk.zoneUnlocked(ws, 'guangmingding');
+      var hurtOk = (function () { var wh = pk.normalize(pk.initialState()); wh.injury = 12; wh.stamina = 99; return pk.travel(wh, {}).err === 'hurt'; })();
+      var staminaOk = rS && rS.err === 'stamina';
+      ok('E18', '武侠闯荡推图（精力闸与重伤拒出 ⇔ 平安推进 sceneProg ‖ 遭遇战四态合法且 ≥5 场 ‖ KNOTS 直选轴微调+knotDone 一次性 ‖ 解锁档前三地）',
+        staminaOk && hurtOk && progOk && battleOk && knotOk && ulOk,
+        '精力='+staminaOk+' 重伤拒='+hurtOk+' 推进='+progOk+' 战='+battles+' 形='+shapeOk+' 剧情='+knotOk+' 档='+ulOk);
     })();
     })();
 
