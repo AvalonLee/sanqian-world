@@ -1,0 +1,359 @@
+{
+ "_meta": {
+  "builtAt": "2026-11-01",
+  "method": "40 人池内部共现对（≥20 次），源自 8451 对全表交集",
+  "count": 70
+ },
+ "pairs": [
+  {
+   "a": "guo_jing",
+   "b": "huang_rong",
+   "n": 1514
+  },
+  {
+   "a": "xiao_longn",
+   "b": "yang_guo",
+   "n": 978
+  },
+  {
+   "a": "zhang_wuji",
+   "b": "zhao_min",
+   "n": 581
+  },
+  {
+   "a": "yang_guo",
+   "b": "guo_jing",
+   "n": 387
+  },
+  {
+   "a": "yang_guo",
+   "b": "huang_rong",
+   "n": 369
+  },
+  {
+   "a": "hong_qigong",
+   "b": "guo_jing",
+   "n": 325
+  },
+  {
+   "a": "ling_huohung",
+   "b": "yue_buqun",
+   "n": 318
+  },
+  {
+   "a": "hong_qigong",
+   "b": "huang_rong",
+   "n": 315
+  },
+  {
+   "a": "ling_huohung",
+   "b": "yi_lin",
+   "n": 277
+  },
+  {
+   "a": "zhou_botong",
+   "b": "guo_jing",
+   "n": 276
+  },
+  {
+   "a": "guo_jing",
+   "b": "huang_yaoshi",
+   "n": 270
+  },
+  {
+   "a": "huang_rong",
+   "b": "guo_jing",
+   "n": 261
+  },
+  {
+   "a": "tonglao",
+   "b": "xu_zhu",
+   "n": 231
+  },
+  {
+   "a": "zhang_wuji",
+   "b": "xie_xun",
+   "n": 229
+  },
+  {
+   "a": "huang_yaoshi",
+   "b": "huang_rong",
+   "n": 202
+  },
+  {
+   "a": "murong_fu",
+   "b": "duan_yu",
+   "n": 177
+  },
+  {
+   "a": "chen_jinnan",
+   "b": "wei_xiaobao",
+   "n": 165
+  },
+  {
+   "a": "zhou_botong",
+   "b": "huang_rong",
+   "n": 152
+  },
+  {
+   "a": "ling_huohung",
+   "b": "ren_woxing",
+   "n": 133
+  },
+  {
+   "a": "xiao_longn",
+   "b": "huang_rong",
+   "n": 128
+  },
+  {
+   "a": "zhou_botong",
+   "b": "yang_guo",
+   "n": 128
+  },
+  {
+   "a": "qiu_qianren",
+   "b": "guo_jing",
+   "n": 120
+  },
+  {
+   "a": "xiao_longn",
+   "b": "yang_guo",
+   "n": 116
+  },
+  {
+   "a": "qiu_qianren",
+   "b": "huang_rong",
+   "n": 114
+  },
+  {
+   "a": "zhou_botong",
+   "b": "huang_yaoshi",
+   "n": 112
+  },
+  {
+   "a": "yin_susu",
+   "b": "xie_xun",
+   "n": 112
+  },
+  {
+   "a": "duan_yu",
+   "b": "xu_zhu",
+   "n": 109
+  },
+  {
+   "a": "zhang_wuji",
+   "b": "miejue",
+   "n": 104
+  },
+  {
+   "a": "hong_qigong",
+   "b": "huang_yaoshi",
+   "n": 97
+  },
+  {
+   "a": "he_taichong",
+   "b": "zhang_wuji",
+   "n": 96
+  },
+  {
+   "a": "yang_guo",
+   "b": "huang_rong",
+   "n": 91
+  },
+  {
+   "a": "zhou_botong",
+   "b": "huang_rong",
+   "n": 90
+  },
+  {
+   "a": "yang_guo",
+   "b": "huang_yaoshi",
+   "n": 87
+  },
+  {
+   "a": "zhang_sanfeng",
+   "b": "zhang_wuji",
+   "n": 85
+  },
+  {
+   "a": "yang_guo",
+   "b": "guo_jing",
+   "n": 83
+  },
+  {
+   "a": "duan_zhengchun",
+   "b": "duan_yu",
+   "n": 79
+  },
+  {
+   "a": "duan_yu",
+   "b": "xiao_feng",
+   "n": 79
+  },
+  {
+   "a": "yang_guo",
+   "b": "hong_qigong",
+   "n": 76
+  },
+  {
+   "a": "duan_zhengchun",
+   "b": "xiao_feng",
+   "n": 75
+  },
+  {
+   "a": "zhou_botong",
+   "b": "xiao_longn",
+   "n": 75
+  },
+  {
+   "a": "zhou_botong",
+   "b": "hong_qigong",
+   "n": 70
+  },
+  {
+   "a": "ling_huohung",
+   "b": "yu_canghai",
+   "n": 69
+  },
+  {
+   "a": "xiao_longn",
+   "b": "guo_jing",
+   "n": 66
+  },
+  {
+   "a": "xie_xun",
+   "b": "zhao_min",
+   "n": 64
+  },
+  {
+   "a": "xiao_feng",
+   "b": "xu_zhu",
+   "n": 60
+  },
+  {
+   "a": "zhang_san",
+   "b": "shi_poitian",
+   "n": 59
+  },
+  {
+   "a": "ding_chunqiu",
+   "b": "xu_zhu",
+   "n": 55
+  },
+  {
+   "a": "zhou_botong",
+   "b": "guo_jing",
+   "n": 53
+  },
+  {
+   "a": "murong_fu",
+   "b": "xiao_feng",
+   "n": 45
+  },
+  {
+   "a": "yang_guo",
+   "b": "zhou_botong",
+   "n": 45
+  },
+  {
+   "a": "bai_zizai",
+   "b": "shi_poitian",
+   "n": 44
+  },
+  {
+   "a": "xiao_feng",
+   "b": "duan_yu",
+   "n": 40
+  },
+  {
+   "a": "huang_rong",
+   "b": "huang_yaoshi",
+   "n": 39
+  },
+  {
+   "a": "hong_qigong",
+   "b": "huang_rong",
+   "n": 37
+  },
+  {
+   "a": "zhou_botong",
+   "b": "qiu_qianren",
+   "n": 35
+  },
+  {
+   "a": "ding_chunqiu",
+   "b": "murong_fu",
+   "n": 35
+  },
+  {
+   "a": "murong_fu",
+   "b": "duan_zhengchun",
+   "n": 34
+  },
+  {
+   "a": "wei_xiaobao",
+   "b": "chen_jinnan",
+   "n": 32
+  },
+  {
+   "a": "hong_qigong",
+   "b": "zhou_botong",
+   "n": 31
+  },
+  {
+   "a": "xuanci",
+   "b": "xu_zhu",
+   "n": 31
+  },
+  {
+   "a": "yu_canghai",
+   "b": "yue_buqun",
+   "n": 26
+  },
+  {
+   "a": "ren_woxing",
+   "b": "yue_buqun",
+   "n": 26
+  },
+  {
+   "a": "xiao_feng",
+   "b": "murong_fu",
+   "n": 26
+  },
+  {
+   "a": "murong_fu",
+   "b": "xu_zhu",
+   "n": 26
+  },
+  {
+   "a": "yi_lin",
+   "b": "yu_canghai",
+   "n": 25
+  },
+  {
+   "a": "zhou_botong",
+   "b": "huang_yaoshi",
+   "n": 24
+  },
+  {
+   "a": "zhang_sanfeng",
+   "b": "zhao_min",
+   "n": 24
+  },
+  {
+   "a": "qiu_qianren",
+   "b": "huang_yaoshi",
+   "n": 22
+  },
+  {
+   "a": "zong_weixia",
+   "b": "zhang_wuji",
+   "n": 22
+  },
+  {
+   "a": "xiao_longn",
+   "b": "zhou_botong",
+   "n": 20
+  }
+ ]
+}

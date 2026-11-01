@@ -1,0 +1,383 @@
+{
+ "sects": [
+  {
+   "id": "shaolin",
+   "name": "少林",
+   "alias": [
+    "少林寺",
+    "少林派",
+    "南少林",
+    "西域少林"
+   ],
+   "camp": "zheng",
+   "freq": 1839,
+   "books": 11,
+   "matched": [
+    "少林寺",
+    "少林派",
+    "南少林",
+    "西域少林"
+   ]
+  },
+  {
+   "id": "huashan",
+   "name": "华山",
+   "alias": [
+    "华山派",
+    "华山剑宗",
+    "华山气宗"
+   ],
+   "camp": "zheng",
+   "freq": 707,
+   "books": 4,
+   "matched": [
+    "华山派",
+    "华山剑宗",
+    "华山气宗"
+   ]
+  },
+  {
+   "id": "hengshan",
+   "name": "恒山",
+   "alias": [
+    "恒山派"
+   ],
+   "camp": "zheng",
+   "freq": 552,
+   "books": 1,
+   "matched": [
+    "恒山派"
+   ]
+  },
+  {
+   "id": "wudang",
+   "name": "武当",
+   "alias": [
+    "武当派"
+   ],
+   "camp": "zheng",
+   "freq": 440,
+   "books": 7,
+   "matched": [
+    "武当派"
+   ]
+  },
+  {
+   "id": "qingcheng",
+   "name": "青城",
+   "alias": [
+    "青城派"
+   ],
+   "camp": "zheng",
+   "freq": 331,
+   "books": 4,
+   "matched": [
+    "青城派"
+   ]
+  },
+  {
+   "id": "emei",
+   "name": "峨眉",
+   "alias": [
+    "峨嵋派"
+   ],
+   "camp": "zheng",
+   "freq": 305,
+   "books": 6,
+   "matched": [
+    "峨嵋派"
+   ]
+  },
+  {
+   "id": "kunlun",
+   "name": "昆仑",
+   "alias": [
+    "昆仑派"
+   ],
+   "camp": "zheng",
+   "freq": 163,
+   "books": 8,
+   "matched": [
+    "昆仑派"
+   ]
+  },
+  {
+   "id": "kongtong",
+   "name": "崆峒",
+   "alias": [
+    "崆峒派"
+   ],
+   "camp": "zheng",
+   "freq": 97,
+   "books": 4,
+   "matched": [
+    "崆峒派"
+   ]
+  },
+  {
+   "id": "gaibang",
+   "name": "丐帮",
+   "alias": [],
+   "camp": "zhong",
+   "freq": 1303,
+   "books": 8,
+   "matched": [
+    "丐帮"
+   ]
+  },
+  {
+   "id": "tiandihui",
+   "name": "天地会",
+   "alias": [],
+   "camp": "zhong",
+   "freq": 542,
+   "books": 1,
+   "matched": [
+    "天地会"
+   ]
+  },
+  {
+   "id": "honghuahui",
+   "name": "红花会",
+   "alias": [],
+   "camp": "zhong",
+   "freq": 466,
+   "books": 2,
+   "matched": [
+    "红花会"
+   ]
+  },
+  {
+   "id": "taohua",
+   "name": "桃花岛",
+   "alias": [],
+   "camp": "zhong",
+   "freq": 434,
+   "books": 3,
+   "matched": [
+    "桃花岛"
+   ]
+  },
+  {
+   "id": "quanzhen",
+   "name": "全真",
+   "alias": [
+    "全真教"
+   ],
+   "camp": "zhong",
+   "freq": 324,
+   "books": 3,
+   "matched": [
+    "全真教"
+   ]
+  },
+  {
+   "id": "murong",
+   "name": "姑苏慕容",
+   "alias": [],
+   "camp": "zhong",
+   "freq": 150,
+   "books": 1,
+   "matched": [
+    "姑苏慕容"
+   ]
+  },
+  {
+   "id": "dali",
+   "name": "大理段氏",
+   "alias": [],
+   "camp": "zhong",
+   "freq": 78,
+   "books": 3,
+   "matched": [
+    "大理段氏"
+   ]
+  },
+  {
+   "id": "xiaoyao",
+   "name": "逍遥派",
+   "alias": [],
+   "camp": "zhong",
+   "freq": 78,
+   "books": 2,
+   "matched": [
+    "逍遥派"
+   ]
+  },
+  {
+   "id": "mingjiao",
+   "name": "明教",
+   "alias": [
+    "波斯明教"
+   ],
+   "camp": "xie",
+   "freq": 752,
+   "books": 5,
+   "matched": [
+    "明教",
+    "波斯明教"
+   ]
+  },
+  {
+   "id": "changle",
+   "name": "长乐帮",
+   "alias": [],
+   "camp": "xie",
+   "freq": 241,
+   "books": 1,
+   "matched": [
+    "长乐帮"
+   ]
+  },
+  {
+   "id": "tianying",
+   "name": "天鹰教",
+   "alias": [],
+   "camp": "xie",
+   "freq": 224,
+   "books": 1,
+   "matched": [
+    "天鹰教"
+   ]
+  },
+  {
+   "id": "xingxiu",
+   "name": "星宿派",
+   "alias": [],
+   "camp": "xie",
+   "freq": 204,
+   "books": 2,
+   "matched": [
+    "星宿派"
+   ]
+  },
+  {
+   "id": "shenlong",
+   "name": "神龙教",
+   "alias": [],
+   "camp": "xie",
+   "freq": 163,
+   "books": 1,
+   "matched": [
+    "神龙教"
+   ]
+  },
+  {
+   "id": "tiezhang",
+   "name": "铁掌帮",
+   "alias": [],
+   "camp": "xie",
+   "freq": 114,
+   "books": 3,
+   "matched": [
+    "铁掌帮"
+   ]
+  },
+  {
+   "id": "riyue",
+   "name": "日月神教",
+   "alias": [],
+   "camp": "xie",
+   "freq": 64,
+   "books": 1,
+   "matched": [
+    "日月神教"
+   ]
+  },
+  {
+   "id": "xueshan",
+   "name": "雪山派",
+   "alias": [],
+   "camp": "yin",
+   "freq": 359,
+   "books": 2,
+   "matched": [
+    "雪山派"
+   ]
+  },
+  {
+   "id": "lingjiu",
+   "name": "灵鹫宫",
+   "alias": [],
+   "camp": "yin",
+   "freq": 157,
+   "books": 1,
+   "matched": [
+    "灵鹫宫"
+   ]
+  },
+  {
+   "id": "xiake",
+   "name": "侠客岛",
+   "alias": [],
+   "camp": "yin",
+   "freq": 143,
+   "books": 1,
+   "matched": [
+    "侠客岛"
+   ]
+  }
+ ],
+ "ext": [
+  {
+   "id": "songshan",
+   "name": "嵩山派",
+   "camp": "zheng",
+   "freq": 297,
+   "books": 1,
+   "matched": [
+    "嵩山派"
+   ]
+  },
+  {
+   "id": "taishan",
+   "name": "泰山派",
+   "camp": "zheng",
+   "freq": 137,
+   "books": 1,
+   "matched": [
+    "泰山派"
+   ]
+  },
+  {
+   "id": "hengshan_s",
+   "name": "衡山派",
+   "camp": "zheng",
+   "freq": 105,
+   "books": 2,
+   "matched": [
+    "衡山派"
+   ]
+  },
+  {
+   "id": "gumu",
+   "name": "古墓派",
+   "camp": "yin",
+   "freq": 88,
+   "books": 2,
+   "matched": [
+    "古墓派"
+   ]
+  },
+  {
+   "id": "xuedao",
+   "name": "血刀门",
+   "camp": "xie",
+   "freq": 24,
+   "books": 1,
+   "matched": [
+    "血刀门"
+   ]
+  },
+  {
+   "id": "diancang",
+   "name": "点苍派",
+   "camp": "zheng",
+   "freq": 7,
+   "books": 3,
+   "matched": [
+    "点苍派"
+   ]
+  }
+ ]
+}
