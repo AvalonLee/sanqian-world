@@ -1,0 +1,4324 @@
+{
+ "_meta": {
+  "builtAt": "2026-11-01",
+  "total": 379
+ },
+ "arts": [
+  {
+   "id": "yg_jiuyin",
+   "name": "九阴真经",
+   "kind": "neigong",
+   "nature": "yin",
+   "tier": "tian",
+   "freq": 254,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_bixie",
+   "name": "辟邪剑法",
+   "kind": "blade",
+   "nature": "xie",
+   "tier": "tian",
+   "freq": 160,
+   "books": 1,
+   "sect": [
+    "riyue"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_yiyang",
+   "name": "一阳指",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "tian",
+   "freq": 159,
+   "books": 4,
+   "sect": [
+    "dali"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_dagou",
+   "name": "打狗棒法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "tian",
+   "freq": 158,
+   "books": 4,
+   "sect": [
+    "gaibang"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_liumai",
+   "name": "六脉神剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "tian",
+   "freq": 148,
+   "books": 1,
+   "sect": [
+    "dali"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_xianglong",
+   "name": "降龙十八掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "tian",
+   "freq": 146,
+   "books": 4,
+   "sect": [
+    "gaibang"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_shengsi",
+   "name": "生死符",
+   "kind": "qimen",
+   "nature": "xie",
+   "tier": "di",
+   "freq": 124,
+   "books": 1,
+   "sect": [
+    "xiaoyao",
+    "lingjiu"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_tiezhang",
+   "name": "铁掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "di",
+   "freq": 113,
+   "books": 7,
+   "sect": [
+    "tiezhang"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_qishang",
+   "name": "七伤拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 98,
+   "books": 1,
+   "sect": [
+    "kongtong"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_qiankun",
+   "name": "乾坤大挪移",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "tian",
+   "freq": 93,
+   "books": 1,
+   "sect": [
+    "mingjiao"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_yijin",
+   "name": "易筋经",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "tian",
+   "freq": 86,
+   "books": 3,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_dugu",
+   "name": "独孤九剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "tian",
+   "freq": 80,
+   "books": 1,
+   "sect": [
+    "huashan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_lingbo",
+   "name": "凌波微步",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "tian",
+   "freq": 77,
+   "books": 1,
+   "sect": [
+    "xiaoyao"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_xixing",
+   "name": "吸星大法",
+   "kind": "neigong",
+   "nature": "xie",
+   "tier": "di",
+   "freq": 67,
+   "books": 1,
+   "sect": [
+    "riyue"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_jiuyang",
+   "name": "九阳真经",
+   "kind": "neigong",
+   "nature": "gang",
+   "tier": "tian",
+   "freq": 58,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_hama",
+   "name": "蛤蟆功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 57,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_huagong",
+   "name": "化功大法",
+   "kind": "neigong",
+   "nature": "xie",
+   "tier": "di",
+   "freq": 54,
+   "books": 2,
+   "sect": [
+    "xingxiu"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_boruo",
+   "name": "般若掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 51,
+   "books": 2,
+   "sect": [
+    "shaolin",
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_bagua_dao",
+   "name": "八卦刀",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 49,
+   "books": 5,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_xueshan_jian",
+   "name": "雪山剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 45,
+   "books": 1,
+   "sect": [
+    "changle",
+    "xueshan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_xuanming",
+   "name": "玄冥神掌",
+   "kind": "quan",
+   "nature": "xie",
+   "tier": "di",
+   "freq": 43,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_hujia",
+   "name": "胡家刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 40,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_shenxing",
+   "name": "神行百变",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 40,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_jingang_zhi",
+   "name": "金刚指",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "di",
+   "freq": 39,
+   "books": 2,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_beiming",
+   "name": "北冥神功",
+   "kind": "neigong",
+   "nature": "xie",
+   "tier": "di",
+   "freq": 37,
+   "books": 2,
+   "sect": [
+    "xiaoyao"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_kongming",
+   "name": "空明拳",
+   "kind": "quan",
+   "nature": "yin",
+   "tier": "di",
+   "freq": 37,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_001",
+   "name": "八卦掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 36,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_zixia",
+   "name": "紫霞神功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 36,
+   "books": 1,
+   "sect": [
+    "huashan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_huoyan",
+   "name": "火焰刀",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 34,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_001",
+   "name": "嵩山剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 33,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_tanzhi",
+   "name": "弹指神通",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 32,
+   "books": 4,
+   "sect": [
+    "taohua"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_002",
+   "name": "华山剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 32,
+   "books": 3,
+   "sect": [
+    "huashan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_jinwu",
+   "name": "金乌刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 32,
+   "books": 1,
+   "sect": [
+    "changle",
+    "xueshan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_fuhu",
+   "name": "伏虎掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "di",
+   "freq": 31,
+   "books": 2,
+   "sect": [
+    "shaolin",
+    "huashan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_liangyi",
+   "name": "两仪剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 31,
+   "books": 3,
+   "sect": [
+    "kunlun"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_002",
+   "name": "大擒拿手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 30,
+   "books": 7,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_003",
+   "name": "连城剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 29,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_hunyuan",
+   "name": "混元功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 28,
+   "books": 2,
+   "sect": [
+    "huashan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_003",
+   "name": "小擒拿手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 28,
+   "books": 5,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_xiaowuxiang",
+   "name": "小无相功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 28,
+   "books": 1,
+   "sect": [
+    "xiaoyao"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_004",
+   "name": "龙爪手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 27,
+   "books": 3,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_004",
+   "name": "淑女剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 27,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_005",
+   "name": "全真剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 26,
+   "books": 3,
+   "sect": [
+    "quanzhen"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_005",
+   "name": "西岳华拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 26,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_006",
+   "name": "劈空掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 25,
+   "books": 4,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_liuyang",
+   "name": "天山六阳掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "xuan",
+   "freq": 25,
+   "books": 1,
+   "sect": [
+    "xiaoyao",
+    "lingjiu"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_006",
+   "name": "玉女素心剑法",
+   "kind": "blade",
+   "nature": "yin",
+   "tier": "xuan",
+   "freq": 25,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_007",
+   "name": "大金刚拳",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "xuan",
+   "freq": 24,
+   "books": 1,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_huagu",
+   "name": "化骨绵掌",
+   "kind": "qimen",
+   "nature": "xie",
+   "tier": "xuan",
+   "freq": 24,
+   "books": 1,
+   "sect": [
+    "shenlong"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_shenzhao",
+   "name": "神照经",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "di",
+   "freq": 23,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_dozhuan",
+   "name": "斗转星移",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "tian",
+   "freq": 22,
+   "books": 3,
+   "sect": [
+    "murong"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_zhemei",
+   "name": "天山折梅手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 22,
+   "books": 1,
+   "sect": [
+    "xiaoyao",
+    "lingjiu"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_001",
+   "name": "金刚伏魔圈",
+   "kind": "neigong",
+   "nature": "xie",
+   "tier": "xuan",
+   "freq": 21,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_008",
+   "name": "罗汉拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 21,
+   "books": 5,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_009",
+   "name": "摩诃指",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 21,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_010",
+   "name": "八极拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 20,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_011",
+   "name": "分筋错骨手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 20,
+   "books": 4,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_007",
+   "name": "恒山剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 20,
+   "books": 1,
+   "sect": [
+    "hengshan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_012",
+   "name": "虎爪手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 20,
+   "books": 4,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_002",
+   "name": "玉女剑十九式",
+   "kind": "neigong",
+   "nature": "yin",
+   "tier": "xuan",
+   "freq": 20,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_anran",
+   "name": "黯然销魂掌",
+   "kind": "quan",
+   "nature": "yin",
+   "tier": "tian",
+   "freq": 19,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_013",
+   "name": "摧心掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "xuan",
+   "freq": 19,
+   "books": 3,
+   "sect": [
+    "qingcheng"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_014",
+   "name": "韦陀掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 19,
+   "books": 2,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_015",
+   "name": "拈花指",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 18,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_016",
+   "name": "千蛛万毒手",
+   "kind": "quan",
+   "nature": "xie",
+   "tier": "xuan",
+   "freq": 18,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_008",
+   "name": "夫妻刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 17,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_017",
+   "name": "幻阴指",
+   "kind": "quan",
+   "nature": "yin",
+   "tier": "xuan",
+   "freq": 17,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_018",
+   "name": "甩手箭",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 17,
+   "books": 6,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_019",
+   "name": "大金刚掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "xuan",
+   "freq": 16,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_020",
+   "name": "点穴手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 16,
+   "books": 7,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_001",
+   "name": "芙蓉金针",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 16,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_021",
+   "name": "寒冰绵掌",
+   "kind": "quan",
+   "nature": "xie",
+   "tier": "xuan",
+   "freq": 16,
+   "books": 1,
+   "sect": [
+    "mingjiao"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_009",
+   "name": "六合刀",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 16,
+   "books": 5,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_022",
+   "name": "六合拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 16,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_010",
+   "name": "五虎断门刀",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 16,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_003",
+   "name": "鳄嘴剪",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 15,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_004",
+   "name": "满天花雨",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 15,
+   "books": 7,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_011",
+   "name": "柔云剑术",
+   "kind": "blade",
+   "nature": "yin",
+   "tier": "xuan",
+   "freq": 15,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_023",
+   "name": "武当长拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 15,
+   "books": 4,
+   "sect": [
+    "wudang"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_024",
+   "name": "双手互搏",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 14,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_xiantian",
+   "name": "先天功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 14,
+   "books": 1,
+   "sect": [
+    "quanzhen"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_012",
+   "name": "杨家枪法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 14,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_baihua",
+   "name": "百花错拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 13,
+   "books": 1,
+   "sect": [
+    "honghuahui"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_025",
+   "name": "大手印",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 13,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_lanhua",
+   "name": "兰花拂穴手",
+   "kind": "quan",
+   "nature": "yin",
+   "tier": "xuan",
+   "freq": 13,
+   "books": 3,
+   "sect": [
+    "taohua"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_013",
+   "name": "追魂夺命剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 13,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_014",
+   "name": "金龙鞭法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 12,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_005",
+   "name": "龙象般若功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 12,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_026",
+   "name": "拈花擒拿手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 12,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_015",
+   "name": "三分剑术",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 12,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_027",
+   "name": "五行拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 12,
+   "books": 5,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_016",
+   "name": "蝎尾鞭",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 12,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_028",
+   "name": "查拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 11,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_029",
+   "name": "大慈大悲千叶手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 11,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qb_001",
+   "name": "飞燕银梭",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 11,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_030",
+   "name": "沐家拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 11,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_006",
+   "name": "逍遥散",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 11,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_031",
+   "name": "一指禅",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 11,
+   "books": 2,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_032",
+   "name": "八卦游龙掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 10,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_002",
+   "name": "腐尸毒",
+   "kind": "qimen",
+   "nature": "xie",
+   "tier": "xuan",
+   "freq": 10,
+   "books": 1,
+   "sect": [
+    "xingxiu"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_033",
+   "name": "灵蛇拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 10,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_034",
+   "name": "太祖长拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 10,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_017",
+   "name": "泰山剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 10,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_018",
+   "name": "一字电剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 10,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_yuxiao",
+   "name": "玉箫剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 10,
+   "books": 1,
+   "sect": [
+    "taohua"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_003",
+   "name": "真武七截阵",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "xuan",
+   "freq": 10,
+   "books": 1,
+   "sect": [
+    "wudang"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_019",
+   "name": "达摩剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 9,
+   "books": 5,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_035",
+   "name": "黑沙掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 9,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_036",
+   "name": "破玉拳",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 9,
+   "books": 1,
+   "sect": [
+    "huashan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_007",
+   "name": "七星聚会",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 9,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_004",
+   "name": "狮子吼",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 9,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qb_002",
+   "name": "梯云纵",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 9,
+   "books": 1,
+   "sect": [
+    "wudang"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_005",
+   "name": "天王补心针",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 9,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_037",
+   "name": "铁琵琶手",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 9,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_038",
+   "name": "无极玄功拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 9,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_039",
+   "name": "无相劫指",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 9,
+   "books": 1,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_008",
+   "name": "一拍两散",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 9,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qb_003",
+   "name": "移形换位",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 9,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_020",
+   "name": "八仙剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_040",
+   "name": "碧针清掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_021",
+   "name": "鳄尾鞭",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_022",
+   "name": "反两仪刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_009",
+   "name": "寒冰真气",
+   "kind": "neigong",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 8,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_041",
+   "name": "梅花拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_042",
+   "name": "美女拳法",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_023",
+   "name": "苗家剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_024",
+   "name": "七弦无形剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "quan_basic",
+   "name": "十段锦",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_043",
+   "name": "五行六合掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_025",
+   "name": "越女剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 8,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qb_004",
+   "name": "八步赶蟾",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_044",
+   "name": "碧波掌法",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_010",
+   "name": "岱宗如何",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_045",
+   "name": "虎爪绝户手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_026",
+   "name": "六合枪",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_046",
+   "name": "妙手空空",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_011",
+   "name": "泥鳅功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_012",
+   "name": "上天梯",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_047",
+   "name": "少林长拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 1,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_013",
+   "name": "天罗地网势",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_014",
+   "name": "五斗米神功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_048",
+   "name": "燕青拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 7,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_049",
+   "name": "赤尻连拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 6,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_050",
+   "name": "伏虎拳",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 6,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_027",
+   "name": "呼延十八鞭",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 6,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_051",
+   "name": "截心掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 6,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_015",
+   "name": "金刚不坏体",
+   "kind": "neigong",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 6,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_052",
+   "name": "龙爪擒拿手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 6,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qb_005",
+   "name": "四象步",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 6,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_053",
+   "name": "锁喉擒拿手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 6,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_016",
+   "name": "袖里乾坤",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 6,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_028",
+   "name": "八卦刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 5,
+   "books": 4,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_006",
+   "name": "碧海潮生曲",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 5,
+   "books": 1,
+   "sect": [
+    "taohua"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_054",
+   "name": "大力金刚指",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 5,
+   "books": 1,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_029",
+   "name": "段家剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 5,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_055",
+   "name": "多罗叶指",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 5,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_017",
+   "name": "金刚护体神功",
+   "kind": "neigong",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 5,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_030",
+   "name": "金蛇剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 5,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_056",
+   "name": "龙爪功",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 5,
+   "books": 4,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_057",
+   "name": "鹰爪功",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 5,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_018",
+   "name": "闭穴功夫",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_058",
+   "name": "波罗蜜手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_019",
+   "name": "采燕功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qb_006",
+   "name": "草上飞",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 4,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_007",
+   "name": "毒蟾砂",
+   "kind": "qimen",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_059",
+   "name": "毒砂掌",
+   "kind": "quan",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 4,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_031",
+   "name": "伏魔杖法",
+   "kind": "blade",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 4,
+   "books": 3,
+   "sect": [
+    "shaolin"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_032",
+   "name": "回风落雁剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_020",
+   "name": "回龙璧",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_060",
+   "name": "混元掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_061",
+   "name": "金顶绵掌",
+   "kind": "quan",
+   "nature": "yin",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [
+    "emei"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_008",
+   "name": "控鹤功",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_033",
+   "name": "狂风快剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_021",
+   "name": "狂风迅雷功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_009",
+   "name": "满天花雨掷金针",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_062",
+   "name": "霹雳掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 4,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_010",
+   "name": "千里传音",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_034",
+   "name": "软红蛛索",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_063",
+   "name": "三无三不手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_shenmen",
+   "name": "神门十三剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [
+    "wudang"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_035",
+   "name": "松风剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [
+    "qingcheng"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_022",
+   "name": "天地同寿",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_023",
+   "name": "无上大力杵法",
+   "kind": "neigong",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_064",
+   "name": "须弥山掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_065",
+   "name": "玄天指",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_066",
+   "name": "一路华拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_067",
+   "name": "斩蛟拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 4,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_068",
+   "name": "八卦游身掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_024",
+   "name": "城字十八破",
+   "kind": "neigong",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_011",
+   "name": "传音搜魂大法",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_069",
+   "name": "大力鹰爪功",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 3,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_070",
+   "name": "大摔碑手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_071",
+   "name": "大嵩阳神掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_072",
+   "name": "大阴阳手",
+   "kind": "quan",
+   "nature": "yin",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_073",
+   "name": "翻天掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_025",
+   "name": "佛光普照",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_012",
+   "name": "腹语术",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_026",
+   "name": "寒阴箭",
+   "kind": "neigong",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_074",
+   "name": "黑风指",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_075",
+   "name": "金刚拳",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_jinyan",
+   "name": "金雁功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [
+    "quanzhen"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_076",
+   "name": "快活三十掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_077",
+   "name": "连环迷踪腿",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_027",
+   "name": "罗汉伏魔神功",
+   "kind": "neigong",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_036",
+   "name": "落英剑法",
+   "kind": "blade",
+   "nature": "yin",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_078",
+   "name": "擒龙功",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_079",
+   "name": "青字九打",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_037",
+   "name": "绕指柔剑",
+   "kind": "blade",
+   "nature": "yin",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_080",
+   "name": "三阴蜈蚣爪",
+   "kind": "quan",
+   "nature": "yin",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_081",
+   "name": "散花掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_082",
+   "name": "神掌八打",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_038",
+   "name": "太极拳剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_028",
+   "name": "天灵千裂",
+   "kind": "neigong",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_083",
+   "name": "铁掌擒拿手",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_039",
+   "name": "同归剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_029",
+   "name": "无声无色",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_040",
+   "name": "五大夫剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_030",
+   "name": "蟹钳功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_084",
+   "name": "旋风扫叶腿",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [
+    "taohua"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_031",
+   "name": "阴阳倒乱刃法",
+   "kind": "neigong",
+   "nature": "yin",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_032",
+   "name": "鹰蛇生死搏",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_085",
+   "name": "岳家散手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 3,
+   "books": 3,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_086",
+   "name": "豹尾脚",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_canhe",
+   "name": "参合指",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [
+    "murong"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_chunyang",
+   "name": "纯阳无极功",
+   "kind": "neigong",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [
+    "wudang"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_087",
+   "name": "大伏魔拳法",
+   "kind": "quan",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_033",
+   "name": "大力金刚杖法",
+   "kind": "neigong",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_088",
+   "name": "弹腿",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_041",
+   "name": "夺命连环三仙剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_034",
+   "name": "疯魔杖法",
+   "kind": "neigong",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 2,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_089",
+   "name": "鹤形拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_042",
+   "name": "衡山五神剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_043",
+   "name": "胡家快刀",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_035",
+   "name": "混天功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 2,
+   "sect": [
+    "gaibang"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_036",
+   "name": "袈裟伏魔功",
+   "kind": "neigong",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_013",
+   "name": "假三才阵",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_090",
+   "name": "截手九式",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_091",
+   "name": "金刚般若掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_092",
+   "name": "金刚神掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_044",
+   "name": "南山刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_093",
+   "name": "内八卦掌法",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_094",
+   "name": "飘雪穿云掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [
+    "emei"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_045",
+   "name": "泼墨披麻剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_037",
+   "name": "泼水杖法",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_046",
+   "name": "破金锤",
+   "kind": "blade",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_038",
+   "name": "破衲功",
+   "kind": "neigong",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_095",
+   "name": "千手如来掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_047",
+   "name": "燃木刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_096",
+   "name": "三十二势长拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_048",
+   "name": "石鼓打穴笔法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_039",
+   "name": "释迦掷象功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_040",
+   "name": "瞬息千里",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_049",
+   "name": "四门刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_097",
+   "name": "四象掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_041",
+   "name": "太极功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_098",
+   "name": "天竺佛指",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_099",
+   "name": "通臂六合掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_100",
+   "name": "透骨打穴法",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_042",
+   "name": "五轮大转",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_101",
+   "name": "五罗轻烟掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_043",
+   "name": "吸功入地小法",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_102",
+   "name": "先天拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_103",
+   "name": "鸭形拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 2,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_104",
+   "name": "野狐拳法",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_105",
+   "name": "一阳书指",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_044",
+   "name": "倚天屠龙功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [
+    "wudang"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_045",
+   "name": "沾衣十八跌",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_106",
+   "name": "长拳十段锦",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_107",
+   "name": "朱砂掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_014",
+   "name": "追命毒龙锥",
+   "kind": "qimen",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_108",
+   "name": "醉拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 2,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_050",
+   "name": "哀牢山三十六剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_109",
+   "name": "白虹掌力",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_015",
+   "name": "碧磷针",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_110",
+   "name": "沧州大洪拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_046",
+   "name": "柴刀十八路",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_111",
+   "name": "缠丝擒拿手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_112",
+   "name": "抽髓掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_047",
+   "name": "穿心钉",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_051",
+   "name": "慈悲刀",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_113",
+   "name": "大风云飞掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_114",
+   "name": "大洪拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_115",
+   "name": "大韦陀掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_116",
+   "name": "大智无定指",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_052",
+   "name": "刀中夹镖",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_048",
+   "name": "地母雷网",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_117",
+   "name": "丁家擒拿手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_118",
+   "name": "二郎担山掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_119",
+   "name": "飞凤手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qb_007",
+   "name": "飞天神行",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_120",
+   "name": "风雷掌法",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_053",
+   "name": "伏魔剑",
+   "kind": "blade",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_121",
+   "name": "盖马三拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_122",
+   "name": "关外大力擒拿手法",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_123",
+   "name": "寒冰神掌",
+   "kind": "quan",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_124",
+   "name": "寒冰掌",
+   "kind": "quan",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_054",
+   "name": "郝家刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_125",
+   "name": "黑煞掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_049",
+   "name": "后山三绝招",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_055",
+   "name": "呼延枪法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_126",
+   "name": "虎爪擒拿手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_056",
+   "name": "黄沙万里鞭法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_057",
+   "name": "回风拂柳刀",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_058",
+   "name": "回风剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_127",
+   "name": "回风掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_050",
+   "name": "混元一气功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_128",
+   "name": "鸡爪功",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_051",
+   "name": "极乐刺",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_052",
+   "name": "寂灭抓",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_059",
+   "name": "江南陆家刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_129",
+   "name": "僵尸拳",
+   "kind": "quan",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_060",
+   "name": "降魔刀法",
+   "kind": "blade",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_130",
+   "name": "降魔掌",
+   "kind": "quan",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_053",
+   "name": "金顶九式",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_061",
+   "name": "金刚伏虎刀法",
+   "kind": "blade",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_054",
+   "name": "金关玉锁二十四诀",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_131",
+   "name": "金蛇擒鹤拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_132",
+   "name": "开山掌法",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_133",
+   "name": "空空拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "yg_kurong",
+   "name": "枯荣禅功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [
+    "dali"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_134",
+   "name": "莲花掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qb_008",
+   "name": "灵鳌步",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_062",
+   "name": "罗汉刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_135",
+   "name": "罗汉伏虎拳",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_136",
+   "name": "孟家神拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_137",
+   "name": "排云双掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_055",
+   "name": "攀云乘龙",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_056",
+   "name": "盘根错节十八斧",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_138",
+   "name": "劈石拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [
+    "huashan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_139",
+   "name": "霹雳拳",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_057",
+   "name": "凭虚临风",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_063",
+   "name": "泼妇剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_058",
+   "name": "普门杖法",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qb_009",
+   "name": "七步追魂",
+   "kind": "qing",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_064",
+   "name": "奇门三才刀",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_059",
+   "name": "奇门五转",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [
+    "taohua"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_140",
+   "name": "去烦恼指",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_141",
+   "name": "如影随形腿",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_142",
+   "name": "三花聚顶掌法",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_143",
+   "name": "三十六路大擒拿手",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_144",
+   "name": "三阴手",
+   "kind": "quan",
+   "nature": "yin",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_065",
+   "name": "上清快剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_060",
+   "name": "神倒鬼跌三连环",
+   "kind": "neigong",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_145",
+   "name": "神驼雪山掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_061",
+   "name": "双短叉",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_062",
+   "name": "太岳三青峰",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_063",
+   "name": "泰山十八盘",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_146",
+   "name": "天长掌法",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [
+    "hengshan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_066",
+   "name": "铁拐阵",
+   "kind": "blade",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_147",
+   "name": "铁指诀",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_148",
+   "name": "铁帚腿法",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_067",
+   "name": "铜锤手",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qi_016",
+   "name": "透骨针",
+   "kind": "qimen",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_068",
+   "name": "万花剑法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [
+    "hengshan"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_069",
+   "name": "韦陀伏魔剑",
+   "kind": "blade",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_064",
+   "name": "无妄神功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_065",
+   "name": "无形粉",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_149",
+   "name": "五行连环拳",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_070",
+   "name": "希夷剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_150",
+   "name": "逍遥游拳法",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_066",
+   "name": "小十八拿",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_067",
+   "name": "心意气混元功",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_071",
+   "name": "玄虚刀法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_072",
+   "name": "迅雷剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_073",
+   "name": "雁行刀",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_074",
+   "name": "养吾剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_068",
+   "name": "因陀罗抓",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_075",
+   "name": "阴风刀",
+   "kind": "blade",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_151",
+   "name": "阴风爪",
+   "kind": "quan",
+   "nature": "xie",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_069",
+   "name": "阴阳磨",
+   "kind": "neigong",
+   "nature": "yin",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_152",
+   "name": "鹰爪擒拿功",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_076",
+   "name": "渔叟钩法",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_077",
+   "name": "羽衣刀",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_153",
+   "name": "震天三十掌",
+   "kind": "quan",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "qn_154",
+   "name": "震天铁掌",
+   "kind": "quan",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [
+    "kunlun"
+   ],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_078",
+   "name": "指笔功",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "bl_079",
+   "name": "周公剑",
+   "kind": "blade",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "ng_070",
+   "name": "子母铁胆",
+   "kind": "neigong",
+   "nature": "gang",
+   "tier": "huang",
+   "freq": 1,
+   "books": 1,
+   "sect": [],
+   "origin": "corpus"
+  },
+  {
+   "id": "neigong_basic",
+   "name": "吐纳导引",
+   "kind": "neigong",
+   "nature": "zhong",
+   "tier": "huang",
+   "freq": 0,
+   "books": 0,
+   "sect": [],
+   "origin": "system"
+  }
+ ]
+}

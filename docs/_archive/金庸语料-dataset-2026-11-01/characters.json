@@ -1,0 +1,153 @@
+{
+ "aliasGroups": [
+  {
+   "id": "wei_xiaobao",
+   "name": "韦小宝",
+   "alias": [
+    "小宝",
+    "小桂子",
+    "韦香主"
+   ],
+   "aliasVerified": [
+    "小宝",
+    "小桂子",
+    "韦香主"
+   ],
+   "note": "小宝 跨3书 ⇒ 待核是否全指韦小宝",
+   "freq": 10692,
+   "books": 4
+  },
+  {
+   "id": "xiao_feng",
+   "name": "萧峰",
+   "alias": [
+    "乔峰"
+   ],
+   "aliasVerified": [
+    "乔峰"
+   ],
+   "note": "乔峰=契丹名前的汉名，同一人",
+   "freq": 2918,
+   "books": 2
+  },
+  {
+   "id": "huang_rong",
+   "name": "黄蓉",
+   "alias": [
+    "蓉儿",
+    "黄帮主"
+   ],
+   "aliasVerified": [
+    "蓉儿",
+    "黄帮主"
+   ],
+   "note": "",
+   "freq": 5534,
+   "books": 4
+  },
+  {
+   "id": "yang_guo",
+   "name": "杨过",
+   "alias": [
+    "过儿"
+   ],
+   "aliasVerified": [
+    "过儿"
+   ],
+   "note": "",
+   "freq": 6314,
+   "books": 5
+  },
+  {
+   "id": "zhou_botong",
+   "name": "周伯通",
+   "alias": [
+    "老顽童"
+   ],
+   "aliasVerified": [
+    "老顽童"
+   ],
+   "note": "",
+   "freq": 1528,
+   "books": 3
+  },
+  {
+   "id": "tonglao",
+   "name": "天山童姥",
+   "alias": [
+    "童姥"
+   ],
+   "aliasVerified": [
+    "童姥"
+   ],
+   "note": "",
+   "freq": 583,
+   "books": 1
+  },
+  {
+   "id": "dai_qisi",
+   "name": "黛绮丝",
+   "alias": [
+    "金花婆婆"
+   ],
+   "aliasVerified": [
+    "金花婆婆"
+   ],
+   "note": "",
+   "freq": 343,
+   "books": 1
+  },
+  {
+   "id": "ren_yingying",
+   "name": "任盈盈",
+   "alias": [
+    "圣姑"
+   ],
+   "aliasVerified": [
+    "圣姑"
+   ],
+   "note": "圣姑 跨2书 ⇒ 待核",
+   "freq": 113,
+   "books": 2
+  },
+  {
+   "id": "zhao_min",
+   "name": "赵敏",
+   "alias": [
+    "绍敏郡主"
+   ],
+   "aliasVerified": [
+    "绍敏郡主"
+   ],
+   "note": "",
+   "freq": 1258,
+   "books": 1
+  },
+  {
+   "id": "a_jiu",
+   "name": "阿九",
+   "alias": [
+    "长平公主"
+   ],
+   "aliasVerified": [
+    "长平公主"
+   ],
+   "note": "",
+   "freq": 225,
+   "books": 2
+  },
+  {
+   "id": "hu_fei",
+   "name": "胡斐",
+   "alias": [
+    "雪山飞狐"
+   ],
+   "aliasVerified": [
+    "雪山飞狐"
+   ],
+   "note": "书名兼外号",
+   "freq": 3002,
+   "books": 2
+  }
+ ]
+}

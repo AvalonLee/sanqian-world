@@ -1,0 +1,404 @@
+{
+ "_meta": {
+  "builtAt": "2026-11-01",
+  "method": "地界 13 处（六区）· 子场景频次全部来自全文重算（place-exact.json）",
+  "correction": "原框架称「六区十二地」，实列 13 处 —— 本表按实为 13，首发 10",
+  "launchCount": 10,
+  "noFreq": []
+ },
+ "regions": {
+  "zhongyuan": "中原",
+  "jiangnan": "江南",
+  "xiyu": "西域",
+  "saibei": "塞北",
+  "nanjiang": "南疆",
+  "haiwai": "海外"
+ },
+ "zones": [
+  {
+   "id": "shaolin",
+   "name": "少林山门",
+   "region": "zhongyuan",
+   "launch": true,
+   "sect": [
+    "shaolin"
+   ],
+   "scenes": [
+    "少林寺",
+    "少室山",
+    "藏经阁",
+    "五台山"
+   ],
+   "freq": 1121,
+   "sceneFreq": [
+    {
+     "name": "少林寺",
+     "freq": 1121
+    },
+    {
+     "name": "少室山",
+     "freq": 115
+    },
+    {
+     "name": "藏经阁",
+     "freq": 55
+    },
+    {
+     "name": "五台山",
+     "freq": 180
+    }
+   ]
+  },
+  {
+   "id": "songshan",
+   "name": "嵩山绝顶",
+   "region": "zhongyuan",
+   "launch": true,
+   "sect": [
+    "songshan"
+   ],
+   "scenes": [
+    "嵩山",
+    "泰山"
+   ],
+   "freq": 594,
+   "sceneFreq": [
+    {
+     "name": "嵩山",
+     "freq": 594
+    },
+    {
+     "name": "泰山",
+     "freq": 322
+    }
+   ]
+  },
+  {
+   "id": "luoyang",
+   "name": "洛阳城",
+   "region": "zhongyuan",
+   "launch": true,
+   "sect": [],
+   "scenes": [
+    "洛阳",
+    "京城",
+    "聚贤庄",
+    "开封"
+   ],
+   "freq": 254,
+   "sceneFreq": [
+    {
+     "name": "洛阳",
+     "freq": 118
+    },
+    {
+     "name": "京城",
+     "freq": 254
+    },
+    {
+     "name": "聚贤庄",
+     "freq": 69
+    },
+    {
+     "name": "开封",
+     "freq": 55
+    }
+   ]
+  },
+  {
+   "id": "yanziwu",
+   "name": "姑苏燕子坞",
+   "region": "jiangnan",
+   "launch": true,
+   "sect": [
+    "murong"
+   ],
+   "scenes": [
+    "姑苏",
+    "燕子坞",
+    "听香水榭",
+    "太湖"
+   ],
+   "freq": 194,
+   "sceneFreq": [
+    {
+     "name": "姑苏",
+     "freq": 194
+    },
+    {
+     "name": "燕子坞",
+     "freq": 22
+    },
+    {
+     "name": "听香水榭",
+     "freq": 19
+    },
+    {
+     "name": "太湖",
+     "freq": 68
+    }
+   ]
+  },
+  {
+   "id": "yanfulou",
+   "name": "嘉兴烟雨楼",
+   "region": "jiangnan",
+   "launch": true,
+   "sect": [
+    "taohua"
+   ],
+   "scenes": [
+    "嘉兴",
+    "烟雨楼",
+    "西湖",
+    "临安"
+   ],
+   "freq": 164,
+   "sceneFreq": [
+    {
+     "name": "嘉兴",
+     "freq": 118
+    },
+    {
+     "name": "烟雨楼",
+     "freq": 42
+    },
+    {
+     "name": "西湖",
+     "freq": 88
+    },
+    {
+     "name": "临安",
+     "freq": 164
+    }
+   ]
+  },
+  {
+   "id": "guangmingding",
+   "name": "光明顶",
+   "region": "xiyu",
+   "launch": true,
+   "sect": [
+    "mingjiao"
+   ],
+   "scenes": [
+    "光明顶",
+    "昆仑",
+    "星宿海"
+   ],
+   "freq": 342,
+   "sceneFreq": [
+    {
+     "name": "光明顶",
+     "freq": 184
+    },
+    {
+     "name": "昆仑",
+     "freq": 342
+    },
+    {
+     "name": "星宿海",
+     "freq": 31
+    }
+   ]
+  },
+  {
+   "id": "kunlun_ice",
+   "name": "昆仑雪谷",
+   "region": "xiyu",
+   "launch": false,
+   "sect": [
+    "kunlun"
+   ],
+   "scenes": [
+    "昆仑山",
+    "天山",
+    "缥缈峰"
+   ],
+   "freq": 193,
+   "sceneFreq": [
+    {
+     "name": "昆仑山",
+     "freq": 45
+    },
+    {
+     "name": "天山",
+     "freq": 193
+    },
+    {
+     "name": "缥缈峰",
+     "freq": 84
+    }
+   ]
+  },
+  {
+   "id": "yanmenguan",
+   "name": "雁门关外",
+   "region": "saibei",
+   "launch": true,
+   "sect": [],
+   "scenes": [
+    "雁门关",
+    "关外",
+    "塞外",
+    "辽东"
+   ],
+   "freq": 193,
+   "sceneFreq": [
+    {
+     "name": "雁门关",
+     "freq": 84
+    },
+    {
+     "name": "关外",
+     "freq": 158
+    },
+    {
+     "name": "塞外",
+     "freq": 38
+    },
+    {
+     "name": "辽东",
+     "freq": 193
+    }
+   ]
+  },
+  {
+   "id": "damo",
+   "name": "大漠孤城",
+   "region": "saibei",
+   "launch": true,
+   "sect": [],
+   "scenes": [
+    "大漠",
+    "沙漠",
+    "锦州",
+    "回疆"
+   ],
+   "freq": 163,
+   "sceneFreq": [
+    {
+     "name": "大漠",
+     "freq": 163
+    },
+    {
+     "name": "沙漠",
+     "freq": 101
+    },
+    {
+     "name": "锦州",
+     "freq": 49
+    },
+    {
+     "name": "回疆",
+     "freq": 93
+    }
+   ]
+  },
+  {
+   "id": "wuliang",
+   "name": "无量山",
+   "region": "nanjiang",
+   "launch": false,
+   "sect": [],
+   "scenes": [
+    "无量山",
+    "万劫谷",
+    "剑湖宫"
+   ],
+   "freq": 55,
+   "sceneFreq": [
+    {
+     "name": "无量山",
+     "freq": 55
+    },
+    {
+     "name": "万劫谷",
+     "freq": 53
+    },
+    {
+     "name": "剑湖宫",
+     "freq": 28
+    }
+   ]
+  },
+  {
+   "id": "dali",
+   "name": "大理城",
+   "region": "nanjiang",
+   "launch": true,
+   "sect": [
+    "dali"
+   ],
+   "scenes": [
+    "大理",
+    "天龙寺",
+    "昆明"
+   ],
+   "freq": 678,
+   "sceneFreq": [
+    {
+     "name": "大理",
+     "freq": 678
+    },
+    {
+     "name": "天龙寺",
+     "freq": 86
+    },
+    {
+     "name": "昆明",
+     "freq": 78
+    }
+   ]
+  },
+  {
+   "id": "lingshe",
+   "name": "灵蛇岛",
+   "region": "haiwai",
+   "launch": false,
+   "sect": [],
+   "scenes": [
+    "灵蛇岛",
+    "通吃岛"
+   ],
+   "freq": 56,
+   "sceneFreq": [
+    {
+     "name": "灵蛇岛",
+     "freq": 55
+    },
+    {
+     "name": "通吃岛",
+     "freq": 56
+    }
+   ]
+  },
+  {
+   "id": "binghuo",
+   "name": "冰火岛",
+   "region": "haiwai",
+   "launch": true,
+   "sect": [],
+   "scenes": [
+    "冰火岛",
+    "桃花岛",
+    "侠客岛"
+   ],
+   "freq": 434,
+   "sceneFreq": [
+    {
+     "name": "冰火岛",
+     "freq": 67
+    },
+    {
+     "name": "桃花岛",
+     "freq": 434
+    },
+    {
+     "name": "侠客岛",
+     "freq": 143
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,640 @@
+{
+ "arts": [
+  {
+   "id": "jg_jiuyin",
+   "name": "九阴真经",
+   "kind": "neigong",
+   "tier": "tian",
+   "nature": "yinrou",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 254,
+   "books": 3
+  },
+  {
+   "id": "jg_yijin",
+   "name": "易筋经",
+   "kind": "neigong",
+   "tier": "tian",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 86,
+   "books": 3
+  },
+  {
+   "id": "jg_xixing",
+   "name": "吸星大法",
+   "kind": "neigong",
+   "tier": "di",
+   "nature": "xieyi",
+   "forbidden": true,
+   "origin": "canon",
+   "freq": 67,
+   "books": 1
+  },
+  {
+   "id": "jg_jiuyang",
+   "name": "九阳真经",
+   "kind": "neigong",
+   "tier": "tian",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 58,
+   "books": 2
+  },
+  {
+   "id": "jg_huagong",
+   "name": "化功大法",
+   "kind": "neigong",
+   "tier": "di",
+   "nature": "xieyi",
+   "forbidden": true,
+   "origin": "canon",
+   "freq": 54,
+   "books": 2
+  },
+  {
+   "id": "jg_beiming",
+   "name": "北冥神功",
+   "kind": "neigong",
+   "tier": "di",
+   "nature": "yinrou",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 37,
+   "books": 2
+  },
+  {
+   "id": "jg_zixia",
+   "name": "紫霞神功",
+   "kind": "neigong",
+   "tier": "di",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 36,
+   "books": 1
+  },
+  {
+   "id": "jg_xiaowuxiang",
+   "name": "小无相功",
+   "kind": "neigong",
+   "tier": "di",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 28,
+   "books": 1
+  },
+  {
+   "id": "qg_xianglong",
+   "name": "降龙十八掌",
+   "kind": "quan",
+   "tier": "tian",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 146,
+   "books": 4
+  },
+  {
+   "id": "qg_qishang",
+   "name": "七伤拳",
+   "kind": "quan",
+   "tier": "di",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 98,
+   "books": 1
+  },
+  {
+   "id": "qg_hama",
+   "name": "蛤蟆功",
+   "kind": "quan",
+   "tier": "di",
+   "nature": "xieyi",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 57,
+   "books": 2
+  },
+  {
+   "id": "qg_boruo",
+   "name": "般若掌",
+   "kind": "quan",
+   "tier": "di",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 51,
+   "books": 2
+  },
+  {
+   "id": "qg_xuanming",
+   "name": "玄冥神掌",
+   "kind": "quan",
+   "tier": "di",
+   "nature": "yinrou",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 43,
+   "books": 1
+  },
+  {
+   "id": "qg_kongming",
+   "name": "空明拳",
+   "kind": "quan",
+   "tier": "di",
+   "nature": "yinrou",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 37,
+   "books": 3
+  },
+  {
+   "id": "qg_liuyang",
+   "name": "天山六阳掌",
+   "kind": "quan",
+   "tier": "di",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 25,
+   "books": 1
+  },
+  {
+   "id": "qg_luohan",
+   "name": "罗汉拳",
+   "kind": "quan",
+   "tier": "huang",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 21,
+   "books": 5
+  },
+  {
+   "id": "qg_anran",
+   "name": "黯然销魂掌",
+   "kind": "quan",
+   "tier": "tian",
+   "nature": "yinrou",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 19,
+   "books": 1
+  },
+  {
+   "id": "bj_bixie",
+   "name": "辟邪剑法",
+   "kind": "blade",
+   "tier": "tian",
+   "nature": "xieyi",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 160,
+   "books": 1
+  },
+  {
+   "id": "bj_yiyang",
+   "name": "一阳指",
+   "kind": "blade",
+   "tier": "di",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 159,
+   "books": 4
+  },
+  {
+   "id": "bj_dagou",
+   "name": "打狗棒法",
+   "kind": "blade",
+   "tier": "di",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 158,
+   "books": 4
+  },
+  {
+   "id": "bj_liumai",
+   "name": "六脉神剑",
+   "kind": "blade",
+   "tier": "tian",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 148,
+   "books": 1
+  },
+  {
+   "id": "bj_dugu",
+   "name": "独孤九剑",
+   "kind": "blade",
+   "tier": "tian",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 80,
+   "books": 1
+  },
+  {
+   "id": "bj_bagua",
+   "name": "八卦刀",
+   "kind": "blade",
+   "tier": "xuan",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 49,
+   "books": 5
+  },
+  {
+   "id": "bj_xueshan",
+   "name": "雪山剑法",
+   "kind": "blade",
+   "tier": "xuan",
+   "nature": "yinrou",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 45,
+   "books": 1
+  },
+  {
+   "id": "bj_hujia",
+   "name": "胡家刀法",
+   "kind": "blade",
+   "tier": "xuan",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 40,
+   "books": 2
+  },
+  {
+   "id": "bj_jingang",
+   "name": "金刚指",
+   "kind": "blade",
+   "tier": "xuan",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 39,
+   "books": 2
+  },
+  {
+   "id": "bj_liangyi",
+   "name": "两仪剑法",
+   "kind": "blade",
+   "tier": "xuan",
+   "nature": "yinrou",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 31,
+   "books": 3
+  },
+  {
+   "id": "qg_lingbo",
+   "name": "凌波微步",
+   "kind": "qing",
+   "tier": "tian",
+   "nature": "yinrou",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 77,
+   "books": 1
+  },
+  {
+   "id": "qg_shenxing",
+   "name": "神行百变",
+   "kind": "qing",
+   "tier": "di",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 40,
+   "books": 2
+  },
+  {
+   "id": "qg_tiyun",
+   "name": "梯云纵",
+   "kind": "qing",
+   "tier": "xuan",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 9,
+   "books": 1
+  },
+  {
+   "id": "qg_babu",
+   "name": "八步赶蟾",
+   "kind": "qing",
+   "tier": "xuan",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 7,
+   "books": 3
+  },
+  {
+   "id": "qm_shengsi",
+   "name": "生死符",
+   "kind": "qimen",
+   "tier": "di",
+   "nature": "xieyi",
+   "forbidden": true,
+   "origin": "canon",
+   "freq": 124,
+   "books": 1
+  },
+  {
+   "id": "qm_tanzhi",
+   "name": "弹指神通",
+   "kind": "qimen",
+   "tier": "di",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 32,
+   "books": 4
+  },
+  {
+   "id": "qm_huagu",
+   "name": "化骨绵掌",
+   "kind": "qimen",
+   "tier": "xuan",
+   "nature": "yinrou",
+   "forbidden": true,
+   "origin": "canon",
+   "freq": 24,
+   "books": 1
+  },
+  {
+   "id": "qm_dozhuan",
+   "name": "斗转星移",
+   "kind": "qimen",
+   "tier": "tian",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 22,
+   "books": 3
+  },
+  {
+   "id": "jc_tuna",
+   "name": "吐纳导引",
+   "kind": "neigong",
+   "tier": "huang",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "system",
+   "freq": 0,
+   "books": 0
+  }
+ ],
+ "basic": [
+  {
+   "id": "rm_bajiquan",
+   "name": "八极拳",
+   "kind": "quan",
+   "tier": "huang",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 20,
+   "books": 1
+  },
+  {
+   "id": "rm_longzhuashou",
+   "name": "龙爪手",
+   "kind": "quan",
+   "tier": "xuan",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 27,
+   "books": 3
+  },
+  {
+   "id": "rm_wudangchangquan",
+   "name": "武当长拳",
+   "kind": "quan",
+   "tier": "huang",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 15,
+   "books": 4
+  },
+  {
+   "id": "rm_wuxingquan",
+   "name": "五行拳",
+   "kind": "quan",
+   "tier": "huang",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 12,
+   "books": 5
+  },
+  {
+   "id": "rm_chaquan",
+   "name": "查拳",
+   "kind": "quan",
+   "tier": "huang",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 11,
+   "books": 2
+  },
+  {
+   "id": "rm_taizu",
+   "name": "太祖长拳",
+   "kind": "quan",
+   "tier": "huang",
+   "nature": "gangmeng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 10,
+   "books": 1
+  },
+  {
+   "id": "rm_shaolinchangquan",
+   "name": "少林长拳",
+   "kind": "quan",
+   "tier": "huang",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 7,
+   "books": 1
+  },
+  {
+   "id": "rm_shiduanjin",
+   "name": "十段锦",
+   "kind": "neigong",
+   "tier": "huang",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 8,
+   "books": 2
+  },
+  {
+   "id": "rm_fenjin",
+   "name": "分筋错骨手",
+   "kind": "qimen",
+   "tier": "huang",
+   "nature": "xieyi",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 20,
+   "books": 4
+  },
+  {
+   "id": "rm_caoshangfei",
+   "name": "草上飞",
+   "kind": "qing",
+   "tier": "huang",
+   "nature": "zhongzheng",
+   "forbidden": false,
+   "origin": "canon",
+   "freq": 4,
+   "books": 4
+  }
+ ],
+ "secrets": [
+  {
+   "name": "九阴真经",
+   "type": "wuxue",
+   "freq": 185,
+   "books": 2,
+   "source": "title"
+  },
+  {
+   "name": "四十二章经",
+   "type": "treasure",
+   "freq": 98,
+   "books": 2,
+   "source": "title"
+  },
+  {
+   "name": "辟邪剑谱",
+   "type": "wuxue",
+   "freq": 96,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "易筋经",
+   "type": "wuxue",
+   "freq": 73,
+   "books": 2,
+   "source": "title"
+  },
+  {
+   "name": "葵花宝典",
+   "type": "wuxue",
+   "freq": 51,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "紫霞秘笈",
+   "type": "wuxue",
+   "freq": 26,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "药王神篇",
+   "type": "wuxue",
+   "freq": 26,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "金蛇秘笈",
+   "type": "wuxue",
+   "freq": 21,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "九阳真经",
+   "type": "wuxue",
+   "freq": 17,
+   "books": 2,
+   "source": "title"
+  },
+  {
+   "name": "广陵散",
+   "type": "music",
+   "freq": 17,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "连城剑谱",
+   "type": "wuxue",
+   "freq": 15,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "清心普善咒",
+   "type": "music",
+   "freq": 13,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "五毒秘传",
+   "type": "wuxue",
+   "freq": 10,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "血刀经",
+   "type": "wuxue",
+   "freq": 5,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "太极拳经",
+   "type": "wuxue",
+   "freq": 5,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "碧海潮生曲",
+   "type": "music",
+   "freq": 5,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "率意帖",
+   "type": "other",
+   "freq": 4,
+   "books": 1,
+   "source": "title"
+  },
+  {
+   "name": "呕血谱",
+   "type": "other",
+   "freq": 4,
+   "books": 1,
+   "source": "title"
+  }
+ ]
+}

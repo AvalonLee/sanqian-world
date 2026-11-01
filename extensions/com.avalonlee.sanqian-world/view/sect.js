@@ -251,7 +251,117 @@
     }
     c.$('tab-sect').innerHTML = h;
   }
+  /* ── 宗门页动作十支（第册一百四十二批 2026-10-23 · B2 = D15 阶段 B 第二刀 · 自内核派发器整支搬入）
+   * 为什么这一刀要先把走查网补上：本篇对应的 `.tests/verify-ui-sect.cjs` 是本批新建的——`sectSucceed` /
+   *   `sectOffer` 此前在 `.tests` 里**零引用**，`sectAccept` / `sectReject` 更是真机不可达（见 N87 在册）。
+   *   搬动作最贵的失误是「按钮还在、点了没反应」，没有网的页搬完只能靠自证。
+   * 桥**零新增**：`s` / `w` / `d` / `ui` / `$` / `t` / `toast` / `ask` / `renderAll` / `timeLeft` 全在册。
+   * ⚠️ 立派那支读 `#sect-name-input` 的**现值**（用户可能刚敲完就点），所以取值放在确认回调里、
+   *   与核内原写法一致；放进函数入口会多读一次旧值。
+   * ⚠️ N87：`sectAccept` / `sectReject` 照搬不误——断链成因在引擎 normalize（`candidate` 是临时态），
+   *   不在这两支身上；修好引擎后这两支即可达，届时 C2b 守门判会变红提醒改正面断言。 */
+
+  /* 立派：三定（门规 / 宗名 / 阵营）已在页内选好，这里只走确认 + 事务 */
+  function actFound(c) {
+    var nameIn = c.$('sect-name-input');
+    /* 门规宣言随立派一次写入（第册一百一十八批）：值取 `ui.sectFoundMotto`（input 监听回填，
+     * 与自定义名同一套防 tick 抹字的口径），成交即清空——下一门不该继承上一门的宣言。 */
+    var mottoIn = (c.ui.sectFoundMotto || '').trim();
+    c.ask(c.t('sect.found.btn'), c.t('sect.found.confirm'), async function () {
+      var rFd = await SQ.Actions.sectFound(c.s, (c.ui.sectPick || {}).gate || 'wuyue', nameIn ? nameIn.value : '', null, (c.ui.sectPick || {}).align || 'neutral', mottoIn);
+      if (rFd && rFd.ok) {
+        c.ui.sectFoundMotto = '';
+        c.toast(c.t('sect.found.log', { name: rFd.name, gate: c.t('sect.gate.' + ((c.ui.sectPick || {}).gate || 'wuyue') + '.name') }));
+      }
+      else if (rFd) {
+        var fkk = 'sect.ui.fail.' + rFd.reason;
+        c.toast(c.t(fkk) !== fkk ? c.t(fkk) : rFd.reason);
+      }
+      c.renderAll();
+    });
+  }
+
+  /* 招贤 / 收下 / 逐客：三支各自一口，名额满时给同一句提示 */
+  async function actRecruit(c) {
+    var rRc = await SQ.Actions.sectRecruit(c.s);
+    if (rRc && rRc.reason === 'cap') c.toast(c.t('sect.disc.cap.full'));
+    c.renderAll();
+  }
+  async function actAccept(c) {
+    var rAc = await SQ.Actions.sectAccept(c.s);
+    if (rAc && rAc.reason === 'cap') c.toast(c.t('sect.disc.cap.full'));
+    c.renderAll();
+  }
+  async function actReject(c) {
+    await SQ.Actions.sectReject(c.s);
+    c.toast(c.t('sect.disc.reject'));
+    c.renderAll();
+  }
+
+  /* 请为供奉：引擎侧 tier<4 有 OFFER_P3 概率婉拒 ⇒ 两种拒因各给一句中文 */
+  async function actOffer(c, v) {
+    var rOf = await SQ.Actions.sectOffer(c.s, v);
+    if (rOf && !rOf.ok) c.toast(rOf.reason === 'refuse' ? c.t('sect.disc.offer.refuse', { name: c.t('bond.' + v + '.name') }) : c.t('sect.disc.offer.need'));
+    c.renderAll();
+  }
+
+  /* 投资档位（`cc` = 卡上 data-c，1/2/3 档；成本走月度供奉，不即时扣） */
+  async function actInvest(c, v, cc) {
+    await SQ.Actions.sectInvest(c.s, v, parseInt(cc, 10));
+    c.renderAll();
+  }
+
+  /* 营建：失败原因四路全给中文（原 `: rBd.reason` 直落 ⇒ 'none' / 'unknown' 裸英文上屏）*/
+  async function actBuild(c, v) {
+    var rBd = await SQ.Actions.sectBuild(c.s, v);
+    /* 兜底键 sect.ui.build.other 保证任何新 reason 也不外泄内部字段名（#272/#273 同纪律） */
+    if (rBd && !rBd.ok) {
+      var kBd = 'sect.ui.build.' + rBd.reason;
+      c.toast(rBd.reason === 'poor' ? c.t('legacy.ui.poor') : (rBd.reason === 'max' ? c.t('sect.fac.max') :
+        (c.t(kBd) !== kBd ? c.t(kBd) : c.t('sect.ui.build.other'))));
+    }
+    c.renderAll();
+  }
+
+  /* 调遣：引擎四种拒因（cd / none / unknown / chan）都必须给提示——静默拒绝是本仓头号复现缺陷 */
+  async function actDispatch(c, v) {
+    var rDp = await SQ.Actions.sectDispatch(c.s, v);
+    if (rDp && !rDp.ok) {
+      var rk = ['cd', 'none', 'chan', 'unknown'].indexOf(rDp.reason) >= 0 ? rDp.reason : 'other';
+      c.toast(c.t('faction.office.dispatch.' + rk));
+    }
+    c.renderAll();
+  }
+
+  /* 宣战：拒因一律走表内键（不许把内部字段名打上屏）；结仇宣战多一枚 poor（把这一笔的价说出口） */
+  async function actWar(c, v) {
+    var rW = await SQ.Actions.sectWar(c.s, v);
+    if (rW && !rW.ok) c.toast(rW.reason === 'cd' ? c.t('sect.war.cd', { t: c.timeLeft(rW.until - Date.now()) })
+      : (rW.reason === 'busy' ? c.t('sect.war.busy')
+        : (rW.reason === 'poor' ? c.t('sect.war.open.poor', { n: SQ.fmt(rW.cost || 0) }) : c.t('sect.war.reject'))));
+    else if (rW && rW.ok && rW.fee > 0) c.toast(c.t('sect.war.open.log', {
+      name: (SQ.Factions.nameOf(c.w, v) || ''), n: SQ.fmt(rW.fee),
+      cut: Math.round((c.d.SECT.WAR_REP_SELF_CUT != null ? c.d.SECT.WAR_REP_SELF_CUT : 0.10) * 100),
+      karma: Math.abs(c.d.SECT.WAR_OPEN_KARMA != null ? c.d.SECT.WAR_OPEN_KARMA : -30), m: (rW.foes || []).length
+    }));
+    c.renderAll();
+  }
+
+  /* 接任（传位）：真仙位阶 + 有弟子才出这颗钮；成功后走「已传位」态 */
+  function actSucceed(c, v) {
+    c.ask(c.t('sect.ui.succ.btn'), c.t('sect.ui.succ.confirm'), async function () {
+      var rSc = await SQ.Actions.sectSucceed(c.s, v);
+      if (rSc && rSc.ok) c.toast(c.t('sect.succ.log', { name: (c.w.sect || {}).name || '', heir: '' }));
+      else if (rSc && rSc.reason === 'realm') c.toast(c.t('legacy.ui.feisheng.lock.realm'));
+      c.renderAll();
+    });
+  }
+
   SQ.UI = SQ.UI || {};
   /* 导出表：D14 按「深度 1 的 key:」抽取，表内不许夹注释 */
-  SQ.UI.sect = { render: render };
+  /* 十支动作各由派发器一行转发引用（D14 枚枚有人读）；`actInvest` 三参 = 桥 + 弟子 id + 档位 */
+  SQ.UI.sect = { render: render,
+    actFound: actFound, actRecruit: actRecruit, actAccept: actAccept, actReject: actReject,
+    actOffer: actOffer, actInvest: actInvest, actBuild: actBuild, actDispatch: actDispatch,
+    actWar: actWar, actSucceed: actSucceed };
 })();

@@ -9,6 +9,9 @@
  * 留内核两族：**`modal-choice` 那一族的 DOM 监听与 `ambushTimer`**（外置件不绑监听、不持定时器；定时器超时后回调
  *   `SQ.UI.event.choiceResult(ctx(), res)` 把这一屏结清在屏上——那条出口是 2026-10-18「魔道来犯无法点选、又关不掉」的修复，
  *   **不许退化成只 renderAll()**）‖ **`SQ.Actions.resolveChoice` 的结算链**（动作不是渲染）。
+ * 🔧 第册一百四十五批（B4）：**判定演出定时器族与 `choose` 作答流整族迁入本件**（`judgingTimers` / `actChoose`），
+ *   桥位 `clearJudging` 随之退役（−1）、换入 `renderTop`（+1）——作答后顶栏资源要立即刷新；「不持定时器」那条
+ *   自本批起只指 `ambushTimer`（它超时回调的是核内弹层栈，与判定演出不同族）。
  * ⚠️ 改写器字符串感知；件内互调显式补 `c`；改完跑「内核函数名 × 件内裸调用」全表对扫。
  */
 (function () {
@@ -129,7 +132,7 @@
     var ev = c.findEvent(pend.id);
     if (!ev) return;
     lastChoiceResult = null;
-    c.clearJudging();   /* 判定动画的定时器数组仍在核内（内核的作答流也在 push）⇒ 走桥位清点 */
+    clearJudgingTimers();   /* 判定动画的定时器数组已迁入本件（B4）⇒ 件内直呼，桥位已退役 */
     c.$('mc-date').textContent = c.date(c.s.profile, c.w, Date.now(), c.s.profile.worldId) || '';
     c.$('mc-gk-karma').textContent = c.t('karma.system');
     c.$('mc-gk-eff').textContent = c.t('event.res.eff');
@@ -231,7 +234,58 @@
     }
     c.$('mc-ok').textContent = c.t('ui.confirm');
   }
+  /* ── 判定演出定时器 + `choose` 作答流（第册一百四十五批 2026-10-23 · B4 = D15 阶段 B 第四刀 · 自内核整族搬入）
+   * 搬前定时器数组留在核内、件内只借 `clearJudging` 一枚桥位清点；现在整族进件，那枚桥位退役。
+   * ⚠️ 演出是纯表现：引擎在 `resolveChoice` 里早已出结果（交互说明 §4.3），定时器只管逐级点亮。
+   * ⚠️ 回调形参一律避开 `c`（桥占了这个位置，本件在册硬口径）——原核内写法 `chks.map(function (c, i))`
+   *   搬入时改 `ck`。 */
+  var judgingTimers = [];
+  function clearJudgingTimers() { judgingTimers.forEach(function (t) { clearTimeout(t); }); judgingTimers = []; }
+
+  /* `choose` 作答：`bk` = 'right' | 'evil' | 'neutral'；有检查项且未减动效 ⇒ 先演 ≈1s 判定再结算 */
+  async function actChoose(c, bk) {
+    var pendC = c.w.pendingChoice;
+    if (!pendC) return;
+    var evC = c.findEvent(pendC.id);
+    var brC = evC && evC.choices ? evC.choices[bk] : null;
+    var chks = brC ? c.branchChecks(brC) : [];
+    var finishChoose = async function () {
+      var res = await SQ.Actions.resolveChoice(c.s, bk);
+      if (!res) return;
+      if (res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) SQ.UI.show.exclusive(c.fresh(), res.eff);
+      /* bond 升档 toast（B7 · 交互说明 §2.3 白名单）：达档 3 另弹「愿为你护法」 */
+      var bd = res.eff && res.eff.bond;
+      if (bd && bd.tierUp && !bd.blocked) {
+        c.toast(c.t('bond.toast.tier', { name: c.t('bond.' + bd.npc + '.name'), title: c.t('bond.' + bd.npc + '.title.' + bd.tier) }));
+        if (bd.tier === 3) c.toast(c.t('bond.toast.guardian', { name: c.t('bond.' + bd.npc + '.name') }));
+      }
+      SQ.UI.event.choiceResult(c.fresh(), res);
+      c.renderTop();
+    };
+    if (chks.length && !c.reducedMotion()) {
+      /* 判定演出 ≈1s：链逐级点亮（引擎已出结果，演出纯表现；交互说明 §4.3） */
+      c.$('mc-branches').classList.add('hide');
+      c.$('mc-foot').classList.add('hide');
+      var jd = c.$('mc-judging');
+      jd.innerHTML = '<div style="font-weight:650">' + c.esc(c.t('event.modal.judging')) + '</div>' +
+        chks.map(function (ck, i) {
+          return '<div class="jline" id="jline-' + i + '">' + c.esc(c.checkPreview(ck).label) + '</div>';
+        }).join('');
+      jd.classList.remove('hide');
+      var step = Math.max(150, Math.floor(1000 / (chks.length + 1)));
+      chks.forEach(function (ck, i) {
+        judgingTimers.push(setTimeout(function () {
+          var el = c.$('jline-' + i);
+          if (el) el.classList.add('lit');
+        }, step * (i + 1)));
+      });
+      judgingTimers.push(setTimeout(function () { jd.classList.add('hide'); finishChoose(); }, step * (chks.length + 1) + 200));
+    } else {
+      await finishChoose();
+    }
+  }
+
   SQ.UI = SQ.UI || {};
-  /* 导出表：D14 按「深度 1 的 key:」抽取，表内不许夹注释 */
-  SQ.UI.event = { render: render, choice: choice, choiceResult: choiceResult };
+  /* 导出表：D14 按「深度 1 的 key:」抽取，表内不许夹注释；`actChoose` 由派发器一行转发引用 */
+  SQ.UI.event = { render: render, choice: choice, choiceResult: choiceResult, actChoose: actChoose };
 })();

@@ -8,6 +8,7 @@ VibeX 已退役：不再打 ZIP 回传、不再跑 `npm run dev` / `build` / `ts
 
 ## 改动前按顺序读
 
+0. `docs/交接快照.md` — **接手第一读物（多 agent 联合开发为此立）**：现在进行时 / 有没有半成品 / 下一步候选 / 最近批次脉络，一处看完再往下读，省一遍考古。其新鲜度由门禁 `HANDOFF_STALE` 锚判守着（落后即红），可放心当现状读。
 1. `docs/总纲/三千世界-工程规范与验收计划.md` — 存档字段契约 / 世界包契约 / 断言总表 / 平台关卡 / §八 工作树持久化纪律。
 2. `docs/README.md` — 全卷索引。现行计数看 `docs/FACTS.md` 顶部**账本段**；各卷版本看 `docs/VERSIONS.md`；还没做什么看任务清单「现行未实施表」（销号唯一落点）。
 3. `extensions/com.avalonlee.sanqian-world/.tests/README.md` — 怎么验收、每件判据的末行标记是什么。
@@ -21,6 +22,7 @@ VibeX 已退役：不再打 ZIP 回传、不再跑 `npm run dev` / `build` / `ts
 ## 硬规矩（每一条都对应过一次真实返工）
 
 - **收口必跑** `npm test`（无头快门禁 = 冒烟 + 审计 + 两件仿真 + 十一路探针 + `versions-check` + `gen-ledger` + `ledger-selftest`；**件数与审计关数一律看 `docs/ledger.json` 生成段，本行不抄数**——本条此前手写「18 件 / 23 关」，实测已漂到 18 件 / 26 关）；改到界面再 `npm run test:ui`（走查篇数同上，不在此抄）；改玩法数值或节奏才需要 `npm run test:sim`。
+- **每批收口随批更新交接快照**：`docs/交接快照.md` 叙述（进行时 / 下一步 / 批次脉络）+ anchor 行（`SQ:HANDOFF:ANCHOR §7A:N` = 本批 §七A 条号），**先登记 §七A 再更快照**；哨兵读数由 `gen-ledger` 自动刷、不手抄；anchor 落后 / 超前于主设计 §七A 最新条号 ⇒ 门禁 `HANDOFF_STALE` 红，`--fix` 不代写叙述。细则 = 快照文末「维护纪律」。
 - **仓根不留一次性件**：调试脚本 / 工作备份 / 日志一律写到**仓库之外**（本仓 2026-10-17 实测：仓根曾堆 374 件 `sq-wip-*` 共 5.8MB，含 426KB 的 `index.html` 备份与 2.5MB 转储，全部被 `.gitignore` 的 `sq-wip-*` / `*.log` 藏掉 ⇒ **`git status` 干净并不代表仓根干净**，D4 与所有收口面都看不见它们）。旧件已移仓 `E:\下载\sanqian-wip-archive-20261017\`（未删，`data.js:37/181` 引用的 `sq-wip-life38d` 与 `sq-wip-tier-leftover.patch` 也在其中——它们本就是「只在这台机器上存在」的取证件，正典引用按名字读）。
 - **只有一份事实源**：不要为了「交付方便」再在仓库根复制 `assets/` 或 `manifest.json`——审计 **D4** 会直接判红。交付物就是 `extensions/com.avalonlee.sanqian-world/` 目录本身（宿主挂载它；`.storage.json` 实时存档在它里面且已 gitignore，永不入库）。
 - **现行读数不许手抄**：探针末行已打印的值（冒烟 / 审计关数 / 探针 / 走查 / 词表键 / 扩展版本 / 池规模）一律由 `docs/ledger.json` + `SQ:LEDGER:BEGIN/END` 哨兵段生成；`gen-ledger` 只判漂，要写文档才显式 `--fix`（或 `npm run ledger:fix`）。

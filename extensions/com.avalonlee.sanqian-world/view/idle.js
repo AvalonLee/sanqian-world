@@ -1,6 +1,8 @@
 /* 修行页（引擎主面板 · 挂机 / 修为 / 四柱 / 天道行 / 离线呈报 / 自动区 ‖ 第册五十二批 2026-10-19 从 view/index.html 整片搬出 · N34 第十六刀）
  * 范围 = 单一渲染器 `render`（原 `renderIdle`，295 行）；纯拼串，零监听零定时器（本刀唯一的「凑巧干净」件）。
- * 桥 35 → **43 枚**（本刀新增八枚，全是「件外调用才进桥」）：`renderPillars`（四柱 chip 行）‖ `renderTiandaoRow`（天道行）
+ * 桥 35 → **43 枚**（本刀新增八枚，全是「件外调用才进桥」）：`renderPillars`（四柱 chip 行）〔⚠️ 第册一百三十七批退役：
+ *   自 UI v2 B16-c（第册七十八批）四柱移入右栏 `renderRail` 起，本件里那处「renderPillars 桥调用」已删、函数零调用，
+ *   桥位与死 CSS 同批一并退役 ⇒ 现行桥为 **42 枚**〕‖ `renderTiandaoRow`（天道行）
  *   ‖ `fmtFull`（大数全写）‖ `caveSigOf`（洞府印记加成）‖ `talentCard`（天赋卡，两参）‖ `autoEventPref`（奇遇倾向现值）‖ `offlineDetail`（离线呈报的效率/时长那格）
  *   ‖ `wid`（当前世界 id）。另有两枚**已有桥名**直接复用：好感档汉字数（桥名 bondTier）、`ctx()` → `c.fresh()`。
  * ⚠️ `ctx()` 那一处是给**外置渲染器**递快照（`SQ.UI.rumor.band(ctx(), Date.now())`）：桥位 `fresh` 就是「取一份新快照」，
@@ -16,6 +18,10 @@
   /* B16-w：吐纳明细改独立浮层（设计稿 data-sheet="rate" 的口径）。
    * 加项与乘区分列标记：加项「+」、乘区「×」，末尾给合计——与顶部每秒产出一式同源。 */
   function ratePanel(c, w, m, d, rate) {
+    /* 第册一百四十七批（用户报「明细弹窗一直闪烁」）：renderAll 每秒整页重建 #tab-idle 的 innerHTML，
+     * .dp-sheet 连带重建 ⇒ ui.css 里的 stageIn 入场动画每秒重播一遍 = 闪烁。修法 = 动作行点开时记
+     * ui.detailRateAt，此处只给「距点开 <300ms」的那一轮渲染带 fresh 类挂动画，其余重渲不挂（见 ui.css）。 */
+    var fresh = (c.ui.detailRateAt && Date.now() - c.ui.detailRateAt < 300) ? ' fresh' : '';
     var rows = '';
     function rr(kind, label, val) {
       return '<div class="dp-row"><span class="dp-k">' + c.esc(label) + '</span>' +
@@ -35,7 +41,7 @@
     if (modeM !== 1) rows += rr('mul', c.t('idle.mode.' + w.mode), '×' + modeM.toFixed(2));
     var rampM = (d.NEWBIE_RAMP && w.realm <= d.NEWBIE_RAMP.realms) ? d.NEWBIE_RAMP.qiMult : 1;
     if (rampM !== 1) rows += rr('mul', c.t('idle.newbie'), '×' + rampM.toFixed(2));
-    return '<div class="dp-mask"><div class="dp-sheet">' +
+    return '<div class="dp-mask"><div class="dp-sheet' + fresh + '">' +
       '<div class="dp-head"><span class="dp-t2">' + c.esc(c.t('idle.detail.title')) + '</span>' +
       '<span class="dp-total">' + c.esc(c.t('idle.rate', { n: rate.toFixed(1) })) + '</span></div>' +
       '<div class="dp-rows">' + rows + '</div>' +
@@ -307,7 +313,7 @@
     /* 收功按钮已移除（v2.2）：自动心跳每秒做同一套结算+落盘，手动按钮语义重复——
      * 结算区收敛为「修行状态 → 修行所得」纯展示区块 */
     /* B15-c：天赋卡归并到「天命」段标之下（设计稿 .shelf-head；自动区已随 D6 迁设置页，不在本页）
-     * B16-af：段标最右补洗髓快捷入口（同一枚 showWash） */
+     * B16-af：段标最右补洗髓快捷入口（同一枚入口 = `SQ.UI.talentswap.open`，第册一百三十九批整族外置） */
     var swCap = (d.TALENT_SWAP || {}).PER_LIFE || 0;
     var swLeft = Math.max(0, swCap - (w.talentUsed || 0));
     h += '<div class="sechead"><span class="t">' + c.esc(c.t('idle.talent.title')) + '</span>' +

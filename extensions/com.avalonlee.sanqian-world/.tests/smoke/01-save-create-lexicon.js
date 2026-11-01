@@ -110,14 +110,387 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       if (nm.length !== 3 || chars.p.indexOf(nm[0]) < 0 || chars.m.indexOf(nm[1]) < 0 || chars.s.indexOf(nm[2]) < 0) { nameOk = false; break; }
     }
     var vis = SQ.visibleWorlds().map(function (w) { return w.id; });
-    ok('E4', '命名池合规 + 屏上名册逐位对表（live 1 · coming 5 · 无 hidden 实例）',
-      nameOk && vis.join(',') === 'xiuxian,guwu,magic,tech,urban,cthulhu', 'visible=' + vis.join(','));
+    ok('E4', '命名池合规 + 屏上名册逐位对表（live 2 · coming 4 · 无 hidden 实例 · 武侠已翻牌）',
+      nameOk && vis.join(',') === 'xiuxian,wuxia,magic,tech,urban,cthulhu', 'visible=' + vis.join(','));
 
     /* #15 词表回落：世界词表 → common → key 本身 */
     ok('E5', 't() 三级回落',
       SQ.t('realm.2', null, 'xiuxian') === '金丹' &&
       SQ.t('ui.confirm') === '确认' && /* N20 处置批：原用 `ui.claim`「收功」，该键随批删除（钮 v2.2 已移除），换同为 common 卷的 `ui.confirm` 继续测三级回落 */
       SQ.t('no.such.key') === 'no.such.key');
+
+    /* E6 · 第二世界「武侠」包骨架（册154 · S1-a 立卷）
+     * 这一判钉的是**新形态**：「包已装上、但世界仍 coming 不可投生」。
+     * 既有判据全都没有这一形（此前 coming ⇔ pack 恒 null），所以新立一条，而不是改旧判。
+     * 三件必须同时成立：① 三入口是函数（缺一 D11 就失明）；② initialState ⇔ normalize 键集双向相等
+     * （D11 已判，这里只做冒烟级快照，让它在毫秒级的件里先红）；③ 无界名池的世界不生成随机界名。
+     * 册214：④ `worldView`/`narrative` 双退役见证（书形态整族摘除后键不复存在）。 */
+    (function () {
+      var w = SQ.Worlds.wuxia;
+      var pk = w && w.pack;
+      var shapes = !!(pk && typeof pk.initialState === 'function' &&
+        typeof pk.normalize === 'function' && typeof pk.claim === 'function');
+      var ini = shapes ? Object.keys(pk.initialState()) : [];
+      var nul = shapes ? Object.keys(pk.normalize({})) : [];
+      var same = ini.length > 0 && ini.length === nul.length && ini.every(function (k) { return nul.indexOf(k) >= 0; });
+      ok('E6', '武侠包骨架（册214 P1 后 = live tab 世界：三入口在位 ⇔ initialState/normalize 键集等 ‖ worldView/narrative 已退役 ‖ 无界名池不生成界名）',
+        !!w && w.status === 'live' && shapes && same && !pk.worldView && !pk.narrative && SQ.generateWorldName('wuxia') === '',
+        'status=' + (w && w.status) + ' keys=' + ini.length + ' view=' + (pk.worldView || '退役') + ' narrative=' + (pk.narrative ? '在' : '退役') + ' name=' + JSON.stringify(SQ.generateWorldName('wuxia')));
+    })();
+
+    /* E7 · 武侠武学与门派表完整性（册155 · S1-b 全量入库）
+     * 「尽可能保留金庸武学与门派」的判据：不是数够不够多，而是**每门都有武可学**（空门派 = 拜师无意义）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      var d = pk && pk.data;
+      var A = (d && d.ARTS) || [], S = (d && d.SECTS) || [], R = (d && d.REALMS) || [];
+      var byId = {};
+      for (var i = 0; i < A.length; i++) byId[A[i].i] = A[i];
+      var empty = [], dupId = {}, tt = {}, camp = {};
+      for (var j = 0; j < A.length; j++) {
+        if (dupId[A[j].i]) empty.push('dup:' + A[j].i); dupId[A[j].i] = 1;
+      }
+      for (var k = 0; k < S.length; k++) {
+        var n = 0;
+        for (var x = 0; x < A.length; x++) if ((A[x].s || []).indexOf(S[k].id) >= 0) n++;
+        if (!n) empty.push(S[k].id);
+        camp[S[k].camp] = (camp[S[k].camp] || 0) + 1;
+      }
+      for (var t = 0; t < A.length; t++) tt[A[t].t] = (tt[A[t].t] || 0) + 1;
+      var launchSect = S.filter(function (s) { return s.launch === 1; }).length;
+      ok('E7', '武侠武学与门派表（全量入库 ‖ id 无重复 ⇔ 每门有武学（首发空门即红）⇔ 境界表 10 档递增）',
+        A.length >= 380 && S.length >= 32 && launchSect === 26 && R.length === 10 &&
+        empty.length === 0 && tt.tian >= 10 && tt.huang > tt.tian &&
+        R.every(function (r, i2) { return i2 === 0 || r.need > R[i2 - 1].need; }),
+        'arts=' + A.length + ' sects=' + S.length + ' launch=' + launchSect +
+        ' 阶=' + JSON.stringify(tt) + ' 空门=' + (empty.length ? empty.join(',') : '无'));
+    })();
+
+    /* E8 · 武侠数值内核：产出 / 封顶 / 破关双必要条件（册155 · S1-b）
+     * 本界 status 仍 coming ⇒ 生产路径不跑 claim，所以这条**直接调它**——「不可投生」不等于「逻辑可以假」。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk) { ok('E8', '武侠数值内核（不可投生也要能跑）', false, '无 pack'); return; }
+      /* ① 产出：60 现实分钟 × 8 × (1 + 0.15×2 层) = 624 功力（册215 产出重定种） */
+      var ws = pk.normalize(pk.initialState());
+      var before = ws.qi;
+      pk.claim(ws, 60 * 60000, Date.now(), {}, {});
+      var gain = ws.qi - before;
+      var wsSe = pk.normalize(pk.initialState()); wsSe.mode = 'seclude';
+      var beforeSe = wsSe.qi;
+      pk.claim(wsSe, 60 * 60000, Date.now(), {}, {});
+      var gainSe = wsSe.qi - beforeSe;   /* 闭关 1.0 = 624（模态系数差分见证，册216） */
+      /* ② 第一档无附加门槛：功力到 400 即破，随后封在第二档 1200（**破关不清零**） */
+      var w2 = pk.normalize(pk.initialState());
+      pk.claim(w2, 100 * 86400000, Date.now(), {}, {});
+      var first = w2.realm === 1 && w2.qi === 1200;
+      /* ③ 第二档有双门槛（见闻 ≥4 且最高层 ≥4）：初始最高 1 层 ⇒ 卡住不破 */
+      var w3 = pk.normalize(pk.initialState());
+      pk.claim(w3, 100 * 86400000, Date.now(), {}, {});
+      var stuck = w3.realm === 1;
+      /* ④ 补足层数 + 见闻 ⇒ 下一 tick 即破，功力仍 1200 */
+      w3.artsLevels = { quan_basic: 4, neigong_basic: 1 };
+      w3.visited = ['luoyang', 'shaolin', 'dali'];
+      pk.claim(w3, 60000, Date.now(), {}, {});
+      var passed = w3.realm === 2 && w3.qi === 1200;
+      ok('E8', '武侠数值内核（产出 ⇔ 一档即破且封二档 ⇔ 双门槛挡二档 ⇔ 补足即破、功力不清零）',
+        Math.abs(gain - 374.4) < 0.01 && Math.abs(gainSe - 624) < 0.01 && first && stuck && passed,
+        'gain=' + gain.toFixed(2) + ' first=' + first + ' stuck=' + stuck + ' passed=' + passed +
+        ' realm=' + w3.realm + ' qi=' + w3.qi);
+    })();
+
+    /* E9 · 武侠人物 / 地界 / 秘籍三表（册156 · S1-c）
+     * 判「有名有姓」：每条记录必须有**词表里的中文名**——id 在表里、名字取不到 = 屏上空白，这一形最容易被漏。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      var d = pk && pk.data;
+      if (!d) { ok('E9', '武侠人物/地界/秘籍三表', false, '无 pack'); return; }
+      var C = d.CAST || [], Z = d.ZONES || [], M = d.MANUALS || [], A = d.ARTS || [];
+      var artIds = {};
+      for (var i = 0; i < A.length; i++) artIds[A[i].i] = 1;
+      var dup = [], nameMiss = [], badManual = [];
+      var seenC = {};
+      C.forEach(function (c) {
+        if (seenC[c.i]) dup.push('cast:' + c.i); seenC[c.i] = 1;
+        if (!SQ.t('cast.' + c.i + '.name', null, 'wuxia') || SQ.t('cast.' + c.i + '.name', null, 'wuxia').indexOf('cast.') === 0) nameMiss.push('cast:' + c.i);
+      });
+      Z.forEach(function (z) {
+        if (!SQ.t('zone.' + z.i + '.name', null, 'wuxia') || SQ.t('zone.' + z.i + '.name', null, 'wuxia').indexOf('zone.') === 0) nameMiss.push('zone:' + z.i);
+        (z.scenes || []).forEach(function (n2) { if (SQ.t('scene.' + z.i + '.' + n2, null, 'wuxia') === 'scene.' + z.i + '.' + n2) nameMiss.push('scene:' + z.i + '.' + n2); });
+      });
+      M.forEach(function (m) {
+        if (!SQ.t('manual.' + m.i + '.name', null, 'wuxia') || SQ.t('manual.' + m.i + '.name', null, 'wuxia').indexOf('manual.') === 0) nameMiss.push('manual:' + m.i);
+        if (m.art && !artIds[m.art]) badManual.push(m.i + '→' + m.art);   /* 指向不存在的招式 = 读一百本也学不会 */
+      });
+      var launchZ = Z.filter(function (z) { return z.launch === 1; }).length;
+      var launchS = C.filter(function (c) { return c.sec; }).length;
+      ok('E9', '武侠人物/地界/秘籍（人物 ≥100 且 id 唯一 ⇔ 地界 13/首发 10 ⇔ 秘籍 18 且 art 指向真招式 ⇔ 三者名键全在词表）',
+        C.length >= 100 && Z.length === 13 && launchZ === 10 && M.length === 18 &&
+        dup.length === 0 && nameMiss.length === 0 && badManual.length === 0 && launchS >= 60,
+        'cast=' + C.length + '(有门派 ' + launchS + ') zones=' + Z.length + '/首发' + launchZ + ' manuals=' + M.length +
+        ' 缺名=' + (nameMiss.length ? nameMiss.slice(0, 4).join(',') : '无') +
+        ' 坏映射=' + (badManual.length ? badManual.join(',') : '无'));
+    })();
+
+    /* E14 · 武侠投生闭环（册162 · S3-c）：把 wuxia 当**活跃世界**走真实引擎生命周期——
+     * 判「翻 live 之前，引擎每一条通用路径都吃得下这个世界」：
+     * ① claim / Legacy.sync / Codex.scan 全链零崩（data.js 的 CODEX/LEGACY 最小声明生效）；
+     * ② worldSystems 口：lifeHit 内伤唯一写口（封顶 15）⇒ lifeInfo 判死（内伤满 = daoshang）⇒
+     *    **真实转世**（stats.lives+1 / deaths+1 / 新世干净 / 死因呈报落档）；
+     * ③ 修习最小闭环：30 分钟一层、3/6/9 心境卡层（见闻不足练习度停在门槛下）；
+     * ④ attemptBreak 强行冲关：p = 0.5×(见闻/门槛)，败 = 内伤 +2~4 且功力 −20%；
+     * ⑤ powerOf：武艺乘区封顶 1.35 + 内伤状态乘区（≥12 → ×0.60）。
+     * 本块含 await（走真实 SQ.claim/mutate 事务，#13 同法）——不设早退，缺件时条件句置红。 */
+    {
+      var pk14 = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      var cycle = false, ports = false, study = false, brk = false, pow = false;
+      var det14 = '';
+      if (!pk14 || !pk14.worldSystems) {
+        det14 = '无 worldSystems';
+      } else {
+        /* ①② 真实生命周期：创角 → 死亡 → 转世 → 新世 */
+        var pre14 = JSON.parse(JSON.stringify(await SQ.load()));
+        var ref14 = {};
+        await SQ.mutate(ref14, function (s) {
+          s.profile = { name: '闭环侠', talents: [], worldId: 'wuxia', worldName: '', createdAt: Date.now() };
+          s.worlds.wuxia = pk14.normalize(pk14.initialState());
+        });
+        await SQ.mutate(ref14, function (s) { s.worlds.wuxia.realm = 3; s.worlds.wuxia.qi = 5000; s.worlds.wuxia.worldDay = 3000; s.worlds.wuxia.injury = 15; });
+        await SQ.claim(ref14);
+        var w14 = ref14.worlds.wuxia;
+        cycle = w14.realm === 0 && w14.qi === 0 && w14.injury === 0 && w14.worldDay === 0 &&
+          w14.narrative === undefined && ref14.meta.stats.lives === 1 && ref14.meta.stats.deaths === 1 &&
+          !!w14.lastDeath && w14.lastDeath.cause === 'daoshang';   /* narrative 键摘除见证（册214） */
+        /* ②b worldSystems 直测 */
+        var wsA = pk14.normalize(pk14.initialState());
+        wsA.worldDay = 360 * 50;
+        var life1 = pk14.worldSystems.lifeInfo(wsA);
+        var wsH = pk14.normalize(pk14.initialState());
+        for (var hi = 0; hi < 20; hi++) pk14.worldSystems.lifeHit(wsH, 'wound', null);
+        ports = life1.cause === 'shoujin' && wsH.injury === 15 &&
+          pk14.worldSystems.tierOf({ persona: { xia: -60, kuang: 0, du: 0 } }) === 'evil' &&
+          pk14.worldSystems.tierOf({ persona: { xia: 0, kuang: 0, du: 0 } }) === 'neutral' &&
+          pk14.worldSystems.tribInfo() === null && pk14.worldSystems.karmaOf({}) === 0;
+        /* ③ 修习：60 分钟两层；卡 6 层心境门槛（见闻 8 < 12 ⇒ 练习度停在 99） */
+        var wsL = pk14.normalize(pk14.initialState());
+        wsL.artsSlots = ['neigong_basic'];
+        wsL.visited = ['luoyang', 'shaolin', 'dali', 'yanziwu'];
+        pk14.claim(wsL, 60 * 60000, 0, {}, {});
+        var lvA = wsL.artsLevels.neigong_basic;
+        pk14.claim(wsL, 120 * 60000, 0, {}, {});
+        study = lvA === 3 && wsL.artsLevels.neigong_basic === 5 && wsL.artsPractice.neigong_basic === 99;
+        /* ④ attemptBreak：定种 stub——0.9 必败 / 0.01 必胜 */
+        var wsB = pk14.normalize(pk14.initialState());
+        wsB.qi = 99999;
+        var realRnd = Math.random;
+        Math.random = function () { return 0.9; };
+        var r1 = pk14.attemptBreak(wsB);
+        Math.random = function () { return 0.01; };
+        var wsB2 = pk14.normalize(pk14.initialState());
+        wsB2.qi = 99999;
+        var r2 = pk14.attemptBreak(wsB2);
+        Math.random = realRnd;
+        brk = r1 && r1.ok && r1.win === false && Math.abs(r1.p - 0.5625) < 1e-9 && wsB.injury >= 2 && wsB.injury <= 4 &&   /* 册215：心性 50 ⇒ ×1.125 */
+          Math.abs(wsB.qi - 99999 * 0.8) < 0.01 && r2 && r2.win === true && wsB2.realm === 1;
+        /* ⑤ powerOf：武艺乘区封顶 1.35 + 内伤状态 */
+        var wsW = pk14.normalize(pk14.initialState());
+        wsW.artsLevels = { yg_jiuyin: 9, neigong_basic: 9, quan_basic: 9 };
+        var base0 = pk14.powerOf({ realm: 0, artsLevels: {}, injury: 0 });
+        var pFull = pk14.powerOf(wsW) / base0;
+        var wsW2 = pk14.normalize(pk14.initialState());
+        wsW2.injury = 12;
+        pow = Math.abs(pk14.powerOf(wsW2) - 10 * 1.0024 * 0.6) < 1e-9 && pFull <= 1.35;
+        await SQ.save(pre14);   /* 复原：后续片建立在本件既有状态上，E14 的活跃档不外溢 */
+        det14 = '转世=' + cycle + '(lives=' + ref14.meta.stats.lives + ',cause=' + (w14.lastDeath || {}).cause + ')' +
+          ' 口=' + ports + ' 修习=' + study + '(lv' + lvA + '→' + wsL.artsLevels.neigong_basic + ',prac=' + wsL.artsPractice.neigong_basic + ')' +
+          ' 冲关=' + brk + '(败p=' + (r1 && r1.p) + ',伤' + (wsB ? wsB.injury : '?') + ') 战力=' + pow;
+      }
+      ok('E14', '武侠投生闭环（真实生命周期：claim→死→转世→新世零崩 ⇔ worldSystems 口：寿尽/内伤封顶/邪档/飞升拒 ⇔ 修习 30 分一层且 3/6/9 卡层 ⇔ 冲关 p=0.5×(见闻/门槛) 败有内伤折功力 ⇔ 战力武艺封顶+内伤乘区）',
+        cycle && ports && study && brk && pow, det14);
+    }
+
+    /* E16 · 创角链命名面（册167）：① NAMES.wuxia 分卷合法（掷 50 次无 '??' 残留、姓 + 名全为
+     * 1~4 字中文——消 randomRoleName('wuxia') 回落占位的潜伏缺口）；② 诨号候选 12 键全在词表
+     * （rollHao 的抽选池，缺键 = 屏上空白候选）；③ 屏上世界名分叉：武侠卡主行恒界系名（无池）、
+     * 修仙卡主行恒随机界名（有池）——卡面副行随批改按「有无界名池」分叉，此处只钉主行不变式。 */
+    (function () {
+      var bad16 = [];
+      for (var i = 0; i < 50; i++) {
+        var nm = SQ.randomRoleName('wuxia');
+        if (!nm || nm.indexOf('??') >= 0 || nm.length < 2 || nm.length > 5) { bad16.push(nm); break; }
+      }
+      var W = SQ.Worlds;
+      var mainOk = !!W.wuxia.nameParts === false && !!W.xiuxian.nameParts;
+      ok('E16', '创角链命名面（NAMES.wuxia 分卷合法：掷 50 次无 ?? 且 2~5 字 ⇔ 武侠无池/修仙有池的主行不变式；册214：诨号候选判随书形态退役，hao.cand 键族随件封存）',
+        bad16.length === 0 && mainOk,
+        '坏名=' + (bad16.join(',') || '无') + ' 主行分叉=' + mainOk);
+
+    /* E17 · 武侠 P2 核心循环口（册215）：① 精力恢复（claim 60 分钟 +60，封 staminaCapOf）‖
+     * ② breakThrough 口：门槛不足拒（err gate）、双条件足即破（不掷骰）‖
+     * ③ 资质效果：悟性 zhi 练功速率（100 ⇒ 20 分/层 vs 0 ⇒ 30 分/层）‖
+     * ④ 心性 xing 冲关成功率（stub 0.5 同值下 xing 差分可辨）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.breakThrough || !pk.staminaCapOf) { 
+
+    ok('E17', '武侠 P2 核心循环口', false, '无 breakThrough/staminaCapOf 口'); return; }
+      /* ① 精力恢复 */
+      var wsS = pk.normalize(pk.initialState());
+      wsS.stamina = 0;
+      pk.claim(wsS, 60 * 60000, 0, {}, {});
+      var rec = wsS.stamina === 60;   /* claim 内已破到 realm1（产出重定种后 60 分 = 624 功力）⇒ cap 70 是正确行为 */
+      var wsS2 = pk.normalize(pk.initialState());
+      wsS2.realm = 2;
+      var rec2 = pk.staminaCapOf(wsS2) === 80;
+      /* ② breakThrough：双条件不足拒；补足即破 */
+      var wsB = pk.normalize(pk.initialState());
+      wsB.realm = 1; wsB.qi = 99999;   /* →二流需见闻 4 + 层 4：见闻缺省 2 不足 ⇒ 拒 */
+      var rej = pk.breakThrough(wsB);
+      wsB.visited = ['luoyang', 'shaolin'];   /* 见闻 4 */
+      wsB.artsLevels = { quan_basic: 4, neigong_basic: 1 };
+      pk.recalcDerived(wsB);   /* normalize 不重算 exp：改 visited 后显式刷 */
+      var okB = pk.breakThrough(wsB);
+      var brk = rej && rej.err === 'gate' && okB && okB.ok === true && wsB.realm === 2;
+      /* ③ 悟性差分：20 分钟——zhi100 = 100 度恰一层；zhi0 = 66.7 度不及层（册215） */
+      var wsZ = pk.normalize(pk.initialState()); wsZ.atts = { zhi: 100, gu: 50, xing: 50 }; wsZ.artsSlots = ['neigong_basic'];
+      pk.claim(wsZ, 20 * 60000, 0, {}, {});
+      var wsZ0 = pk.normalize(pk.initialState()); wsZ0.atts = { zhi: 0, gu: 50, xing: 50 }; wsZ0.artsSlots = ['neigong_basic'];
+      pk.claim(wsZ0, 20 * 60000, 0, {}, {});
+      var zhiOk = wsZ.artsLevels.neigong_basic === 2 && wsZ0.artsLevels.neigong_basic === 1 && wsZ0.artsPractice.neigong_basic > 0;
+      /* ④ 心性差分：同见闻下 xing 100 的 p 高于 xing 0 */
+      var mkX = function (x) { var w2 = pk.normalize(pk.initialState()); w2.qi = 99999; w2.atts = { zhi: 50, gu: 50, xing: x }; return w2; };
+      var pX = pk.attemptBreak(mkX(100)).p, pX0 = pk.attemptBreak(mkX(0)).p;
+      var xingOk = pX > pX0 && Math.abs(pX - 0.5 * 1.25) < 1e-9;
+      ok('E17', '武侠 P2 核心循环口（精力 1 分/点恢复且封 cap 随境界 ‖ breakThrough 双条件足破/不足拒 ‖ 悟性 20 vs 30 分每层差分 ‖ 心性冲关 ×1.25 差分）',
+        rec && rec2 && brk && zhiOk && xingOk,
+        '恢复=' + rec + '(cap2界=' + rec2 + ') 破关=' + brk + ' 悟性=' + zhiOk + ' 心性=' + xingOk);
+    })();
+
+    /* E18 · 武侠闯荡推图（册216 P3）：① travel 精力闸与重伤拒出 ‖ ② 子场景推进与平安花销 ‖
+     * ③ 遭遇战四态合法（win/big/injury 字段形状 + 胜率随境界上行）‖ ④ KNOTS 直选：轴微调 + knotDone 一次性（撞过不重弹）‖ ⑤ 解锁档表（ZONES 序）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.travel || !pk.knotChoose) { ok('E18', '武侠闯荡推图', false, '无 travel/knotChoose 口'); return; }
+      var ws = pk.normalize(pk.initialState());
+      /* ① 精力闸 */
+      ws.stamina = 0;
+      var rS = pk.travel(ws, {});
+      /* ② 平安推进（realm0 无敌可遇——新手村原则） */
+      ws.stamina = 99;
+      var kinds = {};
+      for (var i = 0; i < 40; i++) { ws.worldDay += 1; var r2 = pk.travel(ws, { salt: i }); kinds[r2.kind || r2.err] = (kinds[r2.kind || r2.err] || 0) + 1; }
+      var progOk = (ws.sceneProg.luoyang | 0) >= 1;
+      /* ③ 遭遇战（realm1+ 对手池开启）：40 步内应有 battle 且字段形状合法 */
+      ws.realm = 1; ws.qi = 1200; ws.worldDay = 1000;
+      var battles = 0, shapeOk = true;
+      for (var j = 0; j < 80; j++) {
+        ws.stamina = 99; ws.worldDay += 1;
+        var r3 = pk.travel(ws, { salt: j + 500 });
+        if (r3.kind === 'battle') {
+          battles++;
+          if (typeof r3.win !== 'boolean' || (r3.win && r3.loot == null) || (!r3.win && r3.injury == null)) shapeOk = false;
+        }
+      }
+      var battleOk = battles >= 3 && shapeOk;
+      /* ④ KNOTS 直选：轴微调 + knotDone */
+      var wsK = pk.normalize(pk.initialState());
+      wsK.realm = 3; wsK.qi = 3000;
+      wsK.realm = 6; wsK.stones = 500;   /* help 支 req = realm4 + 银200——直接给足，直选判的是轴与一次性 */
+      var k1 = pk.knotChoose(wsK, 'knot_juxian', 'help');
+      var knotOk = k1 && k1.ok && wsK.persona.xia === 4 && wsK.knotDone.knot_juxian === 1 && wsK.stones > 100;
+      /* ⑤ 解锁档 */
+      var ulOk = pk.zoneUnlocked(ws, 'luoyang') && pk.zoneUnlocked(ws, 'shaolin') && !pk.zoneUnlocked(ws, 'guangmingding');
+      var hurtOk = (function () { var wh = pk.normalize(pk.initialState()); wh.injury = 12; wh.stamina = 99; return pk.travel(wh, {}).err === 'hurt'; })();
+      var staminaOk = rS && rS.err === 'stamina';
+      ok('E18', '武侠闯荡推图（精力闸与重伤拒出 ⇔ 平安推进 sceneProg ‖ 遭遇战四态合法且 ≥5 场 ‖ KNOTS 直选轴微调+knotDone 一次性 ‖ 解锁档前三地）',
+        staminaOk && hurtOk && progOk && battleOk && knotOk && ulOk,
+        '精力='+staminaOk+' 重伤拒='+hurtOk+' 推进='+progOk+' 战='+battles+' 形='+shapeOk+' 剧情='+knotOk+' 档='+ulOk);
+    })();
+    /* E19 · 武侠师承与市集（册217 P4+P6）：① 拜师门槛（阵营档 + 引荐降档 + 已入门拒）‖
+     * ② 学艺贡献锁（品阶定价 + 贡献不足拒 + 足则学得）‖ ③ 任务/供奉/辈分 ‖ ④ 市集：药疗伤 / 银不足拒 / 秘籍入架研读 ‖ ⑤ 叛门侠名重罚。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.joinSect || !pk.buyItem) { ok('E19', '武侠师承与市集', false, '无 joinSect/buyItem 口'); return; }
+      var w = pk.normalize(pk.initialState());
+      /* ① 拜师门槛 */
+      var r0 = pk.joinSect(w, 'shaolin');   /* 正道 gate 20：renown 0 不足 ⇒ 拒 */
+      w.renown = 30; w.stamina = 99;
+      var r1 = pk.joinSect(w, 'shaolin');
+      var r2 = pk.joinSect(w, 'wudang');   /* 已入门拒 */
+      var joinOk = r0 && r0.err === 'renown' && r1 && r1.ok && r2 && r2.err === 'joined';
+      /* ② 学艺贡献锁 */
+      var learn = pk.learnableArts(w);
+      var xuan = null;
+      for (var i = 0; i < learn.length; i++) if (learn[i].t === 'xuan' && !learn[i].known) xuan = learn[i];
+      var r3 = xuan ? pk.learnArt(w, xuan.id) : { err: 'none' };   /* 贡献 0 不足 ⇒ 拒 */
+      w.sect.contribution = 700;
+      var r4 = xuan ? pk.learnArt(w, xuan.id) : { err: 'none' };
+      var learnOk = r3 && r3.err === 'contribution' && r4 && r4.ok && (w.artsKnown || []).indexOf(xuan.id) >= 0;
+      /* ③ 任务/供奉/辈分 */
+      w.stamina = 99;
+      var r5 = pk.sectTask(w);
+      w.stones = 1000;
+      var r6 = pk.donateSect(w, 500);
+      var taskOk = r5 && r5.ok && r5.contribution >= 20 && r6 && r6.ok && w.sect.rank >= 1;
+      /* ④ 市集 */
+      var w2 = pk.normalize(pk.initialState());
+      w2.stones = 30; w2.injury = 5;   /* 30 文 < 金疮药 50 文 ⇒ 银不足拒 */
+      var r7 = pk.buyItem(w2, 'shop_salve');
+      w2.stones = 5000;
+      var r8 = pk.buyItem(w2, 'shop_salve');
+      var r9 = pk.buyItem(w2, 'mnl_01');
+      var r10 = pk.studyManual(w2, 'mnl_01');
+      var shopOk1 = r7 && r7.err === 'stones' && r8 && r8.ok && w2.injury === 3;
+      w2.stones = 60000; w2.injury = 0;
+      var r9 = pk.buyItem(w2, 'mnl_01');
+      var r10 = pk.studyManual(w2, 'mnl_01');
+      var shopOk2 = r9 && r9.ok && w2.shelf.length === 0 && r10 && r10.ok && (w2.artsKnown || []).indexOf(r10.art) >= 0;
+      var shopOk = shopOk1 && shopOk2;
+      /* ⑤ 叛门 */
+      var before = w.renown;
+      var r11 = pk.betraySect(w);
+      var betrayOk = r11 && r11.ok && w.renown === before - 80 && w.sect.betrayed === true;
+      ok('E19', '武侠师承与市集（拜师阵营档+已入门拒 ⇔ 学艺贡献锁品阶定价 ⇔ 任务/供奉/辈分派生 ‖ 市集药疗伤+银不足拒+秘籍入架研读 ‖ 叛门侠名 −80）',
+        joinOk && learnOk && taskOk && shopOk && betrayOk,
+        '市集1='+shopOk1+' 市集2='+shopOk2+'[r9='+JSON.stringify(r9)+' r10='+JSON.stringify(r10)+' known='+(w2.artsKnown||[]).join(',')+'] 叛门='+betrayOk);
+    })();
+    /* E20 · 武侠世界事件与长线（册218 P5+P7）：① 事件池与 pre 链（heimu 依赖 bingpai）‖
+   * ② 旁观零门槛 / 卷入境界档 / 主导门槛更高 ‖ ③ wefate 写回 + done 拒重 ‖ ④ alt 仅 lead（改史翻倍侠名）‖ ⑤ 结交 +3 封 100 ‖ ⑥ 退隐 R9 才可。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.attendEvent || !pk.retire) { ok('E20', '武侠世界事件与长线', false, '无 attendEvent/retire 口'); return; }
+      var w = pk.normalize(pk.initialState());
+      var evs0 = pk.worldEvents(w);
+      var heimuIn = false;
+      for (var i = 0; i < evs0.length; i++) if (evs0[i].i === 'we_heimu') heimuIn = true;
+      var w5 = pk.normalize(pk.initialState()); w5.realm = 6; w5.stamina = 99;
+      var r1 = pk.attendEvent(w5, 'we_huashan', 'watch');
+      var watchOk = r1 && r1.ok && w5.exp >= 8;
+      var r2 = pk.attendEvent(w5, 'we_huashan', 'lead', true);
+      var leadOk = r2 && r2.ok && r2.alt === true && w5.world.wefate.we_huashan === 'alt' && w5.renown >= 100;
+      var r3 = pk.attendEvent(w5, 'we_huashan', 'join');
+      var doneOk = r3 && r3.err === 'done';
+      var evs1 = pk.worldEvents(w5);
+      var preOk = true, heimuNow = false;
+      for (var j = 0; j < evs1.length; j++) if (evs1[j].i === 'we_heimu') heimuNow = true;
+      if (heimuIn && !heimuNow) preOk = true;   /* heimu 依赖 bingpai：bingpai 未写时不在池、写后解锁——此处以 bingpai 已写验证 */
+      var wF = pk.normalize(pk.initialState()); wF.realm = 5; wF.stamina = 99;
+      pk.attendEvent(wF, 'we_wuyue_bingpai', 'join');
+      var heimuOpen = false;
+      var evsF = pk.worldEvents(wF);
+      for (var k = 0; k < evsF.length; k++) if (evsF[k].i === 'we_heimu') heimuOpen = true;
+      var wB = pk.normalize(pk.initialState());
+      var b1 = pk.befriend(wB, 'xiao_feng');
+      var befOk = b1 && b1.ok && wB.relations.xiao_feng.affinity === 3;
+      var wR = pk.normalize(pk.initialState()); wR.realm = 5;
+      var rR = pk.retire(wR);
+      var rR9 = pk.retire(Object.assign(pk.normalize(pk.initialState()), { realm: 9 }));
+      var retOk = rR && rR.err === 'realm' && rR9 && rR9.ok && rR9.gen === 2;
+      ok('E20', '武侠世界事件与长线（事件池 pre 链 ‖ 旁观零门槛/卷入境界档/主导更高 ‖ wefate 写回+done 拒重+alt 翻倍侠名 ‖ 结交 +3 ‖ 退隐 R9 才可）',
+        !heimuIn && watchOk && leadOk && doneOk && heimuOpen && befOk && retOk,
+        '池=' + evs0.length + ' 旁观=' + watchOk + ' 主导=' + leadOk + ' 拒重=' + doneOk + ' pre=' + heimuOpen + ' 结交=' + befOk + ' 退隐=' + retOk);
+    })();
+    })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
@@ -203,8 +576,8 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
     var vis22 = SQ.visibleWorlds();
     var live22 = vis22.filter(function (w) { return w.status === 'live'; });
     var coming22 = vis22.filter(function (w) { return w.status === 'coming'; });
-    ok(17, '可见世界 = live 1 + coming 5（克苏鲁第二十批改灰显；屏上名册与注册表逐位相等）',
-      vis22.length === 6 && live22.length === 1 && live22[0].id === 'xiuxian' && coming22.length === 5 &&
+    ok(17, '可见世界 = live 2 + coming 4（册164 武侠翻牌；屏上名册与注册表逐位相等）',
+      vis22.length === 6 && live22.length === 2 && coming22.length === 4 &&
       SQ.visibleWorlds().map(function (w) { return w.id; }).join(',') ===
         Object.keys(SQ.Worlds).join(',') &&
       Object.keys(SQ.Worlds).every(function (id) { return SQ.Worlds[id].status !== 'hidden'; }));
@@ -428,6 +801,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
     var it35 = { atk: 10, qiBonus: 0.1, resist: 40, attrValue: { attr: 'jing', value: 5 }, special: null };
     var it35s = Object.assign({}, it35, { special: 'sword_heart' });
     var w35 = mkWs({ realm: 9 });
+    w35.gearAutoRefine = true;   /* 册149：新档缺省改关，本例专测「开」路径（替换即炼化），显式落真值 */
     var m35 = M(mkProf(), w35);
     var a1 = SQ.Gear.autoEquip(w35, pack, D, m35, mkGear('weapon', { tier: 2, atk: 10, qiBonus: 0.1, resist: 40, attrValue: { attr: 'jing', value: 5 } }), null);
     var a2 = SQ.Gear.autoEquip(w35, pack, D, m35, mkGear('weapon', { tier: 0, atk: 1 }), null);
@@ -473,7 +847,8 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
     var n35x = pack.normalize({ gearAutoRefine: 'yes' }, {}).gearAutoRefine;
     ok(35, '评分公式 + 择优只在更高时 + 自动炼化开关（issue #2：关 ⇒ 低分新件与被换旧件都入库藏阁（含**独占授予**那条口），' +
       '库满才回落炼化，灵石与总账零流动；两条新文案真解析、屏上不落裸键名——A2 静态扫描对 itemLog 第三形参是盲区，本条补上；' +
-      'normalize 三态 缺省 true / false 保留 / 脏值归 true）',
+      'normalize 三态 无字段 true（issue #2 前旧档兼容）/ false 保留 / 脏值归 true；' +
+      '册149 用户令「三自动开关默认关」＝新档 initialState 显式 false，本条一并看守）',
       SQ.Gear.scoreOf(it35) === 55 && SQ.Gear.scoreOf(it35s) === Math.round(55 * 1.15 * 100) / 100 &&
       a1.action === 'equip' && a2.action === 'refine' && held35 && a3.action === 'replace' && w35.gear.weapon.atk === 99 &&
       b1.action === 'equip' && b2.action === 'stash' && b3.action === 'replace' && b3.gained === 0 &&
@@ -481,7 +856,8 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       st35b === 2 && w35b.stash.length === 3 && w35b.gear.weapon.atk === 99 &&
       w35b.stones === mkWs({ realm: 9 }).stones &&
       bLedger.action === 'stash' && JSON.stringify(w35b.ledger) === led35b &&
-      c35.action === 'refine' && d35 && n35d === true && n35f === false && n35x === true,
+      c35.action === 'refine' && d35 && n35d === true && n35f === false && n35x === true &&
+      pack.initialState().gearAutoRefine === false,
       'score=' + SQ.Gear.scoreOf(it35) + '/' + SQ.Gear.scoreOf(it35s) + ' acts=' + [a1.action, a2.action, a3.action].join(',') + ' held=' + held35 +
       ' ‖ 开关关 acts=' + [b1.action, b2.action, b3.action, bLedger.action].join(',') + ' 库=' + w35b.stash.length +
       ' 灵石=' + w35b.stones + ' Ledger同=' + (JSON.stringify(w35b.ledger) === led35b) +

@@ -119,7 +119,7 @@
         var a = am[id];
         var lvS = w.artsLevels[id] || 0;
         var prS = SQ.Arts.practiceOf(w, id, d);
-        /* 升级钮随「只有入槽的功法会长进」同口径留在槽卡上（第卌七批④c · 用户令）：
+        /* 升级钮留在槽卡（第卌七批④c 起；册148 后口径 = 槽内口在此、槽外口在已学会卡，两面不重复）：
          * 满级时 upgradeCost 自返 null ⇒ 本行不渲染，不必再判一次等级。 */
         var costS = SQ.Arts.upgradeCost(w, p, d, id, m);
         var fxS = artFxLine(c, a, lvS);   /* 增益行与已学会卡同一函数、同一条式子（见 artFxLine 那注） */
@@ -172,7 +172,7 @@
            '<span class="tpract"><span class="pbar"><i style="width:' + pct.toFixed(0) + '%"></i></span>' +
            '<span class="hint">' + c.esc(c.t('arts.selflearn.pct', { p: pct.toFixed(0) })) + '</span></span></div>';
     })();
-    /* ── 已学会（走查 v2.5 §4）：紧贴修习槽——装入/精通一屏可达（升级钮在第卌七批④c 移到槽卡） ── */
+    /* ── 已学会（走查 v2.5 §4）：紧贴修习槽——装入/精通/升级一屏可达（升级口两则：槽内口在槽卡〔第卌七批④c〕、槽外口在卡上〔册148 用户裁定〕） ── */
     var knownS = (w.artsKnown || []).slice().sort(function (x, y) {
       return ((w.artsSlots || []).indexOf(y) >= 0 ? 1 : 0) - ((w.artsSlots || []).indexOf(x) >= 0 ? 1 : 0);
     });
@@ -284,8 +284,9 @@
     /* 走查 v2.7 §3：功法带来的具体增益（当前等级实际生效值，多效果并列）——式子收在
      * `artFxLine` 一处，槽卡与已学会卡同读它（第卌九批：槽卡也要看得见加成，见该批注）。 */
     h += '<div class="meta">' + c.esc(artFxLine(c, a, lv)) + '</div>';
-    /* F3（N59）：`SQ.Arts.tickPractice` 只遍历 `artsSlots` ⇒ 槽外那部的精通恒 0，这条进度条与「精通 0%」
-     * 是同一处假在跑（升级钮第卌七批④c 已移到槽卡，本条补齐另一半）。判据 = 走查 `verify-ui-arts` H2。 */
+    /* F3（N59）：`SQ.Arts.tickPractice` 只遍历 `artsSlots` ⇒ 槽外那部的精通恒 0，这条进度条与
+     * 「精通 0%」是同一处假在跑（判据 = 走查 `verify-ui-arts` H2b）。⚠️ 假在跑只指**精通条**：
+     * 升级是玩家主动付费动作、引擎 `SQ.Arts.upgrade` 不查槽，槽外升级钮已随册148 恢复（见下）。 */
     if (slotted && lv < d.ARTS_MAX_LV) {
       h += '<div class="pbar"><i style="width:' + pr.toFixed(0) + '%"></i></div>' +
         '<div class="hint">' + c.esc(c.t('arts.practice', { p: Math.floor(pr) })) + '</div>';
@@ -294,9 +295,18 @@
     h += slotted
       ? '<button data-act="unslotArt" data-v="' + id + '">' + c.esc(c.t('arts.unequip')) + '</button>'
       : '<button data-act="slotArt" data-v="' + id + '">' + c.esc(c.t('arts.equip')) + '</button>';
-    /* 升级钮本批起**不在这里**（第卌七批④c · 用户令「槽里六张卡就该有升级，已学会不必再给」）：
-     * 引擎侧 SQ.Arts.tickPractice 只遍历 artsSlots ⇒ 未入槽的功法精通恒为 0，卡上的进度条与
-     * 升级钮是同一处假在跑；升级口因此只留槽卡。handler `upgradeArt` 不变。 */
+    /* 升级钮（第册一百四十八批 · 用户裁定推翻第卌七批④c「已学会不必再给」）：**槽外**的已学会
+     * 功法也给升级口——手动升级耗修为、走 `SQ.Arts.upgrade`（只查修为与等级上限，不查槽位），
+     * 与「槽外精通恒 0」无涉（那件事只关乎精通进度条，见上 F3 注）。槽**内**部仍只在槽卡给
+     * （第卌七批④c 的「一面一口」保留，不在已学会区重复），满级 `upgradeCost` 自返 null ⇒ 不渲染。 */
+    if (!slotted) {
+      var costK = SQ.Arts.upgradeCost(w, p, d, id, c.mods);
+      if (costK != null) {
+        h += '<button data-act="upgradeArt" data-v="' + id + '"' +
+          (w.qi < costK ? ' disabled' : '') + '>' +
+          c.esc(c.t('arts.upgrade.qi', { n: SQ.fmt(costK), res: c.t('resource.primary') })) + '</button>';
+      }
+    }
     if (!slotted && SQ.Arts.canSalvage(w, p, d, id)) {
       h += '<button data-act="salvageArt" data-v="' + id + '">' + c.esc(c.t('arts.salvage')) + '</button>';
     } else if (!slotted) {

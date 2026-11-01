@@ -11,6 +11,24 @@
   var num = SQ.util.num, obj = SQ.util.obj, pick = SQ.util.pick;   /* C1：统一至 assets/util.js */
   function S(D) { return D.SECT || {}; }
 
+  /* 招贤候选的清洗（第册一百四十四批 · N87 处置）：**候选改为落盘**。
+   * 立因：此处原先把 `candidate` 硬写成 null，而 `SQ.mutate` 提交时会过一次 normalize ⇒ 招贤刚掷出的候选
+   *   在 render 之前就被抹掉，「收下 / 逐客」两钮在真机永远不出现（旧走查用「断链守门判」把它记在册）。
+   * 口径：名字两段整数、资质 ∈ APT_IDS、倾向 ∈ DISPATCH.fields，任一不合法一律归 null ——
+   *   与 disciples 表同一条「逐字段校验、不合法就丢」，脏档绝不造人。 */
+  function candidateOf(raw, SC) {
+    if (!raw || typeof raw !== 'object') return null;
+    var nm = raw.nm;
+    if (!Array.isArray(nm) || nm.length !== 2) return null;
+    var a = Math.floor(num(nm[0], -1)), b = Math.floor(num(nm[1], -1));
+    if (a < 0 || b < 0) return null;
+    var apts = SC.APT_IDS || ['fine', 'mid', 'raw'];
+    var fields = (SC.DISPATCH || {}).fields || [];
+    if (apts.indexOf(raw.tier) < 0) return null;
+    if (raw.perk != null && fields.indexOf(raw.perk) < 0) return null;
+    return { nm: [a, b], tier: raw.tier, perk: raw.perk != null ? raw.perk : (fields[0] || 'combatPower') };
+  }
+
   /* ── normalize（§9.1：null = 未开宗；结构非法逐项清理零崩溃）──── */
   function normalize(raw, D) {
     if (!raw || typeof raw !== 'object') return null;
@@ -53,7 +71,7 @@
       recruitAt: Math.max(0, num(raw.recruitAt, 0)),
       foundAt: Math.max(0, num(raw.foundAt, 0)),
       declareAt: Math.max(0, num(raw.declareAt, 0)),
-      candidate: null, warAgg: null,
+      candidate: candidateOf(raw.candidate, SC), warAgg: null,
       seq: Math.max(0, Math.floor(num(raw.seq, 0))),
       succession: null
     };

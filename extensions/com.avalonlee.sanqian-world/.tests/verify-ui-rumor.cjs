@@ -88,6 +88,7 @@ async function buildSave() {
   const eventBtn = await page.$('#m-tabbar button[data-v="event"]');
   const hasDot = await eventBtn.$('.dot');
   T(!hasDot, 'R② 既有传闻不再钉死红点（进线即基线）');
+
   await page.click('#m-tabbar button[data-v="event"]');
   await page.waitForTimeout(300);
   /* 奇遇页同源：战况卡同样无按钮 */
@@ -210,6 +211,47 @@ async function buildSave() {
   await page.waitForTimeout(500);
   const hasDot2 = await page.$('#m-tabbar button[data-v="event"] .dot');
   T(!hasDot2, 'R② 离开奇遇页后红点不复燃（同批传闻已读）');
+
+  /* ── RG 组（第册一百四十六批 · B5a）：「前往查证」真点 —— 放在**最后**跑：它会往奇遇流水里
+   *   塞一条新事件（RF②/RF⑤ 按「最新一条」对表，先跑会把它们顶红）。══ */
+  /* ── RG 组（第册一百四十六批 · B5a）：「前往查证」真点 —— 搬 rumorGo 前先补的走查网 ──
+   * 此前 R① 只数「按钮在不在、启用几枚」，没人点过它。fixture 里 ev-1 = market_assassin（可触发、非战况）
+   * ⇒ 真链 = canTrigger ok → triggerRumor → pending → autoEvent 关 ⇒ 弹抉择浮层。 */
+  const poll = async (fn, ms) => {
+    const t0 = Date.now();
+    for (;;) {
+      const v = await fn();
+      if (v) return v;
+      if (Date.now() - t0 > (ms || 6000)) return false;
+      await new Promise((r) => setTimeout(r, 120));
+    }
+  };
+  await page.click('#m-rail [data-act="rumorGo"]:not([disabled])');
+  const rgModal = await poll(() => page.$('#modal-choice:not(.hide)'), 8000);
+  const rgPend = await page.evaluate(() =>
+    (JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian || {}).pendingChoice || null);
+  T(!!rgModal && !!rgPend,
+    'RG1 点「前往查证」⇒ 触发奇遇且抉择浮层弹出（`rumorGo` 整链：canTrigger → triggerRumor → pending → choice）',
+    '浮层=' + !!rgModal + ' pending=' + JSON.stringify(rgPend && { id: rgPend.id, tier: rgPend.tier }));
+  /* 抉择必须**作答**而不是关掉：pendingChoice 不清，弹层栈每秒都会把浮层重新弹回来（afterClaim 弹层栈口径）
+   * ⇒ 点一路分支走完结算，再点「知道了」收场，后续组才拿得到干净页面。 */
+  const rgOk = async (sel) => { try { await page.click(sel, { timeout: 2500 }); return true; } catch (e) { return false; } };
+  const picked = await rgOk('#mc-branches [data-act="choose"][data-v="neutral"]') ||
+    await rgOk('#mc-branches [data-act="choose"][data-v="right"]') ||
+    await rgOk('#mc-branches [data-act="choose"][data-v="evil"]');
+  const rgDone = await poll(async () => page.evaluate(() =>
+    (JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.xiuxian || {}).pendingChoice == null), 9000);
+  for (let k = 0; k < 5; k++) {
+    if (await page.$('#modal-choice.hide')) break;
+    await page.click('#mc-ok', { timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(250);
+  }
+  T(picked && !!rgDone, 'RG2 抉择作答走完 ⇒ 盘上 pendingChoice 清空（传闻链的收尾与 `choose` 同一条路）',
+    '点中=' + !!picked + ' 已清=' + !!rgDone);
+  await page.waitForTimeout(300);
+  await page.click('#m-tabbar button:has-text("修行")');
+  await page.waitForTimeout(400);
+
   T(errors.length === 0, '零页面报错', errors.join('|').slice(0, 150) || 'clean');
 
   console.log(fail === 0 ? 'UI_RUMOR_ALL_GREEN ' + pass + '/' + (pass + fail) : 'UI_RUMOR_FAILED ' + fail);

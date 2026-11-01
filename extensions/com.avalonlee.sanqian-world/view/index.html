@@ -19,6 +19,7 @@
     <input id="c1-name" maxlength="8" />
     <p class="err hide" id="c1-err"></p>
     <div class="row between">
+      <button id="c1-back"></button>
       <button id="c1-random"></button>
       <button id="c1-next" class="primary"></button>
     </div>
@@ -52,7 +53,6 @@
     <div id="c3-list"></div>
     <p class="err hide" id="c3-err"></p>
     <div class="row between">
-      <button id="c3-back"></button>
       <button id="c3-go" class="primary"></button>
     </div>
   </div>
@@ -111,6 +111,10 @@
     <!-- UI v2 B13：手机五区底部 tab（<720px 取代 16 项横滑；点区落该区首页，区内换页走顶部子导航） -->
     <div class="sq2-zonebar" id="m-zonebar"></div>
     <!-- UI v2 B1：右栏骨架（≥1200px 第三列）。B1 只立容器，不造数据；空时 CSS 收起 -->
+    <!-- 自定义主壳容器（册214 · P1 契约改版）：pack.shell 指名的世界进主界面走本容器——
+         enterShellHome 给 #sc-main 挂 shellmode 类（CSS 收起顶栏/导航/页签/右栏，只留本容器）。 -->
+    <div id="shell-main" class="hide"></div>
+
     <aside id="m-rail" class="sq2-rail" aria-label="区情"></aside>
 </div>
 
@@ -559,29 +563,39 @@
 <script src="../assets/systems/shop.js"></script>
 <script src="../assets/systems/events.js"></script>
 <script src="../assets/systems/rumors.js"></script>
-<script src="../assets/systems/tiandao.js"></script>
+<script src="../assets/worlds/xiuxian/tiandao.js"></script>
 <script src="../assets/systems/legacy.js"></script>
 <script src="../assets/systems/codex.js"></script>
-<script src="../assets/systems/alchemy.js"></script>
-<script src="../assets/systems/prodigy.js"></script>
+<script src="../assets/worlds/xiuxian/alchemy.js"></script>
+<script src="../assets/worlds/xiuxian/prodigy.js"></script>
 <script src="../assets/systems/gifts.js"></script>
 <script src="../assets/systems/jianghu.js"></script>
-<script src="../assets/systems/fusion.js"></script>
-<script src="../assets/systems/sect.js"></script>
+<script src="../assets/worlds/xiuxian/fusion.js"></script>
+<script src="../assets/worlds/xiuxian/sect.js"></script>
 <script src="../assets/systems/actions.js"></script>
 <script src="../assets/worlds/xiuxian/karma.js"></script>
 <script src="../assets/worlds/xiuxian/tribulation.js"></script>
 <script src="../assets/worlds/xiuxian/index.js"></script>
+<script src="../assets/worlds/wuxia/lexicon.js"></script>
+<script src="../assets/worlds/wuxia/lexicon-arts.js"></script>
+<script src="../assets/worlds/wuxia/lexicon-world.js"></script>
+<script src="../assets/worlds/wuxia/lexicon-cast.js"></script>
+<script src="../assets/worlds/wuxia/lexicon-narrative.js"></script>
+<script src="../assets/worlds/wuxia/lexicon-tpl.js"></script>
+<script src="../assets/worlds/wuxia/data.js"></script>
+<script src="../assets/worlds/wuxia/index.js"></script>
 <script src="../assets/talents/engine.js"></script>
 <script src="../assets/core.js"></script>
 <script src="updatenote.js"></script>
 <script src="journal.js"></script>
+<script src="ledger.js"></script>
 <script src="achv.js"></script>
 <script src="shop.js"></script>
 <script src="jianghu.js"></script>
 <script src="arts.js"></script>
 <script src="gear.js"></script>
 <script src="treasure.js"></script>
+<script src="wuxia-home.js"></script>
 <script src="faction.js"></script>
 <script src="rumor.js"></script>
 <script src="zone.js"></script>
@@ -596,6 +610,9 @@
 <script src="spirit.js"></script>
 <script src="trib.js"></script>
 <script src="event.js"></script>
+<script src="talentswap.js"></script>
+<script src="settings.js"></script>
+<script src="offline.js"></script>
 <script>
 (function () {
   var SQ = window.SQ;
@@ -655,14 +672,18 @@
    * shortcut: 只放**已被外置件需要**的键；下一片要用新服务（toast / renderAll / mutate 之类）时在这里加一行、D7 自动跟。 */
   function ctx() {
     return { s: state, w: ws(), p: pack(), d: D(), ui: ui, $: $, t: t, esc: esc, date: gameDateStr,
-      mods: mods(), tierCls: tierCls, kindCls: treasureKindCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, timeAgo: timeAgo, fmtDate: fmtDate,
+      /* 册214：mods 改**惰性 getter**——主壳世界（武侠）的 ws 无修仙 buff 字段（fusion 等），
+       * collect 读空即抛（探针实测 reading '0'）；getter 用到才求值，修仙件照常、主壳件不碰。 */
+      get mods() { return mods(); },
+      tierCls: tierCls, kindCls: treasureKindCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, timeAgo: timeAgo, fmtDate: fmtDate,
       /* 第册卅六批第七刀补一枚：`nudge` = 输入不合法时抖一下控件的内核助手（造化两路动作要用点击那一行的 el）。
        * 同批那枚 `spiritPanel` 已随第册五十八批器灵面板外置 view/spirit.js 缩回——件对件调用不再过桥（桥首次负增长）。 */
       nudge: nudgeEl,
       /* 第八刀补三枚（都是「件外调用」才进桥）：fmtLeft = 沙漏剩余时长 ‖ fmtDur = 游戏历时长 ‖ bondTier = 好感档汉字数字 */
       fmtLeft: fmtLeft, fmtDur: fmtGameDur, bondTier: bondTierNum,
-      /* 第十一刀补一枚：showWash = 洗髓浮层的内核入口（服丹成功即开 = 件外调用才进桥） */
-      showWash: showWash,
+      /* 第十一刀那枚 `showWash` 已随第册一百三十九批（N82/A3 洗髓族 → `view/talentswap.js`）**退役**：
+       * 洗髓浮层整族外置，件外唯一调用点（炼丹服丹成功）改成件对件直调 `SQ.UI.talentswap.open(c)`。
+       * 这正是第册五十八批 `spiritPanel` 的同型收口——**桥只在「核→件」需要时才留键**。 */
       /* 第十二刀补三枚：`toastAction` = 带动作的提示（拜访 / 赠丹 / 缘尽赎回三处成功态）‖ `reducedMotion` =
        * 结契轻演出的时长分支 ‖ `bondDotSig` = 侣 chip 红点签名（页签机器留内核，浮层 opener 要拿它记基线）。
        * 再补 `fresh`：取一份**新的**桥快照——`SQ.mutate` 会深拷贝 world（core.js `cpWorld`），
@@ -674,12 +695,13 @@
        * ‖ `playRecap` = 盖棺之传演出入口（演出族，第十四刀才搬） */
       enterRebirth: enterRebirthCreation, playRecap: playRecapLastBio,
       /* 第十六刀补七枚（修行页外置 `view/idle.js`，全是「件外调用才进桥」）：
-       * `renderPillars` = 四柱 chip 行 ‖ `renderTiandaoRow` = 天道行（问天入口 + 天象红点）‖
+       * `renderPillars` = 四柱 chip 行〔⚠️ 第册一百三十七批退役：自 UI v2 B16-c 把四柱移入右栏 `renderRail` 起它已零调用〕‖
+       * `renderTiandaoRow` = 天道行（问天入口 + 天象红点）‖
        * `fmtFull` = 大数全写（灵气的「/ 上限」那一格）‖ `caveSigOf` = 洞府印记加成 ‖
        * `talentCard` = 天赋卡（件内 `talentCard(el, wid())` 两参）‖
        * `wid` = 当前世界 id。修行页同时复用两枚已有桥名：`bondTierNum` → `bondTier`、`ctx()` → `fresh`。
        * 〔UI v2 B2 缩回一枚〕`autoEventPref` 随自动三开关迁回设置页（核内直调）⇒ 修行页不再用，桥 53 → 52 枚。 */
-      renderPillars: renderPillars, renderTiandaoRow: renderTiandaoRow, fmtFull: fmtFull,
+      renderTiandaoRow: renderTiandaoRow, fmtFull: fmtFull,
       caveSigOf: caveSigOf, talentCard: talentCard, wid: wid,
       /* 同刀补第八枚（本刀实测漏网一枚，走查前由 boot catch 抓到）：`offlineDetail` = 离线呈报的
        * 「效率 / 时长」那一格文案。⚠️ 教训：机械改写后必须跑「内核函数名 × 件内裸调用」全表对扫，
@@ -687,6 +709,9 @@
       offlineDetail: offlineDetail,
       /* 第十八刀补一枚（自我浮层外置 `view/self.js`）：`identityParts` = 道号 / 世界 / 境界三段拼装（角色卡标题用） */
       identityParts: identityParts,
+      /* 第册一百三十九批（N82/A3 设置页 → `view/settings.js`）补回一枚：`autoEventPref` = 奇遇倾向当前值
+       * （UI v2 B2 把自动三开关迁回设置页时曾把它缩回核内直调；本刀起设置页在件内 ⇒ 只能经桥取）。 */
+      autoEventPref: autoEventPref,
       /* 第十九刀补八枚（奇遇族外置 `view/event.js`；这八枚家族外都有调用 ⇒ 只能留内核、经桥取）：
        * `ambushHalt` / `ambushCountdown` = 袭击抉择倒计时（收口 / 读秒）‖ `mirrorWorn` = 照世镜是否佩戴 ‖
        * `findEvent` / `allEventList` = 奇遇池取值 ‖ `exclusiveOf` = 专属奖励判定 ‖ `branchChecks` = 分支检查项 ‖
@@ -694,8 +719,12 @@
       ambushHalt: ambushHalt, ambushCountdown: ambushCountdown, mirrorWorn: mirrorWorn,
       findEvent: findEvent, allEventList: allEventList, exclusiveOf: exclusiveOf,
       branchChecks: branchChecks, checkPreview: checkPreview,
-      /* 同刀补一枚：clearJudging = 判定动画定时器清点（定时器数组仍在核内，件内只借这一枚） */
-      clearJudging: clearJudgingTimers };
+      /* B5a（第册一百四十六批）：`rumorGo` 外迁要借的三枚核内函数——页签机器与「自动奇遇」代择链
+       * （与 afterClaim 的 tick 侧同一份，不抄第二份）。 */
+      switchTab: switchTab, autoEventOn: autoEventOn, autoResolveChoice: autoResolveChoice,
+      /* B4（第册一百四十五批）：`clearJudging` 桥位随定时器数组整族外迁而退役；换入 `renderTop`
+       * （抉择作答后顶栏资源要立即刷新，原来调的是核内函数）。 */
+      renderTop: renderTop };
   }
   /* `fresh` 桥位的取值别名（见上注：不许让 `ctx` 这个私名进 D7 的私名表） */
   function freshCtx() { return ctx(); }
@@ -755,6 +784,7 @@
   /* ── 创角三屏（与 P2 相同逻辑） ── */
   /* 步骤条：一立名 / 二择界 / 三观天赋（当前步实心金、已过步描金，走查稿① 第 6 项）
    * 屏 id 与步骤号解耦：c1 = 起名 / c3 = 择界 / c2 = 观天赋（DOM 顺序按语义成对，不按步序）。 */
+  /* 步骤条（册214 简化）：书世界「取诨号」变体随书形态退役，三步恒常规。 */
   function stepsHtml(cur) {
     var h = '';
     [1, 2, 3].forEach(function (i) {
@@ -768,19 +798,20 @@
   function bindCreationTexts() {
     document.title = SQ.t('app.name');
     $('loading-text').textContent = t('ui.loading');
-    $('c1-steps').innerHTML = stepsHtml(1);   /* 起名 */
-    $('c3-steps').innerHTML = stepsHtml(2);   /* 择界 */
+    /* 册168 重排：一择界（首屏）/ 二立名（修仙线）/ 三观天赋或取诨号（随世界取词，c2 屏由渲染器重渲） */
+    $('c3-steps').innerHTML = stepsHtml(1);   /* 择界（首屏） */
+    $('c1-steps').innerHTML = stepsHtml(2);   /* 立名（修仙线第二步） */
     $('c2-steps').innerHTML = stepsHtml(3);   /* 观天赋 */
     $('c1-title').textContent = tc('creation.name.title');
     $('c1-label').textContent = tc('creation.name.label');
     $('c1-name').placeholder = tc('creation.name.ph');
     $('c1-random').textContent = tc('creation.name.random');
     $('c1-next').textContent = tc('creation.name.next');
+    $('c1-back').textContent = tc('creation.back');
     $('c3-title').textContent = tc('creation.world.title');
     $('c3-pick').textContent = tc('creation.world.pick');
     $('c3-hint').textContent = tc('creation.world.hint');
     $('c3-go').textContent = tc('creation.world.next');
-    $('c3-back').textContent = tc('creation.back');
     $('c2-title').textContent = tc('creation.talent.title');
     $('c2-hint').textContent = tc('creation.talent.hint');
     $('c2-reroll').textContent = tc('creation.talent.reroll');
@@ -801,10 +832,10 @@
   }
 
   $('c1-random').addEventListener('click', function () {
-    $('c1-name').value = SQ.randomRoleName(SQ.WORLD_DEFAULT);
+    $('c1-name').value = SQ.randomRoleName(draft.worldId || SQ.WORLD_DEFAULT);   /* 册167：改选过世界后回屏 1，随机名随世界分卷（首进仍是默认界） */
     $('c1-err').classList.add('hide');
   });
-  /* 屏 1 · 起名 → 屏 3 · 择界（步序 2） */
+  /* 屏 2 · 立名（修仙线第二步）→ 屏 3 · 观天赋（册168 重排；立名只在 tab 世界出现） */
   $('c1-next').addEventListener('click', function () {
     var name = ($('c1-name').value || '').trim();
     if (!SQ.validateName(name)) {
@@ -813,9 +844,10 @@
       return;
     }
     draft.name = name;
-    renderC3();
-    show('c3');
+    rerollTalents();
+    show('c2');
   });
+  $('c1-back').addEventListener('click', function () { show('c3'); });   /* 回择界（首屏） */
 
   /* 机制词条判定（天赋池设计 §三·补）：effects 含挂点白名单键 → 「机制」小角标；
    * desc 直出条件句式文案（词表手写），不显示挂点键名 */
@@ -856,7 +888,12 @@
     draft.roll = SQ.rollTalents(draft.worldId || SQ.WORLD_DEFAULT);
     renderC2();
   }
+  /* 册168：书世界屏 2 诨号变体退役；册214：confirmBookCreation 随书形态退役（tab 世界入世走 #mk-ok 入定 → enterMain 通用流） */
   function renderC2() {
+    $('c2-steps').innerHTML = stepsHtml(3);
+    $('c2-title').textContent = tc('creation.talent.title');
+    $('c2-hint').textContent = tc('creation.talent.hint');
+    $('c2-reroll').textContent = tc('creation.talent.reroll');
     var r = draft.roll, w = draft.worldId || SQ.WORLD_DEFAULT;
     $('c2-combo').textContent = tc('creation.talent.combo', { p: r.combo.pos, n: r.combo.neg });
     var syns = matchedSynergies(r.talents, w);
@@ -940,9 +977,14 @@
     }
     $('mk-legacy').innerHTML = h;
   }
-  $('c2-reroll').addEventListener('click', rerollTalents);
-  $('c2-back').addEventListener('click', function () { show('c3'); });
-  $('c2-confirm').addEventListener('click', function () { renderLockSummary(); $('modal-lock').classList.remove('hide'); });
+  /* 册168：c2 现在只有修仙线（观天赋）——书世界不进本屏（诨号在书内章末） */
+  $('c2-reroll').addEventListener('click', function () { rerollTalents(); });
+  $('c2-back').addEventListener('click', function () { show('c1'); });   /* 回立名（修仙线第二步；册168） */
+  function confirmC2() {
+    renderLockSummary();
+    $('modal-lock').classList.remove('hide');
+  }
+  $('c2-confirm').addEventListener('click', function () { confirmC2(); });
   $('mk-cancel').addEventListener('click', function () { $('modal-lock').classList.add('hide'); });
   /* 屏 2 · 观天赋 → 入定（锁定天命后写入存档并进入主界面） */
   $('mk-ok').addEventListener('click', async function () {
@@ -953,7 +995,7 @@
         name: draft.name,
         talents: draft.roll.talents,
         worldId: w,
-        worldName: draft.worldNames[w],
+        worldName: draft.worldNames[w] || '',   /* 册154：无界名池的世界（武侠）落空串，不留 undefined */
         createdAt: Date.now(),
         alignBias: draft.bias,   /* 问道初心（锁定态；gender/race 走 normalize 缺省，本期无入口） */
         gender: 'male',
@@ -984,8 +1026,10 @@
           SQ.Bonds.grantHeir(nws, SQ.Worlds[w].pack, SQ.Worlds[w].pack.data, lg.bond, SQ.Worlds[w].pack.data.LEGACY.BOND_HEIR_BASE);
         }
       }
-      /* 同代天骄创角生成（天骄卷 §二：默认 2 / 解锁 4 + 跨世宿敌带记忆转世） */
-      if (SQ.Prodigy) SQ.Prodigy.rollForNewLife(nws, SQ.Worlds[w].pack, SQ.Worlds[w].pack.data, s.meta, Date.now());
+      /* 同代天骄创角生成（天骄卷 §二：默认 2 / 解锁 4 + 跨世宿敌带记忆转世）。
+       * 册214 门控：按数据表存在性判（PRODIGY 表是修仙专属）——主壳世界（武侠）无该表即跳过，
+       * 天骄模块不进武侠（多世界契约：世界专属系统只接声明了数据口的世界）。 */
+      if (SQ.Prodigy && SQ.Worlds[w].pack.data.PRODIGY) SQ.Prodigy.rollForNewLife(nws, SQ.Worlds[w].pack, SQ.Worlds[w].pack.data, s.meta, Date.now());
     });
     draft.legacy = null;
     enterMain();
@@ -996,42 +1040,53 @@
     list.innerHTML = '';
     draft.worldId = null;
     SQ.visibleWorlds().forEach(function (w) {
-      if (!draft.worldNames[w.id] && w.status === 'live') {
+      /* 世界名只在「该界有界名池」时生成：册154 起加 `w.nameParts` 判——武侠世界 `nameParts:null`
+       * （江湖即世界，没有「XX 界」这种说法）⇒ 永不生成随机界名、卡面回落界系名「武侠江湖」。
+       * 这与其是否 live 无关：将来武侠转 live 时，卡面仍是界系名而不是一片空白。 */
+      if (!draft.worldNames[w.id] && w.status === 'live' && w.nameParts) {
         draft.worldNames[w.id] = SQ.generateWorldName(w.id);
       }
       var card = document.createElement('div');
       var coming = w.status !== 'live';
+      var hasName = !!w.nameParts;   /* 该界是否真有随机界名（false ⇒ 卡面与入世都走界系名/空） */
       card.className = 'wcard' + (coming ? ' coming' : '');
       var tags = (w.tagsKeys || []).map(function (k) { return SQ.t(k, null, w.id); }).join(' · ');
       card.innerHTML =
         '<span class="wstatus">' + esc(SQ.t(coming ? 'world.status.coming' : 'world.status.live', null, w.id)) + '</span>' +
-        '<div class="wname">' + esc(coming ? SQ.t('world.' + w.id + '.name', null, w.id) : (draft.worldNames[w.id] || '')) + '</div>' +
-        /* 副行只放「还多出来的信息」：live 卡的 .wname 是随机界名，故副行要带上界系名（玄幻修仙 · 标签…）；
-         * coming 卡的 .wname 已经是界系名，副行再抄一遍就是重复排字（第二十批克苏鲁入列后 4/6 张卡都这样）*/
-        (coming ? (tags ? '<div class="wtags">' + esc(tags) + '</div>' : '')
-                : '<div class="wtags">' + esc(SQ.t('world.' + w.id + '.name', null, w.id)) + (tags ? ' · ' + esc(tags) : '') + '</div>');
+        '<div class="wname">' + esc((coming || !hasName) ? SQ.t('world.' + w.id + '.name', null, w.id) : (draft.worldNames[w.id] || '')) + '</div>' +
+      /* 副行只放「还多出来的信息」（册167 改按**有无界名池**分叉，不再按 coming/live）：
+       * 主行是随机界名（live 且有池）⇒ 副行补界系名；主行已是界系名（coming 或无池）⇒ 副行只放标签。
+       * 册164 翻牌实测：武侠 live 但 nameParts=null，旧 live 分支让「武侠江湖」主副行各出现一次。 */
+      ((!coming && hasName) ? '<div class="wtags">' + esc(SQ.t('world.' + w.id + '.name', null, w.id)) + (tags ? ' · ' + esc(tags) : '') + '</div>'
+                            : (tags ? '<div class="wtags">' + esc(tags) + '</div>' : ''));
+      /* 「先睹」钮随册168 退役：书世界的先睹就是流程第二步本体（选中 → 下一步进书），卡上留钮冗余 */
       if (!coming) {
-        card.addEventListener('click', function () {
-          draft.worldId = w.id;
-          Array.prototype.forEach.call(list.children, function (c) { c.classList.remove('sel'); });
-          card.classList.add('sel');
-          $('c3-err').classList.add('hide');
-        });
+        card.addEventListener('click', function (ev) { pickWorldCard(ev, w, card, list); });   /* 监听体一句（D15①；册167 逻辑收核内） */
       }
       list.appendChild(card);
     });
   }
-  $('c3-back').addEventListener('click', function () { show('c1'); });
-  /* 屏 3 · 择界 → 屏 2 · 观天赋（天赋池随所选世界抽取） */
-  $('c3-go').addEventListener('click', function () {
+  /* 择界卡点选：选中后步骤条换书世界变体、下一步钮换文（进书 vs 入界） */
+  function pickWorldCard(ev, w, card, list) {
+    draft.worldId = w.id;
+    Array.prototype.forEach.call(list.children, function (c) { c.classList.remove('sel'); });
+    card.classList.add('sel');
+    $('c3-err').classList.add('hide');
+    $('c3-steps').innerHTML = stepsHtml(1);
+    $('c3-go').textContent = tc('creation.world.next');
+  }
+  /* 册214（P1）：`isBookDraft()` 随书形态退役——武侠回 tab 世界流，择界后与修仙同走「立名 → 观天赋」。
+   * 册168：rollHao 随 c2 诨号屏退役——候选抽选在书件内 */
+  function goFromC3() {
     if (!draft.worldId) {
       $('c3-err').textContent = tc('creation.world.noPick');
       $('c3-err').classList.remove('hide');
       return;
     }
-    rerollTalents();
-    show('c2');
-  });
+    show('c1');
+  }
+  $('c3-go').addEventListener('click', function () { goFromC3(); });
+
 
   /* ══════════ MAIN：九游戏页 + 两系统页 ══════════ */
   /* 游戏页：**固定五区序**（UI v2 B1/B2 起；旧 `settings.tabOrder` 不再读、字段保留，旧档照常加载）；
@@ -1423,86 +1478,18 @@
   }
   function ledgerSums() { return SQ.Ledger.sums(ws()); }
 
-  function renderPillars() {
-    var w = ws(), p = pack(), d = D(), m = mods();
-    var s = ledgerSums();
-    var main = SQ.Arts.mainArt(w);
-    var am = p.artsMap();
-    var faSub = main
-      ? t('pillar.fa.sub', { name: t('skill.' + main + '.name'), lv: w.artsLevels[main] || 0 })
-      : t('pillar.fa.empty');
-    var cv = SQ.Cave.current(w, p);
-    /* 侣 chip 副标（B1 · 交互说明 §4.2 ★）：结缘后 = 道号·形态名；否则护法·道号③；再否则尚未结缘 */
-    var gP = SQ.Bonds.guardianOf(w, p, d);
-    var spsP = SQ.Bonds.spousesOf(w);
-    var lvSub;
-    if (spsP.length) {
-      lvSub = SQ.Bonds.spouseLine(w, p, 1) +
-        (spsP.length === 1 ? ' · ' + t('bond.spouse.form.' + spsP[0].form) : '');
-    } else if (gP && gP.bonus > 0) {
-      lvSub = t('pillar.lv.sub', { name: t('bond.' + gP.npcId + '.name'), num: bondTierNum(gP.tier) });
-    } else if (gP) {
-      lvSub = t('bond.' + gP.npcId + '.name') + bondTierNum(gP.tier);
-    } else {
-      lvSub = t('pillar.lv.subnone');
-    }
-    /* 红点（§2.2）：侣 = 升档/可提亲、地 = 新福地解锁——签名对比，进浮层/洞天节即消 */
-    var sigP = bondRedDotSig();
-    if (ui.bondSnap == null) ui.bondSnap = sigP;
-    var lvDot = ui.bondSnap !== sigP;
-    var sigD = caveRedDotSig();
-    if (ui.caveSnap == null) ui.caveSnap = sigD;
-    var diDot = ui.caveSnap !== sigD;
-    var cells = [
-      { k: 'cai', act: 'openLedger', sub: t('pillar.cai.sub', { inn: SQ.fmt(s.inn), out: SQ.fmt(s.out) }) },
-      { k: 'fa', act: 'openArtsModal', sub: faSub },
-      { k: 'di', act: 'openCave', sub: t('pillar.di.sub', { name: t('cave.' + cv.id + '.name'), mult: SQ.Cave.multOf(w, p, d, m).toFixed(2) }), dot: diDot },
-      { k: 'lv', act: 'openBonds', sub: lvSub, dot: lvDot }
-    ];
-    return '<div class="pillars">' + cells.map(function (c) {
-      return '<button class="pillar' + (c.locked ? ' locked' : '') + '"' +
-        (c.act ? ' data-act="' + c.act + '"' : ' disabled') + '>' +
-        '<span class="pk">' + esc(t('pillar.' + c.k)) + (c.dot ? '<i class="pdot"></i>' : '') + '</span>' +
-        '<span class="pv">' + esc(c.sub) + '</span></button>';
-    }).join('') + '</div>';
-  }
+  /* ── 旧「四柱 chip 行」`renderPillars` 整族退役（N82 / A2 余量 · 第册一百三十七批 2026-10-23）──
+   * 取证：自第册七十八批（UI v2 B16-c）把四柱移进右栏可点槽位 `renderRail` 起，`view/idle.js` 里那处
+   * `c.renderPillars()` 调用即被删除 ⇒ 本函数**零调用**（全仓 grep 只剩定义 + 桥位 + 三处注释）。
+   * 本批连**桥位**（第十六刀补的那一枚，见上方 ctx 注）与**死 CSS**（`view/ui.css` 的 `.pillars` / `.pillar*`）一并退役；
+   * 右栏槽位自己重算红点签名 ⇒ 取数口 `bondRedDotSig` / `caveRedDotSig` 仍被 `renderRail` 消费，不随之退役。
+   * ⚠️ 只被它消费的三枚词表键（`pillar.fa.sub` / `pillar.di.sub` / `pillar.lv.sub`）就此转孤儿
+   * ⇒ 按 **N20 纪律「删文案属产品裁定」只登记不删**，读数见任务清单 N82 行与 FACTS 孤儿词表键行。 */
 
-  /* B2 · 财柱总账：恒等式置顶 + 收支八行条形（区内归一）+ 占比 + 字段小注 + 印章分档 */
-  var LEDGER_SEAL_2 = 5520000, LEDGER_SEAL_3 = 55200000;   /* 档界 = 主线六福地总投入 552 万 / ×10（UI §3.3 v2.5；扩池批别院/设施为带外可选投入不改档界） */
-  function ledgerRows(dir, cats, max) {
-    var w = ws(), l = w.ledger || { in: {}, out: {} };
-    return cats.map(function (c) {
-      var v = (l[dir] && l[dir][c]) || 0;
-      var pctv = max > 0 ? (v / max) * 100 : 0;
-      return '<div class="lgrow ' + (dir === 'in' ? 'in' : 'out') + '">' +
-        '<div class="lgl"><span class="nm">' + esc(t('ledger.cat.' + c)) + '</span>' +
-        '<span class="vl">' + SQ.fmt(v) + (v > 0 ? ' · ' + esc(t('ledger.share', { p: Math.round(pctv) })) : '') + '</span></div>' +
-        '<div class="lgb"><i style="width:' + pctv.toFixed(1) + '%"></i></div>' +
-        '<div class="lgn">' + esc(t('ledger.field', { dir: t('ledger.dir.' + dir), cat: t('ledger.cat.' + c) })) + '</div></div>';
-    }).join('');
-  }
-  function renderLedger() {
-    var w = ws(), s = ledgerSums();
-    $('mlg-title').textContent = t('ledger.title');
-    $('mlg-ident').textContent = t('ledger.ident', {
-      start: SQ.Ledger.START_STONES, inn: SQ.fmt(s.inn), out: SQ.fmt(s.out), now: SQ.fmt(w.stones)
-    });
-    $('mlg-identnote').textContent = t('ledger.identnote');
-    $('mlg-intitle').textContent = t('ledger.in.title');
-    $('mlg-outtitle').textContent = t('ledger.out.title');
-    var inMax = Math.max.apply(null, SQ.Ledger.IN_CATS.map(function (c) { return (w.ledger.in[c] || 0); }).concat([1]));
-    var outMax = Math.max.apply(null, SQ.Ledger.OUT_CATS.map(function (c) { return (w.ledger.out[c] || 0); }).concat([1]));
-    $('mlg-in').innerHTML = ledgerRows('in', SQ.Ledger.IN_CATS, inMax);
-    $('mlg-out').innerHTML = ledgerRows('out', SQ.Ledger.OUT_CATS, outMax);
-    var tier = s.inn >= LEDGER_SEAL_3 ? 3 : (s.inn >= LEDGER_SEAL_2 ? 2 : 1);
-    /* 印章分档（需求 1）：初档「白手起家」文案不再展示，仅中/高两档留存里程碑印记 */
-    $('mlg-seal').textContent = tier >= 2 ? t('ledger.epitaph.' + tier) : '';
-    var empty = s.inn === 0 && s.out === 0;
-    $('mlg-empty').textContent = empty ? t('ledger.empty') : '';
-    $('mlg-empty').classList.toggle('hide', !empty);
-    $('mlg-close').textContent = t('ui.close');
-  }
-  function openLedger() { renderLedger(); $('modal-ledger').classList.remove('hide'); }
+  /* B2 财柱总账浮层已外置 `view/ledger.js`（N82/A2 · 第册一百三十五批 2026-10-22）；
+   * 三件（ledgerRows / renderLedger / openLedger）与常量 LEDGER_SEAL_2/3 整段搬出，调用点见派发器 openLedger。
+   * ⚠️ `ledgerSums` 留在核内（上方定义）——右栏四柱槽 `renderRail` 取它算财柱收支。
+   * 🔧 第册一百三十七批勘正本注原半句「`renderPillars` 仍用它」：该函数经复核为**零调用死码**，已整族退役。 */
   $('mlg-close').addEventListener('click', function () { $('modal-ledger').classList.add('hide'); });
 
   /* B3 · 地柱洞府：福地名录四态卡（主线 6 + 别院 4 + 隐世 3，扩池批 v2.0）+ 缺项 chips 三段红绿 + 附属设施行 + 叙事折叠（未达资格不剧透）+ 迁居冷却倒计时 */
@@ -1838,53 +1825,11 @@
 
   /* 日志页整段（LOG_CATS / journalLines / renderJournal）已外置成 view/journal.js（第册五批） */
 
-  /* ── Tab 8 设置（重置存档：覆盖为新档 → 回填引用 → 停 tick → 关浮层 → 回创角）──
-   * UI v2 B2：菜单顺序整块下线（D5；`settings.tabOrder` 字段保留但不再读，旧档照常加载）；
-   * 自动三开关与奇遇倾向自修行页迁入本页（D6，用户令「日志 + 设置试点，按 B2 开干」）。 */
-  function renderSettings() {
-    var h = '';
-    var autoT = !!(state.settings && state.settings.autoTrib);
-    var autoE = !!(state.settings && state.settings.autoEvent);
-    var autoR = ws().gearAutoRefine !== false;   /* 自动炼化（issue #2）：缺省开 = 旧行为 */
-    /* B16-s：按设计稿次序「存档 → 自动 → 关于」重排（原先自动在最上、存档其次），
-     * 段标统一 .sechead；开关与动作锚点（data-act / aria-checked）一字未动。 */
-    h += '<div class="dsec"><div class="sechead"><span class="t">' + esc(t('settings.save.title')) + '</span></div>' +
-      '<div class="dd">' + esc(t('settings.save.now', identityParts())) + '</div>' +
-      '<p class="hint">' + esc(t('settings.reset.note')) + '</p>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.clearbuffs')) +
-      '<span class="sd">' + esc(t('settings.clearbuffs.desc')) + '</span></span>' +
-      '<button class="mini" data-act="clearBuffs">' + esc(t('settings.clearbuffs.btn')) + '</button></div>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.reset')) +
-      '<span class="sd">' + esc(t('settings.reset.desc')) + '</span></span>' +
-      '<button class="danger" data-act="resetSave">' + esc(t('settings.reset.btn')) + '</button></div></div>';
-    h += '<div class="dsec"><div class="sechead"><span class="t">' + esc(t('idle.auto.sec')) + '</span></div>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.auto.title')) +
-      '<span class="sd">' + esc(t('settings.auto.desc')) + '</span></span>' +
-      '<button class="switch' + (autoT ? ' on' : '') + '" data-act="toggleAutoTrib" role="switch" aria-checked="' + autoT + '">' +
-      '<i></i><span>' + esc(autoT ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.autoevent.title')) +
-      '<span class="sd">' + esc(t('settings.autoevent.desc')) + '</span></span>' +
-      '<button class="switch' + (autoE ? ' on' : '') + '" data-act="toggleAutoEvent" role="switch" aria-checked="' + autoE + '">' +
-      '<i></i><span>' + esc(autoE ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>' +
-      '<div class="setrow"><span class="sl">' + esc(t('settings.gearrefine.title')) +
-      '<span class="sd">' + esc(t('settings.gearrefine.desc')) + '</span></span>' +
-      '<button class="switch' + (autoR ? ' on' : '') + '" data-act="toggleGearRefine" role="switch" aria-checked="' + autoR + '">' +
-      '<i></i><span>' + esc(autoR ? t('settings.auto.on') : t('settings.auto.off')) + '</span></button></div>';
-    if (autoE) {
-      var prefNow = autoEventPref();
-      h += '<div class="setrow col"><span class="sl">' + esc(t('settings.eventpref.title')) +
-        '<span class="sd">' + esc(t('settings.eventpref.desc')) + '</span></span>' +
-        '<div class="chips">' +
-        ['none', 'right', 'evil', 'neutral'].map(function (pk) {
-          return '<button class="' + (prefNow === pk ? 'on' : '') + '" data-act="setEventPref" data-v="' + pk + '">' +
-            esc(t('event.pref.' + pk)) + '</button>';
-        }).join('') + '</div></div>';
-    }
-    h += '</div>';
-    h += '<div class="dsec"><div class="sechead"><span class="t">' + esc(t('settings.about.title')) + '</span></div>' +
-      '<div class="dd">' + esc(t('settings.about.body')) + '</div></div>';
-    $('tab-settings').innerHTML = h;
-  }
+  /* ── Tab 8 设置页渲染器已整段外置 `view/settings.js`（N82/A3 · 第册一百三十九批）：
+   * 调用点 = `renderTab` 的 `ui.tab === 'settings'` 一支与「清增益」动作回渲一处，均改走 `SQ.UI.settings.render(ctx())`。
+   * 三个自动开关与两个危险动作（清增益 / 重置）**仍由核内分派器受理**——本刀只搬「谁拼这段 HTML」，
+   * 不搬「谁改状态」；`resetSave` / `identityParts` / `autoEventPref` 三个核内服务原位保留。
+   * 桥位变化：`autoEventPref` 重新进桥（UI v2 B2 曾把它缩回核内直调，本刀起设置页在件内，只能经桥取）。 ── */
 
   async function resetSave() {
     stopTick();
@@ -1903,7 +1848,7 @@
     ui.lastArtsSig = 0; ui.lastTreasureSig = 0; ui.lastBondSig = 0; ui.lastShopSig = 0;
     ui.newArtsDot = false; ui.newTreasureDot = false; ui.newBondDot = false; ui.newShopDot = false;
     ui.achvSnap = achvRedDotSig();          /* 成就页红点基线：重置后从头计数 */
-    show('c1');
+    show('c3'); renderC3();
   }
 
   /* 角色身份三元组（道名/世界/境界）：顶栏、角色浮层标题、设置页存档提示三处共用同一来源，
@@ -1965,7 +1910,7 @@
     else if (ui.tab === 'achv') SQ.UI.achv.render(ctx());
     else if (ui.tab === 'legacy') SQ.UI.legacy.render(ctx());
     else if (ui.tab === 'journal') SQ.UI.journal.render(ctx());
-    else if (ui.tab === 'settings') renderSettings();
+    else if (ui.tab === 'settings') SQ.UI.settings.render(ctx());
   }
 
   function renderAll() {
@@ -1988,10 +1933,9 @@
   $('trib-stage').addEventListener('click', function () { SQ.UI.trib.skip(ctx()); });
 
   /* ── 抉择模态（F3）：三分支 + 信息层（成算/花费/缺项置灰）+ 判定演出 + 结果页 + 独占全屏演出。
-   * karma 不预告（按钮无道心数值）；确定性判定不满足 → 置灰；attr/power 类给出成算或可预判结果。── */
-  var judgingTimers = [];
-  /* 判定动画的定时器数组（内核作答流 push，奇遇族每次开抉择前清）⇒ 清点收在这里一枚 */
-  function clearJudgingTimers() { judgingTimers.forEach(function (t) { clearTimeout(t); }); judgingTimers = []; }
+   * karma 不预告（按钮无道心数值）；确定性判定不满足 → 置灰；attr/power 类给出成算或可预判结果。──
+   * `judgingTimers` / `clearJudgingTimers` 已随 B4（第册一百四十五批）整族迁入 `view/event.js`，
+   * 桥位 `clearJudging` 退役、换入 `renderTop`（作答后顶栏要立即刷新）。 */
   function findEvent(id) { return SQ.Events.findById(pack(), id); }
   function branchChecks(br) { return br.check ? (Array.isArray(br.check) ? br.check : [br.check]) : []; }
 
@@ -2215,33 +2159,10 @@
 
   /* 出关呈报（F4：lastOffline.at 键控 · 会话一次 · EVENT_CHOICE 优先顺延）
    * 正文改为数据网格：只陈列本次离线所得的数字（修为/灵石/时长/渡劫），不再走散文句式 */
-  function showOfflineReport() {
-    var lo = ws().lastOffline;
-    if (!lo) return;
-    ui.seenOfflineAt = lo.at;
-    var lsecs = isFinite(lo.secs) ? lo.secs : 0;   /* 防脏字段：NaN/undefined 一律按 0 计 */
-    var lh = Math.floor(lsecs / 3600), lm = Math.floor((lsecs % 3600) / 60);
-    var lt = lh > 0 ? t('ui.time.hm', { h: lh, m: lm }) : t('ui.time.m', { m: Math.max(1, lm) });
-    var ventureLo = lo.mode === 'venture';
-    var trib = lo.trib || { n: 0, s: 0, f: 0 };
-    $('mo-title').textContent = t('offline.report.title');
-    $('mo-sub').textContent = t(ventureLo ? 'offline.panel.title.v' : 'offline.panel.title');
-    $('mo-stats').innerHTML =
-      '<div class="o"><div class="on">' + esc(t('resource.primary')) + '</div>' +
-        '<div class="ov">+' + SQ.fmt(lo.qi) + '</div></div>' +
-      '<div class="o"><div class="on">' + esc(t('resource.currency')) + '</div>' +
-        '<div class="ov">+' + SQ.fmt(lo.stones || 0) + '</div></div>' +
-      '<div class="o"><div class="on">' + esc(t('offline.stat.dur')) + '</div>' +
-        '<div class="ov">' + esc(lt) + '</div></div>' +
-      '<div class="o"><div class="on">' + esc(t('tribulation.tag')) + '</div>' +
-        '<div class="ov">' + trib.n + '<span class="u">' + esc(t('offline.stat.times')) + '</span></div>' +
-        (trib.n > 0 ? '<div class="os">' + esc(t('offline.stat.trib.split', { s: trib.s, f: trib.f })) + '</div>' : '') +
-      '</div>';
-    $('mo-hint').textContent = offlineDetail(lo) + ' · ' +
-      t(ventureLo ? 'offline.report.hint.v' : 'offline.report.hint');
-    $('mo-ok').textContent = t('offline.report.ok');
-    $('modal-offline').classList.remove('hide');
-  }
+  /* 出关呈报 `showOfflineReport` 已整段外置 `view/offline.js`（N82/A3 · 第册一百三十九批）：
+   * 调用点 = `afterClaim` 弹层栈与 boot 进场两处，均改走 `SQ.UI.offline.report(ctx())`。
+   * ⚠️ `offlineDetail`（上面那枚）**留内核**：核内 5 处调用，搬它换来的反向调用比省下的行多（勘察档 §七「不做」行）；
+   * 件内经桥 `c.offlineDetail` 取它的成品文案。 */
   /* 坐化呈报（`deathReport`）与确认收口（`okDeath`）已整片外置 `view/show.js`（N34 第十四刀 · 第册五十批）：
    * 这里只留确认键的一行转发——`deathPending` 那条分支（进创角 + 盖棺之传）在件内走桥位。 */
   $('mo-ok').addEventListener('click', function () { SQ.UI.show.okDeath(ctx()); });
@@ -2251,71 +2172,12 @@
   $('mr-close').addEventListener('click', function () { $('modal-role').classList.add('hide'); });
   $('mr-karma').addEventListener('click', function () { $('modal-role').classList.add('hide'); SQ.UI.self.karma(ctx()); });
 
-  /* ── 洗髓浮层（天赋池设计 v1.8 §十 · 洗髓批）：三格择一替换 + 三候选择一 ──
-   * 候选只掷一次并存在 washDraft 里（选格不重掷，否则「看着换」变成「赌着换」）；
-   * 真正改档只走 SQ.Talents.applySwap 单口，视图不自带判定。 */
-  var washDraft = { slot: -1, cand: -1, cands: [] };
-  function washCard(el, i, act, picked) {
-    var d = talentCard(el, wid());
-    d.setAttribute('data-act', act);
-    d.setAttribute('data-v', i);
-    d.className += ' pickable' + (picked ? ' pick' : '');
-    return d;
-  }
-  function renderWash() {
-    var sl = $('tw-slots');
-    sl.innerHTML = '';
-    (state.profile.talents || []).forEach(function (el, i) { sl.appendChild(washCard(el, i, 'washSlot', i === washDraft.slot)); });
-    var cb = $('tw-cands');
-    cb.innerHTML = '';
-    washDraft.cands.forEach(function (el, i) { cb.appendChild(washCard(el, i, 'washPick', i === washDraft.cand)); });
-    $('tw-ok').disabled = !(washDraft.slot >= 0 && washDraft.cand >= 0);
-  }
-  function showWash() {
-    var w = ws(), cap = (D().TALENT_SWAP || {}).PER_LIFE || 0;
-    if (!(cap > 0)) return;
-    if (!((w.talentOwed || 0) > 0)) { toast(t('talent.swap.none')); return; }
-    washDraft.cands = SQ.Talents.candidates(wid(), state.profile, 3);
-    washDraft.slot = -1; washDraft.cand = -1;
-    $('tw-title').textContent = t('talent.swap.title');
-    $('tw-sub').textContent = t('talent.swap.sub', {
-      n: Math.max(0, cap - (w.talentUsed || 0)), cap: cap, owed: w.talentOwed || 0
-    });
-    $('tw-pick-label').textContent = t('talent.swap.pick');
-    $('tw-cand-label').textContent = t('talent.swap.cand');
-    $('tw-close').textContent = t('ui.cancel');
-    $('tw-ok').textContent = t('talent.swap.ok');
-    renderWash();
-    $('modal-role').classList.add('hide');
-    $('modal-talentwash').classList.remove('hide');
-  }
-  async function doWash() {
-    var cand = washDraft.cands[washDraft.cand];
-    if (washDraft.slot < 0 || !cand) { toast(t('talent.swap.need')); return; }
-    var res = null;
-    await SQ.mutate(state, function (s) {
-      var id = s.profile.worldId;
-      res = SQ.Talents.applySwap(id, s.profile, s.worlds[id], SQ.Worlds[id].pack.data, washDraft.slot, cand.id);
-      if (res.ok) SQ.Log.push(s.worlds[id], 'sys', SQ.t('talent.swap.done', {
-        from: SQ.t('talent.' + res.from + '.name', null, id),
-        to: SQ.t('talent.' + res.to + '.name', null, id)
-      }, id));
-    });
-    if (!res || !res.ok) {
-      /* 引擎拒因只有 none（无缘）与形状类（格号/候选非法、撞已持有）两类 ⇒ 前者说「手中没有洗髓缘」，
-       * 后者属档面异常，一律回「本世之数已尽」并重的渲染，绝不打裸英文 */
-      toast(t(res && res.reason === 'none' ? 'talent.swap.none' : 'talent.swap.cap'));
-      renderAll();
-      return;
-    }
-    $('modal-talentwash').classList.add('hide');
-    toast(t('talent.swap.done', {
-      from: t('talent.' + res.from + '.name', null, wid()),
-      to: t('talent.' + res.to + '.name', null, wid())
-    }));
-    renderAll();
-  }
-  $('tw-close').addEventListener('click', function () { $('modal-talentwash').classList.add('hide'); });
+  /* ── 洗髓浮层族（washDraft / washCard / renderWash / showWash / doWash + 五个动作口）已整族外置
+   * `view/talentswap.js`（N82/A3 · 第册一百三十九批）：件内私有态 `washDraft` 随族搬走，内核不再直接读写；
+   * 入口 = `SQ.UI.talentswap.open(ctx())`（角色浮层 `#mr-wash` / 修行页段标快捷入口 / 炼丹服丹成功三处），
+   * 动作 = 分派器 `washSlot` / `washPick` / `washOk` 三支一行转发。桥位 `showWash` 随之退役（桥 −1 枚）：
+   * 件外那唯一一处调用（炼丹服丹成功）改成件对件直调，不再过桥。 ── */
+  $('tw-close').addEventListener('click', function () { SQ.UI.talentswap.close(ctx()); });
 
   /* ── karma 浮层（F5）已外置 `view/self.js`（N34 第十八刀 · 第册五十四批）：调用点 = 派发器 `data-act="karma"`。 ── */
   $('mkd-close').addEventListener('click', function () { $('modal-karma').classList.add('hide'); });
@@ -2537,7 +2399,7 @@
     $('c1-name').value = '';
     $('c1-err').classList.add('hide');
     ui.tab = 'idle';
-    show('c1');
+    show('c3'); renderC3();
   }
 
   /* ── 轮回页与飞升 / 兵解两族已随第册四十九批整片搬进 view/legacy.js（N34 第十三刀）：`legacyReasonText` ‖
@@ -2567,15 +2429,9 @@
     var act = el.dataset.act, v = el.dataset.v;
     var keepScroll = document.querySelector('.tabbody') ? document.querySelector('.tabbody').scrollTop : 0;
     if (act === 'tab') { switchTab(v); return; }
-    /* 更新公告（第册四批）：点「知道了」才落库并收层；落库走 SQ.mutate 事务口（直写内存态会被下一次 claim 覆盖） */
-    if (act === 'noteClose') {
-      if (SQ.UI && SQ.UI.updateNote) {
-        var noteId = SQ.UI.updateNote.id;
-        SQ.UI.updateNote.hide();
-        await SQ.mutate(state, function (s) { s.profile.seenNote = noteId; });
-      }
-      return;
-    }
+    /* 更新公告（第册四批）：点「知道了」才落库并收层——noteClose 原块已随 B5a（第册一百四十六批）
+     * 搬入 `view/updatenote.js`，此处一行转发；落库走 SQ.mutate 事务口（直写内存态会被下一次 claim 覆盖）。 */
+    if (act === 'noteClose') { await SQ.UI.updateNote.actClose(ctx()); return; }
     /* 法与器合并页已随 UI v2 B3 拆成「功法」「百器」两页：`lawChip` / `lawJump` 旧入口一并退役。 */
     /* 江湖榜换榜（第册一批③）：`ui.jhb` 只在内存（与 `ui.logFilter` / `ui.artsGroup` 同纪律——选看哪一榜不是角色状态，
      * 写进存档等于给主档加一个与游玩时长相关的增长项）；切榜等价换页 ⇒ 滚动归零。 */
@@ -2583,47 +2439,23 @@
       SQ.UI.jianghu.actChip(ctx(), v);
       return;
     }
-    if (act === 'claim') {
-      var before = ws().tribulation.attempts;
-      SQ.UI.trib.snap(ctx());
-      await SQ.claim(state);
-      afterClaim(before);
-      renderAll();
-      return;
-    }
-    if (act === 'detailRate') { ui.detailRate = !ui.detailRate; renderTab(); return; }
+    /* `act === 'claim'` 支已于第册一百四十批（B0 · 用户裁定 Q2）**删除**：全库零 `data-act="claim"` 产出，
+     * 且修行页「收功」按钮按 v2.2 撤销后结算只走每秒心跳 ⇒ 该支是死枝。`afterClaim` 仍由 tick 调用，功能不动。 */
+    /* 第册一百四十七批：记点开时刻——浮层随 tick 每秒整页重建，渲染器按「距点开 <300ms」判新帧，
+     * 只给刚点开那一轮挂 stageIn 入场动画；之后的每秒重渲不再重播（用户报「明细弹窗一直闪烁」根因）。 */
+    if (act === 'detailRate') { ui.detailRate = !ui.detailRate; if (ui.detailRate) ui.detailRateAt = Date.now(); renderTab(); return; }
     if (act === 'detailTrib') { ui.detailTrib = !ui.detailTrib; renderTab(); return; }
     if (act === 'role') { SQ.UI.self.role(ctx()); return; }
-    if (act === 'washOpen') { showWash(); return; }
-    if (act === 'washSlot') { washDraft.slot = parseInt(v, 10); renderWash(); return; }
-    if (act === 'washPick') { washDraft.cand = parseInt(v, 10); renderWash(); return; }
-    if (act === 'washOk') { await doWash(); return; }
+    if (act === 'washOpen') { SQ.UI.talentswap.open(ctx()); return; }
+    if (act === 'washSlot') { SQ.UI.talentswap.slot(ctx(), v); return; }
+    if (act === 'washPick') { SQ.UI.talentswap.pick(ctx(), v); return; }
+    if (act === 'washOk') { await SQ.UI.talentswap.ok(ctx()); return; }
     if (act === 'karma') { SQ.UI.self.karma(ctx()); return; }
     if (act === 'matWudao') { SQ.UI.arts.actMatWudao(ctx()); return; }
     if (act === 'setZone') { await SQ.Actions.setZone(state, parseInt(v)); renderAll(); return; }
-    /* ── 系统深化批 B3：域主挑战（一次性掷判，胜负 toast + 引擎日志）/ 残片兑换（z6~8 带 choice）── */
-    if (act === 'challengeBoss') {
-      var zbZ = ws().zoneBoss ? ws().zoneBoss.zone : ws().zone;
-      var resB = await SQ.Actions.challengeBoss(state);
-      if (resB && resB.ok) {
-        toast(resB.win
-          ? t('zone.boss.win', { zone: t('combat.zone.' + zbZ), gear: resB.item.name, stones: SQ.fmt(resB.stones) })
-          : t('zone.boss.lose', { zone: t('combat.zone.' + zbZ) }));
-      } else if (resB && resB.reason === 'cd') {
-        toast(t('zone.boss.cd', { t: timeLeftText(resB.retryAt - Date.now()) }));
-      }
-      renderAll();
-      return;
-    }
-    if (act === 'exchangeShard') {
-      var resS = await SQ.Actions.exchangeShard(state, parseInt(v), el.dataset.c || null);
-      if (resS && resS.ok) toast(t('zone.shard.done'));
-      else if (resS && resS.reason === 'shards') toast(t('zone.shard.fail', { n: resS.have, need: resS.need }));
-      else if (resS && resS.reason === 'pillfull') toast(t('zone.shard.fail.pillfull'));
-      else if (resS && resS.ok !== true) toast(t('zone.shard.fail.other'));   /* 原为静默无提示（pool / zone 两因点了没反应） */
-      renderAll();
-      return;
-    }
+    /* ── 系统深化批 B3：域主挑战 / 残片兑换（B1 = 第册一百四十一批搬入 `view/zone.js`，此处只留一行转发）── */
+    if (act === 'challengeBoss') { await SQ.UI.zone.actChallengeBoss(ctx()); return; }
+    if (act === 'exchangeShard') { await SQ.UI.zone.actExchangeShard(ctx(), v, el.dataset.c || null); return; }
     /* 修行状态切换（模式二选一）：mutate 内幂等 + 写日志；重绘全页（修行页选中态/秘境页提示联动） */
     if (act === 'setMode') { await SQ.Actions.setMode(state, v); renderAll(); return; }
     /* ── G16 势力（势力批 v2.4）：加入 CONFIRM / 叛离 CONFIRM / 特席购买 / 关系全列开关 ── */
@@ -2686,6 +2518,12 @@
       renderTab();
       return;
     }
+    /* 自动佩戴（册150）：镜像 setGearRefine 同型——存 ws.gearAutoEquip（autoEquip 调用点只有 ws 在场） */
+    if (act === 'toggleGearEquip') {
+      await SQ.Actions.setGearEquip(state, ws().gearAutoEquip === false);
+      renderTab();
+      return;
+    }
     if (act === 'tabUp' || act === 'tabDown') { return; }   /* 菜单顺序已下线（UI v2 B2）：旧入口静默忽略 */
     /* 奇遇倾向（体验批）：改偏好即落盘；下次自动抉择按新倾向取分支 */
     if (act === 'setEventPref') {
@@ -2706,107 +2544,26 @@
       return;
     }
     /* ── 批 2 · 四柱 chip（B1）与洞府入驻（B3）── */
-    if (act === 'openLedger') { openLedger(); return; }
+    if (act === 'openLedger') { SQ.UI.ledger.openLedger(ctx()); return; }
     if (act === 'openCave') { openCave(); return; }
     if (act === 'openArtsModal') { openArtsModal(); return; }
     if (act === 'openRealm') { openRealmInfo(); return; }
-    if (act === 'caveEnter') {
-      var wC = ws(), pC = pack(), dC = D(), mC = mods();
-      var chkC = SQ.Cave.canEnter(wC, pC, dC, v, Date.now());
-      if (!chkC.ok || !chkC.cave) return;
-      var fromC = SQ.Cave.multOf(wC, pC, dC, mC);
-      var toC = Math.min(dC.CAVE_MULT_CAP, chkC.cave.mult);
-      var deltaP = Math.round((toC / fromC - 1) * 1000) / 10;
-      var deltaTxt = t(deltaP >= 0 ? 'cave.delta.up' : 'cave.delta.down', { p: Math.abs(deltaP) });
-      var bodyC = t(chkC.cost > 0 ? 'cave.confirm.pay' : 'cave.confirm.free', {
-        from: fromC.toFixed(2), to: toC.toFixed(2), delta: deltaTxt,
-        cost: SQ.fmt(chkC.cost) + ' ' + t('resource.currency')
-      }) + '\n' + t('cave.confirm.cd', { y: Math.round(dC.CAVE_SWITCH_CD_MS / 1000 / 360) });
-      var wasOwned = chkC.owned;               /* 轻演出只给「第一次拥有」（B3 · 稿三） */
-      askConfirm(t('cave.confirm.title', { name: t('cave.' + chkC.cave.id + '.name') }), bodyC, async function () {
-        var res = await SQ.Actions.enterCave(state, v);
-        if (res && res.ok) {
-          if (!wasOwned && !reducedMotion()) SQ.UI.show.caveEnter(ctx(), res.cave.id, toC);
-          else toast(t('cave.enter.ok', { name: t('cave.' + res.cave.id + '.name'), mult: toC.toFixed(2) }));
-        } else if (res) {
-          toast(t('cave.enter.fail.' + res.reason));
-        }
-        renderAll();
-      });
-      return;
-    }
-    /* ── 福地扩池批 v2.0：附属设施营建（CONFIRM 后走 mutate 单一通道）── */
-    if (act === 'caveBuild') {
-      var fId = el.dataset.f;
-      var chkB = SQ.Cave.canBuildFac(ws(), pack(), D(), v, fId);
-      if (!chkB.ok) { toast(t('cave.fac.lack.' + ((chkB.lack[0] || {}).kind === 'stones' ? 'stones' : 'owned'))); return; }
-      var bodyB = t('cave.fac.' + fId + '.desc') + '\n' +
-        t(chkB.lv === 0 ? 'cave.fac.build' : 'cave.fac.upgrade', { n: SQ.fmt(chkB.cost) + ' ' + t('resource.currency') });
-      askConfirm(t('cave.fac.' + fId + '.name') + ' · Lv' + (chkB.lv + 1), bodyB, async function () {
-        var rB = await SQ.Actions.buildFacility(state, v, fId);
-        if (rB && rB.ok) toast(t('log.cave.fac.built', {
-          cave: t('cave.' + v + '.name'), fac: t('cave.fac.' + fId + '.name'), lv: rB.lv
-        }));
-        renderAll();
-      });
-      return;
-    }
-    /* ── G16 势力深化批（v1.23）：捐献 / 委托交付 / 应战 / 供给兑换 ── */
-    if (act === 'facDonate') {
-      var amt = parseInt(v, 10);
-      var cfgD = D().FACTION_DONATE || {};
-      var cur0 = SQ.Factions.current(ws());
-      if (!cur0) return;
-      /* 预览与引擎同口径：窗口过期则 used 视为 0（原实现漏判窗口，短窗口下预览会低估） */
-      var donPv = ws().factionDonate || {};
-      var inWinPv = Date.now() - (donPv.at || 0) <= (cfgD.WINDOW_MS);
-      var usedPv = inWinPv ? (donPv.used || 0) : 0;
-      askConfirm(t('faction.donate'), t('faction.confirm.donate', {
-        name: cur0.name, n: SQ.fmt(amt), cur: t('resource.currency'),
-        rep: Math.min(Math.floor(amt / (cfgD.STONES_PER_REP)),
-          Math.max(0, (cfgD.WINDOW_CAP || 300) - usedPv))
-      }), async function () {
-        var rD = await SQ.Actions.donateFaction(state, amt);
-        if (rD && rD.ok) toast(t('faction.log.donate', { name: cur0.name, n: rD.rep }));
-        else if (rD) toast(t('faction.donate.fail.' + rD.reason));
-        renderAll();
-      });
-      return;
-    }
-    if (act === 'questClaim') {
-      var rQ = await SQ.Actions.deliverQuest(state, v);   /* v = 委托类型（板面同类型至多一张 ⇒ type 就是地址） */
-      if (rQ && rQ.ok) toast(t('faction.quest.claim.ok') + ' · ' + t('faction.quest.done', { n: rQ.rep }));
-      else if (rQ) toast(t('faction.quest.fail.' + rQ.reason));
-      renderAll();
-      return;
-    }
-    if (act === 'warJoin') {
-      /* 战功制入场（势力全录卷 §7.1 · B4）：确认弹窗改战功规则说明，不再展示战力线 */
-      var wW = ws(), warW = wW.factionWar;
-      if (!warW || warW.joined) return;
-      askConfirm(t('faction.war.confirm.title'), t('faction.confirm.war'), async function () {
-        var rW = await SQ.Actions.joinWar(state);
-        if (rW && rW.ok) toast(t('faction.war.merit.joined', { name: SQ.Factions.nameOf(wW, wW.factionId) }));
-        else if (rW) toast(t('faction.war.fail.' + rW.reason));
-        renderAll();
-      });
-      return;
-    }
+    /* 入洞天 / 福地营建（B1 = 第册一百四十一批搬入 `view/zone.js`，此处只留一行转发）：
+     * `v` = 洞府 id，第三参取卡上 data-f（设施 id）。 */
+    if (act === 'caveEnter') { SQ.UI.zone.actCaveEnter(ctx(), v); return; }
+    /* 武侠「先睹」入口（册159 · S1-e）：coming 世界卡上的预览钮，打开书界面（预览不落档） */
+    /* 册168 摘 wuxiaPreview 支：先睹钮退役，书世界先睹走流程（c3-go → goFromC3 直调 actPreview） */
+    if (act === 'caveBuild') { SQ.UI.zone.actCaveBuild(ctx(), v, el.dataset.f); return; }
+    /* ── 势力四支（B3 = 第册一百四十三批搬入 `view/faction.js`，此处各留一行转发）──
+     * 供奉 / 委托交付 / 应战 / 好聚好散 */
+    if (act === 'facDonate') { SQ.UI.faction.actDonate(ctx(), v); return; }
+    if (act === 'questClaim') { await SQ.UI.faction.actQuestClaim(ctx(), v); return; }
+    if (act === 'warJoin') { SQ.UI.faction.actWarJoin(ctx()); return; }
     /* ── 叛离去向选择（势力全录卷 §九 · B4 两级弹窗）：第一级去向（敌对红标叛投）→
      * 第二级献秘确认（确认 = 带秘 / 取消 = 好聚好散）；非敌对沿用现行单级确认 ── */
     if (act === 'leaveFaction') { ui.leavePick = !ui.leavePick; ui.officePick = false; renderTab(); return; }
     if (act === 'leavePick') { ui.leavePick = false; renderTab(); return; }
-    if (act === 'leavePlain') {
-      ui.leavePick = false;
-      var curF = SQ.Factions.current(ws());
-      if (!curF) { renderTab(); return; }
-      askConfirm(t('faction.leave'), t('faction.confirm.leave', { name: curF.name }), async function () {
-        await SQ.Actions.leaveFaction(state);
-        toast(t('faction.log.leave', { name: curF.name }));
-        renderAll();
-      });
-      return;
-    }
+    if (act === 'leavePlain') { SQ.UI.faction.actLeavePlain(ctx()); return; }
     if (act === 'defectGo') { SQ.UI.faction.actDefect(ctx(), v); return; }
     /* ── 职级实权双技能（势力全录卷 §八 · B4）：调遣 = 选择列表；门中护法 = 直接发动 ── */
     if (act === 'officePick') { SQ.UI.faction.actOfficePick(ctx()); return; }
@@ -2814,32 +2571,9 @@
     if (act === 'officeDispatch') { await SQ.UI.faction.actDispatch(ctx(), v); return; }
     if (act === 'officeGuard') { await SQ.UI.faction.actGuard(ctx()); return; }
     if (act === 'supplyBuy') { await SQ.UI.faction.actSupply(ctx(), v); return; }
-    /* ── G17 江湖传闻：前往查证（war 卡 → 转跳势力页应战 CONFIRM）── */
-    if (act === 'rumorGo') {
-      var wRm = ws();
-      var chkRm = SQ.Rumors.canTrigger(wRm, pack(), D(), v, Date.now());
-      if (!chkRm.ok) {
-        toast(t(chkRm.reason === 'busy' ? 'rumor.busy' : (chkRm.reason === 'expired' ? 'rumor.expired.grey' : 'rumor.gone')));
-        renderAll();
-        return;
-      }
-      if (chkRm.war) {
-        var warR = wRm.factionWar;
-        if (warR && SQ.Factions.warSideOf(wRm)) { switchTab('faction'); return; }
-        toast(t('faction.war.watch'));
-        return;
-      }
-      var rRm = await SQ.Actions.triggerRumor(state, v);
-      /* 传闻触发的奇遇同样遵守「自动奇遇」设定（体验批）：开启 → 自动择分支结算不弹窗；
-       * 关闭 → 维持抉择模态。与 afterClaim 的 tick 侧口径一致。 */
-      if (rRm && rRm.ok && rRm.pending) {
-        if (autoEventOn()) autoResolveChoice();
-        else SQ.UI.event.choice(ctx());
-      }
-      else if (rRm && !rRm.ok) { toast(t('rumor.gone')); }
-      renderAll();
-      return;
-    }
+    /* ── G17 江湖传闻：前往查证（war 卡 → 转跳势力页应战 CONFIRM）——rumorGo 原块已随 B5a
+     * （第册一百四十六批）搬入 `view/rumor.js`，此处一行转发；桥 +3（switchTab / autoEventOn / autoResolveChoice）。 */
+    if (act === 'rumorGo') { await SQ.UI.rumor.actGo(ctx(), v); return; }
     /* ── 天道系统（天道系统批 B1~B4）：问天/天象浮层 + 卦位香火选择 + 逆天大劫挑战 ── */
     if (act === 'openTiandao') { SQ.UI.tiandao.open(ctx()); return; }
     /* 页游充值贴片彩蛋：只回一句拒绝，零发放 / 零落档 / 零账（判据 = 走查 G 组「点完存档字节不变」）。
@@ -2917,74 +2651,18 @@
     if (act === 'sectGate') { ui.sectPick = ui.sectPick || {}; ui.sectPick.gate = v; renderTab(); return; }
     if (act === 'sectAlign') { ui.sectPick = ui.sectPick || {}; ui.sectPick.align = v; renderTab(); return; }
     if (act === 'sectRollName') { ui.sectRollName = SQ.Sect.nameOfIdx(SQ.Sect.rollIdx(), wid()); renderTab(); return; }
-    if (act === 'sectFound') {
-      var nameIn2 = document.getElementById('sect-name-input');
-      /* 门规宣言随立派一次写入（第册一百一十八批）：值取 `ui.sectFoundMotto`（input 监听回填，
-       * 与自定义名同一套防 tick 抹字的口径），成交即清空——下一门不该继承上一门的宣言。 */
-      var mottoIn2 = (ui.sectFoundMotto || '').trim();
-      askConfirm(t('sect.found.btn'), t('sect.found.confirm'), async function () {
-        var rFd = await SQ.Actions.sectFound(state, (ui.sectPick || {}).gate || 'wuyue', nameIn2 ? nameIn2.value : '', null, (ui.sectPick || {}).align || 'neutral', mottoIn2);
-        if (rFd && rFd.ok) {
-          ui.sectFoundMotto = '';
-          toast(t('sect.found.log', { name: rFd.name, gate: t('sect.gate.' + ((ui.sectPick || {}).gate || 'wuyue') + '.name') }));
-        }
-        else if (rFd) {
-          var fkk = 'sect.ui.fail.' + rFd.reason;
-          toast(t(fkk) !== fkk ? t(fkk) : rFd.reason);
-        }
-        renderAll();
-      });
-      return;
-    }
-    if (act === 'sectRecruit') { var rRc = await SQ.Actions.sectRecruit(state); if (rRc && rRc.reason === 'cap') toast(t('sect.disc.cap.full')); renderAll(); return; }
-    if (act === 'sectAccept') { var rAc = await SQ.Actions.sectAccept(state); if (rAc && rAc.reason === 'cap') toast(t('sect.disc.cap.full')); renderAll(); return; }
-    if (act === 'sectReject') { await SQ.Actions.sectReject(state); toast(t('sect.disc.reject')); renderAll(); return; }
-    if (act === 'sectOffer') {
-      var rOf = await SQ.Actions.sectOffer(state, v);
-      if (rOf && !rOf.ok) toast(rOf.reason === 'refuse' ? t('sect.disc.offer.refuse', { name: t('bond.' + v + '.name') }) : t('sect.disc.offer.need'));
-      renderAll();
-      return;
-    }
-    if (act === 'sectInvest') { await SQ.Actions.sectInvest(state, v, parseInt(el.dataset.c, 10)); renderAll(); return; }
-    if (act === 'sectBuild') {
-      var rBd = await SQ.Actions.sectBuild(state, v);
-      /* 失败原因四路全给中文：原 `: rBd.reason` 直落 ⇒ 'none' / 'unknown' 裸英文上屏
-       *（与 N16 炼丹失败族同形）；兜底键 sect.ui.build.other 保证任何新 reason 也不外泄内部字段名 */
-      if (rBd && !rBd.ok) {
-        var kBd = 'sect.ui.build.' + rBd.reason;
-        toast(rBd.reason === 'poor' ? t('legacy.ui.poor') : (rBd.reason === 'max' ? t('sect.fac.max') :
-          (t(kBd) !== kBd ? t(kBd) : t('sect.ui.build.other'))));
-      }
-      renderAll();
-      return;
-    }
-    if (act === 'sectDispatch') {
-      var rDp = await SQ.Actions.sectDispatch(state, v);
-      /* 引擎 Sect.dispatch 有四种拒因（cd / none / unknown / chan），原先只提示 cd ⇒ 其余三因**点了零反馈
-       * 零变化**（第十四批审计 #12，本仓头号「静默拒绝」类；势力页 dispatchCandidates 早已同口径说明，宗门页漏了）。
-       * 表外新 reason 走 `.other` 兜底，不再把内部字段名打上屏（#272/#273 同一纪律）。 */
-      if (rDp && !rDp.ok) {
-        var rk295 = ['cd', 'none', 'chan', 'unknown'].indexOf(rDp.reason) >= 0 ? rDp.reason : 'other';
-        toast(t('faction.office.dispatch.' + rk295));
-      }
-      renderAll();
-      return;
-    }
-    if (act === 'sectWar') {
-      var rW = await SQ.Actions.sectWar(state, v);
-      /* 拒因一律走表内键（#272/#273 那条「不许把内部字段名打上屏」，原先 else 直接 toast(rW.reason)）；
-       * 结仇宣战（第册一百二十二批）多一枚 poor：灵石不够要把这一笔的价说出口。 */
-      if (rW && !rW.ok) toast(rW.reason === 'cd' ? t('sect.war.cd', { t: timeLeftText(rW.until - Date.now()) })
-        : (rW.reason === 'busy' ? t('sect.war.busy')
-          : (rW.reason === 'poor' ? t('sect.war.open.poor', { n: SQ.fmt(rW.cost || 0) }) : t('sect.war.reject'))));
-      else if (rW && rW.ok && rW.fee > 0) toast(t('sect.war.open.log', {
-        name: (SQ.Factions.nameOf(ws(), v) || ''), n: SQ.fmt(rW.fee),
-        cut: Math.round((D().SECT.WAR_REP_SELF_CUT != null ? D().SECT.WAR_REP_SELF_CUT : 0.10) * 100),
-        karma: Math.abs(D().SECT.WAR_OPEN_KARMA != null ? D().SECT.WAR_OPEN_KARMA : -30), m: (rW.foes || []).length
-      }));
-      renderAll();
-      return;
-    }
+    /* ── 宗门动作十支（B2 = 第册一百四十二批搬入 `view/sect.js`，此处各留一行转发）──
+     * 立派 / 招贤 / 收下 / 逐客 / 供奉 / 投资 / 营建 / 调遣 / 宣战 / 接任 */
+    if (act === 'sectFound') { SQ.UI.sect.actFound(ctx()); return; }
+    if (act === 'sectRecruit') { await SQ.UI.sect.actRecruit(ctx()); return; }
+    if (act === 'sectAccept') { await SQ.UI.sect.actAccept(ctx()); return; }
+    if (act === 'sectReject') { await SQ.UI.sect.actReject(ctx()); return; }
+    if (act === 'sectOffer') { await SQ.UI.sect.actOffer(ctx(), v); return; }
+    if (act === 'sectInvest') { await SQ.UI.sect.actInvest(ctx(), v, el.dataset.c); return; }
+    if (act === 'sectBuild') { await SQ.UI.sect.actBuild(ctx(), v); return; }
+    if (act === 'sectDispatch') { await SQ.UI.sect.actDispatch(ctx(), v); return; }
+    if (act === 'sectWar') { await SQ.UI.sect.actWar(ctx(), v); return; }
+    if (act === 'sectSucceed') { SQ.UI.sect.actSucceed(ctx(), v); return; }
     /* B16-ad：自立宗门治理 / 人事 / 外交
      * 🔧 第册一百一十八批：`sectGovField`（改名 / 宣言）与 `sectGovRule`（门规 / 阵营）两条分派随写口
      *    一并删除——那四样在立派那一步定死（宣言走 sectFound 的入参），治理段只剩税率 / 人事 / 解散 / 停战。 */
@@ -3027,15 +2705,7 @@
       });
       return;
     }
-    if (act === 'sectSucceed') {
-      askConfirm(t('sect.ui.succ.btn'), t('sect.ui.succ.confirm'), async function () {
-        var rSc = await SQ.Actions.sectSucceed(state, v);
-        if (rSc && rSc.ok) toast(t('sect.succ.log', { name: (ws().sect || {}).name || '', heir: '' }));
-        else if (rSc && rSc.reason === 'realm') toast(t('legacy.ui.feisheng.lock.realm'));
-        renderAll();
-      });
-      return;
-    }
+    /* `sectSucceed` 原块已随 B2（第册一百四十二批）搬入 `view/sect.js` —— 上方那行转发即其入口。 */
     if (act === 'nijie') {
       askConfirm(t('tiandao.nijie.btn'), t('tiandao.nijie.confirm'), async function () {
         var rNj = await SQ.Actions.tryNijie(state);
@@ -3078,6 +2748,13 @@
       return;
     }
     /* ── 道具处置打磨包：功法散功/弃置 + 库藏阁手动炼化（CONFIRM 后走 mutate 单一通道）── */
+    if (act === 'wearGear') {
+      var idxW = parseInt(v, 10);
+      var rW = await SQ.Actions.wearGear(state, idxW);
+      if (rW && rW.ok) toast(t('gear.wear.done', { name: rW.item.name, tier: t('gear.tier.' + rW.item.tier) }));
+      renderAll();
+      return;
+    }
     if (act === 'salvageArt') {
       await SQ.UI.arts.actSalvage(ctx(), v);
       return;
@@ -3097,55 +2774,14 @@
     if (act === 'clearBuffs') {
       askConfirm(t('settings.clearbuffs'), t('settings.clearbuffs.confirm'), async function () {
         await SQ.Actions.clearBuffs(state);
-        renderSettings();
+        SQ.UI.settings.render(ctx());
       });
       return;
     }
     if (act === 'feedMore') { ui.feedExpand = !ui.feedExpand; renderTab(); return; }
     if (act === 'codexTier') { ui.codexOpen = ui.codexOpen || {}; ui.codexOpen[v] = !ui.codexOpen[v]; renderTab(); return; }   /* UI v2 B9：图鉴段折叠（纯 UI 态） */
-    if (act === 'choose') {
-      var bk = v;                                    /* 'right' | 'evil' | 'neutral' */
-      var pendC = ws().pendingChoice;
-      if (!pendC) return;
-      var evC = findEvent(pendC.id);
-      var brC = evC && evC.choices ? evC.choices[bk] : null;
-      var chks = brC ? branchChecks(brC) : [];
-      var finishChoose = async function () {
-        var res = await SQ.Actions.resolveChoice(state, bk);
-        if (!res) return;
-        if (res.eff && (res.eff.exclusiveGear || res.eff.exclusiveArt)) SQ.UI.show.exclusive(ctx(), res.eff);
-        /* bond 升档 toast（B7 · 交互说明 §2.3 白名单）：达档 3 另弹「愿为你护法」 */
-        var bd = res.eff && res.eff.bond;
-        if (bd && bd.tierUp && !bd.blocked) {
-          toast(t('bond.toast.tier', { name: t('bond.' + bd.npc + '.name'), title: t('bond.' + bd.npc + '.title.' + bd.tier) }));
-          if (bd.tier === 3) toast(t('bond.toast.guardian', { name: t('bond.' + bd.npc + '.name') }));
-        }
-        SQ.UI.event.choiceResult(ctx(), res);
-        renderTop();
-      };
-      if (chks.length && !reducedMotion()) {
-        /* 判定演出 ≈1s：链逐级点亮（引擎已出结果，演出纯表现；交互说明 §4.3） */
-        $('mc-branches').classList.add('hide');
-        $('mc-foot').classList.add('hide');
-        var jd = $('mc-judging');
-        jd.innerHTML = '<div style="font-weight:650">' + esc(t('event.modal.judging')) + '</div>' +
-          chks.map(function (c, i) {
-            return '<div class="jline" id="jline-' + i + '">' + esc(checkPreview(c).label) + '</div>';
-          }).join('');
-        jd.classList.remove('hide');
-        var step = Math.max(150, Math.floor(1000 / (chks.length + 1)));
-        chks.forEach(function (c, i) {
-          judgingTimers.push(setTimeout(function () {
-            var el = $('jline-' + i);
-            if (el) el.classList.add('lit');
-          }, step * (i + 1)));
-        });
-        judgingTimers.push(setTimeout(function () { jd.classList.add('hide'); finishChoose(); }, step * (chks.length + 1) + 200));
-      } else {
-        await finishChoose();
-      }
-      return;
-    }
+    /* `choose` 原块已随 B4（第册一百四十五批）搬入 `view/event.js` —— 下面这行转发即其入口。 */
+    if (act === 'choose') { await SQ.UI.event.actChoose(ctx(), v); return; }
     if (document.querySelector('.tabbody')) document.querySelector('.tabbody').scrollTop = keepScroll;
   });
 
@@ -3160,7 +2796,7 @@
       if (autoEventOn()) autoResolveChoice();
       else SQ.UI.event.choice(ctx());
     }
-    else if (w.lastOffline && w.lastOffline.at !== ui.seenOfflineAt) showOfflineReport();
+    else if (w.lastOffline && w.lastOffline.at !== ui.seenOfflineAt) SQ.UI.offline.report(ctx());
     else if (w.tribulation.attempts > prevAttempts) SQ.UI.trib.show(ctx());
     /* 未读红点：基线（lastLogKey / lastFeedKey）每 tick 都要推进——toast 去重靠它。
      所以「有没有新内容」必须在推进基线之前判定，再记到独立的 dot 标志上；
@@ -3251,7 +2887,7 @@
     if (tickTimer) return;
     tickTimer = setInterval(async function () {
       if (!$('modal-choice').classList.contains('hide')) return; /* 选择模态期间暂停自动结算展示 */
-      var prev = ws() ? ws().tribulation.attempts : 0;
+      var prev = (!ws() || shellOf()) ? 0 : ws().tribulation.attempts;   /* 主壳世界无修仙渡劫面（册214） */
       var keep = document.querySelector('.tabbody') ? document.querySelector('.tabbody').scrollTop : 0;
       /* 输入闸（GitHub issue #5 · 用户报「融合坛自定义名输入框无法输入文字，点击后很快丢失焦点」）：
        * renderAll() 把当前页整块 innerHTML 重建 ⇒ 正在打字的 <input> 换成新节点，焦点被抢、字一起丢。
@@ -3259,6 +2895,15 @@
       var ae = document.activeElement;
       var typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
       try {
+        /* 自定义主壳（册214 · P1）：结算照跑（修炼时钟不停），渲染只刷主壳——
+         * 九页 renderAll 读修仙字段（tribulation/eventHistory 等），不进主壳世界。 */
+        var sh0 = shellOf();
+        if (sh0) {
+          await SQ.claim(state);
+          if (sh0 === 'wuxiaHome' && SQ.UI.wuxiaHome) SQ.UI.wuxiaHome.refresh(ctx());   /* 静态引用（D14）；通用兜底下行 */
+          else if (SQ.UI[sh0]) SQ.UI[sh0].refresh(ctx());
+          return;
+        }
         SQ.UI.trib.snap(ctx());           /* 劫前成算/损失快照（F7 复盘行） */
         await SQ.claim(state);
         afterClaim(prev);
@@ -3277,13 +2922,26 @@
       }
     }, 1000);
   }
-  /* 回到前台立刻补一帧（tick 里 document.hidden 那支跳过的渲染在这里接回来）*/
-  document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && ws()) { _mods = null; renderAll(); }
-  });
+  /* 回到前台立刻补一帧（tick 里 document.hidden 那支跳过的渲染在这里接回来）——
+   * 主壳世界只刷主壳容器，九页 renderAll 不进（册214）。监听体保持一句（D15①）。 */
+  function redrawFrame() {
+    if (document.hidden || !ws()) return;
+    var sh1 = shellOf();
+    if (sh1) { if (sh1 === 'wuxiaHome' && SQ.UI.wuxiaHome) SQ.UI.wuxiaHome.refresh(ctx()); else if (SQ.UI[sh1]) SQ.UI[sh1].refresh(ctx()); return; }
+    _mods = null; renderAll();
+  }
+  document.addEventListener('visibilitychange', function () { redrawFrame(); });
 
   /* ── MAIN 入口 ── */
+  /* 自定义主壳判定（册214 · P1 契约改版）：活跃世界的 pack 声明 `shell:'件名'` ⇒ 主界面走该件
+   * 渲染的主壳（书形态的 worldView 标记已退役——`shell` 只指**件名**，核内零世界 id 点名）。 */
+  function shellOf() {
+    var e = SQ.Worlds[(state.profile || {}).worldId];
+    var sh = (e && e.pack && e.pack.shell) || null;
+    return (sh && SQ.UI[sh]) ? sh : null;
+  }
   function enterMain() {
+    if (shellOf()) return enterShellHome(shellOf());
     ui.lastAttempts = ws().tribulation.attempts;
     /* 基线对齐当前存档：进场前（含离线结算）已产生的叙事/日志视为已读，
        只对本次会话内新增的亮红点——离线那批由「出关呈报」浮层交代 */
@@ -3312,10 +2970,24 @@
       if (autoEventOn()) autoResolveChoice();   /* 自动批：进线即自动结算，不弹窗 */
       else SQ.UI.event.choice(ctx());
     }
-    else if (w0.lastOffline && w0.lastOffline.at !== ui.seenOfflineAt) showOfflineReport();
+    else if (w0.lastOffline && w0.lastOffline.at !== ui.seenOfflineAt) SQ.UI.offline.report(ctx());
     /* 更新公告（第册四批 · 判定与渲染全在 view/updatenote.js）：排在遇袭抉择与出关呈报**之后**，
        公告是最低优先级的打断，不能盖掉那些要玩家做决定的层。 */
     if (SQ.UI && SQ.UI.updateNote && SQ.UI.updateNote.needed((state.profile || {}).seenNote)) SQ.UI.updateNote.show(wid());
+    startTick();
+  }
+
+  /* ── 自定义主壳（册214 · P1）：主界面 = 世界自己的家（`pack.shell` 指名的 view 件渲染），
+   * 九页 tab 与右栏不进主壳世界。基线只对齐 tick 需要的最小集（报错去重签名）；
+   * 红点族 / 离线呈报 / 公告是修仙面，不进主壳。（书形态 enterBook 同位退役——同一形状换了通用契。） */
+  function enterShellHome(sh) {
+    ui.tickErrSeen = '';
+    $('sc-main').classList.add('shellmode');
+    $('shell-main').classList.remove('hide');
+    if (sh === 'wuxiaHome' && SQ.UI.wuxiaHome && SQ.UI.wuxiaHome.mount) SQ.UI.wuxiaHome.mount(ctx());   /* 静态引用（D14） */
+    else if (SQ.UI[sh] && SQ.UI[sh].mount) SQ.UI[sh].mount(ctx());
+    show('main');
+    checkIo();
     startTick();
   }
 
@@ -3328,14 +3000,14 @@
       /* 死在门口（寿元批）：boot 那一次离线结算里就已完成强制转世 ⇒ 档案名已空、进不了主界面。
        * 不能把人无声扔在创角屏——先演坐化呈报，确定后仍是创角流程。 */
       var ld0 = ((s.worlds || {})[s.profile.worldId] || {}).lastDeath;
-      if (!hasProfile(s) && ld0 && ld0.at !== ui.seenDeathAt) { show('c1'); SQ.UI.show.deathReport(ctx()); return; }
+      if (!hasProfile(s) && ld0 && ld0.at !== ui.seenDeathAt) { show('c3'); renderC3(); SQ.UI.show.deathReport(ctx()); return; }
       if (hasProfile(s)) enterMain();
       /* 读档失败回落空档 ⇒ 屏上是一张干净的创角屏。不提示就是「无声以为档没了」，
        * 而玩家此时顺手新建 = `SQ.mutate` 起手又读失败 → 拿空档落盘 → **盖掉盘上那份完好但读不动的载荷**。
        * tick 只在 enterMain 后起（startTick 在那条路上），所以这两支是 checkIo 唯一的补位点。 */
-      else { show('c1'); checkIo(); }
+      else { show('c3'); renderC3(); checkIo(); }
     } catch (e) {
-      show('c1'); checkIo();
+      show('c3'); renderC3(); checkIo();
     }
   }
   boot();

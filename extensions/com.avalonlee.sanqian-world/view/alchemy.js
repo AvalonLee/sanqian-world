@@ -3,7 +3,9 @@
  * 区内私名两枚随片同迁且不导出：`alFailText`（reason → 文案，未知也兜底成话）与 `alCraftBlock`（前置判定），它们**只被这一页读**；
  *   ⚠️ `alFailText` 同时被件外探针 `probe-alchemyfail.cjs` 抽源码判形状 ⇒ 那件的抽取路径本批一起改了（不改就静默抽不到）。
  * 动作侧的 `el` **不外流**：内核从 `el.dataset` 取好 `kind` / `cs` 再递进来，件内只见值不见节点。
- * 桥 = 内核 ctx() 递进来的那一枚 `c`（键集由审计 D7 逐键对账）；本批新增一枚 `showWash`（洗髓丹服下即开浮层 = 天赋那台机器的入口，件外调用才进桥）。 */
+ * 桥 = 内核 ctx() 递进来的那一枚 `c`（键集由审计 D7 逐键对账）；洗髓丹服下即开的浮层**不再过桥**——
+ *   第册一百三十九批把洗髓族整族外置 `view/talentswap.js` 后，本件改成件对件直调 `SQ.UI.talentswap.open(c)`
+ *   （原 `showWash` 桥位于同批退役，桥 −1 枚；与第册五十八批 `spiritPanel` 同型收口）。 */
 (function () {
   var SQ = (window.SQ = window.SQ || {});
 
@@ -294,7 +296,7 @@
     } else if (rDk && rDk.ok && rDk.swap) {
     /* 洗髓丹服下即开洗髓浮层（缘已入账，先 renderAll 让顶栏与角色浮层读数跟上） */
     c.renderAll();
-    c.showWash();
+    SQ.UI.talentswap.open(c);
     return;
     }
     c.renderAll();

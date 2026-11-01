@@ -220,7 +220,10 @@
     autoEquip: function (ws, pack, D, mods, item, log) {
       var gained = 0;
       SQ.Gear.recordSeen(ws, item);
-      if (!SQ.Gear.canWear(item, ws)) {
+      /* 册150 自动佩戴开关：关 ⇒ 新件（非独占）不再自动上身（含空槽），与「不可佩戴」
+       * 同一条回落路径——先入库藏阁、满则溢出炼化最低分；独占不在此 gate（授予通道
+       * grantExclusive 本就强制上身，随机独占走下方 exclusive 分支）。 */
+      if (!SQ.Gear.canWear(item, ws) || (ws.gearAutoEquip === false && !item.exclusive)) {
         ws.stash.push(item);
         var act = { action: 'stash', gained: 0, item: item };
         var cap = SQ.Gear.stashCap(ws, D, mods);
@@ -298,8 +301,36 @@
       return { ok: true, item: it, old: cur || null };
     },
 
+    /* 库藏阁手动佩戴（册150 · 用户令「对应物品增加佩戴按钮，佩戴后自动替换佩戴中的对应装备」）：
+     * 语义 = 强制穿上库藏阁第 idx 件（玩家主动选择，**不比分数**）；同槽旧件去向照 autoEquip
+     * 的替换分支同一口径——独占或关自动炼化（有库位）⇒ 入库藏阁，否则炼化。一出一进（或净减
+     * 一）⇒ 不触发溢出炼化。与 manualSwap 的分工：独占相关那口仍走 manualSwap（CONFIRM 前置），
+     * 本函数管「两侧均非独占 / 空槽」的常规件佩戴。返回 {ok, item?, old?, reason?}；
+     * reason ∈ wear（境界不足）/ index（越界）。 */
+    equipFromStash: function (ws, pack, D, mods, idx, log) {
+      var it = (ws.stash || [])[idx];
+      if (!it) return { ok: false, reason: 'index' };
+      if (!SQ.Gear.canWear(it, ws)) return { ok: false, reason: 'wear' };
+      var cur = ws.gear[it.slot];
+      ws.stash.splice(idx, 1);
+      ws.gear[it.slot] = it;
+      if (cur) {
+        if (cur.exclusive || (ws.gearAutoRefine === false && ws.stash.length < SQ.Gear.stashCap(ws, D, mods))) {
+          ws.stash.push(cur);
+          if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.kept', cur, 0));
+        } else {
+          var rv = addRefine(ws, SQ.Gear.refineValue(cur, ws, D, mods));
+          if (log) log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.replace', it, rv));
+        }
+      } else if (log) {
+        log('gear', SQ.Gear.itemLog(ws, pack, 'toast.gear.replace', it, 0));
+      }
+      return { ok: true, item: it, old: cur || null };
+    },
+
     /* 境界提升后的库藏阁复检：达标件重新参与择优（§3.4） */
     recheckStash: function (ws, pack, D, mods, log) {
+      if (ws.gearAutoEquip === false) return false;   /* 册150：自动佩戴关 ⇒ 复检不自动上身 */
       var changed = false;
       for (var i = ws.stash.length - 1; i >= 0; i--) {
         if (SQ.Gear.canWear(ws.stash[i], ws)) {

@@ -147,7 +147,7 @@ function buildSave() {
     known: LV.indexOf(r0.badges[i][0]) >= 0, skip: x.indexOf(S.t('jianghu.q', null, 'xiuxian')) >= 0 ||
       r0.curTxt === x })).filter(o => !o.skip);
   T(r0.lvBad.length === 0 && badgeShape.length >= 7 && badgeShape.every(o => o.one && o.known),
-    'J6 三档徽标：可交互行**恰一枚**且取值 ∈ {可压,相当,悬殊} ‖ 档位 === 引擎按 HANDICAP 表值复算（违例 ' +
+    'J6 三档徽标：可交互行**恰一枚**且取值 ∈ 词表 jianghu.lv.*（力压/相当/悬殊，册150 改口）‖ 档位 === 引擎按 HANDICAP 表值复算（违例 ' +
       r0.lvBad.length + '）',
     '判形行数=' + badgeShape.length + ' 违例=' + (r0.lvBad.join(',') || '无'));
   /* 相识者给入口、背景席位不给：入口的 data-v 是**存档行 id**（prN），名录号只作身份 ⇒ 两侧各取各的键 */
