@@ -1169,16 +1169,22 @@ const SQ = sandbox.window.SQ;
     .replace(/(\/\/[^\n]*)/g, blank13);
   /* 从 open（'(' 的下标）扫到与之配对的 ')'，只数「深度 0」那一层的逗号 ⇒ 嵌套调用 / 数组字面量 / 模板串不参与计数 */
   function shapeAt(src, open) {
-    let depth = 0, commas = 0, body = '', q = '';
+    /* 册161 修盲区：**末参是对象/数组字面量**时（f(x, {a:1})），其字符全在深度层里、depth-0 的 body 为空，
+     * 旧「commas + body 尾段」法少计一参（三处 tw 调用误红）。改计「见过实参内容」的 saw 位：
+     * 深度 0 的非空白非逗号字符、以及任何从 0 进深度的嵌套字面量，都算实参内容。 */
+    let depth = 0, commas = 0, saw = false, q = '';
     for (let i = open + 1; i < src.length; i++) {
       const ch = src[i];
       if (q) { if (ch === '\\') { i++; continue; } if (ch === q) q = ''; continue; }
-      if (ch === '"' || ch === "'" || ch === '`') { q = ch; continue; }
-      if (ch === '(' || ch === '[' || ch === '{') { depth++; continue; }
-      if (ch === ')' || ch === ']' || ch === '}') { if (depth === 0) return commas + (body.trim() ? 1 : 0); depth--; continue; }
-      if (depth === 0) { if (ch === ',') commas++; else body += ch; }
+      if (ch === '"' || ch === "'" || ch === '`') { q = ch; if (depth === 0) saw = true; continue; }
+      if (ch === '(' || ch === '[' || ch === '{') { if (depth === 0) saw = true; depth++; continue; }
+      if (ch === ')' || ch === ']' || ch === '}') { if (depth === 0) return commas + (saw ? 1 : 0); depth--; continue; }
+      if (depth === 0) {
+        if (ch === ',') commas++;
+        else if (ch !== ' ' && ch !== '\t' && ch !== '\n' && ch !== '\r') saw = true;
+      }
     }
-    return commas + (body.trim() ? 1 : 0);   /* 没闭合（D5 抓语法）⇒ 就按已见数判，不静默放过 */
+    return commas + (saw ? 1 : 0);   /* 没闭合（D5 抓语法）⇒ 就按已见数判，不静默放过 */
   }
   const bad13 = []; let decls = 0, calls = 0;
   files13.forEach((f) => {

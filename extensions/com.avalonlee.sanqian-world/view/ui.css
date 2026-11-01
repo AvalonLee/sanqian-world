@@ -2596,5 +2596,15 @@
 .bk-opts{display:flex;flex-wrap:wrap;gap:8px;}
 .bk-opt{font-family:inherit;}
 .bk-next{margin-top:8px;font-size:11px;color:#8a7a5c;}
-.bk-foot{padding:10px 22px;border-top:1px solid #d8c8a8;display:flex;justify-content:flex-end;}
+/* 页边批注族（册161 · S3-b）：轴向 chips 一行 + 墨/违和细字；墨厄呈报（朱砂） */
+.bk-notes{margin:0 22px 8px;}
+.bk-notes.hide{display:none;}
+.bk-note-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.bk-note-label{font-size:11px;color:#8a7a5c;letter-spacing:.08em;margin-right:2px;}
+.bk-ax{font-size:12px;padding:2px 8px;}
+.bk-note-hint{font-size:11px;color:#8e2b1e;min-height:14px;margin-top:4px;}
+.bk-foot{padding:10px 22px;border-top:1px solid #d8c8a8;display:flex;justify-content:flex-end;gap:12px;align-items:center;}
+.bk-status{margin-right:auto;font-size:11px;color:#8a7a5c;letter-spacing:.05em;}
+.bk-mo{color:#8e2b1e;}
+.bk-motext{font-size:13px;color:#5a4a38;margin:4px 0 8px;line-height:1.7;}
 .bk-go{margin-top:6px;font-family:inherit;}

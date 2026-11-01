@@ -138,7 +138,14 @@
         chapNo: Math.max(1, clampInt(nar.chapNo, 1, 9999, 1)),
         beatNo: Math.max(0, clampInt(nar.beatNo, 0, 99, 0)),
         cache: arr(nar.cache).slice(-3),        /* 主档只留 3 章，超出进侧档（叙事引擎 §三） */
-        gapMark: arr(nar.gapMark)
+        gapMark: arr(nar.gapMark),
+        arcArts: (function () {                 /* 卷首武学快照（册161）：形状完好才保留，坏档回落 null 由 advance 惰性补 */
+          var aa = nar.arcArts;
+          if (!aa || typeof aa !== 'object' || !arr(aa.artsKnown).length) return null;
+          var lv = obj(aa.artsLevels), lv2 = {};
+          for (var k in lv) lv2[k] = lv[k];
+          return { arcNo: clampInt(aa.arcNo, 1, 10, 1), artsKnown: arr(aa.artsKnown), artsLevels: lv2, artsSlots: arr(aa.artsSlots) };
+        })()
       },
       heritage: { gen: Math.max(1, clampInt(her.gen, 1, 99, 1)), inherited: arr(her.inherited) }
     };
@@ -461,19 +468,25 @@
     beats.push({ type: 'think', ref: 'think.self.' + ((seed % 3) + 1), no: beats.length + 1 });
     beats.push({ type: 'cliff', ref: 'cliff.' + place, no: beats.length + 1 });
 
-    /* 分岔：本章若有**条件满足的桥段**，取其可用分支置一个 ※（最多一个） */
+    /* 分岔：本章若有**条件满足的桥段**，取其可用分支置一个 ※（最多一个）
+     * 档位（册161 · 干预与代价 §五）：**`watch`（旁观/不动）= 0 墨**——那是主角自己的选择，
+     * 没有落笔；其余支 = 「改」**3 墨**（指定本分岔走哪支，违和 +5 由 advance 账目扣）。
+     * 注意按**分支语义**判免费（watch 在 KNOTS 里位置不固定，knot_lvzhu 首支就是 probe）。
+     * 行为类分支带性格轴微调（help=侠 / defy=狂放 / join=结义，±4 落在「批注 ±2~5」与
+     * 「重大剧情 ±10~20」之间的中间档）。 */
     var fork = null;
     var ks = knotsAt(place);
+    var AXIS_BY_K = { help: { xia: 4 }, defy: { kuang: 4 }, join: { du: 4 } };
     for (var k = 0; k < ks.length && !fork; k++) {
       var kn = ks[k];
       if (!meetNeed(ws, kn.need)) continue;
       var opts = [];
       for (var b = 0; b < kn.br.length; b++) {
         if (!branchOpen(ws, kn.br[b])) continue;      /* 够不着的分支不生成（不是灰掉） */
-        opts.push({ k: kn.br[b].k, label: kn.br[b].label, ink: (b === 0 ? 1 : 3) });
+        opts.push({ k: kn.br[b].k, label: kn.br[b].label, ink: (kn.br[b].k === 'watch' ? 0 : 3), axis: AXIS_BY_K[kn.br[b].k] || null });
       }
       /* 保守项兜底：桥段整体可进但支全被门槛挡掉时，也要留「旁观」这一支 */
-      if (!opts.length) opts.push({ k: 'watch', label: 'knot.' + kn.i + '.watch', ink: 1 });
+      if (!opts.length) opts.push({ k: 'watch', label: 'knot.' + kn.i + '.watch', ink: 0, axis: null });
       fork = { knot: kn.i, title: 'knot.' + kn.i + '.name', act: kn.act, opts: opts };
     }
     /* 章节点数夹到 4~6（骨架固定，超出削中段） */
@@ -496,28 +509,72 @@
    * 纯函数纪律同 chapter()：不调 Math.random、不读实时钟、只写传入 ws。
    * 返回读数 { chapNo, arcNo, gain, day, discord, ink } 供仿真/冒烟断言。 */
   var ARC_CHAPS = 20;   /* 卷长：定种口径 = 10 卷 × 20 章（数值与经济 §十；18~24 的中位） */
-  var DISCORD_BY_INK = { 1: 1, 3: 5, 8: 20 };
+  /* 违和按落笔成本入账（干预与代价 §三：批 +1 / 改 +5 / 删 +20——删的成本册161 勘正 8→4，
+   * 8 与墨上限表矛盾（卷五~八上限 4/5）永不买得起；8 保留映射为兼容旧读法。 */
+  var DISCORD_BY_INK = { 1: 1, 3: 5, 4: 20, 8: 20 };
 
   function arcOf(chapNo) { return Math.min(10, Math.floor(((chapNo || 1) - 1) / ARC_CHAPS) + 1); }
   /* 墨上限按卷解锁（干预与代价 §二：卷一 2 / 二~四 3 / 五~七 4 / 八~十 5，度量感情不按等级） */
   function inkCapOf(arc) { return arc <= 1 ? 2 : arc <= 4 ? 3 : arc <= 7 ? 4 : 5; }
 
+  /* 卷首武学快照：墨厄「失去本卷已得武学」的回退点（册161）。挂在 narrative 内层——
+   * D11 只对账顶层键集，叙事内件不占顶层账；normalize 照常保留。 */
+  function snapArts(ws, arc) {
+    var lv = obj(ws.artsLevels), lv2 = {};
+    for (var k in lv) lv2[k] = lv[k];
+    return { arcNo: arc, artsKnown: arr(ws.artsKnown), artsLevels: lv2, artsSlots: arr(ws.artsSlots) };
+  }
+  /* 墨厄重罚（干预与代价 §三 ≥100）：本卷重写（章号退回卷首）· 本卷所得武学散尽（回到卷首快照）
+   * · 性格三轴回弹 30%（×0.7 取整）· 违和清零（重写 = 本卷落笔一并作废）。
+   * 叙事时钟不回拨——世界照常走，重写的是「这一卷怎么写」不是「日子倒流」。 */
+  function moeRewind(ws) {
+    var cur = (ws.narrative && ws.narrative.chapNo) || 1;
+    var volStart = Math.floor((cur - 1) / ARC_CHAPS) * ARC_CHAPS + 1;
+    var snap = ws.narrative && ws.narrative.arcArts;
+    if (snap && snap.artsKnown) {
+      ws.artsKnown = arr(snap.artsKnown);
+      var lv = obj(snap.artsLevels), lv2 = {};
+      for (var k in lv) lv2[k] = lv[k];
+      ws.artsLevels = lv2;
+      ws.artsSlots = arr(snap.artsSlots);
+    }
+    var p = ws.persona || (ws.persona = { xia: 0, kuang: 0, du: 0 });
+    p.xia = Math.round((p.xia || 0) * 0.7);
+    p.kuang = Math.round((p.kuang || 0) * 0.7);
+    p.du = Math.round((p.du || 0) * 0.7);
+    ws.discord = 0;
+    ws.narrative.chapNo = volStart;
+    ws.narrative.beatNo = 0;
+    ws.ink = { n: inkCapOf(arcOf(volStart)), carry: 0 };
+    return volStart;
+  }
+
   function advance(ws, opt, ctx) {
     void ctx;
     if (!ws || !ws.narrative) return { err: 'nows' };
     var nar = ws.narrative;
+    if (!nar.arcArts) nar.arcArts = snapArts(ws, arcOf(nar.chapNo || 1));   /* 惰性卷首快照（旧档缺省） */
     var cur = nar.chapNo || 1;
     if (cur > ARC_CHAPS * 10) return { ended: 1, chapNo: cur };   /* 十卷完 ⇒ 合卷（合卷去向 S2 末尾批） */
-    /* ① 落笔：墨不够整笔回绝，够则一次扣清并入账违和 */
+    /* ① 落笔：墨不够整笔回绝，够则一次扣清并入账违和与性格轴 */
     var cost = (opt && isNum(opt.ink) && opt.ink > 0) ? opt.ink : 0;
     if (cost > 0) {
       var ink = ws.ink || { n: 0, carry: 0 };
       if (!isNum(ink.n) || ink.n < cost) return { err: 'ink', need: cost, have: ink.n || 0 };
       ink.n -= cost;
+      if (opt.axis && typeof opt.axis === 'object') {
+        var p0 = ws.persona || (ws.persona = { xia: 0, kuang: 0, du: 0 });
+        for (var ak in opt.axis) {
+          if (ak === 'xia' || ak === 'kuang' || ak === 'du') {
+            p0[ak] = clampInt((p0[ak] || 0) + (opt.axis[ak] || 0), -100, 100, p0[ak] || 0);
+          }
+        }
+      }
       var dis = DISCORD_BY_INK[cost] || cost;
       ws.discord = clampInt((ws.discord || 0) + dis, 0, 100, ws.discord || 0);
-      if (ws.discord >= 100) {           /* 墨厄（干预与代价 §三）：本卷重写 + 三轴回弹——重罚面 S3-b 接 */
-        ws.discord = 100;
+      if (ws.discord >= 100) {           /* 墨厄（干预与代价 §三 ≥100）：本章完结前落笔即成，重罚立刻生效 */
+        moeRewind(ws);
+        return { mo: 1, chapNo: ws.narrative.chapNo, discord: 0 };
       }
     }
     /* ② 叙事时钟：章内 0.5~3 日（正文一屏一日的体感），章号散列定日 */
@@ -537,6 +594,7 @@
       var cap = inkCapOf(arc);
       var leftover = isNum(ws.ink && ws.ink.n) ? ws.ink.n : 0;
       ws.ink = { n: cap, carry: Math.min(1, leftover) };
+      nar.arcArts = snapArts(ws, arc);               /* 卷首快照：墨厄「失去本卷已得武学」的回退点 */
     } else {
       /* 每章开头回满（干预与代价 §二）；carry = 上一章是否未落笔（节俭记录位） */
       var cap2 = inkCapOf(arc);
@@ -562,6 +620,32 @@
     nar.chapNo = cur + 1;
     nar.beatNo = 0;
     return { chapNo: cur, arcNo: arcOf(cur), gain: gain, day: day + jumped, discord: ws.discord || 0, ink: ws.ink.n };
+  }
+
+  /* ── 批注 annotate(ws, note, ctx)（S3-b · 册161）──────────────────────────────
+   * 页边一句念头（干预与代价 §一「批」/ §五「参与」）：**1 墨 + 违和 +1 + 性格轴微调 ±2~5**。
+   * note = { axis:'xia'|'kuang'|'du', d:±3 }。事务性同 advance：墨不够整笔回绝、零状态变更。
+   * 不在此处消退违和——消退挂章完结（advance）；批注每章一次也净 0，与「参与不累积代价」同向。
+   * 违和到 100 同样触发墨厄（落笔即成，不等章完结）。 */
+  function annotate(ws, note, ctx) {
+    void ctx;
+    if (!ws || !ws.narrative || !ws.ink) return { err: 'nows' };
+    var ax = note && note.axis;
+    var d = isNum(note && note.d) ? note.d : 0;
+    if (ax !== 'xia' && ax !== 'kuang' && ax !== 'du') return { err: 'note' };
+    if (!d) return { err: 'note' };
+    if (!ws.narrative.arcArts) ws.narrative.arcArts = snapArts(ws, arcOf(ws.narrative.chapNo || 1));
+    if (!isNum(ws.ink.n) || ws.ink.n < 1) return { err: 'ink', need: 1, have: ws.ink.n || 0 };
+    ws.ink.n -= 1;
+    ws.ink.carry = 0;
+    ws.discord = clampInt((ws.discord || 0) + 1, 0, 100, ws.discord || 0);
+    var p = ws.persona || (ws.persona = { xia: 0, kuang: 0, du: 0 });
+    p[ax] = clampInt((p[ax] || 0) + d, -100, 100, p[ax] || 0);
+    if (ws.discord >= 100) {
+      moeRewind(ws);
+      return { mo: 1, chapNo: ws.narrative.chapNo, discord: 0, ink: ws.ink.n };
+    }
+    return { ink: ws.ink.n, discord: ws.discord || 0 };
   }
 
   function buildArtIndex() {
@@ -607,6 +691,7 @@
       chapter: chapter,
       render: render,
       advance: advance,
+      annotate: annotate,
       beatsPerChapter: CHAPTER_BEATS,
       arcChaps: ARC_CHAPS
     },

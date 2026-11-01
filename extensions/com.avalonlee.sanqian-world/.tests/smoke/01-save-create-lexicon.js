@@ -355,6 +355,60 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 投放=' + g7.gain + ' 封顶=' + capped + '(gain=' + g7b.gain + ') 合卷=' + ended);
     })();
 
+    /* E13 · 武侠干预系统（册161 · S3-b）
+     * 判「批书人的账」：① 分支档位：`watch`（旁观）0 墨 = 主角自选、干预支 3 墨（改，带性格轴）；
+     * ② annotate 批注：1 墨 + 违和 +1 + 三轴微调夹边，墨尽整笔回绝零状态变更，坏 note 形回绝；
+     * ③ 墨厄：违和 ≥100 ⇒ 本卷重写（章号退卷首 / arcArts 回卷首快照 = 本卷所得武学散尽 /
+     *    三轴回弹 30% / 违和清零 / 墨回新卷上限）；
+     * ④ arcArts 卷首快照随卷推进更新（墨厄回退点，narrative 内层不占顶层账）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.narrative || !pk.narrative.annotate) { ok('E13', '武侠干预系统', false, '无 annotate 口'); return; }
+      /* ① 分支档位：luoyang + realm1 ⇒ knot_lvzhu 可进（br = [probe, watch]） */
+      var w1 = pk.normalize(pk.initialState());
+      w1.realm = 4; w1.stones = 200; w1.place = 'luoyang';   /* knot_juxian（br = watch/help带轴/flee）全开 */
+      var f = pk.narrative.chapter(w1, pk, {}).fork;
+      var free = [], paid = [];
+      (f && f.opts || []).forEach(function (o) { if (o.ink === 0) free.push(o); else if (o.ink === 3) paid.push(o); });
+      var tierOk = !!f && free.length >= 1 && paid.length >= 1 &&
+        free.every(function (o) { return o.k === 'watch'; }) &&
+        paid.some(function (o) { return !!o.axis; });
+      /* ② annotate：账目 + 回绝 + 形状 */
+      var w2 = pk.normalize(pk.initialState());
+      var r1 = pk.narrative.annotate(w2, { axis: 'xia', d: 3 }, {});
+      var r1b = pk.narrative.annotate(w2, { axis: 'kuang', d: -3 }, {});
+      var annOk = r1 && !r1.err && r1b && !r1b.err &&
+        w2.ink.n === 0 && w2.discord === 2 && w2.persona.xia === 3 && w2.persona.kuang === -3 && w2.ink.carry === 0;
+      var snap = JSON.stringify(w2);
+      var r2 = pk.narrative.annotate(w2, { axis: 'du', d: 3 }, {});
+      var rejOk = r2 && r2.err === 'ink' && JSON.stringify(w2) === snap;
+      var rBad = pk.narrative.annotate(w2, { axis: 'nope', d: 3 }, {});
+      var shapeOk = rBad && rBad.err === 'note';
+      /* ③ 墨厄：违和 99 + 批 1 ⇒ 100 ⇒ 重写（卷二卷首 21、武学回快照、轴回弹、违和清零） */
+      var w3 = pk.normalize(pk.initialState());
+      w3.narrative.chapNo = 25;                       /* 卷二 */
+      w3.narrative.arcArts = { arcNo: 2, artsKnown: ['quan_basic', 'neigong_basic'], artsLevels: { quan_basic: 2, neigong_basic: 4 }, artsSlots: [] };
+      w3.artsKnown = ['quan_basic', 'neigong_basic', 'yg_jiuyin'];
+      w3.artsLevels = { quan_basic: 2, neigong_basic: 4, yg_jiuyin: 3 };
+      w3.persona.xia = 40;
+      w3.discord = 99;
+      w3.ink.n = 2;
+      var r3 = pk.narrative.annotate(w3, { axis: 'xia', d: 3 }, {});
+      var moOk = r3 && r3.mo === 1 && w3.narrative.chapNo === 21 &&
+        w3.artsKnown.length === 2 && w3.artsLevels.yg_jiuyin === undefined &&
+        w3.persona.xia === 30 && w3.discord === 0 && w3.ink.n === 3;
+      /* ④ 卷首快照随卷推进更新 */
+      var w4 = pk.normalize(pk.initialState());
+      for (var ci = 0; ci < 20; ci++) pk.narrative.advance(w4, null, {});
+      var snapOk = w4.narrative.arcArts && w4.narrative.arcArts.arcNo === 2 &&
+        w4.narrative.arcArts.artsKnown.length === 2;
+      ok('E13', '武侠干预系统（分支档位：watch 0 墨/改 3 墨带轴 ⇔ 批注 1 墨+违和+1+轴夹边、墨尽回绝零变更 ⇔ 墨厄=本卷重写：退卷首/武学回快照/轴回弹30%/违和清零 ⇔ 卷首快照随卷更新）',
+        tierOk && annOk && rejOk && shapeOk && moOk && snapOk,
+        '档位=' + tierOk + '(免' + free.length + '/付' + paid.length + ') 批注=' + annOk +
+        ' 回绝=' + rejOk + ' 形=' + shapeOk +
+        ' 墨厄=' + moOk + '(chap=' + w3.narrative.chapNo + ',xia=' + w3.persona.xia + ',ink=' + w3.ink.n + ') 快照=' + snapOk);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */

@@ -37,13 +37,87 @@
       '  <div class="bk-head"><span id="bk-chap"></span><span class="bk-hint">' + esc(SQ.t('ui.book.hint', { name: wname }, null)) + '</span></div>' +
       '  <div class="bk-paper" id="bk-paper"></div>' +
       '  <div class="bk-fork hide" id="bk-fork"></div>' +
-      '  <div class="bk-foot"><button class="btn ghost" id="bk-close">' + esc(tw('ui.book.close', null)) + '</button></div>' +
+      '  <div class="bk-notes hide" id="bk-notes"></div>' +
+      '  <div class="bk-foot"><span class="bk-status" id="bk-status"></span><button class="btn ghost" id="bk-close">' + esc(tw('ui.book.close', null)) + '</button></div>' +
       '</div>';
     document.body.appendChild(root);
     S.el = root;
     document.getElementById('bk-close').onclick = function () { close(); };           /* 监听体一句（D15①） */
     document.getElementById('bk-paper').onclick = function () { S.skip = true; };     /* 监听体一句（D15①） */
     return root;
+  }
+
+  /* ── 页边批注（册161 · S3-b）：六枚轴向 chip，1 墨 + 违和 +1 + 性格轴 ±3 ──────
+   * 批注是「参与」不是「决策」：不改剧情走向，只调主角的心性与文风（干预与代价 §五）。 */
+  var AXES = [
+    { axis: 'xia', d: 3, key: 'ui.book.axis.xia.p' },
+    { axis: 'xia', d: -3, key: 'ui.book.axis.xia.m' },
+    { axis: 'kuang', d: 3, key: 'ui.book.axis.kuang.p' },
+    { axis: 'kuang', d: -3, key: 'ui.book.axis.kuang.m' },
+    { axis: 'du', d: 3, key: 'ui.book.axis.du.p' },
+    { axis: 'du', d: -3, key: 'ui.book.axis.du.m' }
+  ];
+  function statusText() {
+    var inkN = (S.ws && S.ws.ink && S.ws.ink.n) || 0;
+    var disN = (S.ws && S.ws.discord) || 0;
+    return tw('ui.book.ink', { n: inkN }) + ' · ' + tw('ui.book.discord', { n: disN });
+  }
+  function renderNotes() {
+    var box = document.getElementById('bk-notes');
+    if (!box) return;
+    box.innerHTML = '<div class="bk-note-row"><span class="bk-note-label">' +
+      esc(tw('ui.book.annotate', null)) + '</span></div>' +
+      '<div class="bk-note-hint" id="bk-note-hint"></div>';
+    var row = box.firstChild;
+    AXES.forEach(function (a) {
+      var b = document.createElement('button');
+      b.className = 'btn ghost bk-opt bk-ax';
+      b.dataset.axis = a.axis;
+      b.dataset.d = String(a.d);
+      b.textContent = SQ.t(a.key, null, null);
+      b.onclick = function () { doAnnotate(b); };     /* 监听体一句（D15①） */
+      row.appendChild(b);
+    });
+    box.classList.remove('hide');
+    updateStatus();
+  }
+  function updateStatus() {
+    var st = document.getElementById('bk-status');
+    if (st) st.textContent = statusText();
+  }
+  function doAnnotate(btn) {
+    var pk = SQ.Worlds[S.worldId] && SQ.Worlds[S.worldId].pack;
+    if (!pk || !pk.narrative || !pk.narrative.annotate) return;
+    var r = pk.narrative.annotate(S.ws, { axis: btn.dataset.axis, d: parseInt(btn.dataset.d, 10) }, {});
+    var hint = document.getElementById('bk-note-hint');
+    if (r && r.err === 'ink') { if (hint) hint.textContent = tw('ui.book.noink', null); return; }
+    if (r && r.mo) { showMo(); return; }
+    if (hint) hint.textContent = '';
+    updateStatus();
+  }
+  /* 墨厄呈报（干预与代价 §三 ≥100）：本卷重写——确定后重读此卷（预览会话内自洽） */
+  function showMo() {
+    var box = document.getElementById('bk-fork');
+    box.innerHTML = '<div class="bk-mark bk-mo">※</div><div class="bk-title">' +
+      esc(tw('ui.book.mo.title', null)) + '</div><div class="bk-motext">' +
+      esc(tw('ui.book.mo.text', null)) + '</div>';
+    var row = document.createElement('div');
+    row.className = 'bk-opts';
+    var no = (S.ws.narrative.chapNo || 1);
+    var b = document.createElement('button');
+    b.className = 'btn ghost bk-opt';
+    b.textContent = tw('ui.book.chapter', { no: no });
+    b.onclick = function () { remount(); };           /* 监听体一句（D15①） */
+    row.appendChild(b);
+    box.appendChild(row);
+    box.classList.remove('hide');
+    var nb = document.getElementById('bk-notes');
+    if (nb) nb.classList.add('hide');
+    updateStatus();
+  }
+  function remount() {
+    document.getElementById('bk-fork').classList.add('hide');
+    showChapter();
   }
 
   /* ── 打字机（append-only；点纸面跳过）──────────────────────────────────────── */
@@ -86,16 +160,17 @@
   function showChapter() {
     S.skip = false;                                  /* 每章重置跳过标记 */
     var pk = SQ.Worlds[S.worldId].pack;
-    S.ws.narrative = { chapNo: S.chapNo, beatNo: 0 };
+    /* 册161 起 advance 是会话账的主（章号/arcArts/墨都在里面），预览不再覆盖 narrative */
+    var no = (S.ws.narrative && S.ws.narrative.chapNo) || 1;
     var ch = pk.narrative.chapter(S.ws, pk, {});
     var r = pk.narrative.render(ch, S.ws);
     S.fork = r.fork;
-    document.getElementById('bk-chap').textContent = SQ.t('ui.book.chapter', { no: S.chapNo }, null) + ' · ' +
+    document.getElementById('bk-chap').textContent = SQ.t('ui.book.chapter', { no: no }, null) + ' · ' +
       SQ.t('zone.' + S.ws.place + '.name', null, S.worldId);
     var paper = document.getElementById('bk-paper');
     while (paper.firstChild) paper.removeChild(paper.firstChild);   /* 清章（append-only 指打字过程；换章清屏是翻页） */
     document.getElementById('bk-fork').classList.add('hide');
-    typeLines(paper, r.lines, showFork);
+    typeLines(paper, r.lines, function () { renderNotes(); showFork(); });
   }
   function showFork() {
     if (!S.fork) return;
@@ -108,8 +183,10 @@
       (function (o) {
         var b = document.createElement('button');
         b.className = 'btn ghost bk-opt';
-        b.textContent = SQ.t('ui.book.optfmt', { label: SQ.t(o.label, null, S.worldId), n: o.ink }, null);
-        b.onclick = function () { pick(); };         /* 监听体一句（D15①） */
+        b.textContent = o.ink > 0
+          ? SQ.t('ui.book.optfmt', { label: SQ.t(o.label, null, S.worldId), n: o.ink }, null)
+          : SQ.t('ui.book.optfree', { label: SQ.t(o.label, null, S.worldId) }, null);
+        b.onclick = function () { pick(o); };         /* 监听体一句（D15①） */
         row.appendChild(b);
       })(S.fork.opts[i]);
     }
@@ -120,11 +197,20 @@
     box.appendChild(foot);
     box.classList.remove('hide');
   }
-  /* 预览里点分支：只推进**预览会话**（章号 +1、换一个地界的味道），不落档 */
-  function pick() {
-    S.chapNo++;
-    var zs = (SQ.Worlds[S.worldId].pack.data.ZONES || []);
-    if (zs.length) S.ws.place = zs[S.chapNo % zs.length].i;
+  /* 点分支：**预览会话内也走真账**（册161）——advance 扣墨/违和/性格轴，墨厄当场呈报；
+   * 不落档的立身之本不变（会话态全在件内，合上即散）。 */
+  function pick(o) {
+    var pk = SQ.Worlds[S.worldId].pack;
+    var r = pk.narrative.advance(S.ws, o || null, {});
+    if (r && r.mo) { showMo(); return; }
+    if (r && r.err === 'ink') {
+      /* 批注花掉了墨又点了「改」：不翻章，提示后仍可选 0 墨保守项（任何数值下都有得选） */
+      var hint = document.getElementById('bk-note-hint');
+      if (hint) hint.textContent = tw('ui.book.noink', null);
+      return;
+    }
+    var zs = (pk.data.ZONES || []);
+    if (zs.length) S.ws.place = zs[S.ws.narrative.chapNo % zs.length].i;
     document.getElementById('bk-fork').classList.add('hide');
     showChapter();
   }
@@ -134,8 +220,8 @@
     void c;
     var entry = SQ.Worlds[worldId];
     if (!entry || !entry.pack || !entry.pack.narrative || S.open) return;
-    S.open = true; S.worldId = worldId; S.chapNo = 1; S.skip = false;
-    S.ws = entry.pack.normalize(entry.pack.initialState());
+    S.open = true; S.worldId = worldId; S.skip = false;
+    S.ws = entry.pack.normalize(entry.pack.initialState());   /* normalize 即给 narrative.chapNo=1，章号以会话账为主 */
     build(worldId);
     showChapter();
   }
