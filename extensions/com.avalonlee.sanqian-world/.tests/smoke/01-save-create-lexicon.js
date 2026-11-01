@@ -194,6 +194,39 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' realm=' + w3.realm + ' qi=' + w3.qi);
     })();
 
+    /* E9 · 武侠人物 / 地界 / 秘籍三表（册156 · S1-c）
+     * 判「有名有姓」：每条记录必须有**词表里的中文名**——id 在表里、名字取不到 = 屏上空白，这一形最容易被漏。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      var d = pk && pk.data;
+      if (!d) { ok('E9', '武侠人物/地界/秘籍三表', false, '无 pack'); return; }
+      var C = d.CAST || [], Z = d.ZONES || [], M = d.MANUALS || [], A = d.ARTS || [];
+      var artIds = {};
+      for (var i = 0; i < A.length; i++) artIds[A[i].i] = 1;
+      var dup = [], nameMiss = [], badManual = [];
+      var seenC = {};
+      C.forEach(function (c) {
+        if (seenC[c.i]) dup.push('cast:' + c.i); seenC[c.i] = 1;
+        if (!SQ.t('cast.' + c.i + '.name', null, 'wuxia') || SQ.t('cast.' + c.i + '.name', null, 'wuxia').indexOf('cast.') === 0) nameMiss.push('cast:' + c.i);
+      });
+      Z.forEach(function (z) {
+        if (!SQ.t('zone.' + z.i + '.name', null, 'wuxia') || SQ.t('zone.' + z.i + '.name', null, 'wuxia').indexOf('zone.') === 0) nameMiss.push('zone:' + z.i);
+        (z.scenes || []).forEach(function (n2) { if (SQ.t('scene.' + z.i + '.' + n2, null, 'wuxia') === 'scene.' + z.i + '.' + n2) nameMiss.push('scene:' + z.i + '.' + n2); });
+      });
+      M.forEach(function (m) {
+        if (!SQ.t('manual.' + m.i + '.name', null, 'wuxia') || SQ.t('manual.' + m.i + '.name', null, 'wuxia').indexOf('manual.') === 0) nameMiss.push('manual:' + m.i);
+        if (m.art && !artIds[m.art]) badManual.push(m.i + '→' + m.art);   /* 指向不存在的招式 = 读一百本也学不会 */
+      });
+      var launchZ = Z.filter(function (z) { return z.launch === 1; }).length;
+      var launchS = C.filter(function (c) { return c.sec; }).length;
+      ok('E9', '武侠人物/地界/秘籍（人物 ≥100 且 id 唯一 ⇔ 地界 13/首发 10 ⇔ 秘籍 18 且 art 指向真招式 ⇔ 三者名键全在词表）',
+        C.length >= 100 && Z.length === 13 && launchZ === 10 && M.length === 18 &&
+        dup.length === 0 && nameMiss.length === 0 && badManual.length === 0 && launchS >= 60,
+        'cast=' + C.length + '(有门派 ' + launchS + ') zones=' + Z.length + '/首发' + launchZ + ' manuals=' + M.length +
+        ' 缺名=' + (nameMiss.length ? nameMiss.slice(0, 4).join(',') : '无') +
+        ' 坏映射=' + (badManual.length ? badManual.join(',') : '无'));
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */

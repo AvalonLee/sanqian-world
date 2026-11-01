@@ -1,7 +1,7 @@
 /* assets/worlds/wuxia/lexicon-arts.js — 武学名词表（**生成物，不许手改**）
  * 键形 `art.<id>.name`，与 data.js 的 ARTS[].i 一一对应；功谱页与叙事模板一律走 `SQ.t('art.'+id+'.name', null, 'wuxia')`。
  * 审计 A1 白名单认 `lexicon*.js`；A6 对 `'art.'` 这类尾点前缀按族豁免（假阴方向，宁少报）。
- * 共 396 键（语料 378 · 入门 0 · 人工补入 17 · 系统 1）。
+ * 共 403 键（语料 378 · 入门 0 · 人工补入 24 · 系统 1）。
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
@@ -401,6 +401,13 @@
     'art.mn_014.name': '太玄经',
     'art.mn_015.name': '玉女剑法',
     'art.mn_016.name': '血刀经',
-    'art.mn_017.name': '点苍剑法'
+    'art.mn_017.name': '点苍剑法',
+    'art.mn_018.name': '太极拳',
+    'art.mn_019.name': '太极剑法',
+    'art.mn_020.name': '葵花宝典',
+    'art.mn_021.name': '玉女心经',
+    'art.mn_022.name': '庖丁解牛掌',
+    'art.mn_023.name': '落英神剑掌',
+    'art.mn_024.name': '三花聚顶掌'
   });
 })();
