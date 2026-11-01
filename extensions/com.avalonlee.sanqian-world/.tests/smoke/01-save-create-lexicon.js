@@ -309,6 +309,52 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 规则=' + disc.join(',') + ' 纯=' + (p1 === p2));
     })();
 
+    /* E12 · 武侠章推进与卡点投放（册160 · S3-a）
+     * 判「书的账本自己会走」：① ARC_GAIN 十卷预算在表（数值与经济 §五 事件行逐笔对表）；
+     * ② advance 基础事务：章号推进 / 违和消退不越 0 / 世界日按章走（1~3 日）/ 墨每章回满且上限按卷；
+     * ③ 落笔事务性：墨不够整笔回绝且**零状态变更**（err:'ink'，字节级快照对表）；
+     * ④ 卡点窗口：卷内第 7 章完结投放一笔（预算对半 = 90），且受封顶约束（心境不满时只进得来缺口）；
+     * ⑤ 十卷走完 advance 给 ended（合卷位，去向 S2 末尾批接）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      var d = pk && pk.data;
+      if (!d || !pk.narrative || !pk.narrative.advance) { ok('E12', '武侠章推进', false, '无 advance 口'); return; }
+      var G = d.ARC_GAIN || [];
+      var gainRow = G.length === 10 && G.join(',') === '180,400,400,500,700,700,900,1000,1200,1800';
+      var ws = pk.normalize(pk.initialState());
+      var a1 = pk.narrative.advance(ws, null, {});
+      var day1 = ws.worldDay;
+      var a2 = pk.narrative.advance(ws, null, {});
+      var base = gainRow && a1.chapNo === 1 && a2.chapNo === 2 && ws.discord === 0 &&
+        day1 >= 1 && day1 <= 3 && ws.worldDay > day1 && ws.worldDay <= day1 + 3 &&
+        ws.ink.n === 2 && ws.narrative.chapNo === 3;
+      var snap = JSON.stringify(ws);
+      var rej = pk.narrative.advance(ws, { ink: 3 }, {});
+      var txn = !!rej && rej.err === 'ink' && JSON.stringify(ws) === snap;
+      var wsB = pk.normalize(pk.initialState());
+      var b1 = pk.narrative.advance(wsB, { ink: 1 }, {});
+      var spent = !b1.err && wsB.ink.carry === 0;        /* 落过笔：本章结转位清零（须在下一章推进前读） */
+      var b2 = pk.narrative.advance(wsB, null, {});
+      var spend = b1 && spent && wsB.ink.n === 2 && b2.ink === 2;
+      var wsC = pk.normalize(pk.initialState());
+      for (var ci = 0; ci < 6; ci++) pk.narrative.advance(wsC, null, {});
+      wsC.qi = 100;                                      /* 远离封顶：投放应足额 */
+      var g7 = pk.narrative.advance(wsC, null, {});
+      var win = g7.gain === 90;                          /* 卷一预算 180 对半 */
+      var wsD = pk.normalize(pk.initialState());
+      for (var di = 0; di < 6; di++) pk.narrative.advance(wsD, null, {});
+      wsD.qi = 380;                                      /* realm 0 封顶 = 400：90 只进得来 20 */
+      var g7b = pk.narrative.advance(wsD, null, {});
+      var capped = g7b.gain === 20 && wsD.qi === 400;
+      var wsE = pk.normalize(pk.initialState());
+      wsE.narrative.chapNo = 201;
+      var ended = pk.narrative.advance(wsE, null, {}).ended === 1;
+      ok('E12', '武侠章推进（卷预算逐笔对表 ⇔ 章事务：章号/时辰/违和消退/墨回满 ⇔ 落笔墨不够整笔回绝零变更 ⇔ 卡点窗口投放且受封顶 ⇔ 十卷完给合卷位）',
+        base && txn && spend && win && capped && ended,
+        '预算=' + (gainRow ? '对表' : '漂') + ' 基础=' + base + ' 事务=' + txn + ' 扣墨=' + spend +
+        ' 投放=' + g7.gain + ' 封顶=' + capped + '(gain=' + g7b.gain + ') 合卷=' + ended);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */
