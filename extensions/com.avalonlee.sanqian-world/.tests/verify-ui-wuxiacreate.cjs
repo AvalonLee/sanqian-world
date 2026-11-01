@@ -1,6 +1,6 @@
-/* .tests/verify-ui-wuxiacreate.cjs — 武侠创角 e2e 走查（册164 立；册168 随流程重排整篇改口）
- * 新流程 = 一择界（首屏）→ 二先睹（书内读第一章，不落档）→ 章末取诨号（三候选 + 自拟）
- *   → 落笔入世 → 书形态主界面**从第二章开卷**（先睹即序章，不重读）。
+/* .tests/verify-ui-wuxiacreate.cjs — 武侠创角 e2e 走查（册164 立；册168 随流程重排整篇改口；册214 P1 再改口）
+ * P1 后流程 = 一择界（首屏）→ 二立名（NAMES.wuxia 掷名）→ 三观天赋（通用池）→ 天命锁入世
+ *   → **武侠 tab 主壳**（#shell-main，书形态已退役——wuxiamode + wh-tabs）。
  * 判据一律回读页内真值；localStorage 无种子（冷启走完整流程）。
  */
 'use strict';
@@ -23,7 +23,7 @@ const { chromium } = require('playwright-core');
   await page.goto(url);
   await page.waitForSelector('#sc-c3:not(.hide)', { timeout: 15000 });
 
-  /* C0 · 首屏即择界：武侠卡界系名只出现一次 + 卡上无「先睹」钮（退役）+ 选中后钮文换「翻看此书」 */
+  /* C0 · 首屏即择界：武侠卡界系名只出现一次 + 卡上无「先睹」钮（随书形态退役）+ 未选时下一步=默认文 */
   const c0 = await page.evaluate(() => {
     const cards = Array.prototype.slice.call(document.querySelectorAll('#c3-list .wcard'));
     const wx = cards.find((c) => /侠影江湖/.test(c.textContent));
@@ -43,66 +43,74 @@ const { chromium } = require('playwright-core');
     'C0 首屏择界（正名「侠影江湖」只出现一次 ⇔ 修仙卡副行带界系名 ⇔ 卡上无先睹钮 ⇔ 未选时下一步=默认文）',
     '主行=' + c0.wxMain + ' 副行重复=' + c0.wxSubDup + ' 先睹钮=' + c0.bkGo + ' 钮文=' + c0.goText + ' 步=' + c0.steps);
 
-  /* 选中武侠 → 钮文换「翻看此书」、步骤条第三步换「取诨号」预告 */
+  /* C1 · 选中武侠：钮文恒「下一步」（书世界「翻看此书」变体随 P1 退役）+ 步骤条无「取诨号」 */
   await page.click('#c3-list .wcard:has-text("侠影江湖")');
   await page.waitForTimeout(120);
-  const c0b = await page.evaluate(() => ({
+  const c1 = await page.evaluate(() => ({
     go: document.getElementById('c3-go').textContent,
     steps: document.getElementById('c3-steps').textContent
   }));
-  T(/翻看此书/.test(c0b.go) && /取诨号/.test(c0b.steps),
-    'C0b 选中书世界（钮文「翻看此书」⇔ 步骤条预告「取诨号」）',
-    'go=' + c0b.go + ' steps=' + c0b.steps);
+  T(/下一步/.test(c1.go) && !/取诨号/.test(c1.steps) && !/翻看此书/.test(c1.go),
+    'C1 选中武侠（钮文恒「下一步」⇔ 步骤条无书世界变体——tab 世界流回归）',
+    'go=' + c1.go + ' steps=' + c1.steps);
 
-  /* C1 · 进书（流程第二步）：章头第一章 + 跳过落纸 */
+  /* C2 · 立名：武侠掷名（NAMES.wuxia 分卷）产出合法名 → 进观天赋屏（通用池天赋卡在位） */
   await page.click('#c3-go');
-  await page.waitForSelector('#bk-wrap', { timeout: 8000 });
-  await page.click('#bk-paper');
-  await page.waitForTimeout(300);
-  const c1 = await page.evaluate(() => ({
-    chap: document.getElementById('bk-chap').textContent,
-    lines: document.querySelectorAll('#bk-paper .bk-line').length
+  await page.waitForSelector('#sc-c1:not(.hide)', { timeout: 8000 });
+  await page.click('#c1-random');
+  const c2 = await page.evaluate(() => ({ name: document.getElementById('c1-name').value }));
+  await page.fill('#c1-name', '试炼者' + (c2.name || '').slice(0, 1));
+  await page.click('#c1-next');
+  await page.waitForSelector('#sc-c2:not(.hide)', { timeout: 8000 });
+  const c2b = await page.evaluate(() => ({
+    name: document.getElementById('c1-name').value,
+    cards: document.querySelectorAll('#c2-cards .tcard').length
   }));
-  T(/第1章/.test(c1.chap) && c1.lines >= 4, 'C1 先睹即第二步（书浮层第一章 ⇔ 跳过落纸）',
-    'chap=' + c1.chap + ' lines=' + c1.lines);
+  T(c2b.name.length >= 2 && c2b.name.indexOf('??') < 0 && c2b.cards >= 1,
+    'C2 立名与观天赋（NAMES.wuxia 掷名合法 ⇔ 天赋卡在位——通用池对武侠开放）',
+    'name=' + c2b.name + ' cards=' + c2b.cards);
 
-  /* C2 · 章末取诨号面板：称呼之问 + 三候选 + 自拟 + 落笔入世 */
-  await page.waitForSelector('#bk-fork .bk-opt', { timeout: 5000 });
-  const c2 = await page.evaluate(() => ({
-    ask: document.getElementById('bk-fork').textContent,
-    cands: document.querySelectorAll('#bk-fork .bk-opt').length,
-    free: !!document.getElementById('bk-haofree'),
-    enter: document.getElementById('bk-enter') ? document.getElementById('bk-enter').textContent : ''
-  }));
-  T(/江湖称呼/.test(c2.ask) && c2.cands === 4 && c2.free && /落笔入世/.test(c2.enter),
-    'C2 书内取诨号（称呼之问 ⇔ 三候选 + 自拟 + 落笔入世——正典「第一笔落笔」内嵌版）',
-    'ask=' + c2.ask.slice(0, 20) + ' cands=' + c2.cands + ' enter=' + c2.enter);
-
-  /* C3 · 落笔入世 → 书形态主界面**从第二章开卷** + profile.name/hao 同源落档 */
-  await page.click('#c2-cards .bk-opt').catch(() => {});
-  await page.click('#bk-fork .bk-opt');
-  await page.click('#bk-enter');
-  await page.waitForSelector('#book-main .bk-book', { timeout: 15000 });
+  /* C3 · 天命锁入世 → 武侠 tab 主壳（wuxiamode + wh-tabs）+ 存档 20 键且书形态键不复存在 */
+  await page.click('#c2-confirm');
+  await page.waitForSelector('#modal-lock:not(.hide)', { timeout: 8000 });
+  await page.click('#mk-ok');
+  await page.waitForSelector('#shell-main .wh-tabs', { timeout: 15000 });
   const c3 = await page.evaluate(() => {
-    const p = JSON.parse(localStorage.getItem('sanqian-state-v1')).profile || {};
-    const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+    const raw = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+    const p = raw.profile || {};
+    const w = raw.worlds.wuxia;
     return {
-      mode: document.getElementById('sc-main').classList.contains('bookmode'),
-      chap: document.getElementById('bkr-chap').textContent,
-      name: p.name, hao: p.hao, chapNo: w.narrative.chapNo
+      mode: document.getElementById('sc-main').classList.contains('shellmode'),
+      tabs: document.querySelectorAll('#shell-main .wh-tabs button').length,
+      keys: Object.keys(w).length,
+      noBook: !('narrative' in w) && !('ink' in w) && !('discord' in w),
+      worldId: p.worldId, name: p.name
     };
   });
-  T(c3.mode && /第2章/.test(c3.chap) && c3.chapNo === 2 && c3.name.length > 0 && c3.name === c3.hao,
-    'C3 落笔入世即第二章（开卷不重读 ⇔ 诨号即真名（name===hao）⇔ narrative.chapNo=2）',
-    'mode=' + c3.mode + ' chap=' + c3.chap.slice(0, 16) + ' name=' + c3.name + ' chapNo=' + c3.chapNo);
+  T(c3.mode && c3.tabs === 10 && c3.keys >= 22 && c3.noBook && c3.worldId === 'wuxia' && c3.name.length >= 2,
+    'C3 入世即武侠主壳（wuxiamode ⇔ 十页签 ⇔ 存档 ≥22 键（通用 lastSave/log/eventHistory 落位；盘上经紧凑化空值键可摘）且 narrative/ink/discord 摘除见证 ⇔ worldId 落档）',
+    'mode=' + c3.mode + ' tabs=' + c3.tabs + ' keys=' + c3.keys + ' noBook=' + c3.noBook);
 
-  /* C4 · 重载后仍在（真档） */
+  /* C4 · 主页状态卡真渲染：境界名「不入流」+ 修习槽空态 + 境界进度条 */
+  const c4 = await page.evaluate(() => {
+    const body = document.getElementById('shell-main').textContent;
+    return {
+      realm: /不入流/.test(body),
+      slotEmpty: /修习槽/.test(body),
+      bar: !!document.querySelector('#shell-main .wh-bar'),
+      wip: /此路尚未开辟/.test(body)
+    };
+  });
+  T(c4.realm && c4.slotEmpty && c4.bar, 'C4 主页状态卡（境界名上屏 ⇔ 修习槽空态 ⇔ 进度条在位）',
+    'realm=' + c4.realm + ' slot=' + c4.slotEmpty + ' bar=' + c4.bar);
+
+  /* C5 · 重载后仍在（真档 + wuxiamode 回归） */
   await page.reload();
-  await page.waitForSelector('#book-main .bk-book', { timeout: 15000 });
-  const c4 = await page.evaluate(() => document.getElementById('bkr-chap').textContent);
-  T(/第2章/.test(c4), 'C4 入世真档（重载后仍从第二章开卷）', 'chap=' + c4.slice(0, 16));
+  await page.waitForSelector('#shell-main .wh-tabs', { timeout: 15000 });
+  const c5 = await page.evaluate(() => document.getElementById('sc-main').classList.contains('shellmode'));
+  T(c5, 'C5 入世真档（重载后仍进武侠主壳）', 'mode=' + c5);
 
-  T(errs.length === 0, 'C5 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
+  T(errs.length === 0, 'C6 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();
   console.log((fail === 0 ? 'WC_ALL_GREEN ' : 'WC_FAILED ') + pass + '/' + (pass + fail));

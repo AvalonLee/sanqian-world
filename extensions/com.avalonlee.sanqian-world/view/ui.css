@@ -2579,45 +2579,23 @@
   }
   #tab-faction .faclist .faccard .frel { margin-top: 0; }
 
-/* ── 武侠「先睹」书界面（册159 · S1-e）──────────────────────────────
-   纸面滚动配方（原型 §四）：背景无有界装饰 + 固定栏同色不透明 + 边缘纸色渐隐 */
-.bkwrap{position:fixed;inset:0;background:rgba(20,16,12,.72);z-index:90;display:flex;align-items:center;justify-content:center;}
-.bk-book{width:min(680px,92vw);height:min(78vh,760px);background:#f4ead8;color:#2c241a;border:1px solid #b8a488;border-radius:4px;box-shadow:0 18px 60px rgba(0,0,0,.45);display:flex;flex-direction:column;font-family:Georgia,"Songti SC","SimSun",serif;}
-.bk-head{display:flex;justify-content:space-between;align-items:baseline;padding:14px 22px 10px;border-bottom:1px solid #d8c8a8;}
-.bk-head #bk-chap{font-size:17px;letter-spacing:.08em;}
-.bk-hint{font-size:11px;color:#8a7a5c;}
-.bk-paper{flex:1;overflow-y:auto;padding:26px 34px;line-height:2.05;font-size:15.5px;scrollbar-width:thin;
-  mask-image:linear-gradient(180deg,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%);}
-.bk-line{margin:0 0 1.05em;text-indent:2em;}
-.bk-fork{margin:0 22px 10px;padding:12px 16px;border:1px solid #b8a488;background:#efe2c8;border-radius:3px;}
-.bk-fork.hide{display:none;}
-.bk-mark{color:#8e2b1e;font-size:20px;line-height:1;}
-.bk-title{font-weight:700;margin:2px 0 8px;letter-spacing:.05em;}
-.bk-opts{display:flex;flex-wrap:wrap;gap:8px;}
-.bk-opt{font-family:inherit;}
-.bk-next{margin-top:8px;font-size:11px;color:#8a7a5c;}
-/* 页边批注族（册161 · S3-b）：轴向 chips 一行 + 墨/违和细字；墨厄呈报（朱砂） */
-.bk-notes{margin:0 22px 8px;}
-.bk-notes.hide{display:none;}
-.bk-note-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
-.bk-note-label{font-size:11px;color:#8a7a5c;letter-spacing:.08em;margin-right:2px;}
-.bk-ax{font-size:12px;padding:2px 8px;}
-.bk-note-hint{font-size:11px;color:#8e2b1e;min-height:14px;margin-top:4px;}
-.bk-foot{padding:10px 22px;border-top:1px solid #d8c8a8;display:flex;justify-content:flex-end;gap:12px;align-items:center;}
-.bk-status{margin-right:auto;font-size:11px;color:#8a7a5c;letter-spacing:.05em;}
-.bk-mo{color:#8e2b1e;}
-.bk-motext{font-size:13px;color:#5a4a38;margin:4px 0 8px;line-height:1.7;}
-.bk-go{margin-top:6px;font-family:inherit;}
-/* 书形态主界面（册163 · S3-c）：主界面即书——sc-main 其余子节点全收，书容器撑满 */
-#sc-main.bookmode > :not(#book-main){display:none !important;}
-#sc-main.bookmode #book-main{display:block !important;}
-#book-main{position:absolute;inset:0;overflow:hidden;}
-#book-main .bk-book{position:static;margin:0 auto;max-width:880px;width:100%;height:100%;display:flex;flex-direction:column;box-shadow:none;border-left:1px solid #d8c8a8;border-right:1px solid #d8c8a8;}
-#book-main .bk-paper{flex:1;min-height:0;}
-#book-main .bk-drawer{flex:0 0 auto;max-height:46%;overflow:auto;border-top:1px solid #d8c8a8;background:#f3ead4;padding:12px 22px;margin:0 0 52px;}
-#book-main .bk-drawer.hide{display:none;}
-.bk-drawer h4{margin:10px 0 6px;letter-spacing:.08em;color:#6a5a42;}
-.bk-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-.bk-cell{font-size:12px;color:#5a4a38;background:#efe2c8;border:1px solid #d8c8a8;border-radius:3px;padding:4px 8px;}
-.bk-cell b{color:#8e2b1e;font-weight:700;}
-.bk-foot .btn{font-family:inherit;}
+
+/* ── 自定义主壳（册214 · P1 契约改版）：书形态样式段同批退役，主壳新写 .wh-* ── */
+#sc-main.shellmode > :not(#shell-main){display:none !important;}
+#sc-main.shellmode #shell-main{display:block !important;}
+#shell-main{position:absolute;inset:0;overflow:hidden;display:flex;flex-direction:column;background:#f7f1e3;color:#2c241a;}
+.wh-top{display:flex;justify-content:space-between;align-items:baseline;padding:10px 16px;border-bottom:1px solid #d8c8a8;background:#f3ead4;}
+.wh-top .wh-id{font-weight:700;letter-spacing:.08em;}
+.wh-top .wh-stats{font-size:12px;color:#5a4a38;}
+.wh-tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid #d8c8a8;background:#efe2c8;padding:0 8px;}
+.wh-tabs button{font-family:inherit;border:0;background:transparent;color:#6a5a42;padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+.wh-tabs button.on{color:#8e2b1e;font-weight:700;border-bottom-color:#8e2b1e;}
+.wh-body{flex:1;overflow-y:auto;padding:16px 20px;}
+.wh-card{background:#fbf6ea;border:1px solid #d8c8a8;border-radius:4px;padding:14px 16px;margin:0 0 12px;}
+.wh-card h3{margin:0 0 8px;font-size:14px;letter-spacing:.06em;color:#6a5a42;}
+.wh-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;}
+.wh-cell{background:#efe2c8;border:1px solid #d8c8a8;border-radius:3px;padding:4px 10px;}
+.wh-cell b{color:#8e2b1e;}
+.wh-bar{height:8px;background:#e2d4b4;border-radius:4px;overflow:hidden;margin:6px 0;}
+.wh-bar i{display:block;height:100%;background:#8e2b1e;border-radius:4px;}
+.wh-muted{color:#8a7a5c;font-size:12px;}
