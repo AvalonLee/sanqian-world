@@ -260,6 +260,96 @@
    * 引擎按契约读 `pack.arts` / `pack.realms`；武学 id → 记录的索引也在这里建一次，
    * 供功谱页与叙事层按 id 取品阶/性质（避免每处都遍历 396 条）。
    * ⚠️ 审计 A9 只扫 live 世界，但**表一旦有消费方才谈得上"活"**——这里就是那唯一消费口。 */
+  /* ── G18 叙事编排层（可选契约的第一份实现 · 册157 S2-a）─────────────────────────
+   * 契约（工程规范 §2.2）：`chapter(ws, pack, ctx) → { beats, fork, meta }`，**纯函数**——
+   *   同一 ws + 同一章号 ⇒ 同一章（用章号做确定性「伪随机」，绝不调用 Math.random）。
+   *   件内**不挂定时器**：打字机与翻页属 view 层。
+   *
+   * 本节只做**骨架**：按章号 + 当前地界从 EVENTS 取节，按固定章骨架排布，遇到条件满足的
+   *   KNOTS 就在章末置一个分岔（2~3 支，带数值门槛）。**不生成正文**（正文是 S1-d 的事）。
+   *
+   * 章骨架（叙事引擎 §五）：scene → [action|talk]×2~3 → [event|gain]? → fork? → cliff
+   * 分岔规则（§七）：每章 ≤1 个 ※；**必须含一个保守项**（退/忍/不动）⇒ 任何数值下都有得选。
+   */
+  var CHAPTER_BEATS = 5;   /* 4~6 节的中位；首 scene 末 cliff 固定 */
+
+  function seedOf(n) {            /* 确定性散列：章号 → 32 位整数 */
+    var x = (n * 2654435761) >>> 0;
+    x ^= x >>> 15; x = (x * 2246822519) >>> 0;
+    return x >>> 0;
+  }
+  function pick(list, seed, salt) {
+    if (!list || !list.length) return null;
+    return list[(seed + salt * 131) % list.length];
+  }
+
+  function eventsAt(place) {
+    var all = (D && D.EVENTS) || [];
+    var hit = [];
+    for (var i = 0; i < all.length; i++) if (all[i].z === place) hit.push(all[i]);
+    return hit;
+  }
+  function knotsAt(place) {
+    var all = (D && D.KNOTS) || [];
+    var hit = [];
+    for (var i = 0; i < all.length; i++) if (all[i].z === place) hit.push(all[i]);
+    return hit;
+  }
+  /* 门槛判定：need 里的每一项都要过（realm / artsMin / silver）——这是「养决定有没有得选」的落点 */
+  function meetNeed(ws, need) {
+    if (!need) return true;
+    if (need.realm != null && (ws.realm | 0) < need.realm) return false;
+    if (need.silver != null && (ws.stones || 0) < need.silver) return false;
+    if (need.artsMin != null && maxLayer(ws) < need.artsMin) return false;
+    return true;
+  }
+  /* 分支可用性：桥段整体进了（meetNeed 过），但**支上还可能各有门槛** */
+  function branchOpen(ws, br) { return meetNeed(ws, br && br.req); }
+
+  function chapter(ws, pk, ctx) {
+    void pk; void ctx;
+    var nar = (ws && ws.narrative) || {};
+    var no = nar.chapNo || 1;
+    var place = ws.place || PLACE_START;
+    var seed = seedOf(no * 97 + place.length);
+    var evs = eventsAt(place);
+    var beats = [];
+    beats.push({ type: 'scene', ref: 'scene.' + place + '.1', no: 1 });
+
+    /* 中段：从本地界事件池取 3 节（类型照事件的 kind），一个章内不重复 */
+    var used = {};
+    for (var i = 0; i < 3; i++) {
+      var ev = pick(evs, seed, i + 1);
+      var guard = 0;
+      while (ev && used[ev.i] && guard++ < evs.length) ev = pick(evs, seed + guard, i + 7);
+      if (!ev) continue;
+      used[ev.i] = 1;
+      beats.push({ type: ev.kind === 'scene' ? 'talk' : ev.kind, ref: 'event.' + ev.i + '.name', no: beats.length + 1 });
+    }
+    /* 收尾前后各一节：所得/心念 + 悬念 */
+    beats.push({ type: 'think', ref: 'think.self.' + ((seed % 3) + 1), no: beats.length + 1 });
+    beats.push({ type: 'cliff', ref: 'cliff.' + place, no: beats.length + 1 });
+
+    /* 分岔：本章若有**条件满足的桥段**，取其可用分支置一个 ※（最多一个） */
+    var fork = null;
+    var ks = knotsAt(place);
+    for (var k = 0; k < ks.length && !fork; k++) {
+      var kn = ks[k];
+      if (!meetNeed(ws, kn.need)) continue;
+      var opts = [];
+      for (var b = 0; b < kn.br.length; b++) {
+        if (!branchOpen(ws, kn.br[b])) continue;      /* 够不着的分支不生成（不是灰掉） */
+        opts.push({ k: kn.br[b].k, label: kn.br[b].label, ink: (b === 0 ? 1 : 3) });
+      }
+      /* 保守项兜底：桥段整体可进但支全被门槛挡掉时，也要留「旁观」这一支 */
+      if (!opts.length) opts.push({ k: 'watch', label: 'knot.' + kn.i + '.watch', ink: 1 });
+      fork = { knot: kn.i, title: 'knot.' + kn.i + '.name', act: kn.act, opts: opts };
+    }
+    /* 章节点数夹到 4~6（骨架固定，超出削中段） */
+    if (beats.length > CHAPTER_BEATS + 1) beats = beats.slice(0, CHAPTER_BEATS + 1);
+    return { beats: beats, fork: fork, meta: { chapNo: no, place: place, seed: seed } };
+  }
+
   function buildArtIndex() {
     var idx = {};
     var A = (D && D.ARTS) || [];
@@ -284,6 +374,17 @@
     gates: (D && D.GATES) || [],
     arts: (D && D.ARTS) || [],
     sects: (D && D.SECTS) || [],
+    cast: (D && D.CAST) || [],
+    zones: (D && D.ZONES) || [],
+    manuals: (D && D.MANUALS) || [],
+    events: (D && D.EVENTS) || [],
+    knots: (D && D.KNOTS) || [],
+    /* G18 叙事编排层：**本界是 `pack.narrative` 可选契约的第一份实现**（工程规范 §2.2）。
+     * 第一世界不实现该键 ⇒ 引擎跳过；本界实现了 ⇒ 章生成走 `chapter()`。 */
+    narrative: {
+      chapter: chapter,
+      beatsPerChapter: CHAPTER_BEATS
+    },
     artsMap: function () { return ART_INDEX; },
     /* 某门可学武学（由 ARTS[].s 反查，单一事实源）；未门无武学返回空数组 */
     artsOfSect: function (sid) {
