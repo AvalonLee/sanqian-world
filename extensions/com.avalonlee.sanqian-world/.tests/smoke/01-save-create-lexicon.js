@@ -119,6 +119,24 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       SQ.t('ui.confirm') === '确认' && /* N20 处置批：原用 `ui.claim`「收功」，该键随批删除（钮 v2.2 已移除），换同为 common 卷的 `ui.confirm` 继续测三级回落 */
       SQ.t('no.such.key') === 'no.such.key');
 
+    /* E6 · 第二世界「武侠」包骨架（册154 · S1-a 立卷）
+     * 这一判钉的是**新形态**：「包已装上、但世界仍 coming 不可投生」。
+     * 既有判据全都没有这一形（此前 coming ⇔ pack 恒 null），所以新立一条，而不是改旧判。
+     * 三件必须同时成立：① 三入口是函数（缺一 D11 就失明）；② initialState ⇔ normalize 键集双向相等
+     * （D11 已判，这里只做冒烟级快照，让它在毫秒级的件里先红）；③ 无界名池的世界不生成随机界名。 */
+    (function () {
+      var w = SQ.Worlds.wuxia;
+      var pk = w && w.pack;
+      var shapes = !!(pk && typeof pk.initialState === 'function' &&
+        typeof pk.normalize === 'function' && typeof pk.claim === 'function');
+      var ini = shapes ? Object.keys(pk.initialState()) : [];
+      var nul = shapes ? Object.keys(pk.normalize({})) : [];
+      var same = ini.length > 0 && ini.length === nul.length && ini.every(function (k) { return nul.indexOf(k) >= 0; });
+      ok('E6', '武侠包骨架（coming 但 pack 已装 ‖ 三入口在位 ⇔ initialState/normalize 键集等 ‖ 无界名池不生成界名）',
+        !!w && w.status === 'coming' && shapes && same && SQ.generateWorldName('wuxia') === '',
+        'status=' + (w && w.status) + ' keys=' + ini.length + ' name=' + JSON.stringify(SQ.generateWorldName('wuxia')));
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */
