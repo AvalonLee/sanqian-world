@@ -111,7 +111,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
     }
     var vis = SQ.visibleWorlds().map(function (w) { return w.id; });
     ok('E4', '命名池合规 + 屏上名册逐位对表（live 1 · coming 5 · 无 hidden 实例）',
-      nameOk && vis.join(',') === 'xiuxian,guwu,magic,tech,urban,cthulhu', 'visible=' + vis.join(','));
+      nameOk && vis.join(',') === 'xiuxian,wuxia,magic,tech,urban,cthulhu', 'visible=' + vis.join(','));
 
     /* #15 词表回落：世界词表 → common → key 本身 */
     ok('E5', 't() 三级回落',
