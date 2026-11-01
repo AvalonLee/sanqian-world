@@ -486,6 +486,56 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         cycle && ports && study && brk && pow, det14);
     }
 
+    /* E15 · 武侠「书自己在写」（册165 · S3-c）：默认选择 + 离线提要——
+     * ① autoPick 确定性（同 ws+fork ⇒ 同选，且落在选项集内）；
+     * ② 性格倾向：侠轴 +80 与 −80 在同一分岔上选出不同支（人格是倾向不是摆设）；
+     * ③ offlineCatchup：36 分/章（3h = 5 章）‖ digest ≤8 行且跨次合并、dropped 累计 ‖ normalize 保留 ‖
+     *    十卷完停笔（合卷后离线不续）；
+     * ④ claim 闸：settings={} 关（E8/E12/E14/sim 的定值断言Witness）‖ {offlineStory:true} 开（10h = 16 章）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.narrative || !pk.narrative.autoPick) { ok('E15', '武侠书自己在写', false, '无 autoPick 口'); return; }
+      var ws = pk.normalize(pk.initialState());
+      ws.place = 'luoyang'; ws.realm = 4; ws.stones = 500;
+      var fk = pk.narrative.chapter(ws, pk, {}).fork;
+      var a1 = pk.narrative.autoPick(ws, fk, {});
+      var a2 = pk.narrative.autoPick(ws, fk, {});
+      var det = a1 === a2 && fk.opts.indexOf(a1) >= 0;
+      var wsHi = pk.normalize(pk.initialState());
+      wsHi.place = 'luoyang'; wsHi.realm = 4; wsHi.stones = 500; wsHi.persona.xia = 80;
+      var wsLo = pk.normalize(pk.initialState());
+      wsLo.place = 'luoyang'; wsLo.realm = 4; wsLo.stones = 500; wsLo.persona.xia = -80;
+      var pHi = pk.narrative.autoPick(wsHi, fk, {});
+      var pLo = pk.narrative.autoPick(wsLo, fk, {});
+      var tilt = pHi !== pLo;
+      /* ③ 离线提要 */
+      var wsO = pk.normalize(pk.initialState());
+      var r3 = pk.narrative.offlineCatchup(wsO, 3 * 3600000, {});
+      var wsO2 = pk.normalize(pk.initialState());
+      pk.narrative.offlineCatchup(wsO2, 60 * 3600000, {});
+      pk.narrative.offlineCatchup(wsO2, 8 * 3600000, {});
+      var norm = pk.normalize(wsO2);
+      var dig = norm.narrative.digest;
+      var catchOk = r3.chapters === 5 && r3.dropped === 0 && wsO.narrative.chapNo === 6 &&
+        dig && dig.lines.length <= 8 && dig.lines.length > 0 && dig.dropped > 0 && !!dig;
+      /* 合卷停笔：推到 201 章再离线 ⇒ 不再推进 */
+      var wsE = pk.normalize(pk.initialState());
+      wsE.narrative.chapNo = 201;
+      var rE = pk.narrative.offlineCatchup(wsE, 24 * 3600000, {});
+      var endStop = rE.chapters === 0 && wsE.narrative.chapNo === 201;
+      /* ④ claim 闸 */
+      var wsG1 = pk.normalize(pk.initialState());
+      pk.claim(wsG1, 10 * 3600000, 0, {}, {});
+      var wsG2 = pk.normalize(pk.initialState());
+      pk.claim(wsG2, 10 * 3600000, 0, {}, { offlineStory: true });
+      var gate = wsG1.narrative.chapNo === 1 && wsG2.narrative.chapNo === 17;
+      ok('E15', '武侠书自己在写（autoPick 确定且在选项内 ⇔ 侠轴 ±80 选出不同支 ⇔ 离线 36 分/章、digest ≤8 行跨次合并、合卷停笔 ⇔ claim 闸 {} 关 / 开闸 10h=16 章）',
+        det && tilt && catchOk && endStop && gate,
+        '确定=' + det + ' 倾向=' + tilt + '(' + (pHi ? pHi.k : '-') + '/' + (pLo ? pLo.k : '-') + ')' +
+        ' 提要=' + catchOk + '(5章=' + (r3.chapters === 5) + ',帽=' + (dig ? dig.lines.length : '-') + ',折=' + (dig ? dig.dropped : '-') + ')' +
+        ' 停笔=' + endStop + ' 闸=' + gate);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */

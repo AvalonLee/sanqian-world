@@ -297,13 +297,43 @@
     document.getElementById('bkr-hint').textContent = pr.hao ? tw('ui.book.hao', { name: pr.name, hao: pr.hao }) : (pr.name || '');
     document.getElementById('bkr-paper').onclick = function () { R.skip = true; };   /* 监听体一句（D15①） */
     document.getElementById('bkr-drawer').onclick = function () { realDrawer(c.fresh()); };   /* 监听体一句（D15①） */
-    realChapter(c);
+    var dg = c.w.narrative && c.w.narrative.digest;
+    if (dg && dg.lines && dg.lines.length) realDigest(c, dg);
+    else realChapter(c);
   }
 
   /* 每秒 tick 的书侧入口：只刷状态行（打字机/分岔/批注一概不碰——机器不打断读书人） */
   function refreshReal(c) {
     if (!R.on || !c.w) return;
     realDrawStatus(c.w);
+  }
+
+  /* 回归呈报（册165 · 叙事引擎 §八）：离线提要逐行（章号@地界 id → 取词渲染），确定后清档开读 */
+  function realDigest(c, dg) {
+    var box = document.getElementById('bkr-fork');
+    var rows = dg.lines.map(function (ln) {
+      var parts = ln.split('@');
+      var zn = parts[1] ? SQ.t('zone.' + parts[1] + '.name', null, R.wid) : '';
+      if (zn.indexOf('zone.') === 0) zn = parts[1];
+      return SQ.t('ui.book.chapter', { no: parseInt(parts[0], 10) || 0 }, null) + (zn ? ' · ' + zn : '');
+    });
+    box.innerHTML = '<div class="bk-mark">※</div><div class="bk-title">' + esc(tw('ui.book.digest.title', null)) + '</div>' +
+      '<div class="bk-motext">' + rows.map(function (r) { return esc(r); }).join('<br>') +
+      (dg.dropped > 0 ? '<br>' + esc(tw('ui.book.digest.dropped', { n: dg.dropped })) : '') + '</div>';
+    var row = document.createElement('div');
+    row.className = 'bk-opts';
+    var b = document.createElement('button');
+    b.className = 'btn bk-opt';
+    b.textContent = tw('ui.book.digest.ok', null);
+    b.onclick = function () { realDigestOk(c); };      /* 监听体一句（D15①） */
+    row.appendChild(b);
+    box.appendChild(row);
+    box.classList.remove('hide');
+  }
+  function realDigestOk(c) {
+    SQ.mutate(c.s, function (s) { s.worlds[R.wid].narrative.digest = null; });
+    document.getElementById('bkr-fork').classList.add('hide');
+    realChapter(c.fresh());
   }
 
   function realChapter(c) {

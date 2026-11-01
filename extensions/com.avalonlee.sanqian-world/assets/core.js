@@ -59,7 +59,7 @@
        * eventPref = 自动奇遇的分支倾向（none 无倾向 / right 正道 / evil 魔道 / neutral 左道）——
        *   优先选该分支，不可用则随机其他；
        * tabOrder = 游戏页菜单顺序（id 数组，空 = 默认序；系统页固定底部不参与，视图层负责对账） */
-      settings: { autoTrib: false, autoEvent: false, eventPref: 'none', tabOrder: [] }
+      settings: { autoTrib: false, autoEvent: false, eventPref: 'none', tabOrder: [], offlineStory: true }
     };
   }
 
@@ -131,7 +131,8 @@
       autoTrib: st.autoTrib === true, /* 缺省/脏值一律回落 false（默认关闭） */
       autoEvent: st.autoEvent === true,
       eventPref: (st.eventPref === 'right' || st.eventPref === 'evil' || st.eventPref === 'neutral') ? st.eventPref : 'none',
-      tabOrder: strArr(st.tabOrder, 32) /* 去重去空、限长；未知 id 由视图层对账剔除 */
+      tabOrder: strArr(st.tabOrder, 32), /* 去重去空、限长；未知 id 由视图层对账剔除 */
+      offlineStory: st.offlineStory !== false   /* 离线也写书（册165 · 书世界缺省开；显式 false 才关） */
     };
     var w = raw.worlds && typeof raw.worlds === 'object' ? raw.worlds : {};
     for (var id in w) {
