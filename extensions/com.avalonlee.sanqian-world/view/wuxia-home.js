@@ -88,6 +88,52 @@
       pk.knotChoose(w, knotId, optK);
     }, function (f) { refresh(f); });
   }
+  /* 拜师 / 学艺 / 任务 / 供奉 / 叛门 / 买 / 研读（册217 P4+P6） */
+  function doSect(slot, actName, arg) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var pk = SQ.Worlds[s.profile.worldId].pack;
+      var r = null;
+      if (actName === 'join') r = pk.joinSect(w, arg);
+      else if (actName === 'learn') r = pk.learnArt(w, arg);
+      else if (actName === 'task') r = pk.sectTask(w);
+      else if (actName === 'donate') r = pk.donateSect(w, 100);
+      else if (actName === 'betray') r = pk.betraySect(w);
+      else if (actName === 'study') r = pk.studyManual(w, arg);
+      else if (actName === 'buy') r = pk.buyItem(w, arg);
+      if (r && r.err === 'renown') { slot.toast(tw('wh.sect.joingate', { gate: r.gate, have: r.have })); return; }
+      if (r && r.err === 'stones') { slot.toast(tw('wh.shop.poor', null)); return; }
+      if (r && r.err === 'contribution') { slot.toast(tw('wh.sect.contribution', { n: r.have })); return; }
+      if (r && r.err) { slot.toast(tw('wh.err.save', null)); return; }
+      if (actName === 'buy' || actName === 'study') slot.toast(tw('wh.shop.bought', null));
+    }, function (f) { refresh(f); });
+  }
+  /* 世界事件赴会 / 结交 / 退隐（册218 P5+P7） */
+  function doEvent(slot, id, mode, alt) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var pk = SQ.Worlds[s.profile.worldId].pack;
+      var r = pk.attendEvent(w, id, mode, alt);
+      if (r && r.err === 'realm') { slot.toast(tw('wh.err.gate', null)); return; }
+      if (r && r.err === 'stamina') { slot.toast(tw('wh.rep.stamina', null)); return; }
+      if (r && r.err) { slot.toast(tw('wh.err.save', null)); return; }
+      SQ.Log.push(w, 'sys', tw('we.' + id + '.name', null) + ' · ' + (r.alt ? tw('wh.jianghu.fate.alt', null) : tw('wh.jianghu.fate.canon', null)));
+    }, function (f) { refresh(f); });
+  }
+  function doBefriend(slot, castId) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      SQ.Worlds[s.profile.worldId].pack.befriend(w, castId);
+    }, function (f) { refresh(f); });
+  }
+  function doRetire(slot) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var r = SQ.Worlds[s.profile.worldId].pack.retire(w);
+      if (r && r.err) { slot.toast(tw('wh.err.gate', null)); return; }
+      SQ.Log.push(w, 'sys', tw('wh.home.retire', null));
+    }, function (f) { refresh(f); });
+  }
   /* 模态切换（闯荡 0.6 / 闭关 1.0） */
   function toggleMode(slot) {
     act(slot, function (s) {
@@ -244,6 +290,97 @@
     h += '</div>';
     return h;
   }
+  /* 门派页（册217 P4）：未拜师 = 名录拜师；已拜 = 师门面板 */
+  function sectBody(cf) {
+    var w = cf.w, p = cf.p;
+    var h = '<div class="wh-card"><h3>' + tw('wh.sect.title', null) + '</h3>';
+    if (w.sect && w.sect.id && !w.sect.betrayed) {
+      h += '<div class="wh-row">' +
+        '<span class="wh-cell"><b>' + tw('sect.' + w.sect.id + '.name', null) + '</b></span>' +
+        '<span class="wh-cell">' + tw('wh.sect.contribution', { n: w.sect.contribution | 0 }) + '</span>' +
+        '<span class="wh-cell">' + tw('wh.sect.rank', { n: p.sectRankOf(w.sect.contribution | 0) }) + '</span>' +
+        '</div><div class="wh-row">' +
+        '<button class="btn" id="wh-task">' + tw('wh.sect.task', null) + '</button>' +
+        '<button class="btn" id="wh-donate">' + tw('wh.sect.donate', null) + '</button>' +
+        '<button class="btn" id="wh-betray">' + tw('wh.sect.betray', null) + '</button>' +
+        '</div>';
+      var learn = p.learnableArts(w);
+      h += '<div class="wh-muted">' + tw('wh.sect.learn', null) + '</div>';
+      for (var i = 0; i < learn.length; i++) {
+        h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('art.' + learn[i].id + '.name', null) + '</b> · ' + tw('wh.sect.tier.' + learn[i].t, null) + '</span>' +
+          (learn[i].known ? '<span class="wh-muted">' + tw('wh.sect.known', null) + '</span>'
+            : '<button class="btn" data-learn="' + learn[i].id + '">' + tw('wh.sect.learnbtn', { c: learn[i].cost }) + '</button>') +
+          '</div>';
+      }
+    } else {
+      if (w.sect && w.sect.betrayed) h += '<div class="wh-muted">' + tw('wh.sect.betrayed', null) + '</div>';
+      else h += '<div class="wh-muted">' + tw('wh.sect.none', null) + '</div>';
+      var S = (p.data && p.data.SECTS) || [];
+      for (var j = 0; j < S.length; j++) {
+        h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('sect.' + S[j].id + '.name', null) + '</b> · ' + tw('wh.sect.camp.' + S[j].camp, null) + '</span>' +
+          '<button class="btn" data-join="' + S[j].id + '">' + tw('wh.sect.join', null) + '</button></div>';
+      }
+    }
+    return h + '</div>';
+  }
+  /* 市集页（册217 P6）：静态货架 + 研读架 */
+  function shopBody(cf) {
+    var w = cf.w, p = cf.p;
+    var h = '<div class="wh-card"><h3>' + tw('wh.shop.title', null) + '</h3>';
+    var L = p.shopList || [];
+    for (var i = 0; i < L.length; i++) {
+      var it = L[i];
+      var name = it.kind === 'manual' ? tw('manual.' + it.i + '.name', null) : tw('shop.' + it.i + '.name', null);
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + name + '</b></span>' +
+        '<button class="btn" data-buy="' + it.i + '">' + tw('wh.shop.buy', { c: it.cost }) + '</button></div>';
+    }
+    h += '</div>';
+    h += '<div class="wh-card"><h3>' + tw('wh.arts.shelf', null) + '</h3>';
+    var shelf = w.shelf || [];
+    if (!shelf.length) h += '<div class="wh-muted">' + tw('wh.home.slotsEmpty', null) + '</div>';
+    for (var k = 0; k < shelf.length; k++) {
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('manual.' + shelf[k] + '.name', null) + '</b></span>' +
+        '<button class="btn" data-study="' + shelf[k] + '">' + tw('wh.arts.study', null) + '</button></div>';
+    }
+    return h + '</div>';
+  }
+  /* 江湖页（册218 P5）：可赴世界事件 + 已写结局 */
+  function jianghuBody(cf) {
+    var w = cf.w, p = cf.p;
+    var h = '<div class="wh-card"><h3>' + tw('wh.jianghu.title', null) + '</h3>';
+    var evs = p.worldEvents(w);
+    if (!evs.length) h += '<div class="wh-muted">' + tw('wh.jianghu.none', null) + '</div>';
+    for (var i = 0; i < evs.length; i++) {
+      var e = evs[i];
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + e.i + '.name', null) + '</b></span>' +
+        '<button class="btn" data-we="' + e.i + '" data-mode="watch">' + tw('wh.jianghu.watch', null) + '</button>' +
+        '<button class="btn" data-we="' + e.i + '" data-mode="join">' + tw('wh.jianghu.join', { n: e.tier.join }) + '</button>' +
+        '<button class="btn" data-we="' + e.i + '" data-mode="lead">' + tw('wh.jianghu.lead', { n: e.tier.lead }) + '</button>' +
+        '</div>';
+    }
+    var fate = (w.world && w.world.wefate) || {};
+    var fk = Object.keys(fate);
+    for (var k = 0; k < fk.length; k++) {
+      h += '<div class="wh-row"><span class="wh-muted">' + tw('we.' + fk[k] + '.name', null) + ' · ' +
+        (fate[fk[k]] === 'alt' ? tw('wh.jianghu.fate.alt', null) : tw('wh.jianghu.fate.canon', null)) + '</span></div>';
+    }
+    if ((w.realm | 0) >= 9) h += '<div class="wh-row"><button class="btn primary" id="wh-retire">' + tw('wh.home.retire', null) + '</button></div>';
+    return h + '</div>';
+  }
+  /* 人物页（册218 P7）：已识之人 + 结交钮 */
+  function peopleBody(cf) {
+    var w = cf.w;
+    var rel = w.relations || {};
+    var h = '<div class="wh-card"><h3>' + tw('wh.people.title', null) + '</h3>';
+    var rk = Object.keys(rel);
+    if (!rk.length) h += '<div class="wh-muted">' + tw('wh.people.none', null) + '</div>';
+    for (var i = 0; i < rk.length; i++) {
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('cast.' + rk[i] + '.name', null) + '</b></span>' +
+        '<span class="wh-muted">' + tw('wh.people.aff', { n: rel[rk[i]].affinity || 0 }) + '</span>' +
+        '<button class="btn" data-befriend="' + rk[i] + '">' + tw('wh.people.befriend', null) + '</button></div>';
+    }
+    return h + '</div>';
+  }
   function wipBody(id) {
     return '<div class="wh-card"><h3>' + tw('wh.tab.' + id, null) + '</h3><div class="wh-muted">' +
       tw('wh.wip', { tab: tw('wh.tab.' + id, null) }) + '</div></div>';
@@ -264,7 +401,7 @@
         tw(TABS[i].key, null) + '</button>';
     }
     tabs += '</div>';
-    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : (cur === 'zones' ? zonesBody(cf) : wipBody(cur)))) + '</div>';
+    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : (cur === 'zones' ? zonesBody(cf) : (cur === 'sect' ? sectBody(cf) : (cur === 'shop' ? shopBody(cf) : (cur === 'jianghu' ? jianghuBody(cf) : (cur === 'people' ? peopleBody(cf) : wipBody(cur)))))))) + '</div>';
     return top + tabs + body;
   }
 
@@ -288,6 +425,16 @@
       else if (b.id === "wh-mode") toggleMode(f2);
       else if (b.getAttribute("data-zone")) goZone(f2, b.getAttribute("data-zone"));
       else if (b.getAttribute("data-knot")) chooseKnot(f2, b.getAttribute("data-knot"), b.getAttribute("data-opt"));
+      else if (b.getAttribute('data-join')) doSect(f2, 'join', b.getAttribute('data-join'));
+      else if (b.getAttribute('data-learn')) doSect(f2, 'learn', b.getAttribute('data-learn'));
+      else if (b.getAttribute('data-buy')) doSect(f2, 'buy', b.getAttribute('data-buy'));
+      else if (b.getAttribute('data-study')) doSect(f2, 'study', b.getAttribute('data-study'));
+      else if (b.id === 'wh-task') doSect(f2, 'task', null);
+      else if (b.id === 'wh-donate') doSect(f2, 'donate', null);
+      else if (b.id === 'wh-betray') doSect(f2, 'betray', null);
+      else if (b.getAttribute('data-we')) doEvent(f2, b.getAttribute('data-we'), b.getAttribute('data-mode'), false);
+      else if (b.getAttribute('data-befriend')) doBefriend(f2, b.getAttribute('data-befriend'));
+      else if (b.id === 'wh-retire') doRetire(f2);
       else if (slot) toggleSlot(f2, slot);
     };
   }

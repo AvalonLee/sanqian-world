@@ -69,6 +69,7 @@
       mode: 'travel',                  /* 挂机模态（册216 P3）：travel 闯荡 0.6 产出 + 见闻增长 / seclude 闭关 1.0 */
       sceneProg: {},                   /* 子场景进度（册216 P3）：zoneId → 已推进场景数 */
       knotDone: {},                    /* 已走过的剧情桥段（册216 P3）：knotId → 1（一次性名场面） */
+      world: null,                     /* 江湖格局写回（册218 P5）：{wefate: {事件id → canon|alt}}——只存结果键 */
       lastReport: null,                /* 最近一次闯荡战报（册216 P3）：{kind, text keys, win, ...} */
       atts: { zhi: 50, gu: 50, xing: 50 },  /* 资质三轴（册215 P2 · G12）：悟性 zhi 练功速率 / 根骨 gu 内伤耐受（P3 接） / 心性 xing 冲关成功率 */
       /* 通用项（同第一世界口径；数值与经济 §九「通用项同第一世界」的代码化——册214 P1 补齐：
@@ -138,6 +139,7 @@
       mode: p.mode === 'seclude' ? 'seclude' : 'travel',
       sceneProg: obj(p.sceneProg),
       knotDone: obj(p.knotDone),
+      world: (function () { var wd = obj(p.world); return { wefate: obj(wd.wefate) }; })(),
       lastReport: obj(p.lastReport),
       atts: (function () {
         var a = obj(p.atts);
@@ -477,6 +479,236 @@
     return { ok: true, chose: optK, axis: ax || null };
   }
 
+  /* ── 师承系统（册217 P4 · 方案卷 §五之一）：MUD 师承链正典化 ──────────────────────
+   * 拜师（侠名门槛按阵营：正 20 / 中 0 / 邪·隐 −50；引荐 = relations 该门人物 aff≥20 降 20）；
+   * 学艺 learn（门派武学 = ARTS s 反查；品阶锁贡献 huang 0 / xuan 100 / di 300 / tian 600；
+   *   耗贡献同值 + 精力 5 → artsKnown 增一部）；辈分 = 贡献阶梯五档（派生不进档）；
+   * 师门任务（精力 3 → 贡献 +20~40 确定性）；供奉（10 文 = 1 贡献）；
+   * 叛门（renown −80 + betrayed 标志——追杀事件链随 P5 世界事件层）。 */
+  var SECT_GATE = { zheng: 20, zhong: 0, xie: -50, yin: -50 };
+  var ART_TIER_COST = { huang: 0, xuan: 100, di: 300, tian: 600 };
+  var RANK_LADDER = [0, 100, 300, 600, 1000];
+  function sectCamp(sectId) {
+    var S = (D && D.SECTS) || [];
+    for (var i = 0; i < S.length; i++) if (S[i].id === sectId) return S[i].camp;
+    return null;
+  }
+  function joinSect(ws, sectId) {
+    if (!ws) return { err: 'nows' };
+    if (ws.sect && ws.sect.id && !ws.sect.betrayed) return { err: 'joined', sect: ws.sect.id };
+    var camp = sectCamp(sectId);
+    if (!camp) return { err: 'nosect' };
+    var gate = SECT_GATE[camp] != null ? SECT_GATE[camp] : 0;
+    var rel = ws.relations || {};
+    for (var k in rel) {
+      var c = CAST_INDEX[k];
+      if (c && c.sec === sectId && isNum(rel[k].affinity) && rel[k].affinity >= 20) gate -= 20;   /* 引荐降档 */
+    }
+    if ((ws.renown || 0) < gate) return { err: 'renown', gate: gate, have: ws.renown || 0 };
+    if ((ws.stamina | 0) < 5) return { err: 'stamina' };
+    ws.stamina -= 5;
+    ws.sect = { id: sectId, rank: 0, contribution: 0, joinedAt: ws.worldDay || 0, betrayed: false };
+    return { ok: true, sect: sectId };
+  }
+  function sectRankOf(contribution) {
+    var r = 0;
+    for (var i = 0; i < RANK_LADDER.length; i++) if ((contribution | 0) >= RANK_LADDER[i]) r = i;
+    return r;
+  }
+  function artsOfSectFn(sid) {
+    var A = (D && D.ARTS) || [];
+    var out = [];
+    for (var i = 0; i < A.length; i++) if ((A[i].s || []).indexOf(sid) >= 0) out.push(A[i].i);
+    return out;
+  }
+  function learnableArts(ws) {
+    if (!ws.sect || !ws.sect.id) return [];
+    var ids = artsOfSectFn(ws.sect.id);
+    var out = [];
+    for (var i = 0; i < ids.length; i++) {
+      var a = ART_INDEX[ids[i]];
+      if (!a) continue;
+      var cost = ART_TIER_COST[a.t] != null ? ART_TIER_COST[a.t] : 100;
+      out.push({ id: ids[i], t: a.t, cost: cost, known: (ws.artsKnown || []).indexOf(ids[i]) >= 0 });
+    }
+    return out;
+  }
+  function learnArt(ws, artId) {
+    if (!ws || !ws.sect || !ws.sect.id) return { err: 'nosect' };
+    var a = ART_INDEX[artId];
+    if (!a || (a.s || []).indexOf(ws.sect.id) < 0) return { err: 'notmine' };
+    if ((ws.artsKnown || []).indexOf(artId) >= 0) return { err: 'known' };
+    var cost = ART_TIER_COST[a.t] != null ? ART_TIER_COST[a.t] : 100;
+    if ((ws.sect.contribution | 0) < cost) return { err: 'contribution', need: cost, have: ws.sect.contribution | 0 };
+    if ((ws.stamina | 0) < 5) return { err: 'stamina' };
+    ws.stamina -= 5;
+    ws.sect.contribution -= cost;
+    ws.artsKnown = (ws.artsKnown || []).concat([artId]);
+    ws.artsLevels = obj(ws.artsLevels); ws.artsLevels[artId] = 1;
+    return { ok: true, art: artId, layer: 1 };
+  }
+  function sectTask(ws) {
+    if (!ws || !ws.sect || !ws.sect.id) return { err: 'nosect' };
+    if ((ws.stamina | 0) < 3) return { err: 'stamina' };
+    ws.stamina -= 3;
+    var h = worldDayHash(ws, 77);
+    var gain = 20 + (h % 21);
+    ws.sect.contribution = (ws.sect.contribution | 0) + gain;
+    var pay = 30 + (h % 40);
+    ws.stones = (ws.stones || 0) + pay;
+    ws.sect.rank = sectRankOf(ws.sect.contribution);
+    return { ok: true, contribution: gain, pay: pay };
+  }
+  function donateSect(ws, wen) {
+    if (!ws || !ws.sect || !ws.sect.id) return { err: 'nosect' };
+    var n = Math.floor(isNum(wen) ? wen : 0);
+    if (n <= 0 || (ws.stones || 0) < n) return { err: 'stones', have: Math.floor(ws.stones || 0) };
+    ws.stones -= n;
+    ws.sect.contribution = (ws.sect.contribution | 0) + Math.floor(n / 10);
+    ws.sect.rank = sectRankOf(ws.sect.contribution);
+    return { ok: true, contribution: Math.floor(n / 10) };
+  }
+  function betraySect(ws) {
+    if (!ws || !ws.sect || !ws.sect.id) return { err: 'nosect' };
+    if (ws.sect.betrayed) return { err: 'betrayed' };
+    ws.renown = clampInt((ws.renown || 0) - 80, -1000, 1000, ws.renown || 0);
+    ws.sect.betrayed = true;
+    return { ok: true, renown: ws.renown };
+  }
+
+  /* ── 市集（册217 P6 · 方案卷 §八 坊市恢复）：静态货架 + 秘籍三途之一（稀有格）────── */
+  var SHOP_LIST = [
+    { i: 'shop_salve', kind: 'salve', cost: 50, heal: 2 },      /* 金疮药：内伤 −2 */
+    { i: 'shop_ginseng', kind: 'salve', cost: 5000, heal: 8 },  /* 老山参 5 两：内伤 −8 */
+    { i: 'shop_blade', kind: 'gear', slot: 'weapon', cost: 2000, power: 1.05 },   /* 铁刀 */
+    { i: 'shop_sword', kind: 'gear', slot: 'weapon', cost: 20000, power: 1.10 },  /* 好剑 20 两 */
+    { i: 'mnl_01', kind: 'manual', cost: 30000 },               /* 秘籍稀有格（MANUALS 抽三） */
+    { i: 'mnl_05', kind: 'manual', cost: 45000 },
+    { i: 'mnl_09', kind: 'manual', cost: 60000 }
+  ];
+  function buyItem(ws, itemId) {
+    var it = null;
+    for (var i = 0; i < SHOP_LIST.length; i++) if (SHOP_LIST[i].i === itemId) { it = SHOP_LIST[i]; break; }
+    if (!it) return { err: 'noitem' };
+    if ((ws.stones || 0) < it.cost) return { err: 'stones', need: it.cost, have: Math.floor(ws.stones || 0) };
+    ws.stones -= it.cost;
+    if (it.kind === 'salve') {
+      ws.injury = Math.max(0, (ws.injury || 0) - it.heal);
+      return { ok: true, kind: 'salve', heal: it.heal };
+    }
+    if (it.kind === 'gear') {
+      ws.gear = obj(ws.gear); ws.gear[it.slot] = { i: it.i, power: it.power };
+      return { ok: true, kind: 'gear', slot: it.slot };
+    }
+    if (it.kind === 'manual') {
+      ws.shelf = arr(ws.shelf);
+      ws.shelf.push(it.i);
+      return { ok: true, kind: 'manual', manual: it.i };
+    }
+    return { err: 'kind' };
+  }
+  /* 研读秘籍（shelf → artsKnown）：耗精力 2；MANUALS art 必指真招式（册156 口径） */
+  function studyManual(ws, manualId) {
+    var M = (D && D.MANUALS) || [];
+    var m = null;
+    for (var i = 0; i < M.length; i++) if (M[i].i === manualId) { m = M[i]; break; }
+    if (!m) return { err: 'nomanual' };
+    var shelf = arr(ws.shelf);
+    var at = shelf.indexOf(manualId);
+    if (at < 0) return { err: 'notowned' };
+    if ((ws.stamina | 0) < 2) return { err: 'stamina' };
+    var artId = m.art;
+    if (!ART_INDEX[artId]) return { err: 'badart' };
+    ws.stamina -= 2;
+    shelf.splice(at, 1);
+    ws.shelf = shelf;
+    if ((ws.artsKnown || []).indexOf(artId) < 0) {
+      ws.artsKnown = (ws.artsKnown || []).concat([artId]);
+      ws.artsLevels = obj(ws.artsLevels); ws.artsLevels[artId] = 1;
+    }
+    return { ok: true, art: artId };
+  }
+
+  /* ── 世界事件层（册218 P5 · 世界事件卷 §六 schema 落码）────────────────────────────
+   * 首批 8 案（schema 简化：z 主场 / tier 门槛 / br canon|alt / gain 奖励 / writeback 写回）。
+   * 参与四档（避免/旁观/卷入/主导）压缩为三入口：旁观（exp +8）/ 卷入 join（realm 门槛）/ 主导 lead（更高门槛）。
+   * alt 改史仅 lead 档可选；写回 = wefate（事件 id → 结果键，只存结果键不存叙述）+ renown/关系。 */
+  var WORLD_EVENTS = [
+    { i: 'we_huashan', z: null, tier: { join: 3, lead: 6 }, pre: [], gain: { watch: 8, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 60, stones: 5000 } } },
+    { i: 'we_xiangyang', z: null, tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 8, join: { exp: 25, renown: 20 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_weijiao_gm', z: 'guangmingding', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 4000 } } },
+    { i: 'we_juxian', z: 'luoyang', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 30, stones: 2000 } } },
+    { i: 'we_zhenlong', z: 'wuliang', tier: { join: 1, lead: 5 }, pre: [], gain: { watch: 8, join: { exp: 20, renown: 5 }, lead: { exp: 50, renown: 10, stones: 0 } } },
+    { i: 'we_tushi', z: 'shaolin', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 35, stones: 3000 } } },
+    { i: 'we_wuyue_bingpai', z: 'songshan', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_heimu', z: null, tier: { join: 4, lead: 7 }, pre: ['we_wuyue_bingpai'], gain: { watch: 12, join: { exp: 30, renown: 20 }, lead: { exp: 60, renown: 60, stones: 6000 } } }
+  ];
+  function wefateOf(ws) { return obj(ws.world && ws.world.wefate); }
+  function worldEvents(ws) {
+    var fate = wefateOf(ws);
+    var out = [];
+    for (var i = 0; i < WORLD_EVENTS.length; i++) {
+      var e = WORLD_EVENTS[i];
+      if (fate[e.i]) continue;   /* 已写过结局的独发事件不再出现 */
+      var preOk = true;
+      for (var p2 = 0; p2 < (e.pre || []).length; p2++) if (!fate[e.pre[p2]]) preOk = false;
+      if (!preOk) continue;
+      out.push(e);
+    }
+    return out;
+  }
+  function attendEvent(ws, id, mode, alt) {
+    var e = null;
+    for (var i = 0; i < WORLD_EVENTS.length; i++) if (WORLD_EVENTS[i].i === id) { e = WORLD_EVENTS[i]; break; }
+    if (!e) return { err: 'noevent' };
+    var fate = wefateOf(ws);
+    if (fate[id]) return { err: 'done' };
+    if ((ws.stamina | 0) < (mode === 'lead' ? 10 : 5)) return { err: 'stamina' };
+    if (mode === 'watch') {   /* 旁观：无门槛、精力 3——在场不落子（世界事件卷 §三） */
+      ws.stamina = Math.max(0, (ws.stamina | 0) - 3);
+    } else {
+      var need = e.tier[mode];
+      if (need == null) return { err: 'tier' };
+      if ((ws.realm | 0) < need) return { err: 'realm', need: need };
+      ws.stamina -= (mode === 'lead' ? 10 : 5);
+    }
+    var g = e.gain[mode] || {};
+    var res = { ok: true, event: id, mode: mode, alt: alt === true && mode === 'lead' ? true : false };
+    ws.exp = Math.max(ws.exp || 0, (ws.exp || 0) + (g.exp || 8));
+    ws.renown = clampInt((ws.renown || 0) + (g.renown || 0) * (res.alt ? 2 : 1), -1000, 1000, ws.renown || 0);
+    if (g.stones) ws.stones = (ws.stones || 0) + g.stones;
+    /* 写回：wefate 只存结果键（主档容量红线同型）；**旁观不写结局**——在场不落子（世界事件卷 §三） */
+    if (mode !== 'watch') {
+      ws.world = obj(ws.world);
+      if (!ws.world.wefate) ws.world.wefate = {};
+      ws.world.wefate[id] = res.alt ? 'alt' : 'canon';
+    }
+    return res;
+  }
+
+  /* ── 结交与退隐（册218 P7 · 方案卷 §五之五）──────────────────────────────────── */
+  /* 结交拜访（精力 1 → affinity +3，封 100；kind 缺省 friend） */
+  function befriend(ws, castId) {
+    if (!CAST_INDEX[castId]) return { err: 'nocast' };
+    if ((ws.stamina | 0) < 1) return { err: 'stamina' };
+    ws.stamina -= 1;
+    ws.relations = obj(ws.relations);
+    var r = ws.relations[castId] || { affinity: 0, kind: 'friend' };
+    r.affinity = Math.min(100, (isNum(r.affinity) ? r.affinity : 0) + 3);
+    ws.relations[castId] = r;
+    return { ok: true, affinity: r.affinity };
+  }
+  /* 退隐传世（R9 出口，方案卷 §八）：无招之后挂印归山——本世定格、余响继承口（heritage.gen+1） */
+  function retire(ws) {
+    if (!ws) return { err: 'nows' };
+    if ((ws.realm | 0) < 9) return { err: 'realm', need: 9 };
+    ws.renown = clampInt((ws.renown || 0) + 200, -1000, 1000, ws.renown || 0);
+    ws.heritage = obj(ws.heritage);
+    ws.heritage.gen = ((ws.heritage.gen || 1)) + 1;
+    ws.worldDay = (ws.worldDay || 0) + 3600;   /* 退隐十年 */
+    return { ok: true, gen: ws.heritage.gen };
+  }
+
   /* 精力上限（册215 P2）：60 + 境界×10——随成长放宽；恢复 1 点/现实分钟（claim 内推进） */
   function staminaCapOf(ws) { return 60 + (ws && isNum(ws.realm) ? ws.realm : 0) * 10; }
 
@@ -611,6 +843,9 @@
     staminaCapOf: staminaCapOf,
     travel: travel,
     knotChoose: knotChoose,
+    joinSect: joinSect, learnArt: learnArt, learnableArts: learnableArts, sectTask: sectTask, donateSect: donateSect, betraySect: betraySect, sectRankOf: sectRankOf,
+    shopList: SHOP_LIST, buyItem: buyItem, studyManual: studyManual,
+    worldEvents: worldEvents, attendEvent: attendEvent, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,
     zoneUnlocked: zoneUnlocked,
     travelStamina: TRAVEL_STAMINA,
     travelUnlock: TRAVEL_UNLOCK,
