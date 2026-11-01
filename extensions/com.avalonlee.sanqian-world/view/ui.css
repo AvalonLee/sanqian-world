@@ -2608,3 +2608,16 @@
 .bk-mo{color:#8e2b1e;}
 .bk-motext{font-size:13px;color:#5a4a38;margin:4px 0 8px;line-height:1.7;}
 .bk-go{margin-top:6px;font-family:inherit;}
+/* 书形态主界面（册163 · S3-c）：主界面即书——sc-main 其余子节点全收，书容器撑满 */
+#sc-main.bookmode > :not(#book-main){display:none !important;}
+#sc-main.bookmode #book-main{display:block !important;}
+#book-main{position:absolute;inset:0;overflow:hidden;}
+#book-main .bk-book{position:static;margin:0 auto;max-width:880px;width:100%;height:100%;display:flex;flex-direction:column;box-shadow:none;border-left:1px solid #d8c8a8;border-right:1px solid #d8c8a8;}
+#book-main .bk-paper{flex:1;min-height:0;}
+#book-main .bk-drawer{flex:0 0 auto;max-height:46%;overflow:auto;border-top:1px solid #d8c8a8;background:#f3ead4;padding:12px 22px;margin:0 0 52px;}
+#book-main .bk-drawer.hide{display:none;}
+.bk-drawer h4{margin:10px 0 6px;letter-spacing:.08em;color:#6a5a42;}
+.bk-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.bk-cell{font-size:12px;color:#5a4a38;background:#efe2c8;border:1px solid #d8c8a8;border-radius:3px;padding:4px 8px;}
+.bk-cell b{color:#8e2b1e;font-weight:700;}
+.bk-foot .btn{font-family:inherit;}

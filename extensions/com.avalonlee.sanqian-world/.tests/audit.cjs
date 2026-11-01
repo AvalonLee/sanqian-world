@@ -1380,7 +1380,9 @@ function sqHasLogic(body) {
     '#mtd-parse@click': 4,        /* L2242 · 奏疏解析（天道族，B5 计划搬 tiandao.js） */
     '#mdc-accept@click': 9,       /* L2251 · 天道旨意「奉旨」（B5） */
     '#mdc-defy@click': 8,         /* L2269 · 天道旨意「抗旨」（B5） */
-    'document@visibilitychange': 1 /* L3092 · 1 语句但含逻辑（if + && ）⇒ 后台回前台补渲，属 tick 机器，B5 后再议 */
+    '#mdc-defy@click': 8        /* L2269 · 天道旨意「抗旨」（B5） */
+    /* 册163 摘除 `document@visibilitychange`（曾在册 1 语句含逻辑）：书形态批把补帧逻辑收进
+     * 核内 redrawFrame()，监听体回到一句话 ⇒ 例外失效，「在册只减不增」删表项。 */
   };
   /* 派发器两个钉值：分支数 / 业务支数（**只减不增**）。每搬走一支（B1–B5）同批下调业务支数；
    * 分支数只有「把整支删掉」时才会降（改成一行转发不改变支数）。新支须先在任务清单登记再改这里。
