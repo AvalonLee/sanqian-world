@@ -442,11 +442,15 @@
       var hasLog = Array.isArray(w.log) && w.log.length > 0;
       var eh = w.eventHistory;
       var hasFeed = !!(eh && Array.isArray(eh.feed) && eh.feed.length > 0);
-      if (!hasLog && !hasFeed) { worlds[wk] = w; continue; }
+      /* 册167 修空洞：治理不变式是「主档**无** eventHistory.feed 键」，不是「feed 为空数组」——
+       * 旧式只在有内容时拷贝摘除，空 feed 的世界走原样透传 ⇒ `feed: []` 落进主档（用户 17:49 的
+       * 创角测试档首踩，probe-realsave §2b 红）。现 eventHistory 存在即摘 feed 键，无论空满。 */
+      var hasEh = !!eh;
+      if (!hasLog && !hasEh) { worlds[wk] = w; continue; }
       var wc = {};
       for (var f in w) wc[f] = w[f];
       if (hasLog) delete wc.log;
-      if (hasFeed) {
+      if (hasEh) {
         var ehc = {};
         for (var g in eh) ehc[g] = eh[g];
         delete ehc.feed;

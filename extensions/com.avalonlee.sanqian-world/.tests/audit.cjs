@@ -1370,7 +1370,7 @@ function sqHasLogic(body) {
     'card@click': 2,              /* L900  · 择界卡：写 draft.bias + 重渲 */
     /* 册164 摘除 `#c2-confirm@click`（曾在册 2 语句）：书世界分支收进核内 confirmC2()，监听体回一句话 ⇒ 例外失效删表项 */
     '#mk-ok@click': 5,            /* L957  · 入定：写档 + enterMain */
-    'card@click#2': 4,            /* L1023 · 择界卡点选（屏 3） */
+    /* 册167 摘除 `card@click#2`（曾在册 4 语句）：先睹止泡逻辑收进核内 pickWorldCard()，监听体回一句话 ⇒ 例外失效删表项 */
     '#c3-go@click': 3,            /* L1035 · 入界校验 */
     /* 浮层纪律机器（在册 6 处）——**不搬**：遮罩 / ESC / 输入收口 / 确认框是「谁能关掉什么」的单一机器，
      * 搬走会把浮层栈的时序拆成两处（勘察档 §五 R1 点名的 confirmCb / confirmCancelCb 重绑就在这条线上）。 */

@@ -781,13 +781,15 @@
   /* ── 创角三屏（与 P2 相同逻辑） ── */
   /* 步骤条：一立名 / 二择界 / 三观天赋（当前步实心金、已过步描金，走查稿① 第 6 项）
    * 屏 id 与步骤号解耦：c1 = 起名 / c3 = 择界 / c2 = 观天赋（DOM 顺序按语义成对，不按步序）。 */
-  function stepsHtml(cur) {
+  /* 步骤条（册167 加 book 变体）：第三步的题按世界取词——tab 世界「观天赋」、书世界「取诨号」。
+   * c1/c3 屏未择界 ⇒ 恒常规；c2 屏由 renderC2 / renderC2Hao 各自带变体重渲。 */
+  function stepsHtml(cur, book) {
     var h = '';
     [1, 2, 3].forEach(function (i) {
       if (i > 1) h += '<span class="stepline"></span>';
       h += '<span class="step ' + (i === cur ? 'on' : (i < cur ? 'done' : '')) + '">' +
         '<span class="n">' + esc(tc('creation.step.' + i + '.n')) + '</span>' +
-        esc(tc('creation.step.' + i + '.t')) + '</span>';
+        esc(tc(i === 3 && book ? 'creation.step.3.book' : 'creation.step.' + i + '.t')) + '</span>';
     });
     return h;
   }
@@ -827,7 +829,7 @@
   }
 
   $('c1-random').addEventListener('click', function () {
-    $('c1-name').value = SQ.randomRoleName(SQ.WORLD_DEFAULT);
+    $('c1-name').value = SQ.randomRoleName(draft.worldId || SQ.WORLD_DEFAULT);   /* 册167：改选过世界后回屏 1，随机名随世界分卷（首进仍是默认界） */
     $('c1-err').classList.add('hide');
   });
   /* 屏 1 · 起名 → 屏 3 · 择界（步序 2） */
@@ -882,15 +884,26 @@
     draft.roll = SQ.rollTalents(draft.worldId || SQ.WORLD_DEFAULT);
     renderC2();
   }
-  /* 书世界屏 2 变体（册164）：诨号三候选 + 自拟；问道初心 / 羁绊 / 天赋族全不进书世界 */
+  /* 书世界屏 2 变体（册164）：诨号三候选 + 自拟；问道初心 / 羁绊 / 天赋族全不进书世界。
+   * 册167：步骤条第三步随世界取词；有前世轮回赠礼的玩家给一行「不继承」说明（正典口径说给玩家听）。 */
   function renderC2Hao() {
+    $('c2-steps').innerHTML = stepsHtml(3, true);
     $('c2-title').textContent = tc('ui.book.hao.title');
     $('c2-hint').textContent = tc('ui.book.hao.hint');
     $('c2-reroll').textContent = tc('ui.book.hao.random');
     $('c2-combo').textContent = '';
     var box = $('c2-cards');
+    var giftN = 0;
+    try {
+      var meta0 = state.meta || {};
+      var spent0 = meta0.spent || {};
+      giftN = ((spent0['shop.startRealm1'] != null) || (spent0['shop.startRealm2'] != null) || (spent0['shop.startRealm3'] != null) ||
+        (SQ.Legacy && SQ.Legacy.ownedTalents && SQ.Legacy.ownedTalents(meta0, SQ.Worlds[draft.worldId].pack.data).length) ||
+        ((meta0.unlocks || {}).bond && (meta0.lastBonds || []).length > 0)) ? 1 : 0;
+    } catch (e) { giftN = 0; }
     box.innerHTML = '<input id="c2-haofree" maxlength="12" placeholder="' +
-      esc(tc('ui.book.hao.freeph')) + '" value="' + esc(draft.haoKey ? '' : (draft.hao || '')) + '">';
+      esc(tc('ui.book.hao.freeph')) + '" value="' + esc(draft.haoKey ? '' : (draft.hao || '')) + '">' +
+      (giftN ? '<p class="hint" style="margin-top:6px">' + esc(tc('ui.book.hao.nolegacy')) + '</p>' : '');
     (draft.haoOpts || []).forEach(function (k) {
       var b = document.createElement('button');
       b.className = 'btn ghost bk-opt' + (draft.haoKey === k ? ' on' : '');
@@ -909,10 +922,15 @@
     draft.hao = haoText(k);
     renderC2Hao();
   }
-  /* 书世界入世事务（册164）：无天赋无初心，profile 带诨号；不跑天骄/赠礼（书世界无那些表） */
+  /* 书世界入世事务（册164）：无天赋无初心，profile 带诨号；不跑天骄/赠礼（书世界无那些表）。
+   * 册167 H：自拟诨号与角色名同规（validateName 2~8 字）——不合格的输入回落已选候选（或首候选）。 */
   async function confirmBookCreation() {
     var free = document.getElementById('c2-haofree');
-    if (free && free.value.trim()) { draft.hao = free.value.trim(); draft.haoKey = null; }
+    if (free && free.value.trim() && SQ.validateName(free.value.trim())) {
+      draft.hao = free.value.trim();
+      draft.haoKey = null;
+    }
+    if (!draft.hao) draft.hao = haoText((draft.haoOpts || [])[0] || '');
     var w = draft.worldId;
     await SQ.mutate(state, function (s) {
       s.profile = {
@@ -933,6 +951,7 @@
   }
   function renderC2() {
     if (isBookDraft()) return renderC2Hao();
+    $('c2-steps').innerHTML = stepsHtml(3, false);   /* 册167：从书世界切回 tab 世界时步骤条还原 */
     $('c2-title').textContent = tc('creation.talent.title');
     $('c2-hint').textContent = tc('creation.talent.hint');
     $('c2-reroll').textContent = tc('creation.talent.reroll');
@@ -1098,25 +1117,29 @@
       card.innerHTML =
         '<span class="wstatus">' + esc(SQ.t(coming ? 'world.status.coming' : 'world.status.live', null, w.id)) + '</span>' +
         '<div class="wname">' + esc((coming || !hasName) ? SQ.t('world.' + w.id + '.name', null, w.id) : (draft.worldNames[w.id] || '')) + '</div>' +
-        /* 副行只放「还多出来的信息」：live 卡的 .wname 是随机界名，故副行要带上界系名（玄幻修仙 · 标签…）；
-         * coming 卡的 .wname 已经是界系名，副行再抄一遍就是重复排字（第二十批克苏鲁入列后 4/6 张卡都这样）*/
-        (coming ? (tags ? '<div class="wtags">' + esc(tags) + '</div>' : '')
-                : '<div class="wtags">' + esc(SQ.t('world.' + w.id + '.name', null, w.id)) + (tags ? ' · ' + esc(tags) : '') + '</div>');
-      /* 「先睹」钮（册159 · S1-e）：coming 且已装叙事包的世界可预览一章（预览不落档）；
+      /* 副行只放「还多出来的信息」（册167 改按**有无界名池**分叉，不再按 coming/live）：
+       * 主行是随机界名（live 且有池）⇒ 副行补界系名；主行已是界系名（coming 或无池）⇒ 副行只放标签。
+       * 册164 翻牌实测：武侠 live 但 nameParts=null，旧 live 分支让「武侠江湖」主副行各出现一次。 */
+      ((!coming && hasName) ? '<div class="wtags">' + esc(SQ.t('world.' + w.id + '.name', null, w.id)) + (tags ? ' · ' + esc(tags) : '') + '</div>'
+                            : (tags ? '<div class="wtags">' + esc(tags) + '</div>' : ''));
+      /* 「先睹」钮（册159 · S1-e）：装了叙事包的世界可预览一章（预览不落档）；
        * 走全局 data-act 委托 ⇒ 无独立监听体（D15①），产出⇔注册静态双向可见（D15②）。 */
       if (SQ.Worlds[w.id].pack && SQ.Worlds[w.id].pack.narrative) {
         card.insertAdjacentHTML('beforeend', '<button class="btn ghost bk-go" data-act="wuxiaPreview" data-v="' + w.id + '">' + esc(SQ.t('ui.book.preview')) + '</button>');
       }
       if (!coming) {
-        card.addEventListener('click', function () {
-          draft.worldId = w.id;
-          Array.prototype.forEach.call(list.children, function (c) { c.classList.remove('sel'); });
-          card.classList.add('sel');
-          $('c3-err').classList.add('hide');
-        });
+        card.addEventListener('click', function (ev) { pickWorldCard(ev, w, card, list); });   /* 监听体一句（D15①；册167 逻辑收核内） */
       }
       list.appendChild(card);
     });
+  }
+  /* 择界卡点选（册167 收核内）：点「先睹」钮只开预览、不改选中态（钮在卡内，不挡则冒泡双触发） */
+  function pickWorldCard(ev, w, card, list) {
+    if (ev.target && ev.target.closest && ev.target.closest('.bk-go')) return;
+    draft.worldId = w.id;
+    Array.prototype.forEach.call(list.children, function (c) { c.classList.remove('sel'); });
+    card.classList.add('sel');
+    $('c3-err').classList.add('hide');
   }
   $('c3-back').addEventListener('click', function () { show('c1'); });
   /* 屏 3 · 择界 → 屏 2：tab 世界走观天赋；书世界（worldView==='book'）走「取诨号」
