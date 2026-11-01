@@ -23,25 +23,20 @@ const { chromium } = require('playwright-core');
   page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
   await page.goto(url);
-  await page.waitForSelector('#sc-c1:not(.hide)', { timeout: 15000 });
+  await page.waitForSelector('#sc-c3:not(.hide)', { timeout: 15000 });   /* 册168：首屏即择界 */
 
-  /* 冷启走到择界（verify-ui-coldstart 同法）：起名 → c3 */
-  await page.fill('#c1-name', '先睹验证');
-  await page.click('#c1-next');
-  await page.waitForSelector('#sc-c3:not(.hide)', { timeout: 8000 });
+  /* W1 · 流程入口（册168）：选中武侠卡 → 钮文换「翻看此书」→ 下一步进书（卡上先睹钮已退役） */
+  await page.click('#c3-list .wcard:has-text("侠影江湖")');
+  await page.waitForTimeout(120);
+  const w1 = await page.evaluate(() => ({
+    go: document.getElementById('c3-go').textContent,
+    bkGo: document.querySelectorAll('#c3-list .bk-go').length
+  }));
+  T(/翻看此书/.test(w1.go) && w1.bkGo === 0, 'W1 流程入口（选中书世界 → 钮文「翻看此书」⇔ 卡上先睹钮已退役）',
+    'go=' + w1.go + ' 卡上钮=' + w1.bkGo);
 
-  /* W1 · wuxia 卡有「先睹」钮（册164 翻牌后 = 装了叙事包的 live 书世界卡；预览不落档语义不变） */
-  const w1 = await page.evaluate(() => {
-    const cards = Array.prototype.slice.call(document.querySelectorAll('#c3-list .wcard'));
-    const wx = cards.find((c) => c.querySelector('.bk-go'));
-    return { has: !!wx, n: cards.filter((c) => c.querySelector('.bk-go')).length,
-      label: wx ? wx.querySelector('.bk-go').textContent : '' };
-  });
-  T(w1.has && w1.n === 1 && w1.label.length > 0, 'W1 择界卡有且仅有一枚「先睹」钮（挂在装了叙事包的书世界卡上，现值 = live 武侠）',
-    'n=' + w1.n + ' label=' + w1.label);
-
-  /* W2 · 点钮 → 书浮层出现，章头正确 */
-  await page.click('#c3-list .wcard .bk-go');
+  /* W2 · 进书 → 书浮层出现，章头正确 */
+  await page.click('#c3-go');
   await page.waitForSelector('#bk-wrap', { timeout: 5000 });
   const w2 = await page.evaluate(() => ({
     chap: document.getElementById('bk-chap').textContent,
@@ -70,49 +65,27 @@ const { chromium } = require('playwright-core');
   T(!w4.bad && w4.len > 100, 'W4 纸上无机器（无 {占位} 残留、无 tpl./pool./event./scene. 裸键名）',
     'len=' + w4.len);
 
-  /* W4b · 页边批注（册161 · S3-b）：六枚轴向 chip 在位；点一枚 → 墨 2→1、违和 0→1 */
-  const readStatus = () => page.evaluate(() => {
-    const t = document.getElementById('bk-status').textContent || '';
-    const m1 = t.match(/(\d+)\s*墨/);
-    const m2 = t.match(/违和\s*(\d+)/);
-    return { ink: m1 ? +m1[1] : -1, dis: m2 ? +m2[1] : -1, raw: t };
-  });
-  await page.waitForSelector('#bk-notes .bk-ax', { timeout: 5000 });
-  const w4b0 = await page.evaluate(() => document.querySelectorAll('#bk-notes .bk-ax').length);
-  const st0 = await readStatus();
-  await page.click('#bk-notes .bk-ax');
-  await page.waitForTimeout(150);
-  const st1 = await readStatus();
-  T(w4b0 === 6 && st0.ink === 2 && st0.dis === 0 && st1.ink === 1 && st1.dis === 1,
-    'W4b 页边批注真扣账（六枚轴向 chip ⇔ 点一枚 = 墨 2→1 且 违和 0→1，走真 annotate 口）',
-    'chips=' + w4b0 + ' before=' + st0.ink + '/' + st0.dis + ' after=' + st1.ink + '/' + st1.dis);
-
-  /* W4c · 墨尽回绝：把 2 墨花完再点 → 提示现世、墨不再扣、零状态变更 */
-  await page.click('#bk-notes .bk-ax');
-  await page.waitForTimeout(120);
-  await page.click('#bk-notes .bk-ax');
-  await page.waitForTimeout(120);
-  const w4c = await page.evaluate(() => ({
-    hint: (document.getElementById('bk-note-hint') || {}).textContent || '',
-    st: document.getElementById('bk-status').textContent || ''
+  /* W4b · 创角模式章末（册168）：先睹读毕出「称呼之问」而非批注行——批注属真档书（wuxiamain M4 承接） */
+  const w4b = await page.evaluate(() => ({
+    ask: document.getElementById('bk-fork').textContent,
+    notes: document.getElementById('bk-notes') ? document.getElementById('bk-notes').classList.contains('hide') : true
   }));
-  const st2 = await readStatus();
-  T(w4c.hint.length > 3 && st2.ink === 0 && st2.dis === 2,
-    'W4c 墨尽整笔回绝（第三枚 chip 点不下去：提示现世、墨不透支、违和不虚增）',
-    'hint=' + w4c.hint.slice(0, 14) + ' status=' + w4c.st);
+  T(/江湖称呼/.test(w4b.ask) && w4b.notes, 'W4b 创角模式章末出称呼之问（批注行不进创角先睹——批注属真档书）',
+    'ask=' + w4b.ask.slice(0, 18) + ' notesHidden=' + w4b.notes);
 
   /* W5 · 合上 → 浮层移除 */
   await page.click('#bk-close');
   await page.waitForTimeout(200);
   const w5 = await page.evaluate(() => ({ gone: !document.getElementById('bk-wrap') }));
-  T(w5.gone, 'W5 合上即收（浮层自 DOM 摘除、定时器族清空）', 'gone=' + w5.gone);
+  const w5b = await page.evaluate(() => ({ backAtC3: !document.getElementById('sc-c3').classList.contains('hide') }));
+  T(w5.gone && w5b.backAtC3, 'W5 合上即收（浮层自 DOM 摘除 ⇔ 创角模式合上 = 回择界）', 'gone=' + w5.gone + ' backAtC3=' + w5b.backAtC3);
 
   /* W6 · 预览不落档（本件立身之本）：冷启 + 预览全程，localStorage 不产生存档 */
   const w6 = await page.evaluate(() => ({
     saved: !!localStorage.getItem('sanqian-state-v1'),
     keys: Object.keys(localStorage).length
   }));
-  T(!w6.saved, 'W6 预览不落档（coming 语义一字不改：localStorage 无 sanqian-state-v1）',
+  T(!w6.saved, 'W6 预览不落档（册168 口径：选择不落档、确认才落档——创角先睹全程无存档）',
     'saved=' + w6.saved + ' keys=' + w6.keys);
 
   T(errs.length === 0, 'W7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');

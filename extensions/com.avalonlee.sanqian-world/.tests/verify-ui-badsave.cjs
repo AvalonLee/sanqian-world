@@ -53,7 +53,7 @@ const KEY = 'sanqian-state-v1';
       const vis = (id) => { const el = document.getElementById(id); return !!el && !el.classList.contains('hide'); };
       const bt = (document.querySelector('.tabbody') || {}).textContent || '';
       return {
-        c1: vis('sc-c1'), main: vis('sc-main'), loading: vis('sc-loading'),
+        c1: vis('sc-c1'), c3: vis('sc-c3'), main: vis('sc-main'), loading: vis('sc-loading'),
         stuckLoading: vis('sc-loading') && !vis('sc-main') && !vis('sc-c1') && !vis('sc-c2') && !vis('sc-c3'),
         bodyLen: bt.length,
         // 主界面若亮着，正文还得真有中文内容（不是空壳）
@@ -91,7 +91,7 @@ const KEY = 'sanqian-state-v1';
     T(!r.st.stuckLoading, 'BS-Loading ' + label + ' 不卡死在读档屏（loading 不是终态）', JSON.stringify(r.st));
   });
   rows.forEach(([label, r]) => {
-    const playable = r.st.main || r.st.c1;
+    const playable = r.st.main || r.st.c1 || r.st.c3;   /* 册168：创角首屏 = 择界 */
     T(playable, 'BS-Screen ' + label + ' 落到可用屏（主界面或创角，二者必居其一）',
       'main=' + r.st.main + ' c1=' + r.st.c1);
   });
@@ -112,7 +112,7 @@ const KEY = 'sanqian-state-v1';
    *   （原 `ui.error.storage` 带 `{msg}`，插的是宿主原始错误文本 = 裸英文上屏，本批同批改成不带占位符的白话句）；
    * ② 读成功但按 normalize 回 c1（例 B「worlds 整块缺失」/ 例 E「worldId 指向未开放世界」）⇒ 这句**不许出现**，
    *   否则是把「档读不出来」谎报给档没坏的玩家。两类各至少一例，防空集恒真。 */
-  const promptRows = rows.filter(([label, r]) => r.st.c1 && !r.st.main);
+  const promptRows = rows.filter(([label, r]) => (r.st.c1 || r.st.c3) && !r.st.main);
   const readFailRows = promptRows.filter(([label, r]) => r.st.readFail);
   const readOkRows = promptRows.filter(([label, r]) => !r.st.readFail);
   T(readFailRows.length >= 1 && readOkRows.length >= 1,
@@ -133,9 +133,9 @@ const KEY = 'sanqian-state-v1';
   /* 逐例细则：能救的必须救回来（B / C / D / F / G / H 走 normalize 缺省重建） */
   const byLabel = {};
   rows.forEach(([label, r]) => { byLabel[label] = r; });
-  T(byLabel['A 非 JSON 垃圾串'].st.c1 || byLabel['A 非 JSON 垃圾串'].st.main,
+  T(byLabel['A 非 JSON 垃圾串'].st.c1 || byLabel['A 非 JSON 垃圾串'].st.c3 || byLabel['A 非 JSON 垃圾串'].st.main,
     'BS-A 垃圾串：解析失败要有出口（回创角或直接起新档），不得停读档屏', JSON.stringify(byLabel['A 非 JSON 垃圾串'].st));
-  T(byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st.c1 || (byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st.main &&
+  T(byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st.c1 || byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st.c3 || (byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st.main &&
     byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st.bodyLen > 50),
     'BS-E 未开放世界 id：要么退回创角、要么照常渲染，**绝不进空世界白屏**',
     JSON.stringify(byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st));

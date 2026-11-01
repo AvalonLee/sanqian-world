@@ -176,7 +176,64 @@
     var paper = document.getElementById('bk-paper');
     while (paper.firstChild) paper.removeChild(paper.firstChild);   /* 清章（append-only 指打字过程；换章清屏是翻页） */
     document.getElementById('bk-fork').classList.add('hide');
-    typeLines(S, T, paper, r.lines, function () { renderNotes(); showFork(); });
+    typeLines(S, T, paper, r.lines, function () {
+      if (S.creation) { showHaoPick(); return; }   /* 册168 创角模式：章末即第一笔落笔（取诨号） */
+      renderNotes();
+      showFork();
+    });
+  }
+
+  /* 书内取诨号面板（册168）：正典「第一屏就给第一次落笔」的内嵌版——读毕第一章，
+   * 分岔框位置出现称呼之问（三候选 + 自拟），落笔入世把诨号交回创角事务。 */
+  function showHaoPick() {
+    var box = document.getElementById('bk-fork');
+    box.innerHTML = '<div class="bk-mark">※</div><div class="bk-title">' +
+      esc(tw('ui.book.hao.pick', null)) + '</div>';
+    var pool = [];
+    for (var i = 1; i <= 12; i++) pool.push('hao.cand.' + i);
+    S.haoOpts = [];
+    while (S.haoOpts.length < 3 && pool.length) {
+      S.haoOpts.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    }
+    S.hao = S.haoOpts[0] || '';
+    var row = document.createElement('div');
+    row.className = 'bk-opts';
+    row.style.flexWrap = 'wrap';
+    row.insertAdjacentHTML('beforeend', '<input id="bk-haofree" maxlength="8" placeholder="' + esc(tw('ui.book.hao.freeph', null)) + '" style="flex:1 1 100%;font-family:inherit;padding:4px 8px;">');
+    S.haoOpts.forEach(function (k) {
+      var b = document.createElement('button');
+      b.className = 'btn ghost bk-opt';
+      b.textContent = SQ.t(k, null, S.worldId);
+      b.onclick = function () { pickHaoInBook(b, k); };   /* 监听体一句（D15①） */
+      row.appendChild(b);
+    });
+    var go = document.createElement('button');
+    go.className = 'btn bk-opt';
+    go.id = 'bk-enter';
+    go.textContent = tw('ui.book.enter', null);
+    go.onclick = function () { enterFromBook(); };          /* 监听体一句（D15①） */
+    row.appendChild(go);
+    box.appendChild(row);
+    box.classList.remove('hide');
+    var nb = document.getElementById('bk-notes');
+    if (nb) nb.classList.add('hide');
+  }
+  function pickHaoInBook(btn, k) {
+    S.hao = SQ.t(k, null, S.worldId);
+    var free = document.getElementById('bk-haofree');
+    if (free) free.value = '';
+    Array.prototype.forEach.call(btn.parentNode.querySelectorAll('.bk-opt'), function (b) { b.classList.remove('on'); });
+    btn.classList.add('on');
+  }
+  function enterFromBook() {
+    var hao = S.hao || '';
+    var free = document.getElementById('bk-haofree');
+    if (free && free.value.trim() && SQ.validateName(free.value.trim())) hao = free.value.trim();
+    if (!SQ.validateName(hao)) hao = S.haoOpts && S.haoOpts[0] ? SQ.t(S.haoOpts[0], null, S.worldId) : '';
+    var onEnter = S.onEnter;
+    S.onClose = null;   /* 落笔入世：合上不再回择界（onClose 会 renderC3 清 draft.worldId，主界面马上接管） */
+    close();
+    if (onEnter) onEnter(hao);
   }
   function showFork() {
     if (!S.fork) return;
@@ -222,19 +279,28 @@
   }
 
   /* ── 入口 / 关闭 ───────────────────────────────────────────────────────────── */
-  function actPreview(c, worldId) {
+  /* 册168 创角模式（opts.creation）：先睹即流程第二步——章末出「取诨号」面板（候选 + 自拟），
+   * 落笔入世走 opts.onEnter(hao)；合上 = 返回择界（opts.onClose）。非创角模式行为一字不变。 */
+  function actPreview(c, worldId, opts) {
     void c;
     var entry = SQ.Worlds[worldId];
     if (!entry || !entry.pack || !entry.pack.narrative || S.open) return;
     S.open = true; S.worldId = worldId; S.skip = false;
+    S.creation = !!(opts && opts.creation);
+    S.onEnter = (opts && opts.onEnter) || null;
+    S.onClose = (opts && opts.onClose) || null;
     S.ws = entry.pack.normalize(entry.pack.initialState());   /* normalize 即给 narrative.chapNo=1，章号以会话账为主 */
     build(worldId);
     showChapter();
   }
   function close() {
     Tclear();
+    var wasCreation = S.creation;
+    var onClose = S.onClose;
     if (S.el && S.el.parentNode) S.el.parentNode.removeChild(S.el);
     S.open = false; S.el = null; S.ws = null; S.fork = null; S.timers = [];
+    S.creation = false; S.onEnter = null; S.onClose = null;
+    if (wasCreation && onClose) onClose();
   }
 
   SQ.UI.wuxia = { actPreview: actPreview, mountReal: mountReal, refreshReal: refreshReal };   /* D14 只认被引用的导出 */

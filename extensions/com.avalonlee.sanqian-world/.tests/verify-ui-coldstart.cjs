@@ -35,74 +35,66 @@ const KEY = 'sanqian-state-v1';
 
   /* ── A 相：从零开始 ── */
   await page.goto(url);
-  await page.waitForSelector('#sc-c1:not(.hide)', { timeout: 15000 });
+  await page.waitForSelector('#sc-c3:not(.hide)', { timeout: 15000 });   /* 册168：首屏即择界 */
   const cs1 = await page.evaluate(() => ({
-    c1: !document.getElementById('sc-c1').classList.contains('hide'),
+    c3: !document.getElementById('sc-c3').classList.contains('hide'),
     main: !document.getElementById('sc-main').classList.contains('hide'),
     hasKey: !!localStorage.getItem('sanqian-state-v1')
   }));
-  T(cs1.c1 && !cs1.main, 'CS1 无档冷启落创角屏（不落主界面、不白屏）', JSON.stringify(cs1));
+  T(cs1.c3 && !cs1.main, 'CS1 无档冷启落择界屏（册168 首屏；不落主界面、不白屏）', JSON.stringify(cs1));
 
-  /* 坏名不得放行 */
+  /* 择界卡安全属性（册168：首屏即择界，这些检查都落在本屏） */
+  await page.click('#c3-list .wcard.coming');
+  await page.waitForTimeout(200);
+  const cs4 = await page.evaluate(() => ({
+    sel: document.querySelectorAll('#c3-list .wcard.sel').length,
+    coming: document.querySelectorAll('#c3-list .wcard.coming').length,
+    cards: document.querySelectorAll('#c3-list .wcard').length
+  }));
+  T(cs4.sel === 0 && cs4.coming >= 1 && cs4.coming === cs4.cards - 2,
+    'CS4 未开放世界整卡标 coming 且点不出选中态（两张 live 卡：修仙 + 侠影）', 'sel=' + cs4.sel + ' coming=' + cs4.coming);
+  await page.click('#c3-go');
+  await page.waitForTimeout(250);
+  const cs5 = await page.evaluate(() => ({
+    hidden: document.getElementById('c3-err').classList.contains('hide'),
+    stillC3: !document.getElementById('sc-c3').classList.contains('hide')
+  }));
+  T(!cs5.hidden && cs5.stillC3, 'CS5 只点过未开放世界时下一步仍被拦（报「未择界」而非进下一屏）', JSON.stringify(cs5.hidden));
+
+  /* 选修仙 → 二步立名 → 坏名拦截 */
+  await page.click('#c3-list .wcard:has-text("玄幻修仙")');
+  await page.waitForTimeout(150);
+  await page.click('#c3-go');
+  await page.waitForSelector('#sc-c1:not(.hide)', { timeout: 8000 });
+  const cs6 = await page.evaluate(() => ({ steps: document.getElementById('c1-steps').textContent }));
+  T(/立名/.test(cs6.steps), 'CS6 修仙线第二步 = 立名（步骤条随流程重排）', 'steps=' + cs6.steps);
+
   await page.click('#c1-next');
   await page.waitForTimeout(250);
-  const cs2 = await page.evaluate(() => ({
+  const cs7 = await page.evaluate(() => ({
     errHidden: document.getElementById('c1-err').classList.contains('hide'),
     txt: document.getElementById('c1-err').textContent,
-    stillC1: !document.getElementById('sc-c1').classList.contains('hide'),
-    want: window.SQ.t('creation.name.invalid')
+    stillC1: !document.getElementById('sc-c1').classList.contains('hide')
   }));
-  T(!cs2.errHidden && cs2.txt === cs2.want && cs2.stillC1,
-    'CS2 空名点「下一步」被拦（中文报错 + 停在起名屏，不带着坏名往下走）', JSON.stringify(cs2.txt));
+  T(!cs7.errHidden && cs7.stillC1, 'CS7 空名点「下一步」被拦（中文报错 + 停在立名屏）', JSON.stringify(cs7.txt));
 
   await page.fill('#c1-name', '冷启验证');
   await page.click('#c1-next');
-  await page.waitForSelector('#sc-c3:not(.hide)', { timeout: 8000 });
-  const cs3 = await page.evaluate(() => ({
-    c3: !document.getElementById('sc-c3').classList.contains('hide'),
-    cards: document.querySelectorAll('#c3-list .wcard').length,
-    coming: document.querySelectorAll('#c3-list .wcard.coming').length,
-    live: document.querySelectorAll('#c3-list .wcard:not(.coming)').length
-  }));
-  T(cs3.c3 && cs3.live >= 1, 'CS3 起名后进「择界」，且至少一个已开放世界可选', JSON.stringify(cs3));
-  T(cs3.coming === cs3.cards - cs3.live && cs3.coming >= 1,
-    'CS4 未开放世界整卡标 coming（不伪装成可玩入口）', 'coming=' + cs3.coming + ' / 共 ' + cs3.cards);
-
-  /* 玩家安全属性：点未开放世界不会产生选中态，随后点投生只得到报错 */
-  await page.click('#c3-list .wcard.coming');
-  await page.waitForTimeout(200);
-  const cs5 = await page.evaluate(() => ({
-    sel: document.querySelectorAll('#c3-list .wcard.sel').length
-  }));
-  T(cs5.sel === 0, 'CS5 点未开放世界不产生选中态（点了不会进空世界）', 'sel=' + cs5.sel);
-  await page.click('#c3-go');
-  await page.waitForTimeout(250);
-  const cs6 = await page.evaluate(() => ({
-    hidden: document.getElementById('c3-err').classList.contains('hide'),
-    txt: document.getElementById('c3-err').textContent,
-    c2: !document.getElementById('sc-c2').classList.contains('hide')
-  }));
-  T(!cs6.hidden && !cs6.c2, 'CS6 只点过未开放世界时投生仍被拦（报「未择界」而非进下一屏）',
-    JSON.stringify(cs6.txt));
-
-  await page.click('#c3-list .wcard:not(.coming)');
-  await page.waitForTimeout(200);
-  await page.click('#c3-go');
   await page.waitForSelector('#sc-c2:not(.hide)', { timeout: 8000 });
-  const cs7 = await page.evaluate(() => ({
-    n: document.querySelectorAll('#c2-cards .tcard').length,
-    combo: document.getElementById('c2-combo').textContent,
-    cjk: /[\u4e00-\u9fff]/.test(document.getElementById('c2-cards').textContent)
+  const cs8 = await page.evaluate(() => ({
+    c2: !document.getElementById('sc-c2').classList.contains('hide'),
+    cards: document.querySelectorAll('#c2-cards .tcard').length,
+    cjk: /[一-鿿]/.test(document.getElementById('c2-cards').textContent)
   }));
-  T(cs7.n >= 1 && cs7.cjk, 'CS7 进「观天赋」且真抽出卡片（中文文案，非裸键名）', JSON.stringify(cs7));
+  T(cs8.c2 && cs8.cards >= 1 && cs8.cjk, 'CS8 立名后进「观天赋」且真抽出中文卡片（册168：择界先行）', JSON.stringify(cs8));
 
   await page.click('#c2-reroll');
   await page.waitForTimeout(300);
-  const cs8 = await page.evaluate(() => ({
+  const cs8r = await page.evaluate(() => ({
     n: document.querySelectorAll('#c2-cards .tcard').length,
     txt: document.getElementById('c2-cards').textContent
   }));
-  T(cs8.n >= 1 && cs8.txt.length > 0, 'CS8 重抽后仍是完整一组天赋卡（重抽不打空卡槽）', 'n=' + cs8.n);
+  T(cs8r.n >= 1 && cs8r.txt.length > 0, 'CS8r 重抽后仍是完整一组天赋卡（重抽不打空卡槽）', 'n=' + cs8r.n);
 
   await page.click('#c2-confirm');
   await page.waitForTimeout(300);

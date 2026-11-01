@@ -148,7 +148,7 @@
      * 册152（S0）：`world.guwu.name`「三国无双」随第二世界改向武侠整族退役，改 `world.wuxia.name`；
      * world.tag.zhan（战意）/ gate（攻关）随之退役，换 xia（侠义）/ jianghu（江湖）——旧两键
      * 已无任何 registry 引用，留着即孤儿键（审计 A6 会红），故同批删除。 */
-    'world.wuxia.name': '武侠江湖',
+    'world.wuxia.name': '侠影江湖',
     'world.magic.name': '西方魔幻',   /* 第二十批改口，理由同上批 */
     'world.tech.name': '科技降神',
     'world.urban.name': '现代都市',
@@ -160,10 +160,13 @@
     'log.boot': '天地初开，灵气始生',
     /* ── 创角三屏（流程：起名 → 择界 → 观天赋；键族按屏语义命名，见「世界包词族契约」）──
      * 世界词表可整族覆写 creation.* / world.* 等，实现「换世界即换系统名与菜单描述」。 */
-    'creation.step.1.n': '一', 'creation.step.1.t': '立名',
-    'creation.step.2.n': '二', 'creation.step.2.t': '择界',
+    'creation.step.1.n': '一', 'creation.step.1.t': '择界',
+    'creation.step.2.n': '二', 'creation.step.2.t': '立名',
     'creation.step.3.n': '三', 'creation.step.3.t': '观天赋',
-    'creation.step.3.book': '取诨号',   /* 册167：书世界第三步（renderC2Hao 时步骤条随世界取词） */
+    'creation.step.3.book': '取诨号',
+    'creation.world.openbook': '翻看此书',   /* 册168：择界卡选中书世界后的下一步钮 */
+    'ui.book.hao.pick': '你要如何被江湖称呼？',
+    'ui.book.enter': '落笔入世',   /* 册167：书世界第三步（renderC2Hao 时步骤条随世界取词） */
     'creation.name.title': '道名初定',
     'creation.name.label': '道名',
     'creation.name.ph': '请输入角色名（2~8 字）',

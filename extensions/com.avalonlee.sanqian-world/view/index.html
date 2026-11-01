@@ -19,6 +19,7 @@
     <input id="c1-name" maxlength="8" />
     <p class="err hide" id="c1-err"></p>
     <div class="row between">
+      <button id="c1-back"></button>
       <button id="c1-random"></button>
       <button id="c1-next" class="primary"></button>
     </div>
@@ -52,7 +53,6 @@
     <div id="c3-list"></div>
     <p class="err hide" id="c3-err"></p>
     <div class="row between">
-      <button id="c3-back"></button>
       <button id="c3-go" class="primary"></button>
     </div>
   </div>
@@ -796,19 +796,20 @@
   function bindCreationTexts() {
     document.title = SQ.t('app.name');
     $('loading-text').textContent = t('ui.loading');
-    $('c1-steps').innerHTML = stepsHtml(1);   /* 起名 */
-    $('c3-steps').innerHTML = stepsHtml(2);   /* 择界 */
+    /* 册168 重排：一择界（首屏）/ 二立名（修仙线）/ 三观天赋或取诨号（随世界取词，c2 屏由渲染器重渲） */
+    $('c3-steps').innerHTML = stepsHtml(1);   /* 择界（首屏） */
+    $('c1-steps').innerHTML = stepsHtml(2);   /* 立名（修仙线第二步） */
     $('c2-steps').innerHTML = stepsHtml(3);   /* 观天赋 */
     $('c1-title').textContent = tc('creation.name.title');
     $('c1-label').textContent = tc('creation.name.label');
     $('c1-name').placeholder = tc('creation.name.ph');
     $('c1-random').textContent = tc('creation.name.random');
     $('c1-next').textContent = tc('creation.name.next');
+    $('c1-back').textContent = tc('creation.back');
     $('c3-title').textContent = tc('creation.world.title');
     $('c3-pick').textContent = tc('creation.world.pick');
     $('c3-hint').textContent = tc('creation.world.hint');
     $('c3-go').textContent = tc('creation.world.next');
-    $('c3-back').textContent = tc('creation.back');
     $('c2-title').textContent = tc('creation.talent.title');
     $('c2-hint').textContent = tc('creation.talent.hint');
     $('c2-reroll').textContent = tc('creation.talent.reroll');
@@ -832,7 +833,7 @@
     $('c1-name').value = SQ.randomRoleName(draft.worldId || SQ.WORLD_DEFAULT);   /* 册167：改选过世界后回屏 1，随机名随世界分卷（首进仍是默认界） */
     $('c1-err').classList.add('hide');
   });
-  /* 屏 1 · 起名 → 屏 3 · 择界（步序 2） */
+  /* 屏 2 · 立名（修仙线第二步）→ 屏 3 · 观天赋（册168 重排；立名只在 tab 世界出现） */
   $('c1-next').addEventListener('click', function () {
     var name = ($('c1-name').value || '').trim();
     if (!SQ.validateName(name)) {
@@ -841,9 +842,10 @@
       return;
     }
     draft.name = name;
-    renderC3();
-    show('c3');
+    rerollTalents();
+    show('c2');
   });
+  $('c1-back').addEventListener('click', function () { show('c3'); });   /* 回择界（首屏） */
 
   /* 机制词条判定（天赋池设计 §三·补）：effects 含挂点白名单键 → 「机制」小角标；
    * desc 直出条件句式文案（词表手写），不显示挂点键名 */
@@ -884,65 +886,26 @@
     draft.roll = SQ.rollTalents(draft.worldId || SQ.WORLD_DEFAULT);
     renderC2();
   }
-  /* 书世界屏 2 变体（册164）：诨号三候选 + 自拟；问道初心 / 羁绊 / 天赋族全不进书世界。
-   * 册167：步骤条第三步随世界取词；有前世轮回赠礼的玩家给一行「不继承」说明（正典口径说给玩家听）。 */
-  function renderC2Hao() {
-    $('c2-steps').innerHTML = stepsHtml(3, true);
-    $('c2-title').textContent = tc('ui.book.hao.title');
-    $('c2-hint').textContent = tc('ui.book.hao.hint');
-    $('c2-reroll').textContent = tc('ui.book.hao.random');
-    $('c2-combo').textContent = '';
-    var box = $('c2-cards');
-    var giftN = 0;
-    try {
-      var meta0 = state.meta || {};
-      var spent0 = meta0.spent || {};
-      giftN = ((spent0['shop.startRealm1'] != null) || (spent0['shop.startRealm2'] != null) || (spent0['shop.startRealm3'] != null) ||
-        (SQ.Legacy && SQ.Legacy.ownedTalents && SQ.Legacy.ownedTalents(meta0, SQ.Worlds[draft.worldId].pack.data).length) ||
-        ((meta0.unlocks || {}).bond && (meta0.lastBonds || []).length > 0)) ? 1 : 0;
-    } catch (e) { giftN = 0; }
-    box.innerHTML = '<input id="c2-haofree" maxlength="12" placeholder="' +
-      esc(tc('ui.book.hao.freeph')) + '" value="' + esc(draft.haoKey ? '' : (draft.hao || '')) + '">' +
-      (giftN ? '<p class="hint" style="margin-top:6px">' + esc(tc('ui.book.hao.nolegacy')) + '</p>' : '');
-    (draft.haoOpts || []).forEach(function (k) {
-      var b = document.createElement('button');
-      b.className = 'btn ghost bk-opt' + (draft.haoKey === k ? ' on' : '');
-      b.textContent = haoText(k);
-      b.onclick = function () { pickHao(k); };        /* 监听体一句（D15①） */
-      box.appendChild(b);
-    });
-    var noteEl = $('c2-syn');
-    if (noteEl) { noteEl.innerHTML = ''; noteEl.classList.add('hide'); }
-    var bias = $('c2-bias');
-    if (bias) { bias.innerHTML = ''; }
-  }
-  function haoText(k) { return k.indexOf('hao.cand.') === 0 ? SQ.t(k, null, draft.worldId) : k; }
-  function pickHao(k) {
-    draft.haoKey = k;
-    draft.hao = haoText(k);
-    renderC2Hao();
-  }
-  /* 书世界入世事务（册164）：无天赋无初心，profile 带诨号；不跑天骄/赠礼（书世界无那些表）。
-   * 册167 H：自拟诨号与角色名同规（validateName 2~8 字）——不合格的输入回落已选候选（或首候选）。 */
-  async function confirmBookCreation() {
-    var free = document.getElementById('c2-haofree');
-    if (free && free.value.trim() && SQ.validateName(free.value.trim())) {
-      draft.hao = free.value.trim();
-      draft.haoKey = null;
-    }
-    if (!draft.hao) draft.hao = haoText((draft.haoOpts || [])[0] || '');
+  /* 册168：书世界屏 2 诨号变体退役——诨号内嵌书页章末（view/wuxia-book.js 取诨号面板），本屏族随流程重排移除 */
+  /* 书世界入世事务（册168 重排）：诨号在书内章末选定（先睹读毕 → 落笔入世）——
+   * 诨号即真名（侠影线无立名步，随世不随江湖）；入世时把第一章的账目面照走一遍 advance
+   * （时辰/墨回满/违和消退/卡点投放与在线同一条通道），正文从第二章起——先睹即序章，不重读。 */
+  async function confirmBookCreation(hao) {
     var w = draft.worldId;
+    var theHao = (hao || '').trim();
+    if (!SQ.validateName(theHao)) theHao = '';
     await SQ.mutate(state, function (s) {
       s.profile = {
-        name: draft.name,
+        name: theHao,
         talents: [],
         worldId: w,
         worldName: '',
         createdAt: Date.now(),
-        hao: draft.hao || '',
+        hao: theHao,
         seenNote: s.profile.seenNote
       };
       s.worlds[w] = SQ.Worlds[w].pack.initialState();
+      SQ.Worlds[w].pack.narrative.advance(s.worlds[w], null, {});   /* 第一章账目：先睹读过的就是它 */
       SQ.Log.push(s.worlds[w], 'sys', SQ.t('log.boot', null, w));
       if (s.meta.unlockedWorlds.indexOf(w) < 0) s.meta.unlockedWorlds.push(w);
     });
@@ -950,8 +913,7 @@
     enterMain();
   }
   function renderC2() {
-    if (isBookDraft()) return renderC2Hao();
-    $('c2-steps').innerHTML = stepsHtml(3, false);   /* 册167：从书世界切回 tab 世界时步骤条还原 */
+    $('c2-steps').innerHTML = stepsHtml(3, false);
     $('c2-title').textContent = tc('creation.talent.title');
     $('c2-hint').textContent = tc('creation.talent.hint');
     $('c2-reroll').textContent = tc('creation.talent.reroll');
@@ -1038,14 +1000,10 @@
     }
     $('mk-legacy').innerHTML = h;
   }
-  function rerollC2() {
-    if (isBookDraft()) { rollHao(); renderC2(); return; }
-    rerollTalents();
-  }
-  $('c2-reroll').addEventListener('click', function () { rerollC2(); });
-  $('c2-back').addEventListener('click', function () { show('c3'); });
+  /* 册168：c2 现在只有修仙线（观天赋）——书世界不进本屏（诨号在书内章末） */
+  $('c2-reroll').addEventListener('click', function () { rerollTalents(); });
+  $('c2-back').addEventListener('click', function () { show('c1'); });   /* 回立名（修仙线第二步；册168） */
   function confirmC2() {
-    if (isBookDraft()) { confirmBookCreation(); return; }
     renderLockSummary();
     $('modal-lock').classList.remove('hide');
   }
@@ -1122,50 +1080,47 @@
        * 册164 翻牌实测：武侠 live 但 nameParts=null，旧 live 分支让「武侠江湖」主副行各出现一次。 */
       ((!coming && hasName) ? '<div class="wtags">' + esc(SQ.t('world.' + w.id + '.name', null, w.id)) + (tags ? ' · ' + esc(tags) : '') + '</div>'
                             : (tags ? '<div class="wtags">' + esc(tags) + '</div>' : ''));
-      /* 「先睹」钮（册159 · S1-e）：装了叙事包的世界可预览一章（预览不落档）；
-       * 走全局 data-act 委托 ⇒ 无独立监听体（D15①），产出⇔注册静态双向可见（D15②）。 */
-      if (SQ.Worlds[w.id].pack && SQ.Worlds[w.id].pack.narrative) {
-        card.insertAdjacentHTML('beforeend', '<button class="btn ghost bk-go" data-act="wuxiaPreview" data-v="' + w.id + '">' + esc(SQ.t('ui.book.preview')) + '</button>');
-      }
+      /* 「先睹」钮随册168 退役：书世界的先睹就是流程第二步本体（选中 → 下一步进书），卡上留钮冗余 */
       if (!coming) {
         card.addEventListener('click', function (ev) { pickWorldCard(ev, w, card, list); });   /* 监听体一句（D15①；册167 逻辑收核内） */
       }
       list.appendChild(card);
     });
   }
-  /* 择界卡点选（册167 收核内）：点「先睹」钮只开预览、不改选中态（钮在卡内，不挡则冒泡双触发） */
+  /* 择界卡点选：选中后步骤条换书世界变体、下一步钮换文（进书 vs 入界） */
   function pickWorldCard(ev, w, card, list) {
-    if (ev.target && ev.target.closest && ev.target.closest('.bk-go')) return;
     draft.worldId = w.id;
     Array.prototype.forEach.call(list.children, function (c) { c.classList.remove('sel'); });
     card.classList.add('sel');
     $('c3-err').classList.add('hide');
+    var book = isBookDraft();
+    $('c3-steps').innerHTML = stepsHtml(1, book);
+    $('c3-go').textContent = tc(book ? 'creation.world.openbook' : 'creation.world.next');
   }
-  $('c3-back').addEventListener('click', function () { show('c1'); });
-  /* 屏 3 · 择界 → 屏 2：tab 世界走观天赋；书世界（worldView==='book'）走「取诨号」
-   * （册164 · 干预与代价 §五：书世界的创角第一笔落笔 = 诨号，三个候选或自拟，零墨零风险） */
+  /* 屏 1 · 择界（册168 首屏）→ tab 世界走立名；书世界走先睹（读第一章 = 流程第二步） */
   function isBookDraft() {
     var e = SQ.Worlds[draft.worldId];
     return !!(e && e.pack && e.pack.worldView === 'book');
   }
-  function rollHao() {
-    var pool = [];
-    for (var i = 1; i <= 12; i++) pool.push('hao.cand.' + i);
-    draft.haoOpts = [];
-    while (draft.haoOpts.length < 3 && pool.length) {
-      draft.haoOpts.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-    }
-    draft.hao = draft.haoOpts[0] || '';
-  }
-  $('c3-go').addEventListener('click', function () {
+  /* 册168：rollHao 随 c2 诨号屏退役——候选抽选在书件内 */
+  function goFromC3() {
     if (!draft.worldId) {
       $('c3-err').textContent = tc('creation.world.noPick');
       $('c3-err').classList.remove('hide');
       return;
     }
-    if (isBookDraft()) { rollHao(); renderC2(); } else { rerollTalents(); }
-    show('c2');
-  });
+    if (isBookDraft()) {
+      SQ.UI.wuxia.actPreview(null, draft.worldId, {
+        creation: true,
+        onEnter: function (hao) { confirmBookCreation(hao); },
+        onClose: function () { show('c3'); renderC3(); }
+      });
+      return;
+    }
+    show('c1');
+  }
+  $('c3-go').addEventListener('click', function () { goFromC3(); });
+
 
   /* ══════════ MAIN：九游戏页 + 两系统页 ══════════ */
   /* 游戏页：**固定五区序**（UI v2 B1/B2 起；旧 `settings.tabOrder` 不再读、字段保留，旧档照常加载）；
@@ -1927,7 +1882,7 @@
     ui.lastArtsSig = 0; ui.lastTreasureSig = 0; ui.lastBondSig = 0; ui.lastShopSig = 0;
     ui.newArtsDot = false; ui.newTreasureDot = false; ui.newBondDot = false; ui.newShopDot = false;
     ui.achvSnap = achvRedDotSig();          /* 成就页红点基线：重置后从头计数 */
-    show('c1');
+    show('c3'); renderC3();
   }
 
   /* 角色身份三元组（道名/世界/境界）：顶栏、角色浮层标题、设置页存档提示三处共用同一来源，
@@ -2478,7 +2433,7 @@
     $('c1-name').value = '';
     $('c1-err').classList.add('hide');
     ui.tab = 'idle';
-    show('c1');
+    show('c3'); renderC3();
   }
 
   /* ── 轮回页与飞升 / 兵解两族已随第册四十九批整片搬进 view/legacy.js（N34 第十三刀）：`legacyReasonText` ‖
@@ -2631,7 +2586,7 @@
      * `v` = 洞府 id，第三参取卡上 data-f（设施 id）。 */
     if (act === 'caveEnter') { SQ.UI.zone.actCaveEnter(ctx(), v); return; }
     /* 武侠「先睹」入口（册159 · S1-e）：coming 世界卡上的预览钮，打开书界面（预览不落档） */
-    if (act === 'wuxiaPreview') { SQ.UI.wuxia.actPreview(null, v); return; }   /* 预览不落档 ⇒ 不取 ctx()（冷启无档，ctx 会读 ws 抛错） */
+    /* 册168 摘 wuxiaPreview 支：先睹钮退役，书世界先睹走流程（c3-go → goFromC3 直调 actPreview） */
     if (act === 'caveBuild') { SQ.UI.zone.actCaveBuild(ctx(), v, el.dataset.f); return; }
     /* ── 势力四支（B3 = 第册一百四十三批搬入 `view/faction.js`，此处各留一行转发）──
      * 供奉 / 委托交付 / 应战 / 好聚好散 */
@@ -3074,14 +3029,14 @@
       /* 死在门口（寿元批）：boot 那一次离线结算里就已完成强制转世 ⇒ 档案名已空、进不了主界面。
        * 不能把人无声扔在创角屏——先演坐化呈报，确定后仍是创角流程。 */
       var ld0 = ((s.worlds || {})[s.profile.worldId] || {}).lastDeath;
-      if (!hasProfile(s) && ld0 && ld0.at !== ui.seenDeathAt) { show('c1'); SQ.UI.show.deathReport(ctx()); return; }
+      if (!hasProfile(s) && ld0 && ld0.at !== ui.seenDeathAt) { show('c3'); renderC3(); SQ.UI.show.deathReport(ctx()); return; }
       if (hasProfile(s)) enterMain();
       /* 读档失败回落空档 ⇒ 屏上是一张干净的创角屏。不提示就是「无声以为档没了」，
        * 而玩家此时顺手新建 = `SQ.mutate` 起手又读失败 → 拿空档落盘 → **盖掉盘上那份完好但读不动的载荷**。
        * tick 只在 enterMain 后起（startTick 在那条路上），所以这两支是 checkIo 唯一的补位点。 */
-      else { show('c1'); checkIo(); }
+      else { show('c3'); renderC3(); checkIo(); }
     } catch (e) {
-      show('c1'); checkIo();
+      show('c3'); renderC3(); checkIo();
     }
   }
   boot();
