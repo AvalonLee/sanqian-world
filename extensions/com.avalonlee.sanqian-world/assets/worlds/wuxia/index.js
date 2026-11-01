@@ -256,6 +256,86 @@
     return null;
   }
 
+  /* ── 正文渲染（S1-d · 数值→文学三条规则的落点）────────────────────────────────
+   * render(chapterResult, ws) → { lines:[中文…], fork }
+   * 纯函数：模板选择用 chapterResult.meta.seed；**不调 Math.random**；不写档。
+   *
+   * 三条硬规则（数值与经济 §九）在这里兑现：
+   * ① 够不着的门槛不显示数字，只给「回声」（pool.echo.*，如「总觉得还差着一重火候」）；
+   * ② 每章至多一个 ※（chapter 已保证，render 不追加）；
+   * ③ 门槛须可推断 → think 节必带 {p1} 功力措辞（五档：已满/只差一口气/过半/三成/初起）。 */
+  function tw(key) { return SQ.t(key, null, 'wuxia'); }
+
+  function progWord(ws) {
+    var r = ws.realm | 0;
+    var nx = realmRow(r + 1);
+    if (!nx) return tw('pool.prog.100');
+    var ratio = isNum(ws.qi) ? ws.qi / nx.need : 0;
+    var k = ratio >= 1 ? 100 : ratio >= 0.75 ? 75 : ratio >= 0.5 ? 50 : ratio >= 0.25 ? 25 : 0;
+    return tw('pool.prog.' + k);
+  }
+  function moodWord(ws) {
+    var dis = ws.discord || 0;
+    if (dis >= 100) return tw('pool.mood.discord2');
+    if (dis >= 60) return tw('pool.mood.discord');
+    if ((ws.injury || 0) > 0) return tw('pool.mood.hurt');
+    return tw('pool.mood.calm');
+  }
+  /* {who} 取人：本地界桥段的在场人物优先（读者已认知），否则用通称「那人」——绝不凭空造名 */
+  function whoWord(ws, seed) {
+    var ks = knotsAt(ws.place);
+    var pool = [];
+    for (var i = 0; i < ks.length; i++) {
+      var cl = ks[i].cast || [];
+      for (var j = 0; j < cl.length; j++) pool.push(cl[j]);
+    }
+    if (!pool.length) return tw('pool.who.fallback');
+    var id = pool[seed % pool.length];
+    var name = tw('cast.' + id + '.name');
+    return (!name || name.indexOf('cast.') === 0) ? tw('pool.who.fallback') : name;
+  }
+
+  var TPL_N = { scene: 8, action: 12, talk: 10, event: 8, gain: 6, think: 6, cliff: 6, fork: 4 };
+
+  function renderBeat(beat, ws, seed) {
+    var n = TPL_N[beat.type] || 1;
+    var key = 'tpl.' + beat.type + '.' + (((seed + (beat.no || 1) * 17) % n) + 1);
+    var vars = {
+      zone: tw('zone.' + (ws.place || PLACE_START) + '.name'),
+      scene: (beat.type === 'scene') ? tw(beat.ref) : '',
+      who: whoWord(ws, seed + (beat.no || 1) * 7),
+      p1: progWord(ws),
+      mood: moodWord(ws)
+    };
+    var txt = SQ.t(key, vars, 'wuxia');
+    if (txt === key || !txt) return null;    /* 缺模板 = 裸键，宁可少一句也不把键名印在纸上 */
+    if (beat.type === 'think') {
+      /* 规则①：门槛差得多时追加回声（不显示数字） */
+      var r = ws.realm | 0, nx = realmRow(r + 1);
+      if (nx && isNum(ws.qi) && ws.qi < nx.need * 0.75) {
+        var echoKey = (ws.relations && Object.keys(ws.relations).length >= 3) ? 'pool.echo.bond' : 'pool.echo.realm';
+        txt += tw(echoKey);
+      }
+    }
+    return txt;
+  }
+
+  function render(ch, ws) {
+    if (!ch || !ch.beats || !ch.beats.length) return { lines: [], fork: null };
+    var seed = (ch.meta && isNum(ch.meta.seed)) ? ch.meta.seed : 1;
+    var lines = [];
+    for (var i = 0; i < ch.beats.length; i++) {
+      var line = renderBeat(ch.beats[i], ws, seed);
+      if (line) lines.push(line);
+    }
+    /* 心境是状态不是随机文案：非平静（违和/内伤）时**稳定追加**章尾心境句——
+     * 不靠模板命中（初稿只挂 think.1 的 {mood}，散列下未必选中，E11 抓到）。
+     * 平静态不加：免得每章都念一遍「心无挂碍」。 */
+    var mood = moodWord(ws);
+    if (mood !== tw('pool.mood.calm')) lines.push(mood);
+    return { lines: lines, fork: ch.fork || null };
+  }
+
   /* ── 数据表访问口（S1-b）────────────────────────────────────────────────────────
    * 引擎按契约读 `pack.arts` / `pack.realms`；武学 id → 记录的索引也在这里建一次，
    * 供功谱页与叙事层按 id 取品阶/性质（避免每处都遍历 396 条）。
@@ -313,8 +393,12 @@
     var place = ws.place || PLACE_START;
     var seed = seedOf(no * 97 + place.length);
     var evs = eventsAt(place);
+    var zrow = null, scenesLen = 1;
+    var ZL = (D && D.ZONES) || [];
+    for (var zi = 0; zi < ZL.length; zi++) if (ZL[zi].i === place) { zrow = ZL[zi]; scenesLen = Math.max(1, (zrow.scenes || [1]).length); break; }
     var beats = [];
-    beats.push({ type: 'scene', ref: 'scene.' + place + '.1', no: 1 });
+    /* scene 节：场景按章号散列从本地界的 2~4 个子场景里挑（不是永远第一个） */
+    beats.push({ type: 'scene', ref: 'scene.' + place + '.' + ((seed % scenesLen) + 1), no: 1 });
 
     /* 中段：从本地界事件池取 3 节（类型照事件的 kind），一个章内不重复 */
     var used = {};
@@ -380,9 +464,10 @@
     events: (D && D.EVENTS) || [],
     knots: (D && D.KNOTS) || [],
     /* G18 叙事编排层：**本界是 `pack.narrative` 可选契约的第一份实现**（工程规范 §2.2）。
-     * 第一世界不实现该键 ⇒ 引擎跳过；本界实现了 ⇒ 章生成走 `chapter()`。 */
+     * 第一世界不实现该键 ⇒ 引擎跳过；本界实现了 ⇒ 章生成走 `chapter()`、正文走 `render()`。 */
     narrative: {
       chapter: chapter,
+      render: render,
       beatsPerChapter: CHAPTER_BEATS
     },
     artsMap: function () { return ART_INDEX; },
