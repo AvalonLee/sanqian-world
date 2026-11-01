@@ -188,10 +188,26 @@
     return cur ? cur.need : 0;
   }
 
-  /* 战力 = 境界基准（武艺/兵刃/相性/状态四乘区 S1-b 只出基准，其余待武学层批） */
+  /* 战力 = 境界基准 × 武艺 × 状态（数值与经济 §六）：武艺 = 1 + Σ(品阶权重×层数)×0.012 封顶 1.35
+   * （系统性加成总上限 1.86 < 档差 2.3 的红线不变——满配越一档有戏、跨两档是奇迹）；
+   * 状态 = 内伤 ≥12 ×0.60（咯血档）· ≥8 ×0.75 · else 1.00。兵刃/相性两乘区随兵器/四性批接。 */
+  var TIER_W = { tian: 1.0, di: 0.6, xuan: 0.3, huang: 0.1 };
+  function artPowerMult(ws) {
+    var lv = (ws && ws.artsLevels) || {};
+    var sum = 0;
+    for (var k in lv) {
+      var a = ART_INDEX[k];
+      if (!a) continue;
+      sum += (TIER_W[a.t] || 0.1) * (isNum(lv[k]) ? lv[k] : 0);
+    }
+    return Math.min(1.35, 1 + sum * 0.012);
+  }
   function powerOf(ws) {
     var cur = realmRow(ws && isNum(ws.realm) ? ws.realm : 0);
-    return cur ? cur.power : 0;
+    if (!cur) return 0;
+    var inj = (ws && ws.injury) || 0;
+    var status = inj >= 12 ? 0.6 : inj >= 8 ? 0.75 : 1;
+    return cur.power * artPowerMult(ws) * status;
   }
 
   /* 见闻值 = visited×2 + 熟人（affinity ≥ 20）——派生，读档时重算一次防旧档漂 */
@@ -201,6 +217,33 @@
     var rel = ws.relations || {};
     for (var k in rel) { if (rel[k] && isNum(rel[k].affinity) && rel[k].affinity >= 20) known++; }
     return visited * 2 + known;
+  }
+
+  /* ── 修习常量（册162 · 武学全录 §五「自悟」最小闭环 + §五 瓶颈）────────────────── */
+  var PRACTICE_PER_LAYER = 100;   /* 每 30 现实分钟升一层（挂机时长即练功时长，离线 = 在线） */
+  var SLOTS_MAX = 6;              /* 修习槽上限（复用第一世界口径） */
+  var GATE_LAYERS = { 3: 4, 6: 12, 9: 24 };   /* 心境门槛层：3/6/9 层需见闻值（§四 心境表的内插） */
+
+  /* 强行冲关（数值与经济 §四 唯一失败路径）：心境差得远却硬破——附录手动点，正文不给选项。
+   * 成功率 p = 0.5 × (见闻/门槛)，失败内伤 +2~4、功力 −20%、当前卷关键关系恶化（关系面未建，留批注）。
+   * 掷判用 Math.random：玩家主动操作不属章号散列的确定性面（与第一世界渡劫同口径）。 */
+  function attemptBreak(ws) {
+    if (!ws) return { ok: false, reason: 'nows' };
+    var r = ws.realm | 0;
+    var nx = realmRow(r + 1);
+    if (!nx || !isNum(ws.qi) || ws.qi < nx.need) return { ok: false, reason: 'qi' };
+    var g = gateOf(r + 1);
+    if (!g) return { ok: false, reason: 'gate' };
+    var p = 0.5 * Math.min(1, (expOf(ws) || 0) / (g.exp || 1));
+    var win = Math.random() < p;
+    if (!win) {
+      ws.injury = Math.min(15, (ws.injury || 0) + 2 + Math.floor(Math.random() * 3));
+      ws.qi = Math.max(0, ws.qi * 0.8);
+      return { ok: true, win: false, p: p, injury: ws.injury };
+    }
+    ws.realm = r + 1;
+    ws.exp = expOf(ws);
+    return { ok: true, win: true, p: p };
   }
 
   /* 破关：两个必要条件（功力阈值 + 心境门槛），**不掷骰**（数值与经济 §四）
@@ -301,7 +344,32 @@
       ws.exp = expOf(ws);
       broke++;
     }
-    return { gain: ws.qi - before, broke: broke };
+    /* 修习槽练习度推进（册162 · 与功力同一份 claim 时长）：满 PRACTICE_PER_LAYER 升一层并清零；
+     * 3/6/9 是心境门槛层——见闻不足则卡层（练习度停在门槛下，正文回声已有）。
+     * 确定性：纯加法不掷随机（仿真/锚不受影响）。 */
+    var layered = 0;
+    var slots = arr(ws.artsSlots).slice(0, SLOTS_MAX);
+    var prac = obj(ws.artsPractice);
+    for (var si = 0; si < slots.length; si++) {
+      var aid = typeof slots[si] === 'string' ? slots[si] : (slots[si] && slots[si].id);
+      if (!aid || !ART_INDEX[aid]) continue;
+      var curLv = (ws.artsLevels[aid] || 0);
+      if (curLv >= 9) continue;
+      var gateExp = GATE_LAYERS[curLv + 1];
+      var pv = (isNum(prac[aid]) ? prac[aid] : 0) + (dtMs / 60000) * (PRACTICE_PER_LAYER / 30);
+      if (gateExp && (ws.exp || 0) < gateExp && pv > PRACTICE_PER_LAYER - 1) pv = PRACTICE_PER_LAYER - 1;   /* 卡层 */
+      while (pv >= PRACTICE_PER_LAYER && (ws.artsLevels[aid] || 0) < 9) {
+        var nxt = (ws.artsLevels[aid] || 0) + 1;
+        var g2 = GATE_LAYERS[nxt];
+        if (g2 && (ws.exp || 0) < g2) break;      /* 心境不满：练习度继续涨但层不动（下一轮卡在 99） */
+        ws.artsLevels[aid] = nxt;
+        pv -= PRACTICE_PER_LAYER;
+        layered++;
+      }
+      prac[aid] = Math.min(pv, PRACTICE_PER_LAYER - 1);
+    }
+    ws.artsPractice = prac;
+    return { gain: ws.qi - before, broke: broke, layers: layered };
   }
 
   function recalcDerived(ws) {
@@ -696,6 +764,44 @@
       arcChaps: ARC_CHAPS
     },
     artsMap: function () { return ART_INDEX; },
+    attemptBreak: attemptBreak,
+    /* worldSystems（册162 · S3-c）：引擎通用系统的世界侧接口——通用层只经这些口读世界语义（D3 纪律），
+     * 每个口按「引擎会怎么调」实现；引擎调用点全部带空值守卫，缺口 = 安全空转（多世界契约）。 */
+    worldSystems: {
+      /* 生命判势（core.claimInner）：内伤满 15 = 伤重不治（对位道伤崩碎通道）；寿元上界按境界表
+       * （江湖设定 §五：寿元只做两处结算——老病寿尽 / 内伤即死，不做倒计时）。age = 16 岁开局 + worldDay/360。 */
+      lifeInfo: function (ws) {
+        var r = Math.min(ws && isNum(ws.realm) ? ws.realm : 0, 9);
+        var row = realmRow(r);
+        var age = 16 + Math.floor((ws && ws.worldDay || 0) / 360);
+        var cap = row ? row.life : 40;
+        var inj = (ws && ws.injury) || 0;
+        var cause = null;
+        if (inj >= 15) cause = 'daoshang';
+        else if (age >= cap) cause = 'shoujin';
+        return { age: age, max: cap, left: cap - age, cause: cause, dao: inj, daoLv: inj, daoMax: 15, daoNear: inj >= 12 };
+      },
+      /* 内伤唯一写口（combat/events 的 lifeHit(ws, 'wound')）：+1 层，封顶 15（=15 由 lifeInfo 判死） */
+      lifeHit: function (ws, kind, log) {
+        void log;
+        if (kind !== 'wound' || !ws) return 0;
+        if ((ws.injury || 0) >= 15) return ws.injury;
+        ws.injury = Math.min(15, (ws.injury || 0) + 1);
+        return ws.injury;
+      },
+      /* 寿元增减：本世界寿元不做倒计时（数值与经济 §二），通用层的得寿/折寿在此不落账 */
+      lifeAdd: function (ws) { void ws; return 0; },
+      /* 掉落乘区（combat 的 eff.*）：武侠无法宝掉落面，恒空 = 引擎守卫回落 */
+      effectsOf: function (ws) { void ws; return null; },
+      /* 功法业力加成（arts.js）：武侠无善恶业力，恒 0 */
+      karmaOf: function (ws) { void ws; return 0; },
+      /* 江湖评价档（bonds/codex/events）：侠轴 ≤ −60 = 「邪」——枭雄路线的江湖脸色 */
+      tierOf: function (ws) {
+        return ws && ws.persona && isNum(ws.persona.xia) && ws.persona.xia <= -60 ? 'evil' : 'neutral';
+      },
+      /* 渡劫/飞升（legacy.feishengInfo）：武侠无飞升，恒 null ⇒ canFeisheng 落 reason:'info' 拒绝 */
+      tribInfo: function () { return null; }
+    },
     /* 某门可学武学（由 ARTS[].s 反查，单一事实源）；未门无武学返回空数组 */
     artsOfSect: function (sid) {
       var A = (D && D.ARTS) || [];

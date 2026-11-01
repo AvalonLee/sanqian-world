@@ -52,6 +52,28 @@
      * 总量随 §十 验收表锁定——改数即换定种轨迹，须先复跑 sim-wuxia 再改锚（纪律 §4.42）。 */
     ARC_GAIN: [180, 400, 400, 500, 700, 700, 900, 1000, 1200, 1800],
 
+    /* 图鉴最小声明（册162）：ACHV 空表 = 通用图鉴扫描安全空转（Codex.scan 硬读 D.CODEX.ACHV，
+     * 世界未声明即崩——武侠成就系统随专属批再填）。 */
+    CODEX: { ACHV: [] },
+
+    /* 转世路径最小声明（册162）：通用 Legacy.rebirth→preview 无条件读这些键；得分族
+     * （ZONE_FIRST / TITLE_EACH 等）缺席 = 该族不计分，optional-key 空转是引擎契约。
+     * 口径：合卷折分 0.5（《干预与代价》§六 继承分层：数值不继承 ⇒ 折得比修仙薄）；
+     * 飞升双键归零（武侠无飞升，tribInfo 恒 null ⇒ canFeisheng reason:'info' 兜底）。 */
+    LEGACY: {
+      BINGJIE_MULT: 0.5,
+      BINGJIE_MIN_REALM: 4,
+      FEISHENG_BASE_P: 0,
+      FEISHENG_CD_MS: 2147483647,
+      REALM_SCORE: [0, 2, 5, 10, 18, 28, 40, 55, 72, 90],
+      ASCEND_BONUS: 0,
+      TRIB_WIN_EACH: 0,
+      LOG_KEEP: 60,
+      BIO_KEEP: 9,
+      BIO_MAX: 500,
+      BIO_STORE_CAP: 40
+    },
+
     /* 武学全表（403 条）：i=id k=类 nat=性 t=阶 f=全文频次 s=可学门派 o=来源
      * o 缺省 corpus（语料）；entry=入门池；system=非语料初始功；manual=词表漏项人工补入 */
     ARTS: [

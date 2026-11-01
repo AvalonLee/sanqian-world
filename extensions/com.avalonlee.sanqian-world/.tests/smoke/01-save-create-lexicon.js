@@ -409,6 +409,83 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 墨厄=' + moOk + '(chap=' + w3.narrative.chapNo + ',xia=' + w3.persona.xia + ',ink=' + w3.ink.n + ') 快照=' + snapOk);
     })();
 
+    /* E14 · 武侠投生闭环（册162 · S3-c）：把 wuxia 当**活跃世界**走真实引擎生命周期——
+     * 判「翻 live 之前，引擎每一条通用路径都吃得下这个世界」：
+     * ① claim / Legacy.sync / Codex.scan 全链零崩（data.js 的 CODEX/LEGACY 最小声明生效）；
+     * ② worldSystems 口：lifeHit 内伤唯一写口（封顶 15）⇒ lifeInfo 判死（内伤满 = daoshang）⇒
+     *    **真实转世**（stats.lives+1 / deaths+1 / 新世干净 / 死因呈报落档）；
+     * ③ 修习最小闭环：30 分钟一层、3/6/9 心境卡层（见闻不足练习度停在门槛下）；
+     * ④ attemptBreak 强行冲关：p = 0.5×(见闻/门槛)，败 = 内伤 +2~4 且功力 −20%；
+     * ⑤ powerOf：武艺乘区封顶 1.35 + 内伤状态乘区（≥12 → ×0.60）。
+     * 本块含 await（走真实 SQ.claim/mutate 事务，#13 同法）——不设早退，缺件时条件句置红。 */
+    {
+      var pk14 = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      var cycle = false, ports = false, study = false, brk = false, pow = false;
+      var det14 = '';
+      if (!pk14 || !pk14.worldSystems) {
+        det14 = '无 worldSystems';
+      } else {
+        /* ①② 真实生命周期：创角 → 死亡 → 转世 → 新世 */
+        var pre14 = JSON.parse(JSON.stringify(await SQ.load()));
+        var ref14 = {};
+        await SQ.mutate(ref14, function (s) {
+          s.profile = { name: '闭环侠', talents: [], worldId: 'wuxia', worldName: '', createdAt: Date.now() };
+          s.worlds.wuxia = pk14.normalize(pk14.initialState());
+        });
+        await SQ.mutate(ref14, function (s) { s.worlds.wuxia.realm = 3; s.worlds.wuxia.qi = 5000; s.worlds.wuxia.worldDay = 3000; s.worlds.wuxia.injury = 15; });
+        await SQ.claim(ref14);
+        var w14 = ref14.worlds.wuxia;
+        cycle = w14.realm === 0 && w14.qi === 0 && w14.injury === 0 && w14.worldDay === 0 &&
+          w14.narrative.chapNo === 1 && ref14.meta.stats.lives === 1 && ref14.meta.stats.deaths === 1 &&
+          !!w14.lastDeath && w14.lastDeath.cause === 'daoshang';
+        /* ②b worldSystems 直测 */
+        var wsA = pk14.normalize(pk14.initialState());
+        wsA.worldDay = 360 * 50;
+        var life1 = pk14.worldSystems.lifeInfo(wsA);
+        var wsH = pk14.normalize(pk14.initialState());
+        for (var hi = 0; hi < 20; hi++) pk14.worldSystems.lifeHit(wsH, 'wound', null);
+        ports = life1.cause === 'shoujin' && wsH.injury === 15 &&
+          pk14.worldSystems.tierOf({ persona: { xia: -60, kuang: 0, du: 0 } }) === 'evil' &&
+          pk14.worldSystems.tierOf({ persona: { xia: 0, kuang: 0, du: 0 } }) === 'neutral' &&
+          pk14.worldSystems.tribInfo() === null && pk14.worldSystems.karmaOf({}) === 0;
+        /* ③ 修习：60 分钟两层；卡 6 层心境门槛（见闻 8 < 12 ⇒ 练习度停在 99） */
+        var wsL = pk14.normalize(pk14.initialState());
+        wsL.artsSlots = ['neigong_basic'];
+        wsL.visited = ['luoyang', 'shaolin', 'dali', 'yanziwu'];
+        pk14.claim(wsL, 60 * 60000, 0, {}, {});
+        var lvA = wsL.artsLevels.neigong_basic;
+        pk14.claim(wsL, 120 * 60000, 0, {}, {});
+        study = lvA === 3 && wsL.artsLevels.neigong_basic === 5 && wsL.artsPractice.neigong_basic === 99;
+        /* ④ attemptBreak：定种 stub——0.9 必败 / 0.01 必胜 */
+        var wsB = pk14.normalize(pk14.initialState());
+        wsB.qi = 99999;
+        var realRnd = Math.random;
+        Math.random = function () { return 0.9; };
+        var r1 = pk14.attemptBreak(wsB);
+        Math.random = function () { return 0.01; };
+        var wsB2 = pk14.normalize(pk14.initialState());
+        wsB2.qi = 99999;
+        var r2 = pk14.attemptBreak(wsB2);
+        Math.random = realRnd;
+        brk = r1 && r1.ok && r1.win === false && r1.p === 0.5 && wsB.injury >= 2 && wsB.injury <= 4 &&
+          Math.abs(wsB.qi - 99999 * 0.8) < 0.01 && r2 && r2.win === true && wsB2.realm === 1;
+        /* ⑤ powerOf：武艺乘区封顶 1.35 + 内伤状态 */
+        var wsW = pk14.normalize(pk14.initialState());
+        wsW.artsLevels = { yg_jiuyin: 9, neigong_basic: 9, quan_basic: 9 };
+        var base0 = pk14.powerOf({ realm: 0, artsLevels: {}, injury: 0 });
+        var pFull = pk14.powerOf(wsW) / base0;
+        var wsW2 = pk14.normalize(pk14.initialState());
+        wsW2.injury = 12;
+        pow = Math.abs(pk14.powerOf(wsW2) - 10 * 1.0024 * 0.6) < 1e-9 && pFull <= 1.35;
+        await SQ.save(pre14);   /* 复原：后续片建立在本件既有状态上，E14 的活跃档不外溢 */
+        det14 = '转世=' + cycle + '(lives=' + ref14.meta.stats.lives + ',cause=' + (w14.lastDeath || {}).cause + ')' +
+          ' 口=' + ports + ' 修习=' + study + '(lv' + lvA + '→' + wsL.artsLevels.neigong_basic + ',prac=' + wsL.artsPractice.neigong_basic + ')' +
+          ' 冲关=' + brk + '(败p=' + (r1 && r1.p) + ',伤' + (wsB ? wsB.injury : '?') + ') 战力=' + pow;
+      }
+      ok('E14', '武侠投生闭环（真实生命周期：claim→死→转世→新世零崩 ⇔ worldSystems 口：寿尽/内伤封顶/邪档/飞升拒 ⇔ 修习 30 分一层且 3/6/9 卡层 ⇔ 冲关 p=0.5×(见闻/门槛) 败有内伤折功力 ⇔ 战力武艺封顶+内伤乘区）',
+        cycle && ports && study && brk && pow, det14);
+    }
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */
