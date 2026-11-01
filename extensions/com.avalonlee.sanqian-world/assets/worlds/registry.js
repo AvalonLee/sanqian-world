@@ -20,14 +20,15 @@
       tagsKeys: ['world.tag.qi', 'world.tag.zone', 'world.tag.trib'],
       pack: null
     },
-    guwu: {
-      id: 'guwu', displayNameKey: 'world.guwu.name', status: 'coming',
-      nameParts: {
-        prefix: ['大', '北', '南', '西', '东'],
-        middle: ['周', '燕', '夏', '秦'],
-        suffix: ['王朝', '九州', '铁原']
-      },
-      tagsKeys: ['world.tag.zhan', 'world.tag.gate'], pack: null
+    /* 第二世界（册152 · S0 批改口，v0.6.15）：原 `guwu`（三国无双 / 军团争霸）整族退役——
+     * 用户 2026-11-01 裁定「旧《古武军势》四卷整体归档重写」，第二世界改向 **武侠**。
+     * id 由 `guwu` 改 `wuxia`（原 id 为 coming 态、不可投生 ⇒ 无存档引用，改名零迁移成本）。
+     * 设计卷 = docs/武侠世界/（五卷骨架）；旧四卷 = docs/_archive/古武军势-2026-11-01/。
+     * `nameParts: null` = 武侠不做「世界名」（江湖即世界，创角屏对该界隐藏世界名一栏，S1 落实）。 */
+    wuxia: {
+      id: 'wuxia', displayNameKey: 'world.wuxia.name', status: 'coming',
+      nameParts: null,
+      tagsKeys: ['world.tag.xia', 'world.tag.jianghu'], pack: null
     },
     magic: { id: 'magic', displayNameKey: 'world.magic.name', status: 'coming', nameParts: null, tagsKeys: [], pack: null },
     tech: { id: 'tech', displayNameKey: 'world.tech.name', status: 'coming', nameParts: null, tagsKeys: [], pack: null },

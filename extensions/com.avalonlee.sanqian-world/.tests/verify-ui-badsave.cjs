@@ -74,7 +74,7 @@ const KEY = 'sanqian-state-v1';
     ['B worlds 整块缺失', (c) => { delete c.worlds; }],
     ['C worlds.xiuxian = null', (c) => { c.worlds.xiuxian = null; }],
     ['D profile 在但无 worldId', (c) => { delete c.profile.worldId; }],
-    ['E worldId 指向未开放世界', (c) => { c.profile.worldId = 'guwu'; }],
+    ['E worldId 指向未开放世界', (c) => { c.profile.worldId = 'wuxia'; }],
     ['F 关键字段类型坏（bonds 成数组 / realm 成字符串）', (c) => { c.worlds.xiuxian.bonds = []; c.worlds.xiuxian.realm = 'zero'; }],
     ['G meta 整块缺失', (c) => { delete c.meta; }],
     ['H 未知字段成堆（向前兼容旧读新）', (c) => { c.worlds.xiuxian.zzzFuture = { a: [1, 2, 3] }; c.meta.zzzFuture2 = 'x'; }]

@@ -88,14 +88,17 @@
     'talent.swap.log.trib': '破境之际骨髓一清，得洗髓缘一枚（手中缘 {n} 枚）',
     'world.status.live': '首发',
     'world.status.coming': '此界尚在混沌，未可投生',
-    /* coming 世界显示名兜底（世界包交付后由各自 lexicon 分卷覆盖） */
-    'world.guwu.name': '三国无双',   /* 第二十批改口：屏上正名，工程 id 与 docs/古武军势/ 目录名沿用旧称 */
-    'world.magic.name': '西方魔幻',   /* 同上（第二十批）*/
+    /* coming 世界显示名兜底（世界包交付后由各自 lexicon 分卷覆盖）
+     * 册152（S0）：`world.guwu.name`「三国无双」随第二世界改向武侠整族退役，改 `world.wuxia.name`；
+     * world.tag.zhan（战意）/ gate（攻关）随之退役，换 xia（侠义）/ jianghu（江湖）——旧两键
+     * 已无任何 registry 引用，留着即孤儿键（审计 A6 会红），故同批删除。 */
+    'world.wuxia.name': '武侠江湖',
+    'world.magic.name': '西方魔幻',   /* 第二十批改口，理由同上批 */
     'world.tech.name': '科技降神',
     'world.urban.name': '现代都市',
     'world.cthulhu.name': '克苏鲁世界',
-    'world.tag.zhan': '战意',
-    'world.tag.gate': '攻关',
+    'world.tag.xia': '侠义',
+    'world.tag.jianghu': '江湖',
     'ui.sep': '，', 'ui.listsep': '、',
     'module.empty': '未入世 · 请到工作区打开「三千世界」',   /* 第二十一批：卡片不再绑跳转，文案不许诺"点击"（API 名不写进被扫描的源码，见工程规范 §7.2 第 2 条） */
     'log.boot': '天地初开，灵气始生',
