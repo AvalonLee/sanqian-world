@@ -111,9 +111,9 @@
     <!-- UI v2 B13：手机五区底部 tab（<720px 取代 16 项横滑；点区落该区首页，区内换页走顶部子导航） -->
     <div class="sq2-zonebar" id="m-zonebar"></div>
     <!-- UI v2 B1：右栏骨架（≥1200px 第三列）。B1 只立容器，不造数据；空时 CSS 收起 -->
-    <!-- 书形态主容器（册163 · S3-c）：pack.worldView==='book' 的世界进主界面即书——
-         enterBook 给 #sc-main 挂 bookmode 类（CSS 收起顶栏/导航/页签/右栏，只留本容器）。 -->
-    <div id="book-main" class="hide"></div>
+    <!-- 自定义主壳容器（册214 · P1 契约改版）：pack.shell 指名的世界进主界面走本容器——
+         enterShellHome 给 #sc-main 挂 shellmode 类（CSS 收起顶栏/导航/页签/右栏，只留本容器）。 -->
+    <div id="shell-main" class="hide"></div>
 
     <aside id="m-rail" class="sq2-rail" aria-label="区情"></aside>
 </div>
@@ -595,7 +595,7 @@
 <script src="arts.js"></script>
 <script src="gear.js"></script>
 <script src="treasure.js"></script>
-<script src="wuxia-book.js"></script>
+<script src="wuxia-home.js"></script>
 <script src="faction.js"></script>
 <script src="rumor.js"></script>
 <script src="zone.js"></script>
@@ -672,7 +672,10 @@
    * shortcut: 只放**已被外置件需要**的键；下一片要用新服务（toast / renderAll / mutate 之类）时在这里加一行、D7 自动跟。 */
   function ctx() {
     return { s: state, w: ws(), p: pack(), d: D(), ui: ui, $: $, t: t, esc: esc, date: gameDateStr,
-      mods: mods(), tierCls: tierCls, kindCls: treasureKindCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, timeAgo: timeAgo, fmtDate: fmtDate,
+      /* 册214：mods 改**惰性 getter**——主壳世界（武侠）的 ws 无修仙 buff 字段（fusion 等），
+       * collect 读空即抛（探针实测 reading '0'）；getter 用到才求值，修仙件照常、主壳件不碰。 */
+      get mods() { return mods(); },
+      tierCls: tierCls, kindCls: treasureKindCls, statLine: statLine, timeLeft: timeLeftText, toast: toast, ask: askConfirm, renderAll: renderAll, artTier: artTierCls, carrier: carrierOf, pct: pct, renderTab: renderTab, timeAgo: timeAgo, fmtDate: fmtDate,
       /* 第册卅六批第七刀补一枚：`nudge` = 输入不合法时抖一下控件的内核助手（造化两路动作要用点击那一行的 el）。
        * 同批那枚 `spiritPanel` 已随第册五十八批器灵面板外置 view/spirit.js 缩回——件对件调用不再过桥（桥首次负增长）。 */
       nudge: nudgeEl,
@@ -781,15 +784,14 @@
   /* ── 创角三屏（与 P2 相同逻辑） ── */
   /* 步骤条：一立名 / 二择界 / 三观天赋（当前步实心金、已过步描金，走查稿① 第 6 项）
    * 屏 id 与步骤号解耦：c1 = 起名 / c3 = 择界 / c2 = 观天赋（DOM 顺序按语义成对，不按步序）。 */
-  /* 步骤条（册167 加 book 变体）：第三步的题按世界取词——tab 世界「观天赋」、书世界「取诨号」。
-   * c1/c3 屏未择界 ⇒ 恒常规；c2 屏由 renderC2 / renderC2Hao 各自带变体重渲。 */
-  function stepsHtml(cur, book) {
+  /* 步骤条（册214 简化）：书世界「取诨号」变体随书形态退役，三步恒常规。 */
+  function stepsHtml(cur) {
     var h = '';
     [1, 2, 3].forEach(function (i) {
       if (i > 1) h += '<span class="stepline"></span>';
       h += '<span class="step ' + (i === cur ? 'on' : (i < cur ? 'done' : '')) + '">' +
         '<span class="n">' + esc(tc('creation.step.' + i + '.n')) + '</span>' +
-        esc(tc(i === 3 && book ? 'creation.step.3.book' : 'creation.step.' + i + '.t')) + '</span>';
+        esc(tc('creation.step.' + i + '.t')) + '</span>';
     });
     return h;
   }
@@ -886,34 +888,9 @@
     draft.roll = SQ.rollTalents(draft.worldId || SQ.WORLD_DEFAULT);
     renderC2();
   }
-  /* 册168：书世界屏 2 诨号变体退役——诨号内嵌书页章末（view/wuxia-book.js 取诨号面板），本屏族随流程重排移除 */
-  /* 书世界入世事务（册168 重排）：诨号在书内章末选定（先睹读毕 → 落笔入世）——
-   * 诨号即真名（侠影线无立名步，随世不随江湖）；入世时把第一章的账目面照走一遍 advance
-   * （时辰/墨回满/违和消退/卡点投放与在线同一条通道），正文从第二章起——先睹即序章，不重读。 */
-  async function confirmBookCreation(hao) {
-    var w = draft.worldId;
-    var theHao = (hao || '').trim();
-    if (!SQ.validateName(theHao)) theHao = '';
-    await SQ.mutate(state, function (s) {
-      s.profile = {
-        name: theHao,
-        talents: [],
-        worldId: w,
-        worldName: '',
-        createdAt: Date.now(),
-        hao: theHao,
-        seenNote: s.profile.seenNote
-      };
-      s.worlds[w] = SQ.Worlds[w].pack.initialState();
-      SQ.Worlds[w].pack.narrative.advance(s.worlds[w], null, {});   /* 第一章账目：先睹读过的就是它 */
-      SQ.Log.push(s.worlds[w], 'sys', SQ.t('log.boot', null, w));
-      if (s.meta.unlockedWorlds.indexOf(w) < 0) s.meta.unlockedWorlds.push(w);
-    });
-    draft.legacy = null;
-    enterMain();
-  }
+  /* 册168：书世界屏 2 诨号变体退役；册214：confirmBookCreation 随书形态退役（tab 世界入世走 #mk-ok 入定 → enterMain 通用流） */
   function renderC2() {
-    $('c2-steps').innerHTML = stepsHtml(3, false);
+    $('c2-steps').innerHTML = stepsHtml(3);
     $('c2-title').textContent = tc('creation.talent.title');
     $('c2-hint').textContent = tc('creation.talent.hint');
     $('c2-reroll').textContent = tc('creation.talent.reroll');
@@ -1049,8 +1026,10 @@
           SQ.Bonds.grantHeir(nws, SQ.Worlds[w].pack, SQ.Worlds[w].pack.data, lg.bond, SQ.Worlds[w].pack.data.LEGACY.BOND_HEIR_BASE);
         }
       }
-      /* 同代天骄创角生成（天骄卷 §二：默认 2 / 解锁 4 + 跨世宿敌带记忆转世） */
-      if (SQ.Prodigy) SQ.Prodigy.rollForNewLife(nws, SQ.Worlds[w].pack, SQ.Worlds[w].pack.data, s.meta, Date.now());
+      /* 同代天骄创角生成（天骄卷 §二：默认 2 / 解锁 4 + 跨世宿敌带记忆转世）。
+       * 册214 门控：按数据表存在性判（PRODIGY 表是修仙专属）——主壳世界（武侠）无该表即跳过，
+       * 天骄模块不进武侠（多世界契约：世界专属系统只接声明了数据口的世界）。 */
+      if (SQ.Prodigy && SQ.Worlds[w].pack.data.PRODIGY) SQ.Prodigy.rollForNewLife(nws, SQ.Worlds[w].pack, SQ.Worlds[w].pack.data, s.meta, Date.now());
     });
     draft.legacy = null;
     enterMain();
@@ -1093,28 +1072,15 @@
     Array.prototype.forEach.call(list.children, function (c) { c.classList.remove('sel'); });
     card.classList.add('sel');
     $('c3-err').classList.add('hide');
-    var book = isBookDraft();
-    $('c3-steps').innerHTML = stepsHtml(1, book);
-    $('c3-go').textContent = tc(book ? 'creation.world.openbook' : 'creation.world.next');
+    $('c3-steps').innerHTML = stepsHtml(1);
+    $('c3-go').textContent = tc('creation.world.next');
   }
-  /* 屏 1 · 择界（册168 首屏）→ tab 世界走立名；书世界走先睹（读第一章 = 流程第二步） */
-  function isBookDraft() {
-    var e = SQ.Worlds[draft.worldId];
-    return !!(e && e.pack && e.pack.worldView === 'book');
-  }
-  /* 册168：rollHao 随 c2 诨号屏退役——候选抽选在书件内 */
+  /* 册214（P1）：`isBookDraft()` 随书形态退役——武侠回 tab 世界流，择界后与修仙同走「立名 → 观天赋」。
+   * 册168：rollHao 随 c2 诨号屏退役——候选抽选在书件内 */
   function goFromC3() {
     if (!draft.worldId) {
       $('c3-err').textContent = tc('creation.world.noPick');
       $('c3-err').classList.remove('hide');
-      return;
-    }
-    if (isBookDraft()) {
-      SQ.UI.wuxia.actPreview(null, draft.worldId, {
-        creation: true,
-        onEnter: function (hao) { confirmBookCreation(hao); },
-        onClose: function () { show('c3'); renderC3(); }
-      });
       return;
     }
     show('c1');
@@ -2921,7 +2887,7 @@
     if (tickTimer) return;
     tickTimer = setInterval(async function () {
       if (!$('modal-choice').classList.contains('hide')) return; /* 选择模态期间暂停自动结算展示 */
-      var prev = ws() ? ws().tribulation.attempts : 0;
+      var prev = (!ws() || shellOf()) ? 0 : ws().tribulation.attempts;   /* 主壳世界无修仙渡劫面（册214） */
       var keep = document.querySelector('.tabbody') ? document.querySelector('.tabbody').scrollTop : 0;
       /* 输入闸（GitHub issue #5 · 用户报「融合坛自定义名输入框无法输入文字，点击后很快丢失焦点」）：
        * renderAll() 把当前页整块 innerHTML 重建 ⇒ 正在打字的 <input> 换成新节点，焦点被抢、字一起丢。
@@ -2929,11 +2895,13 @@
       var ae = document.activeElement;
       var typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
       try {
-        /* 书形态：结算照跑（修炼时钟不停），渲染只刷书的状态行——九页 renderAll / 劫前快照 /
-         * 呈报弹层族都不进书形态（叙事引擎 §八：离线只结算数值与指针，不打扰）。 */
-        if (isBookMode()) {
+        /* 自定义主壳（册214 · P1）：结算照跑（修炼时钟不停），渲染只刷主壳——
+         * 九页 renderAll 读修仙字段（tribulation/eventHistory 等），不进主壳世界。 */
+        var sh0 = shellOf();
+        if (sh0) {
           await SQ.claim(state);
-          SQ.UI.wuxia.refreshReal(ctx());
+          if (sh0 === 'wuxiaHome' && SQ.UI.wuxiaHome) SQ.UI.wuxiaHome.refresh(ctx());   /* 静态引用（D14）；通用兜底下行 */
+          else if (SQ.UI[sh0]) SQ.UI[sh0].refresh(ctx());
           return;
         }
         SQ.UI.trib.snap(ctx());           /* 劫前成算/损失快照（F7 复盘行） */
@@ -2955,23 +2923,25 @@
     }, 1000);
   }
   /* 回到前台立刻补一帧（tick 里 document.hidden 那支跳过的渲染在这里接回来）——
-   * 书形态只刷书的状态行，九页 renderAll 不进书（册163）。监听体保持一句（D15①）。 */
+   * 主壳世界只刷主壳容器，九页 renderAll 不进（册214）。监听体保持一句（D15①）。 */
   function redrawFrame() {
     if (document.hidden || !ws()) return;
-    if (isBookMode()) { SQ.UI.wuxia.refreshReal(ctx()); return; }
+    var sh1 = shellOf();
+    if (sh1) { if (sh1 === 'wuxiaHome' && SQ.UI.wuxiaHome) SQ.UI.wuxiaHome.refresh(ctx()); else if (SQ.UI[sh1]) SQ.UI[sh1].refresh(ctx()); return; }
     _mods = null; renderAll();
   }
   document.addEventListener('visibilitychange', function () { redrawFrame(); });
 
   /* ── MAIN 入口 ── */
-  /* 书形态判定（册163 · S3-c）：活跃世界的 pack 声明 worldView==='book' ⇒ 主界面走书，
-   * 九页 tab 与右栏全部不出现（叙事引擎 §一「主界面 = 一册可翻的线装书」）。 */
-  function isBookMode() {
+  /* 自定义主壳判定（册214 · P1 契约改版）：活跃世界的 pack 声明 `shell:'件名'` ⇒ 主界面走该件
+   * 渲染的主壳（书形态的 worldView 标记已退役——`shell` 只指**件名**，核内零世界 id 点名）。 */
+  function shellOf() {
     var e = SQ.Worlds[(state.profile || {}).worldId];
-    return !!(e && e.pack && e.pack.worldView === 'book');
+    var sh = (e && e.pack && e.pack.shell) || null;
+    return (sh && SQ.UI[sh]) ? sh : null;
   }
   function enterMain() {
-    if (isBookMode()) return enterBook();
+    if (shellOf()) return enterShellHome(shellOf());
     ui.lastAttempts = ws().tribulation.attempts;
     /* 基线对齐当前存档：进场前（含离线结算）已产生的叙事/日志视为已读，
        只对本次会话内新增的亮红点——离线那批由「出关呈报」浮层交代 */
@@ -3007,14 +2977,15 @@
     startTick();
   }
 
-  /* ── 书形态主界面（册163 · S3-c）：主界面 = 一册书，九页 tab 与右栏不出现 ──────────
-   * 基线只对齐 tick 需要的最小集（报错去重签名）；红点族 / 离线呈报 / 公告全部不进书形态
-   * （离线提要等价物随打磨批落——回归时书自己接着写，不打扰）。 */
-  function enterBook() {
+  /* ── 自定义主壳（册214 · P1）：主界面 = 世界自己的家（`pack.shell` 指名的 view 件渲染），
+   * 九页 tab 与右栏不进主壳世界。基线只对齐 tick 需要的最小集（报错去重签名）；
+   * 红点族 / 离线呈报 / 公告是修仙面，不进主壳。（书形态 enterBook 同位退役——同一形状换了通用契。） */
+  function enterShellHome(sh) {
     ui.tickErrSeen = '';
-    $('sc-main').classList.add('bookmode');
-    $('book-main').classList.remove('hide');
-    if (SQ.UI.wuxia && SQ.UI.wuxia.mountReal) SQ.UI.wuxia.mountReal(ctx());
+    $('sc-main').classList.add('shellmode');
+    $('shell-main').classList.remove('hide');
+    if (sh === 'wuxiaHome' && SQ.UI.wuxiaHome && SQ.UI.wuxiaHome.mount) SQ.UI.wuxiaHome.mount(ctx());   /* 静态引用（D14） */
+    else if (SQ.UI[sh] && SQ.UI[sh].mount) SQ.UI[sh].mount(ctx());
     show('main');
     checkIo();
     startTick();

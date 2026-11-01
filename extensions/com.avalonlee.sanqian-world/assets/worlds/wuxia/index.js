@@ -1,16 +1,14 @@
-/* assets/worlds/wuxia/index.js — 武侠世界包编排层（S1-a 骨架 · 册154）
+/* assets/worlds/wuxia/index.js — 武侠世界包编排层（S1-a 骨架 · 册154；**册214 改造 P1 · 契约改版**）
  *
  * 契约（工程规范 §2.2）：worldId / data / lexicon / initialState() / normalize(raw) / claim(ws,dt,now,profile,settings)
  *   + 引擎取数口（recalcDerived / rateOf / capOf / powerOf / artsMap）。
  *
- * ⚠️ 本批**只立契约骨架，不接玩法**（`status:'coming'` ⇒ 不可投生 ⇒ 下列入口在生产路径上永不被调用）。
- *   真正填内容的批：S1-b 数值与武学（REALMS/ARTS + 破关 + 产出）· S2 事件池/地界/人物 · S3 干预与墨厄。
- *
- * 三条设计纪律（正典出处见 docs/武侠世界/）：
- *   1. **双时钟**（数值与经济 §二）：`worldDay` 只由叙事推进，**不随现实秒走**——第一世界 `calYear`
- *      那套「1 现实秒 = 1 游戏日」在此**刻意不实现**（照搬会让一章跨四个月、一局跨 120 年）。
- *   2. **数值不上屏**（叙事引擎 §一）：本包的数值只服务两件事——选项生成门槛与附录可查。
- *   3. **`claim` 本批为空**：无挂机产出、无事件触发。空实现不是偷懒，是「不投生就零副作用」的保证。
+ * **册214（P1 契约改版）**：书形态退役——`worldView:'book'` 与 `pack.narrative` 整族（chapter/render/
+ *   advance/annotate/autoPick/offlineCatchup）摘除；存档摘 `ink`/`discord`/`narrative.*` 三键（normalize
+ *   摘键 = 旧档读入即剪、二次 normalize 不复活）；`settings.offlineStory` 闸随离线写书退役。
+ *   世界改为常规冒险放置 RPG（正典 = docs/武侠世界/放置RPG改造方案.md）：claim 纯数值推进
+ *   （功力产出/封顶/破关/修习练习度），界面走 tab 主壳（view/wuxia-home.js，P1 骨架）。
+ *   EVENTS/KNOTS 数据表与词表**原样保留**——它们是 P3 闯荡与 P5 世界事件层的直接原材料（不是废件）。
  *
  * 词表纪律：本文件禁止裸中文字面量（中文只出现在注释里）；文案一律走 `SQ.t(key, vars, 'wuxia')`。
  */
@@ -19,8 +17,7 @@
   var W = SQ.Worlds.wuxia;
   var D = SQ.WDATA;
 
-  /* ── 常量（与正典数值一一对应；S1-b 起由 data.js 驱动，本处只留骨架期缺省）──────── */
-  var INK_CAP_V1 = 2;          /* 卷一墨上限（干预与代价 §二：卷一 2 / 二~四 3 / 五~七 4 / 八~十 5） */
+  /* ── 常量 ──────────────────────────────────────────────────────────────────── */
   var PLACE_START = 'luoyang'; /* 开局地界（人物与地方 §四，首发 10 之一） */
   var GEAR_SLOTS = ['weapon', 'ranged', 'armor', 'boots'];  /* 兵器 / 暗器 / 护身 / 鞋履 */
 
@@ -40,13 +37,12 @@
     for (var i = 0; i < GEAR_SLOTS.length; i++) g[GEAR_SLOTS[i]] = null;
     return g;
   }
-  function blankInk() { return { n: INK_CAP_V1, carry: 0 }; }
   function blankPersona() { return { xia: 0, kuang: 0, du: 0 }; }
-  function blankNarrative() { return { arcId: 'arc1', chapNo: 1, beatNo: 0, cache: [], gapMark: [] }; }
   function blankHeritage() { return { gen: 1, inherited: [] }; }
 
-  /* ── 存档初始值（字段表 = docs/武侠世界/数值与经济.md §九；23 顶层键）──────────────
-   * ⚠️ 加字段必须**两处同动**（initialState ⇔ normalize）——审计 D11 判双向键集相等，只改一侧即红。 */
+  /* ── 存档初始值（字段表 = docs/武侠世界/数值与经济.md §九；P1 后 20 顶层键）────────────
+   * ⚠️ 加字段必须**两处同动**（initialState ⇔ normalize）——审计 D11 判双向键集相等，只改一侧即红。
+   * 册214 摘三键：`ink`（墨）/ `discord`（违和）/ `narrative`（书指针）随书形态退役。 */
   function initialState() {
     return {
       qi: 0,
@@ -59,8 +55,6 @@
       shelf: [],                       /* 待修习架 = 秘籍物品层（与 artsKnown 分离） */
       sect: null,
       renown: 0,
-      discord: 0,                      /* 违和 0~100 */
-      ink: blankInk(),
       persona: blankPersona(),
       place: PLACE_START,
       visited: [PLACE_START],
@@ -68,21 +62,24 @@
       stash: [],
       relations: {},
       injury: 0,                       /* 内伤 0~15；=15 即死（合卷） */
-      worldDay: 0,                     /* 叙事时钟（不随现实秒走） */
+      worldDay: 0,                     /* 游戏内天数 */
       exp: 0,                          /* 见闻值 = visited×2 + 熟人，派生落盘只为免重算 */
       debts: [],                       /* 人情债 {who, kind, what, due?}，跨代继承 */
-      narrative: blankNarrative(),
+      /* 通用项（同第一世界口径；数值与经济 §九「通用项同第一世界」的代码化——册214 P1 补齐：
+       * tab 主壳下 Log.push / claim 落盘 / 事件史读点都会碰它们，缺了即 `reading '0'` 一族崩） */
+      lastSave: 0,
+      log: [],
+      eventHistory: { lastId: null, seen: {}, feed: [] },
       heritage: blankHeritage()
     };
   }
 
   /* ── 读档清洗（缺字段补齐；非法值回落初始态）────────────────────────────────────
-   * 口径：**只补不改语义**——有值的字段一律保留原值（旧档优先），只在缺失/类型坏时回落。 */
+   * 口径：**只补不改语义**——有值的字段一律保留原值（旧档优先），只在缺失/类型坏时回落。
+   * 册214：旧档带 `ink`/`discord`/`narrative` 读入即剪（摘键纪律：二次 normalize 不复活）。 */
   function normalize(raw) {
     var p = obj(raw);
-    var ink = obj(p.ink);
     var persona = obj(p.persona);
-    var nar = obj(p.narrative);
     var her = obj(p.heritage);
     var gearIn = obj(p.gear);
     var gear = {};
@@ -117,8 +114,6 @@
       shelf: arr(p.shelf),
       sect: sect,
       renown: clampInt(p.renown, -1000, 1000, 0),
-      discord: clampInt(p.discord, 0, 100, 0),
-      ink: { n: clampInt(ink.n, 0, 5, INK_CAP_V1), carry: ink.carry === 1 ? 1 : 0 },
       persona: {
         xia: clampInt(persona.xia, -100, 100, 0),
         kuang: clampInt(persona.kuang, -100, 100, 0),
@@ -133,27 +128,12 @@
       worldDay: Math.max(0, num(p.worldDay, 0)),
       exp: Math.max(0, num(p.exp, 0)),
       debts: arr(p.debts),
-      narrative: {
-        arcId: str(nar.arcId, 'arc1'),
-        chapNo: Math.max(1, clampInt(nar.chapNo, 1, 9999, 1)),
-        beatNo: Math.max(0, clampInt(nar.beatNo, 0, 99, 0)),
-        cache: arr(nar.cache).slice(-3),        /* 主档只留 3 章，超出进侧档（叙事引擎 §三） */
-        gapMark: arr(nar.gapMark),
-        digest: (function () {
-          var dg = nar.digest;
-          if (!dg || typeof dg !== 'object') return null;   /* 离线提要（册165）：至多 8 行 + 折叠计数，主档容量红线同 cache */
-          var ls = arr(dg.lines).filter(function (x) { return typeof x === 'string'; }).slice(-8);
-          if (!ls.length && !num(dg.dropped, 0)) return null;
-          return { lines: ls, dropped: Math.max(0, Math.round(num(dg.dropped, 0))) };
-        })(),
-        arcArts: (function () {                 /* 卷首武学快照（册161）：形状完好才保留，坏档回落 null 由 advance 惰性补 */
-          var aa = nar.arcArts;
-          if (!aa || typeof aa !== 'object' || !arr(aa.artsKnown).length) return null;
-          var lv = obj(aa.artsLevels), lv2 = {};
-          for (var k in lv) lv2[k] = lv[k];
-          return { arcNo: clampInt(aa.arcNo, 1, 10, 1), artsKnown: arr(aa.artsKnown), artsLevels: lv2, artsSlots: arr(aa.artsSlots) };
-        })()
-      },
+      lastSave: num(p.lastSave, 0),
+      log: arr(p.log),
+      eventHistory: (function () {
+        var h = obj(p.eventHistory);
+        return { lastId: h.lastId != null ? h.lastId : null, seen: obj(h.seen), feed: arr(h.feed) };
+      })(),
       heritage: { gen: Math.max(1, clampInt(her.gen, 1, 99, 1)), inherited: arr(her.inherited) }
     };
   }
@@ -324,19 +304,12 @@
   }
 
   /* ── 结算入口 ────────────────────────────────────────────────────────────────
-   * claim(ws, dtMs, now, profile, settings)：只推进数值，**不生成正文**（正文由 G18 叙事层出）。
-   * 返回 {gain, broke} 供探针/冒烟断言；core 不读返回值（与第一世界同口径，安全）。
-   *
-   * ⚠️ 本界仍 `status:'coming'` ⇒ 生产路径永不进入；但函数是**真实现**而非空壳，
-   *   冒烟 E7 直接构造 ws 调用它验产出与封顶——「不可投生」不等于「逻辑可以假」。 */
+   * claim(ws, dtMs, now, profile, settings)：只推进数值（功力产出/封顶/破关/修习练习度）。
+   * 返回 {gain, broke, layers} 供探针/冒烟断言；core 不读返回值（与第一世界同口径，安全）。
+   * 册214：offlineStory 闸随离线写书退役——离线结算与在线同一份纯数值链。 */
   function claim(ws, dtMs, now, profile, settings) {
-    void now; void profile;
-    if (!ws || !isNum(dtMs) || dtMs <= 0) return { gain: 0, broke: 0 };
-    /* 离线提要闸（册165 · 叙事引擎 §八）：settings.offlineStory === true 才推进离线章——
-     * core normalize 缺省开（生产真机路径），直调测试传 {} ⇒ 关，E8/E12/E14/sim 的定值断言不受扰动。 */
-    if (settings && settings.offlineStory === true && dtMs >= OFFLINE_CHAPTER_MS) {
-      offlineCatchup(ws, dtMs, null);
-    }
+    void now; void profile; void settings;
+    if (!ws || !isNum(dtMs) || dtMs <= 0) return { gain: 0, broke: 0, layers: 0 };
     ws.exp = expOf(ws);
     var before = isNum(ws.qi) ? ws.qi : 0;
     var broke = 0;
@@ -390,404 +363,9 @@
     return null;
   }
 
-  /* ── 正文渲染（S1-d · 数值→文学三条规则的落点）────────────────────────────────
-   * render(chapterResult, ws) → { lines:[中文…], fork }
-   * 纯函数：模板选择用 chapterResult.meta.seed；**不调 Math.random**；不写档。
-   *
-   * 三条硬规则（数值与经济 §九）在这里兑现：
-   * ① 够不着的门槛不显示数字，只给「回声」（pool.echo.*，如「总觉得还差着一重火候」）；
-   * ② 每章至多一个 ※（chapter 已保证，render 不追加）；
-   * ③ 门槛须可推断 → think 节必带 {p1} 功力措辞（五档：已满/只差一口气/过半/三成/初起）。 */
-  function tw(key) { return SQ.t(key, null, 'wuxia'); }
-
-  function progWord(ws) {
-    var r = ws.realm | 0;
-    var nx = realmRow(r + 1);
-    if (!nx) return tw('pool.prog.100');
-    var ratio = isNum(ws.qi) ? ws.qi / nx.need : 0;
-    var k = ratio >= 1 ? 100 : ratio >= 0.75 ? 75 : ratio >= 0.5 ? 50 : ratio >= 0.25 ? 25 : 0;
-    return tw('pool.prog.' + k);
-  }
-  function moodWord(ws) {
-    var dis = ws.discord || 0;
-    if (dis >= 100) return tw('pool.mood.discord2');
-    if (dis >= 60) return tw('pool.mood.discord');
-    if ((ws.injury || 0) > 0) return tw('pool.mood.hurt');
-    return tw('pool.mood.calm');
-  }
-  /* {who} 取人：本地界桥段的在场人物优先（读者已认知），否则用通称「那人」——绝不凭空造名 */
-  function whoWord(ws, seed) {
-    var ks = knotsAt(ws.place);
-    var pool = [];
-    for (var i = 0; i < ks.length; i++) {
-      var cl = ks[i].cast || [];
-      for (var j = 0; j < cl.length; j++) pool.push(cl[j]);
-    }
-    if (!pool.length) return tw('pool.who.fallback');
-    var id = pool[seed % pool.length];
-    var name = tw('cast.' + id + '.name');
-    return (!name || name.indexOf('cast.') === 0) ? tw('pool.who.fallback') : name;
-  }
-
-  var TPL_N = { scene: 8, action: 12, talk: 10, event: 8, gain: 6, think: 6, cliff: 6, fork: 4 };
-
-  function renderBeat(beat, ws, seed) {
-    var n = TPL_N[beat.type] || 1;
-    var key = 'tpl.' + beat.type + '.' + (((seed + (beat.no || 1) * 17) % n) + 1);
-    var vars = {
-      zone: tw('zone.' + (ws.place || PLACE_START) + '.name'),
-      scene: (beat.type === 'scene') ? tw(beat.ref) : '',
-      who: whoWord(ws, seed + (beat.no || 1) * 7),
-      p1: progWord(ws),
-      mood: moodWord(ws)
-    };
-    var txt = SQ.t(key, vars, 'wuxia');
-    if (txt === key || !txt) return null;    /* 缺模板 = 裸键，宁可少一句也不把键名印在纸上 */
-    if (beat.type === 'think') {
-      /* 规则①：门槛差得多时追加回声（不显示数字） */
-      var r = ws.realm | 0, nx = realmRow(r + 1);
-      if (nx && isNum(ws.qi) && ws.qi < nx.need * 0.75) {
-        var echoKey = (ws.relations && Object.keys(ws.relations).length >= 3) ? 'pool.echo.bond' : 'pool.echo.realm';
-        txt += tw(echoKey);
-      }
-    }
-    return txt;
-  }
-
-  function render(ch, ws) {
-    if (!ch || !ch.beats || !ch.beats.length) return { lines: [], fork: null };
-    var seed = (ch.meta && isNum(ch.meta.seed)) ? ch.meta.seed : 1;
-    var lines = [];
-    for (var i = 0; i < ch.beats.length; i++) {
-      var line = renderBeat(ch.beats[i], ws, seed);
-      if (line) lines.push(line);
-    }
-    /* 心境是状态不是随机文案：非平静（违和/内伤）时**稳定追加**章尾心境句——
-     * 不靠模板命中（初稿只挂 think.1 的 {mood}，散列下未必选中，E11 抓到）。
-     * 平静态不加：免得每章都念一遍「心无挂碍」。 */
-    var mood = moodWord(ws);
-    if (mood !== tw('pool.mood.calm')) lines.push(mood);
-    return { lines: lines, fork: ch.fork || null };
-  }
-
   /* ── 数据表访问口（S1-b）────────────────────────────────────────────────────────
    * 引擎按契约读 `pack.arts` / `pack.realms`；武学 id → 记录的索引也在这里建一次，
-   * 供功谱页与叙事层按 id 取品阶/性质（避免每处都遍历 396 条）。
-   * ⚠️ 审计 A9 只扫 live 世界，但**表一旦有消费方才谈得上"活"**——这里就是那唯一消费口。 */
-  /* ── G18 叙事编排层（可选契约的第一份实现 · 册157 S2-a）─────────────────────────
-   * 契约（工程规范 §2.2）：`chapter(ws, pack, ctx) → { beats, fork, meta }`，**纯函数**——
-   *   同一 ws + 同一章号 ⇒ 同一章（用章号做确定性「伪随机」，绝不调用 Math.random）。
-   *   件内**不挂定时器**：打字机与翻页属 view 层。
-   *
-   * 本节只做**骨架**：按章号 + 当前地界从 EVENTS 取节，按固定章骨架排布，遇到条件满足的
-   *   KNOTS 就在章末置一个分岔（2~3 支，带数值门槛）。**不生成正文**（正文是 S1-d 的事）。
-   *
-   * 章骨架（叙事引擎 §五）：scene → [action|talk]×2~3 → [event|gain]? → fork? → cliff
-   * 分岔规则（§七）：每章 ≤1 个 ※；**必须含一个保守项**（退/忍/不动）⇒ 任何数值下都有得选。
-   */
-  var CHAPTER_BEATS = 5;   /* 4~6 节的中位；首 scene 末 cliff 固定 */
-
-  function seedOf(n) {            /* 确定性散列：章号 → 32 位整数 */
-    var x = (n * 2654435761) >>> 0;
-    x ^= x >>> 15; x = (x * 2246822519) >>> 0;
-    return x >>> 0;
-  }
-  function pick(list, seed, salt) {
-    if (!list || !list.length) return null;
-    return list[(seed + salt * 131) % list.length];
-  }
-
-  function eventsAt(place) {
-    var all = (D && D.EVENTS) || [];
-    var hit = [];
-    for (var i = 0; i < all.length; i++) if (all[i].z === place) hit.push(all[i]);
-    return hit;
-  }
-  function knotsAt(place) {
-    var all = (D && D.KNOTS) || [];
-    var hit = [];
-    for (var i = 0; i < all.length; i++) if (all[i].z === place) hit.push(all[i]);
-    return hit;
-  }
-  /* 门槛判定：need 里的每一项都要过（realm / artsMin / silver）——这是「养决定有没有得选」的落点 */
-  function meetNeed(ws, need) {
-    if (!need) return true;
-    if (need.realm != null && (ws.realm | 0) < need.realm) return false;
-    if (need.silver != null && (ws.stones || 0) < need.silver) return false;
-    if (need.artsMin != null && maxLayer(ws) < need.artsMin) return false;
-    return true;
-  }
-  /* 分支可用性：桥段整体进了（meetNeed 过），但**支上还可能各有门槛** */
-  function branchOpen(ws, br) { return meetNeed(ws, br && br.req); }
-
-  function chapter(ws, pk, ctx) {
-    void pk; void ctx;
-    var nar = (ws && ws.narrative) || {};
-    var no = nar.chapNo || 1;
-    var place = ws.place || PLACE_START;
-    var seed = seedOf(no * 97 + place.length);
-    var evs = eventsAt(place);
-    var zrow = null, scenesLen = 1;
-    var ZL = (D && D.ZONES) || [];
-    for (var zi = 0; zi < ZL.length; zi++) if (ZL[zi].i === place) { zrow = ZL[zi]; scenesLen = Math.max(1, (zrow.scenes || [1]).length); break; }
-    var beats = [];
-    /* scene 节：场景按章号散列从本地界的 2~4 个子场景里挑（不是永远第一个） */
-    beats.push({ type: 'scene', ref: 'scene.' + place + '.' + ((seed % scenesLen) + 1), no: 1 });
-
-    /* 中段：从本地界事件池取 3 节（类型照事件的 kind），一个章内不重复 */
-    var used = {};
-    for (var i = 0; i < 3; i++) {
-      var ev = pick(evs, seed, i + 1);
-      var guard = 0;
-      while (ev && used[ev.i] && guard++ < evs.length) ev = pick(evs, seed + guard, i + 7);
-      if (!ev) continue;
-      used[ev.i] = 1;
-      beats.push({ type: ev.kind === 'scene' ? 'talk' : ev.kind, ref: 'event.' + ev.i + '.name', no: beats.length + 1 });
-    }
-    /* 收尾前后各一节：所得/心念 + 悬念 */
-    beats.push({ type: 'think', ref: 'think.self.' + ((seed % 3) + 1), no: beats.length + 1 });
-    beats.push({ type: 'cliff', ref: 'cliff.' + place, no: beats.length + 1 });
-
-    /* 分岔：本章若有**条件满足的桥段**，取其可用分支置一个 ※（最多一个）
-     * 档位（册161 · 干预与代价 §五）：**`watch`（旁观/不动）= 0 墨**——那是主角自己的选择，
-     * 没有落笔；其余支 = 「改」**3 墨**（指定本分岔走哪支，违和 +5 由 advance 账目扣）。
-     * 注意按**分支语义**判免费（watch 在 KNOTS 里位置不固定，knot_lvzhu 首支就是 probe）。
-     * 行为类分支带性格轴微调（help=侠 / defy=狂放 / join=结义，±4 落在「批注 ±2~5」与
-     * 「重大剧情 ±10~20」之间的中间档）。 */
-    var fork = null;
-    var ks = knotsAt(place);
-    var AXIS_BY_K = { help: { xia: 4 }, defy: { kuang: 4 }, join: { du: 4 } };
-    for (var k = 0; k < ks.length && !fork; k++) {
-      var kn = ks[k];
-      if (!meetNeed(ws, kn.need)) continue;
-      var opts = [];
-      for (var b = 0; b < kn.br.length; b++) {
-        if (!branchOpen(ws, kn.br[b])) continue;      /* 够不着的分支不生成（不是灰掉） */
-        opts.push({ k: kn.br[b].k, label: kn.br[b].label, ink: (kn.br[b].k === 'watch' ? 0 : 3), axis: AXIS_BY_K[kn.br[b].k] || null });
-      }
-      /* 保守项兜底：桥段整体可进但支全被门槛挡掉时，也要留「旁观」这一支 */
-      if (!opts.length) opts.push({ k: 'watch', label: 'knot.' + kn.i + '.watch', ink: 0, axis: null });
-      fork = { knot: kn.i, title: 'knot.' + kn.i + '.name', act: kn.act, opts: opts };
-    }
-    /* 章节点数夹到 4~6（骨架固定，超出削中段） */
-    if (beats.length > CHAPTER_BEATS + 1) beats = beats.slice(0, CHAPTER_BEATS + 1);
-    return { beats: beats, fork: fork, meta: { chapNo: no, place: place, seed: seed } };
-  }
-
-  /* ── 章推进 advance(ws, opt, ctx)（S3-a · 册160）──────────────────────────────
-   * 翻过一章的**数值面**——正文由 chapter()/render() 出，本函数只管账：
-   *   ① 落笔（opt 非 null 且 opt.ink > 0）：扣墨；违和按成本入账（批 1 墨 +1 ｜ 改 3 墨 +5 ｜
-   *      删 8 墨 +20——本批只有 1/3 两档成本，8 档随 S3-b「删」解锁）。墨不够 = 落不了笔，
-   *      返回 { err:'ink' }，**不改任何状态**（事务性：要么整笔落要么不动）。
-   *   ② 叙事时钟：worldDay +1~3 日（章号确定性散列，不调 Math.random）。
-   *   ③ 违和自然消退 −1（每完结一章，干预与代价 §三；零干预路线因此恒 0）。
-   *   ④ 卷末事务（完结章号整除卷长）：卷间跳跃 +540~1080 日（约 1.5~3 年，幕数散列）、
-   *      墨回满（上限按卷 2/3/3/3/4/4/4/5/5/5，结转 ≤1 与里程碑 +2 都夹在上限内）。
-   *   ⑤ 卡点窗口投放（数值与经济 §五「事件不需要多，只需出现在卡点上」）：卷内完结第 7/17 章
-   *      各投放一笔事件功力，金额 = 卷预算（ARC_GAIN）对半拆；**受封顶约束**——心境不满时
-   *      功力停在下一档阈值，事件也越不过心境（与挂机同一条封顶）。
-   * 纯函数纪律同 chapter()：不调 Math.random、不读实时钟、只写传入 ws。
-   * 返回读数 { chapNo, arcNo, gain, day, discord, ink } 供仿真/冒烟断言。 */
-  var ARC_CHAPS = 20;   /* 卷长：定种口径 = 10 卷 × 20 章（数值与经济 §十；18~24 的中位） */
-  /* 违和按落笔成本入账（干预与代价 §三：批 +1 / 改 +5 / 删 +20——删的成本册161 勘正 8→4，
-   * 8 与墨上限表矛盾（卷五~八上限 4/5）永不买得起；8 保留映射为兼容旧读法。 */
-  var DISCORD_BY_INK = { 1: 1, 3: 5, 4: 20, 8: 20 };
-
-  function arcOf(chapNo) { return Math.min(10, Math.floor(((chapNo || 1) - 1) / ARC_CHAPS) + 1); }
-  /* 墨上限按卷解锁（干预与代价 §二：卷一 2 / 二~四 3 / 五~七 4 / 八~十 5，度量感情不按等级） */
-  function inkCapOf(arc) { return arc <= 1 ? 2 : arc <= 4 ? 3 : arc <= 7 ? 4 : 5; }
-
-  /* 卷首武学快照：墨厄「失去本卷已得武学」的回退点（册161）。挂在 narrative 内层——
-   * D11 只对账顶层键集，叙事内件不占顶层账；normalize 照常保留。 */
-  function snapArts(ws, arc) {
-    var lv = obj(ws.artsLevels), lv2 = {};
-    for (var k in lv) lv2[k] = lv[k];
-    return { arcNo: arc, artsKnown: arr(ws.artsKnown), artsLevels: lv2, artsSlots: arr(ws.artsSlots) };
-  }
-  /* 墨厄重罚（干预与代价 §三 ≥100）：本卷重写（章号退回卷首）· 本卷所得武学散尽（回到卷首快照）
-   * · 性格三轴回弹 30%（×0.7 取整）· 违和清零（重写 = 本卷落笔一并作废）。
-   * 叙事时钟不回拨——世界照常走，重写的是「这一卷怎么写」不是「日子倒流」。 */
-  function moeRewind(ws) {
-    var cur = (ws.narrative && ws.narrative.chapNo) || 1;
-    var volStart = Math.floor((cur - 1) / ARC_CHAPS) * ARC_CHAPS + 1;
-    var snap = ws.narrative && ws.narrative.arcArts;
-    if (snap && snap.artsKnown) {
-      ws.artsKnown = arr(snap.artsKnown);
-      var lv = obj(snap.artsLevels), lv2 = {};
-      for (var k in lv) lv2[k] = lv[k];
-      ws.artsLevels = lv2;
-      ws.artsSlots = arr(snap.artsSlots);
-    }
-    var p = ws.persona || (ws.persona = { xia: 0, kuang: 0, du: 0 });
-    p.xia = Math.round((p.xia || 0) * 0.7);
-    p.kuang = Math.round((p.kuang || 0) * 0.7);
-    p.du = Math.round((p.du || 0) * 0.7);
-    ws.discord = 0;
-    ws.narrative.chapNo = volStart;
-    ws.narrative.beatNo = 0;
-    ws.ink = { n: inkCapOf(arcOf(volStart)), carry: 0 };
-    return volStart;
-  }
-
-  function advance(ws, opt, ctx) {
-    void ctx;
-    if (!ws || !ws.narrative) return { err: 'nows' };
-    var nar = ws.narrative;
-    if (!nar.arcArts) nar.arcArts = snapArts(ws, arcOf(nar.chapNo || 1));   /* 惰性卷首快照（旧档缺省） */
-    var cur = nar.chapNo || 1;
-    if (cur > ARC_CHAPS * 10) return { ended: 1, chapNo: cur };   /* 十卷完 ⇒ 合卷（合卷去向 S2 末尾批） */
-    /* ① 落笔：墨不够整笔回绝，够则一次扣清并入账违和与性格轴 */
-    var cost = (opt && isNum(opt.ink) && opt.ink > 0) ? opt.ink : 0;
-    if (cost > 0) {
-      var ink = ws.ink || { n: 0, carry: 0 };
-      if (!isNum(ink.n) || ink.n < cost) return { err: 'ink', need: cost, have: ink.n || 0 };
-      ink.n -= cost;
-      if (opt.axis && typeof opt.axis === 'object') {
-        var p0 = ws.persona || (ws.persona = { xia: 0, kuang: 0, du: 0 });
-        for (var ak in opt.axis) {
-          if (ak === 'xia' || ak === 'kuang' || ak === 'du') {
-            p0[ak] = clampInt((p0[ak] || 0) + (opt.axis[ak] || 0), -100, 100, p0[ak] || 0);
-          }
-        }
-      }
-      var dis = DISCORD_BY_INK[cost] || cost;
-      ws.discord = clampInt((ws.discord || 0) + dis, 0, 100, ws.discord || 0);
-      if (ws.discord >= 100) {           /* 墨厄（干预与代价 §三 ≥100）：本章完结前落笔即成，重罚立刻生效 */
-        moeRewind(ws);
-        return { mo: 1, chapNo: ws.narrative.chapNo, discord: 0 };
-      }
-    }
-    /* ② 叙事时钟：章内 0.5~3 日（正文一屏一日的体感），章号散列定日 */
-    var day = 1 + (seedOf(cur) % 3);
-    ws.worldDay = Math.max(0, (ws.worldDay || 0)) + day;
-    /* ③ 违和消退 + ④ 卷末事务 */
-    ws.discord = Math.max(0, (ws.discord || 0) - 1);
-    var arc = arcOf(cur);
-    var volEnd = (cur % ARC_CHAPS === 0);
-    var jumped = 0;
-    if (volEnd && cur < ARC_CHAPS * 10) {
-      jumped = 540 + (seedOf(cur * 13) % 541);       /* 卷间跳 1.5~3 年 */
-      ws.worldDay += jumped;
-      arc = arcOf(cur + 1);
-      /* 墨上限换卷（度量感情）：新卷回满到新上限；结转位只记「上一章省下了」，
-       * 节俭奖励的具体形态 S3-b 定——上限本身永不超（干预与代价 §二）。 */
-      var cap = inkCapOf(arc);
-      var leftover = isNum(ws.ink && ws.ink.n) ? ws.ink.n : 0;
-      ws.ink = { n: cap, carry: Math.min(1, leftover) };
-      nar.arcArts = snapArts(ws, arc);               /* 卷首快照：墨厄「失去本卷已得武学」的回退点 */
-    } else {
-      /* 每章开头回满（干预与代价 §二）；carry = 上一章是否未落笔（节俭记录位） */
-      var cap2 = inkCapOf(arc);
-      ws.ink = { n: cap2, carry: cost > 0 ? 0 : 1 };
-    }
-    /* ⑤ 卡点窗口投放：卷内第 7/17 章完结时各投一笔（预算对半拆，金额确定性） */
-    var inVol = ((cur - 1) % ARC_CHAPS) + 1;
-    var gain = 0;
-    if (inVol === 7 || inVol === 17) {
-      var vol = arcOf(cur) - 1;
-      var G = (D && D.ARC_GAIN) || [];
-      var budget = isNum(G[vol]) ? G[vol] : 0;
-      if (budget > 0) {
-        var amt = inVol === 7 ? Math.ceil(budget / 2) : budget - Math.ceil(budget / 2);
-        var capN = capOf(ws);
-        if (isNum(ws.qi) && ws.qi < capN) {
-          var beforeQ = ws.qi;
-          ws.qi = Math.min(capN, beforeQ + amt);
-          gain = ws.qi - beforeQ;
-        }
-      }
-    }
-    nar.chapNo = cur + 1;
-    nar.beatNo = 0;
-    return { chapNo: cur, arcNo: arcOf(cur), gain: gain, day: day + jumped, discord: ws.discord || 0, ink: ws.ink.n };
-  }
-
-  /* ── 批注 annotate(ws, note, ctx)（S3-b · 册161）──────────────────────────────
-   * 页边一句念头（干预与代价 §一「批」/ §五「参与」）：**1 墨 + 违和 +1 + 性格轴微调 ±2~5**。
-   * note = { axis:'xia'|'kuang'|'du', d:±3 }。事务性同 advance：墨不够整笔回绝、零状态变更。
-   * 不在此处消退违和——消退挂章完结（advance）；批注每章一次也净 0，与「参与不累积代价」同向。
-   * 违和到 100 同样触发墨厄（落笔即成，不等章完结）。 */
-  function annotate(ws, note, ctx) {
-    void ctx;
-    if (!ws || !ws.narrative || !ws.ink) return { err: 'nows' };
-    var ax = note && note.axis;
-    var d = isNum(note && note.d) ? note.d : 0;
-    if (ax !== 'xia' && ax !== 'kuang' && ax !== 'du') return { err: 'note' };
-    if (!d) return { err: 'note' };
-    if (!ws.narrative.arcArts) ws.narrative.arcArts = snapArts(ws, arcOf(ws.narrative.chapNo || 1));
-    if (!isNum(ws.ink.n) || ws.ink.n < 1) return { err: 'ink', need: 1, have: ws.ink.n || 0 };
-    ws.ink.n -= 1;
-    ws.ink.carry = 0;
-    ws.discord = clampInt((ws.discord || 0) + 1, 0, 100, ws.discord || 0);
-    var p = ws.persona || (ws.persona = { xia: 0, kuang: 0, du: 0 });
-    p[ax] = clampInt((p[ax] || 0) + d, -100, 100, p[ax] || 0);
-    if (ws.discord >= 100) {
-      moeRewind(ws);
-      return { mo: 1, chapNo: ws.narrative.chapNo, discord: 0, ink: ws.ink.n };
-    }
-    return { ink: ws.ink.n, discord: ws.discord || 0 };
-  }
-
-  /* ── 默认选择 autoPick（S3-c · 册165 · 叙事引擎 §七）──────────────────────────
-   * 无干预时主角按性格三轴自动选——「书自己在写」。确定性打分（同 ws + 同 fork ⇒ 同选择）：
-   *   score(opt) = 0.4 × personaFit + rand(−15, 15)（seed 取章号散列；feasible/relationTilt
-   *   两项在支级门槛已过滤、人物亲疏未建的现状下恒满/零，留位随关系批接）
-   * personaFit = Σ(axis[k] × persona[k]) / 40——侠轴 +80 时「相助」（axis xia+4）≈ +8，
-   *   正向占优但随机项可翻 ⇒ 性格是倾向不是锁死。保守项 axis 为 null ⇒ fit 0。
-   * 返回选中的 opt（含保守项）；无 fork 返回 null。 */
-  function autoPick(ws, fork, ctx) {
-    void ctx;
-    if (!fork || !fork.opts || !fork.opts.length) return null;
-    var p = (ws && ws.persona) || { xia: 0, kuang: 0, du: 0 };
-    var seed = seedOf(((ws.narrative && ws.narrative.chapNo) || 1) * 31 + fork.knot.length * 7);
-    var rand = (seed % 31) - 15;                       /* −15~+15，确定性 */
-    var best = null, bestScore = -1e9;
-    for (var i = 0; i < fork.opts.length; i++) {
-      var o = fork.opts[i];
-      var fit = 0;
-      if (o.axis) {
-        for (var k in o.axis) {
-          if (k === 'xia' || k === 'kuang' || k === 'du') fit += (o.axis[k] || 0) * (p[k] || 0);
-        }
-        fit = fit / 40;
-      }
-      if (o.ink > 0) fit -= o.ink * 2;                 /* 无干预的主角不倾向花墨的重笔（改 3 墨 −6） */
-      var score = 0.4 * fit + rand + i * 0.01;         /* 微小位次偏置 = 并列时取先 */
-      if (score > bestScore) { bestScore = score; best = o; }
-    }
-    return best;
-  }
-
-  /* ── 离线提要 offlineCatchup（S3-c · 册165 · 叙事引擎 §八）──────────────────────
-   * 不在线时只结算数值与指针，不生成正文：按 36 现实分钟/章推进（与在线阅读节奏同源），
-   * 分岔走 autoPick（书自己在写），每章的数值面（卡点投放/违和消退/卷事务）与在线同一条 advance。
-   * 回归呈报 = ws.narrative.digest：逐章「第N章 · 地界」**至多 8 行**，超出折叠为 dropped 计数
-   * （主档容量红线同型——cache 只留 3 章，digest 只留 8 行）。
-   * 纯确定性：不调 Math.random、不读实时钟；autoPick 的选择随章号可复现。
-   * 返回 { chapters, dropped }。 */
-  var OFFLINE_CHAPTER_MS = 36 * 60000;
-  function offlineCatchup(ws, gapMs, ctx) {
-    if (!ws || !ws.narrative || !isNum(gapMs) || gapMs <= 0) return { chapters: 0, dropped: 0 };
-    var n = Math.floor(gapMs / OFFLINE_CHAPTER_MS);
-    if (n > 400) n = 400;                              /* 超长离线封顶（10 天 ≈ 全本量级；再长书也写完了） */
-    var lines = [];
-    for (var i = 0; i < n; i++) {
-      if ((ws.narrative.chapNo || 1) > ARC_CHAPS * 10) break;   /* 十卷完 ⇒ 合卷，离线不续 */
-      var ch = chapter(ws, null, {});
-      var pick = ch.fork ? autoPick(ws, ch.fork, ctx) : null;
-      if (pick && pick.ink > 0) pick = null;           /* 书自己在写不花墨：干预项只对 autoPick 降权，离线一律走免费面 */
-      var zoneName = ch.meta && ch.meta.place ? ch.meta.place : (ws.place || PLACE_START);
-      advance(ws, pick, ctx);
-      lines.push((ws.narrative.chapNo - 1) + '@' + zoneName);
-    }
-    var keep = lines.slice(-8);
-    var oldDropped = (ws.narrative.digest && ws.narrative.digest.dropped) || 0;
-    var oldLines = (ws.narrative.digest && ws.narrative.digest.lines) || [];
-    var merged = oldLines.concat(keep).slice(-8);
-    ws.narrative.digest = { lines: merged, dropped: oldDropped + (lines.length - keep.length) };
-    return { chapters: lines.length, dropped: ws.narrative.digest.dropped };
-  }
-
+   * 供功谱页与世界事件层按 id 取品阶/性质（避免每处都遍历 403 条）。 */
   function buildArtIndex() {
     var idx = {};
     var A = (D && D.ARTS) || [];
@@ -807,10 +385,12 @@
   var pack = {
     worldId: 'wuxia',
     data: D,
-    /* 界面形态标记（册163 · 叙事引擎 §一「主界面 = 一册可翻的线装书，不是 tab 页面」）：
-     * 引擎/视图读到 `worldView:'book'` ⇒ 主界面走书形态（九页 tab 不出现）。
-     * xiuxian 不声明该键 ⇒ 第一世界照走 tab，零改动。 */
-    worldView: 'book',
+    /* 册214（P1）：`worldView:'book'` 与 `pack.narrative` 整族已随书形态退役。
+     * 主界面形态改走 **`shell` 可选契约**：pack 声明 `shell:'wuxiaHome'` ⇒ 进主界面挂
+     * `SQ.UI.wuxiaHome` 渲染的自定义主壳（view/wuxia-home.js），九页 tab 不进本世界；
+     * 不声明 = 默认 tab 形态（xiuxian 零改动）。与旧 worldView 的差别：只指**件名**不指形态，
+     * 核内零世界 id 点名（D12 封闭性）。 */
+    shell: 'wuxiaHome',
     lexicon: null,                 /* 词表分卷已注册进 SQ.LEX.wuxia，此处不重复引用（避免两处同键漂） */
     initialState: initialState,
     normalize: normalize,
@@ -829,18 +409,6 @@
     manuals: (D && D.MANUALS) || [],
     events: (D && D.EVENTS) || [],
     knots: (D && D.KNOTS) || [],
-    /* G18 叙事编排层：**本界是 `pack.narrative` 可选契约的第一份实现**（工程规范 §2.2）。
-     * 第一世界不实现该键 ⇒ 引擎跳过；本界实现了 ⇒ 章生成走 `chapter()`、正文走 `render()`。 */
-    narrative: {
-      chapter: chapter,
-      render: render,
-      advance: advance,
-      annotate: annotate,
-      autoPick: autoPick,
-      offlineCatchup: offlineCatchup,
-      beatsPerChapter: CHAPTER_BEATS,
-      arcChaps: ARC_CHAPS
-    },
     artsMap: function () { return ART_INDEX; },
     attemptBreak: attemptBreak,
     canBreak: canBreak,

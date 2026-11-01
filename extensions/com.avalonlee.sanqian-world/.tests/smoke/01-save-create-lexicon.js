@@ -123,7 +123,8 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
      * 这一判钉的是**新形态**：「包已装上、但世界仍 coming 不可投生」。
      * 既有判据全都没有这一形（此前 coming ⇔ pack 恒 null），所以新立一条，而不是改旧判。
      * 三件必须同时成立：① 三入口是函数（缺一 D11 就失明）；② initialState ⇔ normalize 键集双向相等
-     * （D11 已判，这里只做冒烟级快照，让它在毫秒级的件里先红）；③ 无界名池的世界不生成随机界名。 */
+     * （D11 已判，这里只做冒烟级快照，让它在毫秒级的件里先红）；③ 无界名池的世界不生成随机界名。
+     * 册214：④ `worldView`/`narrative` 双退役见证（书形态整族摘除后键不复存在）。 */
     (function () {
       var w = SQ.Worlds.wuxia;
       var pk = w && w.pack;
@@ -132,9 +133,9 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var ini = shapes ? Object.keys(pk.initialState()) : [];
       var nul = shapes ? Object.keys(pk.normalize({})) : [];
       var same = ini.length > 0 && ini.length === nul.length && ini.every(function (k) { return nul.indexOf(k) >= 0; });
-      ok('E6', '武侠包骨架（册164 翻牌后 = live 书世界：三入口在位 ⇔ initialState/normalize 键集等 ‖ worldView=book ‖ 无界名池不生成界名）',
-        !!w && w.status === 'live' && shapes && same && !!pk.worldView && pk.worldView === 'book' && SQ.generateWorldName('wuxia') === '',
-        'status=' + (w && w.status) + ' keys=' + ini.length + ' view=' + (pk.worldView || '-') + ' name=' + JSON.stringify(SQ.generateWorldName('wuxia')));
+      ok('E6', '武侠包骨架（册214 P1 后 = live tab 世界：三入口在位 ⇔ initialState/normalize 键集等 ‖ worldView/narrative 已退役 ‖ 无界名池不生成界名）',
+        !!w && w.status === 'live' && shapes && same && !pk.worldView && !pk.narrative && SQ.generateWorldName('wuxia') === '',
+        'status=' + (w && w.status) + ' keys=' + ini.length + ' view=' + (pk.worldView || '退役') + ' narrative=' + (pk.narrative ? '在' : '退役') + ' name=' + JSON.stringify(SQ.generateWorldName('wuxia')));
     })();
 
     /* E7 · 武侠武学与门派表完整性（册155 · S1-b 全量入库）
@@ -227,188 +228,6 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 坏映射=' + (badManual.length ? badManual.join(',') : '无'));
     })();
 
-    /* E10 · 武侠剧情分支（桥段库 + 事件池 + 章生成骨架）（册157 · S2-a）
-     * 判「分支真的分得开」：① 桥段每条 ≥2 支；② cast 指向真人物、z 指向真地界（引用悬空 = 章里冒出不存在的人）；
-     * ③ 事件池覆盖全部地界；④ `chapter()` 是纯函数（同输入同输出）+ 骨架合法（首 scene 末 cliff、4~6 节）。 */
-    (function () {
-      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
-      var d = pk && pk.data;
-      if (!d || !pk.narrative) { ok('E10', '武侠剧情分支（桥段/事件/章骨架）', false, '无 narrative 契约'); return; }
-      var K = d.KNOTS || [], E = d.EVENTS || [], C = d.CAST || [], Z = d.ZONES || [];
-      var cid = {}, zid = {};
-      C.forEach(function (c) { cid[c.i] = 1; });
-      Z.forEach(function (z) { zid[z.i] = 1; });
-      var bad = [], lineN = { zheng: 0, zhong: 0, xie: 0 };
-      K.forEach(function (k) {
-        if (!(k.br || []).length || k.br.length < 2) bad.push(k.i + ' 分支<2');
-        if (!zid[k.z]) bad.push(k.i + ' 地界悬空:' + k.z);
-        (k.cast || []).forEach(function (c) { if (!cid[c]) bad.push(k.i + ' 人物悬空:' + c); });
-        (k.br || []).forEach(function (b) {
-          if (SQ.t(b.label, null, 'wuxia') === b.label) bad.push('缺名:' + b.label);
-        });
-        if (SQ.t('knot.' + k.i + '.name', null, 'wuxia') === 'knot.' + k.i + '.name') bad.push('缺名:' + k.i);
-      });
-      E.forEach(function (e) { lineN[e.line] = (lineN[e.line] || 0) + 1; if (!zid[e.z]) bad.push(e.i + ' 地界悬空'); });
-      var zCover = {};
-      E.forEach(function (e) { zCover[e.z] = 1; });
-      /* 章生成：纯函数 + 骨架 */
-      var ws = pk.normalize(pk.initialState());
-      ws.place = 'luoyang';
-      var c1 = pk.narrative.chapter(ws, pk, {}), c2 = pk.narrative.chapter(ws, pk, {});
-      var pure = JSON.stringify(c1) === JSON.stringify(c2);
-      var shape = c1.beats && c1.beats.length >= 4 && c1.beats.length <= 6 &&
-        c1.beats[0].type === 'scene' && c1.beats[c1.beats.length - 1].type === 'cliff';
-      var forkOk = !c1.fork || ((c1.fork.opts || []).length >= 1 &&
-        c1.fork.opts.every(function (o) { return SQ.t(o.label, null, 'wuxia') !== o.label; }));
-      ok('E10', '武侠剧情分支（桥段 24 各 ≥2 支 ⇔ cast/地界无悬空 ⇔ 事件池覆盖全地界 ⇔ chapter 纯函数且骨架合法）',
-        K.length >= 24 && E.length >= 96 && Object.keys(zCover).length === Z.length &&
-        bad.length === 0 && pure && shape && forkOk,
-        'knots=' + K.length + ' events=' + E.length + ' 地覆盖=' + Object.keys(zCover).length + '/' + Z.length +
-        ' 三线=' + JSON.stringify(lineN) + ' 纯=' + pure + ' 骨架=' + shape +
-        ' 分支名=' + forkOk + (bad.length ? ' ‖ ' + bad.slice(0, 3).join(' ') : ''));
-    })();
-
-    /* E11 · 武侠正文渲染（模板三层 + 数值→文学三规则）（册158 · S1-d）
-     * 判「纸上无机器」：① 60 模板全在词表；② 渲染输出**无裸键名**（'{' 残留 / 'tpl.' / 'pool.' 开头 = 把机器印在纸上）；
-     * ③ 数值→文学：功力措辞五档之一必出现、门槛回声（「火候」）在功力未足时出现、违和 ≥60 时心境缀语换档；
-     * ④ render 纯函数。 */
-    (function () {
-      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
-      var d = pk && pk.data;
-      if (!d || !pk.narrative || !pk.narrative.render) { ok('E11', '武侠正文渲染', false, '无 render 口'); return; }
-      /* ① 模板键全在词表（数一遍 tpl.*） */
-      var tplN = 0;
-      for (var k in SQ.LEX.wuxia) if (k.indexOf('tpl.') === 0) tplN++;
-      /* ②③ 渲染八个章号收集全部行 */
-      var all = [], disc = [], key = 1;
-      for (var no = 1; no <= 8; no++) {
-        var ws = pk.normalize(pk.initialState());
-        ws.place = no % 2 ? 'luoyang' : 'shaolin';
-        ws.narrative = { chapNo: no, beatNo: 0 };
-        if (no >= 6) ws.discord = 70;
-        var ch = pk.narrative.chapter(ws, pk, {});
-        var r = pk.narrative.render(ch, ws);
-        r.lines.forEach(function (ln) {
-          all.push(ln);
-          if (/\{|\}|tpl\.|pool\.|event\.|scene\./.test(ln)) key = 0;          /* 裸键名 = 红线 */
-          if (/只差一口气|过了半程|才积了三成|尚在初起|已满，只待破关/.test(ln)) disc.push('prog');
-          if (/火候/.test(ln)) disc.push('echo');
-          if (no >= 6 && /世道/.test(ln)) disc.push('mood');
-        });
-      }
-      /* ④ 纯函数 */
-      var wsP = pk.normalize(pk.initialState());
-      wsP.place = 'luoyang'; wsP.narrative = { chapNo: 3 };
-      var p1 = JSON.stringify(pk.narrative.render(pk.narrative.chapter(wsP, pk, {}), wsP));
-      var p2 = JSON.stringify(pk.narrative.render(pk.narrative.chapter(wsP, pk, {}), wsP));
-      ok('E11', '武侠正文渲染（模板 60 全在词表 ⇔ 纸上无裸键名 ⇔ 功力措辞/门槛回声/心境换档三规则可见 ⇔ render 纯函数）',
-        tplN >= 60 && all.length >= 8 * 3 && key === 1 &&
-        disc.indexOf('prog') >= 0 && disc.indexOf('echo') >= 0 && disc.indexOf('mood') >= 0 &&
-        p1 === p2 && p1.length > 100,
-        'tpl=' + tplN + ' lines=' + all.length + ' 裸键=' + (key ? '无' : '有') +
-        ' 规则=' + disc.join(',') + ' 纯=' + (p1 === p2));
-    })();
-
-    /* E12 · 武侠章推进与卡点投放（册160 · S3-a）
-     * 判「书的账本自己会走」：① ARC_GAIN 十卷预算在表（数值与经济 §五 事件行逐笔对表）；
-     * ② advance 基础事务：章号推进 / 违和消退不越 0 / 世界日按章走（1~3 日）/ 墨每章回满且上限按卷；
-     * ③ 落笔事务性：墨不够整笔回绝且**零状态变更**（err:'ink'，字节级快照对表）；
-     * ④ 卡点窗口：卷内第 7 章完结投放一笔（预算对半 = 90），且受封顶约束（心境不满时只进得来缺口）；
-     * ⑤ 十卷走完 advance 给 ended（合卷位，去向 S2 末尾批接）。 */
-    (function () {
-      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
-      var d = pk && pk.data;
-      if (!d || !pk.narrative || !pk.narrative.advance) { ok('E12', '武侠章推进', false, '无 advance 口'); return; }
-      var G = d.ARC_GAIN || [];
-      var gainRow = G.length === 10 && G.join(',') === '180,400,400,500,700,700,900,1000,1200,1800';
-      var ws = pk.normalize(pk.initialState());
-      var a1 = pk.narrative.advance(ws, null, {});
-      var day1 = ws.worldDay;
-      var a2 = pk.narrative.advance(ws, null, {});
-      var base = gainRow && a1.chapNo === 1 && a2.chapNo === 2 && ws.discord === 0 &&
-        day1 >= 1 && day1 <= 3 && ws.worldDay > day1 && ws.worldDay <= day1 + 3 &&
-        ws.ink.n === 2 && ws.narrative.chapNo === 3;
-      var snap = JSON.stringify(ws);
-      var rej = pk.narrative.advance(ws, { ink: 3 }, {});
-      var txn = !!rej && rej.err === 'ink' && JSON.stringify(ws) === snap;
-      var wsB = pk.normalize(pk.initialState());
-      var b1 = pk.narrative.advance(wsB, { ink: 1 }, {});
-      var spent = !b1.err && wsB.ink.carry === 0;        /* 落过笔：本章结转位清零（须在下一章推进前读） */
-      var b2 = pk.narrative.advance(wsB, null, {});
-      var spend = b1 && spent && wsB.ink.n === 2 && b2.ink === 2;
-      var wsC = pk.normalize(pk.initialState());
-      for (var ci = 0; ci < 6; ci++) pk.narrative.advance(wsC, null, {});
-      wsC.qi = 100;                                      /* 远离封顶：投放应足额 */
-      var g7 = pk.narrative.advance(wsC, null, {});
-      var win = g7.gain === 90;                          /* 卷一预算 180 对半 */
-      var wsD = pk.normalize(pk.initialState());
-      for (var di = 0; di < 6; di++) pk.narrative.advance(wsD, null, {});
-      wsD.qi = 380;                                      /* realm 0 封顶 = 400：90 只进得来 20 */
-      var g7b = pk.narrative.advance(wsD, null, {});
-      var capped = g7b.gain === 20 && wsD.qi === 400;
-      var wsE = pk.normalize(pk.initialState());
-      wsE.narrative.chapNo = 201;
-      var ended = pk.narrative.advance(wsE, null, {}).ended === 1;
-      ok('E12', '武侠章推进（卷预算逐笔对表 ⇔ 章事务：章号/时辰/违和消退/墨回满 ⇔ 落笔墨不够整笔回绝零变更 ⇔ 卡点窗口投放且受封顶 ⇔ 十卷完给合卷位）',
-        base && txn && spend && win && capped && ended,
-        '预算=' + (gainRow ? '对表' : '漂') + ' 基础=' + base + ' 事务=' + txn + ' 扣墨=' + spend +
-        ' 投放=' + g7.gain + ' 封顶=' + capped + '(gain=' + g7b.gain + ') 合卷=' + ended);
-    })();
-
-    /* E13 · 武侠干预系统（册161 · S3-b）
-     * 判「批书人的账」：① 分支档位：`watch`（旁观）0 墨 = 主角自选、干预支 3 墨（改，带性格轴）；
-     * ② annotate 批注：1 墨 + 违和 +1 + 三轴微调夹边，墨尽整笔回绝零状态变更，坏 note 形回绝；
-     * ③ 墨厄：违和 ≥100 ⇒ 本卷重写（章号退卷首 / arcArts 回卷首快照 = 本卷所得武学散尽 /
-     *    三轴回弹 30% / 违和清零 / 墨回新卷上限）；
-     * ④ arcArts 卷首快照随卷推进更新（墨厄回退点，narrative 内层不占顶层账）。 */
-    (function () {
-      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
-      if (!pk || !pk.narrative || !pk.narrative.annotate) { ok('E13', '武侠干预系统', false, '无 annotate 口'); return; }
-      /* ① 分支档位：luoyang + realm1 ⇒ knot_lvzhu 可进（br = [probe, watch]） */
-      var w1 = pk.normalize(pk.initialState());
-      w1.realm = 4; w1.stones = 200; w1.place = 'luoyang';   /* knot_juxian（br = watch/help带轴/flee）全开 */
-      var f = pk.narrative.chapter(w1, pk, {}).fork;
-      var free = [], paid = [];
-      (f && f.opts || []).forEach(function (o) { if (o.ink === 0) free.push(o); else if (o.ink === 3) paid.push(o); });
-      var tierOk = !!f && free.length >= 1 && paid.length >= 1 &&
-        free.every(function (o) { return o.k === 'watch'; }) &&
-        paid.some(function (o) { return !!o.axis; });
-      /* ② annotate：账目 + 回绝 + 形状 */
-      var w2 = pk.normalize(pk.initialState());
-      var r1 = pk.narrative.annotate(w2, { axis: 'xia', d: 3 }, {});
-      var r1b = pk.narrative.annotate(w2, { axis: 'kuang', d: -3 }, {});
-      var annOk = r1 && !r1.err && r1b && !r1b.err &&
-        w2.ink.n === 0 && w2.discord === 2 && w2.persona.xia === 3 && w2.persona.kuang === -3 && w2.ink.carry === 0;
-      var snap = JSON.stringify(w2);
-      var r2 = pk.narrative.annotate(w2, { axis: 'du', d: 3 }, {});
-      var rejOk = r2 && r2.err === 'ink' && JSON.stringify(w2) === snap;
-      var rBad = pk.narrative.annotate(w2, { axis: 'nope', d: 3 }, {});
-      var shapeOk = rBad && rBad.err === 'note';
-      /* ③ 墨厄：违和 99 + 批 1 ⇒ 100 ⇒ 重写（卷二卷首 21、武学回快照、轴回弹、违和清零） */
-      var w3 = pk.normalize(pk.initialState());
-      w3.narrative.chapNo = 25;                       /* 卷二 */
-      w3.narrative.arcArts = { arcNo: 2, artsKnown: ['quan_basic', 'neigong_basic'], artsLevels: { quan_basic: 2, neigong_basic: 4 }, artsSlots: [] };
-      w3.artsKnown = ['quan_basic', 'neigong_basic', 'yg_jiuyin'];
-      w3.artsLevels = { quan_basic: 2, neigong_basic: 4, yg_jiuyin: 3 };
-      w3.persona.xia = 40;
-      w3.discord = 99;
-      w3.ink.n = 2;
-      var r3 = pk.narrative.annotate(w3, { axis: 'xia', d: 3 }, {});
-      var moOk = r3 && r3.mo === 1 && w3.narrative.chapNo === 21 &&
-        w3.artsKnown.length === 2 && w3.artsLevels.yg_jiuyin === undefined &&
-        w3.persona.xia === 30 && w3.discord === 0 && w3.ink.n === 3;
-      /* ④ 卷首快照随卷推进更新 */
-      var w4 = pk.normalize(pk.initialState());
-      for (var ci = 0; ci < 20; ci++) pk.narrative.advance(w4, null, {});
-      var snapOk = w4.narrative.arcArts && w4.narrative.arcArts.arcNo === 2 &&
-        w4.narrative.arcArts.artsKnown.length === 2;
-      ok('E13', '武侠干预系统（分支档位：watch 0 墨/改 3 墨带轴 ⇔ 批注 1 墨+违和+1+轴夹边、墨尽回绝零变更 ⇔ 墨厄=本卷重写：退卷首/武学回快照/轴回弹30%/违和清零 ⇔ 卷首快照随卷更新）',
-        tierOk && annOk && rejOk && shapeOk && moOk && snapOk,
-        '档位=' + tierOk + '(免' + free.length + '/付' + paid.length + ') 批注=' + annOk +
-        ' 回绝=' + rejOk + ' 形=' + shapeOk +
-        ' 墨厄=' + moOk + '(chap=' + w3.narrative.chapNo + ',xia=' + w3.persona.xia + ',ink=' + w3.ink.n + ') 快照=' + snapOk);
-    })();
-
     /* E14 · 武侠投生闭环（册162 · S3-c）：把 wuxia 当**活跃世界**走真实引擎生命周期——
      * 判「翻 live 之前，引擎每一条通用路径都吃得下这个世界」：
      * ① claim / Legacy.sync / Codex.scan 全链零崩（data.js 的 CODEX/LEGACY 最小声明生效）；
@@ -436,8 +255,8 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         await SQ.claim(ref14);
         var w14 = ref14.worlds.wuxia;
         cycle = w14.realm === 0 && w14.qi === 0 && w14.injury === 0 && w14.worldDay === 0 &&
-          w14.narrative.chapNo === 1 && ref14.meta.stats.lives === 1 && ref14.meta.stats.deaths === 1 &&
-          !!w14.lastDeath && w14.lastDeath.cause === 'daoshang';
+          w14.narrative === undefined && ref14.meta.stats.lives === 1 && ref14.meta.stats.deaths === 1 &&
+          !!w14.lastDeath && w14.lastDeath.cause === 'daoshang';   /* narrative 键摘除见证（册214） */
         /* ②b worldSystems 直测 */
         var wsA = pk14.normalize(pk14.initialState());
         wsA.worldDay = 360 * 50;
@@ -486,56 +305,6 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         cycle && ports && study && brk && pow, det14);
     }
 
-    /* E15 · 武侠「书自己在写」（册165 · S3-c）：默认选择 + 离线提要——
-     * ① autoPick 确定性（同 ws+fork ⇒ 同选，且落在选项集内）；
-     * ② 性格倾向：侠轴 +80 与 −80 在同一分岔上选出不同支（人格是倾向不是摆设）；
-     * ③ offlineCatchup：36 分/章（3h = 5 章）‖ digest ≤8 行且跨次合并、dropped 累计 ‖ normalize 保留 ‖
-     *    十卷完停笔（合卷后离线不续）；
-     * ④ claim 闸：settings={} 关（E8/E12/E14/sim 的定值断言Witness）‖ {offlineStory:true} 开（10h = 16 章）。 */
-    (function () {
-      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
-      if (!pk || !pk.narrative || !pk.narrative.autoPick) { ok('E15', '武侠书自己在写', false, '无 autoPick 口'); return; }
-      var ws = pk.normalize(pk.initialState());
-      ws.place = 'luoyang'; ws.realm = 4; ws.stones = 500;
-      var fk = pk.narrative.chapter(ws, pk, {}).fork;
-      var a1 = pk.narrative.autoPick(ws, fk, {});
-      var a2 = pk.narrative.autoPick(ws, fk, {});
-      var det = a1 === a2 && fk.opts.indexOf(a1) >= 0;
-      var wsHi = pk.normalize(pk.initialState());
-      wsHi.place = 'luoyang'; wsHi.realm = 4; wsHi.stones = 500; wsHi.persona.xia = 80;
-      var wsLo = pk.normalize(pk.initialState());
-      wsLo.place = 'luoyang'; wsLo.realm = 4; wsLo.stones = 500; wsLo.persona.xia = -80;
-      var pHi = pk.narrative.autoPick(wsHi, fk, {});
-      var pLo = pk.narrative.autoPick(wsLo, fk, {});
-      var tilt = pHi !== pLo;
-      /* ③ 离线提要 */
-      var wsO = pk.normalize(pk.initialState());
-      var r3 = pk.narrative.offlineCatchup(wsO, 3 * 3600000, {});
-      var wsO2 = pk.normalize(pk.initialState());
-      pk.narrative.offlineCatchup(wsO2, 60 * 3600000, {});
-      pk.narrative.offlineCatchup(wsO2, 8 * 3600000, {});
-      var norm = pk.normalize(wsO2);
-      var dig = norm.narrative.digest;
-      var catchOk = r3.chapters === 5 && r3.dropped === 0 && wsO.narrative.chapNo === 6 &&
-        dig && dig.lines.length <= 8 && dig.lines.length > 0 && dig.dropped > 0 && !!dig;
-      /* 合卷停笔：推到 201 章再离线 ⇒ 不再推进 */
-      var wsE = pk.normalize(pk.initialState());
-      wsE.narrative.chapNo = 201;
-      var rE = pk.narrative.offlineCatchup(wsE, 24 * 3600000, {});
-      var endStop = rE.chapters === 0 && wsE.narrative.chapNo === 201;
-      /* ④ claim 闸 */
-      var wsG1 = pk.normalize(pk.initialState());
-      pk.claim(wsG1, 10 * 3600000, 0, {}, {});
-      var wsG2 = pk.normalize(pk.initialState());
-      pk.claim(wsG2, 10 * 3600000, 0, {}, { offlineStory: true });
-      var gate = wsG1.narrative.chapNo === 1 && wsG2.narrative.chapNo === 17;
-      ok('E15', '武侠书自己在写（autoPick 确定且在选项内 ⇔ 侠轴 ±80 选出不同支 ⇔ 离线 36 分/章、digest ≤8 行跨次合并、合卷停笔 ⇔ claim 闸 {} 关 / 开闸 10h=16 章）',
-        det && tilt && catchOk && endStop && gate,
-        '确定=' + det + ' 倾向=' + tilt + '(' + (pHi ? pHi.k : '-') + '/' + (pLo ? pLo.k : '-') + ')' +
-        ' 提要=' + catchOk + '(5章=' + (r3.chapters === 5) + ',帽=' + (dig ? dig.lines.length : '-') + ',折=' + (dig ? dig.dropped : '-') + ')' +
-        ' 停笔=' + endStop + ' 闸=' + gate);
-    })();
-
     /* E16 · 创角链命名面（册167）：① NAMES.wuxia 分卷合法（掷 50 次无 '??' 残留、姓 + 名全为
      * 1~4 字中文——消 randomRoleName('wuxia') 回落占位的潜伏缺口）；② 诨号候选 12 键全在词表
      * （rollHao 的抽选池，缺键 = 屏上空白候选）；③ 屏上世界名分叉：武侠卡主行恒界系名（无池）、
@@ -546,15 +315,11 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         var nm = SQ.randomRoleName('wuxia');
         if (!nm || nm.indexOf('??') >= 0 || nm.length < 2 || nm.length > 5) { bad16.push(nm); break; }
       }
-      var candMiss = [];
-      for (var k = 1; k <= 12; k++) {
-        if (SQ.t('hao.cand.' + k, null, 'wuxia') === 'hao.cand.' + k) candMiss.push(k);
-      }
       var W = SQ.Worlds;
       var mainOk = !!W.wuxia.nameParts === false && !!W.xiuxian.nameParts;
-      ok('E16', '创角链命名面（NAMES.wuxia 分卷合法：掷 50 次无 ?? 且 2~5 字 ⇔ 诨号候选 12 键全在词表 ⇔ 武侠无池/修仙有池的主行不变式）',
-        bad16.length === 0 && candMiss.length === 0 && mainOk,
-        '坏名=' + (bad16.join(',') || '无') + ' 缺候选=' + (candMiss.join(',') || '无') + ' 主行分叉=' + mainOk);
+      ok('E16', '创角链命名面（NAMES.wuxia 分卷合法：掷 50 次无 ?? 且 2~5 字 ⇔ 武侠无池/修仙有池的主行不变式；册214：诨号候选判随书形态退役，hao.cand 键族随件封存）',
+        bad16.length === 0 && mainOk,
+        '坏名=' + (bad16.join(',') || '无') + ' 主行分叉=' + mainOk);
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
