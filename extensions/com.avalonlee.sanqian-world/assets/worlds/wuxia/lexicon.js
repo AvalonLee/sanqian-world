@@ -44,6 +44,21 @@
     'wh.err.save': '落档未成，稍后再试。',
     'wh.log.break': '水到渠成，一朝破关——自此是{realm}手段。',
     'wh.log.force.win': '置之死地而后生！强行冲关竟成，自此踏入{realm}。',
-    'wh.log.force.lose': '强行冲关反受其害，内伤加重至{n}层。'
+    'wh.log.force.lose': '强行冲关反受其害，内伤加重至{n}层。',
+    /* 册216（P3 闯荡推图）：行走页 / 战报 / 模态 */
+    'wh.rep.title': '行止录', 'wh.zone.title': '行走江湖', 'wh.zone.cur': '（所在）', 'wh.zone.locked': '境界未至，去不得',
+    'wh.zone.scene': '行至 {n}/{t}', 'wh.zone.go': '前往', 'wh.zone.travel': '闯荡（精力 3）',
+    'wh.mode.toggle': '闭关', 'wh.mode.cur': '当前：{m}', 'wh.mode.travel': '闯荡江湖', 'wh.mode.seclude': '闭关修炼',
+    'wh.mode.note': '闯荡产出六成功力但见闻增长；闭关十成功力、两耳不闻窗外事。',
+    'wh.rep.battle.win': '一战功成！赢了{foe}一场，得彩{loot}文，侠名小涨。',
+    'wh.rep.battle.lose': '不敌{foe}，带伤而走（内伤 {n} 层）。',
+    'wh.rep.battle.big': '大败！{foe}手下差点走不脱（内伤 {n} 层）——先疗伤吧。',
+    'wh.rep.quiet': '在{place}走了一程（行至第 {n} 处），风平浪静，得{loot}文花销。',
+    'wh.rep.knot.ask': '撞上一桩事：{title}', 'wh.rep.knotDone': '此事了结（{chose}）。',
+    'wh.rep.hurt': '内伤沉重，不宜行走江湖——闭关养伤或去市集买药。',
+    'wh.rep.stamina': '精力不济，歇会儿再走。',
+    'wh.act.choose': '落子', 'wh.chose.watch': '旁观', 'wh.chose.help': '出手相助', 'wh.chose.probe': '暗中查探',
+    'wh.chose.defy': '硬顶回去', 'wh.chose.join': '入伙', 'wh.chose.flee': '走为上策',
+    'wh.ev.foe': '{ev}'
   });
 })();

@@ -66,6 +66,10 @@
       exp: 0,                          /* 见闻值 = visited×2 + 熟人，派生落盘只为免重算 */
       debts: [],                       /* 人情债 {who, kind, what, due?}，跨代继承 */
       stamina: 60,                     /* 精力（册215 P2）：主动动作闸——上限 staminaCapOf()，claim 按时长恢复 */
+      mode: 'travel',                  /* 挂机模态（册216 P3）：travel 闯荡 0.6 产出 + 见闻增长 / seclude 闭关 1.0 */
+      sceneProg: {},                   /* 子场景进度（册216 P3）：zoneId → 已推进场景数 */
+      knotDone: {},                    /* 已走过的剧情桥段（册216 P3）：knotId → 1（一次性名场面） */
+      lastReport: null,                /* 最近一次闯荡战报（册216 P3）：{kind, text keys, win, ...} */
       atts: { zhi: 50, gu: 50, xing: 50 },  /* 资质三轴（册215 P2 · G12）：悟性 zhi 练功速率 / 根骨 gu 内伤耐受（P3 接） / 心性 xing 冲关成功率 */
       /* 通用项（同第一世界口径；数值与经济 §九「通用项同第一世界」的代码化——册214 P1 补齐：
        * tab 主壳下 Log.push / claim 落盘 / 事件史读点都会碰它们，缺了即 `reading '0'` 一族崩） */
@@ -131,6 +135,10 @@
       exp: Math.max(0, num(p.exp, 0)),
       debts: arr(p.debts),
       stamina: clampInt(p.stamina, 0, 999, 60),
+      mode: p.mode === 'seclude' ? 'seclude' : 'travel',
+      sceneProg: obj(p.sceneProg),
+      knotDone: obj(p.knotDone),
+      lastReport: obj(p.lastReport),
       atts: (function () {
         var a = obj(p.atts);
         return {
@@ -318,6 +326,157 @@
     return true;
   }
 
+  /* 门槛判定（册216 P3 自 KNOTS 消费面回归）：need 每项都要过——剧情与闯荡共用 */
+  function meetNeed(ws, need) {
+    if (!need) return true;
+    if (need.realm != null && (ws.realm | 0) < need.realm) return false;
+    if (need.silver != null && (ws.stones || 0) < need.silver) return false;
+    if (need.artsMin != null && maxLayer(ws) < need.artsMin) return false;
+    return true;
+  }
+  function branchOpen(ws, br) { return meetNeed(ws, br && br.req); }
+
+  /* ── 闯荡推图（册216 P3 · 方案卷 §五之三）──────────────────────────────────────
+   * 地界解锁档（ZONES 数组序 → 境界门槛）：不入流可达前两地，此后每档境界解锁 1~2 地。
+   * 闯荡一步（精力 3）：推进当前地界子场景（进度到头 = 该地「走熟」，见闻经 visited 已计）；
+   *   遭遇判定按世界日确定性散列——撞 EVENTS action 条目则遇敌（CAST 对手池 tier 对表），
+   *   撞 KNOTS（meetNeed 过）则入剧情分支（玩家直选，批书语义摘除）。
+   * 战斗掷判（数值卷 §六）：p = 1/(1+(敌/我)^1.5) 夹 0.05~0.95，三回合取二胜；
+   *   胜（拿银两/功力）/ 险胜（内伤+1）/ 败（走窄路：内伤+1~3）/ 大败 p<0.15（内伤+4~6）——
+   *   Math.random 属玩家主动操作（与 attemptBreak 同口径，不入定种面）。 */
+  /* ZONES 数组序（shaolin/songshan/luoyang/yanziwu/yanfulou/guangmingding/kunlun/yanmenguan/damo/wuliang/dali/lingshe/binghuo）——前三地不入流可达（开局地 luoyang 在第三位，册216 实测勘正） */
+  var TRAVEL_UNLOCK = [0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 5, 6, 7];
+  var TRAVEL_STAMINA = 3;
+  function zoneUnlocked(ws, zid) {
+    var Z = (D && D.ZONES) || [];
+    for (var i = 0; i < Z.length; i++) if (Z[i].i === zid) return (ws.realm | 0) >= TRAVEL_UNLOCK[i];
+    return false;
+  }
+  function worldDayHash(ws, salt) {
+    var x = (((ws.worldDay || 0) + 1) * 2654435761 + (salt || 0) * 2246822519) >>> 0;
+    x ^= x >>> 15; x = (x * 4093) >>> 0;
+    return x >>> 0;
+  }
+  function foeTierRealm(t) { return t === 'S' ? 5 : t === 'A' ? 4 : t === 'B' ? 3 : 2; }
+  function foePower(c) {
+    if (c && c.power) return c.power;   /* 闯荡遭遇：EVENTS 品阶已折算成 power 直给 */
+    var r = Math.min(foeTierRealm(c.t), 9);
+    var row = realmRow(r);
+    return row ? row.power * 1.1 : 30;
+  }
+  function battleOdds(ws, foe) {
+    var mine = powerOf(ws), theirs = foePower(foe);
+    var p = 1 / (1 + Math.pow(theirs / mine, 1.5));
+    return Math.max(0.05, Math.min(0.95, p));
+  }
+  function travel(ws, opt) {
+    if (!ws) return { err: 'nows' };
+    if ((ws.stamina | 0) < TRAVEL_STAMINA) return { err: 'stamina', need: TRAVEL_STAMINA, have: ws.stamina | 0 };
+    if ((ws.injury || 0) >= 12) return { err: 'hurt', injury: ws.injury };   /* 咯血档不宜行走——逼疗伤/闭关（数值卷 §六「往寻医退隐方向压」） */
+    var place = ws.place || PLACE_START;
+    if (!zoneUnlocked(ws, place)) return { err: 'locked', zone: place };
+    ws.stamina -= TRAVEL_STAMINA;
+    var Z = (D && D.ZONES) || [];
+    var zrow = null;
+    for (var i = 0; i < Z.length; i++) if (Z[i].i === place) { zrow = Z[i]; break; }
+    var scenes = (zrow && zrow.scenes) || ['1'];
+    var prog = obj(ws.sceneProg);
+    void done;
+    var done = prog[place] | 0;
+    /* 遭遇判定：世界日散列——事件线 / 剧情线 / 平安三路 */
+    var h = worldDayHash(ws, (opt && opt.salt) || 0);
+    var knots = (D && D.KNOTS) || [];
+    var kn = null;
+    var knotDone = obj(ws.knotDone);
+    if (h % 100 < 25) {   /* 剧情线 25%：撞过一次的桥段不再重复（一次性名场面） */
+      for (var k = 0; k < knots.length && !kn; k++) {
+        if (knots[k].z === place && !knotDone[knots[k].i] && meetNeed(ws, knots[k].need)) kn = knots[k];
+      }
+    }
+    var evs = (D && D.EVENTS) || [];
+    var foe = null;
+    if (!kn && h % 100 < 45) {   /* 45% 遇敌（无剧情可入时）：本地界 EVENTS action 条目，品阶 t 定敌战力档 */
+      var pool = [];
+      var MY = ws.realm | 0;
+      for (var c = 0; c < evs.length; c++) {
+        var e2 = evs[c];
+        if (e2.z !== place || e2.kind !== 'action') continue;
+        var er = e2.t === 'tian' ? 5 : e2.t === 'xuan' ? 4 : e2.t === 'di' ? 3 : 2;
+        if (Math.abs(er - MY) <= 1) pool.push(e2);   /* 对手档 ≈ 主角境界 ±1（数值卷 §六 标定：越一档有戏 39~45%，两档是奇迹 ⇒ 不入流苟着） */
+      }
+      if (!pool.length && MY >= 1) {
+        for (var c2 = 0; c2 < evs.length; c2++) {
+          if (evs[c2].z === place && evs[c2].kind === 'action' && evs[c2].t === 'huang') { foe = evs[c2]; break; }
+        }
+      } else foe = pool[h % pool.length];
+    }
+    if (foe) {
+      var foeRow = realmRow(foe.t === 'tian' ? 5 : foe.t === 'xuan' ? 4 : foe.t === 'di' ? 3 : 2);
+      /* 杂鱼系数 0.6：闯荡遭遇是「遇袭/斗殴」级散兵（名场面级对手属 KNOTS/世界事件层），
+       * 不打折扣的话 realm1 对 huang 只有一成胜率、必死无疑（册216 实测归因） */
+      var foeObj = { t: foe.t, power: (foeRow ? foeRow.power : 60) * 0.6 };
+      var pWin = battleOdds(ws, foeObj);
+      var rounds = 0, wins = 0;
+      for (var r2 = 0; r2 < 3; r2++) { if (Math.random() < pWin) wins++; rounds++; }
+      var win = wins >= 2;
+      var big = !win && pWin < 0.15;
+      var rep2 = { kind: 'battle', win: win, big: big, foe: foe.i, tier: foe.t, p: Math.round(pWin * 100) / 100 };
+      if (win) {
+        var loot = 20 + (h % 30) * 5;
+        ws.stones = (ws.stones || 0) + loot;
+        ws.renown = clampInt((ws.renown || 0) + 5, -1000, 1000, ws.renown || 0);
+        rep2.loot = loot;
+      } else if (big) {
+        ws.injury = Math.min(15, (ws.injury || 0) + 4 + (h % 3));
+        rep2.injury = ws.injury;
+      } else {
+        ws.injury = Math.min(15, (ws.injury || 0) + 1 + (h % 3));
+        rep2.injury = ws.injury;
+      }
+      ws.lastReport = rep2;
+      return rep2;
+    }
+    if (kn) {
+      var opts = [];
+      for (var b = 0; b < kn.br.length; b++) {
+        if (!branchOpen(ws, kn.br[b])) continue;
+        opts.push({ k: kn.br[b].k, label: kn.br[b].label, req: kn.br[b].req || null });
+      }
+      if (!opts.length) opts.push({ k: 'watch', label: 'knot.' + kn.i + '.watch', req: null });
+      ws.lastReport = { kind: 'knot', knot: kn.i, title: 'knot.' + kn.i + '.name', opts: opts };
+      return { kind: 'knot', knot: kn.i, opts: opts };
+    }
+    /* 平安推进：子场景 +1（到头原地踏步但见闻已在 visited 计过） */
+    if (done < scenes.length) {
+      prog[place] = done + 1;
+      ws.sceneProg = prog;
+      ws.stones = (ws.stones || 0) + 5 + (h % 10);
+    }
+    ws.lastReport = { kind: 'quiet', place: place, scene: Math.min(done + 1, scenes.length) };
+    return { kind: 'quiet', scene: Math.min(done + 1, scenes.length), place: place };
+  }
+  /* KNOTS 分支直选（册216 · 批书语义摘除）：watch/help/probe/defy/join/flee 玩家直选；
+   * 效果 = 性格轴微调（help=侠+4 / defy=狂+4 / join=毒+4 ——册161 AXIS_BY_K 平移）+ 保守项零效果。 */
+  var AXIS_BY_K3 = { help: { xia: 4 }, defy: { kuang: 4 }, join: { du: 4 } };
+  function knotChoose(ws, knotId, optK) {
+    if (!ws) return { err: 'nows' };
+    var kn = null;
+    var ks = (D && D.KNOTS) || [];
+    for (var i = 0; i < ks.length; i++) if (ks[i].i === knotId) { kn = ks[i]; break; }
+    if (!kn) return { err: 'noknot' };
+    var br = null;
+    for (var b = 0; b < kn.br.length; b++) if (kn.br[b].k === optK) { br = kn.br[b]; break; }
+    if (!br) return { err: 'nobranch' };
+    if (!branchOpen(ws, br)) return { err: 'locked' };
+    var p = ws.persona || (ws.persona = { xia: 0, kuang: 0, du: 0 });
+    var ax = AXIS_BY_K3[optK];
+    if (ax) for (var ak in ax) p[ak] = clampInt((p[ak] || 0) + ax[ak], -100, 100, p[ak] || 0);
+    ws.stones = (ws.stones || 0) + (optK === 'help' || optK === 'probe' ? 10 : 0);
+    var kd = obj(ws.knotDone); kd[knotId] = 1; ws.knotDone = kd;
+    ws.lastReport = { kind: 'knotDone', knot: knotId, chose: optK };
+    return { ok: true, chose: optK, axis: ax || null };
+  }
+
   /* 精力上限（册215 P2）：60 + 境界×10——随成长放宽；恢复 1 点/现实分钟（claim 内推进） */
   function staminaCapOf(ws) { return 60 + (ws && isNum(ws.realm) ? ws.realm : 0) * 10; }
 
@@ -345,7 +504,7 @@
      * 一次最多连破两档（离线很久时）；再多说明门槛设计有问题，留给 S3 的定种仿真抓。 */
     var remain = dtMs / 60000;           /* 剩余时间（分钟） */
     while (remain > 0 && broke < 2) {
-      var rate = rateOf(ws);             /* 功力/分钟 */
+      var rate = rateOf(ws) * (ws.mode === 'seclude' ? 1.0 : 0.6);   /* 闭关 1.0 / 闯荡 0.6（数值卷 §五 模式系数；册216 落码） */
       if (rate <= 0) break;
       var cap = capOf(ws);
       var room = cap - ws.qi;
@@ -388,6 +547,8 @@
     ws.artsPractice = prac;
     /* 精力恢复（册215 P2）：1 点/现实分钟，封上限 */
     ws.stamina = Math.min(staminaCapOf(ws), (isNum(ws.stamina) ? ws.stamina : 0) + dtMs / 60000);
+    /* 内伤慢恢复（册216 P3）：1 层/30 现实分钟——疗伤药（市集，P6）加速；战报呈现面随 P3 视图 */
+    if ((ws.injury || 0) > 0) ws.injury = Math.max(0, (ws.injury || 0) - dtMs / (30 * 60000));
     return { gain: ws.qi - before, broke: broke, layers: layered };
   }
 
@@ -448,6 +609,11 @@
     canBreak: canBreak,
     breakThrough: breakThrough,
     staminaCapOf: staminaCapOf,
+    travel: travel,
+    knotChoose: knotChoose,
+    zoneUnlocked: zoneUnlocked,
+    travelStamina: TRAVEL_STAMINA,
+    travelUnlock: TRAVEL_UNLOCK,
     /* worldSystems（册162 · S3-c）：引擎通用系统的世界侧接口——通用层只经这些口读世界语义（D3 纪律），
      * 每个口按「引擎会怎么调」实现；引擎调用点全部带空值守卫，缺口 = 安全空转（多世界契约）。 */
     worldSystems: {
