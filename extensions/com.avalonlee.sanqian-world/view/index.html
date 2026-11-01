@@ -591,6 +591,7 @@
 <script src="arts.js"></script>
 <script src="gear.js"></script>
 <script src="treasure.js"></script>
+<script src="wuxia-book.js"></script>
 <script src="faction.js"></script>
 <script src="rumor.js"></script>
 <script src="zone.js"></script>
@@ -1035,6 +1036,11 @@
          * coming 卡的 .wname 已经是界系名，副行再抄一遍就是重复排字（第二十批克苏鲁入列后 4/6 张卡都这样）*/
         (coming ? (tags ? '<div class="wtags">' + esc(tags) + '</div>' : '')
                 : '<div class="wtags">' + esc(SQ.t('world.' + w.id + '.name', null, w.id)) + (tags ? ' · ' + esc(tags) : '') + '</div>');
+      /* 「先睹」钮（册159 · S1-e）：coming 且已装叙事包的世界可预览一章（预览不落档）；
+       * 走全局 data-act 委托 ⇒ 无独立监听体（D15①），产出⇔注册静态双向可见（D15②）。 */
+      if (coming && SQ.Worlds[w.id].pack && SQ.Worlds[w.id].pack.narrative) {
+        card.insertAdjacentHTML('beforeend', '<button class="btn ghost bk-go" data-act="wuxiaPreview" data-v="' + w.id + '">' + esc(SQ.t('ui.book.preview')) + '</button>');
+      }
       if (!coming) {
         card.addEventListener('click', function () {
           draft.worldId = w.id;
@@ -2521,6 +2527,8 @@
     /* 入洞天 / 福地营建（B1 = 第册一百四十一批搬入 `view/zone.js`，此处只留一行转发）：
      * `v` = 洞府 id，第三参取卡上 data-f（设施 id）。 */
     if (act === 'caveEnter') { SQ.UI.zone.actCaveEnter(ctx(), v); return; }
+    /* 武侠「先睹」入口（册159 · S1-e）：coming 世界卡上的预览钮，打开书界面（预览不落档） */
+    if (act === 'wuxiaPreview') { SQ.UI.wuxia.actPreview(null, v); return; }   /* 预览不落档 ⇒ 不取 ctx()（冷启无档，ctx 会读 ws 抛错） */
     if (act === 'caveBuild') { SQ.UI.zone.actCaveBuild(ctx(), v, el.dataset.f); return; }
     /* ── 势力四支（B3 = 第册一百四十三批搬入 `view/faction.js`，此处各留一行转发）──
      * 供奉 / 委托交付 / 应战 / 好聚好散 */
