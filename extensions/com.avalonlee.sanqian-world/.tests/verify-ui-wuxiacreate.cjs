@@ -27,20 +27,50 @@ const { chromium } = require('playwright-core');
   await page.fill('#c1-name', '陈青W');
   await page.click('#c1-next');
   await page.waitForSelector('#sc-c3:not(.hide)', { timeout: 8000 });
-  await page.click('#c3-list .wcard:has-text("武侠江湖")');   /* 两张 live 卡：点名武侠 */
+  /* C0 · 择界卡面（册167）：武侠卡「武侠江湖」只在主行出现一次（副行只放标签）；修仙卡副行仍带界系名；
+   * 点「先睹」开预览但**不改变选中态**（止泡见证）。 */
+  const c0 = await page.evaluate(() => {
+    const cards = Array.prototype.slice.call(document.querySelectorAll('#c3-list .wcard'));
+    const wx = cards.find((c) => /武侠江湖/.test(c.textContent));
+    const xx = cards.find((c) => /玄幻修仙/.test(c.textContent));
+    return {
+      wxMain: wx ? wx.querySelector('.wname').textContent : '',
+      wxSubDup: wx ? /武侠江湖/.test(wx.querySelector('.wtags').textContent) : true,
+      xxSub: xx ? xx.querySelector('.wtags').textContent : '',
+      selBefore: cards.filter((c) => c.classList.contains('sel')).length
+    };
+  });
+  await page.click('#c3-list .wcard:has-text("武侠江湖") .bk-go');
+  await page.waitForSelector('#bk-wrap', { timeout: 8000 });
+  const c0sel = await page.evaluate(() => ({
+    preview: !!document.getElementById('bk-wrap'),
+    sel: Array.prototype.slice.call(document.querySelectorAll('#c3-list .wcard')).filter((c) => c.classList.contains('sel')).length
+  }));
+  await page.click('#bk-close');
+  await page.waitForTimeout(200);
+  T(!c0.wxSubDup && c0.wxMain === '武侠江湖' && /玄幻修仙/.test(c0.xxSub) && c0.selBefore === 0 &&
+    c0sel.preview && c0sel.sel === 0,
+    'C0 择界卡面（武侠卡界系名只出现一次 ⇔ 修仙卡副行带界系名不变 ⇔ 点先睹开预览不改选中态）',
+    '主行=' + c0.wxMain + ' 副行重复=' + c0.wxSubDup + ' 修仙副行=' + c0.xxSub.slice(0, 12) +
+    ' 先睹=' + c0sel.preview + ' 选中数=' + c0sel.sel);
+
+  /* 两张 live 卡：点名武侠 */
+  await page.click('#c3-list .wcard:has-text("武侠江湖")');
   await page.click('#c3-go');
   await page.waitForSelector('#sc-c2:not(.hide)', { timeout: 8000 });
 
-  /* C1 · 诨号屏：标题「取个诨号」+ 三候选钮 + 自拟输入框 */
+  /* C1 · 诨号屏：标题「取个诨号」+ 三候选钮 + 自拟输入框 + 步骤条随世界取词 */
   const c1 = await page.evaluate(() => ({
     title: document.getElementById('c2-title').textContent,
     cands: document.querySelectorAll('#c2-cards .bk-opt').length,
     free: !!document.getElementById('c2-haofree'),
-    reroll: document.getElementById('c2-reroll').textContent
+    reroll: document.getElementById('c2-reroll').textContent,
+    steps: document.getElementById('c2-steps').textContent
   }));
-  T(/诨号/.test(c1.title) && c1.cands === 3 && c1.free && /换一批/.test(c1.reroll),
-    'C1 诨号屏（三候选 + 自拟 + 换一批；天赋/初心不进书世界）',
-    'title=' + c1.title + ' cands=' + c1.cands + ' free=' + c1.free);
+  T(/诨号/.test(c1.title) && c1.cands === 3 && c1.free && /换一批/.test(c1.reroll) &&
+    /取诨号/.test(c1.steps) && !/观天赋/.test(c1.steps),
+    'C1 诨号屏（三候选 + 自拟 + 换一批 ⇔ 步骤条第三步「取诨号」随世界取词；天赋/初心不进书世界）',
+    'title=' + c1.title + ' cands=' + c1.cands + ' steps=' + c1.steps);
 
   /* C2 · 选一枚候选 → 确认入世 → 书形态主界面，页眉带诨号 */
   await page.click('#c2-cards .bk-opt');

@@ -71,6 +71,7 @@
     'ui.book.hao.hint': '书里的人会这么叫你——也可以自己拟一个',
     'ui.book.hao.random': '换一批',
     'ui.book.hao.freeph': '自拟诨号…',
+    'ui.book.hao.nolegacy': '另起一书不继承前世的轮回赠礼与天赋',
     'ui.cancel': '返回',
     'ui.close': '关闭',
     'ui.ok': '入定',
@@ -162,6 +163,7 @@
     'creation.step.1.n': '一', 'creation.step.1.t': '立名',
     'creation.step.2.n': '二', 'creation.step.2.t': '择界',
     'creation.step.3.n': '三', 'creation.step.3.t': '观天赋',
+    'creation.step.3.book': '取诨号',   /* 册167：书世界第三步（renderC2Hao 时步骤条随世界取词） */
     'creation.name.title': '道名初定',
     'creation.name.label': '道名',
     'creation.name.ph': '请输入角色名（2~8 字）',

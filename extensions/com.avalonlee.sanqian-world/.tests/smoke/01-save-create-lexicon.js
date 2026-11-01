@@ -536,6 +536,27 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 停笔=' + endStop + ' 闸=' + gate);
     })();
 
+    /* E16 · 创角链命名面（册167）：① NAMES.wuxia 分卷合法（掷 50 次无 '??' 残留、姓 + 名全为
+     * 1~4 字中文——消 randomRoleName('wuxia') 回落占位的潜伏缺口）；② 诨号候选 12 键全在词表
+     * （rollHao 的抽选池，缺键 = 屏上空白候选）；③ 屏上世界名分叉：武侠卡主行恒界系名（无池）、
+     * 修仙卡主行恒随机界名（有池）——卡面副行随批改按「有无界名池」分叉，此处只钉主行不变式。 */
+    (function () {
+      var bad16 = [];
+      for (var i = 0; i < 50; i++) {
+        var nm = SQ.randomRoleName('wuxia');
+        if (!nm || nm.indexOf('??') >= 0 || nm.length < 2 || nm.length > 5) { bad16.push(nm); break; }
+      }
+      var candMiss = [];
+      for (var k = 1; k <= 12; k++) {
+        if (SQ.t('hao.cand.' + k, null, 'wuxia') === 'hao.cand.' + k) candMiss.push(k);
+      }
+      var W = SQ.Worlds;
+      var mainOk = !!W.wuxia.nameParts === false && !!W.xiuxian.nameParts;
+      ok('E16', '创角链命名面（NAMES.wuxia 分卷合法：掷 50 次无 ?? 且 2~5 字 ⇔ 诨号候选 12 键全在词表 ⇔ 武侠无池/修仙有池的主行不变式）',
+        bad16.length === 0 && candMiss.length === 0 && mainOk,
+        '坏名=' + (bad16.join(',') || '无') + ' 缺候选=' + (candMiss.join(',') || '无') + ' 主行分叉=' + mainOk);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */

@@ -5,6 +5,13 @@
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
+  /* 随机姓名分卷（册167 · 消 `randomRoleName('wuxia')` 回落 '??' 的潜伏缺口）：
+   * 武侠味姓名——姓走大姓，名走「江湖人」味（君宝/飞雪/铁衣一类），与修仙道号池分卷不混。 */
+  SQ.NAMES = SQ.NAMES || {};
+  SQ.NAMES.wuxia = {
+    surname: ['张', '沈', '郭', '杨', '萧', '段', '林', '陆', '燕', '李'],
+    given: ['君宝', '浪', '飞雪', '惊涛', '孤鸿', '青霜', '远山', '铁衣', '追风', '破军']
+  };
   SQ.lexRegister('wuxia', {
     /* C1 must 族（册164）：体系身份命名（书形态下多为附录/回落词） */
     'idle.action': '闭关练功',
