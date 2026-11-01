@@ -182,6 +182,18 @@
     'knot.knot_binghuo.name': '冰火岛',
     'knot.knot_binghuo.probe': '探问',
     'knot.knot_binghuo.help': '相助',
-    'knot.knot_binghuo.watch': '旁观'
+    'knot.knot_binghuo.watch': '旁观',
+    'hao.cand.1': '行者',
+    'hao.cand.2': '半块饼',
+    'hao.cand.3': '断刀客',
+    'hao.cand.4': '醉书生',
+    'hao.cand.5': '夜行人',
+    'hao.cand.6': '说书人',
+    'hao.cand.7': '撑船汉',
+    'hao.cand.8': '拾遗人',
+    'hao.cand.9': '磨刀匠',
+    'hao.cand.10': '灯下客',
+    'hao.cand.11': '过路人',
+    'hao.cand.12': '卖艺人'
   });
 })();

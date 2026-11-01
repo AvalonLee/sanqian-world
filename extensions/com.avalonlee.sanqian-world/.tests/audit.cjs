@@ -169,7 +169,11 @@ for (const f of [
   'assets/talents/common.js', 'assets/talents/xiuxian.js',
   'assets/worlds/xiuxian/data.js', 'assets/worlds/xiuxian/arts.js',
   'assets/worlds/xiuxian/treasures.js',
-  'assets/events/common.js', 'assets/worlds/xiuxian/events.js'
+  'assets/events/common.js', 'assets/worlds/xiuxian/events.js',
+  /* 册164 补：武侠八件（view/index.html 挂载序同款）——此前 C1 需要武侠词卷时才发现本清单漏了整族 */
+  'assets/worlds/wuxia/lexicon.js', 'assets/worlds/wuxia/lexicon-arts.js', 'assets/worlds/wuxia/lexicon-world.js',
+  'assets/worlds/wuxia/lexicon-cast.js', 'assets/worlds/wuxia/lexicon-narrative.js', 'assets/worlds/wuxia/lexicon-tpl.js',
+  'assets/worlds/wuxia/data.js', 'assets/worlds/wuxia/index.js'
 ]) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const SQ = sandbox.window.SQ;
 
@@ -735,7 +739,9 @@ const SQ = sandbox.window.SQ;
   /* 在册死桩 = 本批取证时"零消费者"的实测集合。2026-10-11 第十三批：`KARMA_TIERS` 已接线
    * （`karma.js tierOf` 改读表 ⇒ 它不再是死桩，按本关的"在册清单也要对表"规则从册上摘除）；
    * `MERCHANT_POWER_ABS` 于上一批删除。剩 3 条属 N22 ⑤ 登记的预留量，处置需产品点头，故只登记不消费。*/
-  var DEAD_LISTED = ['EVENT_KARMA_BAND', 'FACTION_DESC_POOL', 'SHARD_REWARDS'];
+  /* 册164 加 `canon`（wuxia data.js 的正典版本锚）：它是文档对账锚（与 docs/武侠世界/ 各卷版本对照），
+   * 代码零消费者是有意的——A9 的「死桩」语义管「声明了没人读的机制常量」，文档锚不是机制。 */
+  var DEAD_LISTED = ['EVENT_KARMA_BAND', 'FACTION_DESC_POOL', 'SHARD_REWARDS', 'canon'];
   var boot9 = null;
   try { boot9 = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; }
   catch (e) { ok('A9', '世界表顶层常量 ⇔ 消费面对表（死桩双向在册）', false, '沙箱装载失败：' + e.message); return; }
@@ -1362,7 +1368,7 @@ function sqHasLogic(body) {
     '#c1-random@click': 2,        /* L812  · 随机道号（写 input.value + 清错行） */
     '#c1-next@click': 5,          /* L817  · 起名校验 → 屏 3 */
     'card@click': 2,              /* L900  · 择界卡：写 draft.bias + 重渲 */
-    '#c2-confirm@click': 2,       /* L954  · 世界确认 → 开天命锁浮层 */
+    /* 册164 摘除 `#c2-confirm@click`（曾在册 2 语句）：书世界分支收进核内 confirmC2()，监听体回一句话 ⇒ 例外失效删表项 */
     '#mk-ok@click': 5,            /* L957  · 入定：写档 + enterMain */
     'card@click#2': 4,            /* L1023 · 择界卡点选（屏 3） */
     '#c3-go@click': 3,            /* L1035 · 入界校验 */

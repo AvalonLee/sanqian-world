@@ -139,6 +139,13 @@
         beatNo: Math.max(0, clampInt(nar.beatNo, 0, 99, 0)),
         cache: arr(nar.cache).slice(-3),        /* 主档只留 3 章，超出进侧档（叙事引擎 §三） */
         gapMark: arr(nar.gapMark),
+        digest: (function () {
+          var dg = nar.digest;
+          if (!dg || typeof dg !== 'object') return null;   /* 离线提要（册165）：至多 8 行 + 折叠计数，主档容量红线同 cache */
+          var ls = arr(dg.lines).filter(function (x) { return typeof x === 'string'; }).slice(-8);
+          if (!ls.length && !num(dg.dropped, 0)) return null;
+          return { lines: ls, dropped: Math.max(0, Math.round(num(dg.dropped, 0))) };
+        })(),
         arcArts: (function () {                 /* 卷首武学快照（册161）：形状完好才保留，坏档回落 null 由 advance 惰性补 */
           var aa = nar.arcArts;
           if (!aa || typeof aa !== 'object' || !arr(aa.artsKnown).length) return null;
@@ -323,8 +330,13 @@
    * ⚠️ 本界仍 `status:'coming'` ⇒ 生产路径永不进入；但函数是**真实现**而非空壳，
    *   冒烟 E7 直接构造 ws 调用它验产出与封顶——「不可投生」不等于「逻辑可以假」。 */
   function claim(ws, dtMs, now, profile, settings) {
-    void now; void profile; void settings;
+    void now; void profile;
     if (!ws || !isNum(dtMs) || dtMs <= 0) return { gain: 0, broke: 0 };
+    /* 离线提要闸（册165 · 叙事引擎 §八）：settings.offlineStory === true 才推进离线章——
+     * core normalize 缺省开（生产真机路径），直调测试传 {} ⇒ 关，E8/E12/E14/sim 的定值断言不受扰动。 */
+    if (settings && settings.offlineStory === true && dtMs >= OFFLINE_CHAPTER_MS) {
+      offlineCatchup(ws, dtMs, null);
+    }
     ws.exp = expOf(ws);
     var before = isNum(ws.qi) ? ws.qi : 0;
     var broke = 0;
@@ -716,6 +728,66 @@
     return { ink: ws.ink.n, discord: ws.discord || 0 };
   }
 
+  /* ── 默认选择 autoPick（S3-c · 册165 · 叙事引擎 §七）──────────────────────────
+   * 无干预时主角按性格三轴自动选——「书自己在写」。确定性打分（同 ws + 同 fork ⇒ 同选择）：
+   *   score(opt) = 0.4 × personaFit + rand(−15, 15)（seed 取章号散列；feasible/relationTilt
+   *   两项在支级门槛已过滤、人物亲疏未建的现状下恒满/零，留位随关系批接）
+   * personaFit = Σ(axis[k] × persona[k]) / 40——侠轴 +80 时「相助」（axis xia+4）≈ +8，
+   *   正向占优但随机项可翻 ⇒ 性格是倾向不是锁死。保守项 axis 为 null ⇒ fit 0。
+   * 返回选中的 opt（含保守项）；无 fork 返回 null。 */
+  function autoPick(ws, fork, ctx) {
+    void ctx;
+    if (!fork || !fork.opts || !fork.opts.length) return null;
+    var p = (ws && ws.persona) || { xia: 0, kuang: 0, du: 0 };
+    var seed = seedOf(((ws.narrative && ws.narrative.chapNo) || 1) * 31 + fork.knot.length * 7);
+    var rand = (seed % 31) - 15;                       /* −15~+15，确定性 */
+    var best = null, bestScore = -1e9;
+    for (var i = 0; i < fork.opts.length; i++) {
+      var o = fork.opts[i];
+      var fit = 0;
+      if (o.axis) {
+        for (var k in o.axis) {
+          if (k === 'xia' || k === 'kuang' || k === 'du') fit += (o.axis[k] || 0) * (p[k] || 0);
+        }
+        fit = fit / 40;
+      }
+      if (o.ink > 0) fit -= o.ink * 2;                 /* 无干预的主角不倾向花墨的重笔（改 3 墨 −6） */
+      var score = 0.4 * fit + rand + i * 0.01;         /* 微小位次偏置 = 并列时取先 */
+      if (score > bestScore) { bestScore = score; best = o; }
+    }
+    return best;
+  }
+
+  /* ── 离线提要 offlineCatchup（S3-c · 册165 · 叙事引擎 §八）──────────────────────
+   * 不在线时只结算数值与指针，不生成正文：按 36 现实分钟/章推进（与在线阅读节奏同源），
+   * 分岔走 autoPick（书自己在写），每章的数值面（卡点投放/违和消退/卷事务）与在线同一条 advance。
+   * 回归呈报 = ws.narrative.digest：逐章「第N章 · 地界」**至多 8 行**，超出折叠为 dropped 计数
+   * （主档容量红线同型——cache 只留 3 章，digest 只留 8 行）。
+   * 纯确定性：不调 Math.random、不读实时钟；autoPick 的选择随章号可复现。
+   * 返回 { chapters, dropped }。 */
+  var OFFLINE_CHAPTER_MS = 36 * 60000;
+  function offlineCatchup(ws, gapMs, ctx) {
+    if (!ws || !ws.narrative || !isNum(gapMs) || gapMs <= 0) return { chapters: 0, dropped: 0 };
+    var n = Math.floor(gapMs / OFFLINE_CHAPTER_MS);
+    if (n > 400) n = 400;                              /* 超长离线封顶（10 天 ≈ 全本量级；再长书也写完了） */
+    var lines = [];
+    for (var i = 0; i < n; i++) {
+      if ((ws.narrative.chapNo || 1) > ARC_CHAPS * 10) break;   /* 十卷完 ⇒ 合卷，离线不续 */
+      var ch = chapter(ws, null, {});
+      var pick = ch.fork ? autoPick(ws, ch.fork, ctx) : null;
+      if (pick && pick.ink > 0) pick = null;           /* 书自己在写不花墨：干预项只对 autoPick 降权，离线一律走免费面 */
+      var zoneName = ch.meta && ch.meta.place ? ch.meta.place : (ws.place || PLACE_START);
+      advance(ws, pick, ctx);
+      lines.push((ws.narrative.chapNo - 1) + '@' + zoneName);
+    }
+    var keep = lines.slice(-8);
+    var oldDropped = (ws.narrative.digest && ws.narrative.digest.dropped) || 0;
+    var oldLines = (ws.narrative.digest && ws.narrative.digest.lines) || [];
+    var merged = oldLines.concat(keep).slice(-8);
+    ws.narrative.digest = { lines: merged, dropped: oldDropped + (lines.length - keep.length) };
+    return { chapters: lines.length, dropped: ws.narrative.digest.dropped };
+  }
+
   function buildArtIndex() {
     var idx = {};
     var A = (D && D.ARTS) || [];
@@ -764,6 +836,8 @@
       render: render,
       advance: advance,
       annotate: annotate,
+      autoPick: autoPick,
+      offlineCatchup: offlineCatchup,
       beatsPerChapter: CHAPTER_BEATS,
       arcChaps: ARC_CHAPS
     },

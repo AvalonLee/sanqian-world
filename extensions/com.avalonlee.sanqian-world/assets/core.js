@@ -59,7 +59,7 @@
        * eventPref = 自动奇遇的分支倾向（none 无倾向 / right 正道 / evil 魔道 / neutral 左道）——
        *   优先选该分支，不可用则随机其他；
        * tabOrder = 游戏页菜单顺序（id 数组，空 = 默认序；系统页固定底部不参与，视图层负责对账） */
-      settings: { autoTrib: false, autoEvent: false, eventPref: 'none', tabOrder: [] }
+      settings: { autoTrib: false, autoEvent: false, eventPref: 'none', tabOrder: [], offlineStory: true }
     };
   }
 
@@ -92,6 +92,7 @@
       alignBias: BIAS[p.alignBias] ? p.alignBias : 'neutral',
       gender: typeof p.gender === 'string' && p.gender ? p.gender : 'male',
       race: typeof p.race === 'string' && p.race ? p.race : 'human',
+      hao: typeof p.hao === 'string' ? p.hao : '',   /* 诨号（册164 · 干预与代价 §五：书世界创角第一笔落笔；空 = 未取，书页眉回落本名） */
       seenNote: typeof p.seenNote === 'string' && p.seenNote ? p.seenNote : null   /* 脏值（对象/数字/空串）归 null */
     };
     var m = raw.meta && typeof raw.meta === 'object' ? raw.meta : {};
@@ -130,7 +131,8 @@
       autoTrib: st.autoTrib === true, /* 缺省/脏值一律回落 false（默认关闭） */
       autoEvent: st.autoEvent === true,
       eventPref: (st.eventPref === 'right' || st.eventPref === 'evil' || st.eventPref === 'neutral') ? st.eventPref : 'none',
-      tabOrder: strArr(st.tabOrder, 32) /* 去重去空、限长；未知 id 由视图层对账剔除 */
+      tabOrder: strArr(st.tabOrder, 32), /* 去重去空、限长；未知 id 由视图层对账剔除 */
+      offlineStory: st.offlineStory !== false   /* 离线也写书（册165 · 书世界缺省开；显式 false 才关） */
     };
     var w = raw.worlds && typeof raw.worlds === 'object' ? raw.worlds : {};
     for (var id in w) {

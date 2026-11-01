@@ -23,10 +23,12 @@
     /* 第二世界（册152 · S0 批改口，v0.6.15）：原 `guwu`（三国无双 / 军团争霸）整族退役——
      * 用户 2026-11-01 裁定「旧《古武军势》四卷整体归档重写」，第二世界改向 **武侠**。
      * id 由 `guwu` 改 `wuxia`（原 id 为 coming 态、不可投生 ⇒ 无存档引用，改名零迁移成本）。
-     * 设计卷 = docs/武侠世界/（五卷骨架）；旧四卷 = docs/_archive/古武军势-2026-11-01/。
-     * `nameParts: null` = 武侠不做「世界名」（江湖即世界，创角屏对该界隐藏世界名一栏，S1 落实）。 */
+     * 设计卷 = docs/武侠世界/（六卷正典）；旧四卷 = docs/_archive/古武军势-2026-11-01/。
+     * `nameParts: null` = 武侠不做「世界名」（江湖即世界，创角屏对该界隐藏世界名一栏）。
+     * **册164 翻牌**：`coming` → **`live`**——S3 验收链（sim-wuxia 定种 / E12~E14 / 走查
+     * wuxiabook·wuxiamain）全绿后开放投生；书形态（worldView:'book'）见工程规范 §2.2。 */
     wuxia: {
-      id: 'wuxia', displayNameKey: 'world.wuxia.name', status: 'coming',
+      id: 'wuxia', displayNameKey: 'world.wuxia.name', status: 'live',
       nameParts: null,
       tagsKeys: ['world.tag.xia', 'world.tag.jianghu'], pack: null
     },

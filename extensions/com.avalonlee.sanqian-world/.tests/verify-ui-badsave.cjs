@@ -74,7 +74,7 @@ const KEY = 'sanqian-state-v1';
     ['B worlds 整块缺失', (c) => { delete c.worlds; }],
     ['C worlds.xiuxian = null', (c) => { c.worlds.xiuxian = null; }],
     ['D profile 在但无 worldId', (c) => { delete c.profile.worldId; }],
-    ['E worldId 指向未开放世界', (c) => { c.profile.worldId = 'wuxia'; }],
+    ['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）', (c) => { c.profile.worldId = 'wuxia'; }],
     ['F 关键字段类型坏（bonds 成数组 / realm 成字符串）', (c) => { c.worlds.xiuxian.bonds = []; c.worlds.xiuxian.realm = 'zero'; }],
     ['G meta 整块缺失', (c) => { delete c.meta; }],
     ['H 未知字段成堆（向前兼容旧读新）', (c) => { c.worlds.xiuxian.zzzFuture = { a: [1, 2, 3] }; c.meta.zzzFuture2 = 'x'; }]
@@ -135,10 +135,10 @@ const KEY = 'sanqian-state-v1';
   rows.forEach(([label, r]) => { byLabel[label] = r; });
   T(byLabel['A 非 JSON 垃圾串'].st.c1 || byLabel['A 非 JSON 垃圾串'].st.main,
     'BS-A 垃圾串：解析失败要有出口（回创角或直接起新档），不得停读档屏', JSON.stringify(byLabel['A 非 JSON 垃圾串'].st));
-  T(byLabel['E worldId 指向未开放世界'].st.c1 || (byLabel['E worldId 指向未开放世界'].st.main &&
-    byLabel['E worldId 指向未开放世界'].st.bodyLen > 50),
+  T(byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st.c1 || (byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st.main &&
+    byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st.bodyLen > 50),
     'BS-E 未开放世界 id：要么退回创角、要么照常渲染，**绝不进空世界白屏**',
-    JSON.stringify(byLabel['E worldId 指向未开放世界'].st));
+    JSON.stringify(byLabel['E worldId 指向无存档的世界（册164 后武侠已 live，但该档 worlds.wuxia 缺 ⇒ 等价未入世）'].st));
 
   console.log(fail === 0 ? 'UI_BADSAVE_ALL_GREEN ' + pass + '/' + (pass + fail)
     : 'UI_BADSAVE_FAILED ' + fail + '/' + (pass + fail));
