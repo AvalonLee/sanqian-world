@@ -88,6 +88,26 @@
       pk.knotChoose(w, knotId, optK);
     }, function (f) { refresh(f); });
   }
+  /* 拜师 / 学艺 / 任务 / 供奉 / 叛门 / 买 / 研读（册217 P4+P6） */
+  function doSect(slot, actName, arg) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var pk = SQ.Worlds[s.profile.worldId].pack;
+      var r = null;
+      if (actName === 'join') r = pk.joinSect(w, arg);
+      else if (actName === 'learn') r = pk.learnArt(w, arg);
+      else if (actName === 'task') r = pk.sectTask(w);
+      else if (actName === 'donate') r = pk.donateSect(w, 100);
+      else if (actName === 'betray') r = pk.betraySect(w);
+      else if (actName === 'study') r = pk.studyManual(w, arg);
+      else if (actName === 'buy') r = pk.buyItem(w, arg);
+      if (r && r.err === 'renown') { slot.toast(tw('wh.sect.joingate', { gate: r.gate, have: r.have })); return; }
+      if (r && r.err === 'stones') { slot.toast(tw('wh.shop.poor', null)); return; }
+      if (r && r.err === 'contribution') { slot.toast(tw('wh.sect.contribution', { n: r.have })); return; }
+      if (r && r.err) { slot.toast(tw('wh.err.save', null)); return; }
+      if (actName === 'buy' || actName === 'study') slot.toast(tw('wh.shop.bought', null));
+    }, function (f) { refresh(f); });
+  }
   /* 模态切换（闯荡 0.6 / 闭关 1.0） */
   function toggleMode(slot) {
     act(slot, function (s) {
@@ -244,6 +264,60 @@
     h += '</div>';
     return h;
   }
+  /* 门派页（册217 P4）：未拜师 = 名录拜师；已拜 = 师门面板 */
+  function sectBody(cf) {
+    var w = cf.w, p = cf.p;
+    var h = '<div class="wh-card"><h3>' + tw('wh.sect.title', null) + '</h3>';
+    if (w.sect && w.sect.id && !w.sect.betrayed) {
+      h += '<div class="wh-row">' +
+        '<span class="wh-cell"><b>' + tw('sect.' + w.sect.id + '.name', null) + '</b></span>' +
+        '<span class="wh-cell">' + tw('wh.sect.contribution', { n: w.sect.contribution | 0 }) + '</span>' +
+        '<span class="wh-cell">' + tw('wh.sect.rank', { n: p.sectRankOf(w.sect.contribution | 0) }) + '</span>' +
+        '</div><div class="wh-row">' +
+        '<button class="btn" id="wh-task">' + tw('wh.sect.task', null) + '</button>' +
+        '<button class="btn" id="wh-donate">' + tw('wh.sect.donate', null) + '</button>' +
+        '<button class="btn" id="wh-betray">' + tw('wh.sect.betray', null) + '</button>' +
+        '</div>';
+      var learn = p.learnableArts(w);
+      h += '<div class="wh-muted">' + tw('wh.sect.learn', null) + '</div>';
+      for (var i = 0; i < learn.length; i++) {
+        h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('art.' + learn[i].id + '.name', null) + '</b> · ' + tw('wh.sect.tier.' + learn[i].t, null) + '</span>' +
+          (learn[i].known ? '<span class="wh-muted">' + tw('wh.sect.known', null) + '</span>'
+            : '<button class="btn" data-learn="' + learn[i].id + '">' + tw('wh.sect.learnbtn', { c: learn[i].cost }) + '</button>') +
+          '</div>';
+      }
+    } else {
+      if (w.sect && w.sect.betrayed) h += '<div class="wh-muted">' + tw('wh.sect.betrayed', null) + '</div>';
+      else h += '<div class="wh-muted">' + tw('wh.sect.none', null) + '</div>';
+      var S = (p.data && p.data.SECTS) || [];
+      for (var j = 0; j < S.length; j++) {
+        h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('sect.' + S[j].id + '.name', null) + '</b> · ' + tw('wh.sect.camp.' + S[j].camp, null) + '</span>' +
+          '<button class="btn" data-join="' + S[j].id + '">' + tw('wh.sect.join', null) + '</button></div>';
+      }
+    }
+    return h + '</div>';
+  }
+  /* 市集页（册217 P6）：静态货架 + 研读架 */
+  function shopBody(cf) {
+    var w = cf.w, p = cf.p;
+    var h = '<div class="wh-card"><h3>' + tw('wh.shop.title', null) + '</h3>';
+    var L = p.shopList || [];
+    for (var i = 0; i < L.length; i++) {
+      var it = L[i];
+      var name = it.kind === 'manual' ? tw('manual.' + it.i + '.name', null) : tw('shop.' + it.i + '.name', null);
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + name + '</b></span>' +
+        '<button class="btn" data-buy="' + it.i + '">' + tw('wh.shop.buy', { c: it.cost }) + '</button></div>';
+    }
+    h += '</div>';
+    h += '<div class="wh-card"><h3>' + tw('wh.arts.shelf', null) + '</h3>';
+    var shelf = w.shelf || [];
+    if (!shelf.length) h += '<div class="wh-muted">' + tw('wh.home.slotsEmpty', null) + '</div>';
+    for (var k = 0; k < shelf.length; k++) {
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('manual.' + shelf[k] + '.name', null) + '</b></span>' +
+        '<button class="btn" data-study="' + shelf[k] + '">' + tw('wh.arts.study', null) + '</button></div>';
+    }
+    return h + '</div>';
+  }
   function wipBody(id) {
     return '<div class="wh-card"><h3>' + tw('wh.tab.' + id, null) + '</h3><div class="wh-muted">' +
       tw('wh.wip', { tab: tw('wh.tab.' + id, null) }) + '</div></div>';
@@ -264,7 +338,7 @@
         tw(TABS[i].key, null) + '</button>';
     }
     tabs += '</div>';
-    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : (cur === 'zones' ? zonesBody(cf) : wipBody(cur)))) + '</div>';
+    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : (cur === 'zones' ? zonesBody(cf) : (cur === 'sect' ? sectBody(cf) : (cur === 'shop' ? shopBody(cf) : wipBody(cur)))))) + '</div>';
     return top + tabs + body;
   }
 
@@ -288,6 +362,13 @@
       else if (b.id === "wh-mode") toggleMode(f2);
       else if (b.getAttribute("data-zone")) goZone(f2, b.getAttribute("data-zone"));
       else if (b.getAttribute("data-knot")) chooseKnot(f2, b.getAttribute("data-knot"), b.getAttribute("data-opt"));
+      else if (b.getAttribute('data-join')) doSect(f2, 'join', b.getAttribute('data-join'));
+      else if (b.getAttribute('data-learn')) doSect(f2, 'learn', b.getAttribute('data-learn'));
+      else if (b.getAttribute('data-buy')) doSect(f2, 'buy', b.getAttribute('data-buy'));
+      else if (b.getAttribute('data-study')) doSect(f2, 'study', b.getAttribute('data-study'));
+      else if (b.id === 'wh-task') doSect(f2, 'task', null);
+      else if (b.id === 'wh-donate') doSect(f2, 'donate', null);
+      else if (b.id === 'wh-betray') doSect(f2, 'betray', null);
       else if (slot) toggleSlot(f2, slot);
     };
   }

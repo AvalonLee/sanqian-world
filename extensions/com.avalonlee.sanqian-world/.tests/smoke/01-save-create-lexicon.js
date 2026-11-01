@@ -406,6 +406,54 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         staminaOk && hurtOk && progOk && battleOk && knotOk && ulOk,
         '精力='+staminaOk+' 重伤拒='+hurtOk+' 推进='+progOk+' 战='+battles+' 形='+shapeOk+' 剧情='+knotOk+' 档='+ulOk);
     })();
+    /* E19 · 武侠师承与市集（册217 P4+P6）：① 拜师门槛（阵营档 + 引荐降档 + 已入门拒）‖
+     * ② 学艺贡献锁（品阶定价 + 贡献不足拒 + 足则学得）‖ ③ 任务/供奉/辈分 ‖ ④ 市集：药疗伤 / 银不足拒 / 秘籍入架研读 ‖ ⑤ 叛门侠名重罚。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.joinSect || !pk.buyItem) { ok('E19', '武侠师承与市集', false, '无 joinSect/buyItem 口'); return; }
+      var w = pk.normalize(pk.initialState());
+      /* ① 拜师门槛 */
+      var r0 = pk.joinSect(w, 'shaolin');   /* 正道 gate 20：renown 0 不足 ⇒ 拒 */
+      w.renown = 30; w.stamina = 99;
+      var r1 = pk.joinSect(w, 'shaolin');
+      var r2 = pk.joinSect(w, 'wudang');   /* 已入门拒 */
+      var joinOk = r0 && r0.err === 'renown' && r1 && r1.ok && r2 && r2.err === 'joined';
+      /* ② 学艺贡献锁 */
+      var learn = pk.learnableArts(w);
+      var xuan = null;
+      for (var i = 0; i < learn.length; i++) if (learn[i].t === 'xuan' && !learn[i].known) xuan = learn[i];
+      var r3 = xuan ? pk.learnArt(w, xuan.id) : { err: 'none' };   /* 贡献 0 不足 ⇒ 拒 */
+      w.sect.contribution = 700;
+      var r4 = xuan ? pk.learnArt(w, xuan.id) : { err: 'none' };
+      var learnOk = r3 && r3.err === 'contribution' && r4 && r4.ok && (w.artsKnown || []).indexOf(xuan.id) >= 0;
+      /* ③ 任务/供奉/辈分 */
+      w.stamina = 99;
+      var r5 = pk.sectTask(w);
+      w.stones = 1000;
+      var r6 = pk.donateSect(w, 500);
+      var taskOk = r5 && r5.ok && r5.contribution >= 20 && r6 && r6.ok && w.sect.rank >= 1;
+      /* ④ 市集 */
+      var w2 = pk.normalize(pk.initialState());
+      w2.stones = 30; w2.injury = 5;   /* 30 文 < 金疮药 50 文 ⇒ 银不足拒 */
+      var r7 = pk.buyItem(w2, 'shop_salve');
+      w2.stones = 5000;
+      var r8 = pk.buyItem(w2, 'shop_salve');
+      var r9 = pk.buyItem(w2, 'mnl_01');
+      var r10 = pk.studyManual(w2, 'mnl_01');
+      var shopOk1 = r7 && r7.err === 'stones' && r8 && r8.ok && w2.injury === 3;
+      w2.stones = 60000; w2.injury = 0;
+      var r9 = pk.buyItem(w2, 'mnl_01');
+      var r10 = pk.studyManual(w2, 'mnl_01');
+      var shopOk2 = r9 && r9.ok && w2.shelf.length === 0 && r10 && r10.ok && (w2.artsKnown || []).indexOf(r10.art) >= 0;
+      var shopOk = shopOk1 && shopOk2;
+      /* ⑤ 叛门 */
+      var before = w.renown;
+      var r11 = pk.betraySect(w);
+      var betrayOk = r11 && r11.ok && w.renown === before - 80 && w.sect.betrayed === true;
+      ok('E19', '武侠师承与市集（拜师阵营档+已入门拒 ⇔ 学艺贡献锁品阶定价 ⇔ 任务/供奉/辈分派生 ‖ 市集药疗伤+银不足拒+秘籍入架研读 ‖ 叛门侠名 −80）',
+        joinOk && learnOk && taskOk && shopOk && betrayOk,
+        '市集1='+shopOk1+' 市集2='+shopOk2+'[r9='+JSON.stringify(r9)+' r10='+JSON.stringify(r10)+' known='+(w2.artsKnown||[]).join(',')+'] 叛门='+betrayOk);
+    })();
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */

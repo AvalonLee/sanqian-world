@@ -477,6 +477,156 @@
     return { ok: true, chose: optK, axis: ax || null };
   }
 
+  /* ── 师承系统（册217 P4 · 方案卷 §五之一）：MUD 师承链正典化 ──────────────────────
+   * 拜师（侠名门槛按阵营：正 20 / 中 0 / 邪·隐 −50；引荐 = relations 该门人物 aff≥20 降 20）；
+   * 学艺 learn（门派武学 = ARTS s 反查；品阶锁贡献 huang 0 / xuan 100 / di 300 / tian 600；
+   *   耗贡献同值 + 精力 5 → artsKnown 增一部）；辈分 = 贡献阶梯五档（派生不进档）；
+   * 师门任务（精力 3 → 贡献 +20~40 确定性）；供奉（10 文 = 1 贡献）；
+   * 叛门（renown −80 + betrayed 标志——追杀事件链随 P5 世界事件层）。 */
+  var SECT_GATE = { zheng: 20, zhong: 0, xie: -50, yin: -50 };
+  var ART_TIER_COST = { huang: 0, xuan: 100, di: 300, tian: 600 };
+  var RANK_LADDER = [0, 100, 300, 600, 1000];
+  function sectCamp(sectId) {
+    var S = (D && D.SECTS) || [];
+    for (var i = 0; i < S.length; i++) if (S[i].id === sectId) return S[i].camp;
+    return null;
+  }
+  function joinSect(ws, sectId) {
+    if (!ws) return { err: 'nows' };
+    if (ws.sect && ws.sect.id && !ws.sect.betrayed) return { err: 'joined', sect: ws.sect.id };
+    var camp = sectCamp(sectId);
+    if (!camp) return { err: 'nosect' };
+    var gate = SECT_GATE[camp] != null ? SECT_GATE[camp] : 0;
+    var rel = ws.relations || {};
+    for (var k in rel) {
+      var c = CAST_INDEX[k];
+      if (c && c.sec === sectId && isNum(rel[k].affinity) && rel[k].affinity >= 20) gate -= 20;   /* 引荐降档 */
+    }
+    if ((ws.renown || 0) < gate) return { err: 'renown', gate: gate, have: ws.renown || 0 };
+    if ((ws.stamina | 0) < 5) return { err: 'stamina' };
+    ws.stamina -= 5;
+    ws.sect = { id: sectId, rank: 0, contribution: 0, joinedAt: ws.worldDay || 0, betrayed: false };
+    return { ok: true, sect: sectId };
+  }
+  function sectRankOf(contribution) {
+    var r = 0;
+    for (var i = 0; i < RANK_LADDER.length; i++) if ((contribution | 0) >= RANK_LADDER[i]) r = i;
+    return r;
+  }
+  function artsOfSectFn(sid) {
+    var A = (D && D.ARTS) || [];
+    var out = [];
+    for (var i = 0; i < A.length; i++) if ((A[i].s || []).indexOf(sid) >= 0) out.push(A[i].i);
+    return out;
+  }
+  function learnableArts(ws) {
+    if (!ws.sect || !ws.sect.id) return [];
+    var ids = artsOfSectFn(ws.sect.id);
+    var out = [];
+    for (var i = 0; i < ids.length; i++) {
+      var a = ART_INDEX[ids[i]];
+      if (!a) continue;
+      var cost = ART_TIER_COST[a.t] != null ? ART_TIER_COST[a.t] : 100;
+      out.push({ id: ids[i], t: a.t, cost: cost, known: (ws.artsKnown || []).indexOf(ids[i]) >= 0 });
+    }
+    return out;
+  }
+  function learnArt(ws, artId) {
+    if (!ws || !ws.sect || !ws.sect.id) return { err: 'nosect' };
+    var a = ART_INDEX[artId];
+    if (!a || (a.s || []).indexOf(ws.sect.id) < 0) return { err: 'notmine' };
+    if ((ws.artsKnown || []).indexOf(artId) >= 0) return { err: 'known' };
+    var cost = ART_TIER_COST[a.t] != null ? ART_TIER_COST[a.t] : 100;
+    if ((ws.sect.contribution | 0) < cost) return { err: 'contribution', need: cost, have: ws.sect.contribution | 0 };
+    if ((ws.stamina | 0) < 5) return { err: 'stamina' };
+    ws.stamina -= 5;
+    ws.sect.contribution -= cost;
+    ws.artsKnown = (ws.artsKnown || []).concat([artId]);
+    ws.artsLevels = obj(ws.artsLevels); ws.artsLevels[artId] = 1;
+    return { ok: true, art: artId, layer: 1 };
+  }
+  function sectTask(ws) {
+    if (!ws || !ws.sect || !ws.sect.id) return { err: 'nosect' };
+    if ((ws.stamina | 0) < 3) return { err: 'stamina' };
+    ws.stamina -= 3;
+    var h = worldDayHash(ws, 77);
+    var gain = 20 + (h % 21);
+    ws.sect.contribution = (ws.sect.contribution | 0) + gain;
+    var pay = 30 + (h % 40);
+    ws.stones = (ws.stones || 0) + pay;
+    ws.sect.rank = sectRankOf(ws.sect.contribution);
+    return { ok: true, contribution: gain, pay: pay };
+  }
+  function donateSect(ws, wen) {
+    if (!ws || !ws.sect || !ws.sect.id) return { err: 'nosect' };
+    var n = Math.floor(isNum(wen) ? wen : 0);
+    if (n <= 0 || (ws.stones || 0) < n) return { err: 'stones', have: Math.floor(ws.stones || 0) };
+    ws.stones -= n;
+    ws.sect.contribution = (ws.sect.contribution | 0) + Math.floor(n / 10);
+    ws.sect.rank = sectRankOf(ws.sect.contribution);
+    return { ok: true, contribution: Math.floor(n / 10) };
+  }
+  function betraySect(ws) {
+    if (!ws || !ws.sect || !ws.sect.id) return { err: 'nosect' };
+    if (ws.sect.betrayed) return { err: 'betrayed' };
+    ws.renown = clampInt((ws.renown || 0) - 80, -1000, 1000, ws.renown || 0);
+    ws.sect.betrayed = true;
+    return { ok: true, renown: ws.renown };
+  }
+
+  /* ── 市集（册217 P6 · 方案卷 §八 坊市恢复）：静态货架 + 秘籍三途之一（稀有格）────── */
+  var SHOP_LIST = [
+    { i: 'shop_salve', kind: 'salve', cost: 50, heal: 2 },      /* 金疮药：内伤 −2 */
+    { i: 'shop_ginseng', kind: 'salve', cost: 5000, heal: 8 },  /* 老山参 5 两：内伤 −8 */
+    { i: 'shop_blade', kind: 'gear', slot: 'weapon', cost: 2000, power: 1.05 },   /* 铁刀 */
+    { i: 'shop_sword', kind: 'gear', slot: 'weapon', cost: 20000, power: 1.10 },  /* 好剑 20 两 */
+    { i: 'mnl_01', kind: 'manual', cost: 30000 },               /* 秘籍稀有格（MANUALS 抽三） */
+    { i: 'mnl_05', kind: 'manual', cost: 45000 },
+    { i: 'mnl_09', kind: 'manual', cost: 60000 }
+  ];
+  function buyItem(ws, itemId) {
+    var it = null;
+    for (var i = 0; i < SHOP_LIST.length; i++) if (SHOP_LIST[i].i === itemId) { it = SHOP_LIST[i]; break; }
+    if (!it) return { err: 'noitem' };
+    if ((ws.stones || 0) < it.cost) return { err: 'stones', need: it.cost, have: Math.floor(ws.stones || 0) };
+    ws.stones -= it.cost;
+    if (it.kind === 'salve') {
+      ws.injury = Math.max(0, (ws.injury || 0) - it.heal);
+      return { ok: true, kind: 'salve', heal: it.heal };
+    }
+    if (it.kind === 'gear') {
+      ws.gear = obj(ws.gear); ws.gear[it.slot] = { i: it.i, power: it.power };
+      return { ok: true, kind: 'gear', slot: it.slot };
+    }
+    if (it.kind === 'manual') {
+      ws.shelf = arr(ws.shelf);
+      ws.shelf.push(it.i);
+      return { ok: true, kind: 'manual', manual: it.i };
+    }
+    return { err: 'kind' };
+  }
+  /* 研读秘籍（shelf → artsKnown）：耗精力 2；MANUALS art 必指真招式（册156 口径） */
+  function studyManual(ws, manualId) {
+    var M = (D && D.MANUALS) || [];
+    var m = null;
+    for (var i = 0; i < M.length; i++) if (M[i].i === manualId) { m = M[i]; break; }
+    if (!m) return { err: 'nomanual' };
+    var shelf = arr(ws.shelf);
+    var at = shelf.indexOf(manualId);
+    if (at < 0) return { err: 'notowned' };
+    if ((ws.stamina | 0) < 2) return { err: 'stamina' };
+    var artId = m.art;
+    if (!ART_INDEX[artId]) return { err: 'badart' };
+    ws.stamina -= 2;
+    shelf.splice(at, 1);
+    ws.shelf = shelf;
+    if ((ws.artsKnown || []).indexOf(artId) < 0) {
+      ws.artsKnown = (ws.artsKnown || []).concat([artId]);
+      ws.artsLevels = obj(ws.artsLevels); ws.artsLevels[artId] = 1;
+    }
+    return { ok: true, art: artId };
+  }
+
   /* 精力上限（册215 P2）：60 + 境界×10——随成长放宽；恢复 1 点/现实分钟（claim 内推进） */
   function staminaCapOf(ws) { return 60 + (ws && isNum(ws.realm) ? ws.realm : 0) * 10; }
 
@@ -611,6 +761,8 @@
     staminaCapOf: staminaCapOf,
     travel: travel,
     knotChoose: knotChoose,
+    joinSect: joinSect, learnArt: learnArt, learnableArts: learnableArts, sectTask: sectTask, donateSect: donateSect, betraySect: betraySect, sectRankOf: sectRankOf,
+    shopList: SHOP_LIST, buyItem: buyItem, studyManual: studyManual,
     zoneUnlocked: zoneUnlocked,
     travelStamina: TRAVEL_STAMINA,
     travelUnlock: TRAVEL_UNLOCK,
