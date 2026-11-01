@@ -227,6 +227,47 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 坏映射=' + (badManual.length ? badManual.join(',') : '无'));
     })();
 
+    /* E10 · 武侠剧情分支（桥段库 + 事件池 + 章生成骨架）（册157 · S2-a）
+     * 判「分支真的分得开」：① 桥段每条 ≥2 支；② cast 指向真人物、z 指向真地界（引用悬空 = 章里冒出不存在的人）；
+     * ③ 事件池覆盖全部地界；④ `chapter()` 是纯函数（同输入同输出）+ 骨架合法（首 scene 末 cliff、4~6 节）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      var d = pk && pk.data;
+      if (!d || !pk.narrative) { ok('E10', '武侠剧情分支（桥段/事件/章骨架）', false, '无 narrative 契约'); return; }
+      var K = d.KNOTS || [], E = d.EVENTS || [], C = d.CAST || [], Z = d.ZONES || [];
+      var cid = {}, zid = {};
+      C.forEach(function (c) { cid[c.i] = 1; });
+      Z.forEach(function (z) { zid[z.i] = 1; });
+      var bad = [], lineN = { zheng: 0, zhong: 0, xie: 0 };
+      K.forEach(function (k) {
+        if (!(k.br || []).length || k.br.length < 2) bad.push(k.i + ' 分支<2');
+        if (!zid[k.z]) bad.push(k.i + ' 地界悬空:' + k.z);
+        (k.cast || []).forEach(function (c) { if (!cid[c]) bad.push(k.i + ' 人物悬空:' + c); });
+        (k.br || []).forEach(function (b) {
+          if (SQ.t(b.label, null, 'wuxia') === b.label) bad.push('缺名:' + b.label);
+        });
+        if (SQ.t('knot.' + k.i + '.name', null, 'wuxia') === 'knot.' + k.i + '.name') bad.push('缺名:' + k.i);
+      });
+      E.forEach(function (e) { lineN[e.line] = (lineN[e.line] || 0) + 1; if (!zid[e.z]) bad.push(e.i + ' 地界悬空'); });
+      var zCover = {};
+      E.forEach(function (e) { zCover[e.z] = 1; });
+      /* 章生成：纯函数 + 骨架 */
+      var ws = pk.normalize(pk.initialState());
+      ws.place = 'luoyang';
+      var c1 = pk.narrative.chapter(ws, pk, {}), c2 = pk.narrative.chapter(ws, pk, {});
+      var pure = JSON.stringify(c1) === JSON.stringify(c2);
+      var shape = c1.beats && c1.beats.length >= 4 && c1.beats.length <= 6 &&
+        c1.beats[0].type === 'scene' && c1.beats[c1.beats.length - 1].type === 'cliff';
+      var forkOk = !c1.fork || ((c1.fork.opts || []).length >= 1 &&
+        c1.fork.opts.every(function (o) { return SQ.t(o.label, null, 'wuxia') !== o.label; }));
+      ok('E10', '武侠剧情分支（桥段 24 各 ≥2 支 ⇔ cast/地界无悬空 ⇔ 事件池覆盖全地界 ⇔ chapter 纯函数且骨架合法）',
+        K.length >= 24 && E.length >= 96 && Object.keys(zCover).length === Z.length &&
+        bad.length === 0 && pure && shape && forkOk,
+        'knots=' + K.length + ' events=' + E.length + ' 地覆盖=' + Object.keys(zCover).length + '/' + Z.length +
+        ' 三线=' + JSON.stringify(lineN) + ' 纯=' + pure + ' 骨架=' + shape +
+        ' 分支名=' + forkOk + (bad.length ? ' ‖ ' + bad.slice(0, 3).join(' ') : ''));
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */
