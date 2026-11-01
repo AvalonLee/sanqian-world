@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>武侠世界 · 单章原型 v0.1（渡口）</title>
+<style>
+  :root{
+    --paper:#f6f1e6;
+    --paper-2:#efe8d9;
+    --ink:#23201c;
+    --ink-2:#4a423a;
+    --ink-3:#7b7168;
+    --zhu:#a8332a;
+    --zhu-soft:#c4645a;
+    --line:#d9cfbc;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(90deg, rgba(160,140,110,.035) 0 1px, transparent 1px 4px),
+      var(--paper);
+    color:var(--ink);
+    font-family:"Source Han Serif SC","Noto Serif SC","Songti SC","STSong","SimSun",serif;
+    font-size:16px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 196px;
+    gap:0;
+    max-width:1120px;
+    margin:0 auto;
+    min-height:100vh;
+    background:#faf6ee;
+    box-shadow:0 0 0 1px rgba(120,100,70,.10), 0 18px 50px -30px rgba(80,60,30,.45);
+  }
+  /* ── 书页 ── */
+  .page{position:relative;padding:0 46px 96px 52px;min-height:100vh;}
+  .seal{
+    position:absolute;left:20px;top:96px;writing-mode:vertical-rl;
+    font-family:"KaiTi","STKaiti",serif;font-size:12px;letter-spacing:.3em;
+    color:var(--ink-3);opacity:.6;user-select:none;
+  }
+  header.head{
+    position:sticky;top:0;z-index:5;
+    display:flex;align-items:baseline;justify-content:space-between;
+    padding:22px 0 26px;margin-bottom:0;
+    border-bottom:1px solid var(--line);
+    background:#faf6ee;
+  }
+  .head .t{font-family:"KaiTi","STKaiti",serif;font-size:15.5px;letter-spacing:.2em;color:var(--ink);}
+  .head .m{font-family:"Microsoft YaHei","PingFang SC",sans-serif;font-size:13px;letter-spacing:.12em;color:var(--ink-2);}
+
+  header.head::after{
+    content:"";
+    position:absolute;left:0;right:0;top:100%;height:22px;
+    background:linear-gradient(180deg, #faf6ee 0%, #faf6ee 52%, rgba(250,246,238,0) 100%);
+    pointer-events:none;
+  }
+  #body{padding-top:16px;font-size:19.5px;line-height:1.98;letter-spacing:.022em;}
+  #body > p{
+    margin:0 0 1.15em;text-indent:2em;text-align:justify;
+    opacity:0;transition:opacity .5s ease;
+  }
+  #body > p.on{opacity:1;}
+  #body > p.fresh{animation:inkIn .38s ease both;}
+  @keyframes inkIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+  #body > p.talk{text-indent:0;padding-left:2em;}
+  #body > em{font-style:normal;color:var(--zhu-soft);}
+
+  /* 分岔标记 */
+  .mark{
+    display:inline-block;margin-left:.4em;color:var(--zhu);
+    font-size:.8em;vertical-align:super;cursor:pointer;
+    opacity:.42;transition:opacity .25s;user-select:none;
+  }
+  .mark:hover{opacity:.9;}
+
+  /* ── 朱批框 ── */
+  .fork{
+    position:relative;margin:4px 0 22px;
+    border-left:2px solid var(--zhu);
+    background:linear-gradient(90deg, rgba(168,51,42,.055), rgba(168,51,42,.012) 70%, transparent);
+    padding:14px 16px 12px;
+    animation:forkIn .28s ease both;
+  }
+  @keyframes forkIn{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:none;}}
+  .fork .k{
+    font-family:"KaiTi","STKaiti",serif;font-size:14px;letter-spacing:.22em;
+    color:var(--zhu);margin-bottom:9px;
+  }
+  .fork .k b{font-weight:400;border:1px solid var(--zhu-soft);padding:1px 6px;border-radius:2px;margin-left:8px;font-size:12.5px;letter-spacing:.1em;}
+  .fork .ask{
+    font-family:"KaiTi","STKaiti",serif;font-size:16.5px;color:var(--ink);
+    margin-bottom:13px;line-height:1.9;
+  }
+  .opt{
+    display:block;width:100%;text-align:left;cursor:pointer;
+    background:rgba(255,255,255,.55);border:1px solid var(--line);
+    border-radius:2px;padding:9px 13px;margin-bottom:7px;
+    font-family:inherit;font-size:16.5px;color:var(--ink);line-height:1.8;
+    transition:.18s;
+  }
+  .opt:hover{border-color:var(--zhu-soft);background:rgba(255,255,255,.9);transform:translateX(2px);}
+  .opt:disabled{opacity:.38;cursor:not-allowed;transform:none;}
+  .opt .hint{float:right;font-size:12.5px;color:var(--ink-2);font-family:"Microsoft YaHei",sans-serif;letter-spacing:.06em;margin-left:10px;}
+  .fork .close{
+    margin-top:7px;font-size:13px;color:var(--ink-2);cursor:pointer;
+    font-family:"KaiTi",serif;letter-spacing:.14em;user-select:none;
+  }
+  .fork .close:hover{color:var(--zhu);}
+
+  /* ── 页脚状态 ── */
+  footer.foot{
+    position:fixed;left:0;right:0;bottom:0;
+    max-width:1120px;margin:0 auto;padding:9px 46px;
+    border-top:1px solid var(--line);
+    background:#faf6ee;
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:13.5px;letter-spacing:.04em;color:var(--ink-2);
+  }
+  .foot .item{white-space:nowrap;}
+  footer.foot::before{
+    content:"";position:absolute;left:0;right:0;bottom:100%;height:22px;
+    background:linear-gradient(0deg, #faf6ee 0%, #faf6ee 45%, rgba(250,246,238,0) 100%);
+    pointer-events:none;
+  }
+  .foot .lab{color:var(--ink-2);margin-right:5px;font-size:12.5px;}
+  .dots{letter-spacing:.14em;color:var(--zhu);font-size:15px;}
+  .dots .off{color:#b9ad97;}
+  .foot .sp{flex:1;}
+  .foot .rw{
+    color:var(--ink-3);cursor:pointer;user-select:none;font-family:"KaiTi",serif;letter-spacing:.1em;
+  }
+  .foot .rw:hover{color:var(--zhu);}
+
+  /* ── 落笔栏 ── */
+  aside.notes{
+    border-left:1px solid var(--line);
+    padding:96px 16px 100px;
+    background:linear-gradient(180deg, rgba(239,232,217,.5), rgba(239,232,217,.15));
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:13.5px;color:var(--ink-2);
+  }
+  aside.notes .inner{position:sticky;top:96px;}
+  aside.notes h4{
+    margin:0 0 12px;font-size:12.5px;font-weight:400;letter-spacing:.24em;
+    color:var(--ink-2);font-family:"KaiTi",serif;
+  }
+  .note{
+    border-left:2px solid var(--zhu-soft);padding:2px 0 2px 9px;margin-bottom:11px;
+    font-family:"KaiTi","STKaiti",serif;font-size:14.5px;line-height:1.75;color:var(--ink);
+    animation:noteIn .3s ease both;
+  }
+  @keyframes noteIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+  .note .c{color:var(--ink-2);font-size:12px;}
+  .mec{
+    margin-top:22px;padding:10px 0 0;border-top:1px dashed var(--line);
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:12.5px;line-height:1.85;color:var(--ink-2);
+  }
+  .mec b{font-weight:600;color:var(--ink);}
+  .empty{color:var(--ink-2);font-family:"KaiTi",serif;font-size:14px;line-height:1.9;opacity:.85;}
+
+  /* 顶部提示 */
+  .tip{
+    position:fixed;bottom:58px;right:32px;
+    padding:6px 12px;border-radius:2px;
+    background:rgba(43,38,34,.82);color:#f6f1e6;
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:13px;letter-spacing:.06em;pointer-events:none;
+    opacity:0;transition:opacity .45s;
+  }
+  .tip.on{opacity:.92;}
+
+  /* ── 页脚按钮 / 附录抽屉 / 提示 / 章末卡 / 范围面板 ── */
+  .foot .btn{
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:13px;color:var(--ink-2);cursor:pointer;user-select:none;
+    padding:3px 11px;border:1px solid var(--line);border-radius:2px;background:rgba(255,255,255,.5);
+    transition:.16s;
+  }
+  .foot .btn:hover{border-color:var(--zhu-soft);color:var(--zhu);}
+  .foot .btn[disabled]{opacity:.38;cursor:not-allowed;}
+
+  .drawer{
+    position:fixed;right:26px;bottom:58px;width:196px;z-index:30;
+    background:#faf6ee;border:1px solid var(--line);border-radius:3px;
+    box-shadow:0 14px 34px -20px rgba(60,45,25,.55);
+    padding:7px;display:none;
+  }
+  .drawer.on{display:block;animation:noteIn .2s ease both;}
+  .drawer .row{
+    padding:8px 11px;font-size:13.5px;cursor:pointer;border-radius:2px;
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:"Microsoft YaHei",sans-serif;color:var(--ink-2);
+  }
+  .drawer .row:hover{background:rgba(168,51,42,.07);color:var(--ink);}
+  .drawer .row i{font-style:normal;font-size:11px;color:var(--ink-3);}
+
+  .toast{
+    position:fixed;left:50%;bottom:74px;transform:translateX(-50%);
+    background:rgba(43,38,34,.9);color:#f6f1e6;padding:9px 18px;border-radius:3px;
+    font-family:"Microsoft YaHei",sans-serif;font-size:13px;letter-spacing:.03em;
+    opacity:0;transition:opacity .3s;pointer-events:none;z-index:40;white-space:nowrap;
+  }
+  .toast.on{opacity:1;}
+
+  .endcard{
+    margin-top:30px;padding-top:22px;border-top:1px dashed var(--line);
+    display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  }
+  .endcard .c{
+    border:1px solid var(--line);border-radius:3px;padding:14px 16px;cursor:pointer;
+    background:rgba(255,255,255,.45);transition:.18s;
+  }
+  .endcard .c:hover{border-color:var(--zhu-soft);background:rgba(255,255,255,.82);}
+  .endcard .c h5{
+    margin:0 0 7px;font-size:15.5px;font-weight:400;
+    font-family:"KaiTi","STKaiti",serif;letter-spacing:.1em;color:var(--ink);
+  }
+  .endcard .c p{
+    margin:0;font-size:12.5px;line-height:1.72;color:var(--ink-2);text-indent:0;
+    font-family:"Microsoft YaHei",sans-serif;
+  }
+  .endcard .c .tag{
+    display:inline-block;margin-top:9px;font-size:11px;color:var(--zhu);
+    border:1px solid var(--zhu-soft);border-radius:2px;padding:1px 6px;
+    font-family:"Microsoft YaHei",sans-serif;letter-spacing:.04em;
+  }
+
+  details.scope{
+    margin:46px 0 12px;font-family:"Microsoft YaHei",sans-serif;
+    font-size:12.5px;color:var(--ink-2);
+  }
+  details.scope summary{cursor:pointer;letter-spacing:.1em;color:var(--ink-3);outline:none;font-size:12px;}
+  details.scope summary:hover{color:var(--zhu);}
+  details.scope table{width:100%;border-collapse:collapse;margin-top:14px;}
+  details.scope th,details.scope td{
+    border-bottom:1px solid var(--line);padding:8px 9px;text-align:left;
+    vertical-align:top;line-height:1.7;
+  }
+  details.scope th{color:var(--ink-3);font-weight:400;letter-spacing:.06em;white-space:nowrap;}
+  details.scope .ok{color:#3f6b4a;}
+  details.scope .ph{color:#9a6b2f;}
+  details.scope .no{color:#8a3b33;}
+
+  .endmark{
+    margin-top:36px;text-align:center;color:var(--ink-2);
+    font-family:"KaiTi",serif;font-size:15px;letter-spacing:.44em;
+  }
+  @media (max-width:900px){
+    .wrap{grid-template-columns:1fr;}
+    aside.notes{display:none;}
+    .page{padding:26px 22px 92px;}
+    .foot{padding:9px 22px;}
+    .tip{display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <main class="page">
+    <div class="seal">三千世界 · 武侠</div>
+    <header class="head">
+      <div class="t" id="chTitle">卷一 · 第三章　渡口</div>
+      <div class="m" id="chMeta">暮春 · 湘潭 · 辰时</div>
+    </header>
+    <div id="body"></div>
+    <div class="endmark" id="endmark"></div>
+
+    <details class="scope" id="scope">
+      <summary>本书原型范围（v0.3）—— 做了什么 / 什么只是占位 / 什么根本没做</summary>
+      <table>
+        <tr><th>功能</th><th>状态</th><th>说明</th></tr>
+        <tr><td>正文逐字浮现 · 点任意处略过</td><td class="ok">✓ 已实现</td><td>只追加文本节点，不重建 innerHTML</td></tr>
+        <tr><td>※ 分岔 · 「批」与「改」两档</td><td class="ok">✓ 已实现</td><td>本原型只做这两档；「删」按设计锁在卷五</td></tr>
+        <tr><td>朱批框三选项 + 「闭卷」</td><td class="ok">✓ 已实现</td><td>闭卷 = 走默认分支，这是主路径，不是备选</td></tr>
+        <tr><td>墨（每章回满 · 章内不恢复）</td><td class="ok">✓ 已实现</td><td>演示值 4 点；正式按卷 2 / 3 / 4 / 5</td></tr>
+        <tr><td>违和累积（批 +1 · 改 +5）</td><td class="ok">✓ 已实现</td><td>只到数值</td></tr>
+        <tr><td>违和 ≥60 的正文异样</td><td class="ph">◐ 占位</td><td>未做警示文案与叙述口吻变化</td></tr>
+        <tr><td>违和满 100 的「墨厄」卷重写</td><td class="no">✗ 未做</td><td>演出复杂，单章原型不做</td></tr>
+        <tr><td>性格三轴</td><td class="ph">◐ 半实现</td><td>只影响结尾一句语气；未可视化，也未影响后续分岔</td></tr>
+        <tr><td>落笔记（侧栏回看）</td><td class="ok">✓ 已实现</td><td>记录每次落笔与成本</td></tr>
+        <tr><td>快进（跳到下一处分岔）</td><td class="ok">✓ 已实现</td><td>5 天节奏下「积压 40 章」的追读手段，必须有</td></tr>
+        <tr><td>附录四页（目录 / 功谱 / 人物 / 舆图）</td><td class="ph">◐ 占位</td><td>只有入口与抽屉，点开提示未实现</td></tr>
+        <tr><td>章末合卷二选一（另起一书 / 续写此江湖）</td><td class="ph">◐ 占位</td><td>有卡无实</td></tr>
+        <tr><td>开局四层（声音 / 场景 / 处境 / 扰动）</td><td class="no">✗ 未做</td><td>本原型从第一章正文直接开始</td></tr>
+        <tr><td>第一屏取诨号</td><td class="no">✗ 未做</td><td>属开篇设计</td></tr>
+        <tr><td>多章推进 · 卷末提要 · 离线摘要</td><td class="no">✗ 未做</td><td>需要叙事引擎，本原型只有一章</td></tr>
+        <tr><td>武功 / 门派 / 境界成长与破关</td><td class="no">✗ 未做</td><td>页脚数值为静态展示，不参与结算</td></tr>
+        <tr><td>人物关系网 · 事件池</td><td class="no">✗ 未做</td><td>未接入</td></tr>
+        <tr><td>存档 · 书架 · 续篇世界继承</td><td class="no">✗ 未做</td><td>按设计排在 S2 末尾</td></tr>
+      </table>
+    </details>
+  </main>
+
+  <aside class="notes">
+    <div class="inner">
+      <h4>落 笔 记</h4>
+      <div id="noteList"><div class="empty">你还没有落过笔。<br>书会按他自己的性子往下写。</div></div>
+      <div class="mec">
+        <b>墨 = 这一章的注意力</b><br>
+        每章开头回满，章内不恢复；未用完最多留 1 点。<br>上限按卷解锁：<b>2 / 3 / 4 / 5</b>（卷一 → 卷八）。<br>本原型演示用 4 点。
+      </div>
+    </div>
+  </aside>
+</div>
+
+<footer class="foot">
+  <span class="item"><span class="lab">功力</span>1,240</span>
+  <span class="item"><span class="lab">境界</span>一流</span>
+  <span class="item"><span class="lab">银两</span>86</span>
+  <span class="item"><span class="lab">墨</span><span class="dots" id="dots">●●●●●</span></span>
+  <span class="item"><span class="lab">违和</span><span id="disc">0</span></span>
+  <span class="sp"></span>
+  <span class="btn" id="jump">快进</span>
+  <span class="btn" id="appendix">附录</span>
+  <span class="rw" id="reset">重读此章</span>
+</footer>
+
+<div class="drawer" id="drawer">
+  <div class="row" data-k="目录">目录<i>卷章列表 · 未实现</i></div>
+  <div class="row" data-k="功谱">功谱<i>已学武学 · 未实现</i></div>
+  <div class="row" data-k="人物">人物<i>关系网 · 未实现</i></div>
+  <div class="row" data-k="舆图">舆图<i>六区十二地 · 未实现</i></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="tip" id="tip">点正文任一处，可略过逐字</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   单章原型 v0.1 · 只验证四件事：
+   ① 逐字浮现能不能读得下去  ② ※ 出现时该不该停下
+   ③ 落笔后正文改口是否可感  ④ 墨与违和的取舍是否有分量
+   ══════════════════════════════════════════════════════════ */
+
+const S = {
+  ink: 4, inkMax: 4, disc: 0,
+  axis: { xia: 0, kuang: 0, du: 0 },
+  notes: [],
+  typing: null,   // { el, text, i, timer, done }
+  idle: false,
+  finished: false,
+  warned: false
+};
+
+/* ── 剧本 ──
+   p     普通段落（打字）
+   fork  分岔（停住等落笔）
+   flow  承接上一处选择的段落
+*/
+const SCRIPT = [
+  /* ───────── 开篇 · 约 600 字 ───────── */
+  { type:'p', text:'雨下了三天。' },
+  { type:'p', text:'他蹲在渡口的草棚底下，肩头湿了半边，手里那口刀始终横在膝上，刀鞘朝外。' },
+  { type:'p', text:'江面上没有船。水是黄的，卷着草屑和断枝，一路往东去。' },
+  { type:'p', text:'对岸有三个人，都穿着青布短打，腰间鼓着，不像赶路的。他们站在柳树底下，已经站了快一个时辰。' },
+  { type:'p', text:'他也坐了快一个时辰。饼还剩半块，硬得像石头。他咬了一口，含着，没嚼。' },
+  { type:'p', text:'三天前他还在城里。' },
+  { type:'p', text:'那间当铺的门板被人从里面顶住了。他敲了三下，没人应。第四下他改用刀柄，门开了半尺，里面一股火油味。' },
+  { type:'p', text:'他没有进去。他退到街上，看着那半尺门缝里透出来的一点火光，站了很久。后来巷子另一头有人跑过来，喊了一声「走水了」，他就跟着人流走了。' },
+  { type:'p', text:'现在他坐在这里。身上一件单衣，怀里揣着一本翻烂的册子、一块铁牌，还有那半块饼。' },
+  { type:'p', text:'册子是师父留下的，铁牌也是。他到现在也没弄明白那块铁牌是做什么用的——上面没有一个字，只有一圈很浅的刻纹，摸上去像刀刻的，又像天生就长在那里。' },
+  { type:'p', text:'他今年十九。' },
+  { type:'p', text:'师父死的时候，他十四。那天下着雪，屋里没生火。师父把他叫到床前，只说了一句话：「别把这牌子给人看。」' },
+  { type:'p', text:'他问为什么。师父闭着眼，没有再答。当天夜里人就没了。' },
+  { type:'p', text:'这句话他记了五年，牌子也贴身藏了五年。到现在他也不知道，那句话到底是嘱咐，还是临终前一句糊涂话。' },
+  { type:'p', text:'当铺是师父的老相识开的。三天前那场火，烧得不早不晚，正好在他到城里的第二天夜里。' },
+  { type:'p', text:'他不愿意多想。可有些事，不想它也摆在那儿。' },
+
+  /* ───────── 观察对岸 · 约 250 字 ───────── */
+  { type:'p', text:'雨小了些。' },
+  { type:'p', text:'他抬眼看了看对岸。那三个人里，蹲着的那个正在卷烟，火点不着，骂了一句，把烟扔进江里。' },
+  { type:'p', text:'另外两个站着。其中一个靴子是新的——黑缎面，踩在泥地里，边上一点没脏，显然是走到就站定了，一动没动。' },
+  { type:'p', text:'能站这么久不动的人，不是赶路的。' },
+  { type:'p', text:'雨里有一种声音，很低，像有人在数数。他侧耳听了一会儿，才听出那是水在撞船桩。' },
+  { type:'p', text:'他松了口气，又觉得不该松。' },
+  { type:'p', text:'他把饼掰下一小块，塞进嘴里，慢慢地嚼。雨落在草棚上，声音很密。' },
+
+  /* ───────── ※ 一 · 批（约 900 字处） ───────── */
+  { type:'fork', c:'批', cost:1,
+    ask:'雨声盖住了一切。你在页边添了一笔——',
+    options:[
+      { t:'「坐着别动。」', h:'沉稳 +2', axis:'du', eff:'ceng',
+        flow:['他没有动。','雨水顺着棚檐连成一条线，落在他脚边，砸出一个个浅浅的坑。','对岸那三个人站了一会儿。卷烟的那个把烟袋收进腰里，其中一个抬手指了指这边，又放下了。','他把最后一口饼咽下去，觉得胃里凉。'] },
+      { t:'「站起来，把刀提在手里。」', h:'狂放 +2', axis:'kuang', eff:'kuang',
+        flow:['他站了起来。','刀提在手里，鞘尖垂着，离地三寸。他没有看对岸，只是看着江。','对岸那三个人里，也有一个站了起来——就是穿新靴子的那个。','两个人隔着一江的雨，谁也不动。','过了很久，江面上出现了一个黑点。'] },
+      { t:'「退回雨里，绕到上游。」', h:'独行 +2', axis:'du2', eff:'du',
+        flow:['他退进雨里。','草叶割着小腿。他沿着江岸走了十几步，站住了。','雨顺着脖子往里灌。他站了一会儿，又走回来，重新蹲在棚子底下。','像是刚才那十几步，只是为了让自己想清楚一件事。'] }
+    ]},
+
+  /* ───────── 摆渡 · 约 500 字 ───────── */
+  { type:'p', text:'船是午后来的。' },
+  { type:'p', text:'撑船的是个哑巴老头，收了两个铜板，一声不吭地把他渡到对岸。江水拍着船帮，嗒，嗒，像有东西在底下敲。' },
+  { type:'p', text:'船到江心，老头忽然抬手指了指他的刀。' },
+  { type:'p', text:'他把刀往怀里收了收。老头摇摇头，又指了指，然后做了个「拔出来」的手势，再摆摆手。' },
+  { type:'p', text:'他不明白，又不敢问。这江上十年没出过事，出事的都是不肯低头的人。' },
+  { type:'p', text:'他没看懂。' },
+  { type:'p', text:'老头也不再说，只是撑着篙，把船摆正了。' },
+  { type:'p', text:'靠岸的时候，老头用竹篙在船头点了三下，回头看了他一眼。那眼神很平，像在看一块石头，又像在等一块石头开口。' },
+
+  /* ───────── 上岸对峙 · 约 250 字 ───────── */
+  { type:'p', text:'岸上那三个人没走。他们站在柳树下，等他上岸。' },
+  { type:'p', text:'为首的那个手里捏着一根柳条，慢慢地转。柳条上还带着叶子，一转，水珠就甩出去，落在泥地里，砸出一个个小坑。' },
+  { type:'p', text:'「这位兄弟，」他开口了，声音很和气，「打哪儿来？」' },
+  { type:'p', text:'他没有答。' },
+  { type:'p', text:'「不答也不要紧。」那人笑了笑，把柳条丢在地上，「我们就是看看你怀里那东西。」' },
+  { type:'p', text:'他往后站了半步。' },
+  { type:'p', text:'「别紧张，」那人说，「我们是青城派的，奉命查一桩火。你从南边来，那正好，跟我们说说。」' },
+  { type:'p', text:'原来是这样。他心里想。原来那场火，烧的不是当铺。' },
+
+  /* ───────── ※ 二 · 改（约 1900 字处） ───────── */
+  { type:'fork', c:'改', cost:3,
+    ask:'这一处不是语气能过去的。你要改的是一件事——',
+    options:[
+      { t:'「把包裹解下来，递过去。」', h:'墨 3 · 保命', axis:'du', eff:'give',
+        flow:['他解下背上的包裹，双手递过去。','为首那个接了，掂了掂，解开——里面是半件旧棉袄，一本翻烂的册子，还有那块铁牌。','那人把册子翻了两页就放下了，把铁牌捏在手里看了很久。','「这牌子，你从哪儿来的？」','他张了张嘴，没答上来。','那人把铁牌塞回他手里，说了句什么，三个人就走了。','走出去十几步，为首那个回头看了他一眼。'] },
+      { t:'「先动手。」', h:'墨 3 · 搏命', axis:'kuang', eff:'fight',
+        flow:['刀出鞘的声音很轻。','柳条断在半空。青布短打的人退了一步，另外两个已经绕到了两侧。','这一场打了不到十息。','他肩上挨了一记，血混着雨水往下淌，但站着的只有他一个。','他坐在泥地里，笑了一声，笑得很难听。','包裹还在。刀还在。他伸手抹了一把脸，发现手在抖。'] },
+      { t:'「退到水边，跳下去。」', h:'墨 3 · 脱身', axis:'du2', eff:'jump',
+        flow:['他退了两步，脚后跟已经踩进水里。','三个人同时动了。','他没有再犹豫，转身跃进江中。','水冷得刺骨，声音一下子远了。他顺流漂了半里，从一处芦苇荡里爬上来。','包裹丢了，刀还在。他趴在泥里喘了很久。','抬头的时候，天已经有点暗了。'] }
+    ]},
+
+  /* ───────── 收尾 · 约 400 字 ───────── */
+  { type:'p', text:'天快黑的时候，雨停了。' },
+  { type:'p', text:'他沿着官道往北走。路边的野店里亮着一盏灯，灯下坐着个说书的老头，正讲到「当年有位大侠，一刀断了三家的梁子」。' },
+  { type:'p', text:'店门口蹲着个小孩，正用树枝在泥地上画人，画一个，用脚抹掉，再画一个。' },
+  { type:'p', text:'他从旁边走过去。小孩抬头看了他一眼，又低下头去。' },
+  { type:'p', text:'他没有进店。他在窗外站了一会儿，把剩下那半块饼吃完了。' },
+  { type:'p', text:'—— 他不知道，从今天起，这条路上会多出很多双看他的眼睛。' }
+];
+
+const BODY = document.getElementById('body');
+const TIP = document.getElementById('tip');
+let idx = 0;
+
+/* ── 打字机：只追加文本节点，不重建 innerHTML（本仓册147 的教训） ── */
+function typeLine(text, cls, done){
+  const p = document.createElement('p');
+  if (cls) p.className = cls;
+  BODY.appendChild(p);
+  requestAnimationFrame(() => p.classList.add('on'));
+
+  const node = document.createTextNode('');
+  p.appendChild(node);
+
+  let i = 0;
+  const SPEED = 26; // ms / 字
+  let last = performance.now();
+  let acc = 0;
+
+  S.typing = { text, node, p, done };
+
+  function frame(now){
+    if (!S.typing || S.typing.node !== node) return;
+    acc += now - last; last = now;
+    let advanced = false;
+    while (acc >= SPEED && i < text.length){ acc -= SPEED; i++; advanced = true; }
+    if (advanced) node.nodeValue = text.slice(0, i);
+    if (i < text.length){ requestAnimationFrame(frame); }
+    else { finishLine(); }
+  }
+  function finishLine(){
+    node.nodeValue = text;
+    p.classList.remove('typing');
+    S.typing = null;
+    if (done) done();
+  }
+  S.finishLine = finishLine;
+  requestAnimationFrame(frame);
+}
+
+function skip(){
+  if (S.typing && S.finishLine) S.finishLine();
+}
+
+/* ── 推进 ── */
+function step(){
+  const b = SCRIPT[idx];
+  if (!b){ finishChapter(); return; }
+
+  if (b.type === 'p'){
+    idx++;
+    typeLine(b.text, '', step);
+    return;
+  }
+  if (b.type === 'fork'){
+    showFork(b);
+    return;
+  }
+}
+
+/* ── 朱批框 ── */
+function showFork(b){
+  const box = document.createElement('div');
+  box.className = 'fork';
+  const canPay = S.ink >= b.cost;
+
+  let html = '<div class="k">' + b.c + '<b>墨 ' + b.cost + '</b></div>' +
+             '<div class="ask">' + b.ask + '</div>';
+  b.options.forEach((o, i) => {
+    html += '<button class="opt" data-i="' + i + '"' + (canPay ? '' : ' disabled') + '>' +
+            o.t + '<span class="hint">' + o.h + '</span></button>';
+  });
+  html += '<div class="close">闭卷 · 不作批注，看他自己的性子</div>';
+  box.innerHTML = html;
+
+  BODY.appendChild(box);
+  box.scrollIntoView({ block:'center', behavior:'smooth' });
+
+  box.querySelectorAll('.opt').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const o = b.options[+el.dataset.i];
+      choose(b, o, box);
+    });
+  });
+  box.querySelector('.close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    choose(b, null, box);
+  });
+}
+
+function choose(b, opt, box){
+  box.remove();
+
+  if (opt){
+    S.ink -= b.cost;
+    if (b.c === '批') S.disc += 1; else S.disc += 5;
+    if (opt.axis === 'xia') S.axis.xia += 2;
+    if (opt.axis === 'kuang') S.axis.kuang += 2;
+    if (opt.axis === 'du' || opt.axis === 'du2') S.axis.du += 2;
+    S.notes.push({ c:b.c, t:opt.t, cost:b.cost });
+    renderNotes();
+  } else {
+    S.notes.push({ c:'无', t:'闭卷，未落笔', cost:0 });
+    renderNotes();
+  }
+  renderHUD();
+
+  if (S.disc >= 60 && !S.warned){
+    S.warned = true;
+    toast('违和过 60 —— 按设计，此时正文该开始不对劲了（原型未做写法变化）');
+  }
+
+  // 分支段落
+  const flow = opt ? opt.flow : defaultFlow(b);
+  playFlow(flow, () => { idx++; step(); });
+}
+
+function defaultFlow(b){
+  // 不作批注 = 按他本性走（原型里取"最像江湖人"的那一支）
+  return b.c === '批'
+    ? ['他没有动，也没有退。','雨一直下。他就那样坐着，像一块湿透的石头。','对岸那三个人后来走了。走得很慢，但没有回头。']
+    : ['他没有把钱物交出去，也没有先动手。','他站在那里，等着看对方先做什么。','对方也在等。','最后是那个捏柳条的开了口：「你是哪条道上的？」'];
+}
+
+function playFlow(arr, done){
+  let i = 0;
+  (function next(){
+    if (i >= arr.length){ done(); return; }
+    typeLine(arr[i++], '', next);
+  })();
+}
+
+/* ── HUD ── */
+function renderHUD(){
+  const d = document.getElementById('dots');
+  d.innerHTML = '';
+  for (let i = 0; i < S.inkMax; i++){
+    const s = document.createElement('span');
+    s.textContent = i >= S.ink ? '○' : '●';
+    if (i >= S.ink) s.className = 'off';
+    d.appendChild(s);
+  }
+  document.getElementById('disc').textContent = S.disc;
+  const de = document.getElementById('disc');
+  de.style.color = S.disc >= 60 ? 'var(--zhu)' : '';
+  de.style.fontWeight = S.disc >= 60 ? '600' : '';
+}
+function renderNotes(){
+  const list = document.getElementById('noteList');
+  if (!S.notes.length) return;
+  list.innerHTML = S.notes.map(n =>
+    '<div class="note">' + n.t + '<br><span class="c">' + n.c +
+    (n.cost ? ' · 墨 ' + n.cost : '') + '</span></div>'
+  ).join('');
+}
+
+/* ── 收尾 ── */
+function finishChapter(){
+  if (S.finished) return;
+  S.finished = true;
+
+  const ax = S.axis;
+  const tone = ax.kuang > ax.du ? '这一章的他是往外闯的。'
+             : ax.du > ax.kuang ? '这一章的他是往后退的。'
+             : '这一章的他是站着不动的。';
+  const p = document.createElement('p');
+  p.style.cssText = 'margin-top:26px;color:#6b6157;font-family:KaiTi,STKaiti,serif;font-size:14px;text-align:center;letter-spacing:.1em;text-indent:0;';
+  p.textContent = tone + '　—— 章末。';
+  BODY.appendChild(p);
+  requestAnimationFrame(() => p.classList.add('on'));
+
+  const em = document.createElement('div');
+  em.className = 'endmark';
+  em.textContent = '第 三 章 · 终';
+  BODY.appendChild(em);
+
+  document.getElementById('endmark').textContent = '';
+  TIP.classList.remove('on');
+  document.getElementById('jump').setAttribute('disabled', '');
+
+  /* 章末合卷卡（占位） */
+  const card = document.createElement('div');
+  card.className = 'endcard';
+  card.innerHTML =
+    '<div class="c" data-k="另起一书"><h5>另起一书</h5>' +
+    '<p>世界重掷，与前作零继承。新的江湖、新的声音。</p>' +
+    '<span class="tag">占位 · 未实现</span></div>' +
+    '<div class="c" data-k="续写此江湖"><h5>续写此江湖</h5>' +
+    '<p>同一江湖过了若干年。你会遇到他的传人、仇家的后人、他没还上的人情。</p>' +
+    '<span class="tag">占位 · 未实现</span></div>';
+  BODY.appendChild(card);
+  card.querySelectorAll('.c').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toast('「' + el.dataset.k + '」在原型里只有卡片 —— 世界继承与书架按设计排在 S2 末尾');
+    });
+  });
+}
+
+/* ── 提示 ── */
+let toastTimer = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 2600);
+}
+
+/* ── 快进（跳到下一处分岔）（追读） ── */
+function jumpNext(){
+  if (S.finished) { toast('已经到章末了'); return; }
+  let guard = 0;
+  (function run(){
+    if (guard++ > 400) return;
+    if (S.finished) return;
+    if (document.querySelector('.fork')) return;   // 到了分岔，停下等人
+    if (S.typing && S.finishLine) S.finishLine();
+    setTimeout(run, 10);
+  })();
+}
+
+/* ── 交互 ── */
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.fork') || e.target.closest('.foot')) return;
+  skip();
+  TIP.classList.add('on');
+  setTimeout(() => TIP.classList.remove('on'), 1400);
+});
+
+document.getElementById('reset').addEventListener('click', (e) => {
+  e.stopPropagation();
+  location.reload();
+});
+
+document.getElementById('jump').addEventListener('click', (e) => {
+  e.stopPropagation();
+  jumpNext();
+});
+
+const DRAWER = document.getElementById('drawer');
+document.getElementById('appendix').addEventListener('click', (e) => {
+  e.stopPropagation();
+  DRAWER.classList.toggle('on');
+});
+DRAWER.querySelectorAll('.row').forEach((row) => {
+  row.addEventListener('click', (e) => {
+    e.stopPropagation();
+    DRAWER.classList.remove('on');
+    toast('「' + row.dataset.k + '」在原型里只有入口 —— 正式版是书的附录，不占主界面');
+  });
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#drawer') && !e.target.closest('#appendix')) DRAWER.classList.remove('on');
+});
+
+/* ── 起 ── */
+renderHUD();
+step();
+setTimeout(() => TIP.classList.add('on'), 1600);
+setTimeout(() => TIP.classList.remove('on'), 5200);
+</script>
+</body>
+</html>
