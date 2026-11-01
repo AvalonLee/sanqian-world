@@ -1,0 +1,595 @@
+{
+ "_meta": {
+  "builtAt": "2026-11-01",
+  "method": "频次从 15 部全文（8,608,016 字）逐名字面计数回填（person-exact.json）；性别/阵营/门派/定位/tier 为人工标注 —— 语料给不了这几项（勘察报告 §四）",
+  "total": 40,
+  "duplicateId": "ok",
+  "unverified": [],
+  "tiers": {
+   "S": "绝顶以上（realm 7~8）",
+   "A": "宗师（realm 5~6）",
+   "B": "一流（realm 3~4）",
+   "C": "二流及以下（realm 1~2）"
+  },
+  "roles": {
+   "abbot": "方丈",
+   "master": "掌门/教主",
+   "elder": "长老",
+   "founder": "祖师",
+   "heir": "少主",
+   "chief": "帮主/总舵主",
+   "prince": "王族",
+   "member": "门人",
+   "envoy": "使者",
+   "wanderer": "江湖散人"
+  }
+ },
+ "characters": [
+  {
+   "id": "xuanci",
+   "name": "玄慈",
+   "alias": [],
+   "sex": "m",
+   "align": "zheng",
+   "sect": "shaolin",
+   "role": "abbot",
+   "tier": "B",
+   "book": "天龙八部",
+   "freq": 239,
+   "aliasFreq": {}
+  },
+  {
+   "id": "yue_buqun",
+   "name": "岳不群",
+   "alias": [],
+   "sex": "m",
+   "align": "zheng",
+   "sect": "huashan",
+   "role": "master",
+   "tier": "A",
+   "book": "笑傲江湖",
+   "freq": 1184,
+   "aliasFreq": {}
+  },
+  {
+   "id": "ding_yi",
+   "name": "定逸",
+   "alias": [],
+   "sex": "f",
+   "align": "zheng",
+   "sect": "hengshan",
+   "role": "elder",
+   "tier": "B",
+   "book": "笑傲江湖",
+   "freq": 271,
+   "aliasFreq": {}
+  },
+  {
+   "id": "zhang_sanfeng",
+   "name": "张三丰",
+   "alias": [],
+   "sex": "m",
+   "align": "zheng",
+   "sect": "wudang",
+   "role": "founder",
+   "tier": "S",
+   "book": "倚天屠龙记",
+   "freq": 462,
+   "aliasFreq": {}
+  },
+  {
+   "id": "yu_canghai",
+   "name": "余沧海",
+   "alias": [],
+   "sex": "m",
+   "align": "zheng",
+   "sect": "qingcheng",
+   "role": "master",
+   "tier": "B",
+   "book": "笑傲江湖",
+   "freq": 377,
+   "aliasFreq": {}
+  },
+  {
+   "id": "miejue",
+   "name": "灭绝",
+   "alias": [
+    "灭绝师太"
+   ],
+   "sex": "f",
+   "align": "zheng",
+   "sect": "emei",
+   "role": "master",
+   "tier": "A",
+   "book": "倚天屠龙记",
+   "freq": 461,
+   "aliasFreq": {
+    "灭绝师太": 0
+   }
+  },
+  {
+   "id": "he_taichong",
+   "name": "何太冲",
+   "alias": [],
+   "sex": "m",
+   "align": "zheng",
+   "sect": "kunlun",
+   "role": "master",
+   "tier": "B",
+   "book": "倚天屠龙记",
+   "freq": 246,
+   "aliasFreq": {}
+  },
+  {
+   "id": "zong_weixia",
+   "name": "宗维侠",
+   "alias": [],
+   "sex": "m",
+   "align": "zheng",
+   "sect": "kongtong",
+   "role": "elder",
+   "tier": "B",
+   "book": "倚天屠龙记",
+   "freq": 51,
+   "aliasFreq": {}
+  },
+  {
+   "id": "hong_qigong",
+   "name": "洪七公",
+   "alias": [],
+   "sex": "m",
+   "align": "zhong",
+   "sect": "gaibang",
+   "role": "chief",
+   "tier": "A",
+   "book": "射雕英雄传",
+   "freq": 1231,
+   "aliasFreq": {}
+  },
+  {
+   "id": "chen_jinnan",
+   "name": "陈近南",
+   "alias": [],
+   "sex": "m",
+   "align": "zhong",
+   "sect": "tiandihui",
+   "role": "chief",
+   "tier": "A",
+   "book": "鹿鼎记",
+   "freq": 473,
+   "aliasFreq": {}
+  },
+  {
+   "id": "chen_jialuo",
+   "name": "陈家洛",
+   "alias": [],
+   "sex": "m",
+   "align": "zhong",
+   "sect": "honghuahui",
+   "role": "chief",
+   "tier": "A",
+   "book": "书剑恩仇录",
+   "freq": 2117,
+   "aliasFreq": {}
+  },
+  {
+   "id": "huang_yaoshi",
+   "name": "黄药师",
+   "alias": [],
+   "sex": "m",
+   "align": "zhong",
+   "sect": "taohua",
+   "role": "master",
+   "tier": "S",
+   "book": "射雕英雄传",
+   "freq": 1114,
+   "aliasFreq": {}
+  },
+  {
+   "id": "qiu_chuji",
+   "name": "丘处机",
+   "alias": [],
+   "sex": "m",
+   "align": "zhong",
+   "sect": "quanzhen",
+   "role": "elder",
+   "tier": "B",
+   "book": "射雕英雄传",
+   "freq": 829,
+   "aliasFreq": {}
+  },
+  {
+   "id": "murong_fu",
+   "name": "慕容复",
+   "alias": [],
+   "sex": "m",
+   "align": "zhong",
+   "sect": "murong",
+   "role": "heir",
+   "tier": "B",
+   "book": "天龙八部",
+   "freq": 925,
+   "aliasFreq": {}
+  },
+  {
+   "id": "duan_zhengchun",
+   "name": "段正淳",
+   "alias": [],
+   "sex": "m",
+   "align": "zhong",
+   "sect": "dali",
+   "role": "prince",
+   "tier": "B",
+   "book": "天龙八部",
+   "freq": 757,
+   "aliasFreq": {}
+  },
+  {
+   "id": "tonglao",
+   "name": "童姥",
+   "alias": [
+    "天山童姥"
+   ],
+   "sex": "f",
+   "align": "zhong",
+   "sect": "xiaoyao",
+   "role": "elder",
+   "tier": "S",
+   "book": "天龙八部",
+   "freq": 583,
+   "aliasFreq": {
+    "天山童姥": 49
+   }
+  },
+  {
+   "id": "zhang_wuji",
+   "name": "张无忌",
+   "alias": [],
+   "sex": "m",
+   "align": "xie",
+   "sect": "mingjiao",
+   "role": "chief",
+   "tier": "S",
+   "book": "倚天屠龙记",
+   "freq": 4665,
+   "aliasFreq": {}
+  },
+  {
+   "id": "shi_poitian",
+   "name": "石破天",
+   "alias": [],
+   "sex": "m",
+   "align": "xie",
+   "sect": "changle",
+   "role": "chief",
+   "tier": "S",
+   "book": "侠客行",
+   "freq": 1814,
+   "aliasFreq": {}
+  },
+  {
+   "id": "yin_susu",
+   "name": "殷素素",
+   "alias": [],
+   "sex": "f",
+   "align": "xie",
+   "sect": "tianying",
+   "role": "member",
+   "tier": "B",
+   "book": "倚天屠龙记",
+   "freq": 550,
+   "aliasFreq": {}
+  },
+  {
+   "id": "ding_chunqiu",
+   "name": "丁春秋",
+   "alias": [],
+   "sex": "m",
+   "align": "xie",
+   "sect": "xingxiu",
+   "role": "master",
+   "tier": "A",
+   "book": "天龙八部",
+   "freq": 437,
+   "aliasFreq": {}
+  },
+  {
+   "id": "hong_antong",
+   "name": "洪安通",
+   "alias": [
+    "洪教主"
+   ],
+   "sex": "m",
+   "align": "xie",
+   "sect": "shenlong",
+   "role": "master",
+   "tier": "A",
+   "book": "鹿鼎记",
+   "freq": 43,
+   "aliasFreq": {
+    "洪教主": 0
+   }
+  },
+  {
+   "id": "qiu_qianren",
+   "name": "裘千仞",
+   "alias": [],
+   "sex": "m",
+   "align": "xie",
+   "sect": "tiezhang",
+   "role": "master",
+   "tier": "A",
+   "book": "射雕英雄传",
+   "freq": 431,
+   "aliasFreq": {}
+  },
+  {
+   "id": "ren_woxing",
+   "name": "任我行",
+   "alias": [],
+   "sex": "m",
+   "align": "xie",
+   "sect": "riyue",
+   "role": "master",
+   "tier": "S",
+   "book": "笑傲江湖",
+   "freq": 525,
+   "aliasFreq": {}
+  },
+  {
+   "id": "bai_zizai",
+   "name": "白自在",
+   "alias": [],
+   "sex": "m",
+   "align": "yin",
+   "sect": "xueshan",
+   "role": "master",
+   "tier": "A",
+   "book": "侠客行",
+   "freq": 199,
+   "aliasFreq": {}
+  },
+  {
+   "id": "xu_zhu",
+   "name": "虚竹",
+   "alias": [],
+   "sex": "m",
+   "align": "yin",
+   "sect": "lingjiu",
+   "role": "master",
+   "tier": "S",
+   "book": "天龙八部",
+   "freq": 1636,
+   "aliasFreq": {}
+  },
+  {
+   "id": "zhang_san",
+   "name": "张三",
+   "alias": [],
+   "sex": "m",
+   "align": "yin",
+   "sect": "xiake",
+   "role": "envoy",
+   "tier": "S",
+   "book": "侠客行",
+   "freq": 640,
+   "aliasFreq": {}
+  },
+  {
+   "id": "ling_huohung",
+   "name": "令狐冲",
+   "alias": [],
+   "sex": "m",
+   "align": "zhong",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "A",
+   "book": "笑傲江湖",
+   "freq": 5908,
+   "aliasFreq": {}
+  },
+  {
+   "id": "wei_xiaobao",
+   "name": "韦小宝",
+   "alias": [
+    "小宝",
+    "小桂子",
+    "韦香主"
+   ],
+   "sex": "m",
+   "align": "zhong",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "C",
+   "book": "鹿鼎记",
+   "freq": 9913,
+   "aliasFreq": {
+    "小宝": 0,
+    "小桂子": 0,
+    "韦香主": 0
+   }
+  },
+  {
+   "id": "huang_rong",
+   "name": "黄蓉",
+   "alias": [
+    "蓉儿",
+    "黄帮主"
+   ],
+   "sex": "f",
+   "align": "zhong",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "B",
+   "book": "射雕英雄传",
+   "freq": 5092,
+   "aliasFreq": {
+    "蓉儿": 0,
+    "黄帮主": 0
+   }
+  },
+  {
+   "id": "guo_jing",
+   "name": "郭靖",
+   "alias": [],
+   "sex": "m",
+   "align": "zheng",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "A",
+   "book": "射雕英雄传",
+   "freq": 6461,
+   "aliasFreq": {}
+  },
+  {
+   "id": "yang_guo",
+   "name": "杨过",
+   "alias": [
+    "过儿"
+   ],
+   "sex": "m",
+   "align": "zhong",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "A",
+   "book": "神雕侠侣",
+   "freq": 6030,
+   "aliasFreq": {
+    "过儿": 0
+   }
+  },
+  {
+   "id": "duan_yu",
+   "name": "段誉",
+   "alias": [],
+   "sex": "m",
+   "align": "zhong",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "A",
+   "book": "天龙八部",
+   "freq": 3372,
+   "aliasFreq": {}
+  },
+  {
+   "id": "xiao_feng",
+   "name": "萧峰",
+   "alias": [
+    "乔峰"
+   ],
+   "sex": "m",
+   "align": "zhong",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "S",
+   "book": "天龙八部",
+   "freq": 1786,
+   "aliasFreq": {
+    "乔峰": 1132
+   }
+  },
+  {
+   "id": "xiao_longn",
+   "name": "小龙女",
+   "alias": [],
+   "sex": "f",
+   "align": "yin",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "A",
+   "book": "神雕侠侣",
+   "freq": 2139,
+   "aliasFreq": {}
+  },
+  {
+   "id": "zhao_min",
+   "name": "赵敏",
+   "alias": [
+    "绍敏郡主"
+   ],
+   "sex": "f",
+   "align": "zhong",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "C",
+   "book": "倚天屠龙记",
+   "freq": 1250,
+   "aliasFreq": {
+    "绍敏郡主": 0
+   }
+  },
+  {
+   "id": "xie_xun",
+   "name": "谢逊",
+   "alias": [],
+   "sex": "m",
+   "align": "zhong",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "A",
+   "book": "倚天屠龙记",
+   "freq": 1211,
+   "aliasFreq": {}
+  },
+  {
+   "id": "zhou_botong",
+   "name": "周伯通",
+   "alias": [
+    "老顽童"
+   ],
+   "sex": "m",
+   "align": "zhong",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "S",
+   "book": "射雕英雄传",
+   "freq": 1212,
+   "aliasFreq": {
+    "老顽童": 0
+   }
+  },
+  {
+   "id": "dongfang_bubai",
+   "name": "东方不败",
+   "alias": [],
+   "sex": "m",
+   "align": "xie",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "S",
+   "book": "笑傲江湖",
+   "freq": 320,
+   "aliasFreq": {}
+  },
+  {
+   "id": "hu_fei",
+   "name": "胡斐",
+   "alias": [
+    "雪山飞狐"
+   ],
+   "sex": "m",
+   "align": "zheng",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "B",
+   "book": "雪山飞狐",
+   "freq": 2991,
+   "aliasFreq": {
+    "雪山飞狐": 0
+   }
+  },
+  {
+   "id": "yi_lin",
+   "name": "仪琳",
+   "alias": [],
+   "sex": "f",
+   "align": "zheng",
+   "sect": null,
+   "role": "wanderer",
+   "tier": "C",
+   "book": "笑傲江湖",
+   "freq": 729,
+   "aliasFreq": {}
+  }
+ ]
+}
