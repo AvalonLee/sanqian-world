@@ -111,6 +111,10 @@
     <!-- UI v2 B13：手机五区底部 tab（<720px 取代 16 项横滑；点区落该区首页，区内换页走顶部子导航） -->
     <div class="sq2-zonebar" id="m-zonebar"></div>
     <!-- UI v2 B1：右栏骨架（≥1200px 第三列）。B1 只立容器，不造数据；空时 CSS 收起 -->
+    <!-- 书形态主容器（册163 · S3-c）：pack.worldView==='book' 的世界进主界面即书——
+         enterBook 给 #sc-main 挂 bookmode 类（CSS 收起顶栏/导航/页签/右栏，只留本容器）。 -->
+    <div id="book-main" class="hide"></div>
+
     <aside id="m-rail" class="sq2-rail" aria-label="区情"></aside>
 </div>
 
@@ -2871,6 +2875,13 @@
       var ae = document.activeElement;
       var typing = !!(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA'));
       try {
+        /* 书形态：结算照跑（修炼时钟不停），渲染只刷书的状态行——九页 renderAll / 劫前快照 /
+         * 呈报弹层族都不进书形态（叙事引擎 §八：离线只结算数值与指针，不打扰）。 */
+        if (isBookMode()) {
+          await SQ.claim(state);
+          SQ.UI.wuxia.refreshReal(ctx());
+          return;
+        }
         SQ.UI.trib.snap(ctx());           /* 劫前成算/损失快照（F7 复盘行） */
         await SQ.claim(state);
         afterClaim(prev);
@@ -2889,13 +2900,24 @@
       }
     }, 1000);
   }
-  /* 回到前台立刻补一帧（tick 里 document.hidden 那支跳过的渲染在这里接回来）*/
-  document.addEventListener('visibilitychange', function () {
-    if (!document.hidden && ws()) { _mods = null; renderAll(); }
-  });
+  /* 回到前台立刻补一帧（tick 里 document.hidden 那支跳过的渲染在这里接回来）——
+   * 书形态只刷书的状态行，九页 renderAll 不进书（册163）。监听体保持一句（D15①）。 */
+  function redrawFrame() {
+    if (document.hidden || !ws()) return;
+    if (isBookMode()) { SQ.UI.wuxia.refreshReal(ctx()); return; }
+    _mods = null; renderAll();
+  }
+  document.addEventListener('visibilitychange', function () { redrawFrame(); });
 
   /* ── MAIN 入口 ── */
+  /* 书形态判定（册163 · S3-c）：活跃世界的 pack 声明 worldView==='book' ⇒ 主界面走书，
+   * 九页 tab 与右栏全部不出现（叙事引擎 §一「主界面 = 一册可翻的线装书」）。 */
+  function isBookMode() {
+    var e = SQ.Worlds[(state.profile || {}).worldId];
+    return !!(e && e.pack && e.pack.worldView === 'book');
+  }
   function enterMain() {
+    if (isBookMode()) return enterBook();
     ui.lastAttempts = ws().tribulation.attempts;
     /* 基线对齐当前存档：进场前（含离线结算）已产生的叙事/日志视为已读，
        只对本次会话内新增的亮红点——离线那批由「出关呈报」浮层交代 */
@@ -2928,6 +2950,19 @@
     /* 更新公告（第册四批 · 判定与渲染全在 view/updatenote.js）：排在遇袭抉择与出关呈报**之后**，
        公告是最低优先级的打断，不能盖掉那些要玩家做决定的层。 */
     if (SQ.UI && SQ.UI.updateNote && SQ.UI.updateNote.needed((state.profile || {}).seenNote)) SQ.UI.updateNote.show(wid());
+    startTick();
+  }
+
+  /* ── 书形态主界面（册163 · S3-c）：主界面 = 一册书，九页 tab 与右栏不出现 ──────────
+   * 基线只对齐 tick 需要的最小集（报错去重签名）；红点族 / 离线呈报 / 公告全部不进书形态
+   * （离线提要等价物随打磨批落——回归时书自己接着写，不打扰）。 */
+  function enterBook() {
+    ui.tickErrSeen = '';
+    $('sc-main').classList.add('bookmode');
+    $('book-main').classList.remove('hide');
+    if (SQ.UI.wuxia && SQ.UI.wuxia.mountReal) SQ.UI.wuxia.mountReal(ctx());
+    show('main');
+    checkIo();
     startTick();
   }
 

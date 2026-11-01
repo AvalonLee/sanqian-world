@@ -735,6 +735,10 @@
   var pack = {
     worldId: 'wuxia',
     data: D,
+    /* 界面形态标记（册163 · 叙事引擎 §一「主界面 = 一册可翻的线装书，不是 tab 页面」）：
+     * 引擎/视图读到 `worldView:'book'` ⇒ 主界面走书形态（九页 tab 不出现）。
+     * xiuxian 不声明该键 ⇒ 第一世界照走 tab，零改动。 */
+    worldView: 'book',
     lexicon: null,                 /* 词表分卷已注册进 SQ.LEX.wuxia，此处不重复引用（避免两处同键漂） */
     initialState: initialState,
     normalize: normalize,
@@ -765,6 +769,7 @@
     },
     artsMap: function () { return ART_INDEX; },
     attemptBreak: attemptBreak,
+    canBreak: canBreak,
     /* worldSystems（册162 · S3-c）：引擎通用系统的世界侧接口——通用层只经这些口读世界语义（D3 纪律），
      * 每个口按「引擎会怎么调」实现；引擎调用点全部带空值守卫，缺口 = 安全空转（多世界契约）。 */
     worldSystems: {
