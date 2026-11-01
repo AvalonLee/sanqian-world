@@ -65,6 +65,8 @@
       worldDay: 0,                     /* 游戏内天数 */
       exp: 0,                          /* 见闻值 = visited×2 + 熟人，派生落盘只为免重算 */
       debts: [],                       /* 人情债 {who, kind, what, due?}，跨代继承 */
+      stamina: 60,                     /* 精力（册215 P2）：主动动作闸——上限 staminaCapOf()，claim 按时长恢复 */
+      atts: { zhi: 50, gu: 50, xing: 50 },  /* 资质三轴（册215 P2 · G12）：悟性 zhi 练功速率 / 根骨 gu 内伤耐受（P3 接） / 心性 xing 冲关成功率 */
       /* 通用项（同第一世界口径；数值与经济 §九「通用项同第一世界」的代码化——册214 P1 补齐：
        * tab 主壳下 Log.push / claim 落盘 / 事件史读点都会碰它们，缺了即 `reading '0'` 一族崩） */
       lastSave: 0,
@@ -128,6 +130,15 @@
       worldDay: Math.max(0, num(p.worldDay, 0)),
       exp: Math.max(0, num(p.exp, 0)),
       debts: arr(p.debts),
+      stamina: clampInt(p.stamina, 0, 999, 60),
+      atts: (function () {
+        var a = obj(p.atts);
+        return {
+          zhi: clampInt(a.zhi, 0, 100, 50),
+          gu: clampInt(a.gu, 0, 100, 50),
+          xing: clampInt(a.xing, 0, 100, 50)
+        };
+      })(),
       lastSave: num(p.lastSave, 0),
       log: arr(p.log),
       eventHistory: (function () {
@@ -144,8 +155,11 @@
    *   游历与见闻值等 S2-b 地界批一起接；留常量 TRAVEL_MULT 备用，不引入未声明字段。
    * 封顶 = **下一档阈值**：心境不满时功力停在下一档门前（正文写「内息已满，只是心里那口气不顺」），
    *   这条让挂机在卡点处主动失效、把玩家推回叙事（§四）。 */
-  var BASE_PER_MIN = 1.0;
-  var LAYER_MULT = 0.12;
+  /* 册215（P2 产出重定种，归因）：基准 1.0 → 8.0、层数系数 0.12 → 0.15——
+   * 旧参数一档要 5.4 现实小时（首档体感太慢）；新参数一档 ≈ 38 现实分钟、终档 ≈ 83 现实小时，
+   * 全程 5~7 现实天纯挂机（放置长线口径）；12 游戏月仿真曲线相应重跑（sim-wuxia 同批换锚）。 */
+  var BASE_PER_MIN = 8.0;
+  var LAYER_MULT = 0.15;
   var TRAVEL_MULT = 0.6;
 
   function totalLayers(ws) {
@@ -207,7 +221,7 @@
   }
 
   /* ── 修习常量（册162 · 武学全录 §五「自悟」最小闭环 + §五 瓶颈）────────────────── */
-  var PRACTICE_PER_LAYER = 100;   /* 每 30 现实分钟升一层（挂机时长即练功时长，离线 = 在线） */
+  var PRACTICE_PER_LAYER = 100;   /* 每层 100 练习度：30 现实分钟/层 × 悟性系数（att zhi 100 ⇒ 20 分/层）——挂机时长即练功时长，离线 = 在线 */
   var SLOTS_MAX = 6;              /* 修习槽上限（复用第一世界口径） */
   var GATE_LAYERS = { 3: 4, 6: 12, 9: 24 };   /* 心境门槛层：3/6/9 层需见闻值（§四 心境表的内插） */
 
@@ -221,7 +235,8 @@
     if (!nx || !isNum(ws.qi) || ws.qi < nx.need) return { ok: false, reason: 'qi' };
     var g = gateOf(r + 1);
     if (!g) return { ok: false, reason: 'gate' };
-    var p = 0.5 * Math.min(1, (expOf(ws) || 0) / (g.exp || 1));
+    var xing = (ws.atts && isNum(ws.atts.xing)) ? ws.atts.xing : 50;
+    var p = 0.5 * Math.min(1, (expOf(ws) || 0) / (g.exp || 1)) * (1 + xing / 400);   /* 心性加成（册215）：xing 100 ⇒ ×1.25 */
     var win = Math.random() < p;
     if (!win) {
       ws.injury = Math.min(15, (ws.injury || 0) + 2 + Math.floor(Math.random() * 3));
@@ -303,6 +318,19 @@
     return true;
   }
 
+  /* 精力上限（册215 P2）：60 + 境界×10——随成长放宽；恢复 1 点/现实分钟（claim 内推进） */
+  function staminaCapOf(ws) { return 60 + (ws && isNum(ws.realm) ? ws.realm : 0) * 10; }
+
+  /* 破关口（册215 P2 · 主界面「破关」钮的引擎侧）：canBreak 全条件通过才能破；
+   * 不掷骰（数值与经济 §四）；破后 exp 刷新。强行冲关走 attemptBreak（赌一把口子）。 */
+  function breakThrough(ws) {
+    if (!ws) return { err: 'nows' };
+    if (!canBreak(ws)) return { err: 'gate' };
+    ws.realm = (ws.realm | 0) + 1;
+    ws.exp = expOf(ws);
+    return { ok: true, realm: ws.realm };
+  }
+
   /* ── 结算入口 ────────────────────────────────────────────────────────────────
    * claim(ws, dtMs, now, profile, settings)：只推进数值（功力产出/封顶/破关/修习练习度）。
    * 返回 {gain, broke, layers} 供探针/冒烟断言；core 不读返回值（与第一世界同口径，安全）。
@@ -341,19 +369,25 @@
       var curLv = (ws.artsLevels[aid] || 0);
       if (curLv >= 9) continue;
       var gateExp = GATE_LAYERS[curLv + 1];
-      var pv = (isNum(prac[aid]) ? prac[aid] : 0) + (dtMs / 60000) * (PRACTICE_PER_LAYER / 30);
-      if (gateExp && (ws.exp || 0) < gateExp && pv > PRACTICE_PER_LAYER - 1) pv = PRACTICE_PER_LAYER - 1;   /* 卡层 */
+      var zhi = (ws.atts && isNum(ws.atts.zhi)) ? ws.atts.zhi : 50;
+      var pv = (isNum(prac[aid]) ? prac[aid] : 0) + (dtMs / 60000) * (PRACTICE_PER_LAYER / 30) * (1 + zhi / 200);
+      /* 卡层判（心境不足）：练习度停在门槛下；⚠️ 只卡真卡层场景——此前无条件 min(99) 会把
+       * 非卡层的小步增量（如 99.69）也压回 99 ⇒ tick 粒度下修习永远卡死 99 度（册215 修）。 */
+      var gated = !!gateExp && (ws.exp || 0) < gateExp;
+      if (gated && pv > PRACTICE_PER_LAYER - 1) pv = PRACTICE_PER_LAYER - 1;
       while (pv >= PRACTICE_PER_LAYER && (ws.artsLevels[aid] || 0) < 9) {
         var nxt = (ws.artsLevels[aid] || 0) + 1;
         var g2 = GATE_LAYERS[nxt];
-        if (g2 && (ws.exp || 0) < g2) break;      /* 心境不满：练习度继续涨但层不动（下一轮卡在 99） */
+        if (g2 && (ws.exp || 0) < g2) { gated = true; break; }   /* 心境不满：层不动，练习度停在门槛下 */
         ws.artsLevels[aid] = nxt;
         pv -= PRACTICE_PER_LAYER;
         layered++;
       }
-      prac[aid] = Math.min(pv, PRACTICE_PER_LAYER - 1);
+      prac[aid] = gated ? Math.min(pv, PRACTICE_PER_LAYER - 1) : Math.min(pv, PRACTICE_PER_LAYER - 0.001);
     }
     ws.artsPractice = prac;
+    /* 精力恢复（册215 P2）：1 点/现实分钟，封上限 */
+    ws.stamina = Math.min(staminaCapOf(ws), (isNum(ws.stamina) ? ws.stamina : 0) + dtMs / 60000);
     return { gain: ws.qi - before, broke: broke, layers: layered };
   }
 
@@ -412,6 +446,8 @@
     artsMap: function () { return ART_INDEX; },
     attemptBreak: attemptBreak,
     canBreak: canBreak,
+    breakThrough: breakThrough,
+    staminaCapOf: staminaCapOf,
     /* worldSystems（册162 · S3-c）：引擎通用系统的世界侧接口——通用层只经这些口读世界语义（D3 纪律），
      * 每个口按「引擎会怎么调」实现；引擎调用点全部带空值守卫，缺口 = 安全空转（多世界契约）。 */
     worldSystems: {
