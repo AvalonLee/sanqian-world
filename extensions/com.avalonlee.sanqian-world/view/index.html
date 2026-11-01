@@ -882,7 +882,60 @@
     draft.roll = SQ.rollTalents(draft.worldId || SQ.WORLD_DEFAULT);
     renderC2();
   }
+  /* 书世界屏 2 变体（册164）：诨号三候选 + 自拟；问道初心 / 羁绊 / 天赋族全不进书世界 */
+  function renderC2Hao() {
+    $('c2-title').textContent = tc('ui.book.hao.title');
+    $('c2-hint').textContent = tc('ui.book.hao.hint');
+    $('c2-reroll').textContent = tc('ui.book.hao.random');
+    $('c2-combo').textContent = '';
+    var box = $('c2-cards');
+    box.innerHTML = '<input id="c2-haofree" maxlength="12" placeholder="' +
+      esc(tc('ui.book.hao.freeph')) + '" value="' + esc(draft.haoKey ? '' : (draft.hao || '')) + '">';
+    (draft.haoOpts || []).forEach(function (k) {
+      var b = document.createElement('button');
+      b.className = 'btn ghost bk-opt' + (draft.haoKey === k ? ' on' : '');
+      b.textContent = haoText(k);
+      b.onclick = function () { pickHao(k); };        /* 监听体一句（D15①） */
+      box.appendChild(b);
+    });
+    var noteEl = $('c2-syn');
+    if (noteEl) { noteEl.innerHTML = ''; noteEl.classList.add('hide'); }
+    var bias = $('c2-bias');
+    if (bias) { bias.innerHTML = ''; }
+  }
+  function haoText(k) { return k.indexOf('hao.cand.') === 0 ? SQ.t(k, null, draft.worldId) : k; }
+  function pickHao(k) {
+    draft.haoKey = k;
+    draft.hao = haoText(k);
+    renderC2Hao();
+  }
+  /* 书世界入世事务（册164）：无天赋无初心，profile 带诨号；不跑天骄/赠礼（书世界无那些表） */
+  async function confirmBookCreation() {
+    var free = document.getElementById('c2-haofree');
+    if (free && free.value.trim()) { draft.hao = free.value.trim(); draft.haoKey = null; }
+    var w = draft.worldId;
+    await SQ.mutate(state, function (s) {
+      s.profile = {
+        name: draft.name,
+        talents: [],
+        worldId: w,
+        worldName: '',
+        createdAt: Date.now(),
+        hao: draft.hao || '',
+        seenNote: s.profile.seenNote
+      };
+      s.worlds[w] = SQ.Worlds[w].pack.initialState();
+      SQ.Log.push(s.worlds[w], 'sys', SQ.t('log.boot', null, w));
+      if (s.meta.unlockedWorlds.indexOf(w) < 0) s.meta.unlockedWorlds.push(w);
+    });
+    draft.legacy = null;
+    enterMain();
+  }
   function renderC2() {
+    if (isBookDraft()) return renderC2Hao();
+    $('c2-title').textContent = tc('creation.talent.title');
+    $('c2-hint').textContent = tc('creation.talent.hint');
+    $('c2-reroll').textContent = tc('creation.talent.reroll');
     var r = draft.roll, w = draft.worldId || SQ.WORLD_DEFAULT;
     $('c2-combo').textContent = tc('creation.talent.combo', { p: r.combo.pos, n: r.combo.neg });
     var syns = matchedSynergies(r.talents, w);
@@ -966,9 +1019,18 @@
     }
     $('mk-legacy').innerHTML = h;
   }
-  $('c2-reroll').addEventListener('click', rerollTalents);
+  function rerollC2() {
+    if (isBookDraft()) { rollHao(); renderC2(); return; }
+    rerollTalents();
+  }
+  $('c2-reroll').addEventListener('click', function () { rerollC2(); });
   $('c2-back').addEventListener('click', function () { show('c3'); });
-  $('c2-confirm').addEventListener('click', function () { renderLockSummary(); $('modal-lock').classList.remove('hide'); });
+  function confirmC2() {
+    if (isBookDraft()) { confirmBookCreation(); return; }
+    renderLockSummary();
+    $('modal-lock').classList.remove('hide');
+  }
+  $('c2-confirm').addEventListener('click', function () { confirmC2(); });
   $('mk-cancel').addEventListener('click', function () { $('modal-lock').classList.add('hide'); });
   /* 屏 2 · 观天赋 → 入定（锁定天命后写入存档并进入主界面） */
   $('mk-ok').addEventListener('click', async function () {
@@ -1042,7 +1104,7 @@
                 : '<div class="wtags">' + esc(SQ.t('world.' + w.id + '.name', null, w.id)) + (tags ? ' · ' + esc(tags) : '') + '</div>');
       /* 「先睹」钮（册159 · S1-e）：coming 且已装叙事包的世界可预览一章（预览不落档）；
        * 走全局 data-act 委托 ⇒ 无独立监听体（D15①），产出⇔注册静态双向可见（D15②）。 */
-      if (coming && SQ.Worlds[w.id].pack && SQ.Worlds[w.id].pack.narrative) {
+      if (SQ.Worlds[w.id].pack && SQ.Worlds[w.id].pack.narrative) {
         card.insertAdjacentHTML('beforeend', '<button class="btn ghost bk-go" data-act="wuxiaPreview" data-v="' + w.id + '">' + esc(SQ.t('ui.book.preview')) + '</button>');
       }
       if (!coming) {
@@ -1057,14 +1119,28 @@
     });
   }
   $('c3-back').addEventListener('click', function () { show('c1'); });
-  /* 屏 3 · 择界 → 屏 2 · 观天赋（天赋池随所选世界抽取） */
+  /* 屏 3 · 择界 → 屏 2：tab 世界走观天赋；书世界（worldView==='book'）走「取诨号」
+   * （册164 · 干预与代价 §五：书世界的创角第一笔落笔 = 诨号，三个候选或自拟，零墨零风险） */
+  function isBookDraft() {
+    var e = SQ.Worlds[draft.worldId];
+    return !!(e && e.pack && e.pack.worldView === 'book');
+  }
+  function rollHao() {
+    var pool = [];
+    for (var i = 1; i <= 12; i++) pool.push('hao.cand.' + i);
+    draft.haoOpts = [];
+    while (draft.haoOpts.length < 3 && pool.length) {
+      draft.haoOpts.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    }
+    draft.hao = draft.haoOpts[0] || '';
+  }
   $('c3-go').addEventListener('click', function () {
     if (!draft.worldId) {
       $('c3-err').textContent = tc('creation.world.noPick');
       $('c3-err').classList.remove('hide');
       return;
     }
-    rerollTalents();
+    if (isBookDraft()) { rollHao(); renderC2(); } else { rerollTalents(); }
     show('c2');
   });
 

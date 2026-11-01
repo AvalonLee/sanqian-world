@@ -110,7 +110,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       if (nm.length !== 3 || chars.p.indexOf(nm[0]) < 0 || chars.m.indexOf(nm[1]) < 0 || chars.s.indexOf(nm[2]) < 0) { nameOk = false; break; }
     }
     var vis = SQ.visibleWorlds().map(function (w) { return w.id; });
-    ok('E4', '命名池合规 + 屏上名册逐位对表（live 1 · coming 5 · 无 hidden 实例）',
+    ok('E4', '命名池合规 + 屏上名册逐位对表（live 2 · coming 4 · 无 hidden 实例 · 武侠已翻牌）',
       nameOk && vis.join(',') === 'xiuxian,wuxia,magic,tech,urban,cthulhu', 'visible=' + vis.join(','));
 
     /* #15 词表回落：世界词表 → common → key 本身 */
@@ -132,9 +132,9 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var ini = shapes ? Object.keys(pk.initialState()) : [];
       var nul = shapes ? Object.keys(pk.normalize({})) : [];
       var same = ini.length > 0 && ini.length === nul.length && ini.every(function (k) { return nul.indexOf(k) >= 0; });
-      ok('E6', '武侠包骨架（coming 但 pack 已装 ‖ 三入口在位 ⇔ initialState/normalize 键集等 ‖ 无界名池不生成界名）',
-        !!w && w.status === 'coming' && shapes && same && SQ.generateWorldName('wuxia') === '',
-        'status=' + (w && w.status) + ' keys=' + ini.length + ' name=' + JSON.stringify(SQ.generateWorldName('wuxia')));
+      ok('E6', '武侠包骨架（册164 翻牌后 = live 书世界：三入口在位 ⇔ initialState/normalize 键集等 ‖ worldView=book ‖ 无界名池不生成界名）',
+        !!w && w.status === 'live' && shapes && same && !!pk.worldView && pk.worldView === 'book' && SQ.generateWorldName('wuxia') === '',
+        'status=' + (w && w.status) + ' keys=' + ini.length + ' view=' + (pk.worldView || '-') + ' name=' + JSON.stringify(SQ.generateWorldName('wuxia')));
     })();
 
     /* E7 · 武侠武学与门派表完整性（册155 · S1-b 全量入库）
@@ -570,8 +570,8 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
     var vis22 = SQ.visibleWorlds();
     var live22 = vis22.filter(function (w) { return w.status === 'live'; });
     var coming22 = vis22.filter(function (w) { return w.status === 'coming'; });
-    ok(17, '可见世界 = live 1 + coming 5（克苏鲁第二十批改灰显；屏上名册与注册表逐位相等）',
-      vis22.length === 6 && live22.length === 1 && live22[0].id === 'xiuxian' && coming22.length === 5 &&
+    ok(17, '可见世界 = live 2 + coming 4（册164 武侠翻牌；屏上名册与注册表逐位相等）',
+      vis22.length === 6 && live22.length === 2 && coming22.length === 4 &&
       SQ.visibleWorlds().map(function (w) { return w.id; }).join(',') ===
         Object.keys(SQ.Worlds).join(',') &&
       Object.keys(SQ.Worlds).every(function (id) { return SQ.Worlds[id].status !== 'hidden'; }));

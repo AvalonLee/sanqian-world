@@ -92,6 +92,7 @@
       alignBias: BIAS[p.alignBias] ? p.alignBias : 'neutral',
       gender: typeof p.gender === 'string' && p.gender ? p.gender : 'male',
       race: typeof p.race === 'string' && p.race ? p.race : 'human',
+      hao: typeof p.hao === 'string' ? p.hao : '',   /* 诨号（册164 · 干预与代价 §五：书世界创角第一笔落笔；空 = 未取，书页眉回落本名） */
       seenNote: typeof p.seenNote === 'string' && p.seenNote ? p.seenNote : null   /* 脏值（对象/数字/空串）归 null */
     };
     var m = raw.meta && typeof raw.meta === 'object' ? raw.meta : {};

@@ -1,9 +1,29 @@
 /* assets/worlds/wuxia/lexicon-world.js — 世界名词表（门派 / 境界；**生成物，不许手改**）
  * 键形 `sect.<id>.name` / `realm.<n>`（realm 键与第一世界同形，取词器按 worldId 分卷命中）。
+ * 册164 沿革注：翻牌 live 后 C1 must 族对武侠分卷生效 ⇒ 补齐世界身份命名（各体系一束，
+ * 武侠味取词；书形态不渲染九页 tab，这些键是「换世界即换名」契约的身份声明与回落词）。
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
   SQ.lexRegister('wuxia', {
+    /* C1 must 族（册164）：体系身份命名（书形态下多为附录/回落词） */
+    'idle.action': '闭关练功',
+    'idle.rate': '内息增长',
+    'idle.next': '下一境界',
+    'combat.system': '江湖历险',
+    'gear.system': '兵刃行囊',
+    'skill.system': '武学谱',
+    'shop.system': '行商买卖',
+    'tribulation.system': '破关',
+    'karma.system': '侠名',
+    'attr.system': '心性',
+    'tab.idle': '书斋',
+    'tab.event': '见闻',
+    'tab.log': '书录',
+    'tab.settings': '装帧',
+    'world.wuxia.name': '武侠江湖',
+    'world.tag.xia': '侠影',
+    'world.tag.jianghu': '江湖',
     'realm.0': '不入流',
     'realm.1': '三流',
     'realm.2': '二流',

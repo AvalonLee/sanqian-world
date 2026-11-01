@@ -30,14 +30,14 @@ const { chromium } = require('playwright-core');
   await page.click('#c1-next');
   await page.waitForSelector('#sc-c3:not(.hide)', { timeout: 8000 });
 
-  /* W1 · wuxia 卡有「先睹」钮（coming 且装了叙事包的世界才有） */
+  /* W1 · wuxia 卡有「先睹」钮（册164 翻牌后 = 装了叙事包的 live 书世界卡；预览不落档语义不变） */
   const w1 = await page.evaluate(() => {
     const cards = Array.prototype.slice.call(document.querySelectorAll('#c3-list .wcard'));
     const wx = cards.find((c) => c.querySelector('.bk-go'));
     return { has: !!wx, n: cards.filter((c) => c.querySelector('.bk-go')).length,
       label: wx ? wx.querySelector('.bk-go').textContent : '' };
   });
-  T(w1.has && w1.n === 1 && w1.label.length > 0, 'W1 择界卡有且仅有一枚「先睹」钮（只挂在装了叙事包的 coming 卡上）',
+  T(w1.has && w1.n === 1 && w1.label.length > 0, 'W1 择界卡有且仅有一枚「先睹」钮（挂在装了叙事包的书世界卡上，现值 = live 武侠）',
     'n=' + w1.n + ' label=' + w1.label);
 
   /* W2 · 点钮 → 书浮层出现，章头正确 */

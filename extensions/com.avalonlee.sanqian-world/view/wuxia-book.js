@@ -26,15 +26,20 @@
     function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function tw(key, vars) { return SQ.t(key, vars || null, null); }
 
-  /* ── 浮层骨架（一次性 innerHTML；此后正文区只 appendChild）────────────────── */
+  /* ── 浮层骨架（一次性 innerHTML；此后正文区只 appendChild）──────────────────
+   * 册164：先睹钮开放给 live 叙事世界（试读腔调，预览不落档语义不变）⇒ 提示语分档：
+   * live 用「试读 · {name}」，coming 沿用「尚未开启」。 */
   function build(worldId) {
     var wname = SQ.t('world.' + worldId + '.name', null, worldId);
+    var live = SQ.Worlds[worldId] && SQ.Worlds[worldId].status === 'live';
+    var hintText = live ? SQ.t('ui.book.hintlive', { name: wname }, null)
+                        : SQ.t('ui.book.hint', { name: wname }, null);
     var root = document.createElement('div');
     root.className = 'bkwrap';
     root.id = 'bk-wrap';
     root.innerHTML =
       '<div class="bk-book">' +
-      '  <div class="bk-head"><span id="bk-chap"></span><span class="bk-hint">' + esc(SQ.t('ui.book.hint', { name: wname }, null)) + '</span></div>' +
+      '  <div class="bk-head"><span id="bk-chap"></span><span class="bk-hint">' + esc(hintText) + '</span></div>' +
       '  <div class="bk-paper" id="bk-paper"></div>' +
       '  <div class="bk-fork hide" id="bk-fork"></div>' +
       '  <div class="bk-notes hide" id="bk-notes"></div>' +
@@ -288,7 +293,8 @@
       '  <div class="bk-drawer hide" id="bkr-drawerbox"></div>' +
       '  <div class="bk-foot"><span class="bk-status" id="bkr-status"></span><button class="btn ghost" id="bkr-drawer">' + esc(tw('ui.book.drawer', null)) + '</button></div>' +
       '</div>';
-    document.getElementById('bkr-hint').textContent = (c.s.profile || {}).name || '';
+    var pr = c.s.profile || {};
+    document.getElementById('bkr-hint').textContent = pr.hao ? tw('ui.book.hao', { name: pr.name, hao: pr.hao }) : (pr.name || '');
     document.getElementById('bkr-paper').onclick = function () { R.skip = true; };   /* 监听体一句（D15①） */
     document.getElementById('bkr-drawer').onclick = function () { realDrawer(c.fresh()); };   /* 监听体一句（D15①） */
     realChapter(c);
