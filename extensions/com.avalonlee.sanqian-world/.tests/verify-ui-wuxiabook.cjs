@@ -1,4 +1,5 @@
-/* .tests/verify-ui-wuxiabook.cjs — 武侠「先睹」书界面走查（第册一百五十九批 2026-11-01 · S1-e）
+/* .tests/verify-ui-wuxiabook.cjs — 武侠「先睹」书界面走查（第册一百五十九批 2026-11-01 · S1-e；
+ *   册161 补 W4b/W4c 两判 = 批注真扣账与墨尽回绝）
  * 判据一律回读页内真值，不硬编码正文文案。
  * 边界（如实登记）：预览会话用 initialState（realm 0）⇒ 首章通常无桥段分岔（need 未达），
  *   分岔 UI 的呈现由冒烟 E10（数据）/E11（骨架）背书；有分岔形态的走查判等转 live 后补。
@@ -68,6 +69,37 @@ const { chromium } = require('playwright-core');
   });
   T(!w4.bad && w4.len > 100, 'W4 纸上无机器（无 {占位} 残留、无 tpl./pool./event./scene. 裸键名）',
     'len=' + w4.len);
+
+  /* W4b · 页边批注（册161 · S3-b）：六枚轴向 chip 在位；点一枚 → 墨 2→1、违和 0→1 */
+  const readStatus = () => page.evaluate(() => {
+    const t = document.getElementById('bk-status').textContent || '';
+    const m1 = t.match(/(\d+)\s*墨/);
+    const m2 = t.match(/违和\s*(\d+)/);
+    return { ink: m1 ? +m1[1] : -1, dis: m2 ? +m2[1] : -1, raw: t };
+  });
+  await page.waitForSelector('#bk-notes .bk-ax', { timeout: 5000 });
+  const w4b0 = await page.evaluate(() => document.querySelectorAll('#bk-notes .bk-ax').length);
+  const st0 = await readStatus();
+  await page.click('#bk-notes .bk-ax');
+  await page.waitForTimeout(150);
+  const st1 = await readStatus();
+  T(w4b0 === 6 && st0.ink === 2 && st0.dis === 0 && st1.ink === 1 && st1.dis === 1,
+    'W4b 页边批注真扣账（六枚轴向 chip ⇔ 点一枚 = 墨 2→1 且 违和 0→1，走真 annotate 口）',
+    'chips=' + w4b0 + ' before=' + st0.ink + '/' + st0.dis + ' after=' + st1.ink + '/' + st1.dis);
+
+  /* W4c · 墨尽回绝：把 2 墨花完再点 → 提示现世、墨不再扣、零状态变更 */
+  await page.click('#bk-notes .bk-ax');
+  await page.waitForTimeout(120);
+  await page.click('#bk-notes .bk-ax');
+  await page.waitForTimeout(120);
+  const w4c = await page.evaluate(() => ({
+    hint: (document.getElementById('bk-note-hint') || {}).textContent || '',
+    st: document.getElementById('bk-status').textContent || ''
+  }));
+  const st2 = await readStatus();
+  T(w4c.hint.length > 3 && st2.ink === 0 && st2.dis === 2,
+    'W4c 墨尽整笔回绝（第三枚 chip 点不下去：提示现世、墨不透支、违和不虚增）',
+    'hint=' + w4c.hint.slice(0, 14) + ' status=' + w4c.st);
 
   /* W5 · 合上 → 浮层移除 */
   await page.click('#bk-close');
