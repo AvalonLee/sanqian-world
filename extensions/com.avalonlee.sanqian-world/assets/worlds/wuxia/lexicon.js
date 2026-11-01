@@ -93,6 +93,29 @@
     "shop.shop_salve.name": "金疮药",
     "shop.shop_ginseng.name": "老山参",
     "shop.shop_blade.name": "铁刀",
-    "shop.shop_sword.name": "好剑"
+    "shop.shop_sword.name": "好剑",
+    /* 册218（P5 世界事件 + P7 结交长线） */
+    "wh.jianghu.title": "江湖大事",
+    "wh.jianghu.none": "（眼下没有可赴的大事）",
+    "wh.jianghu.watch": "旁观",
+    "wh.jianghu.join": "卷入（境界 {n}）",
+    "wh.jianghu.lead": "主导（境界 {n}）",
+    "wh.jianghu.alt": "改写走向",
+    "wh.jianghu.wefate": "已写结局",
+    "wh.jianghu.fate.canon": "顺势而终",
+    "wh.jianghu.fate.alt": "亲手改写",
+    "wh.people.title": "江湖人物",
+    "wh.people.none": "（还没结识谁——行走江湖总会遇上）",
+    "wh.people.befriend": "结交（精力 1）",
+    "wh.people.aff": "交情 {n}",
+    "wh.home.retire": "挂印退隐（无招之境）",
+    "we.we_huashan.name": "华山论剑",
+    "we.we_xiangyang.name": "襄阳大战",
+    "we.we_weijiao_gm.name": "六大门派围攻光明顶",
+    "we.we_juxian.name": "聚贤庄英雄宴",
+    "we.we_zhenlong.name": "珍珑棋局",
+    "we.we_tushi.name": "屠狮大会",
+    "we.we_wuyue_bingpai.name": "五岳并派大会",
+    "we.we_heimu.name": "黑木崖之战"
   });
 })();

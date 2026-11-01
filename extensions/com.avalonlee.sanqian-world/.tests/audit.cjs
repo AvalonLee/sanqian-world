@@ -742,8 +742,9 @@ const SQ = sandbox.window.SQ;
   /* 册164 加 `canon`（wuxia data.js 的正典版本锚）：它是文档对账锚（与 docs/武侠世界/ 各卷版本对照），
    * 代码零消费者是有意的——A9 的「死桩」语义管「声明了没人读的机制常量」，文档锚不是机制。
    * 册214 加 `ARC_GAIN`（十卷事件预算）：消费方 advance 随书形态退役，表与词表**原样保留**——
-   * 它是 P5 世界事件层「按缺口窗口投放」的直接原材料（世界事件卷 §七），P5 接线后销项。 */
-  var DEAD_LISTED = ['EVENT_KARMA_BAND', 'FACTION_DESC_POOL', 'SHARD_REWARDS', 'canon', 'ARC_GAIN'];
+   * 它是 P5 世界事件层「按缺口窗口投放」的直接原材料（世界事件卷 §七），P5 接线后销项。
+   * 册218 摘 `canon`（was 册164 文档锚）：attendEvent 写回消费（wefate 键值字面）⇒ 接线销项。 */
+  var DEAD_LISTED = ['EVENT_KARMA_BAND', 'FACTION_DESC_POOL', 'SHARD_REWARDS', 'ARC_GAIN'];
   var boot9 = null;
   try { boot9 = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; }
   catch (e) { ok('A9', '世界表顶层常量 ⇔ 消费面对表（死桩双向在册）', false, '沙箱装载失败：' + e.message); return; }

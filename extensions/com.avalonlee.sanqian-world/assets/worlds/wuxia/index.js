@@ -69,6 +69,7 @@
       mode: 'travel',                  /* 挂机模态（册216 P3）：travel 闯荡 0.6 产出 + 见闻增长 / seclude 闭关 1.0 */
       sceneProg: {},                   /* 子场景进度（册216 P3）：zoneId → 已推进场景数 */
       knotDone: {},                    /* 已走过的剧情桥段（册216 P3）：knotId → 1（一次性名场面） */
+      world: null,                     /* 江湖格局写回（册218 P5）：{wefate: {事件id → canon|alt}}——只存结果键 */
       lastReport: null,                /* 最近一次闯荡战报（册216 P3）：{kind, text keys, win, ...} */
       atts: { zhi: 50, gu: 50, xing: 50 },  /* 资质三轴（册215 P2 · G12）：悟性 zhi 练功速率 / 根骨 gu 内伤耐受（P3 接） / 心性 xing 冲关成功率 */
       /* 通用项（同第一世界口径；数值与经济 §九「通用项同第一世界」的代码化——册214 P1 补齐：
@@ -138,6 +139,7 @@
       mode: p.mode === 'seclude' ? 'seclude' : 'travel',
       sceneProg: obj(p.sceneProg),
       knotDone: obj(p.knotDone),
+      world: (function () { var wd = obj(p.world); return { wefate: obj(wd.wefate) }; })(),
       lastReport: obj(p.lastReport),
       atts: (function () {
         var a = obj(p.atts);
@@ -627,6 +629,86 @@
     return { ok: true, art: artId };
   }
 
+  /* ── 世界事件层（册218 P5 · 世界事件卷 §六 schema 落码）────────────────────────────
+   * 首批 8 案（schema 简化：z 主场 / tier 门槛 / br canon|alt / gain 奖励 / writeback 写回）。
+   * 参与四档（避免/旁观/卷入/主导）压缩为三入口：旁观（exp +8）/ 卷入 join（realm 门槛）/ 主导 lead（更高门槛）。
+   * alt 改史仅 lead 档可选；写回 = wefate（事件 id → 结果键，只存结果键不存叙述）+ renown/关系。 */
+  var WORLD_EVENTS = [
+    { i: 'we_huashan', z: null, tier: { join: 3, lead: 6 }, pre: [], gain: { watch: 8, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 60, stones: 5000 } } },
+    { i: 'we_xiangyang', z: null, tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 8, join: { exp: 25, renown: 20 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_weijiao_gm', z: 'guangmingding', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 4000 } } },
+    { i: 'we_juxian', z: 'luoyang', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 30, stones: 2000 } } },
+    { i: 'we_zhenlong', z: 'wuliang', tier: { join: 1, lead: 5 }, pre: [], gain: { watch: 8, join: { exp: 20, renown: 5 }, lead: { exp: 50, renown: 10, stones: 0 } } },
+    { i: 'we_tushi', z: 'shaolin', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 35, stones: 3000 } } },
+    { i: 'we_wuyue_bingpai', z: 'songshan', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_heimu', z: null, tier: { join: 4, lead: 7 }, pre: ['we_wuyue_bingpai'], gain: { watch: 12, join: { exp: 30, renown: 20 }, lead: { exp: 60, renown: 60, stones: 6000 } } }
+  ];
+  function wefateOf(ws) { return obj(ws.world && ws.world.wefate); }
+  function worldEvents(ws) {
+    var fate = wefateOf(ws);
+    var out = [];
+    for (var i = 0; i < WORLD_EVENTS.length; i++) {
+      var e = WORLD_EVENTS[i];
+      if (fate[e.i]) continue;   /* 已写过结局的独发事件不再出现 */
+      var preOk = true;
+      for (var p2 = 0; p2 < (e.pre || []).length; p2++) if (!fate[e.pre[p2]]) preOk = false;
+      if (!preOk) continue;
+      out.push(e);
+    }
+    return out;
+  }
+  function attendEvent(ws, id, mode, alt) {
+    var e = null;
+    for (var i = 0; i < WORLD_EVENTS.length; i++) if (WORLD_EVENTS[i].i === id) { e = WORLD_EVENTS[i]; break; }
+    if (!e) return { err: 'noevent' };
+    var fate = wefateOf(ws);
+    if (fate[id]) return { err: 'done' };
+    if ((ws.stamina | 0) < (mode === 'lead' ? 10 : 5)) return { err: 'stamina' };
+    if (mode === 'watch') {   /* 旁观：无门槛、精力 3——在场不落子（世界事件卷 §三） */
+      ws.stamina = Math.max(0, (ws.stamina | 0) - 3);
+    } else {
+      var need = e.tier[mode];
+      if (need == null) return { err: 'tier' };
+      if ((ws.realm | 0) < need) return { err: 'realm', need: need };
+      ws.stamina -= (mode === 'lead' ? 10 : 5);
+    }
+    var g = e.gain[mode] || {};
+    var res = { ok: true, event: id, mode: mode, alt: alt === true && mode === 'lead' ? true : false };
+    ws.exp = Math.max(ws.exp || 0, (ws.exp || 0) + (g.exp || 8));
+    ws.renown = clampInt((ws.renown || 0) + (g.renown || 0) * (res.alt ? 2 : 1), -1000, 1000, ws.renown || 0);
+    if (g.stones) ws.stones = (ws.stones || 0) + g.stones;
+    /* 写回：wefate 只存结果键（主档容量红线同型）；**旁观不写结局**——在场不落子（世界事件卷 §三） */
+    if (mode !== 'watch') {
+      ws.world = obj(ws.world);
+      if (!ws.world.wefate) ws.world.wefate = {};
+      ws.world.wefate[id] = res.alt ? 'alt' : 'canon';
+    }
+    return res;
+  }
+
+  /* ── 结交与退隐（册218 P7 · 方案卷 §五之五）──────────────────────────────────── */
+  /* 结交拜访（精力 1 → affinity +3，封 100；kind 缺省 friend） */
+  function befriend(ws, castId) {
+    if (!CAST_INDEX[castId]) return { err: 'nocast' };
+    if ((ws.stamina | 0) < 1) return { err: 'stamina' };
+    ws.stamina -= 1;
+    ws.relations = obj(ws.relations);
+    var r = ws.relations[castId] || { affinity: 0, kind: 'friend' };
+    r.affinity = Math.min(100, (isNum(r.affinity) ? r.affinity : 0) + 3);
+    ws.relations[castId] = r;
+    return { ok: true, affinity: r.affinity };
+  }
+  /* 退隐传世（R9 出口，方案卷 §八）：无招之后挂印归山——本世定格、余响继承口（heritage.gen+1） */
+  function retire(ws) {
+    if (!ws) return { err: 'nows' };
+    if ((ws.realm | 0) < 9) return { err: 'realm', need: 9 };
+    ws.renown = clampInt((ws.renown || 0) + 200, -1000, 1000, ws.renown || 0);
+    ws.heritage = obj(ws.heritage);
+    ws.heritage.gen = ((ws.heritage.gen || 1)) + 1;
+    ws.worldDay = (ws.worldDay || 0) + 3600;   /* 退隐十年 */
+    return { ok: true, gen: ws.heritage.gen };
+  }
+
   /* 精力上限（册215 P2）：60 + 境界×10——随成长放宽；恢复 1 点/现实分钟（claim 内推进） */
   function staminaCapOf(ws) { return 60 + (ws && isNum(ws.realm) ? ws.realm : 0) * 10; }
 
@@ -763,6 +845,7 @@
     knotChoose: knotChoose,
     joinSect: joinSect, learnArt: learnArt, learnableArts: learnableArts, sectTask: sectTask, donateSect: donateSect, betraySect: betraySect, sectRankOf: sectRankOf,
     shopList: SHOP_LIST, buyItem: buyItem, studyManual: studyManual,
+    worldEvents: worldEvents, attendEvent: attendEvent, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,
     zoneUnlocked: zoneUnlocked,
     travelStamina: TRAVEL_STAMINA,
     travelUnlock: TRAVEL_UNLOCK,

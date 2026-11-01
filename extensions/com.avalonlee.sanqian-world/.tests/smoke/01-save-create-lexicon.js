@@ -454,6 +454,42 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         joinOk && learnOk && taskOk && shopOk && betrayOk,
         '市集1='+shopOk1+' 市集2='+shopOk2+'[r9='+JSON.stringify(r9)+' r10='+JSON.stringify(r10)+' known='+(w2.artsKnown||[]).join(',')+'] 叛门='+betrayOk);
     })();
+    /* E20 · 武侠世界事件与长线（册218 P5+P7）：① 事件池与 pre 链（heimu 依赖 bingpai）‖
+   * ② 旁观零门槛 / 卷入境界档 / 主导门槛更高 ‖ ③ wefate 写回 + done 拒重 ‖ ④ alt 仅 lead（改史翻倍侠名）‖ ⑤ 结交 +3 封 100 ‖ ⑥ 退隐 R9 才可。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.attendEvent || !pk.retire) { ok('E20', '武侠世界事件与长线', false, '无 attendEvent/retire 口'); return; }
+      var w = pk.normalize(pk.initialState());
+      var evs0 = pk.worldEvents(w);
+      var heimuIn = false;
+      for (var i = 0; i < evs0.length; i++) if (evs0[i].i === 'we_heimu') heimuIn = true;
+      var w5 = pk.normalize(pk.initialState()); w5.realm = 6; w5.stamina = 99;
+      var r1 = pk.attendEvent(w5, 'we_huashan', 'watch');
+      var watchOk = r1 && r1.ok && w5.exp >= 8;
+      var r2 = pk.attendEvent(w5, 'we_huashan', 'lead', true);
+      var leadOk = r2 && r2.ok && r2.alt === true && w5.world.wefate.we_huashan === 'alt' && w5.renown >= 100;
+      var r3 = pk.attendEvent(w5, 'we_huashan', 'join');
+      var doneOk = r3 && r3.err === 'done';
+      var evs1 = pk.worldEvents(w5);
+      var preOk = true, heimuNow = false;
+      for (var j = 0; j < evs1.length; j++) if (evs1[j].i === 'we_heimu') heimuNow = true;
+      if (heimuIn && !heimuNow) preOk = true;   /* heimu 依赖 bingpai：bingpai 未写时不在池、写后解锁——此处以 bingpai 已写验证 */
+      var wF = pk.normalize(pk.initialState()); wF.realm = 5; wF.stamina = 99;
+      pk.attendEvent(wF, 'we_wuyue_bingpai', 'join');
+      var heimuOpen = false;
+      var evsF = pk.worldEvents(wF);
+      for (var k = 0; k < evsF.length; k++) if (evsF[k].i === 'we_heimu') heimuOpen = true;
+      var wB = pk.normalize(pk.initialState());
+      var b1 = pk.befriend(wB, 'xiao_feng');
+      var befOk = b1 && b1.ok && wB.relations.xiao_feng.affinity === 3;
+      var wR = pk.normalize(pk.initialState()); wR.realm = 5;
+      var rR = pk.retire(wR);
+      var rR9 = pk.retire(Object.assign(pk.normalize(pk.initialState()), { realm: 9 }));
+      var retOk = rR && rR.err === 'realm' && rR9 && rR9.ok && rR9.gen === 2;
+      ok('E20', '武侠世界事件与长线（事件池 pre 链 ‖ 旁观零门槛/卷入境界档/主导更高 ‖ wefate 写回+done 拒重+alt 翻倍侠名 ‖ 结交 +3 ‖ 退隐 R9 才可）',
+        !heimuIn && watchOk && leadOk && doneOk && heimuOpen && befOk && retOk,
+        '池=' + evs0.length + ' 旁观=' + watchOk + ' 主导=' + leadOk + ' 拒重=' + doneOk + ' pre=' + heimuOpen + ' 结交=' + befOk + ' 退隐=' + retOk);
+    })();
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
