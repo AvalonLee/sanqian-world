@@ -268,6 +268,47 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 分支名=' + forkOk + (bad.length ? ' ‖ ' + bad.slice(0, 3).join(' ') : ''));
     })();
 
+    /* E11 · 武侠正文渲染（模板三层 + 数值→文学三规则）（册158 · S1-d）
+     * 判「纸上无机器」：① 60 模板全在词表；② 渲染输出**无裸键名**（'{' 残留 / 'tpl.' / 'pool.' 开头 = 把机器印在纸上）；
+     * ③ 数值→文学：功力措辞五档之一必出现、门槛回声（「火候」）在功力未足时出现、违和 ≥60 时心境缀语换档；
+     * ④ render 纯函数。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      var d = pk && pk.data;
+      if (!d || !pk.narrative || !pk.narrative.render) { ok('E11', '武侠正文渲染', false, '无 render 口'); return; }
+      /* ① 模板键全在词表（数一遍 tpl.*） */
+      var tplN = 0;
+      for (var k in SQ.LEX.wuxia) if (k.indexOf('tpl.') === 0) tplN++;
+      /* ②③ 渲染八个章号收集全部行 */
+      var all = [], disc = [], key = 1;
+      for (var no = 1; no <= 8; no++) {
+        var ws = pk.normalize(pk.initialState());
+        ws.place = no % 2 ? 'luoyang' : 'shaolin';
+        ws.narrative = { chapNo: no, beatNo: 0 };
+        if (no >= 6) ws.discord = 70;
+        var ch = pk.narrative.chapter(ws, pk, {});
+        var r = pk.narrative.render(ch, ws);
+        r.lines.forEach(function (ln) {
+          all.push(ln);
+          if (/\{|\}|tpl\.|pool\.|event\.|scene\./.test(ln)) key = 0;          /* 裸键名 = 红线 */
+          if (/只差一口气|过了半程|才积了三成|尚在初起|已满，只待破关/.test(ln)) disc.push('prog');
+          if (/火候/.test(ln)) disc.push('echo');
+          if (no >= 6 && /世道/.test(ln)) disc.push('mood');
+        });
+      }
+      /* ④ 纯函数 */
+      var wsP = pk.normalize(pk.initialState());
+      wsP.place = 'luoyang'; wsP.narrative = { chapNo: 3 };
+      var p1 = JSON.stringify(pk.narrative.render(pk.narrative.chapter(wsP, pk, {}), wsP));
+      var p2 = JSON.stringify(pk.narrative.render(pk.narrative.chapter(wsP, pk, {}), wsP));
+      ok('E11', '武侠正文渲染（模板 60 全在词表 ⇔ 纸上无裸键名 ⇔ 功力措辞/门槛回声/心境换档三规则可见 ⇔ render 纯函数）',
+        tplN >= 60 && all.length >= 8 * 3 && key === 1 &&
+        disc.indexOf('prog') >= 0 && disc.indexOf('echo') >= 0 && disc.indexOf('mood') >= 0 &&
+        p1 === p2 && p1.length > 100,
+        'tpl=' + tplN + ' lines=' + all.length + ' 裸键=' + (key ? '无' : '有') +
+        ' 规则=' + disc.join(',') + ' 纯=' + (p1 === p2));
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */
