@@ -1,0 +1,50 @@
+/* assets/worlds/wuxia/lexicon-world.js — 世界名词表（门派 / 境界；**生成物，不许手改**）
+ * 键形 `sect.<id>.name` / `realm.<n>`（realm 键与第一世界同形，取词器按 worldId 分卷命中）。
+ */
+(function () {
+  var SQ = window.SQ || (window.SQ = {});
+  SQ.lexRegister('wuxia', {
+    'realm.0': '不入流',
+    'realm.1': '三流',
+    'realm.2': '二流',
+    'realm.3': '一流',
+    'realm.4': '绝顶',
+    'realm.5': '宗师',
+    'realm.6': '大宗师',
+    'realm.7': '天人',
+    'realm.8': '化境',
+    'realm.9': '无招',
+    'sect.shaolin.name': '少林',
+    'sect.huashan.name': '华山',
+    'sect.hengshan.name': '恒山',
+    'sect.wudang.name': '武当',
+    'sect.qingcheng.name': '青城',
+    'sect.emei.name': '峨眉',
+    'sect.kunlun.name': '昆仑',
+    'sect.kongtong.name': '崆峒',
+    'sect.gaibang.name': '丐帮',
+    'sect.tiandihui.name': '天地会',
+    'sect.honghuahui.name': '红花会',
+    'sect.taohua.name': '桃花岛',
+    'sect.quanzhen.name': '全真教',
+    'sect.murong.name': '姑苏慕容',
+    'sect.dali.name': '大理段氏',
+    'sect.xiaoyao.name': '逍遥派',
+    'sect.mingjiao.name': '明教',
+    'sect.changle.name': '长乐帮',
+    'sect.tianying.name': '天鹰教',
+    'sect.xingxiu.name': '星宿派',
+    'sect.shenlong.name': '神龙教',
+    'sect.tiezhang.name': '铁掌帮',
+    'sect.riyue.name': '日月神教',
+    'sect.xueshan.name': '雪山派',
+    'sect.lingjiu.name': '灵鹫宫',
+    'sect.xiake.name': '侠客岛',
+    'sect.songshan.name': '嵩山派',
+    'sect.taishan.name': '泰山派',
+    'sect.hengshan_n.name': '衡山派',
+    'sect.gumu.name': '古墓派',
+    'sect.xuedao.name': '血刀门',
+    'sect.diancang.name': '点苍派'
+  });
+})();

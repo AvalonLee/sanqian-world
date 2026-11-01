@@ -137,6 +137,63 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         'status=' + (w && w.status) + ' keys=' + ini.length + ' name=' + JSON.stringify(SQ.generateWorldName('wuxia')));
     })();
 
+    /* E7 · 武侠武学与门派表完整性（册155 · S1-b 全量入库）
+     * 「尽可能保留金庸武学与门派」的判据：不是数够不够多，而是**每门都有武可学**（空门派 = 拜师无意义）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      var d = pk && pk.data;
+      var A = (d && d.ARTS) || [], S = (d && d.SECTS) || [], R = (d && d.REALMS) || [];
+      var byId = {};
+      for (var i = 0; i < A.length; i++) byId[A[i].i] = A[i];
+      var empty = [], dupId = {}, tt = {}, camp = {};
+      for (var j = 0; j < A.length; j++) {
+        if (dupId[A[j].i]) empty.push('dup:' + A[j].i); dupId[A[j].i] = 1;
+      }
+      for (var k = 0; k < S.length; k++) {
+        var n = 0;
+        for (var x = 0; x < A.length; x++) if ((A[x].s || []).indexOf(S[k].id) >= 0) n++;
+        if (!n) empty.push(S[k].id);
+        camp[S[k].camp] = (camp[S[k].camp] || 0) + 1;
+      }
+      for (var t = 0; t < A.length; t++) tt[A[t].t] = (tt[A[t].t] || 0) + 1;
+      var launchSect = S.filter(function (s) { return s.launch === 1; }).length;
+      ok('E7', '武侠武学与门派表（全量入库 ‖ id 无重复 ⇔ 每门有武学（首发空门即红）⇔ 境界表 10 档递增）',
+        A.length >= 380 && S.length >= 32 && launchSect === 26 && R.length === 10 &&
+        empty.length === 0 && tt.tian >= 10 && tt.huang > tt.tian &&
+        R.every(function (r, i2) { return i2 === 0 || r.need > R[i2 - 1].need; }),
+        'arts=' + A.length + ' sects=' + S.length + ' launch=' + launchSect +
+        ' 阶=' + JSON.stringify(tt) + ' 空门=' + (empty.length ? empty.join(',') : '无'));
+    })();
+
+    /* E8 · 武侠数值内核：产出 / 封顶 / 破关双必要条件（册155 · S1-b）
+     * 本界 status 仍 coming ⇒ 生产路径不跑 claim，所以这条**直接调它**——「不可投生」不等于「逻辑可以假」。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk) { ok('E8', '武侠数值内核（不可投生也要能跑）', false, '无 pack'); return; }
+      /* ① 产出：60 现实分钟 × (1 + 0.12×2 层) = 74.4 功力 */
+      var ws = pk.normalize(pk.initialState());
+      var before = ws.qi;
+      pk.claim(ws, 60 * 60000, Date.now(), {}, {});
+      var gain = ws.qi - before;
+      /* ② 第一档无附加门槛：功力到 400 即破，随后封在第二档 1200（**破关不清零**） */
+      var w2 = pk.normalize(pk.initialState());
+      pk.claim(w2, 100 * 86400000, Date.now(), {}, {});
+      var first = w2.realm === 1 && w2.qi === 1200;
+      /* ③ 第二档有双门槛（见闻 ≥4 且最高层 ≥4）：初始最高 1 层 ⇒ 卡住不破 */
+      var w3 = pk.normalize(pk.initialState());
+      pk.claim(w3, 100 * 86400000, Date.now(), {}, {});
+      var stuck = w3.realm === 1;
+      /* ④ 补足层数 + 见闻 ⇒ 下一 tick 即破，功力仍 1200 */
+      w3.artsLevels = { quan_basic: 4, neigong_basic: 1 };
+      w3.visited = ['luoyang', 'shaolin', 'dali'];
+      pk.claim(w3, 60000, Date.now(), {}, {});
+      var passed = w3.realm === 2 && w3.qi === 1200;
+      ok('E8', '武侠数值内核（产出 ⇔ 一档即破且封二档 ⇔ 双门槛挡二档 ⇔ 补足即破、功力不清零）',
+        Math.abs(gain - 74.4) < 0.01 && first && stuck && passed,
+        'gain=' + gain.toFixed(2) + ' first=' + first + ' stuck=' + stuck + ' passed=' + passed +
+        ' realm=' + w3.realm + ' qi=' + w3.qi);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */
