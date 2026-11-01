@@ -616,7 +616,9 @@ const SQ = sandbox.window.SQ;
   try { boot = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; }
   catch (e) { bad.push('沙箱装载失败（声明集取不到 = 本关无从判起）：' + e.message); }
   if (boot) {
-    Object.keys(boot.Worlds).filter(function (id) { return boot.Worlds[id].status === 'live'; }).forEach(function (id) {
+    /* 册155 改口：原只看 live 世界 ⇒ 装包但未开放的界（wuxia）写自己的字段会被误报「未声明」。
+     * 现按「挂了 pack 且有 normalize」取并集——写点归属世界不判，只判这个键有没有人认领（假阴方向）。 */
+    Object.keys(boot.Worlds).filter(function (id) { var e = boot.Worlds[id]; return e && e.pack && typeof e.pack.normalize === 'function'; }).forEach(function (id) {
       try {
         Object.keys(boot.Worlds[id].pack.normalize({}) || {}).forEach(function (k) { declared[k] = true; });
       } catch (e) { bad.push('世界包 ' + id + ' normalize({}) 抛异常：' + e.message); }
@@ -804,7 +806,8 @@ const SQ = sandbox.window.SQ;
   var boot10 = null;
   try { boot10 = require('./sandbox.cjs').load([], { quiet: true }).sandbox.window.SQ; }
   catch (e) { ok('A10', '取数口 ⇔ 世界表键存在性（读了表里没有的键 = 引用悬空）', false, '沙箱装载失败：' + e.message); return; }
-  var live10 = Object.keys(boot10.Worlds).filter(function (id) { return boot10.Worlds[id].status === 'live'; });
+  /* 册155 改口：原只看 live ⇒ wuxia 的 D.GATES/D.ARTS 被误报「表里没这个键」。现按挂 pack 取并集。 */
+  var live10 = Object.keys(boot10.Worlds).filter(function (id) { var e = boot10.Worlds[id]; return e && e.pack && e.pack.data; });
   var KEYS10 = {};
   live10.forEach(function (id) {
     var d = (boot10.Worlds[id].pack || {}).data;

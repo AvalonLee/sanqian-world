@@ -144,23 +144,129 @@
     };
   }
 
-  /* ── 结算入口（S1-a 空实现）────────────────────────────────────────────────────
-   * 签名照契约：claim(ws, dt, now, profile, settings)。本批**不产出、不触发、不写档**。
+  /* ── 功力产出与封顶（数值与经济 §五 / §三）──────────────────────────────────────
+   * 每分钟功力 = 1.0 × (1 + 0.12 × 已学武功总层数) × 模式系数
+   *   模式系数：闭关 1.0 / 游历 0.6 —— 本批**只做闭关**（`ws.travel` 字段尚未落档），
+   *   游历与见闻值等 S2-b 地界批一起接；留常量 TRAVEL_MULT 备用，不引入未声明字段。
+   * 封顶 = **下一档阈值**：心境不满时功力停在下一档门前（正文写「内息已满，只是心里那口气不顺」），
+   *   这条让挂机在卡点处主动失效、把玩家推回叙事（§四）。 */
+  var BASE_PER_MIN = 1.0;
+  var LAYER_MULT = 0.12;
+  var TRAVEL_MULT = 0.6;
+
+  function totalLayers(ws) {
+    var lv = ws && ws.artsLevels ? ws.artsLevels : {};
+    var n = 0;
+    for (var k in lv) { var v = lv[k]; if (typeof v === 'number' && isFinite(v)) n += v; }
+    return n;
+  }
+  function maxLayer(ws) { return totalLayers(ws) ? Math.max.apply(null, Object.keys(ws.artsLevels || {}).map(function (k) { return ws.artsLevels[k] || 0; })) : 0; }
+
+  function realmRow(r) {
+    var R = (D && D.REALMS) || [];
+    for (var i = 0; i < R.length; i++) if (R[i].r === r) return R[i];
+    return R[0] || null;
+  }
+
+  /* 每小时/每分钟口径统一走 rateOf（返回「功力/分钟」）；claim 内再换算成 dtMs */
+  function rateOf(ws) { return BASE_PER_MIN * (1 + LAYER_MULT * totalLayers(ws)); }
+
+  /* 封顶 = 下一档 need；已在顶档则封在自身 need（不再涨） */
+  function capOf(ws) {
+    var R = (D && D.REALMS) || [];
+    var r = ws && isNum(ws.realm) ? ws.realm : 0;
+    var nx = realmRow(r + 1);
+    if (nx) return nx.need;
+    var cur = realmRow(r);
+    return cur ? cur.need : 0;
+  }
+
+  /* 战力 = 境界基准（武艺/兵刃/相性/状态四乘区 S1-b 只出基准，其余待武学层批） */
+  function powerOf(ws) {
+    var cur = realmRow(ws && isNum(ws.realm) ? ws.realm : 0);
+    return cur ? cur.power : 0;
+  }
+
+  /* 见闻值 = visited×2 + 熟人（affinity ≥ 20）——派生，读档时重算一次防旧档漂 */
+  function expOf(ws) {
+    var visited = (ws.visited || []).length;
+    var known = 0;
+    var rel = ws.relations || {};
+    for (var k in rel) { if (rel[k] && isNum(rel[k].affinity) && rel[k].affinity >= 20) known++; }
+    return visited * 2 + known;
+  }
+
+  /* 破关：两个必要条件（功力阈值 + 心境门槛），**不掷骰**（数值与经济 §四）
+   * 本批只判「见闻值 / 武功层数 / 内伤上限」三类硬门槛；extra 里的关系类与余响类
+   * （sect3 / tian_full / bond80 / heritage）留 S3 接——未实现前按「不满足」处理，
+   * 即**宁可不破关也不误放行**（半成品的判定宁可保守）。 */
+  function gateOf(to) {
+    var G = (D && D.GATES) || [];
+    for (var i = 0; i < G.length; i++) if (G[i].to === to) return G[i];
+    return null;
+  }
+  function canBreak(ws) {
+    var r = ws.realm | 0;
+    var nx = realmRow(r + 1);
+    if (!nx) return false;                       /* 已到顶档 */
+    if (!isNum(ws.qi) || ws.qi < nx.need) return false;
+    var g = gateOf(r + 1);
+    if (!g) return false;
+    if ((ws.exp || 0) < (g.exp || 0)) return false;
+    if (g.artsMin && maxLayer(ws) < g.artsMin) return false;
+    if (g.injuryMax != null && (ws.injury || 0) > g.injuryMax) return false;
+    if (g.extra) return false;                   /* 关系/余响类门槛未接 ⇒ 保守不破 */
+    return true;
+  }
+
+  /* ── 结算入口 ────────────────────────────────────────────────────────────────
+   * claim(ws, dtMs, now, profile, settings)：只推进数值，**不生成正文**（正文由 G18 叙事层出）。
+   * 返回 {gain, broke} 供探针/冒烟断言；core 不读返回值（与第一世界同口径，安全）。
    *
-   * 为什么空：`status:'coming'` ⇒ 创角屏不可选 ⇒ 不会有 `profile.worldId === 'wuxia'` 的存档 ⇒
-   *   core 的 tick 路径永不会进到这里。留空实现 = 万一将来误投生，也只是「不推进」而**不崩、不污染**。
-   * S1-b 起在此编排：功力累积（修炼时钟）、破关判定（功力 + 心境双条件）、内伤恢复、章节推进。
-   */
-  function claim(ws, dt, now, profile, settings) {
-    void ws; void dt; void now; void profile; void settings;
+   * ⚠️ 本界仍 `status:'coming'` ⇒ 生产路径永不进入；但函数是**真实现**而非空壳，
+   *   冒烟 E7 直接构造 ws 调用它验产出与封顶——「不可投生」不等于「逻辑可以假」。 */
+  function claim(ws, dtMs, now, profile, settings) {
+    void now; void profile; void settings;
+    if (!ws || !isNum(dtMs) || dtMs <= 0) return { gain: 0, broke: 0 };
+    ws.exp = expOf(ws);
+    var before = isNum(ws.qi) ? ws.qi : 0;
+    var broke = 0;
+    /* 分段推进：填满一档 → 判破关 → 破成功则上限抬高继续填；心境卡住则剩余时间**白费**（封顶的本意）。
+     * 一次最多连破两档（离线很久时）；再多说明门槛设计有问题，留给 S3 的定种仿真抓。 */
+    var remain = dtMs / 60000;           /* 剩余时间（分钟） */
+    while (remain > 0 && broke < 2) {
+      var rate = rateOf(ws);             /* 功力/分钟 */
+      if (rate <= 0) break;
+      var cap = capOf(ws);
+      var room = cap - ws.qi;
+      var fill = rate * remain;
+      if (room > 0 && fill < room) { ws.qi += fill; remain = 0; break; }
+      if (room > 0) { ws.qi = cap; remain -= room / rate; } else { remain = 0; }
+      if (!canBreak(ws)) break;          /* 功力封顶在门槛前：挂机在此失效（§四） */
+      ws.realm = (ws.realm | 0) + 1;
+      ws.exp = expOf(ws);
+      broke++;
+    }
+    return { gain: ws.qi - before, broke: broke };
+  }
+
+  function recalcDerived(ws) {
+    if (!ws) return null;
+    ws.exp = expOf(ws);
     return null;
   }
 
-  /* ── 引擎取数口（骨架期一律安全零值；S1-b 起接真实公式）──────────────────────── */
-  function recalcDerived(ws) { void ws; return null; }
-  function rateOf(ws) { void ws; return 0; }
-  function capOf(ws) { void ws; return 0; }
-  function powerOf(ws) { void ws; return 0; }
+  /* ── 数据表访问口（S1-b）────────────────────────────────────────────────────────
+   * 引擎按契约读 `pack.arts` / `pack.realms`；武学 id → 记录的索引也在这里建一次，
+   * 供功谱页与叙事层按 id 取品阶/性质（避免每处都遍历 396 条）。
+   * ⚠️ 审计 A9 只扫 live 世界，但**表一旦有消费方才谈得上"活"**——这里就是那唯一消费口。 */
+  function buildArtIndex() {
+    var idx = {};
+    var A = (D && D.ARTS) || [];
+    for (var i = 0; i < A.length; i++) idx[A[i].i] = A[i];
+    return idx;
+  }
+  var ART_INDEX = buildArtIndex();
 
   var pack = {
     worldId: 'wuxia',
@@ -173,13 +279,25 @@
     rateOf: rateOf,
     capOf: capOf,
     powerOf: powerOf,
-    artsMap: function () { return {}; },
+    /* 引擎取数口（契约 §2.2 的数据表族；worlds 未声明的键引擎安全空转） */
+    realms: (D && D.REALMS) || [],
+    gates: (D && D.GATES) || [],
+    arts: (D && D.ARTS) || [],
+    sects: (D && D.SECTS) || [],
+    artsMap: function () { return ART_INDEX; },
+    /* 某门可学武学（由 ARTS[].s 反查，单一事实源）；未门无武学返回空数组 */
+    artsOfSect: function (sid) {
+      var A = (D && D.ARTS) || [];
+      var out = [];
+      for (var i = 0; i < A.length; i++) if ((A[i].s || []).indexOf(sid) >= 0) out.push(A[i].i);
+      return out;
+    },
     /* G12 属性：武侠不做「精气神」三维修炼（剑走单轴：功力 + 境界），故声明空表。
      * 引擎遇空表 ⇒ 属性面板整块不渲染，与「世界未声明」同一条回落路径。 */
     attributes: []
-    /* 刻意不提供（S1-a）：realms/zones/arts/events/talents 数据表（data 里是空架子）·
-     * caves（武侠无洞府）· companions（无道友名录）· treasures（无法宝）· worldSystems（无专属系统）。
-     * 这些键缺失时引擎一律安全空转——但**投生进本界会立刻抛**，这是刻意的护栏，不是缺口。 */
+    /* 刻意不提供（S1-b 止步于此）：zones（S1-c 地界）· cast（S1-c 人物）· caves（无洞府）·
+     * companions（无道友名录）· treasures（无法宝）· worldSystems（无专属系统，S3 接违和/墨厄）。
+     * 这些键缺失时引擎一律安全空转——但**投生进本界会立刻抛**，这是刻意的护栏。 */
   };
 
   W.pack = pack;
