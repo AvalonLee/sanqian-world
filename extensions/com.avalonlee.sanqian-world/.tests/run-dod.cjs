@@ -105,9 +105,11 @@ console.log('=== DoD 收口复跑' + (wantUI || wantSim ? '（含' + [wantUI ? '
 /* ① 引擎与静态审计 */
 step('smoke', '.tests/run-smoke.cjs');
 step('audit', '.tests/audit.cjs');
-/* ② 仿真三件（事件经济固定种子；playthrough 默认跳过，--sim 才跑）*/
+/* ② 仿真四件（事件经济固定种子；playthrough 默认跳过，--sim 才跑；
+ *    wuxia 定种册160 起常驻——全链不掷随机，秒级，锚漂即红 = 「改了产出/门槛类代码先复跑再改锚」的机器化）*/
 step('sim-pacing', '.tests/sim-pacing.cjs');
 step('sim-event-economy', '.tests/sim-event-economy.cjs', ['2', '20261008']);
+step('sim-wuxia', '.tests/sim-wuxia.cjs');
 if (wantSim) step('sim-playthrough', '.tests/sim-playthrough.cjs', ['1', '20261008']);
 /* ③ 常驻探针十一路（2026-10-08 probe-savecodec · 2026-10-09 probe-savegrowth 解耦曲线 / probe-realsave 真机档零丢失 / probe-eventrepeat 奇遇重复率）+ 水位件 */
 for (const p of ['probe-join', 'probe-sectwire', 'probe-heirchoice', 'probe-lawmerge',

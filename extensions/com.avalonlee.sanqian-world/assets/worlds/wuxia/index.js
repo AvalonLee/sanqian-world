@@ -197,13 +197,56 @@
   }
 
   /* 破关：两个必要条件（功力阈值 + 心境门槛），**不掷骰**（数值与经济 §四）
-   * 本批只判「见闻值 / 武功层数 / 内伤上限」三类硬门槛；extra 里的关系类与余响类
-   * （sect3 / tian_full / bond80 / heritage）留 S3 接——未实现前按「不满足」处理，
-   * 即**宁可不破关也不误放行**（半成品的判定宁可保守）。 */
+   * 心境门槛三类硬项（见闻 / 武功层数 / 内伤）+ 附加门槛 extra（S3-a 起接真谓词）：
+   *   neigong = 一部内功 ≥ artsMin 层（该行 artsMin 按**内功类**计， quan_basic 册160 勘误后不再冒充内功）；
+   *   sect3 = 非同门 relations（affinity ≥ 20）≥ 3 人——散人与外家门派都算「江湖往来」；
+   *   tian_full = 任一部天阶武学满层（9 层）；bond80 = 刻骨关系（friend/enemy 且 affinity ≥ 80）；
+   *   heritage = 余响类，单局不可达（余响系统未建 ⇒ 永远保守不破）。 */
   function gateOf(to) {
     var G = (D && D.GATES) || [];
     for (var i = 0; i < G.length; i++) if (G[i].to === to) return G[i];
     return null;
+  }
+  function maxLayerIn(ws, cls) {
+    var lv = (ws && ws.artsLevels) || {};
+    var best = 0;
+    for (var k in lv) {
+      var a = ART_INDEX[k];
+      if (!a || (cls && a.k !== cls)) continue;
+      var v = lv[k];
+      if (isNum(v) && v > best) best = v;
+    }
+    return best;
+  }
+  function hasTianFull(ws) {
+    var lv = (ws && ws.artsLevels) || {};
+    for (var k in lv) {
+      var a = ART_INDEX[k];
+      if (a && a.t === 'tian' && isNum(lv[k]) && lv[k] >= 9) return true;
+    }
+    return false;
+  }
+  function hasBond80(ws) {
+    var rel = (ws && ws.relations) || {};
+    for (var k in rel) {
+      var r = rel[k];
+      if (r && (r.kind === 'friend' || r.kind === 'enemy') && isNum(r.affinity) && r.affinity >= 80) return true;
+    }
+    return false;
+  }
+  /* 非同门往来计数：affinity ≥ 20 的人物里，门派与主角现门派不同（或散人）的人数 */
+  function countOuterTies(ws) {
+    var rel = (ws && ws.relations) || {};
+    var mySect = ws && ws.sect && ws.sect.id ? ws.sect.id : null;
+    var n = 0;
+    for (var k in rel) {
+      var r = rel[k];
+      if (!r || !isNum(r.affinity) || r.affinity < 20) continue;
+      var c = CAST_INDEX[k];
+      if (c && c.sec && c.sec === mySect) continue;
+      n++;
+    }
+    return n;
   }
   function canBreak(ws) {
     var r = ws.realm | 0;
@@ -213,9 +256,13 @@
     var g = gateOf(r + 1);
     if (!g) return false;
     if ((ws.exp || 0) < (g.exp || 0)) return false;
-    if (g.artsMin && maxLayer(ws) < g.artsMin) return false;
+    var needLayer = g.artsMin ? (g.extra === 'neigong' ? maxLayerIn(ws, 'neigong') : maxLayer(ws)) : 0;
+    if (g.artsMin && needLayer < g.artsMin) return false;
     if (g.injuryMax != null && (ws.injury || 0) > g.injuryMax) return false;
-    if (g.extra) return false;                   /* 关系/余响类门槛未接 ⇒ 保守不破 */
+    if (g.extra === 'sect3' && countOuterTies(ws) < 3) return false;
+    if (g.extra === 'tian_full' && !hasTianFull(ws)) return false;
+    if (g.extra === 'bond80' && !hasBond80(ws)) return false;
+    if (g.extra === 'heritage') return false;    /* 余响类：单局不可达（保守不破） */
     return true;
   }
 
@@ -434,6 +481,89 @@
     return { beats: beats, fork: fork, meta: { chapNo: no, place: place, seed: seed } };
   }
 
+  /* ── 章推进 advance(ws, opt, ctx)（S3-a · 册160）──────────────────────────────
+   * 翻过一章的**数值面**——正文由 chapter()/render() 出，本函数只管账：
+   *   ① 落笔（opt 非 null 且 opt.ink > 0）：扣墨；违和按成本入账（批 1 墨 +1 ｜ 改 3 墨 +5 ｜
+   *      删 8 墨 +20——本批只有 1/3 两档成本，8 档随 S3-b「删」解锁）。墨不够 = 落不了笔，
+   *      返回 { err:'ink' }，**不改任何状态**（事务性：要么整笔落要么不动）。
+   *   ② 叙事时钟：worldDay +1~3 日（章号确定性散列，不调 Math.random）。
+   *   ③ 违和自然消退 −1（每完结一章，干预与代价 §三；零干预路线因此恒 0）。
+   *   ④ 卷末事务（完结章号整除卷长）：卷间跳跃 +540~1080 日（约 1.5~3 年，幕数散列）、
+   *      墨回满（上限按卷 2/3/3/3/4/4/4/5/5/5，结转 ≤1 与里程碑 +2 都夹在上限内）。
+   *   ⑤ 卡点窗口投放（数值与经济 §五「事件不需要多，只需出现在卡点上」）：卷内完结第 7/17 章
+   *      各投放一笔事件功力，金额 = 卷预算（ARC_GAIN）对半拆；**受封顶约束**——心境不满时
+   *      功力停在下一档阈值，事件也越不过心境（与挂机同一条封顶）。
+   * 纯函数纪律同 chapter()：不调 Math.random、不读实时钟、只写传入 ws。
+   * 返回读数 { chapNo, arcNo, gain, day, discord, ink } 供仿真/冒烟断言。 */
+  var ARC_CHAPS = 20;   /* 卷长：定种口径 = 10 卷 × 20 章（数值与经济 §十；18~24 的中位） */
+  var DISCORD_BY_INK = { 1: 1, 3: 5, 8: 20 };
+
+  function arcOf(chapNo) { return Math.min(10, Math.floor(((chapNo || 1) - 1) / ARC_CHAPS) + 1); }
+  /* 墨上限按卷解锁（干预与代价 §二：卷一 2 / 二~四 3 / 五~七 4 / 八~十 5，度量感情不按等级） */
+  function inkCapOf(arc) { return arc <= 1 ? 2 : arc <= 4 ? 3 : arc <= 7 ? 4 : 5; }
+
+  function advance(ws, opt, ctx) {
+    void ctx;
+    if (!ws || !ws.narrative) return { err: 'nows' };
+    var nar = ws.narrative;
+    var cur = nar.chapNo || 1;
+    if (cur > ARC_CHAPS * 10) return { ended: 1, chapNo: cur };   /* 十卷完 ⇒ 合卷（合卷去向 S2 末尾批） */
+    /* ① 落笔：墨不够整笔回绝，够则一次扣清并入账违和 */
+    var cost = (opt && isNum(opt.ink) && opt.ink > 0) ? opt.ink : 0;
+    if (cost > 0) {
+      var ink = ws.ink || { n: 0, carry: 0 };
+      if (!isNum(ink.n) || ink.n < cost) return { err: 'ink', need: cost, have: ink.n || 0 };
+      ink.n -= cost;
+      var dis = DISCORD_BY_INK[cost] || cost;
+      ws.discord = clampInt((ws.discord || 0) + dis, 0, 100, ws.discord || 0);
+      if (ws.discord >= 100) {           /* 墨厄（干预与代价 §三）：本卷重写 + 三轴回弹——重罚面 S3-b 接 */
+        ws.discord = 100;
+      }
+    }
+    /* ② 叙事时钟：章内 0.5~3 日（正文一屏一日的体感），章号散列定日 */
+    var day = 1 + (seedOf(cur) % 3);
+    ws.worldDay = Math.max(0, (ws.worldDay || 0)) + day;
+    /* ③ 违和消退 + ④ 卷末事务 */
+    ws.discord = Math.max(0, (ws.discord || 0) - 1);
+    var arc = arcOf(cur);
+    var volEnd = (cur % ARC_CHAPS === 0);
+    var jumped = 0;
+    if (volEnd && cur < ARC_CHAPS * 10) {
+      jumped = 540 + (seedOf(cur * 13) % 541);       /* 卷间跳 1.5~3 年 */
+      ws.worldDay += jumped;
+      arc = arcOf(cur + 1);
+      /* 墨上限换卷（度量感情）：新卷回满到新上限；结转位只记「上一章省下了」，
+       * 节俭奖励的具体形态 S3-b 定——上限本身永不超（干预与代价 §二）。 */
+      var cap = inkCapOf(arc);
+      var leftover = isNum(ws.ink && ws.ink.n) ? ws.ink.n : 0;
+      ws.ink = { n: cap, carry: Math.min(1, leftover) };
+    } else {
+      /* 每章开头回满（干预与代价 §二）；carry = 上一章是否未落笔（节俭记录位） */
+      var cap2 = inkCapOf(arc);
+      ws.ink = { n: cap2, carry: cost > 0 ? 0 : 1 };
+    }
+    /* ⑤ 卡点窗口投放：卷内第 7/17 章完结时各投一笔（预算对半拆，金额确定性） */
+    var inVol = ((cur - 1) % ARC_CHAPS) + 1;
+    var gain = 0;
+    if (inVol === 7 || inVol === 17) {
+      var vol = arcOf(cur) - 1;
+      var G = (D && D.ARC_GAIN) || [];
+      var budget = isNum(G[vol]) ? G[vol] : 0;
+      if (budget > 0) {
+        var amt = inVol === 7 ? Math.ceil(budget / 2) : budget - Math.ceil(budget / 2);
+        var capN = capOf(ws);
+        if (isNum(ws.qi) && ws.qi < capN) {
+          var beforeQ = ws.qi;
+          ws.qi = Math.min(capN, beforeQ + amt);
+          gain = ws.qi - beforeQ;
+        }
+      }
+    }
+    nar.chapNo = cur + 1;
+    nar.beatNo = 0;
+    return { chapNo: cur, arcNo: arcOf(cur), gain: gain, day: day + jumped, discord: ws.discord || 0, ink: ws.ink.n };
+  }
+
   function buildArtIndex() {
     var idx = {};
     var A = (D && D.ARTS) || [];
@@ -441,6 +571,14 @@
     return idx;
   }
   var ART_INDEX = buildArtIndex();
+  /* 人物索引（id → 行）：破关 sect3 谓词按人物 sec 判「同门/外家」，取人层同用 */
+  function buildCastIndex() {
+    var idx = {};
+    var C = (D && D.CAST) || [];
+    for (var i = 0; i < C.length; i++) idx[C[i].i] = C[i];
+    return idx;
+  }
+  var CAST_INDEX = buildCastIndex();
 
   var pack = {
     worldId: 'wuxia',
@@ -468,7 +606,9 @@
     narrative: {
       chapter: chapter,
       render: render,
-      beatsPerChapter: CHAPTER_BEATS
+      advance: advance,
+      beatsPerChapter: CHAPTER_BEATS,
+      arcChaps: ARC_CHAPS
     },
     artsMap: function () { return ART_INDEX; },
     /* 某门可学武学（由 ARTS[].s 反查，单一事实源）；未门无武学返回空数组 */

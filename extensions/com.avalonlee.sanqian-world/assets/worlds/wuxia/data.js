@@ -5,6 +5,11 @@
  *
  * 本批（册155 · S1-b）：REALMS / GATES / ARTS / SECTS 填实；ZONES / CAST / MANUALS / EVENTS 留空待 S1-c / S2。
  * 正典出处：docs/武侠世界/ 六卷（武学全录 §二~§三、江湖设定 §四~§五、数值与经济 §三~§四）。
+ *
+ * 册160 沿革注：S1-b 的生成脚本不在仓、也未随批入库（仓外语料目录现存，gen-wuxia-data.js 已不在）；
+ * 其后 ZONES/CAST/MANUALS（册156）、EVENTS/KNOTS（册157）、ARC_GAIN + quan_basic 类勘误（册160）
+ * 均为手写增补——「不许手改」的现行口径 = **不许改名 / 删列 / 重排既有表**，增补必须带正典出处
+ * 注释并经门禁背书（冒烟 E7/E9/E10/E12 + sim-wuxia 定种仿真）。
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
@@ -38,8 +43,14 @@
     {to:6,exp:32,artsMin:9,extra:'tian_full'},
     {to:7,exp:45,extra:'bond80'},
     {to:8,exp:60,extra:'heritage'},
+    {to:8,exp:60,extra:'heritage'},
     {to:9,exp:60,extra:'heritage'}
     ],
+
+    /* 卷事件预算（册160 · S3-a 手写入库，正典 = 数值与经济 §五 事件行）：每卷奇遇/传功/服丹/实战
+     * 的功力补充总预算，卷下标 0~9 = 第一~第十卷。章推进按卡点窗口分两笔投放（index.js advance），
+     * 总量随 §十 验收表锁定——改数即换定种轨迹，须先复跑 sim-wuxia 再改锚（纪律 §4.42）。 */
+    ARC_GAIN: [180, 400, 400, 500, 700, 700, 900, 1000, 1200, 1800],
 
     /* 武学全表（403 条）：i=id k=类 nat=性 t=阶 f=全文频次 s=可学门派 o=来源
      * o 缺省 corpus（语料）；entry=入门池；system=非语料初始功；manual=词表漏项人工补入 */
@@ -171,7 +182,7 @@
     {i:'qn_042',k:'quan',nat:'zhong',t:'huang',f:8,s:['gumu']},
     {i:'bl_023',k:'blade',nat:'zhong',t:'huang',f:8},
     {i:'bl_024',k:'blade',nat:'zhong',t:'huang',f:8},
-    {i:'quan_basic',k:'neigong',nat:'zhong',t:'huang',f:8},
+    {i:'quan_basic',k:'quan',nat:'zhong',t:'huang',f:8},   /* 册160 勘误：长拳十段锦 = 拳掌（武学全录 §六），原误标 neigong 会骗过「一部内功 ≥7 层」门槛 */
     {i:'qn_043',k:'quan',nat:'zhong',t:'huang',f:8},
     {i:'bl_025',k:'blade',nat:'zhong',t:'huang',f:8},
     {i:'qb_004',k:'qing',nat:'zhong',t:'huang',f:7},
