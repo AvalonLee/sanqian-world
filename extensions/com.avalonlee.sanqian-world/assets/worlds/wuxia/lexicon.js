@@ -30,6 +30,20 @@
     'wh.home.layer': '第 {n} 层', 'wh.home.practice': '练习度 {n}/99',
     'wh.home.breakReady': '功力圆满，心境已至——随时可以破关。',
     'wh.home.breakLocked': '心境未至，内息封顶在下一档——出门见世面吧。',
-    'wh.wip': '「{tab}」此路尚未开辟——随放置玩法改造逐批接续。'
+    'wh.wip': '「{tab}」此路尚未开辟——随放置玩法改造逐批接续。',
+    /* 册215（P2 核心循环）：精力 / 资质 / 破关操作 / 修习管理 */
+    'wh.stat.stamina': '精力',
+    'wh.home.vitals': '状态与破关', 'wh.act.break': '破关', 'wh.act.force': '强行冲关（精力 20）',
+    'wh.act.forcenote': '心境差得远却硬闯：成功率看见闻与心性，失败内伤加重、功力折损两成。',
+    'wh.act.in': '入槽', 'wh.act.out': '出槽',
+    'wh.arts.atts': '资质三轴', 'wh.atts.zhi': '悟性', 'wh.atts.gu': '根骨', 'wh.atts.xing': '心性',
+    'wh.arts.attsnote': '悟性加速练功，心性助强行冲关；根骨随行走江湖历练（后续批）。',
+    'wh.arts.known': '已知武学', 'wh.arts.inslot': '（修习中）',
+    'wh.err.stamina': '精力不济，歇一会儿再来。', 'wh.err.stamina2': '精力不足 20，强行冲关太过凶险。',
+    'wh.err.slots': '修习槽已满（六部为限），先出一部。', 'wh.err.gate': '功力或心境未至，破不了这一关。',
+    'wh.err.save': '落档未成，稍后再试。',
+    'wh.log.break': '水到渠成，一朝破关——自此是{realm}手段。',
+    'wh.log.force.win': '置之死地而后生！强行冲关竟成，自此踏入{realm}。',
+    'wh.log.force.lose': '强行冲关反受其害，内伤加重至{n}层。'
   });
 })();

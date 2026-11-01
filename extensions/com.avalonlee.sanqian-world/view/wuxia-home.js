@@ -1,26 +1,24 @@
-/* view/wuxia-home.js — 武侠 tab 主壳（册214 · P1 契约改版）
+/* view/wuxia-home.js — 武侠 tab 主壳（册214 · P1 骨架；册215 · P2 核心循环操作化）
  *
- * 书形态（view/wuxia-book.js，已摘挂载封存）退役后，武侠世界进主界面走本件：
- * tab 页签 + 主页状态卡（IA 草案 = 放置RPG改造方案 §六；P1 立骨架，内容逐批填实）。
+ * 书形态（view/wuxia-book.js，已摘挂载）退役后，武侠世界进主界面走本件。
+ * P2 新增：修习页（修习槽管理 + 已知武学 + 资质三轴）、主页破关/强行冲关钮、
+ *          精力条与恢复显示（主动动作闸：入槽/换槽 2 · 强行冲关 20）。
  *
- * 纪律（承 wuxia-book.js 同款）：
+ * 纪律（承 P1）：
  *   1. 取数一律走内核 ctx() 桥（渲染器形参名钉死 `c`，D7 逐键对账）；
- *   2. 本件不写裸中文常量（文案全走 `SQ.t(key, vars, 'wuxia')`，新键族 wh.* 在 lexicon.js）；
+ *   2. 本件不写裸中文常量（文案全走 `SQ.t(key, vars, WID)`，键族 wh.* 在 lexicon.js）；
  *   3. 事件用 onclick 赋值（一个元素一个 handler，件内态不进 D15① 射程）；
- *   4. 整页 innerHTML 每秒重建（tick 走 refresh）——入场动画不许挂在元素本身（册147 口径），
- *      本件 P1 骨架无动画。
- *
- * P1 范围：主页只读状态（境界进度 / 修习槽一览）+ 十页签骨架（未实装页 wip 占位）。
- *   修习操作 / 破关钮 / 精力闸 = P2；地界行走 = P3；门派师承 = P4；世界事件 = P5；
- *   市集经济 = P6；结交/书笺 = P7。 */
+ *   4. 整页 innerHTML 每秒重建（tick 走 refresh）——入场动画不挂元素本身（册147 口径）；
+ *   5. 写档一律 `SQ.mutate(c.s, fn)` 事务口（直写内存态会被下一次 claim 覆盖）。 */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
 
   /* 世界分卷名走桥的 wid（D12 封闭性：本件不写世界 id 字面量；mount/refresh 先行设定） */
   var WID = null;
   function tw(key, vars) { return SQ.t(key, vars || null, WID); }
+  var cur = 'home';
 
-  /* 页签（IA 十页 · 方案卷 §六）：P1 全部立签，实装页 = home；其余 wip 占位。 */
+  /* 页签（IA 十页 · 方案卷 §六）：实装页 = home / arts；其余 wip 占位（P3~P7 逐批填）。 */
   var TABS = [
     { id: 'home', key: 'wh.tab.home' },
     { id: 'arts', key: 'wh.tab.arts' },
@@ -33,9 +31,49 @@
     { id: 'gear', key: 'wh.tab.gear' },
     { id: 'settings', key: 'wh.tab.settings' }
   ];
-  var cur = 'home';
 
-  /* 主页：状态卡 + 境界进度 + 修习槽一览（只读；操作随 P2） */
+  function esc(s2) { return String(s2 == null ? '' : s2).replace(/[&<>"]/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]; }); }
+  void esc;
+
+  /* ── 动作（事务口）────────────────────────────────────────────────────────────
+   * mutate 后取新快照重渲（直写内存态会被下一次 claim 覆盖；改档后桥快照是旧的）。 */
+  function act(slot, fn, done) {
+    SQ.mutate(slot.s, fn).then(function () { done(slot.fresh ? slot.fresh() : slot); },
+      function () { slot.toast(tw('wh.err.save', null)); });
+  }
+  /* 入槽/出槽（精力 2；修习槽 ≤6，练习度制 30 分/层 × 悟性） */
+  function toggleSlot(slot, aid) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var i = (w.artsSlots || []).indexOf(aid);
+      if (i >= 0) { w.artsSlots.splice(i, 1); return; }
+      if ((w.stamina | 0) < 2) { slot.toast(tw('wh.err.stamina', null)); return; }
+      if ((w.artsSlots || []).length >= 6) { slot.toast(tw('wh.err.slots', null)); return; }
+      w.stamina -= 2;
+      w.artsSlots.push(aid);
+    }, function (f) { refresh(f); });
+  }
+  /* 强行冲关（数值卷 §四 唯一失败路径；精力 20；p = 0.5×(见闻/门槛)×(1+心性/400)） */
+  function doForceBreak(slot) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      if ((w.stamina | 0) < 20) { slot.toast(tw('wh.err.stamina2', null)); return; }
+      var pk = SQ.Worlds[s.profile.worldId].pack;
+      w.stamina -= 20;
+      var r = pk.attemptBreak(w);
+      if (r && r.ok && r.win) SQ.Log.push(w, 'sys', tw('wh.log.force.win', { realm: tw('realm.' + w.realm, null) }));
+      else if (r && r.ok) SQ.Log.push(w, 'sys', tw('wh.log.force.lose', { n: w.injury }));
+    }, function (f) { refresh(f); });
+  }
+
+  /* ── 渲染 ─────────────────────────────────────────────────────────────────── */
+  function staminaBar(w, pk) {
+    var cap = pk.staminaCapOf(w);
+    var n = Math.min(cap, Math.floor(w.stamina || 0));
+    var pct = cap > 0 ? Math.round(n / cap * 100) : 0;
+    return '<div class="wh-row"><span class="wh-cell">' + tw('wh.stat.stamina', null) + ' <b>' + n + '/' + cap + '</b></span>' +
+      '<div class="wh-bar" style="flex:1 1 120px"><i style="width:' + pct + '%"></i></div></div>';
+  }
   function homeBody(cf) {
     var w = cf.w, p = cf.p;
     var cap = p.capOf(w);
@@ -56,14 +94,25 @@
         '<div class="wh-muted">' + tw('wh.home.next', { realm: tw('realm.' + nx.r, null), pct: pct }) + '</div>';
     }
     h += '</div>';
-    /* 挂机态卡（P2 接模式开关与精力闸；P1 如实呈报挂机在进行） */
+    /* 精力 + 强行冲关（P2）：破关走 claim 自动推进（双条件足即破，放置本体）——
+     * 主页不设破关钮（册215 回退：与自动破重叠）；强行冲关是唯一主动破关口（心境差硬闯，精力 20）。 */
+    h += '<div class="wh-card"><h3>' + tw('wh.home.vitals', null) + '</h3>' + staminaBar(w, p);
+    h += '<div class="wh-row"><button class="btn" id="wh-force">' + tw('wh.act.force', null) + '</button>' +
+      '</div><div class="wh-muted">' + tw('wh.act.forcenote', null) + '</div></div>';
+    if (p.canBreak(w)) h += '<div class="wh-muted">' + tw('wh.home.breakReady', null) + '</div>';
+    /* 挂机态卡 */
     h += '<div class="wh-card"><h3>' + tw('wh.home.idle', null) + '</h3><div class="wh-row">' +
       '<span class="wh-cell">' + tw('wh.home.modes', { place: tw('zone.' + (w.place || 'luoyang') + '.name', null) }) + '</span></div>' +
       '<div class="wh-muted">' + tw('wh.home.idlenote', null) + '</div></div>';
-    /* 修习槽一览（只读）：练习度条 + 心境卡层提示；操作（入槽/出槽/换槽）随 P2 */
+    /* 修习槽一览 */
+    h += slotsBody(w, true);
+    return h;
+  }
+  /* 修习槽卡：full = 主页只读版；否则带出槽操作 */
+  function slotsBody(w, full) {
     var slots = (w.artsSlots || []).slice(0, 6);
     var prac = w.artsPractice || {}, lv = w.artsLevels || {};
-    h += '<div class="wh-card"><h3>' + tw('wh.home.slots', null) + '</h3>';
+    var h = '<div class="wh-card"><h3>' + tw('wh.home.slots', null) + '</h3>';
     if (!slots.length) {
       h += '<div class="wh-muted">' + tw('wh.home.slotsEmpty', null) + '</div>';
     } else {
@@ -74,14 +123,40 @@
         h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('art.' + aid + '.name', null) + '</b> · ' +
           tw('wh.home.layer', { n: lv[aid] || 1 }) + '</span>' +
           '<div class="wh-bar" style="flex:1 1 120px"><i style="width:' + Math.round(pv) + '%"></i></div>' +
-          '<span class="wh-muted">' + tw('wh.home.practice', { n: pv }) + '</span></div>';
+          '<span class="wh-muted">' + tw('wh.home.practice', { n: pv }) + '</span>' +
+          (full ? '' : '<button class="btn" data-slot="' + aid + '">' + tw('wh.act.out', null) + '</button>') +
+          '</div>';
       }
     }
-    h += '<div class="wh-muted">' + (p.canBreak(w) ? tw('wh.home.breakReady', null) : tw('wh.home.breakLocked', null)) + '</div></div>';
+    return h + '</div>';
+  }
+  /* 修习页：资质三轴 + 修习槽管理 + 已知武学全列表（入槽） */
+  function artsBody(cf) {
+    var w = cf.w;
+    var a = w.atts || { zhi: 50, gu: 50, xing: 50 };
+    var known = (w.artsKnown || []).slice();
+    var inSlot = {};
+    (w.artsSlots || []).forEach(function (x) { inSlot[typeof x === 'string' ? x : (x && x.id)] = 1; });
+    var h = '';
+    h += '<div class="wh-card"><h3>' + tw('wh.arts.atts', null) + '</h3><div class="wh-row">' +
+      '<span class="wh-cell">' + tw('wh.atts.zhi', null) + ' <b>' + a.zhi + '</b></span>' +
+      '<span class="wh-cell">' + tw('wh.atts.gu', null) + ' <b>' + a.gu + '</b></span>' +
+      '<span class="wh-cell">' + tw('wh.atts.xing', null) + ' <b>' + a.xing + '</b></span>' +
+      '</div><div class="wh-muted">' + tw('wh.arts.attsnote', null) + '</div></div>';
+    h += slotsBody(w, false);
+    h += '<div class="wh-card"><h3>' + tw('wh.arts.known', null) + '</h3>';
+    if (!known.length) h += '<div class="wh-muted">' + tw('wh.home.slotsEmpty', null) + '</div>';
+    for (var i = 0; i < known.length; i++) {
+      var aid = known[i];
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('art.' + aid + '.name', null) + '</b> · ' +
+        tw('wh.home.layer', { n: (w.artsLevels || {})[aid] || 1 }) + '</span>' +
+        (inSlot[aid] ? '<span class="wh-muted">' + tw('wh.arts.inslot', null) + '</span>'
+          : '<button class="btn" data-slot="' + aid + '">' + tw('wh.act.in', null) + '</button>') +
+        '</div>';
+    }
+    h += '</div>';
     return h;
   }
-
-  /* wip 占位页（P3~P7 逐批接续） */
   function wipBody(id) {
     return '<div class="wh-card"><h3>' + tw('wh.tab.' + id, null) + '</h3><div class="wh-muted">' +
       tw('wh.wip', { tab: tw('wh.tab.' + id, null) }) + '</div></div>';
@@ -94,6 +169,7 @@
       (inj >= 12 ? ' · ' + tw('wh.stat.hurt', null) : '') + '</span>' +
       '<span class="wh-stats">' + tw('wh.stat.qi', null) + ' ' + Math.floor(w.qi || 0) + ' · ' +
       tw('wh.stat.stones', null) + ' ' + tw('wh.fmt.wen', { n: Math.floor(w.stones || 0) }) + ' · ' +
+      tw('wh.stat.stamina', null) + ' ' + Math.min(p.staminaCapOf(w), Math.floor(w.stamina || 0)) + ' · ' +
       tw('wh.stat.renown', null) + ' ' + (w.renown > 0 ? '+' : '') + (w.renown || 0) + '</span></div>';
     var tabs = '<div class="wh-tabs">';
     for (var i = 0; i < TABS.length; i++) {
@@ -101,27 +177,31 @@
         tw(TABS[i].key, null) + '</button>';
     }
     tabs += '</div>';
-    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : wipBody(cur)) + '</div>';
+    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : wipBody(cur))) + '</div>';
     return top + tabs + body;
   }
 
-  /* 挂载：首帧 + 页签委托（onclick 赋值，件内态；切页取新桥快照防旧数） */
+  /* 挂载：首帧 + 单一委托（挂 #shell-main 宿主——tick 每秒重建 innerHTML，
+   * 挂内节点的 handler 会随节点销毁而失灵；宿主节点不换，onclick 赋值不进 D15① 射程）。 */
   function mount(cf) {
-    WID = (typeof cf.wid === "function" ? cf.wid() : cf.wid) || null;
-    var host = document.getElementById('shell-main');
+    WID = (typeof cf.wid === 'function' ? cf.wid() : cf.wid) || null;   /* 世界分卷名（D12；漏带即全屏裸键名——册215 实测两次） */
+    var host = document.getElementById("shell-main");
     host.innerHTML = render(cf);
-    var bar = host.querySelector('.wh-tabs');
-    if (bar) {
-      bar.onclick = function (ev) {
-        var b = ev.target && ev.target.closest ? ev.target.closest('button[data-v]') : null;
-        if (!b) return;
-        cur = b.getAttribute('data-v') || 'home';
-        refresh(cf.fresh ? cf.fresh() : cf);   /* 桥的 fresh 键（freshCtx）：切页必须读新快照 */
-      };
-    }
+    host.onclick = function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest("button") : null;
+      if (!b) return;
+      var tab = b.getAttribute("data-v");
+      var slot = b.getAttribute("data-slot");
+      var f2 = null;
+      if (tab) { cur = tab || "home"; refresh(cf.fresh ? cf.fresh() : cf); return; }   /* 切页读新快照 */
+      if (b.disabled) return;
+      f2 = cf.fresh ? cf.fresh() : cf;
+      if (b.id === "wh-force") doForceBreak(f2);
+      else if (slot) toggleSlot(f2, slot);
+    };
   }
   function refresh(cf) {
-    WID = cf.wid || null;
+    WID = (typeof cf.wid === 'function' ? cf.wid() : cf.wid) || null;
     var host = document.getElementById('shell-main');
     if (host && !host.classList.contains('hide')) host.innerHTML = render(cf);
   }

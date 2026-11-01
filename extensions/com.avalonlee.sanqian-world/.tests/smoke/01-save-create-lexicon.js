@@ -171,7 +171,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
     (function () {
       var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
       if (!pk) { ok('E8', '武侠数值内核（不可投生也要能跑）', false, '无 pack'); return; }
-      /* ① 产出：60 现实分钟 × (1 + 0.12×2 层) = 74.4 功力 */
+      /* ① 产出：60 现实分钟 × 8 × (1 + 0.15×2 层) = 624 功力（册215 产出重定种） */
       var ws = pk.normalize(pk.initialState());
       var before = ws.qi;
       pk.claim(ws, 60 * 60000, Date.now(), {}, {});
@@ -190,7 +190,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       pk.claim(w3, 60000, Date.now(), {}, {});
       var passed = w3.realm === 2 && w3.qi === 1200;
       ok('E8', '武侠数值内核（产出 ⇔ 一档即破且封二档 ⇔ 双门槛挡二档 ⇔ 补足即破、功力不清零）',
-        Math.abs(gain - 74.4) < 0.01 && first && stuck && passed,
+        Math.abs(gain - 624) < 0.01 && first && stuck && passed,
         'gain=' + gain.toFixed(2) + ' first=' + first + ' stuck=' + stuck + ' passed=' + passed +
         ' realm=' + w3.realm + ' qi=' + w3.qi);
     })();
@@ -286,7 +286,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         wsB2.qi = 99999;
         var r2 = pk14.attemptBreak(wsB2);
         Math.random = realRnd;
-        brk = r1 && r1.ok && r1.win === false && r1.p === 0.5 && wsB.injury >= 2 && wsB.injury <= 4 &&
+        brk = r1 && r1.ok && r1.win === false && Math.abs(r1.p - 0.5625) < 1e-9 && wsB.injury >= 2 && wsB.injury <= 4 &&   /* 册215：心性 50 ⇒ ×1.125 */
           Math.abs(wsB.qi - 99999 * 0.8) < 0.01 && r2 && r2.win === true && wsB2.realm === 1;
         /* ⑤ powerOf：武艺乘区封顶 1.35 + 内伤状态 */
         var wsW = pk14.normalize(pk14.initialState());
@@ -320,6 +320,45 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       ok('E16', '创角链命名面（NAMES.wuxia 分卷合法：掷 50 次无 ?? 且 2~5 字 ⇔ 武侠无池/修仙有池的主行不变式；册214：诨号候选判随书形态退役，hao.cand 键族随件封存）',
         bad16.length === 0 && mainOk,
         '坏名=' + (bad16.join(',') || '无') + ' 主行分叉=' + mainOk);
+
+    /* E17 · 武侠 P2 核心循环口（册215）：① 精力恢复（claim 60 分钟 +60，封 staminaCapOf）‖
+     * ② breakThrough 口：门槛不足拒（err gate）、双条件足即破（不掷骰）‖
+     * ③ 资质效果：悟性 zhi 练功速率（100 ⇒ 20 分/层 vs 0 ⇒ 30 分/层）‖
+     * ④ 心性 xing 冲关成功率（stub 0.5 同值下 xing 差分可辨）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.breakThrough || !pk.staminaCapOf) { ok('E17', '武侠 P2 核心循环口', false, '无 breakThrough/staminaCapOf 口'); return; }
+      /* ① 精力恢复 */
+      var wsS = pk.normalize(pk.initialState());
+      wsS.stamina = 0;
+      pk.claim(wsS, 60 * 60000, 0, {}, {});
+      var rec = wsS.stamina === 60;   /* claim 内已破到 realm1（产出重定种后 60 分 = 624 功力）⇒ cap 70 是正确行为 */
+      var wsS2 = pk.normalize(pk.initialState());
+      wsS2.realm = 2;
+      var rec2 = pk.staminaCapOf(wsS2) === 80;
+      /* ② breakThrough：双条件不足拒；补足即破 */
+      var wsB = pk.normalize(pk.initialState());
+      wsB.realm = 1; wsB.qi = 99999;   /* →二流需见闻 4 + 层 4：见闻缺省 2 不足 ⇒ 拒 */
+      var rej = pk.breakThrough(wsB);
+      wsB.visited = ['luoyang', 'shaolin'];   /* 见闻 4 */
+      wsB.artsLevels = { quan_basic: 4, neigong_basic: 1 };
+      pk.recalcDerived(wsB);   /* normalize 不重算 exp：改 visited 后显式刷 */
+      var okB = pk.breakThrough(wsB);
+      var brk = rej && rej.err === 'gate' && okB && okB.ok === true && wsB.realm === 2;
+      /* ③ 悟性差分：20 分钟——zhi100 = 100 度恰一层；zhi0 = 66.7 度不及层（册215） */
+      var wsZ = pk.normalize(pk.initialState()); wsZ.atts = { zhi: 100, gu: 50, xing: 50 }; wsZ.artsSlots = ['neigong_basic'];
+      pk.claim(wsZ, 20 * 60000, 0, {}, {});
+      var wsZ0 = pk.normalize(pk.initialState()); wsZ0.atts = { zhi: 0, gu: 50, xing: 50 }; wsZ0.artsSlots = ['neigong_basic'];
+      pk.claim(wsZ0, 20 * 60000, 0, {}, {});
+      var zhiOk = wsZ.artsLevels.neigong_basic === 2 && wsZ0.artsLevels.neigong_basic === 1 && wsZ0.artsPractice.neigong_basic > 0;
+      /* ④ 心性差分：同见闻下 xing 100 的 p 高于 xing 0 */
+      var mkX = function (x) { var w2 = pk.normalize(pk.initialState()); w2.qi = 99999; w2.atts = { zhi: 50, gu: 50, xing: x }; return w2; };
+      var pX = pk.attemptBreak(mkX(100)).p, pX0 = pk.attemptBreak(mkX(0)).p;
+      var xingOk = pX > pX0 && Math.abs(pX - 0.5 * 1.25) < 1e-9;
+      ok('E17', '武侠 P2 核心循环口（精力 1 分/点恢复且封 cap 随境界 ‖ breakThrough 双条件足破/不足拒 ‖ 悟性 20 vs 30 分每层差分 ‖ 心性冲关 ×1.25 差分）',
+        rec && rec2 && brk && zhiOk && xingOk,
+        '恢复=' + rec + '(cap2界=' + rec2 + ') 破关=' + brk + ' 悟性=' + zhiOk + ' 心性=' + xingOk);
+    })();
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
