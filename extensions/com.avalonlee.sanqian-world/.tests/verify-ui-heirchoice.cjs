@@ -344,7 +344,7 @@ const { chromium } = require('playwright-core');
     T(mB.heirTreasure === SWITCH_TO && AUTO_FIRST === 'h04' && mB.heirChoice === null,
       'A20 择定压过「取第一件已觉醒者」自动口径，且择定为一次性意图（消费后归 null）',
       'heir=' + mB.heirTreasure + ' auto=' + AUTO_FIRST + ' hc=' + j(mB.heirChoice));
-    const c1 = !!(await page.$('#sc-c1:not(.hide)'));
+    const c1 = !!(await page.$('#sc-c3:not(.hide)'));
     T(c1, 'A21 转世后落创角屏（流程未卡死在无主界面）', 'c1=' + c1);
 
     /* ── A22~A24 盖棺之传（第册批 · 用户令「点兵解做一个逐字出现的传记总结演出」）──
@@ -395,7 +395,7 @@ const { chromium } = require('playwright-core');
       'A23 逐字在推进：400ms 后要么变长、要么已写满（整段恒为零 = 演出根本没跑，判红）',
       rc1.n + ' → ' + rc2.n + '（全文 ' + rc2.full + '）');
     await page.click('#mrp-go');
-    T(await C.poll(() => C.hidden('modal-recap'), 3000) && !!(await page.$('#sc-c1:not(.hide)')),
+    T(await C.poll(() => C.hidden('modal-recap'), 3000) && !!(await page.$('#sc-c3:not(.hide)')),
       'A24 点「入世」收起演出并停在创角屏（关法只此一条也不留遮罩拦后续点击）',
       'recapHidden=' + (await C.hidden('modal-recap')));
     T(C.errors.length === 0, 'A25 全程零 pageerror / 零 console error',
@@ -437,8 +437,8 @@ const { chromium } = require('playwright-core');
       'B5 完成转世 ⇒ 双清不承继、下世不预置承继件，流程走到底',
       'heir=' + j(r.meta.heirTreasure) + ' owned=' + ownB.length +
       ' lives=' + j(dig(r.meta, ['stats', 'lives'])));
-    T(r.done && !!(await page.$('#sc-c1:not(.hide)')), 'B6 不带器灵一路到创角屏（无死路）',
-      'c1=' + !!(await page.$('#sc-c1:not(.hide)')));
+    T(r.done && !!(await page.$('#sc-c3:not(.hide)')), 'B6 不带器灵一路到创角屏（无死路）',
+      'c1=' + !!(await page.$('#sc-c3:not(.hide)')));
     T(C.errors.length === 0, 'B7 全程零 pageerror / 零 console error',
       C.errors.join(' | ').slice(0, 200) || 'clean');
     await C.ctx.close();
@@ -466,8 +466,8 @@ const { chromium } = require('playwright-core');
     T(r.done && dig(r.meta, ['stats', 'lives']) === 1 && r.meta.heirChoice === null && ownC.length === 0,
       'C3 无觉醒件时转世流程照常完成（lives=1、下世空手但不悬停不报错）',
       'lives=' + j(dig(r.meta, ['stats', 'lives'])) + ' owned=' + ownC.length);
-    T(r.done && !!(await page.$('#sc-c1:not(.hide)')), 'C4 无觉醒件 ⇒ 创角屏可见（无觉醒件不再是死路）',
-      'c1=' + !!(await page.$('#sc-c1:not(.hide)')));
+    T(r.done && !!(await page.$('#sc-c3:not(.hide)')), 'C4 无觉醒件 ⇒ 创角屏可见（无觉醒件不再是死路）',
+      'c1=' + !!(await page.$('#sc-c3:not(.hide)')));
     T(C.errors.length === 0, 'C5 全程零 pageerror / 零 console error',
       C.errors.join(' | ').slice(0, 200) || 'clean');
     await C.ctx.close();

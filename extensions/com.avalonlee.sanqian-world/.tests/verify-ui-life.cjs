@@ -92,7 +92,7 @@ const { load } = require('./sandbox.cjs');   /* 种子数值一律取自引擎�
        * ⇒ 这里裸读 last.channel 恒 undefined，会把「演的是哪一世」这一判静默放过 */
       chan: (last.stats || {}).channel,
       excl: document.getElementById('excl-stage').classList.contains('hide'),
-      c1: !document.getElementById('sc-c1').classList.contains('hide')
+      c1: !document.getElementById('sc-c3').classList.contains('hide')
     };
   });
   /* 一条出口两刀：开演对表（tagOpen）→ 点「入世」收起并落回创角屏（tagClose）。四条终局共用这段。 */
@@ -210,13 +210,13 @@ const { load } = require('./sandbox.cjs');   /* 种子数值一律取自引擎�
     T(disk.name === '' && disk.realm === 0 && disk.lives === 1, 'D4 引擎已换新世（档案名空 ⇒ 界面必须走创角）', JSON.stringify([disk.name, disk.realm, disk.lives]));
     T(disk.deaths === 1 && disk.dissolutions === 0 && disk.achv.indexOf('achv_bingjie') < 0,
       'D5 被动了结计 deaths、不计兵解、不发「舍身证道」', JSON.stringify([disk.deaths, disk.dissolutions, disk.achv]));
-    const c1 = await page.$eval('#sc-c1', el => !el.classList.contains('hide'));
+    const c1 = await page.$eval('#sc-c3', el => !el.classList.contains('hide'));
     T(c1, 'D6 呈报背后就是创角屏（不是白屏、不是主界面）', 'c1=' + c1);
     T(okLabel === disk.ok, 'D7 按钮文案「转世重生」', okLabel);
     await page.click('#mo-ok');
     await page.waitForTimeout(1600);   /* 跨一个 tick：at 键控必须已认账，不许再弹第二次 */
     const hidden = await page.$eval('#modal-offline', el => el.classList.contains('hide'));
-    const stillC1 = await page.$eval('#sc-c1', el => !el.classList.contains('hide'));
+    const stillC1 = await page.$eval('#sc-c3', el => !el.classList.contains('hide'));   /* 册168：创角首屏 = 择界 */
     T(hidden && stillC1, 'D8 确定后落创角且不再重复弹（at 键控会话一次）', 'hidden=' + hidden + ' c1=' + stillC1);
     await recapJudges(page, T, 'D10', 'D11', 'shoujin');   /* N61：寿尽这条出口同样演盖棺之传 */
     T(errors.length === 0, 'D9 零页面报错（寿尽世）', errors.join(' | ').slice(0, 160) || 'clean');

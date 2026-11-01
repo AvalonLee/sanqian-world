@@ -1371,7 +1371,7 @@ function sqHasLogic(body) {
     /* 册164 摘除 `#c2-confirm@click`（曾在册 2 语句）：书世界分支收进核内 confirmC2()，监听体回一句话 ⇒ 例外失效删表项 */
     '#mk-ok@click': 5,            /* L957  · 入定：写档 + enterMain */
     /* 册167 摘除 `card@click#2`（曾在册 4 语句）：先睹止泡逻辑收进核内 pickWorldCard()，监听体回一句话 ⇒ 例外失效删表项 */
-    '#c3-go@click': 3,            /* L1035 · 入界校验 */
+    /* 册168 摘 `#c3-go@click`（曾在册 3 语句）：入界逻辑收进核内 goFromC3()，监听体回一句话 ⇒ 例外失效删表项 */
     /* 浮层纪律机器（在册 6 处）——**不搬**：遮罩 / ESC / 输入收口 / 确认框是「谁能关掉什么」的单一机器，
      * 搬走会把浮层栈的时序拆成两处（勘察档 §五 R1 点名的 confirmCb / confirmCancelCb 重绑就在这条线上）。 */
     '#cf-cancel@click': 6,        /* L2152 · 确认框取消（含 cancelCb 派发） */
@@ -1395,7 +1395,7 @@ function sqHasLogic(body) {
    * 走势：B0 首跑（删 `claim` 后）= 138 / 60 ⇒ B1 搬秘境四支 = 138 / **56** ⇒ B2 搬宗门十支 = 138 / **47**
    * ⇒ B3 搬势力四支 = 138 / **43** ⇒ B4 搬奇遇 `choose` 连族 = 138 / **42** ⇒ B5a 搬传闻 + 公告两支 = 138 / **41**
    * （`branches` 仍是 138：一行转发不删支）。 */
-  const DISP_PIN = { key: 'document@click#dispatcher', branches: 141, business: 44 };   /* 册150：+2 新支（wearGear / toggleGearEquip），任务清单 N88 在册；册159：+1（wuxiaPreview 先睹预览，S1-e） */
+  const DISP_PIN = { key: 'document@click#dispatcher', branches: 140, business: 43 };   /* 册150：+2 新支（wearGear / toggleGearEquip），任务清单 N88 在册；册159：+1（wuxiaPreview）→ **册168 摘回**（先睹钮退役，书世界先睹走流程直调，不再过派发器） */
   const htmlPath = path.join(ROOT, 'view', 'index.html');
   let code = '';
   try { code = stripComments(fs.readFileSync(htmlPath, 'utf8')); } catch (e) { /* 走失明红 */ }

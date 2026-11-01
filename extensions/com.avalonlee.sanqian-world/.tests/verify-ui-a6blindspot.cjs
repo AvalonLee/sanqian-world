@@ -26,7 +26,7 @@ const { chromium } = require('playwright-core');
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto(url);
-  await page.waitForSelector("#sc-c1:not(.hide)", { timeout: 15000 });
+  await page.waitForSelector("#sc-c3:not(.hide)", { timeout: 15000 });   /* 册168：首屏即择界 */
   await page.waitForTimeout(400);
 
   const pair = await page.evaluate(() => {
@@ -51,15 +51,24 @@ const { chromium } = require('playwright-core');
   T(/[\u4e00-\u9fff]/.test(pair.mk.title + pair.mk.text + pair.mk.sum),
     'B4 三条均为中文文案（不是裸键名回显 = 取词成功）');
 
-  /* 起名 → 择界 → 不选界直接点「投生」→ c3-err 必须显 noPick 文案 */
+  /* 册168：择界（首屏）→ 选修仙 → 立名 → 天赋屏 →（回择界）→ 不选界直接点「投生」→ c3-err 必须显 noPick 文案 */
+  await page.click('#c3-list .wcard:has-text("玄幻修仙")');
+  await page.click('#c3-go');
+  await page.waitForSelector('#sc-c1:not(.hide)', { timeout: 8000 });
   await page.fill('#c1-name', '链通验证');
   await page.click('#c1-next');
+  await page.waitForSelector('#sc-c2:not(.hide)', { timeout: 8000 });
+  await page.click('#c2-back');   /* 先回立名（c1） */
+  await page.waitForTimeout(150);
+  await page.click('#c1-back');   /* 再回择界（c3，册168 首屏） */
   await page.waitForSelector('#sc-c3:not(.hide)', { timeout: 8000 });
   await page.waitForTimeout(300);
   const before = await page.evaluate(() => ({
     hidden: document.getElementById('c3-err').classList.contains('hide'),
     txt: document.getElementById('c3-err').textContent
   }));
+  await page.reload();   /* 册168：回择界时 draft.worldId 已被选中过 —— 刷新清 draft 才是「未择界」态 */
+  await page.waitForSelector('#sc-c3:not(.hide)', { timeout: 8000 });
   await page.click('#c3-go');
   await page.waitForTimeout(300);
   const after = await page.evaluate(() => ({

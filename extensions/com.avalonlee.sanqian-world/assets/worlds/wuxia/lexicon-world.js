@@ -28,7 +28,7 @@
     'tab.event': '见闻',
     'tab.log': '书录',
     'tab.settings': '装帧',
-    'world.wuxia.name': '武侠江湖',
+    'world.wuxia.name': '侠影江湖',
     'world.tag.xia': '侠影',
     'world.tag.jianghu': '江湖',
     'realm.0': '不入流',
