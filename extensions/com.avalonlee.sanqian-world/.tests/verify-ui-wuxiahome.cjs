@@ -259,6 +259,50 @@ const { chromium } = require('playwright-core');
       'esc=' + JSON.stringify(r8h.esc) + ' realm=' + r8h.realm + ' on=' + r8h.on);
   });
 
+  /* WH9 · 行装与神兵谱（册227 · G4 兵器槽 + G15）：三块上屏（兵器槽空态 / 兵器库两件真名 / 谱 1/18）
+   * ⇔ 换上真落档（gear.weapon.i + 兵刃乘区 1.20）⇔ 卸下回库（不留失）⇔ 谱上「在身」与「库中」分开标。 */
+  await runSeeded({ stash: ['wp_tulong', 'wp_tiedao'], blades: ['wp_tulong'] }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="gear"]');
+    await p2.waitForTimeout(300);
+    const g9a = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      return {
+        bare: t.indexOf(L['wh.gear.empty']) >= 0,
+        names: t.indexOf(L['wp.wp_tulong.name']) >= 0 && t.indexOf(L['wp.wp_tiedao.name']) >= 0,
+        prog: t.indexOf(L['wh.gear.codexProg'].replace('{n}', '1').replace('{t}', '18')) >= 0,
+        eq: document.querySelectorAll('#shell-main [data-eq]').length
+      };
+    });
+    T(g9a.bare && g9a.names && g9a.prog && g9a.eq === 2,
+      'WH9a 行装页上屏（兵器槽「赤手空拳」⇔ 兵器库两件真名（屠龙刀/铁刀）⇔ 神兵谱 1/18 ⇔ 换上钮两枚）',
+      'bare=' + g9a.bare + ' names=' + g9a.names + ' prog=' + g9a.prog + ' eq=' + g9a.eq);
+
+    await p2.click('#shell-main [data-eq="weapon"][data-gid="wp_tulong"]');
+    await p2.waitForTimeout(400);
+    const g9b = await p2.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const pk = window.SQ.Worlds.wuxia.pack;
+      const t = document.getElementById('shell-main').textContent;
+      return { id: raw.gear.weapon && raw.gear.weapon.i, stash: raw.stash, mult: pk.weaponMult(raw),
+        onbody: t.indexOf(window.SQ.LEX.wuxia['wh.gear.onbody']) >= 0 };
+    });
+    T(g9b.id === 'wp_tulong' && g9b.mult === 1.20 && g9b.stash.indexOf('wp_tulong') < 0 && g9b.onbody,
+      'WH9b 换上真落档（gear.weapon.i=wp_tulong ⇔ 兵刃乘区 1.20 ⇔ 该件出库 ⇔ 谱行标「在身」）',
+      'id=' + g9b.id + ' mult=' + g9b.mult + ' stash=' + JSON.stringify(g9b.stash) + ' onbody=' + g9b.onbody);
+
+    await p2.click('#shell-main [data-uneq="weapon"]');
+    await p2.waitForTimeout(400);
+    const g9c = await p2.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const pk = window.SQ.Worlds.wuxia.pack;
+      return { id: raw.gear.weapon, stash: raw.stash, mult: pk.weaponMult(raw), blades: raw.blades };
+    });
+    T(g9c.id == null && g9c.mult === 0.90 && g9c.stash.indexOf('wp_tulong') >= 0 && g9c.blades.indexOf('wp_tulong') >= 0,
+      'WH9c 卸下回库（在手清空 ⇔ 乘区回落空手 0.90 ⇔ 该件回库 ⇔ 谱上仍记（收集不因卸下消失））',
+      'id=' + g9c.id + ' mult=' + g9c.mult + ' stash=' + JSON.stringify(g9c.stash) + ' blades=' + JSON.stringify(g9c.blades));
+  });
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();

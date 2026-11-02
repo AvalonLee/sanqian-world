@@ -666,6 +666,36 @@
     {i:'mnl_17',kind:'misc',f:4},
     {i:'mnl_18',kind:'misc',f:4}
     ],
+    /* 兵刃 20（册227 · G4 兵器槽 + G15 神兵谱）：k 档 0 寻常 / 1 好兵刃 / 2 名兵
+     * mul 兵刃乘区（数值与经济 §六：空手 0.90 / 寻常 1.00 / 好兵刃 1.10 / 名兵 1.20）
+     * cost 市集价（文；0 = 不卖——「名兵多半不卖，只送或抢」，数值卷 §七）
+     * 名兵 18 件为人工立名录（语料九件数据集无物品词表，故照册155 口径「招牌名单人工补 + 逐条写理由」）：
+     * 屠龙刀/倚天剑（倚天）· 玄铁重剑/君子剑/淑女剑（神雕）· 打狗棒（射雕·丐帮）· 玉箫（射雕·桃花岛）
+     * · 金蛇剑/碧血剑（碧血剑）· 冷月宝刀（飞狐外传）· 凝碧剑/绿波香露刀（书剑恩仇录）
+     * · 血刀（连城诀）· 鸳鸯刀（鸳鸯刀）· 真武剑（武当传世）· 玄铁匕首/金轮/鳄嘴剪（鹿鼎记·神雕·天龙）
+     * 档位统一 1.20 系 —— 名兵之间不再分优劣（差异化走「取得难度」而非数值，免得变成刷最强兵）。 */
+    WEAPONS: [
+    {i:'wp_tiedao',k:0,mul:1.00,cost:2000},
+    {i:'wp_haojian',k:1,mul:1.10,cost:20000},
+    {i:'wp_tulong',k:2,mul:1.20,cost:0},
+    {i:'wp_yitian',k:2,mul:1.20,cost:0},
+    {i:'wp_xuantie',k:2,mul:1.20,cost:0},
+    {i:'wp_junzi',k:2,mul:1.20,cost:0},
+    {i:'wp_shunv',k:2,mul:1.20,cost:0},
+    {i:'wp_dagou',k:2,mul:1.20,cost:0},
+    {i:'wp_yuxiao',k:2,mul:1.20,cost:0},
+    {i:'wp_jinshe',k:2,mul:1.20,cost:0},
+    {i:'wp_bixue',k:2,mul:1.20,cost:0},
+    {i:'wp_lengyue',k:2,mul:1.20,cost:0},
+    {i:'wp_ningbi',k:2,mul:1.20,cost:0},
+    {i:'wp_lvbo',k:2,mul:1.20,cost:0},
+    {i:'wp_xuedao',k:2,mul:1.20,cost:0},
+    {i:'wp_yuanyang',k:2,mul:1.20,cost:0},
+    {i:'wp_zhenwu',k:2,mul:1.20,cost:0},
+    {i:'wp_dagger',k:2,mul:1.20,cost:0},
+    {i:'wp_jinlun',k:2,mul:1.20,cost:0},
+    {i:'wp_ezui',k:2,mul:1.20,cost:0}
+    ],
     /* 奇遇事件池 96 条（册157 · S2-a）：z 地界 / kind 节类型 / line 三线 / t 品阶 / w 权重 */
     EVENTS: [
     {i:'ev_001',z:'shaolin',kind:'action',line:'zheng',t:'xuan',w:3},
