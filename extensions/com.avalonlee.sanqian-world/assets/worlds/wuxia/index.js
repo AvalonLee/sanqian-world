@@ -823,26 +823,26 @@
    * 静默失效）→ 统一改 `{ exp: N }` 对象形状，读法零改动。KNOTS 场面执行器挂接（正典 §八 挂接列）
    * 与惯例型窗口字段（§四）未落码，余量待后续批——本批只落声明层与文案层。 */
   var WORLD_EVENTS = [
-    { i: 'we_huashan', z: null, knot: null, cyc: 6, tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 60, stones: 5000 } } },
-    { i: 'we_xiangyang', z: null, knot: null, window: [0, 8], tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 25, renown: 20 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
-    { i: 'we_weijiao_gm', z: 'guangmingding', knot: 'knot_weijiao', window: [2, 6], tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 4000 } } },
-    { i: 'we_juxian', z: 'luoyang', knot: 'knot_juxian', window: [0, 4], tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 30, stones: 2000 } } },
-    { i: 'we_shaoshishan', z: 'shaolin', knot: 'knot_saodi', window: [2, 6], tier: { join: 4, lead: 6 }, pre: ['we_juxian'], gain: { watch: { exp: 10 }, join: { exp: 30, renown: 20 }, lead: { exp: 50, renown: 45, stones: 3000 } } },
-    { i: 'we_zhenlong', z: 'wuliang', knot: null, window: [1, 5], tier: { join: 1, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 5 }, lead: { exp: 50, renown: 10, stones: 0 } } },
-    { i: 'we_yanmen', z: 'yanmenguan', knot: 'knot_yanmen', window: [2, 6], tier: { join: 4, lead: 7 }, pre: ['we_juxian'], gain: { watch: { exp: 12 }, join: { exp: 30, renown: 25 }, lead: { exp: 60, renown: 60, stones: 0 } } },
-    { i: 'we_tushi', z: 'shaolin', knot: null, window: [3, 7], tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 35, stones: 3000 } } },
-    { i: 'we_wuyue_bingpai', z: 'songshan', knot: 'knot_fengchan', window: [2, 6], tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
-    { i: 'we_heimu', z: null, knot: null, window: [3, 8], tier: { join: 4, lead: 7 }, pre: ['we_wuyue_bingpai'], gain: { watch: { exp: 12 }, join: { exp: 30, renown: 20 }, lead: { exp: 60, renown: 60, stones: 6000 } } },
-    { i: 'we_xiake', z: null, knot: null, cyc: 1, tier: { join: 2, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 20, renown: 10 }, lead: { exp: 45, renown: 20, stones: 2000 } } },
-    { i: 'we_shagui', z: 'luoyang', knot: null, cyc: 3, tier: { join: 2, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 15 }, lead: { exp: 40, renown: 30, stones: 1500 } } },
-    { i: 'we_wangpan', z: null, knot: null, window: [0, 2], tier: { join: 1, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 15, renown: 10 }, lead: { exp: 35, renown: 20, stones: 2500 } } },
-    { i: 'we_jueqinggu', z: null, knot: null, window: [1, 5], tier: { join: 2, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 1000 } } },
-    { i: 'we_liuheta', z: null, knot: null, window: [1, 4], tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 35, stones: 2000 } } },
-    { i: 'we_chuangwang', z: null, knot: null, window: [1, 5], tier: { join: 2, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 4000 } } },
-    { i: 'we_liancheng', z: null, knot: null, window: [0, 4], tier: { join: 1, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 15, renown: 5 }, lead: { exp: 35, renown: 15, stones: 3500 } } },
-    { i: 'we_jiaozhu', z: 'guangmingding', knot: null, window: [3, 8], tier: { join: 4, lead: 6 }, pre: ['we_weijiao_gm'], gain: { watch: { exp: 10 }, join: { exp: 30, renown: 25 }, lead: { exp: 55, renown: 55, stones: 0 } } },
-    { i: 'we_cangjing', z: 'shaolin', knot: 'knot_cangjing', window: [1, 6], tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 2000 } } },
-    { i: 'we_huanshi', z: 'yanziwu', knot: 'knot_huanshi', window: [1, 6], tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 3000 } } }
+    { i: 'we_huashan', z: null, knot: null, cyc: 6, tier: { join: 3, lead: 6 }, pre: [], boss: 'huang_yaoshi', reward: { kind: 'art', id: 'yg_jiuyin' }, gain: { watch: { exp: 8 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 60, stones: 5000 } } },
+    { i: 'we_xiangyang', z: null, knot: null, window: [0, 8], tier: { join: 3, lead: 5 }, pre: [], boss: 'guo_jing', reward: { kind: 'art', id: 'yg_xianglong' }, gain: { watch: { exp: 8 }, join: { exp: 25, renown: 20 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_weijiao_gm', z: 'guangmingding', knot: 'knot_weijiao', window: [2, 6], tier: { join: 3, lead: 5 }, pre: [], boss: 'zhang_wuji', reward: { kind: 'art', id: 'yg_qiankun' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 4000 } } },
+    { i: 'we_juxian', z: 'luoyang', knot: 'knot_juxian', window: [0, 4], tier: { join: 3, lead: 5 }, pre: [], boss: 'xiao_feng', reward: { kind: 'art', id: 'yg_dagou' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 30, stones: 2000 } } },
+    { i: 'we_shaoshishan', z: 'shaolin', knot: 'knot_saodi', window: [2, 6], tier: { join: 4, lead: 6 }, pre: ['we_juxian'], boss: 'xu_zhu', reward: { kind: 'art', id: 'yg_liumai' }, gain: { watch: { exp: 10 }, join: { exp: 30, renown: 20 }, lead: { exp: 50, renown: 45, stones: 3000 } } },
+    { i: 'we_zhenlong', z: 'wuliang', knot: null, window: [1, 5], tier: { join: 1, lead: 5 }, pre: [], boss: 'ding_chunqiu', reward: { kind: 'art', id: 'yg_lingbo' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 5 }, lead: { exp: 50, renown: 10, stones: 0 } } },
+    { i: 'we_yanmen', z: 'yanmenguan', knot: 'knot_yanmen', window: [2, 6], tier: { join: 4, lead: 7 }, pre: ['we_juxian'], boss: 'xiao_longn', reward: { kind: 'art', id: 'yg_yijin' }, gain: { watch: { exp: 12 }, join: { exp: 30, renown: 25 }, lead: { exp: 60, renown: 60, stones: 0 } } },
+    { i: 'we_tushi', z: 'shaolin', knot: null, window: [3, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'xie_xun', reward: { kind: 'blade', id: 'wp_yitian' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 35, stones: 3000 } } },
+    { i: 'we_wuyue_bingpai', z: 'songshan', knot: 'knot_fengchan', window: [2, 6], tier: { join: 3, lead: 5 }, pre: [], boss: 'yue_buqun', reward: { kind: 'manual', id: 'mnl_03' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_heimu', z: null, knot: null, window: [3, 8], tier: { join: 4, lead: 7 }, pre: ['we_wuyue_bingpai'], boss: 'dongfang_bubai', reward: { kind: 'manual', id: 'mnl_05' }, gain: { watch: { exp: 12 }, join: { exp: 30, renown: 20 }, lead: { exp: 60, renown: 60, stones: 6000 } } },
+    { i: 'we_xiake', z: null, knot: null, cyc: 1, tier: { join: 2, lead: 5 }, pre: [], boss: 'shi_poitian', reward: { kind: 'art', id: 'yg_dugu' }, gain: { watch: { exp: 10 }, join: { exp: 20, renown: 10 }, lead: { exp: 45, renown: 20, stones: 2000 } } },
+    { i: 'we_shagui', z: 'luoyang', knot: null, cyc: 3, tier: { join: 2, lead: 4 }, pre: [], boss: 'hong_antong', reward: { kind: 'blade', id: 'wp_jinshe' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 15 }, lead: { exp: 40, renown: 30, stones: 1500 } } },
+    { i: 'we_wangpan', z: null, knot: null, window: [0, 2], tier: { join: 1, lead: 4 }, pre: [], boss: 'xie_xun', reward: { kind: 'blade', id: 'wp_tulong' }, gain: { watch: { exp: 8 }, join: { exp: 15, renown: 10 }, lead: { exp: 35, renown: 20, stones: 2500 } } },
+    { i: 'we_jueqinggu', z: null, knot: null, window: [1, 5], tier: { join: 2, lead: 5 }, pre: [], boss: 'yang_guo', reward: { kind: 'blade', id: 'wp_junzi' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 1000 } } },
+    { i: 'we_liuheta', z: null, knot: null, window: [1, 4], tier: { join: 3, lead: 5 }, pre: [], boss: 'chen_jialuo', reward: { kind: 'blade', id: 'wp_ningbi' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 35, stones: 2000 } } },
+    { i: 'we_chuangwang', z: null, knot: null, window: [1, 5], tier: { join: 2, lead: 4 }, pre: [], boss: 'hu_fei', reward: { kind: 'blade', id: 'wp_lengyue' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 4000 } } },
+    { i: 'we_liancheng', z: null, knot: null, window: [0, 4], tier: { join: 1, lead: 4 }, pre: [], boss: 'hua_tiegan', reward: { kind: 'manual', id: 'mnl_11' }, gain: { watch: { exp: 8 }, join: { exp: 15, renown: 5 }, lead: { exp: 35, renown: 15, stones: 3500 } } },
+    { i: 'we_jiaozhu', z: 'guangmingding', knot: null, window: [3, 8], tier: { join: 4, lead: 6 }, pre: ['we_weijiao_gm'], boss: 'ren_woxing', reward: { kind: 'art', id: 'yg_jiuyang' }, gain: { watch: { exp: 10 }, join: { exp: 30, renown: 25 }, lead: { exp: 55, renown: 55, stones: 0 } } },
+    { i: 'we_cangjing', z: 'shaolin', knot: 'knot_cangjing', window: [1, 6], tier: { join: 3, lead: 6 }, pre: [], boss: 'xiao_longn', reward: { kind: 'manual', id: 'mnl_04' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 2000 } } },
+    { i: 'we_huanshi', z: 'yanziwu', knot: 'knot_huanshi', window: [1, 6], tier: { join: 3, lead: 4 }, pre: [], boss: 'murong_fu', reward: { kind: 'manual', id: 'mnl_06' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 3000 } } }
   ];
   function wefateOf(ws) { return obj(ws.world && ws.world.wefate); }
   /* 窗口与届次（册223 · 世界事件卷 §四）：worldDay 360 天 = 1 游戏年。
@@ -905,16 +905,81 @@
     }
     return out;
   }
+  /* ── lead 即对赌（册228 · 世界事件卷 §三 / §六 fail / §七）──────────────────────
+   * 主导档不是「点一下拿奖励」——对上主场 boss（`boss` = CAST id，tier 对表折算战力，
+   * 数值卷 §六 同口径）三回合取两胜。判点走 Math.random：玩家主动操作不属章号散列面
+   * （与强行冲关 / 悬赏委托同口径），三回合降方差不改胜负期望。
+   * 败：败走窄路表 —— 内伤 +2~6、侠名 −20~40，且**不发放 gain 与主奖励**（不是惩罚演出，
+   * 是事件的另一种结局：江湖记得败者）。 */
+  var LEAD_FAIL_INJURY = [2, 6];
+  var LEAD_FAIL_RENOWN = [-40, -20];
+  function leadDuel(ws, e) {
+    if (!e || !e.boss) return null;
+    var C = (D && D.CAST) || [];
+    var boss = null;
+    for (var i = 0; i < C.length; i++) if (C[i].i === e.boss) { boss = C[i]; break; }
+    if (!boss) return null;
+    var pWin = battleOdds(ws, { t: boss.t });
+    var wins = 0;
+    for (var r = 0; r < 3; r++) if (Math.random() < pWin) wins++;
+    return { win: wins >= 2, p: Math.round(pWin * 100) / 100, foe: boss.i, tier: boss.t };
+  }
+  /* 主奖励池发放（世界事件卷 §七「lead 胜 = 天阶武学 1 部 / 名兵 / 天~地阶秘籍」）——
+   * 三种载体的重复处置：武学已学 ⇒ 升一层（封 9，满了给「已臻化境」标记）；名兵已有 ⇒ 折价 3 两；
+   * 秘籍 ⇒ 入待修习架（可重复，与 MANUALS 物品层一致）。 */
+  function grantReward(ws, rw) {
+    if (!rw || !rw.kind || !rw.id) return null;
+    if (rw.kind === 'art') {
+      if (!ART_INDEX[rw.id]) return null;
+      ws.artsKnown = arr(ws.artsKnown);
+      ws.artsLevels = obj(ws.artsLevels);
+      if (ws.artsKnown.indexOf(rw.id) < 0) {
+        ws.artsKnown.push(rw.id);
+        ws.artsLevels[rw.id] = 1;
+        return { kind: 'art', id: rw.id, fresh: true, level: 1 };
+      }
+      var lv = ws.artsLevels[rw.id] | 0;
+      if (lv < 9) { ws.artsLevels[rw.id] = lv + 1; return { kind: 'art', id: rw.id, fresh: false, level: lv + 1 }; }
+      return { kind: 'art', id: rw.id, fresh: false, level: lv, capped: true };
+    }
+    if (rw.kind === 'blade') {
+      if (!weaponRow(rw.id)) return null;
+      ws.blades = arr(ws.blades);
+      ws.stash = arr(ws.stash);
+      if (ws.blades.indexOf(rw.id) < 0) {
+        ws.blades.push(rw.id);
+        ws.stash.push(rw.id);
+        return { kind: 'blade', id: rw.id, fresh: true };
+      }
+      ws.stones = (ws.stones || 0) + 300;              /* 谱上已有：折价 3 两 */
+      return { kind: 'blade', id: rw.id, dupe: true, cash: 300 };
+    }
+    if (rw.kind === 'manual') {
+      var M = (D && D.MANUALS) || [];
+      var okM = false;
+      for (var m = 0; m < M.length; m++) if (M[m].i === rw.id) okM = true;
+      if (!okM) return null;
+      ws.shelf = arr(ws.shelf);
+      ws.shelf.push(rw.id);
+      return { kind: 'manual', id: rw.id, fresh: true };
+    }
+    return null;
+  }
   function attendEvent(ws, id, mode, alt) {
     var e = null;
     for (var i = 0; i < WORLD_EVENTS.length; i++) if (WORLD_EVENTS[i].i === id) { e = WORLD_EVENTS[i]; break; }
     if (!e) return { err: 'noevent' };
     var fate = wefateOf(ws);
-    if (fate[id]) return { err: 'done' };
+    /* 拒重口径按型分叉（册228 修既有缺陷）：惯例型看「本届届次」（wecyc），**不看 fate**——
+     * 原先一刀切 `if (fate[id]) done` 会让惯例型（华山论剑 / 腊八 / 杀龟）赴过一届后永久点不动，
+     * 而 worldEvents 又按 wecyc 跨届把它们放回可赴列表 ⇒ 列表里看得见、按下去 done（册223 埋）。
+     * 独发型仍按 wefate 拒重（含 lose / echo 收场）+ 窗口守卫。 */
     if (e.cyc) {
-      var curC = Math.floor(worldYearOf(ws) / e.cyc);
-      if (wecycOf(ws)[id] === curC) return { err: 'done' };   /* 惯例型本届已赴 */
-    } else if (!inWindow(ws, e)) return { err: 'offwindow' };  /* 独发型窗口外拒赴（直调防御） */
+      if (wecycOf(ws)[id] === Math.floor(worldYearOf(ws) / e.cyc)) return { err: 'done' };
+    } else {
+      if (fate[id]) return { err: 'done' };
+      if (!inWindow(ws, e)) return { err: 'offwindow' };   /* 直调防御 */
+    }
     if ((ws.stamina | 0) < (mode === 'lead' ? 10 : 5)) return { err: 'stamina' };
     if (mode === 'watch') {   /* 旁观：无门槛、精力 3——在场不落子（世界事件卷 §三） */
       ws.stamina = Math.max(0, (ws.stamina | 0) - 3);
@@ -926,12 +991,45 @@
     }
     var g = e.gain[mode] || {};
     var res = { ok: true, event: id, mode: mode, alt: alt === true && mode === 'lead' ? true : false };
+    /* 主导档先掷对赌（册228）：败则走窄路 —— 不发放 gain / 主奖励，结局写 'lose'。
+     * watch / join 不掷判：旁观无对手，卷入的「战败走窄路（轻）」留后续批（正典 §三 风险列）。 */
+    var duel = null;
+    if (mode === 'lead') {
+      duel = leadDuel(ws, e);
+      if (!duel) return { err: 'noboss', event: id };
+      res.p = duel.p;
+      res.foe = duel.foe;
+      if (!duel.win) {
+        var injAdd = LEAD_FAIL_INJURY[0] + Math.floor(Math.random() * (LEAD_FAIL_INJURY[1] - LEAD_FAIL_INJURY[0] + 1));
+        var renLoss = LEAD_FAIL_RENOWN[0] + Math.floor(Math.random() * (LEAD_FAIL_RENOWN[1] - LEAD_FAIL_RENOWN[0] + 1));
+        ws.injury = Math.min(15, (ws.injury || 0) + injAdd);
+        ws.renown = clampInt((ws.renown || 0) + renLoss, -1000, 1000, ws.renown || 0);
+        res.ok = true;                 /* 赴了、打了、败了 —— 这也是赴会成功的一种结局 */
+        res.win = false;
+        res.injury = ws.injury;
+        res.renownLost = -renLoss;
+        ws.world = obj(ws.world);
+        if (!ws.world.wefate) ws.world.wefate = {};
+        ws.world.wefate[id] = 'lose';
+        if (e.cyc) {
+          if (!ws.world.wecyc) ws.world.wecyc = {};
+          ws.world.wecyc[id] = Math.floor(worldYearOf(ws) / e.cyc);
+        }
+        return res;
+      }
+      res.win = true;
+    }
     /* 见闻奖励落 webonus 进 expOf 派生式（册225 修）：ws.exp += 会被 claim 重算吞掉 */
     ws.world = obj(ws.world);
     ws.world.webonus = (ws.world.webonus || 0) + (g.exp || 8);
     ws.exp = expOf(ws);
     ws.renown = clampInt((ws.renown || 0) + (g.renown || 0) * (res.alt ? 2 : 1), -1000, 1000, ws.renown || 0);
     if (g.stones) ws.stones = (ws.stones || 0) + g.stones;
+    /* 主奖励池（世界事件卷 §七）：仅 lead 胜发放，逐事件声明在 WORLD_EVENTS[].reward */
+    if (mode === 'lead') {
+      var rw = grantReward(ws, e.reward);
+      if (rw) res.reward = rw;
+    }
     /* 写回：wefate 只存结果键（主档容量红线同型）；**旁观不写结局**——在场不落子（世界事件卷 §三） */
     if (mode !== 'watch') {
       ws.world = obj(ws.world);
@@ -1127,6 +1225,8 @@
     weapons: (D && D.WEAPONS) || [], weaponMult: weaponMult, weaponRow: weaponRow,
     equipGear: equipGear, bladeProgress: bladeProgress, bladeDrop: bladeDrop,
     worldEvents: worldEvents, worldRumors: worldRumors, sweepExpired: sweepExpired, worldYearOf: worldYearOf, attendEvent: attendEvent, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,
+    /* 主导对赌（册228）：掷判与主奖励发放拆成两口——判据直测用，视图只经 attendEvent 的返回面 */
+    leadDuel: leadDuel, grantReward: grantReward,
     zoneUnlocked: zoneUnlocked,
     travelStamina: TRAVEL_STAMINA,
     travelUnlock: TRAVEL_UNLOCK,

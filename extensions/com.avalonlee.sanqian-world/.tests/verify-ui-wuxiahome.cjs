@@ -303,6 +303,47 @@ const { chromium } = require('playwright-core');
       'id=' + g9c.id + ' mult=' + g9c.mult + ' stash=' + JSON.stringify(g9c.stash) + ' blades=' + JSON.stringify(g9c.blades));
   });
 
+  /* WH8g · 主导对赌（册228）：主导钮在位 + 「对上谁」线索上屏 ⇔ 点下 → 结果合法三选一
+   * （canon / alt / lose 落档）⇔ 自动切主页战报卡 duel 态 ⇔ 胜出奖励行 / 败出力战而竭行真词上屏。 */
+  await runSeeded({ realm: 6, stamina: 99, worldDay: 0 }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
+    await p2.waitForTimeout(300);
+    const g8 = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const foeName = window.SQ.t('cast.xiao_feng.name', null, 'wuxia');
+      return {
+        btn: !!document.querySelector('#shell-main [data-we="we_juxian"][data-mode="lead"]'),
+        foe: t.indexOf(L['wh.jianghu.lead.foe'].replace('{name}', foeName)) >= 0
+      };
+    });
+    T(g8.btn && g8.foe, 'WH8g 主导门槛与对手线索上屏（we_juxian 主导钮在位 ⇔ 「主导须对上萧峰」真词）',
+      'btn=' + g8.btn + ' foe=' + g8.foe);
+
+    await p2.click('#shell-main [data-we="we_juxian"][data-mode="lead"]');
+    await p2.waitForTimeout(600);
+    const g8b = await p2.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const evName = window.SQ.t('we.we_juxian.name', null, 'wuxia');
+      const fate = w.world && w.world.wefate && w.world.wefate.we_juxian;
+      return {
+        fate: fate,
+        home: !!document.getElementById('wh-force'),
+        rep: w.lastReport && w.lastReport.kind,
+        winLine: t.indexOf(L['wh.rep.duel.win'].replace('{ev}', evName)) >= 0,
+        loseLine: t.indexOf(L['wh.rep.duel.lose'].split('（内伤')[0].replace('{ev}', evName)) >= 0,
+        rewardLine: t.indexOf(L['wh.reward.art'].split('{name}')[0]) >= 0 || t.indexOf(L['wh.reward.art.up'].split('{name}')[0]) >= 0
+      };
+    });
+    const legal = g8b.fate === 'canon' || g8b.fate === 'alt' || g8b.fate === 'lose';
+    const lineOk = g8b.fate === 'lose' ? g8b.loseLine : (g8b.winLine && g8b.rewardLine);
+    T(legal && g8b.home && g8b.rep === 'duel' && lineOk,
+      'WH8g2 主导结果真落档（wefate ∈ canon/alt/lose 合法三选一 ⇔ 自动切主页战报卡 duel 态 ⇔ 胜出主奖励行 / 败出力战而竭行真词）',
+      'fate=' + g8b.fate + ' home=' + g8b.home + ' rep=' + g8b.rep + ' 胜行=' + g8b.winLine + ' 败行=' + g8b.loseLine + ' 奖=' + g8b.rewardLine);
+  });
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();

@@ -466,8 +466,13 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var w5 = pk.normalize(pk.initialState()); w5.realm = 6; w5.stamina = 99;
       var r1 = pk.attendEvent(w5, 'we_huashan', 'watch');
       var watchOk = r1 && r1.ok && w5.exp >= 8;
+      /* 册228：lead 变对赌 ⇒ 判据定种（stub 0.01 必胜）取「胜」侧；败侧与主奖励面归 E28 */
+      var realRnd5 = Math.random;
+      Math.random = function () { return 0.01; };
       var r2 = pk.attendEvent(w5, 'we_huashan', 'lead', true);
-      var leadOk = r2 && r2.ok && r2.alt === true && w5.world.wefate.we_huashan === 'alt' && w5.renown >= 100;
+      Math.random = realRnd5;
+      var leadOk = r2 && r2.ok && r2.win === true && r2.alt === true && w5.world.wefate.we_huashan === 'alt' && w5.renown >= 100 &&
+        r2.reward && r2.reward.kind === 'art' && r2.reward.id === 'yg_jiuyin';
       var r3 = pk.attendEvent(w5, 'we_huashan', 'join');
       var doneOk = r3 && r3.err === 'done';
       var evs1 = pk.worldEvents(w5);
@@ -486,7 +491,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var rR = pk.retire(wR);
       var rR9 = pk.retire(Object.assign(pk.normalize(pk.initialState()), { realm: 9 }));
       var retOk = rR && rR.err === 'realm' && rR9 && rR9.ok && rR9.gen === 2;
-      ok('E20', '武侠世界事件与长线（事件池 pre 链 ‖ 旁观零门槛/卷入境界档/主导更高 ‖ wefate 写回+done 拒重+alt 翻倍侠名 ‖ 结交 +3 ‖ 退隐 R9 才可）',
+      ok('E20', '武侠世界事件与长线（事件池 pre 链 ‖ 旁观零门槛/卷入境界档/主导更高 ‖ wefate 写回+done 拒重+alt 翻倍侠名+主奖励报出（册228 lead 对赌，判据定种必胜）‖ 结交 +3 ‖ 退隐 R9 才可）',
         !heimuIn && watchOk && leadOk && doneOk && heimuOpen && befOk && retOk,
         '池=' + evs0.length + ' 旁观=' + watchOk + ' 主导=' + leadOk + ' 拒重=' + doneOk + ' pre=' + heimuOpen + ' 结交=' + befOk + ' 退隐=' + retOk);
     })();
@@ -821,6 +826,109 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 乘区=' + multOk + ' 差分=' + powOk + '(' + Math.round(armed / bare * 1e4) / 1e4 + ')' +
         ' 装=' + okOn + ' 换=' + okSwap + ' 卸=' + okOff + ' 拒=' + okReject +
         ' 买=' + okBuy + '/' + okBuy2 + ' 夺=' + dropOk + '(id=' + (dHit && dHit.id) + ')' + ' 档=' + normOk);
+    })();
+
+    /* E28 · 世界事件主导对赌与主奖励池（册228 · 世界事件卷 §三/§六 fail/§七）：
+     * ① 20 案 boss ∈ CAST、reward 三型 id 各自在表（art ∈ ARTS / blade ∈ WEAPONS k=2 / manual ∈ MANUALS）‖
+     * ② 词表齐（we.*.fate.lose ×20 + tag.lose + wh.reward.* ×6 + wh.rep.duel.* ×2 + lead.foe）‖
+     * ③ lead 胜（stub 0.01）：wefate=canon + 主奖励按型发放（art 入已知 / blade 入谱入库 / manual 入架）‖
+     * ④ lead 胜 alt：wefate=alt + 侠名翻倍 ‖
+     * ⑤ lead 败（stub 0.99）：wefate=lose + 内伤/侠名取带端（stub 定种 ⇒ 6 / −20）+ 无奖励且 gain 未落地 ‖
+     * ⑥ 重复奖励处置（art 升层 / blade 折价 300 / manual 可重复）‖
+     * ⑦ watch/join 不掷判、不产 reward（旁观无对手，卷入不演对赌——正典 §三 风险列分档）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.leadDuel || !pk.grantReward) { ok('E28', '主导对赌与主奖励池', false, '无 leadDuel/grantReward 口'); return; }
+      var WE = pk.WORLD_EVENTS || [];
+      var castSet = {}, artSet = {}, bladeSet = {}, manSet = {};
+      (pk.cast || []).forEach(function (x) { castSet[x.i] = 1; });
+      (pk.arts || []).forEach(function (x) { artSet[x.i] = 1; });
+      (pk.weapons || []).forEach(function (x) { if (x.k === 2) bladeSet[x.i] = 1; });
+      (pk.manuals || []).forEach(function (x) { manSet[x.i] = 1; });
+      var planOk = WE.length === 20, planBad = [];
+      for (var i = 0; i < WE.length; i++) {
+        var e = WE[i], rw = e.reward || {};
+        if (!castSet[e.boss]) planBad.push(e.i + ':boss');
+        if (rw.kind === 'art' && !artSet[rw.id]) planBad.push(e.i + ':art');
+        else if (rw.kind === 'blade' && !bladeSet[rw.id]) planBad.push(e.i + ':blade');
+        else if (rw.kind === 'manual' && !manSet[rw.id]) planBad.push(e.i + ':manual');
+        else if (rw.kind !== 'art' && rw.kind !== 'blade' && rw.kind !== 'manual') planBad.push(e.i + ':kind');
+      }
+      if (planBad.length) planOk = false;
+
+      var L = SQ.LEX && SQ.LEX.wuxia ? SQ.LEX.wuxia : {};
+      var lexBad = [];
+      ['wh.jianghu.fate.tag.lose', 'wh.reward.art', 'wh.reward.art.up', 'wh.reward.art.cap',
+        'wh.reward.blade', 'wh.reward.blade.dupe', 'wh.reward.manual', 'wh.rep.duel.win', 'wh.rep.duel.lose',
+        'wh.jianghu.lead.foe'].forEach(function (k) { if (L[k] == null) lexBad.push(k); });
+      for (var w0 = 0; w0 < WE.length; w0++) if (L['we.' + WE[w0].i + '.fate.lose'] == null) lexBad.push(WE[w0].i);
+      var lexOk = lexBad.length === 0;
+
+      var realRnd = Math.random;
+      /* ③ 胜侧三型（三案开局窗内：juxian art / wangpan blade / liancheng manual） */
+      Math.random = function () { return 0.01; };
+      var wA = pk.normalize(pk.initialState()); wA.realm = 6; wA.stamina = 99; wA.worldDay = 0;
+      var rA = pk.attendEvent(wA, 'we_juxian', 'lead', false);
+      var winArt = rA && rA.ok && rA.win === true && wA.world.wefate.we_juxian === 'canon' &&
+        rA.reward && rA.reward.kind === 'art' && rA.reward.id === 'yg_dagou' &&
+        (wA.artsKnown || []).indexOf('yg_dagou') >= 0 && (wA.artsLevels.yg_dagou | 0) === 1;
+      var wB = pk.normalize(pk.initialState()); wB.realm = 6; wB.stamina = 99; wB.worldDay = 0;
+      var rB = pk.attendEvent(wB, 'we_wangpan', 'lead', false);
+      var winBlade = rB && rB.ok && rB.win === true && rB.reward && rB.reward.kind === 'blade' && rB.reward.id === 'wp_tulong' &&
+        (wB.blades || []).indexOf('wp_tulong') >= 0 && (wB.stash || []).indexOf('wp_tulong') >= 0;
+      var wC = pk.normalize(pk.initialState()); wC.realm = 6; wC.stamina = 99; wC.worldDay = 0;
+      var rC = pk.attendEvent(wC, 'we_liancheng', 'lead', false);
+      var winMan = rC && rC.ok && rC.win === true && rC.reward && rC.reward.kind === 'manual' && rC.reward.id === 'mnl_11' &&
+        (wC.shelf || []).indexOf('mnl_11') >= 0;
+      /* ④ alt 胜：侠名翻倍（we_huashan lead gain.renown 60 ⇒ alt 120） */
+      var wD = pk.normalize(pk.initialState()); wD.realm = 6; wD.stamina = 99;
+      var rD = pk.attendEvent(wD, 'we_huashan', 'lead', true);
+      var altOk = rD && rD.ok && rD.win === true && rD.alt === true && wD.world.wefate.we_huashan === 'alt' && wD.renown === 120;
+      /* ⑤ 败侧：stub 0.99 ⇒ 三回合全败；内伤 2+⌊0.99×5⌋=6、侠名 −40+⌊0.99×21⌋=−20（带端定种） */
+      Math.random = function () { return 0.99; };
+      var wE = pk.normalize(pk.initialState()); wE.realm = 6; wE.stamina = 99; wE.renown = 0; wE.injury = 0; wE.worldDay = 0;
+      var expBefore = wE.exp;
+      var rE = pk.attendEvent(wE, 'we_juxian', 'lead', false);
+      Math.random = realRnd;
+      var loseOk = rE && rE.ok && rE.win === false && !rE.reward &&
+        wE.world.wefate.we_juxian === 'lose' && wE.injury === 6 && wE.renown === -20 &&
+        wE.exp === expBefore && (wE.artsKnown || []).indexOf('yg_dagou') < 0;
+      /* ⑥ 重复处置：art 升层 / blade 折价 / manual 可重复 */
+      var wF = pk.normalize(pk.initialState());
+      var g1 = pk.grantReward(wF, { kind: 'art', id: 'yg_dagou' });
+      var g2 = pk.grantReward(wF, { kind: 'art', id: 'yg_dagou' });
+      var artUp = g1 && g1.fresh === true && g2 && g2.fresh === false && g2.level === 2 && wF.artsLevels.yg_dagou === 2;
+      var wG = pk.normalize(pk.initialState());
+      var b1 = pk.grantReward(wG, { kind: 'blade', id: 'wp_tulong' });
+      var stonesB = wG.stones;
+      var b2 = pk.grantReward(wG, { kind: 'blade', id: 'wp_tulong' });
+      var bladeDupe = b1.fresh === true && b2.dupe === true && b2.cash === 300 && wG.stones === stonesB + 300 && wG.blades.length === 1;
+      var wH = pk.normalize(pk.initialState());
+      pk.grantReward(wH, { kind: 'manual', id: 'mnl_05' });
+      pk.grantReward(wH, { kind: 'manual', id: 'mnl_05' });
+      var manTwice = wH.shelf.length === 2;
+      /* ⑦ watch / join 不产 reward */
+      var wI = pk.normalize(pk.initialState()); wI.realm = 6; wI.stamina = 99; wI.worldDay = 0;
+      var rI = pk.attendEvent(wI, 'we_juxian', 'join', false);
+      var wJ = pk.normalize(pk.initialState()); wJ.realm = 6; wJ.stamina = 99;
+      var rJ = pk.attendEvent(wJ, 'we_huashan', 'watch', false);
+      var plainOk = rI && rI.ok && !rI.reward && rI.win === undefined && wI.world.wefate.we_juxian === 'canon' &&
+        rJ && rJ.ok && !rJ.reward && rJ.win === undefined;
+      /* ⑧ 惯例型跨届重开（册228 顺修）：we_huashan cyc 6 —— 本届赴过同届拒重、**下届可再赴**。
+       * 修复前 `if (fate[id]) done` 一刀切 ⇒ 惯例型赴过一届后永久点不动（列表可见、按下 done）。 */
+      var wK = pk.normalize(pk.initialState()); wK.realm = 6; wK.stamina = 999; wK.worldDay = 0;
+      var k1 = pk.attendEvent(wK, 'we_huashan', 'join');
+      var k2 = pk.attendEvent(wK, 'we_huashan', 'join');
+      wK.worldDay = 6 * 360 + 1;
+      var k3 = pk.attendEvent(wK, 'we_huashan', 'join');
+      var cycOk = k1 && k1.ok && k2 && k2.err === 'done' && k3 && k3.ok;
+
+      ok('E28', '主导对赌与主奖励池（20 案 boss/reward 声明齐（CAST/ARTS/WEAPONS k=2/MANUALS 四表对账）‖ 词表 30 键齐 ‖ 胜三型发放（art 入已知 1 层 / blade 入谱入库 / manual 入架）‖ alt 侠名翻倍 120 ‖ 败 wefate=lose + 内伤6 + 侠名−20 + 无奖励 + gain 不落地 ‖ 重复处置（art 升层 / blade 折价 300 / manual 可重复）‖ watch·join 不产 reward 不判胜负 ‖ 惯例型跨届重开）',
+        planOk && lexOk && winArt && winBlade && winMan && altOk && loseOk && artUp && bladeDupe && manTwice && plainOk && cycOk,
+        '声明=' + planOk + (planBad.length ? '[' + planBad.join(',') + ']' : '') + ' 词表=' + lexOk + (lexBad.length ? '[' + lexBad.slice(0, 3).join(',') + ']' : '') +
+        ' 胜art=' + winArt + ' 胜blade=' + winBlade + ' 胜manual=' + winMan + ' alt=' + altOk +
+        ' 败=' + loseOk + '(伤' + (wE ? wE.injury : '?') + ',侠' + (wE ? wE.renown : '?') + ') 重复=' + artUp + '/' + bladeDupe + '/' + manTwice +
+        ' 平淡=' + plainOk + ' 跨届=' + cycOk);
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
