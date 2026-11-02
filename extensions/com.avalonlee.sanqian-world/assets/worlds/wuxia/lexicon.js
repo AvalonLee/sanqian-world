@@ -106,6 +106,7 @@
     "wh.jianghu.fate.alt": "亲手改写",
     "wh.jianghu.fate.tag.canon": "（顺势而终）",
     "wh.jianghu.fate.tag.alt": "（亲手改写）",
+    "wh.jianghu.fate.tag.echo": "（江湖传言收场）",
     "wh.people.title": "江湖人物",
     "wh.people.none": "（还没结识谁——行走江湖总会遇上）",
     "wh.people.befriend": "结交（精力 1）",
@@ -191,6 +192,24 @@
     "we.we_cangjing.fate.alt": "你亲擒窃经之人、完璧归赵——方丈以武学相谢，江湖传你一个「侠」字。",
     "we.we_huanshi.desc": "姑苏慕容「以彼之道还施彼身」，还施水阁藏着各家武学的账本——要进去，先接下斗转星移。",
     "we.we_huanshi.fate.canon": "还施水阁大门紧闭，慕容家的账本又添了几笔——江湖的债，从来有人记着。",
-    "we.we_huanshi.fate.alt": "你踏进还施水阁阅遍秘藏——慕容家的恩怨簿上，从此也有你一笔。"
+    "we.we_huanshi.fate.alt": "你踏进还施水阁阅遍秘藏——慕容家的恩怨簿上，从此也有你一笔。",
+    /* ── 错过回声（册223 · 独发型滑窗收场「江湖传言收场」，17 案——惯例型 3 案周期重开永不错过，不配键）── */
+    "we.we_xiangyang.echo": "襄阳城破与否已与你无关——那年的烽火，是别人守下来的。",
+    "we.we_weijiao_gm.echo": "光明顶一役早已尘埃落定——你听说时，六大派已经下山了。",
+    "we.we_juxian.echo": "聚贤庄的恩怨已了——你只在茶馆听说书人讲过那段英雄宴。",
+    "we.we_shaoshishan.echo": "少室山的雪化时，那一战已是江湖新传说——里头没有你的名字。",
+    "we.we_zhenlong.echo": "珍珑棋局被人破解了——破局者不是你，无量山又空等了几十年。",
+    "we.we_yanmen.echo": "雁门关外的事了了——你赶到时，只看见关外的风雪。",
+    "we.we_tushi.echo": "屠狮大会散了场，宝刀的去向成了新谜——江湖从不少你一个看客。",
+    "we.we_wuyue_bingpai.echo": "五岳并派的章程定了——你没在场的江湖，照旧往前走。",
+    "we.we_heimu.echo": "黑木崖换了主人——你错过的那一夜，成了说书人的新段子。",
+    "we.we_wangpan.echo": "王盘山的刀声停了——宝刀几易其手，独独与你的手无缘。",
+    "we.we_jueqinggu.echo": "绝情谷的事了了——情花的毒，解在了别人手里。",
+    "we.we_liuheta.echo": "六和塔的潮声退了——那一局成没成，都与你无关了。",
+    "we.we_chuangwang.echo": "闯王宝藏有了新主人——消息传到你耳中时，金山已经易手。",
+    "we.we_liancheng.echo": "连城诀被人破译——宝藏的传闻沸了一阵，又静了。",
+    "we.we_jiaozhu.echo": "光明顶有了新教主——登位那日的圣火，不是你点的。",
+    "we.we_cangjing.echo": "藏经阁的失窃案结了——窃经人的名字，你终究没有听到。",
+    "we.we_huanshi.echo": "还施水阁的门开了又关——阅遍秘藏的不是你。"
   });
 })();

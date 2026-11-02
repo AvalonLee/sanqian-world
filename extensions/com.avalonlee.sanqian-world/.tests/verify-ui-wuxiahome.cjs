@@ -147,8 +147,8 @@ const { chromium } = require('playwright-core');
       'stamina=' + r6.stamina + ' realm=' + r6.realm + ' injury=' + r6.injury);
   });
 
-  /* WH8 · 江湖页 20 案全文案（册221）：列表上屏 + desc 预告副行 + 赴会真落档与结局正文。
-   * 初始可见 16 案 = 20 − 4 个 pre 未写案（shaoshishan/yanmen/jiaozhu/heimu 依赖链未解锁）。 */
+  /* WH8 · 江湖页 20 案全文案（册221）+ 窗口过滤（册223）：初始可见 7 = 惯例 3（huashan/xiake/shagui 常驻）
+   * + 开局窗独发 4（xiangyang/juxian/wangpan/liancheng）——其余 13 案窗口未开或 pre 未过。 */
   await runSeeded({}, async (p2) => {
     await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
     await p2.waitForTimeout(300);
@@ -159,8 +159,8 @@ const { chromium } = require('playwright-core');
       return { n: btns.length, ids: Array.from(new Set(Array.from(btns).map(b => b.getAttribute('data-we')))).length,
         desc: t.indexOf(L['we.we_huashan.desc']) >= 0, watch: t.indexOf(L['wh.jianghu.watch']) >= 0 };
     });
-    T(r8a.ids === 16 && r8a.n === r8a.ids * 3 && r8a.desc && r8a.watch,
-      'WH8a 江湖页 20 案上屏（初始可见 16 = 20 − 4 pre 隐藏 ⇔ 每案三钮在位（data-we 三钮共用 = 48）⇔ desc 预告副行真词上屏）',
+    T(r8a.ids === 7 && r8a.n === r8a.ids * 3 && r8a.desc && r8a.watch,
+      'WH8a 江湖页窗口过滤上屏（初始可见 7 = 惯例 3 + 开局窗 4——窗口未开/pre 未过 13 案隐藏 ⇔ 每案三钮（data-we = 21）⇔ desc 预告副行真词上屏）',
       'n=' + r8a.n + ' ids=' + r8a.ids + ' desc=' + r8a.desc);
     await p2.click('#shell-main [data-we="we_wangpan"][data-mode="join"]');
     await p2.waitForTimeout(500);
