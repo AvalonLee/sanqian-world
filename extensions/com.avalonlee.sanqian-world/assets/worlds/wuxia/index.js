@@ -71,6 +71,7 @@
       knotDone: {},                    /* 已走过的剧情桥段（册216 P3）：knotId → 1（一次性名场面） */
       world: null,                     /* 江湖格局写回（册218 P5）：{wefate: {事件id → canon|alt}}——只存结果键 */
       lastReport: null,                /* 最近一次闯荡战报（册216 P3）：{kind, text keys, win, ...} */
+      escort: null,                    /* 押镖在途（册226）：{steps, pay}——travel 计步 3 步自动交镖；途中败战 = 劫毁 */
       atts: { zhi: 50, gu: 50, xing: 50 },  /* 资质三轴（册215 P2 · G12）：悟性 zhi 练功速率 / 根骨 gu 内伤耐受（P3 接） / 心性 xing 冲关成功率 */
       /* 通用项（同第一世界口径；数值与经济 §九「通用项同第一世界」的代码化——册214 P1 补齐：
        * tab 主壳下 Log.push / claim 落盘 / 事件史读点都会碰它们，缺了即 `reading '0'` 一族崩） */
@@ -141,6 +142,7 @@
       knotDone: obj(p.knotDone),
       world: (function () { var wd = obj(p.world); return { wefate: obj(wd.wefate), wecyc: obj(wd.wecyc), webonus: isNum(wd.webonus) ? wd.webonus : 0 }; })(),
       lastReport: obj(p.lastReport),
+      escort: (function () { var e2 = p.escort; return e2 && isNum(e2.steps) && isNum(e2.pay) ? { steps: e2.steps, pay: e2.pay } : null; })(),
       atts: (function () {
         var a = obj(p.atts);
         return {
@@ -378,6 +380,28 @@
     return Math.max(0.05, Math.min(0.95, p));
   }
   function travel(ws, opt) {
+    /* 押镖面（册226）：在途则本步推进一格；败战 = 劫毁（无酬）；满 3 步自动交镖得酬。
+     * 三出口（battle/knot/quiet）全覆盖——胜战/剧情/平安步都计押送，只有败战断镖。 */
+    var r = travelCore(ws, opt);
+    if (ws && ws.escort && r) {
+      if (r.kind === 'battle' && !r.win) {
+        ws.escort = null;
+        r.robbed = true;
+        if (ws.lastReport) ws.lastReport.robbed = true;
+      } else {
+        ws.escort.steps = (ws.escort.steps | 0) + 1;
+        if (ws.escort.steps >= 3) {
+          var pay = ws.escort.pay;
+          ws.stones = (ws.stones || 0) + pay;
+          ws.escort = null;
+          r.delivered = pay;
+          if (ws.lastReport) ws.lastReport.delivered = pay;
+        }
+      }
+    }
+    return r;
+  }
+  function travelCore(ws, opt) {
     if (!ws) return { err: 'nows' };
     if ((ws.stamina | 0) < TRAVEL_STAMINA) return { err: 'stamina', need: TRAVEL_STAMINA, have: ws.stamina | 0 };
     if ((ws.injury || 0) >= 12) return { err: 'hurt', injury: ws.injury };   /* 咯血档不宜行走——逼疗伤/闭关（数值卷 §六「往寻医退隐方向压」） */
@@ -483,6 +507,58 @@
     var kd = obj(ws.knotDone); kd[knotId] = 1; ws.knotDone = kd;
     ws.lastReport = { kind: 'knotDone', knot: knotId, chose: optK };
     return { ok: true, chose: optK, axis: ax || null };
+  }
+
+  /* ── 悬赏榜与押镖（册226 · 数值与经济 §收入：悬赏 10~200 两 / 押镖 5~40 两按境界）────────
+   * 悬赏 = 即时委托战：接下 → 精力 5 → 战斗掷判（对手满档基准 power，非杂鱼系数）→ 胜得银 + 侠名 / 败带伤 −5 侠名；
+   * 档位门槛 = 侠名 renown（数值卷「悬赏档位」）：small 任意 / mid ≥0 / grand ≥50。
+   * 押镖 = 3 步闯荡押送：接镖精力 3、酬金 5 + 境界×5（封 40 两）；途中败战 = 劫毁（无酬，内伤照记）。 */
+  var BOUNTY_TIERS = [
+    { k: 'small', need: -1000, reward: 10, fame: 5, tier: 1, mul: 0.6 },
+    { k: 'mid', need: 0, reward: 60, fame: 15, tier: 3, mul: 1.0 },
+    { k: 'grand', need: 50, reward: 200, fame: 40, tier: 5, mul: 1.0 }
+  ];
+  function bountyBoard(ws) {
+    var out = [];
+    for (var i = 0; i < BOUNTY_TIERS.length; i++) {
+      var t2 = BOUNTY_TIERS[i];
+      out.push({ k: t2.k, reward: t2.reward, need: t2.need, gate: (ws.renown || 0) < t2.need });
+    }
+    return out;
+  }
+  function bountyTake(ws, k) {
+    if (!ws) return { err: 'nows' };
+    var t2 = null;
+    for (var i = 0; i < BOUNTY_TIERS.length; i++) if (BOUNTY_TIERS[i].k === k) t2 = BOUNTY_TIERS[i];
+    if (!t2) return { err: 'notier' };
+    if ((ws.renown || 0) < t2.need) return { err: 'renown', need: t2.need };
+    if ((ws.stamina | 0) < 5) return { err: 'stamina' };
+    ws.stamina -= 5;
+    var tName = t2.tier === 1 ? 'huang' : t2.tier === 3 ? 'di' : 'tian';
+    var row = realmRow(t2.tier);
+    /* small 档照闯荡杂鱼系数 0.6（新手可玩——r2 满基准 20 连败实测归因）；mid/grand 满档（正经目标） */
+    var p = battleOdds(ws, { t: tName, power: (row ? row.power : 60) * (t2.mul || 1) });
+    var win = Math.random() < p;
+    var res = { ok: true, k: k, win: win, p: Math.round(p * 100) / 100 };
+    if (win) {
+      ws.stones = (ws.stones || 0) + t2.reward;
+      ws.renown = clampInt((ws.renown || 0) + t2.fame, -1000, 1000, ws.renown || 0);
+      res.loot = t2.reward;
+    } else {
+      ws.injury = Math.min(15, (ws.injury || 0) + 3 + (worldDayHash(ws, i + 1) % 3));
+      ws.renown = clampInt((ws.renown || 0) - 5, -1000, 1000, ws.renown || 0);
+      res.injury = ws.injury;
+    }
+    return res;
+  }
+  function escortTake(ws) {
+    if (!ws) return { err: 'nows' };
+    if (ws.escort) return { err: 'busy', steps: ws.escort.steps };
+    if ((ws.stamina | 0) < 3) return { err: 'stamina' };
+    ws.stamina -= 3;
+    var pay = Math.min(40, 5 + (ws.realm | 0) * 5);
+    ws.escort = { steps: 0, pay: pay };
+    return { ok: true, pay: pay };
   }
 
   /* ── 师承系统（册217 P4 · 方案卷 §五之一）：MUD 师承链正典化 ──────────────────────
@@ -940,7 +1016,7 @@
     breakThrough: breakThrough,
     staminaCapOf: staminaCapOf,
     travel: travel,
-    knotChoose: knotChoose,
+    knotChoose: knotChoose, bountyBoard: bountyBoard, bountyTake: bountyTake, escortTake: escortTake, BOUNTY_TIERS: BOUNTY_TIERS,
     joinSect: joinSect, learnArt: learnArt, learnableArts: learnableArts, sectTask: sectTask, donateSect: donateSect, betraySect: betraySect, sectRankOf: sectRankOf,
     shopList: SHOP_LIST, buyItem: buyItem, studyManual: studyManual,
     worldEvents: worldEvents, worldRumors: worldRumors, sweepExpired: sweepExpired, worldYearOf: worldYearOf, attendEvent: attendEvent, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,

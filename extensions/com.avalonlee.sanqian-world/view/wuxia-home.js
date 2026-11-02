@@ -127,6 +127,27 @@
       SQ.Log.push(w, 'sys', tw('we.' + id + '.name', null) + ' · ' + (r.alt ? tw('wh.jianghu.fate.alt', null) : tw('wh.jianghu.fate.canon', null)));
     }, function (f) { refresh(f); });
   }
+  /* 悬赏 / 押镖（册226 · 数值与经济 §收入） */
+  function doBounty(slot, k) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var r = SQ.Worlds[s.profile.worldId].pack.bountyTake(w, k);
+      if (r && r.err === 'renown') { slot.toast(tw('wh.bounty.gate', { n: r.need })); return; }
+      if (r && r.err === 'stamina') { slot.toast(tw('wh.rep.stamina', null)); return; }
+      if (r && r.err) { slot.toast(tw('wh.err.save', null)); return; }
+      SQ.Log.push(w, 'sys', tw(r.win ? 'wh.bounty.log.win' : 'wh.bounty.log.lose', { n: r.win ? r.loot : r.injury }));
+    }, function (f) { refresh(f); });
+  }
+  function doEscort(slot) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var r = SQ.Worlds[s.profile.worldId].pack.escortTake(w);
+      if (r && r.err === 'busy') { slot.toast(tw('wh.escort.on', null)); return; }
+      if (r && r.err === 'stamina') { slot.toast(tw('wh.rep.stamina', null)); return; }
+      if (r && r.err) { slot.toast(tw('wh.err.save', null)); return; }
+      SQ.Log.push(w, 'sys', tw('wh.escort.log', { n: r.pay }));
+    }, function (f) { refresh(f); });
+  }
   function doBefriend(slot, castId) {
     act(slot, function (s) {
       var w = s.worlds[s.profile.worldId];
@@ -214,7 +235,9 @@
     var h = '<div class="wh-card"><h3>' + tw('wh.rep.title', null) + '</h3>';
     if (r.kind === 'battle') {
       var foeName = tw('event.' + r.foe + '.name', null);
-      h += '<div class="wh-row">' + (r.win ? tw('wh.rep.battle.win', { foe: foeName, loot: r.loot })
+      if (r.robbed) h += '<div class="wh-row">' + tw('wh.rep.escort.robbed', { foe: foeName }) + '</div>';
+      else if (r.delivered) h += '<div class="wh-row">' + tw('wh.rep.escort.done', { pay: r.delivered }) + '</div>';
+      else h += '<div class="wh-row">' + (r.win ? tw('wh.rep.battle.win', { foe: foeName, loot: r.loot })
         : (r.big ? tw('wh.rep.battle.big', { foe: foeName, n: w.injury }) : tw('wh.rep.battle.lose', { foe: foeName, n: w.injury }))) + '</div>';
     } else if (r.kind === 'knot') {
       h += '<div class="wh-row">' + tw('wh.rep.knot.ask', { title: tw(r.title, null) }) + '</div><div class="wh-row">';
@@ -225,7 +248,9 @@
     } else if (r.kind === 'knotDone') {
       h += '<div class="wh-row">' + tw('wh.rep.knotDone', { chose: tw('wh.chose.' + r.chose, null) }) + '</div>';
     } else if (r.kind === 'quiet') {
-      h += '<div class="wh-row">' + tw('wh.rep.quiet', { place: tw('zone.' + r.place + '.name', null), n: r.scene, loot: r.loot || 0 }) + '</div>';
+      h += r.delivered
+        ? '<div class="wh-row">' + tw('wh.rep.escort.done', { pay: r.delivered }) + '</div>'
+        : '<div class="wh-row">' + tw('wh.rep.quiet', { place: tw('zone.' + r.place + '.name', null), n: r.scene, loot: r.loot || 0 }) + '</div>';
     }
     return h + '</div>';
   }
@@ -366,6 +391,26 @@
       h += '<div class="wh-row"><span class="wh-muted">' + tw('wh.rumor.none', null) + '</span></div>';
     }
     var evs = p.worldEvents(w);
+    /* 悬赏榜与押镖（册226 · 数值与经济 §收入） */
+    if (p.bountyBoard) {
+      var bd = p.bountyBoard(w);
+      h += '<div class="wh-row"><span class="wh-muted"><b>' + tw('wh.bounty.title', null) + '</b></span></div>';
+      for (var bi = 0; bi < bd.length; bi++) {
+        var b0 = bd[bi];
+        h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('wh.bounty.' + b0.k, null) + '</b>' +
+          '<span class="wh-muted">' + tw('wh.bounty.pay', { n: b0.reward }) + (b0.gate ? ' · ' + tw('wh.bounty.gate', { n: b0.need }) : '') + '</span></span>' +
+          (b0.gate ? '' : '<button class="btn" data-bounty="' + b0.k + '">' + tw('wh.bounty.take', null) + '</button>') +
+          '</div>';
+      }
+      var es = w.escort;
+      if (es) {
+        h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('wh.escort.on', null) + '</b>' +
+          '<span class="wh-muted">' + tw('wh.escort.prog', { n: es.steps | 0, pay: es.pay }) + '</span></span></div>';
+      } else {
+        h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('wh.escort.title', null) + '</b></span>' +
+          '<button class="btn" data-escort="1">' + tw('wh.escort.take', null) + '</button></div>';
+      }
+    }
     if (!evs.length) h += '<div class="wh-muted">' + tw('wh.jianghu.none', null) + '</div>';
     for (var i = 0; i < evs.length; i++) {
       var e = evs[i];
@@ -447,6 +492,8 @@
       else if (b.id === "wh-mode") toggleMode(f2);
       else if (b.getAttribute("data-zone")) goZone(f2, b.getAttribute("data-zone"));
       else if (b.getAttribute("data-knot")) chooseKnot(f2, b.getAttribute("data-knot"), b.getAttribute("data-opt"));
+      else if (b.getAttribute("data-bounty")) doBounty(f2, b.getAttribute("data-bounty"));
+      else if (b.getAttribute("data-escort")) doEscort(f2);
       else if (b.getAttribute('data-join')) doSect(f2, 'join', b.getAttribute('data-join'));
       else if (b.getAttribute('data-learn')) doSect(f2, 'learn', b.getAttribute('data-learn'));
       else if (b.getAttribute('data-buy')) doSect(f2, 'buy', b.getAttribute('data-buy'));
