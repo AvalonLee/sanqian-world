@@ -305,7 +305,11 @@
     } else if (r.kind === 'quiet') {
       h += r.delivered
         ? '<div class="wh-row">' + tw('wh.rep.escort.done', { pay: r.delivered }) + '</div>'
-        : '<div class="wh-row">' + tw('wh.rep.quiet', { place: tw('zone.' + r.place + '.name', null), n: r.scene, loot: r.loot || 0 }) + '</div>';
+        : '<div class="wh-row">' + tw('wh.rep.quiet', { place: tw('zone.' + r.place + '.name', null), n: r.scene, loot: 0 }) + '</div>';
+      /* 拾遗（册229 · gain 条落消费点）：与平安步分行记，不与「风平浪静」混成一句 */
+      if (r.gain) {
+        h += '<div class="wh-row">' + tw('wh.rep.gain', { place: tw('zone.' + r.place + '.name', null), loot: r.loot || 0 }) + '</div>';
+      }
     }
     return h + '</div>';
   }
@@ -317,14 +321,20 @@
     for (var i = 0; i < Z.length; i++) {
       var z = Z[i];
       var unlocked = p.zoneUnlocked(w, z.i);
-      var cur = w.place === z.i;
+      var here = w.place === z.i;
       var prog = (w.sceneProg || {})[z.i] | 0;
       var total = (z.scenes || ['1']).length;
       h += '<div class="wh-row">' +
-        '<span class="wh-cell"><b>' + tw('zone.' + z.i + '.name', null) + '</b>' + (cur ? tw('wh.zone.cur', null) : '') + '</span>' +
+        '<span class="wh-cell"><b>' + tw('zone.' + z.i + '.name', null) + '</b>' + (here ? tw('wh.zone.cur', null) : '') + '</span>' +
         '<span class="wh-muted">' + (unlocked ? tw('wh.zone.scene', { n: Math.min(prog, total), t: total }) : tw('wh.zone.locked', null)) + '</span>' +
-        (unlocked && !cur ? '<button class="btn" data-zone="' + z.i + '">' + tw('wh.zone.go', null) + '</button>' : '') +
+        (unlocked && !here ? '<button class="btn" data-zone="' + z.i + '">' + tw('wh.zone.go', null) + '</button>' : '') +
         '</div>';
+      /* 到达写景（册229 · scene 条落消费点）：只在「当前所在」那一行下挂一句——
+       * 写景属转场氛围，不改数值，也不单独占卡片（一屏一主事：行走页主事仍是地界列表）。 */
+      if (here && p.zoneSceneOf) {
+        var sc = p.zoneSceneOf(z.i);
+        if (sc) h += '<div class="wh-muted">' + tw('event.' + sc.i + '.desc', null) + '</div>';
+      }
     }
     return h + '</div>';
   }

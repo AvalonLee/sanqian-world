@@ -410,6 +410,23 @@
     var p = 1 / (1 + Math.pow(theirs / mine, 1.5));
     return Math.max(0.05, Math.min(0.95, p));
   }
+  /* ── 地界素材两型（册229 · 叙事引擎 §四 八种节的现行落点）────────────────────
+   * 书形态退役后 EVENTS 只剩三种 kind 有真消费：action（遇敌）/ scene（到达写景）/ gain（拾遗）。
+   * `scene` = 到达地界时读到的写景一句（纯展示，不改数值——正典「写景、转场」）；
+   * `gain`  = 平安步里撞见的零碎银钱（判点走 h 散列，定种可复现；体量照数值卷 §七 吃住 3~10 文的尺度）。
+   * 两型都按 z 每地一条（13 地），取条规则：EVENTS 顺序首个命中。 */
+  function zoneSceneOf(place) {
+    var E = (D && D.EVENTS) || [];
+    for (var i = 0; i < E.length; i++) if (E[i].z === place && E[i].kind === 'scene') return E[i];
+    return null;
+  }
+  function gainOf(place) {
+    var E = (D && D.EVENTS) || [];
+    for (var i = 0; i < E.length; i++) if (E[i].z === place && E[i].kind === 'gain') return E[i];
+    return null;
+  }
+  var GAIN_RATE = 12;                                   /* 平安步拾遗概率（百分点） */
+  function gainTip(h) { return 5 + ((h >>> 3) % 16); }  /* 5~20 文 */
   function travel(ws, opt) {
     /* 押镖面（册226）：在途则本步推进一格；败战 = 劫毁（无酬）；满 3 步自动交镖得酬。
      * 三出口（battle/knot/quiet）全覆盖——胜战/剧情/平安步都计押送，只有败战断镖。 */
@@ -518,8 +535,20 @@
       ws.sceneProg = prog;
       ws.stones = (ws.stones || 0) + 5 + (h % 10);
     }
+    /* 拾遗（册229 · gain 条落消费点）：平安步里 12% 撞见零碎银钱——与子场景推进独立结算
+     * （走完场景仍可拾遗）；判点走 h，同一 (worldDay, salt, 地界) 结果可复现。 */
+    var gainRow = null, gainLoot = 0;
+    if (h % 100 < GAIN_RATE) {
+      gainRow = gainOf(place);
+      if (gainRow) {
+        gainLoot = gainTip(h);
+        ws.stones = (ws.stones || 0) + gainLoot;
+      }
+    }
     ws.lastReport = { kind: 'quiet', place: place, scene: Math.min(done + 1, scenes.length) };
-    return { kind: 'quiet', scene: Math.min(done + 1, scenes.length), place: place };
+    if (gainRow) { ws.lastReport.gain = gainRow.i; ws.lastReport.loot = gainLoot; }
+    return { kind: 'quiet', scene: Math.min(done + 1, scenes.length), place: place,
+      gain: gainRow ? gainRow.i : null, loot: gainLoot };
   }
   /* KNOTS 分支直选（册216 · 批书语义摘除）：watch/help/probe/defy/join/flee 玩家直选；
    * 效果 = 性格轴微调（help=侠+4 / defy=狂+4 / join=毒+4 ——册161 AXIS_BY_K 平移）+ 保守项零效果。 */
@@ -1228,6 +1257,8 @@
     /* 主导对赌（册228）：掷判与主奖励发放拆成两口——判据直测用，视图只经 attendEvent 的返回面 */
     leadDuel: leadDuel, grantReward: grantReward,
     zoneUnlocked: zoneUnlocked,
+    /* 地界素材两型（册229）：到达写景 / 拾遗取条与金额（判据直测口） */
+    zoneSceneOf: zoneSceneOf, gainOf: gainOf, gainTip: gainTip, GAIN_RATE: GAIN_RATE,
     travelStamina: TRAVEL_STAMINA,
     travelUnlock: TRAVEL_UNLOCK,
     /* worldSystems（册162 · S3-c）：引擎通用系统的世界侧接口——通用层只经这些口读世界语义（D3 纪律），
