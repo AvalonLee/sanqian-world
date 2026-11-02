@@ -223,6 +223,42 @@ const { chromium } = require('playwright-core');
       'title=' + r8e.title + ' rumor=' + r8e.rumor + ' soon=' + r8e.soon + ' opened=' + r8e.opened);
   });
 
+  /* WH8f · 悬赏榜与押镖（册226）：榜三档上屏（grand 被 renown 门拦无钮）⇔ 接 small 真落档（胜/败合法）⇔
+   * 接镖状态行「镖在途中」⇔ 走查全程零报错归 WH7。 */
+  await runSeeded({ stamina: 60 }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
+    await p2.waitForTimeout(300);
+    const r8f = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      return { board: t.indexOf(L['wh.bounty.title']) >= 0 && t.indexOf(L['wh.bounty.grand']) >= 0,
+        gate: t.indexOf(L['wh.bounty.gate'].replace('{n}', '50')) >= 0 };
+    });
+    T(r8f.board && r8f.gate,
+      'WH8f 悬赏榜上屏（三档含重赏 ⇔ grand 侠名门「侠名需达 50」在屏）',
+      'board=' + r8f.board + ' gate=' + r8f.gate);
+    await p2.click('#shell-main [data-bounty="small"]');
+    await p2.waitForTimeout(400);
+    const r8g = await p2.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      return { stamina: raw.stamina, renown: raw.renown, inj: raw.injury };
+    });
+    T(r8g.stamina >= 55 && (r8g.renown === 5 || (r8g.renown === -5 && r8g.inj >= 3)),
+      'WH8f2 接悬赏真落档（精力扣 5 后恢复不判绝对值（tick 叠加，WH2/WH6 同口径）⇔ 胜侠名+5 或 败侠名−5 且带伤——概率型合法二选一）',
+      'stamina=' + r8g.stamina + ' renown=' + r8g.renown + ' inj=' + r8g.inj);
+    await p2.click('#shell-main [data-escort="1"]');
+    await p2.waitForTimeout(400);
+    const r8h = await p2.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const t = document.getElementById('shell-main').textContent;
+      return { realm: raw.realm, esc: raw.escort, stamina: raw.stamina, on: t.indexOf(window.SQ.LEX.wuxia['wh.escort.on']) >= 0 };
+    });
+    /* pay 动态对表：5 + realm×5（走查环境 tick 的 claim 会自动破关——WH5 实测放置本体，realm 不恒 0） */
+    T(r8h.esc && r8h.esc.steps === 0 && r8h.esc.pay === Math.min(40, 5 + r8h.realm * 5) && r8h.on,
+      'WH8f3 接镖真落档（escort={steps:0, pay=5+realm×5} 落盘 ⇔ 状态行「镖在途中」上屏——realm 随 claim 自动破关动态对表）',
+      'esc=' + JSON.stringify(r8h.esc) + ' realm=' + r8h.realm + ' on=' + r8h.on);
+  });
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();
