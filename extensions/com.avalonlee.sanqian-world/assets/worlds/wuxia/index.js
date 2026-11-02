@@ -629,19 +629,34 @@
     return { ok: true, art: artId };
   }
 
-  /* ── 世界事件层（册218 P5 · 世界事件卷 §六 schema 落码）────────────────────────────
-   * 首批 8 案（schema 简化：z 主场 / tier 门槛 / br canon|alt / gain 奖励 / writeback 写回）。
-   * 参与四档（避免/旁观/卷入/主导）压缩为三入口：旁观（exp +8）/ 卷入 join（realm 门槛）/ 主导 lead（更高门槛）。
-   * alt 改史仅 lead 档可选；写回 = wefate（事件 id → 结果键，只存结果键不存叙述）+ renown/关系。 */
+  /* ── 世界事件层（册218 P5 schema 落码 + 册221 首批 20 案补满 · 世界事件卷 §六/§七/§八）────
+   * 20 案 = 正典名录首批全量；schema 简化：z 主场（ZONES id ∪ null=江湖页入口）/ tier 门槛 /
+   * br canon|alt / pre 轻链 / gain 奖励。参与四档压缩为三入口：旁观（无门槛精力 3）/ 卷入 join /
+   * 主导 lead（更高门槛，alt 改史仅此档）。写回 = wefate（事件 id → 结果键，只存结果键）+ renown。
+   * 册221 顺手修 watch 档形状：原 `watch: 8` 数字在 `g.exp || 8` 读法下从未差异化生效（A8 同型
+   * 静默失效）→ 统一改 `{ exp: N }` 对象形状，读法零改动。KNOTS 场面执行器挂接（正典 §八 挂接列）
+   * 与惯例型窗口字段（§四）未落码，余量待后续批——本批只落声明层与文案层。 */
   var WORLD_EVENTS = [
-    { i: 'we_huashan', z: null, tier: { join: 3, lead: 6 }, pre: [], gain: { watch: 8, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 60, stones: 5000 } } },
-    { i: 'we_xiangyang', z: null, tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 8, join: { exp: 25, renown: 20 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
-    { i: 'we_weijiao_gm', z: 'guangmingding', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 4000 } } },
-    { i: 'we_juxian', z: 'luoyang', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 30, stones: 2000 } } },
-    { i: 'we_zhenlong', z: 'wuliang', tier: { join: 1, lead: 5 }, pre: [], gain: { watch: 8, join: { exp: 20, renown: 5 }, lead: { exp: 50, renown: 10, stones: 0 } } },
-    { i: 'we_tushi', z: 'shaolin', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 35, stones: 3000 } } },
-    { i: 'we_wuyue_bingpai', z: 'songshan', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: 10, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
-    { i: 'we_heimu', z: null, tier: { join: 4, lead: 7 }, pre: ['we_wuyue_bingpai'], gain: { watch: 12, join: { exp: 30, renown: 20 }, lead: { exp: 60, renown: 60, stones: 6000 } } }
+    { i: 'we_huashan', z: null, tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 60, stones: 5000 } } },
+    { i: 'we_xiangyang', z: null, tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 25, renown: 20 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_weijiao_gm', z: 'guangmingding', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 4000 } } },
+    { i: 'we_juxian', z: 'luoyang', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 30, stones: 2000 } } },
+    { i: 'we_shaoshishan', z: 'shaolin', tier: { join: 4, lead: 6 }, pre: ['we_juxian'], gain: { watch: { exp: 10 }, join: { exp: 30, renown: 20 }, lead: { exp: 50, renown: 45, stones: 3000 } } },
+    { i: 'we_zhenlong', z: 'wuliang', tier: { join: 1, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 5 }, lead: { exp: 50, renown: 10, stones: 0 } } },
+    { i: 'we_yanmen', z: 'yanmenguan', tier: { join: 4, lead: 7 }, pre: ['we_juxian'], gain: { watch: { exp: 12 }, join: { exp: 30, renown: 25 }, lead: { exp: 60, renown: 60, stones: 0 } } },
+    { i: 'we_tushi', z: 'shaolin', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 35, stones: 3000 } } },
+    { i: 'we_wuyue_bingpai', z: 'songshan', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_heimu', z: null, tier: { join: 4, lead: 7 }, pre: ['we_wuyue_bingpai'], gain: { watch: { exp: 12 }, join: { exp: 30, renown: 20 }, lead: { exp: 60, renown: 60, stones: 6000 } } },
+    { i: 'we_xiake', z: null, tier: { join: 2, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 20, renown: 10 }, lead: { exp: 45, renown: 20, stones: 2000 } } },
+    { i: 'we_shagui', z: 'luoyang', tier: { join: 2, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 15 }, lead: { exp: 40, renown: 30, stones: 1500 } } },
+    { i: 'we_wangpan', z: null, tier: { join: 1, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 15, renown: 10 }, lead: { exp: 35, renown: 20, stones: 2500 } } },
+    { i: 'we_jueqinggu', z: null, tier: { join: 2, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 1000 } } },
+    { i: 'we_liuheta', z: null, tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 35, stones: 2000 } } },
+    { i: 'we_chuangwang', z: null, tier: { join: 2, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 4000 } } },
+    { i: 'we_liancheng', z: null, tier: { join: 1, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 15, renown: 5 }, lead: { exp: 35, renown: 15, stones: 3500 } } },
+    { i: 'we_jiaozhu', z: 'guangmingding', tier: { join: 4, lead: 6 }, pre: ['we_weijiao_gm'], gain: { watch: { exp: 10 }, join: { exp: 30, renown: 25 }, lead: { exp: 55, renown: 55, stones: 0 } } },
+    { i: 'we_cangjing', z: 'shaolin', tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 2000 } } },
+    { i: 'we_huanshi', z: 'yanziwu', tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 3000 } } }
   ];
   function wefateOf(ws) { return obj(ws.world && ws.world.wefate); }
   function worldEvents(ws) {

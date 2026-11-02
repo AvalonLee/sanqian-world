@@ -352,7 +352,8 @@
     if (!evs.length) h += '<div class="wh-muted">' + tw('wh.jianghu.none', null) + '</div>';
     for (var i = 0; i < evs.length; i++) {
       var e = evs[i];
-      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + e.i + '.name', null) + '</b></span>' +
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + e.i + '.name', null) + '</b>' +
+        '<span class="wh-muted">' + tw('we.' + e.i + '.desc', null) + '</span></span>' +
         '<button class="btn" data-we="' + e.i + '" data-mode="watch">' + tw('wh.jianghu.watch', null) + '</button>' +
         '<button class="btn" data-we="' + e.i + '" data-mode="join">' + tw('wh.jianghu.join', { n: e.tier.join }) + '</button>' +
         '<button class="btn" data-we="' + e.i + '" data-mode="lead">' + tw('wh.jianghu.lead', { n: e.tier.lead }) + '</button>' +
@@ -361,8 +362,10 @@
     var fate = (w.world && w.world.wefate) || {};
     var fk = Object.keys(fate);
     for (var k = 0; k < fk.length; k++) {
-      h += '<div class="wh-row"><span class="wh-muted">' + tw('we.' + fk[k] + '.name', null) + ' · ' +
-        (fate[fk[k]] === 'alt' ? tw('wh.jianghu.fate.alt', null) : tw('wh.jianghu.fate.canon', null)) + '</span></div>';
+      var fkMode = fate[fk[k]];
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + fk[k] + '.name', null) + '</b>' +
+        '<span class="wh-muted">' + tw('we.' + fk[k] + '.fate.' + (fkMode === 'alt' ? 'alt' : 'canon'), null) +
+        tw('wh.jianghu.fate.tag.' + (fkMode === 'alt' ? 'alt' : 'canon'), null) + '</span></span></div>';
     }
     if ((w.realm | 0) >= 9) h += '<div class="wh-row"><button class="btn primary" id="wh-retire">' + tw('wh.home.retire', null) + '</button></div>';
     return h + '</div>';

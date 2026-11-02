@@ -490,6 +490,47 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         !heimuIn && watchOk && leadOk && doneOk && heimuOpen && befOk && retOk,
         '池=' + evs0.length + ' 旁观=' + watchOk + ' 主导=' + leadOk + ' 拒重=' + doneOk + ' pre=' + heimuOpen + ' 结交=' + befOk + ' 退隐=' + retOk);
     })();
+
+    /* E21 · 世界事件首批 20 案全文案（册221）：① 表满 20 且 id 唯一 ‖ ② z 主场 ∈ ZONES ∪ null ‖
+     * ③ pre 引用全在表内且无自引 ‖ ④ gain 三档形状（watch/join/lead 全为对象；watch.exp ≥ 8）‖
+     * ⑤ 词表键族齐（name/desc/fate.canon/fate.alt × 20 = 80 键）‖ ⑥ watch 对象形状差分（exp:12 案旁观实得 12——
+     * 册220 前数字形状从不生效的 A8 同型修复见证）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.WORLD_EVENTS) { ok('E21', '世界事件 20 案全文案', false, '无 WORLD_EVENTS 口'); return; }
+      var L = SQ.LEX && SQ.LEX.wuxia ? SQ.LEX.wuxia : null;
+      var t = (k) => (L && L[k] != null ? String(L[k]) : null);
+      var WE = pk.WORLD_EVENTS, n = WE.length;
+      var seen = {}, ids = [], idOk = true, zOk = true, preOk = true, gainOk = true, lexOk = true;
+      var zset = {};
+      var zones = pk.zones || [];
+      for (var z = 0; z < zones.length; z++) zset[zones[z].i] = true;
+      for (var i = 0; i < n; i++) {
+        var e = WE[i];
+        ids.push(e.i);
+        if (seen[e.i]) idOk = false; seen[e.i] = true;
+        if (e.z !== null && !zset[e.z]) zOk = false;
+        for (var p2 = 0; p2 < (e.pre || []).length; p2++) {
+          var pv = e.pre[p2];
+          if (pv === e.i) preOk = false;
+          var found = false;
+          for (var q = 0; q < n; q++) if (WE[q].i === pv) found = true;
+          if (!found) preOk = false;
+        }
+        if (!e.gain || !e.gain.watch || typeof e.gain.watch !== 'object' || !(e.gain.watch.exp >= 8) ||
+            !e.gain.join || !e.gain.lead) gainOk = false;
+        if (!t('we.' + e.i + '.name') || !t('we.' + e.i + '.desc') ||
+            !t('we.' + e.i + '.fate.canon') || !t('we.' + e.i + '.fate.alt')) lexOk = false;
+      }
+      var countOk = n === 20;
+      /* ⑥ watch 对象形状差分：we_yanmen watch.exp=12（数字形状时代恒得 8） */
+      var wY = pk.normalize(pk.initialState());
+      var ry = pk.attendEvent(wY, 'we_yanmen', 'watch');
+      var watchDiff = ry && ry.ok && wY.exp === 12;
+      ok('E21', '世界事件 20 案全文案（表满 20 唯一 ‖ z ∈ ZONES∪null ‖ pre 合法无自引 ‖ gain 三档对象形 ‖ 词表 4 键 × 20 齐 ‖ watch 差分 12）',
+        countOk && idOk && zOk && preOk && gainOk && lexOk && watchDiff,
+        'n=' + n + ' 唯一=' + idOk + ' z=' + zOk + ' pre=' + preOk + ' gain=' + gainOk + ' 词=' + lexOk + ' watch差分=' + watchDiff);
+    })();
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */

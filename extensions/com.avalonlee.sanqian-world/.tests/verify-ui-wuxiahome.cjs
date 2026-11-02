@@ -147,6 +147,36 @@ const { chromium } = require('playwright-core');
       'stamina=' + r6.stamina + ' realm=' + r6.realm + ' injury=' + r6.injury);
   });
 
+  /* WH8 · 江湖页 20 案全文案（册221）：列表上屏 + desc 预告副行 + 赴会真落档与结局正文。
+   * 初始可见 16 案 = 20 − 4 个 pre 未写案（shaoshishan/yanmen/jiaozhu/heimu 依赖链未解锁）。 */
+  await runSeeded({}, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
+    await p2.waitForTimeout(300);
+    const r8a = await p2.evaluate(() => {
+      const btns = document.querySelectorAll('#shell-main [data-we]');
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      return { n: btns.length, ids: Array.from(new Set(Array.from(btns).map(b => b.getAttribute('data-we')))).length,
+        desc: t.indexOf(L['we.we_huashan.desc']) >= 0, watch: t.indexOf(L['wh.jianghu.watch']) >= 0 };
+    });
+    T(r8a.ids === 16 && r8a.n === r8a.ids * 3 && r8a.desc && r8a.watch,
+      'WH8a 江湖页 20 案上屏（初始可见 16 = 20 − 4 pre 隐藏 ⇔ 每案三钮在位（data-we 三钮共用 = 48）⇔ desc 预告副行真词上屏）',
+      'n=' + r8a.n + ' ids=' + r8a.ids + ' desc=' + r8a.desc);
+    await p2.click('#shell-main [data-we="we_wangpan"][data-mode="join"]');
+    await p2.waitForTimeout(500);
+    const r8b = await p2.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+      const w = raw.worlds.wuxia;
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      return { fate: w.world && w.world.wefate && w.world.wefate.we_wangpan, stamina: w.stamina,
+        canon: t.indexOf(L['we.we_wangpan.fate.canon']) >= 0 };
+    });
+    T(r8b.fate === 'canon' && r8b.canon,
+      'WH8b 赴会真落档（join ⇒ wefate.we_wangpan=canon 落盘 ⇔ 结局正文真词上屏——精力扣 5 与 tick 恢复叠加不判定值，WH2/WH6 同口径）',
+      'fate=' + r8b.fate + ' stamina=' + r8b.stamina + ' canon=' + r8b.canon);
+  });
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();
