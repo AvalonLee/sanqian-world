@@ -637,26 +637,26 @@
    * 静默失效）→ 统一改 `{ exp: N }` 对象形状，读法零改动。KNOTS 场面执行器挂接（正典 §八 挂接列）
    * 与惯例型窗口字段（§四）未落码，余量待后续批——本批只落声明层与文案层。 */
   var WORLD_EVENTS = [
-    { i: 'we_huashan', z: null, tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 60, stones: 5000 } } },
-    { i: 'we_xiangyang', z: null, tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 25, renown: 20 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
-    { i: 'we_weijiao_gm', z: 'guangmingding', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 4000 } } },
-    { i: 'we_juxian', z: 'luoyang', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 30, stones: 2000 } } },
-    { i: 'we_shaoshishan', z: 'shaolin', tier: { join: 4, lead: 6 }, pre: ['we_juxian'], gain: { watch: { exp: 10 }, join: { exp: 30, renown: 20 }, lead: { exp: 50, renown: 45, stones: 3000 } } },
-    { i: 'we_zhenlong', z: 'wuliang', tier: { join: 1, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 5 }, lead: { exp: 50, renown: 10, stones: 0 } } },
-    { i: 'we_yanmen', z: 'yanmenguan', tier: { join: 4, lead: 7 }, pre: ['we_juxian'], gain: { watch: { exp: 12 }, join: { exp: 30, renown: 25 }, lead: { exp: 60, renown: 60, stones: 0 } } },
-    { i: 'we_tushi', z: 'shaolin', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 35, stones: 3000 } } },
-    { i: 'we_wuyue_bingpai', z: 'songshan', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
-    { i: 'we_heimu', z: null, tier: { join: 4, lead: 7 }, pre: ['we_wuyue_bingpai'], gain: { watch: { exp: 12 }, join: { exp: 30, renown: 20 }, lead: { exp: 60, renown: 60, stones: 6000 } } },
-    { i: 'we_xiake', z: null, tier: { join: 2, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 20, renown: 10 }, lead: { exp: 45, renown: 20, stones: 2000 } } },
-    { i: 'we_shagui', z: 'luoyang', tier: { join: 2, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 15 }, lead: { exp: 40, renown: 30, stones: 1500 } } },
-    { i: 'we_wangpan', z: null, tier: { join: 1, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 15, renown: 10 }, lead: { exp: 35, renown: 20, stones: 2500 } } },
-    { i: 'we_jueqinggu', z: null, tier: { join: 2, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 1000 } } },
-    { i: 'we_liuheta', z: null, tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 35, stones: 2000 } } },
-    { i: 'we_chuangwang', z: null, tier: { join: 2, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 4000 } } },
-    { i: 'we_liancheng', z: null, tier: { join: 1, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 15, renown: 5 }, lead: { exp: 35, renown: 15, stones: 3500 } } },
-    { i: 'we_jiaozhu', z: 'guangmingding', tier: { join: 4, lead: 6 }, pre: ['we_weijiao_gm'], gain: { watch: { exp: 10 }, join: { exp: 30, renown: 25 }, lead: { exp: 55, renown: 55, stones: 0 } } },
-    { i: 'we_cangjing', z: 'shaolin', tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 2000 } } },
-    { i: 'we_huanshi', z: 'yanziwu', tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 3000 } } }
+    { i: 'we_huashan', z: null, knot: null, tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 60, stones: 5000 } } },
+    { i: 'we_xiangyang', z: null, knot: null, tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 25, renown: 20 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_weijiao_gm', z: 'guangmingding', knot: 'knot_weijiao', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 4000 } } },
+    { i: 'we_juxian', z: 'luoyang', knot: 'knot_juxian', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 30, stones: 2000 } } },
+    { i: 'we_shaoshishan', z: 'shaolin', knot: 'knot_saodi', tier: { join: 4, lead: 6 }, pre: ['we_juxian'], gain: { watch: { exp: 10 }, join: { exp: 30, renown: 20 }, lead: { exp: 50, renown: 45, stones: 3000 } } },
+    { i: 'we_zhenlong', z: 'wuliang', knot: null, tier: { join: 1, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 5 }, lead: { exp: 50, renown: 10, stones: 0 } } },
+    { i: 'we_yanmen', z: 'yanmenguan', knot: 'knot_yanmen', tier: { join: 4, lead: 7 }, pre: ['we_juxian'], gain: { watch: { exp: 12 }, join: { exp: 30, renown: 25 }, lead: { exp: 60, renown: 60, stones: 0 } } },
+    { i: 'we_tushi', z: 'shaolin', knot: null, tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 35, stones: 3000 } } },
+    { i: 'we_wuyue_bingpai', z: 'songshan', knot: 'knot_fengchan', tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_heimu', z: null, knot: null, tier: { join: 4, lead: 7 }, pre: ['we_wuyue_bingpai'], gain: { watch: { exp: 12 }, join: { exp: 30, renown: 20 }, lead: { exp: 60, renown: 60, stones: 6000 } } },
+    { i: 'we_xiake', z: null, knot: null, tier: { join: 2, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 20, renown: 10 }, lead: { exp: 45, renown: 20, stones: 2000 } } },
+    { i: 'we_shagui', z: 'luoyang', knot: null, tier: { join: 2, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 15 }, lead: { exp: 40, renown: 30, stones: 1500 } } },
+    { i: 'we_wangpan', z: null, knot: null, tier: { join: 1, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 15, renown: 10 }, lead: { exp: 35, renown: 20, stones: 2500 } } },
+    { i: 'we_jueqinggu', z: null, knot: null, tier: { join: 2, lead: 5 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 1000 } } },
+    { i: 'we_liuheta', z: null, knot: null, tier: { join: 3, lead: 5 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 35, stones: 2000 } } },
+    { i: 'we_chuangwang', z: null, knot: null, tier: { join: 2, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 4000 } } },
+    { i: 'we_liancheng', z: null, knot: null, tier: { join: 1, lead: 4 }, pre: [], gain: { watch: { exp: 8 }, join: { exp: 15, renown: 5 }, lead: { exp: 35, renown: 15, stones: 3500 } } },
+    { i: 'we_jiaozhu', z: 'guangmingding', knot: null, tier: { join: 4, lead: 6 }, pre: ['we_weijiao_gm'], gain: { watch: { exp: 10 }, join: { exp: 30, renown: 25 }, lead: { exp: 55, renown: 55, stones: 0 } } },
+    { i: 'we_cangjing', z: 'shaolin', knot: 'knot_cangjing', tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 2000 } } },
+    { i: 'we_huanshi', z: 'yanziwu', knot: 'knot_huanshi', tier: { join: 3, lead: 6 }, pre: [], gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 3000 } } }
   ];
   function wefateOf(ws) { return obj(ws.world && ws.world.wefate); }
   function worldEvents(ws) {
@@ -697,6 +697,24 @@
       ws.world = obj(ws.world);
       if (!ws.world.wefate) ws.world.wefate = {};
       ws.world.wefate[id] = res.alt ? 'alt' : 'canon';
+    }
+    /* 场面执行器挂接（册222 · 世界事件卷 §六 `knot` 字段落码）：join/lead 赴挂接案 → 返回该 KNOTS
+     * 的开放分支（branchOpen 过滤 + watch 兜底，travel 同款）供玩家「当场那段戏」直选——
+     * 选支走现成 knotChoose（轴微调 + knotDone 落账 → travel 不再重复撞，同源场面不重写）；
+     * 不选则场面不落账。watch 档旁观不演戏（在场不落子）。 */
+    if (mode !== 'watch' && e.knot) {
+      var kn = null;
+      var ks = (D && D.KNOTS) || [];
+      for (var i3 = 0; i3 < ks.length; i3++) if (ks[i3].i === e.knot) { kn = ks[i3]; break; }
+      if (kn) {
+        var sOpts = [];
+        for (var b2 = 0; b2 < kn.br.length; b2++) {
+          if (!branchOpen(ws, kn.br[b2])) continue;
+          sOpts.push({ k: kn.br[b2].k, label: kn.br[b2].label, req: kn.br[b2].req || null });
+        }
+        if (!sOpts.length) sOpts.push({ k: 'watch', label: 'knot.' + kn.i + '.watch', req: null });
+        res.scene = { knot: kn.i, opts: sOpts };
+      }
     }
     return res;
   }

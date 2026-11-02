@@ -177,6 +177,36 @@ const { chromium } = require('playwright-core');
       'fate=' + r8b.fate + ' stamina=' + r8b.stamina + ' canon=' + r8b.canon);
   });
 
+  /* WH8c · 场面执行器挂接（册222）：赴挂接案 → 自动切主页战报卡 knot 态上屏 → 选支 knotDone 真落档。
+   * 种 stones 300 让 knot_juxian 的 help 分支（req realm4+silver200→stones 判）开放。 */
+  await runSeeded({ realm: 5, stamina: 60, stones: 300 }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
+    await p2.waitForTimeout(300);
+    await p2.click('#shell-main [data-we="we_juxian"][data-mode="join"]');
+    await p2.waitForTimeout(500);
+    const r8c = await p2.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('sanqian-state-v1'));
+      const w = raw.worlds.wuxia;
+      const btns = document.querySelectorAll('#shell-main [data-knot]');
+      const knots = Array.from(new Set(Array.from(btns).map(b => b.getAttribute('data-knot'))));
+      const helpBtn = document.querySelector('#shell-main [data-knot="knot_juxian"][data-opt="help"]');
+      return { onHome: !!document.getElementById('wh-force'), knots: knots,
+        help: !!helpBtn, fate: w.world && w.world.wefate && w.world.wefate.we_juxian };
+    });
+    T(r8c.onHome && r8c.knots.indexOf('knot_juxian') >= 0 && r8c.help && r8c.fate === 'canon',
+      'WH8c 场面上屏（赴挂接案 join ⇒ wefate 落盘 ⇔ 自动切主页战报卡 knot 态 ⇔ knot_juxian 分支钮含 help）',
+      'home=' + r8c.onHome + ' knots=' + r8c.knots.join(',') + ' help=' + r8c.help + ' fate=' + r8c.fate);
+    await p2.click('#shell-main [data-knot="knot_juxian"][data-opt="help"]');
+    await p2.waitForTimeout(500);
+    const r8d = await p2.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      return { done: w.knotDone && w.knotDone.knot_juxian, xia: w.persona && w.persona.xia };
+    });
+    T(r8d.done === 1 && r8d.xia === 4,
+      'WH8d 场面选支真落档（help ⇒ knotDone.knot_juxian=1（travel 不再撞）⇔ 侠轴 +4——与 travel 同源共用 knotChoose）',
+      'done=' + r8d.done + ' xia=' + r8d.xia);
+  });
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();
