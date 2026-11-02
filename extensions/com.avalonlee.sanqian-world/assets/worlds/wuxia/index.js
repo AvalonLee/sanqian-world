@@ -710,6 +710,21 @@
     }
     return out;
   }
+  /* G17 传闻预告（册224 · 世界事件卷 §四）：独发型窗口将开（≤1 游戏年）进「江湖风闻」——
+   * 密度渐增两档：days ≤ 30（1 游戏月）标 soon「在即」；惯例型常驻可赴（desc 常显）不进预告。
+   * 已写结局 / 窗口已开的案不在预告（分别进结局区与可赴列表）。 */
+  function worldRumors(ws) {
+    var fate = wefateOf(ws), out = [];
+    if (!ws) return out;
+    var day = ws.worldDay || 0;
+    for (var i = 0; i < WORLD_EVENTS.length; i++) {
+      var e = WORLD_EVENTS[i];
+      if (e.cyc || !e.window || fate[e.i]) continue;
+      var days = e.window[0] * 360 - day;
+      if (days > 0 && days <= 360) out.push({ i: e.i, days: days, soon: days <= 30 });
+    }
+    return out;
+  }
   function attendEvent(ws, id, mode, alt) {
     var e = null;
     for (var i = 0; i < WORLD_EVENTS.length; i++) if (WORLD_EVENTS[i].i === id) { e = WORLD_EVENTS[i]; break; }
@@ -928,7 +943,7 @@
     knotChoose: knotChoose,
     joinSect: joinSect, learnArt: learnArt, learnableArts: learnableArts, sectTask: sectTask, donateSect: donateSect, betraySect: betraySect, sectRankOf: sectRankOf,
     shopList: SHOP_LIST, buyItem: buyItem, studyManual: studyManual,
-    worldEvents: worldEvents, sweepExpired: sweepExpired, worldYearOf: worldYearOf, attendEvent: attendEvent, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,
+    worldEvents: worldEvents, worldRumors: worldRumors, sweepExpired: sweepExpired, worldYearOf: worldYearOf, attendEvent: attendEvent, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,
     zoneUnlocked: zoneUnlocked,
     travelStamina: TRAVEL_STAMINA,
     travelUnlock: TRAVEL_UNLOCK,

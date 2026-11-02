@@ -351,10 +351,20 @@
     }
     return h + '</div>';
   }
-  /* 江湖页（册218 P5）：可赴世界事件 + 已写结局 */
+  /* 江湖页（册218 P5）：江湖风闻（册224 G17 预告）+ 可赴世界事件 + 已写结局 */
   function jianghuBody(cf) {
     var w = cf.w, p = cf.p;
     var h = '<div class="wh-card"><h3>' + tw('wh.jianghu.title', null) + '</h3>';
+    var rms = p.worldRumors ? p.worldRumors(w) : [];
+    if (rms.length) {
+      h += '<div class="wh-row"><span class="wh-muted"><b>' + tw('wh.rumor.title', null) + '</b></span></div>';
+      for (var r = 0; r < rms.length; r++) {
+        h += '<div class="wh-row"><span class="wh-cell"><span class="wh-muted">' + tw('we.' + rms[r].i + '.rumor', null) +
+          (rms[r].soon ? ' <b>' + tw('wh.rumor.soon', null) + '</b>' : '') + '</span></span></div>';
+      }
+    } else {
+      h += '<div class="wh-row"><span class="wh-muted">' + tw('wh.rumor.none', null) + '</span></div>';
+    }
     var evs = p.worldEvents(w);
     if (!evs.length) h += '<div class="wh-muted">' + tw('wh.jianghu.none', null) + '</div>';
     for (var i = 0; i < evs.length; i++) {
