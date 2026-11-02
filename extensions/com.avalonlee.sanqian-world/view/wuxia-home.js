@@ -108,6 +108,22 @@
       if (actName === 'buy' || actName === 'study') slot.toast(tw('wh.shop.bought', null));
     }, function (f) { refresh(f); });
   }
+  /* 主奖励行（册228 · 世界事件卷 §七）：三种载体各一句，重复处置各表各的 */
+  function rewardLine(rw) {
+    if (!rw) return '';
+    if (rw.kind === 'art') {
+      var nm = tw('art.' + rw.id + '.name', null);
+      if (rw.capped) return tw('wh.reward.art.cap', { name: nm });
+      if (rw.fresh) return tw('wh.reward.art', { name: nm });
+      return tw('wh.reward.art.up', { name: nm, n: rw.level });
+    }
+    if (rw.kind === 'blade') {
+      var bn = tw('wp.' + rw.id + '.name', null);
+      return rw.dupe ? tw('wh.reward.blade.dupe', { name: bn, n: rw.cash }) : tw('wh.reward.blade', { name: bn });
+    }
+    if (rw.kind === 'manual') return tw('wh.reward.manual', { name: tw('manual.' + rw.id + '.name', null) });
+    return '';
+  }
   /* 世界事件赴会 / 结交 / 退隐（册218 P5+P7） */
   function doEvent(slot, id, mode, alt) {
     act(slot, function (s) {
@@ -117,6 +133,18 @@
       if (r && r.err === 'realm') { slot.toast(tw('wh.err.gate', null)); return; }
       if (r && r.err === 'stamina') { slot.toast(tw('wh.rep.stamina', null)); return; }
       if (r && r.err) { slot.toast(tw('wh.err.save', null)); return; }
+      /* 主导对赌（册228）：胜 = 结局 + 主奖励，败 = 力战而竭（结局 'lose'，无奖励）——
+       * 结果落战报卡（挂主页），与闯荡战报同构；join/watch 不产战报。 */
+      if (mode === 'lead') {
+        var rep = { kind: 'duel', event: id, win: r.win !== false, reward: r.reward || null, injury: r.injury || 0 };
+        /* 挂接案主导成功仍演戏：场面分支塞进同一条战报（败局无戏——人已被抬下去） */
+        if (r.scene) { rep.knot = r.scene.knot; rep.opts = r.scene.opts; }
+        w.lastReport = rep;
+        cur = 'home';
+        SQ.Log.push(w, 'sys', tw(r.win === false ? 'wh.rep.duel.lose' : 'wh.rep.duel.win',
+          { ev: tw('we.' + id + '.name', null), n: r.injury || 0 }));
+        return;
+      }
       /* 场面执行器挂接（册222）：挂接案赴会 → 战报卡复用 knot 态渲染「当场那段戏」，
        * 分支直选走现成 data-knot → knotChoose 链（轴微调 + knotDone，travel 同源不重写）；
        * 有戏可看时切回主页（战报卡挂主页——「大事毕、回主厅看戏」） */
@@ -261,6 +289,19 @@
       h += '</div>';
     } else if (r.kind === 'knotDone') {
       h += '<div class="wh-row">' + tw('wh.rep.knotDone', { chose: tw('wh.chose.' + r.chose, null) }) + '</div>';
+    } else if (r.kind === 'duel') {
+      /* 主导对赌（册228）：结局句 + 主奖励行（败无奖励）+ 挂接案当场那段戏的分支钮 */
+      h += '<div class="wh-row">' + (r.win
+        ? tw('wh.rep.duel.win', { ev: tw('we.' + r.event + '.name', null) })
+        : tw('wh.rep.duel.lose', { ev: tw('we.' + r.event + '.name', null), n: r.injury })) + '</div>';
+      if (r.reward) h += '<div class="wh-row">' + rewardLine(r.reward) + '</div>';
+      if (r.win && r.knot && (r.opts || []).length) {
+        h += '<div class="wh-row"><span class="wh-muted">' + tw('wh.rep.knot.ask', { title: tw('knot.' + r.knot + '.name', null) }) + '</span></div><div class="wh-row">';
+        for (var q = 0; q < r.opts.length; q++) {
+          h += '<button class="btn" data-knot="' + r.knot + '" data-opt="' + r.opts[q].k + '">' + tw('wh.chose.' + r.opts[q].k, null) + '</button>';
+        }
+        h += '</div>';
+      }
     } else if (r.kind === 'quiet') {
       h += r.delivered
         ? '<div class="wh-row">' + tw('wh.rep.escort.done', { pay: r.delivered }) + '</div>'
@@ -430,8 +471,11 @@
     if (!evs.length) h += '<div class="wh-muted">' + tw('wh.jianghu.none', null) + '</div>';
     for (var i = 0; i < evs.length; i++) {
       var e = evs[i];
+      /* 主导门槛之外再给一条「对上谁」的线索（数值卷 §八 第 3 条「门槛必须可推断」）；
+       * e.boss = CAST id，名走 cast 词族——不给胜算数字（正文不给数字，江湖自己掂量）。 */
+      var foeTip = e.boss ? ' · ' + tw('wh.jianghu.lead.foe', { name: tw('cast.' + e.boss + '.name', null) }) : '';
       h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + e.i + '.name', null) + '</b>' +
-        '<span class="wh-muted">' + tw('we.' + e.i + '.desc', null) + '</span></span>' +
+        '<span class="wh-muted">' + tw('we.' + e.i + '.desc', null) + foeTip + '</span></span>' +
         '<button class="btn" data-we="' + e.i + '" data-mode="watch">' + tw('wh.jianghu.watch', null) + '</button>' +
         '<button class="btn" data-we="' + e.i + '" data-mode="join">' + tw('wh.jianghu.join', { n: e.tier.join }) + '</button>' +
         '<button class="btn" data-we="' + e.i + '" data-mode="lead">' + tw('wh.jianghu.lead', { n: e.tier.lead }) + '</button>' +
@@ -441,11 +485,14 @@
     var fk = Object.keys(fate);
     for (var k = 0; k < fk.length; k++) {
       var fkMode = fate[fk[k]];
-      /* 错过回声（册223）：echo = 江湖传言收场——正文读 we.<id>.echo，括注 tag.echo */
+      /* 错过回声（册223）：echo = 江湖传言收场——正文读 we.<id>.echo，括注 tag.echo；
+       * 力战而竭（册228）：lose = 主导对赌败局——正文读 we.<id>.fate.lose，括注 tag.lose。 */
       var isEcho = fkMode === 'echo';
+      var isLose = fkMode === 'lose';
+      var fbody = isEcho ? tw('we.' + fk[k] + '.echo', null)
+        : (isLose ? tw('we.' + fk[k] + '.fate.lose', null) : tw('we.' + fk[k] + '.fate.' + (fkMode === 'alt' ? 'alt' : 'canon'), null));
       h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + fk[k] + '.name', null) + '</b>' +
-        '<span class="wh-muted">' + (isEcho ? tw('we.' + fk[k] + '.echo', null) : tw('we.' + fk[k] + '.fate.' + (fkMode === 'alt' ? 'alt' : 'canon'), null)) +
-        tw('wh.jianghu.fate.tag.' + (isEcho ? 'echo' : fkMode), null) + '</span></span></div>';
+        '<span class="wh-muted">' + fbody + tw('wh.jianghu.fate.tag.' + (isEcho ? 'echo' : (isLose ? 'lose' : fkMode)), null) + '</span></span></div>';
     }
     if ((w.realm | 0) >= 9) h += '<div class="wh-row"><button class="btn primary" id="wh-retire">' + tw('wh.home.retire', null) + '</button></div>';
     return h + '</div>';
