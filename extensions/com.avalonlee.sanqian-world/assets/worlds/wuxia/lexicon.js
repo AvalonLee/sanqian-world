@@ -55,6 +55,7 @@
     'wh.rep.battle.big': '大败！{foe}手下差点走不脱（内伤 {n} 层）——先疗伤吧。',
     'wh.rep.quiet': '在{place}走了一程（行至第 {n} 处），风平浪静，得{loot}文花销。',
     'wh.rep.knot.ask': '撞上一桩事：{title}', 'wh.rep.knotDone': '此事了结（{chose}）。',
+    'wh.rep.gain': '在{place}拾得{loot}文——不知是谁掉的，也没人来寻。',
     'wh.rep.duel.win': '主导「{ev}」：你站到了最后，事情按你的意思定了。',
     'wh.rep.duel.lose': '主导「{ev}」：力战而竭，被抬了下来（内伤至 {n}）。江湖没有等你。',
     'wh.jianghu.lead.foe': '主导须对上{name}',

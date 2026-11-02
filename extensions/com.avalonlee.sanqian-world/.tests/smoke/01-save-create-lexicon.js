@@ -686,7 +686,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         seen[ev[i].i] = true;
         if (ev[i].kind === 'action') act.push(ev[i]);
       }
-      var countOk = n === 148 && act.length === 78;
+      var countOk = n === 104 && act.length === 78;   /* 册229：talk 26 + event 18 退役 ⇒ 148 → 104 */
       var zT = {};
       for (var a = 0; a < act.length; a++) {
         var z = act[a].z;
@@ -929,6 +929,53 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 胜art=' + winArt + ' 胜blade=' + winBlade + ' 胜manual=' + winMan + ' alt=' + altOk +
         ' 败=' + loseOk + '(伤' + (wE ? wE.injury : '?') + ',侠' + (wE ? wE.renown : '?') + ') 重复=' + artUp + '/' + bladeDupe + '/' + manTwice +
         ' 平淡=' + plainOk + ' 跨届=' + cycOk);
+    })();
+
+    /* E29 · EVENTS 零消费条目分区处置（册229 · 叙事引擎 §四 八种节的现行落点）：
+     * ① 三型分布：action 78 / scene 13 / gain 13，**无 talk / event 残留**（44 条退役）‖
+     * ② scene 每地一条 + 13 条写景 desc 词键齐（到达写景消费点）‖
+     * ③ gain 每地一条 + `gainTip` 值域 5~20 全扫 + `GAIN_RATE` 12 百分点（拾遗消费点）‖
+     * ④ 退证件：talk（ev_014）/ event（ev_040）两枚代表在**表与词表双缺席** ‖
+     * ⑤ 拾遗真接上：300 个 worldDay 逐日闯荡，至少命中一次且金额 ∈ [5,20]、条 = 当地 gain 条。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.zoneSceneOf) { ok('E29', 'EVENTS 分区处置', false, '无 zoneSceneOf/gainOf 口'); return; }
+      var E = pk.events || [], L = SQ.LEX && SQ.LEX.wuxia ? SQ.LEX.wuxia : {};
+      var dist = {}, ids = {}, dup = 0;
+      for (var i = 0; i < E.length; i++) {
+        dist[E[i].kind] = (dist[E[i].kind] || 0) + 1;
+        if (ids[E[i].i]) dup++;
+        ids[E[i].i] = 1;
+      }
+      var distOk = E.length === 104 && dist.action === 78 && dist.scene === 13 && dist.gain === 13 && !dist.talk && !dist.event && dup === 0;
+      var zones = pk.zones || [];
+      var scOk = true, scLex = true, gnOk = true, gnLex = true;
+      for (var z = 0; z < zones.length; z++) {
+        var sc = pk.zoneSceneOf(zones[z].i), gn = pk.gainOf(zones[z].i);
+        if (!sc) scOk = false; else if (!L['event.' + sc.i + '.desc'] || String(L['event.' + sc.i + '.desc']).length < 8) scLex = false;
+        if (!gn) gnOk = false; else if (!L['event.' + gn.i + '.name']) gnLex = false;
+      }
+      var tipOk = true;
+      for (var h = 0; h < 1000; h++) { var tp = pk.gainTip(h); if (tp < 5 || tp > 20) { tipOk = false; break; } }
+      var rateOk = pk.GAIN_RATE === 12;
+      var goneOk = !ids.ev_014 && !ids.ev_040 && L['event.ev_014.name'] == null && L['event.ev_040.name'] == null;
+      var hits = 0, hitOk = true;
+      for (var d = 0; d < 300; d++) {
+        var wT = pk.normalize(pk.initialState());
+        wT.place = 'luoyang'; wT.stamina = 60; wT.worldDay = d;
+        var rT = pk.travel(wT, {});
+        if (rT && rT.gain) {
+          hits++;
+          if (rT.loot < 5 || rT.loot > 20) hitOk = false;
+          if (rT.gain !== (pk.gainOf('luoyang') || {}).i) hitOk = false;
+        }
+      }
+      var wiredOk = hits >= 1 && hitOk;
+      ok('E29', 'EVENTS 分区处置（104 = action 78 + scene 13 + gain 13，无 talk/event 残留 ‖ scene 每地一条 + 13 写景 desc 齐 ‖ gain 每地一条 + gainTip 值域 5~20 全扫 + 拾遗率 12 ‖ 退证件 ev_014/ev_040 表与词表双缺席 ‖ 300 日闯荡真命中且金额/条对表）',
+        distOk && scOk && scLex && gnOk && gnLex && tipOk && rateOk && goneOk && wiredOk,
+        '分布=' + distOk + '(n=' + E.length + ',' + JSON.stringify(dist) + ',重=' + dup + ') scene=' + scOk + '/词' + scLex +
+        ' gain=' + gnOk + '/词' + gnLex + ' 金额=' + tipOk + ' 率=' + rateOk + ' 退役=' + goneOk +
+        ' 接上=' + wiredOk + '(命中' + hits + '次)');
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */

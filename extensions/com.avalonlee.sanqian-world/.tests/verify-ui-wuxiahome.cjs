@@ -344,6 +344,20 @@ const { chromium } = require('playwright-core');
       'fate=' + g8b.fate + ' home=' + g8b.home + ' rep=' + g8b.rep + ' 胜行=' + g8b.winLine + ' 败行=' + g8b.loseLine + ' 奖=' + g8b.rewardLine);
   });
 
+  /* WH10 · 拾遗行（册229 · gain 条落消费点）：种档直给一条带 gain 的战报 —— 判「展示面能吃 gain」
+   * （概率面由冒烟 E29 的 300 日真命中覆盖，此处不掷骰）。 */
+  await runSeeded({ lastReport: { kind: 'quiet', place: 'luoyang', scene: 1, gain: 'ev_053', loot: 12 } }, async (p2) => {
+    await p2.waitForTimeout(500);
+    const g10 = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const want = L['wh.rep.gain'].replace('{place}', window.SQ.t('zone.luoyang.name', null, 'wuxia')).replace('{loot}', '12');
+      return { shown: t.indexOf(want) >= 0, quiet: !!document.getElementById('wh-force') };
+    });
+    T(g10.shown && g10.quiet, 'WH10 拾遗战斗报卡（quiet 态 + gain 字段 ⇒ 「在洛阳城拾得 12 文」真词上屏）',
+      'shown=' + g10.shown + ' home=' + g10.quiet);
+  });
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();

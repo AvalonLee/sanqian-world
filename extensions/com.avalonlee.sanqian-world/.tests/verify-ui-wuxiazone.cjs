@@ -62,6 +62,18 @@ const { chromium } = require('playwright-core');
     T(z0.zones && z0.cur && z0.locked && z0.goBtns >= 8, 'ZW0 行走页（十三地名上屏 ⇔ 所在地标记 ⇔ 未解锁地灰显 ⇔ 可前往钮 ≥8）',
       'zones=' + z0.zones + ' cur=' + z0.cur + ' locked=' + z0.locked + ' btns=' + z0.goBtns);
 
+    /* ZW6 · 到达写景（册229 · scene 条落消费点）：当前地（洛阳）写景真词上屏，
+     * 非当前地（光明顶）写景**不出现**——写景只属「所在」，不做全图罗列。 */
+    const z6 = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const pk = window.SQ.Worlds.wuxia.pack;
+      const pick = (zid) => { const s = pk.zoneSceneOf(zid); return s ? window.SQ.t('event.' + s.i + '.desc', null, 'wuxia') : ''; };
+      const here = pick('luoyang'), away = pick('guangmingding');
+      return { here: here, shown: !!here && t.indexOf(here) >= 0, away: !!away && t.indexOf(away) >= 0 };
+    });
+    T(z6.shown && !z6.away, 'ZW6 到达写景（洛阳·当前地写景真词上屏 ⇔ 非当前地写景不出现——写景只属「所在」）',
+      'shown=' + z6.shown + ' away=' + z6.away + ' txt=' + String(z6.here).slice(0, 12));
+
     /* ZW1 · 前往真落档：点嵩山 → place 变 + visited 增 */
     await p2.click('#shell-main [data-zone="songshan"]');
     await page_wait(p2, 400);
