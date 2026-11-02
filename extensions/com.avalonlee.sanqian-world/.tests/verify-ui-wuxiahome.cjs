@@ -207,6 +207,22 @@ const { chromium } = require('playwright-core');
       'done=' + r8d.done + ' xia=' + r8d.xia);
   });
 
+  /* WH8e · G17 风闻区（册224）：种档 worldDay=345（zhenlong [1,5] 开窗前 15 天）⇒ 风闻行上屏 +
+   * rumor 真词 + 「在即」徽标；已开窗案（wangpan）不出现在风闻区。 */
+  await runSeeded({ worldDay: 345 }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
+    await p2.waitForTimeout(300);
+    const r8e = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      return { title: t.indexOf(L['wh.rumor.title']) >= 0, rumor: t.indexOf(L['we.we_zhenlong.rumor']) >= 0,
+        soon: t.indexOf(L['wh.rumor.soon']) >= 0, opened: t.indexOf(L['we.we_wangpan.rumor']) < 0 };
+    });
+    T(r8e.title && r8e.rumor && r8e.soon && r8e.opened,
+      'WH8e 风闻区（将开案 rumor 真词上屏 ⇔ 推近 15 天「在即」徽标 ⇔ 已开窗案不在风闻区）',
+      'title=' + r8e.title + ' rumor=' + r8e.rumor + ' soon=' + r8e.soon + ' opened=' + r8e.opened);
+  });
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();

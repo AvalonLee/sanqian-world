@@ -631,6 +631,41 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         hookOk && cycOk && sweepOk && offOk && lexOk,
         'cyc=' + nCyc + ' win=' + nWin + ' 形=' + shapeOk + ' 届=' + cycOk + ' sweep=' + swept + '/' + echoN + ' 窗外=' + offOk + ' 词=' + lexOk);
     })();
+
+    /* E24 · G17 传闻预告（册224）：① worldRumors 只收独发型将开（0 < y0·360 − day ≤ 360）‖
+     * ② 初始 year0：y0=1 的 6 案在预告、y0≥2 与惯例/窗外已开的 14 案不在 ‖ ③ 密度渐增：day 推至 y0 前 15 天 ⇒ soon「在即」‖
+     * ④ 已写结局案不预告（赴后消失）‖ ⑤ 词表 rumor 20 键 + 风闻 3 键齐。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.worldRumors) { ok('E24', 'G17 传闻预告', false, '无 worldRumors 口'); return; }
+      var L = SQ.LEX && SQ.LEX.wuxia ? SQ.LEX.wuxia : null;
+      var t = (k) => (L && L[k] != null ? String(L[k]) : null);
+      var WE = pk.WORLD_EVENTS;
+      var w1 = pk.normalize(pk.initialState());
+      var rm0 = pk.worldRumors(w1), ids0 = {};
+      for (var i = 0; i < rm0.length; i++) ids0[rm0[i].i] = rm0[i];
+      var sixOk = ids0['we_zhenlong'] && ids0['we_jueqinggu'] && ids0['we_liuheta'] &&
+                  ids0['we_chuangwang'] && ids0['we_cangjing'] && ids0['we_huanshi'];
+      var noFar = !ids0['we_tushi'] && !ids0['we_weijiao_gm'] && !ids0['we_heimu'] &&
+                  !ids0['we_huashan'] && !ids0['we_xiake'] && !ids0['we_wangpan'];
+      var soonOk = !rm0[0].soon;   /* y0=1 距今 360 天 > 30 ⇒ 全部非「在即」 */
+      /* ③ 推至 zhenlong [1,5] 开窗前 15 天 ⇒ soon */
+      var w2 = pk.normalize(pk.initialState()); w2.worldDay = 360 - 15;
+      var rm2 = pk.worldRumors(w2), zSoon = false;
+      for (var j = 0; j < rm2.length; j++) if (rm2[j].i === 'we_zhenlong') zSoon = rm2[j].soon === true;
+      /* ④ 已写结局不预告：juxian 赴后从预告消失 */
+      var w3 = pk.normalize(pk.initialState()); w3.realm = 5; w3.stamina = 99;
+      pk.attendEvent(w3, 'we_juxian', 'join');
+      var rm3 = pk.worldRumors(w3), juxOut = true;
+      for (var k = 0; k < rm3.length; k++) if (rm3[k].i === 'we_juxian') juxOut = false;
+      /* ⑤ 词表 */
+      var lexOk = true, nR = 0;
+      for (var q = 0; q < WE.length; q++) { if (t('we.' + WE[q].i + '.rumor')) nR++; else lexOk = false; }
+      var keysOk = t('wh.rumor.title') && t('wh.rumor.none') && t('wh.rumor.soon') && lexOk && nR === 20;
+      ok('E24', 'G17 传闻预告（将开 ≤1 年 6 案在预告、远窗与惯例/已开不在 ‖ 推近 15 天 soon「在即」‖ 赴后不预告 ‖ rumor 20 键 + 风闻键齐）',
+        sixOk && noFar && soonOk && zSoon && juxOut && keysOk,
+        '预告=' + rm0.length + ' 六案=' + !!sixOk + ' 远窗无=' + !!noFar + ' soon=' + zSoon + ' 赴后无=' + juxOut + ' 词=' + keysOk);
+    })();
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
