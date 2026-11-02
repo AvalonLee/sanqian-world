@@ -525,36 +525,58 @@
     return '<div class="wh-card"><h3>' + tw('wh.tab.' + id, null) + '</h3><div class="wh-muted">' +
       tw('wh.wip', { tab: tw('wh.tab.' + id, null) }) + '</div></div>';
   }
-  /* 行装页（册227 · G4 兵器槽 + G15 神兵谱）
-   * 三块：在手兵器（含乘区读数）/ 兵器库（可换上的兵）/ 神兵谱（18 名兵收集进度）。
-   * 谱上「有」≠「在手」：收集面只回答得没得过，战力只看 gear.weapon——两处分别标注，免得玩家以为
-   * 上谱就加成。余三槽（暗器/护身/鞋履）本批不实装，如实写明余量。 */
+  /* 行装页（册227 兵器槽 + 神兵谱；册230 补齐暗器/护身/鞋履三槽）
+   * 四槽一行一件（在手件 + 该件效果 + 卸下）‖ 兵器库（兵刃按乘区标、行头按效果标）‖ 神兵谱（18 名兵）。
+   * **两类件的加成不是一种东西**：兵刃进 `powerOf` 的乘区（战力）；行头三槽只挂判定点
+   * （战利品概率 / 败战减伤 / 避遇敌），**不进战力**——数值卷 §六 的 1.86 上限不给它开口子。
+   * 谱上「有」≠「在手」：收集面只回答得没得过，战力只看 gear.weapon。 */
+  var GEAR_SLOT_LIST = ['weapon', 'ranged', 'armor', 'boots'];
+  function gearName(row) { return row.slot ? tw('gm.' + row.i + '.name', null) : tw('wp.' + row.i + '.name', null); }
+  function gearEff(row) {
+    if (!row.slot) return tw('wh.gear.tier.' + row.k, null) + ' · ' + tw('wh.gear.mult', { n: row.mul.toFixed(2) });
+    var lv = row.lv | 0;
+    if (row.slot === 'ranged') return tw('wh.gear.eff.loot', { n: 20 * lv });
+    if (row.slot === 'armor') return tw('wh.gear.eff.injury', { n: lv });
+    if (row.slot === 'boots') return tw('wh.gear.eff.evade', { n: 5 * lv });
+    return '';
+  }
   function gearBody(cf) {
     var w = cf.w, p = cf.p;
-    var G = p.weapons || [];
+    var G = p.weapons || [], M = p.gearMisc || [];
     var idx = {};
     for (var i = 0; i < G.length; i++) idx[G[i].i] = G[i];
-    var cur = (w.gear && w.gear.weapon) || null;
+    for (var m = 0; m < M.length; m++) idx[M[m].i] = M[m];
+    var gear = w.gear || {};
+    var cur = gear.weapon || null;
     var curRow = cur && cur.i ? idx[cur.i] : null;
     var h = '<div class="wh-card"><h3>' + tw('wh.gear.title', null) + '</h3>';
-    h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('wh.gear.slot.weapon', null) + '</b> · ' +
-      tw('wh.gear.cur', null) + ' <b>' + (curRow ? tw('wp.' + curRow.i + '.name', null) : tw('wh.gear.empty', null)) + '</b>' +
-      (curRow ? ' <span class="wh-muted">' + tw('wh.gear.tier.' + curRow.k, null) + ' · ' +
-        tw('wh.gear.mult', { n: curRow.mul.toFixed(2) }) + '</span>' : '') + '</span>' +
-      (curRow ? '<button class="btn" data-uneq="weapon">' + tw('wh.gear.unequip', null) + '</button>' : '') +
-      '</div>';
-    /* 兵器库：只列能认的兵（表里没有的脏 id 静默略过，不让旧档残留把页面点亮一屏裸 id） */
-    h += '<div class="wh-row"><span class="wh-muted"><b>' + tw('wh.gear.stash', null) + '</b></span></div>';
+    /* 四槽：每槽一行——在手件名 + 效果 / 未着 + 卸下 */
+    for (var s = 0; s < GEAR_SLOT_LIST.length; s++) {
+      var sl = GEAR_SLOT_LIST[s];
+      var it = gear[sl] || null;
+      var row = it && it.i ? idx[it.i] : null;
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('wh.gear.slot.' + sl, null) + '</b> · ' +
+        (row ? '<b>' + gearName(row) + '</b> <span class="wh-muted">' + gearEff(row) + '</span>'
+          : (sl === 'weapon' ? tw('wh.gear.empty', null) : tw('wh.gear.open', null))) +
+        '</span>' +
+        (row ? '<button class="btn" data-uneq="' + sl + '">' + tw('wh.gear.unequip', null) + '</button>' : '') +
+        '</div>';
+    }
+    h += '<div class="wh-muted">' + tw('wh.gear.note', null) + '</div></div>';
+    /* 兵器库：只列认得的件（表外脏 id 静默略过）——兵刃与行头同库，按件自身 slot 定装备位 */
+    h += '<div class="wh-card"><h3>' + tw('wh.gear.stash', null) + '</h3>';
     var st = w.stash || [];
     var any = false;
-    for (var s = 0; s < st.length; s++) {
-      var row = idx[st[s]];
-      if (!row) continue;
+    for (var k = 0; k < st.length; k++) {
+      var it2 = idx[st[k]];
+      if (!it2) continue;
       any = true;
-      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('wp.' + row.i + '.name', null) + '</b> · ' +
-        tw('wh.gear.tier.' + row.k, null) +
-        ' <span class="wh-muted">' + tw('wh.gear.mult', { n: row.mul.toFixed(2) }) + '</span></span>' +
-        '<button class="btn" data-eq="weapon" data-gid="' + row.i + '">' + tw('wh.gear.equip', null) + '</button></div>';
+      var slotOf = it2.slot || 'weapon';
+      var onBody = !!(gear[slotOf] && gear[slotOf].i === it2.i);
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + gearName(it2) + '</b> <span class="wh-muted">' + gearEff(it2) + '</span></span>' +
+        (onBody ? '<span class="wh-muted">' + tw('wh.gear.onbody', null) + '</span>'
+          : '<button class="btn" data-eq="' + slotOf + '" data-gid="' + it2.i + '">' + tw('wh.gear.equip', null) + '</button>') +
+        '</div>';
     }
     if (!any) h += '<div class="wh-muted">' + tw('wh.gear.stashEmpty', null) + '</div>';
     h += '</div>';
@@ -566,14 +588,13 @@
     for (var g = 0; g < G.length; g++) {
       if (G[g].k !== 2) continue;
       var got = own[G[g].i] === 1;
-      var onBody = !!(curRow && curRow.i === G[g].i);
+      var isOn = !!(curRow && curRow.i === G[g].i);
       h += '<div class="wh-row"><span class="wh-cell">' +
         (got ? '<b>' + tw('wp.' + G[g].i + '.name', null) + '</b>' : '<span class="wh-muted">' + tw('wh.gear.codexUnknown', null) + '</span>') +
-        (got ? ' <span class="wh-muted">' + (onBody ? tw('wh.gear.onbody', null) : tw('wh.gear.owned', null)) + '</span>' : '') +
+        (got ? ' <span class="wh-muted">' + (isOn ? tw('wh.gear.onbody', null) : tw('wh.gear.owned', null)) + '</span>' : '') +
         '</span></div>';
     }
     h += '</div>';
-    h += '<div class="wh-muted">' + tw('wh.gear.rest', null) + '</div>';
     return h;
   }
 

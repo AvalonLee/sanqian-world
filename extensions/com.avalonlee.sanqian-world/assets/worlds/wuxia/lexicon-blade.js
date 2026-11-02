@@ -35,13 +35,22 @@
     'wp.wp_jinlun.name': '金轮',
     'wp.wp_ezui.name': '鳄嘴剪',
 
+    /* 行头（暗器 / 护身 / 鞋履 · G4 余下三槽；数据 GEAR_MISC 三条） */
+    'gm.gm_xiujian.name': '袖箭',
+    'gm.gm_ruanjia.name': '软甲',
+    'gm.gm_kuaixue.name': '快靴',
+    'wh.gear.eff.loot': '胜战战利品 +{n}%',
+    'wh.gear.eff.injury': '败战内伤 −{n} 层',
+    'wh.gear.eff.evade': '遇敌概率 −{n} 点',
+    'wh.gear.open': '未着',
+    'wh.gear.effnone': '此槽空置，无效果',
+
     /* 行装页（G4 兵器槽 + G15 神兵谱） */
     'wh.gear.title': '行装',
     'wh.gear.slot.weapon': '兵器',
     'wh.gear.slot.ranged': '暗器',
     'wh.gear.slot.armor': '护身',
     'wh.gear.slot.boots': '鞋履',
-    'wh.gear.cur': '在手',
     'wh.gear.empty': '赤手空拳',
     'wh.gear.equip': '换上',
     'wh.gear.unequip': '卸下',
@@ -56,7 +65,7 @@
     'wh.gear.tier.0': '寻常兵刃',
     'wh.gear.tier.1': '好兵刃',
     'wh.gear.tier.2': '名兵',
-    'wh.gear.rest': '暗器 / 护身 / 鞋履三槽此路未开——随后续批次接续。',
+    'wh.gear.note': '兵刃进战力乘区；暗器 / 护身 / 鞋履只动判定（战利品 / 减伤 / 避遇敌），不进战力。',
     'wh.gear.bladeWin': '夺下 {name}',
     'wh.gear.bladeDupe': '{name} 谱上已有，折价 {n} 文',
 

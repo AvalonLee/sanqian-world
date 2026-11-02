@@ -696,6 +696,18 @@
     {i:'wp_jinlun',k:2,mul:1.20,cost:0},
     {i:'wp_ezui',k:2,mul:1.20,cost:0}
     ],
+    /* 行头 3（册230 · G4 四槽的余下三槽：暗器 / 护身 / 鞋履）——
+     * **不加战力乘区**：数值卷 §六 的 1.86 倍上限已被武艺×兵刃×相性占满，再添乘区就越档。
+     * 三槽只给「判定层」效果，各挂一个既有判定点（lv 留字段，本批只落 1 档）：
+     *   ranged 暗器 → 胜战战利品 +20%（补刀多捞，不动胜负）
+     *   armor  护身 → 败战内伤 −1 层（软甲护要害，不动战力）
+     *   boots  鞋履 → 遇敌概率 −5 点（快靴避开些麻烦）
+     * 名字全部走词表 gm.<id>.name（data.js 不许中文，A1）。 */
+    GEAR_MISC: [
+    {i:'gm_xiujian',slot:'ranged',lv:1,cost:2000},
+    {i:'gm_ruanjia',slot:'armor',lv:1,cost:2000},
+    {i:'gm_kuaixue',slot:'boots',lv:1,cost:2000}
+    ],
     /* 奇遇事件池 96 条（册157 · S2-a）：z 地界 / kind 节类型 / line 三线 / t 品阶 / w 权重 */
     EVENTS: [
     {i:'ev_001',z:'shaolin',kind:'action',line:'zheng',t:'xuan',w:3},

@@ -358,6 +358,44 @@ const { chromium } = require('playwright-core');
       'shown=' + g10.shown + ' home=' + g10.quiet);
   });
 
+  /* WH9d/9e · 行头三槽（册230）：四槽齐 + 口径注上屏 ⇔ 装快靴真落档且**战力乘区不动**
+   * （三槽只动判定——界面侧也钉这条，免得日后有人把行头接进 powerOf）。 */
+  await runSeeded({ stash: ['gm_xiujian', 'gm_ruanjia', 'gm_kuaixue'], stones: 500 }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="gear"]');
+    await p2.waitForTimeout(300);
+    const g9d = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      return {
+        four: t.indexOf(L['wh.gear.slot.ranged']) >= 0 && t.indexOf(L['wh.gear.slot.armor']) >= 0 && t.indexOf(L['wh.gear.slot.boots']) >= 0,
+        open: t.indexOf(L['wh.gear.open']) >= 0,
+        note: t.indexOf(L['wh.gear.note']) >= 0,
+        eq: document.querySelectorAll('#shell-main [data-eq="boots"]').length
+      };
+    });
+    T(g9d.four && g9d.open && g9d.note && g9d.eq === 1,
+      'WH9d 行装四槽上屏（暗器/护身/鞋履槽名齐 ⇔ 空槽「未着」⇔ 口径注「只动判定不进战力」⇔ 靴钮一枚）',
+      'four=' + g9d.four + ' open=' + g9d.open + ' note=' + g9d.note + ' eq=' + g9d.eq);
+
+    await p2.click('#shell-main [data-eq="boots"][data-gid="gm_kuaixue"]');
+    await p2.waitForTimeout(400);
+    const g9e = await p2.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const pk = window.SQ.Worlds.wuxia.pack;
+      return {
+        id: w.gear.boots && w.gear.boots.i,
+        eff: t.indexOf(L['wh.gear.eff.evade'].replace('{n}', '5')) >= 0,
+        mult: pk.weaponMult(w),
+        fx: pk.effectsOfGear(w)
+      };
+    });
+    T(g9e.id === 'gm_kuaixue' && g9e.eff && g9e.mult === 0.90 && g9e.fx.evade === 5 && g9e.fx.loot === 0,
+      'WH9e 装快靴真落档（gear.boots=gm_kuaixue ⇔ 效果行「遇敌概率 −5 点」⇔ 兵刃乘区仍 0.90 不被行头动过 ⇔ effectsOfGear.evade=5）',
+      'id=' + g9e.id + ' eff=' + g9e.eff + ' mult=' + g9e.mult + ' fx=' + JSON.stringify(g9e.fx));
+  });
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();
