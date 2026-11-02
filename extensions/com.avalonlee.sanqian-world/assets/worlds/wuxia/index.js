@@ -37,6 +37,34 @@
   }
   var WEAPON_INDEX = buildWeaponIndex();
   function weaponRow(id) { return (id && WEAPON_INDEX[id]) ? WEAPON_INDEX[id] : null; }
+  /* ── 行头三槽（册230 · G4 暗器/护身/鞋履）────────────────────────────────────
+   * **不加战力乘区**——数值卷 §六 的 1.86 倍上限已被武艺×兵刃×相性占满，再添乘区就跨档；
+   * 三槽只在既有判定点生效，各有一个单位量乘 lv（1/2 两档）：
+   *   ranged 暗器 → 胜战战利品 +20%/档（补刀多捞，不动胜负）
+   *   armor  护身 → 败战内伤 −1 层/档（软甲护要害，不动战力）
+   *   boots  鞋履 → 遇敌概率 −5 点/档（快靴避开些麻烦）
+   * 这三条都属「状态/判定」层：改了不会让玩家越级，只会让他少挨几下、多捞一点。 */
+  function buildMiscIndex() {
+    var idx = {};
+    var G = (D && D.GEAR_MISC) || [];
+    for (var i = 0; i < G.length; i++) idx[G[i].i] = G[i];
+    return idx;
+  }
+  var MISC_INDEX = buildMiscIndex();
+  function miscRow(id) { return (id && MISC_INDEX[id]) ? MISC_INDEX[id] : null; }
+  function gearRow(id) { return weaponRow(id) || miscRow(id); }
+  var MISC_UNIT = { loot: 20, injury: 1, evade: 5 };   /* 每档的单位量 */
+  function effectsOfGear(ws) {
+    var g = obj(ws && ws.gear);
+    var out = { loot: 0, injury: 0, evade: 0 };
+    var r = g.ranged && g.ranged.i ? miscRow(g.ranged.i) : null;
+    if (r && r.slot === 'ranged') out.loot = MISC_UNIT.loot * (r.lv | 0);
+    var a = g.armor && g.armor.i ? miscRow(g.armor.i) : null;
+    if (a && a.slot === 'armor') out.injury = MISC_UNIT.injury * (a.lv | 0);
+    var b = g.boots && g.boots.i ? miscRow(g.boots.i) : null;
+    if (b && b.slot === 'boots') out.evade = MISC_UNIT.evade * (b.lv | 0);
+    return out;
+  }
   /* 兵刃乘区：装的东西在表里按 mul，不在表里（含空手）按 0.90 —— 「不趁手」即此形。 */
   function weaponMult(ws) {
     var g = obj(ws && ws.gear);
@@ -475,7 +503,8 @@
     }
     var evs = (D && D.EVENTS) || [];
     var foe = null;
-    if (!kn && h % 100 < 45) {   /* 45% 遇敌（无剧情可入时）：本地界 EVENTS action 条目，品阶 t 定敌战力档 */
+    var fx = effectsOfGear(ws);   /* 行头三槽效果（不动战力乘区；与 EVENTS 的 evs 名分开以免看混） */
+    if (!kn && h % 100 < (45 - fx.evade)) {   /* 45% 遇敌（鞋履可避——快靴少撞些麻烦） */
       var pool = [];
       var MY = ws.realm | 0;
       for (var c = 0; c < evs.length; c++) {
@@ -502,7 +531,9 @@
       var big = !win && pWin < 0.15;
       var rep2 = { kind: 'battle', win: win, big: big, foe: foe.i, tier: foe.t, p: Math.round(pWin * 100) / 100 };
       if (win) {
-        var loot = 20 + (h % 30) * 5;
+        /* 暗器补刀（册230）：战利品按 lv 抬成 —— 不动胜负，只多捞（20%/档） */
+        var lootBase = 20 + (h % 30) * 5;
+        var loot = fx.loot ? Math.round(lootBase * (1 + fx.loot / 100)) : lootBase;
         ws.stones = (ws.stones || 0) + loot;
         ws.renown = clampInt((ws.renown || 0) + 5, -1000, 1000, ws.renown || 0);
         rep2.loot = loot;
@@ -510,10 +541,11 @@
         var bladeRes = bladeDrop(ws, foe.t, h);
         if (bladeRes) { rep2.blade = bladeRes.id; if (bladeRes.dupe) rep2.bladeDupe = bladeRes.cash; }
       } else if (big) {
-        ws.injury = Math.min(15, (ws.injury || 0) + 4 + (h % 3));
+        /* 护身挡伤（册230）：内伤按 lv 减，最低 0（软甲护要害——不改战力，只少挨） */
+        ws.injury = Math.min(15, Math.max(0, (ws.injury || 0) + 4 + (h % 3) - fx.injury));
         rep2.injury = ws.injury;
       } else {
-        ws.injury = Math.min(15, (ws.injury || 0) + 1 + (h % 3));
+        ws.injury = Math.min(15, Math.max(0, (ws.injury || 0) + 1 + (h % 3) - fx.injury));
         rep2.injury = ws.injury;
       }
       ws.lastReport = rep2;
@@ -729,6 +761,10 @@
     { i: 'shop_ginseng', kind: 'salve', cost: 5000, heal: 8 },  /* 老山参 5 两：内伤 −8 */
     { i: 'wp_tiedao', kind: 'gear', slot: 'weapon', cost: 2000 },   /* 铁刀 2 两（寻常 1.00） */
     { i: 'wp_haojian', kind: 'gear', slot: 'weapon', cost: 20000 }, /* 好剑 20 两（好兵刃 1.10） */
+    /* 行头三件（册230）：各 2 两——三槽是「功能位」，不做价格梯度（梯度留给兵刃与名兵） */
+    { i: 'gm_xiujian', kind: 'misc', slot: 'ranged', cost: 2000 },
+    { i: 'gm_ruanjia', kind: 'misc', slot: 'armor', cost: 2000 },
+    { i: 'gm_kuaixue', kind: 'misc', slot: 'boots', cost: 2000 },
     { i: 'mnl_01', kind: 'manual', cost: 30000 },               /* 秘籍稀有格（MANUALS 抽三） */
     { i: 'mnl_05', kind: 'manual', cost: 45000 },
     { i: 'mnl_09', kind: 'manual', cost: 60000 }
@@ -748,6 +784,12 @@
       ws.stash = arr(ws.stash); ws.stash.push(it.i);
       ws.blades = arr(ws.blades); if (ws.blades.indexOf(it.i) < 0) ws.blades.push(it.i);
       return { ok: true, kind: 'gear', slot: it.slot, item: it.i };
+    }
+    if (it.kind === 'misc') {
+      /* 行头（册230）：入兵器库，不上谱（谱只收名兵）、也不上战力 */
+      if (!miscRow(it.i)) return { err: 'badgear' };
+      ws.stash = arr(ws.stash); ws.stash.push(it.i);
+      return { ok: true, kind: 'misc', slot: it.slot, item: it.i };
     }
     if (it.kind === 'manual') {
       ws.shelf = arr(ws.shelf);
@@ -808,7 +850,10 @@
       ws.stash = st;
       return { ok: true, slot: slot, id: null, off: curId };
     }
-    if (!weaponRow(id)) return { err: 'badgear' };
+    var row = gearRow(id);
+    if (!row) return { err: 'badgear' };
+    /* 槽位必须与件自身归属一致（暗器穿不到脚上）：兵刃无 slot 字段 ⇒ 默认 weapon，行头按 slot */
+    if ((row.slot || 'weapon') !== slot) return { err: 'badslot' };
     var at = st.indexOf(id);
     if (at < 0) return { err: 'notowned' };
     st.splice(at, 1);
@@ -1253,6 +1298,8 @@
     /* 行装与神兵谱（册227 · G4/G15）：weapons 表 / 装备口 / 收集进度 / 夺兵（判据直测口） */
     weapons: (D && D.WEAPONS) || [], weaponMult: weaponMult, weaponRow: weaponRow,
     equipGear: equipGear, bladeProgress: bladeProgress, bladeDrop: bladeDrop,
+    /* 行头三槽（册230）：表 / 取行 / 效果读数 —— 效果只在判定层，不进 powerOf */
+    gearMisc: (D && D.GEAR_MISC) || [], miscRow: miscRow, gearRow: gearRow, effectsOfGear: effectsOfGear,
     worldEvents: worldEvents, worldRumors: worldRumors, sweepExpired: sweepExpired, worldYearOf: worldYearOf, attendEvent: attendEvent, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,
     /* 主导对赌（册228）：掷判与主奖励发放拆成两口——判据直测用，视图只经 attendEvent 的返回面 */
     leadDuel: leadDuel, grantReward: grantReward,

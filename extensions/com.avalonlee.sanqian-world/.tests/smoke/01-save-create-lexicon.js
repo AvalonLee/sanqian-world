@@ -978,6 +978,82 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 接上=' + wiredOk + '(命中' + hits + '次)');
     })();
 
+    /* E30 · 行头三槽（册230 · G4 暗器/护身/鞋履）：
+     * ① 表 3 条 id 唯一 + 三槽齐 + 词名齐 ‖ ② effectsOfGear 空 → {0,0,0}、穿满 → {20,1,5} ‖
+     * ③ **红线：三槽不进 powerOf**（穿满与赤身战力逐位相等——§六 的 1.86 上限不给行头开口子）‖
+     * ④ 装备往返 + 槽位串拒（暗器装不进护身槽 badslot）‖ ⑤ 神兵谱不收行头（穿满仍 0/18）‖
+     * ⑥ 战利品 ×1.2（定种：同 worldDay 同 h，装暗器 loot = round(base×1.2)）‖
+     * ⑦ 败战减伤 1 层（定种：同 h 必败，装软甲少 1）‖ ⑧ 避遇敌（定种：同一 h 不装遇敌、装快靴不遇敌）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.effectsOfGear) { ok('E30', '行头三槽', false, '无 effectsOfGear 口'); return; }
+      var M = pk.gearMisc || [], L = SQ.LEX && SQ.LEX.wuxia ? SQ.LEX.wuxia : {};
+      var seen = {}, slots = {}, idOk = true, lexOk = true;
+      for (var i = 0; i < M.length; i++) {
+        if (seen[M[i].i]) idOk = false;
+        seen[M[i].i] = 1;
+        slots[M[i].slot] = 1;
+        if (!L['gm.' + M[i].i + '.name']) lexOk = false;
+      }
+      var tableOk = M.length === 3 && idOk && !!slots.ranged && !!slots.armor && !!slots.boots && lexOk;
+
+      var w0 = pk.normalize(pk.initialState());
+      var e0 = pk.effectsOfGear(w0);
+      var wz = pk.normalize(pk.initialState());
+      wz.gear.ranged = { i: 'gm_xiujian' }; wz.gear.armor = { i: 'gm_ruanjia' }; wz.gear.boots = { i: 'gm_kuaixue' };
+      var ez = pk.effectsOfGear(wz);
+      var effOk = e0.loot === 0 && e0.injury === 0 && e0.evade === 0 &&
+        ez.loot === 20 && ez.injury === 1 && ez.evade === 5;
+      /* ③ 红线：行头只动判定，不动战力（§六 1.86 上限的守门判） */
+      var redline = Math.abs(pk.powerOf(w0) - pk.powerOf(wz)) < 1e-9 && pk.weaponMult(wz) === pk.weaponMult(w0);
+      /* ④ 市集买 → 装上 → 槽位串拒 → 卸下 */
+      var wE = pk.normalize(pk.initialState()); wE.stones = 10000;
+      var bB = pk.buyItem(wE, 'gm_kuaixue');
+      var r1 = pk.equipGear(wE, 'boots', 'gm_kuaixue');
+      var cross = pk.equipGear(wE, 'armor', 'gm_kuaixue');
+      var r2 = pk.equipGear(wE, 'boots', null);
+      var eqOk = bB && bB.ok && bB.kind === 'misc' && r1.ok && cross.err === 'badslot' && r2.ok &&
+        !wE.gear.boots && wE.stash.indexOf('gm_kuaixue') >= 0;
+      /* ⑤ 谱不收行头 */
+      var codexOk = pk.bladeProgress(wz).owned === 0 && (wz.blades || []).length === 0;
+
+      /* ⑥⑦⑧ 三槽效果：定种对照（同 worldDay ⇒ 同 h ⇒ 同分支） */
+      var realRnd = Math.random;
+      var lootOk = false, injOk = false, evadeOk = false;
+      Math.random = function () { return 0; };            /* 三回合掷判必中 ⇒ 必胜 */
+      for (var d = 0; d < 200 && !lootOk; d++) {
+        var a1 = pk.normalize(pk.initialState()); a1.place = 'luoyang'; a1.realm = 1; a1.stamina = 60; a1.worldDay = d;
+        var a2 = pk.normalize(pk.initialState()); a2.place = 'luoyang'; a2.realm = 1; a2.stamina = 60; a2.worldDay = d;
+        a2.gear.ranged = { i: 'gm_xiujian' };
+        var q1 = pk.travel(a1, {}), q2 = pk.travel(a2, {});
+        if (q1.kind === 'battle' && q1.win && q2.kind === 'battle' && q2.win) {
+          lootOk = q2.loot === Math.round(q1.loot * 1.2) && q2.loot > q1.loot;
+        }
+      }
+      Math.random = function () { return 1; };            /* 三回合全败 ⇒ 必败 */
+      for (var d2 = 0; d2 < 200 && !injOk; d2++) {
+        var c1 = pk.normalize(pk.initialState()); c1.place = 'luoyang'; c1.realm = 1; c1.stamina = 60; c1.worldDay = d2; c1.injury = 0;
+        var c2 = pk.normalize(pk.initialState()); c2.place = 'luoyang'; c2.realm = 1; c2.stamina = 60; c2.worldDay = d2; c2.injury = 0;
+        c2.gear.armor = { i: 'gm_ruanjia' };
+        var s1 = pk.travel(c1, {}), s2 = pk.travel(c2, {});
+        if (s1.kind === 'battle' && !s1.win && s2.kind === 'battle' && !s2.win) {
+          injOk = c2.injury === Math.max(0, c1.injury - 1);
+        }
+      }
+      Math.random = realRnd;
+      for (var d3 = 0; d3 < 300 && !evadeOk; d3++) {
+        var v1 = pk.normalize(pk.initialState()); v1.place = 'luoyang'; v1.realm = 1; v1.stamina = 60; v1.worldDay = d3;
+        var v2 = pk.normalize(pk.initialState()); v2.place = 'luoyang'; v2.realm = 1; v2.stamina = 60; v2.worldDay = d3;
+        v2.gear.boots = { i: 'gm_kuaixue' };
+        var x1 = pk.travel(v1, {}), x2 = pk.travel(v2, {});
+        if (x1.kind === 'battle' && x2.kind !== 'battle') evadeOk = true;
+      }
+      ok('E30', '行头三槽（表 3 唯一 · 三槽齐 · 词名齐 ‖ 效果读数空 {0,0,0} / 穿满 {20,1,5} ‖ **红线：三槽不进 powerOf** ‖ 买→装→槽位串拒 badslot→卸下回库 ‖ 谱不收行头 ‖ 战利品 ×1.2 / 败战减伤 1 层 / 避遇敌 三型定种对照）',
+        tableOk && effOk && redline && eqOk && codexOk && lootOk && injOk && evadeOk,
+        '表=' + tableOk + ' 效果=' + effOk + ' 红线=' + redline + ' 装备=' + eqOk + ' 谱=' + codexOk +
+        ' 战利=' + lootOk + ' 减伤=' + injOk + ' 避遇=' + evadeOk);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */
