@@ -531,6 +531,47 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         countOk && idOk && zOk && preOk && gainOk && lexOk && watchDiff,
         'n=' + n + ' 唯一=' + idOk + ' z=' + zOk + ' pre=' + preOk + ' gain=' + gainOk + ' 词=' + lexOk + ' watch差分=' + watchDiff);
     })();
+
+    /* E22 · 场面执行器挂接（册222）：① 7 案 knot 字段指向真 KNOTS、13 案显式 null ‖
+     * ② join/lead 赴挂接案返回 scene（branchOpen 过滤 + watch 兜底）‖ ③ watch 档不返回 scene（在场不落子）‖
+     * ④ 场面选支走 knotChoose → knotDone 落账（travel 不再重复撞）+ 轴微调 help=侠+4。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.WORLD_EVENTS || !pk.knotChoose) { ok('E22', '场面执行器挂接', false, '无 WORLD_EVENTS/knotChoose 口'); return; }
+      var WE = pk.WORLD_EVENTS, ks = pk.knots || [];
+      var kin = {};
+      for (var k0 = 0; k0 < ks.length; k0++) kin[ks[k0].i] = true;
+      var knotOk = true, hooked = 0;
+      for (var i = 0; i < WE.length; i++) {
+        if (WE[i].knot) { hooked++; if (!kin[WE[i].knot]) knotOk = false; }
+        else if (WE[i].knot !== null) knotOk = false;
+      }
+      var hookOk = hooked === 7;
+      var w1 = pk.normalize(pk.initialState()); w1.realm = 5; w1.stamina = 99;
+      var rJ = pk.attendEvent(w1, 'we_juxian', 'join');
+      var sceneOk = rJ && rJ.ok && rJ.scene && rJ.scene.knot === 'knot_juxian' && rJ.scene.opts.length >= 1;
+      var optsOpen = sceneOk;
+      for (var o = 0; sceneOk && o < rJ.scene.opts.length; o++) {
+        var br = null, ks2 = ks;
+        for (var q = 0; q < ks2.length; q++) if (ks2[q].i === 'knot_juxian') {
+          for (var q2 = 0; q2 < ks2[q].br.length; q2++) if (ks2[q].br[q2].k === rJ.scene.opts[o].k) br = ks2[q].br[q2];
+        }
+        /* watch 兜底项不在 br 表（travel 同款注入），其余项必须 branchOpen——join 档 realm5 全开 */
+        if (rJ.scene.opts[o].k !== 'watch' && !br) optsOpen = false;
+      }
+      var wW = pk.normalize(pk.initialState());
+      var rW = pk.attendEvent(wW, 'we_juxian', 'watch');
+      var watchNoScene = rW && rW.ok && !rW.scene;
+      /* ④ 选支：help（req realm4+silver200 → stones 判）→ 侠轴 +4 + knotDone 落账 */
+      var w2 = pk.normalize(pk.initialState()); w2.realm = 5; w2.stamina = 99; w2.stones = 300;
+      var rJ2 = pk.attendEvent(w2, 'we_juxian', 'join');
+      var hasHelp = rJ2 && rJ2.scene ? rJ2.scene.opts.some(function (o) { return o.k === 'help'; }) : false;
+      var c1 = hasHelp ? pk.knotChoose(w2, rJ2.scene.knot, 'help') : null;
+      var chooseOk = c1 && c1.ok && c1.chose === 'help' && w2.knotDone.knot_juxian === 1 && w2.persona.xia === 4;
+      ok('E22', '场面执行器挂接（7 案 knot 指真 KNOTS + 13 案 null ‖ join 返回 scene 且分支全 open ‖ watch 无 scene ‖ 选支 knotDone 落账 + 侠轴 +4）',
+        knotOk && hookOk && sceneOk && optsOpen && watchNoScene && chooseOk,
+        'hook=' + hooked + ' 表=' + knotOk + ' scene=' + sceneOk + ' open=' + optsOpen + ' watch无=' + watchNoScene + ' 选支=' + chooseOk);
+    })();
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */

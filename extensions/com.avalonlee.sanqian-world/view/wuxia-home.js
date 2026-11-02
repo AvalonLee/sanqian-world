@@ -117,6 +117,13 @@
       if (r && r.err === 'realm') { slot.toast(tw('wh.err.gate', null)); return; }
       if (r && r.err === 'stamina') { slot.toast(tw('wh.rep.stamina', null)); return; }
       if (r && r.err) { slot.toast(tw('wh.err.save', null)); return; }
+      /* 场面执行器挂接（册222）：挂接案赴会 → 战报卡复用 knot 态渲染「当场那段戏」，
+       * 分支直选走现成 data-knot → knotChoose 链（轴微调 + knotDone，travel 同源不重写）；
+       * 有戏可看时切回主页（战报卡挂主页——「大事毕、回主厅看戏」） */
+      if (r && r.scene) {
+        w.lastReport = { kind: 'knot', knot: r.scene.knot, title: 'knot.' + r.scene.knot + '.name', opts: r.scene.opts };
+        cur = 'home';
+      }
       SQ.Log.push(w, 'sys', tw('we.' + id + '.name', null) + ' · ' + (r.alt ? tw('wh.jianghu.fate.alt', null) : tw('wh.jianghu.fate.canon', null)));
     }, function (f) { refresh(f); });
   }
