@@ -292,20 +292,20 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         Math.random = realRnd;
         brk = r1 && r1.ok && r1.win === false && Math.abs(r1.p - 0.5625) < 1e-9 && wsB.injury >= 2 && wsB.injury <= 4 &&   /* 册215：心性 50 ⇒ ×1.125 */
           Math.abs(wsB.qi - 99999 * 0.8) < 0.01 && r2 && r2.win === true && wsB2.realm === 1;
-        /* ⑤ powerOf：武艺乘区封顶 1.35 + 内伤状态 */
+        /* ⑤ powerOf：武艺乘区封顶 1.35 + 兵刃乘区（册227 落码：空手 0.90）+ 内伤状态 */
         var wsW = pk14.normalize(pk14.initialState());
         wsW.artsLevels = { yg_jiuyin: 9, neigong_basic: 9, quan_basic: 9 };
         var base0 = pk14.powerOf({ realm: 0, artsLevels: {}, injury: 0 });
         var pFull = pk14.powerOf(wsW) / base0;
         var wsW2 = pk14.normalize(pk14.initialState());
         wsW2.injury = 12;
-        pow = Math.abs(pk14.powerOf(wsW2) - 10 * 1.0024 * 0.6) < 1e-9 && pFull <= 1.35;
+        pow = Math.abs(pk14.powerOf(wsW2) - 10 * 1.0024 * 0.90 * 0.6) < 1e-9 && pFull <= 1.35;
         await SQ.save(pre14);   /* 复原：后续片建立在本件既有状态上，E14 的活跃档不外溢 */
         det14 = '转世=' + cycle + '(lives=' + ref14.meta.stats.lives + ',cause=' + (w14.lastDeath || {}).cause + ')' +
           ' 口=' + ports + ' 修习=' + study + '(lv' + lvA + '→' + wsL.artsLevels.neigong_basic + ',prac=' + wsL.artsPractice.neigong_basic + ')' +
           ' 冲关=' + brk + '(败p=' + (r1 && r1.p) + ',伤' + (wsB ? wsB.injury : '?') + ') 战力=' + pow;
       }
-      ok('E14', '武侠投生闭环（真实生命周期：claim→死→转世→新世零崩 ⇔ worldSystems 口：寿尽/内伤封顶/邪档/飞升拒 ⇔ 修习 30 分一层且 3/6/9 卡层 ⇔ 冲关 p=0.5×(见闻/门槛) 败有内伤折功力 ⇔ 战力武艺封顶+内伤乘区）',
+      ok('E14', '武侠投生闭环（真实生命周期：claim→死→转世→新世零崩 ⇔ worldSystems 口：寿尽/内伤封顶/邪档/飞升拒 ⇔ 修习 30 分一层且 3/6/9 卡层 ⇔ 冲关 p=0.5×(见闻/门槛) 败有内伤折功力 ⇔ 战力武艺封顶 + 兵刃乘区（空手 0.90）+ 内伤乘区）',
         cycle && ports && study && brk && pow, det14);
     }
 
@@ -746,6 +746,81 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         boardOk && bothOk && gateOk && payOk && dOk && escCleared && normOk,
         'board=' + boardOk + ' 胜=' + sawWin + ' 败=' + sawLose + ' 门=' + gateOk + ' pay=' + payOk + ' 交=' + dOk + ' 清=' + escCleared + ' 往返=' + normOk);
     })();
+    })();
+
+    /* E27 · 行装与神兵谱（册227 · G4 兵器槽 + G15）：
+     * ① WEAPONS 表 20 条 id 唯一（其中名兵 18）+ `wp.<id>.name` 20 键齐 ‖
+     * ② 兵刃乘区五形：空手 0.90 / 寻常 1.00 / 好兵刃 1.10 / 名兵 1.20 / 未知 id 0.90（不趁手）‖
+     * ③ powerOf 差分 = 1.20/0.90（乘区真进战力式，不只是读表）‖
+     * ④ equipGear 换装往返（出库 ⇔ 旧件回库 ⇔ 卸下清手）＋ 非库内件 / 坏 id 两拒 ‖
+     * ⑤ buyItem 兵刃入库入谱（同件重复买不重复进谱）‖
+     * ⑥ bladeDrop：杂鱼不携（huang 恒 null）⇔ tian 命中 ⇔ 同 h 复现 ⇔ 已收折价不进谱 ‖
+     * ⑦ normalize 往返：blades 保形 + 旧 id 迁移（shop_blade → wp_tiedao）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.weapons) { ok('E27', '行装与神兵谱', false, '无 weapons 口'); return; }
+      var G = pk.weapons;
+      var seen = {};
+      var dup = 0, ming = 0, lexMiss = 0;
+      for (var g = 0; g < G.length; g++) {
+        if (seen[G[g].i]) dup++;
+        seen[G[g].i] = 1;
+        if (G[g].k === 2) ming++;
+        if (SQ.t('wp.' + G[g].i + '.name', null, 'wuxia') === 'wp.' + G[g].i + '.name') lexMiss++;
+      }
+      var tableOk = G.length === 20 && dup === 0 && ming === 18 && lexMiss === 0;
+
+      var multOk = pk.weaponMult({ gear: { weapon: null } }) === 0.90 &&
+        pk.weaponMult({ gear: { weapon: { i: 'wp_tiedao' } } }) === 1.00 &&
+        pk.weaponMult({ gear: { weapon: { i: 'wp_haojian' } } }) === 1.10 &&
+        pk.weaponMult({ gear: { weapon: { i: 'wp_tulong' } } }) === 1.20 &&
+        pk.weaponMult({ gear: { weapon: { i: 'wp_nosuch' } } }) === 0.90;
+
+      var wP = pk.normalize(pk.initialState());
+      wP.realm = 2; wP.injury = 0;
+      var bare = pk.powerOf(wP);
+      wP.gear = { weapon: { i: 'wp_tulong' }, ranged: null, armor: null, boots: null };
+      var armed = pk.powerOf(wP);
+      var powOk = bare > 0 && Math.abs(armed / bare - 1.20 / 0.90) < 1e-9;
+
+      var wE = pk.normalize(pk.initialState());
+      wE.stash = ['wp_tulong', 'wp_tiedao'];
+      var e1 = pk.equipGear(wE, 'weapon', 'wp_tulong');
+      var okOn = e1.ok && wE.gear.weapon.i === 'wp_tulong' && wE.stash.length === 1 && wE.stash[0] === 'wp_tiedao';
+      var e2 = pk.equipGear(wE, 'weapon', 'wp_tiedao');       /* 换手：旧件回库 */
+      var okSwap = e2.ok && wE.gear.weapon.i === 'wp_tiedao' && wE.stash.indexOf('wp_tulong') >= 0;
+      var e3 = pk.equipGear(wE, 'weapon', null);              /* 卸下 */
+      var okOff = e3.ok && wE.gear.weapon == null && wE.stash.length === 2;
+      var e4 = pk.equipGear(wE, 'weapon', 'wp_yitian');        /* 不在库 */
+      var e5 = pk.equipGear(wE, 'weapon', 'wp_nosuch');        /* 坏 id */
+      var okReject = e4.err === 'notowned' && e5.err === 'badgear';
+
+      var wB = pk.normalize(pk.initialState());
+      wB.stones = 60000;
+      var b1 = pk.buyItem(wB, 'wp_haojian');
+      var okBuy = b1.ok && b1.kind === 'gear' && wB.stones === 40000 && wB.stash.indexOf('wp_haojian') >= 0 &&
+        wB.blades.indexOf('wp_haojian') >= 0;
+      var b2 = pk.buyItem(wB, 'wp_haojian');                  /* 再买一件：库 +1、谱不重复 */
+      var okBuy2 = b2.ok && wB.blades.length === 1 && wB.stash.length === 2;
+
+      var wD = pk.normalize(pk.initialState());
+      var dHuang = pk.bladeDrop(wD, 'huang', 88);
+      var dHit = pk.bladeDrop(wD, 'tian', 88);
+      var sAfter = wD.stones, nAfter = wD.blades.length;
+      var dDup = pk.bladeDrop(wD, 'tian', 88);               /* 同 h 复现 ⇒ 必是同一件已收 ⇒ 折价 */
+      var dropOk = dHuang === null && dHit && dHit.dupe === false && wD.blades.length === 1 && wD.stash.length === 1 &&
+        dDup && dDup.dupe === true && dDup.id === dHit.id && wD.stones > sAfter && wD.blades.length === nAfter;
+
+      var wN = pk.normalize({ blades: ['wp_tulong'], gear: { weapon: { i: 'shop_blade' } }, stash: ['shop_sword'] });
+      var normOk = wN.blades.length === 1 && wN.blades[0] === 'wp_tulong' &&
+        wN.gear.weapon && wN.gear.weapon.i === 'wp_tiedao' && !wN.gear.weapon.power;
+
+      ok('E27', '行装与神兵谱（表 20 唯一 / 名兵 18 / 词名 20 齐 ‖ 乘区五形 空手0.90·寻常1.00·好1.10·名兵1.20·未知0.90 ‖ powerOf 差分 = 1.20/0.90 ‖ equipGear 出库·换手回库·卸下·两拒 ‖ 买兵入库入谱且不重谱 ‖ 夺兵 huang 恒 null·tian 命中·同 h 复现折价 ‖ normalize 往返 + 旧 id 迁移）',
+        tableOk && multOk && powOk && okOn && okSwap && okOff && okReject && okBuy && okBuy2 && dropOk && normOk,
+        '表=' + tableOk + '(n=' + G.length + ',名兵=' + ming + ',重=' + dup + ',缺词=' + lexMiss + ')' +
+        ' 乘区=' + multOk + ' 差分=' + powOk + '(' + Math.round(armed / bare * 1e4) / 1e4 + ')' +
+        ' 装=' + okOn + ' 换=' + okSwap + ' 卸=' + okOff + ' 拒=' + okReject +
+        ' 买=' + okBuy + '/' + okBuy2 + ' 夺=' + dropOk + '(id=' + (dHit && dHit.id) + ')' + ' 档=' + normOk);
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */

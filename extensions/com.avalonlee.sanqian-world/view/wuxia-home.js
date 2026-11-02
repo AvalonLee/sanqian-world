@@ -148,6 +148,14 @@
       SQ.Log.push(w, 'sys', tw('wh.escort.log', { n: r.pay }));
     }, function (f) { refresh(f); });
   }
+  /* 行装：换上 / 卸下（册227；gid = 兵刃 id，null = 卸下）。旧件由内核回库，件内不碰 stash。 */
+  function doEquip(slot, eqSlot, gid) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      var r = SQ.Worlds[s.profile.worldId].pack.equipGear(w, eqSlot, gid);
+      if (r && r.err) { slot.toast(tw('wh.err.save', null)); return; }
+    }, function (f) { refresh(f); });
+  }
   function doBefriend(slot, castId) {
     act(slot, function (s) {
       var w = s.worlds[s.profile.worldId];
@@ -239,6 +247,12 @@
       else if (r.delivered) h += '<div class="wh-row">' + tw('wh.rep.escort.done', { pay: r.delivered }) + '</div>';
       else h += '<div class="wh-row">' + (r.win ? tw('wh.rep.battle.win', { foe: foeName, loot: r.loot })
         : (r.big ? tw('wh.rep.battle.big', { foe: foeName, n: w.injury }) : tw('wh.rep.battle.lose', { foe: foeName, n: w.injury }))) + '</div>';
+      /* 夺兵（册227）：胜战夺下名兵 / 谱上已有折价——只在真的掷中时出这一行 */
+      if (r.blade) {
+        h += '<div class="wh-row">' + (r.bladeDupe
+          ? tw('wh.gear.bladeDupe', { name: tw('wp.' + r.blade + '.name', null), n: r.bladeDupe })
+          : tw('wh.gear.bladeWin', { name: tw('wp.' + r.blade + '.name', null) })) + '</div>';
+      }
     } else if (r.kind === 'knot') {
       h += '<div class="wh-row">' + tw('wh.rep.knot.ask', { title: tw(r.title, null) }) + '</div><div class="wh-row">';
       for (var i = 0; i < (r.opts || []).length; i++) {
@@ -362,7 +376,9 @@
     var L = p.shopList || [];
     for (var i = 0; i < L.length; i++) {
       var it = L[i];
-      var name = it.kind === 'manual' ? tw('manual.' + it.i + '.name', null) : tw('shop.' + it.i + '.name', null);
+      /* 册227：兵刃项改名族 wp.<id>.name（货架两件已并入 WEAPONS 表）；药类补上了既有缺键 shop.<id>.name */
+      var name = it.kind === 'manual' ? tw('manual.' + it.i + '.name', null)
+        : (it.kind === 'gear' ? tw('wp.' + it.i + '.name', null) : tw('shop.' + it.i + '.name', null));
       h += '<div class="wh-row"><span class="wh-cell"><b>' + name + '</b></span>' +
         '<button class="btn" data-buy="' + it.i + '">' + tw('wh.shop.buy', { c: it.cost }) + '</button></div>';
     }
@@ -452,6 +468,57 @@
     return '<div class="wh-card"><h3>' + tw('wh.tab.' + id, null) + '</h3><div class="wh-muted">' +
       tw('wh.wip', { tab: tw('wh.tab.' + id, null) }) + '</div></div>';
   }
+  /* 行装页（册227 · G4 兵器槽 + G15 神兵谱）
+   * 三块：在手兵器（含乘区读数）/ 兵器库（可换上的兵）/ 神兵谱（18 名兵收集进度）。
+   * 谱上「有」≠「在手」：收集面只回答得没得过，战力只看 gear.weapon——两处分别标注，免得玩家以为
+   * 上谱就加成。余三槽（暗器/护身/鞋履）本批不实装，如实写明余量。 */
+  function gearBody(cf) {
+    var w = cf.w, p = cf.p;
+    var G = p.weapons || [];
+    var idx = {};
+    for (var i = 0; i < G.length; i++) idx[G[i].i] = G[i];
+    var cur = (w.gear && w.gear.weapon) || null;
+    var curRow = cur && cur.i ? idx[cur.i] : null;
+    var h = '<div class="wh-card"><h3>' + tw('wh.gear.title', null) + '</h3>';
+    h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('wh.gear.slot.weapon', null) + '</b> · ' +
+      tw('wh.gear.cur', null) + ' <b>' + (curRow ? tw('wp.' + curRow.i + '.name', null) : tw('wh.gear.empty', null)) + '</b>' +
+      (curRow ? ' <span class="wh-muted">' + tw('wh.gear.tier.' + curRow.k, null) + ' · ' +
+        tw('wh.gear.mult', { n: curRow.mul.toFixed(2) }) + '</span>' : '') + '</span>' +
+      (curRow ? '<button class="btn" data-uneq="weapon">' + tw('wh.gear.unequip', null) + '</button>' : '') +
+      '</div>';
+    /* 兵器库：只列能认的兵（表里没有的脏 id 静默略过，不让旧档残留把页面点亮一屏裸 id） */
+    h += '<div class="wh-row"><span class="wh-muted"><b>' + tw('wh.gear.stash', null) + '</b></span></div>';
+    var st = w.stash || [];
+    var any = false;
+    for (var s = 0; s < st.length; s++) {
+      var row = idx[st[s]];
+      if (!row) continue;
+      any = true;
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('wp.' + row.i + '.name', null) + '</b> · ' +
+        tw('wh.gear.tier.' + row.k, null) +
+        ' <span class="wh-muted">' + tw('wh.gear.mult', { n: row.mul.toFixed(2) }) + '</span></span>' +
+        '<button class="btn" data-eq="weapon" data-gid="' + row.i + '">' + tw('wh.gear.equip', null) + '</button></div>';
+    }
+    if (!any) h += '<div class="wh-muted">' + tw('wh.gear.stashEmpty', null) + '</div>';
+    h += '</div>';
+    var prog = p.bladeProgress ? p.bladeProgress(w) : { owned: 0, total: 0 };
+    var own = {};
+    for (var b = 0; b < (w.blades || []).length; b++) own[w.blades[b]] = 1;
+    h += '<div class="wh-card"><h3>' + tw('wh.gear.codex', null) +
+      ' <span class="wh-muted">' + tw('wh.gear.codexProg', { n: prog.owned, t: prog.total }) + '</span></h3>';
+    for (var g = 0; g < G.length; g++) {
+      if (G[g].k !== 2) continue;
+      var got = own[G[g].i] === 1;
+      var onBody = !!(curRow && curRow.i === G[g].i);
+      h += '<div class="wh-row"><span class="wh-cell">' +
+        (got ? '<b>' + tw('wp.' + G[g].i + '.name', null) + '</b>' : '<span class="wh-muted">' + tw('wh.gear.codexUnknown', null) + '</span>') +
+        (got ? ' <span class="wh-muted">' + (onBody ? tw('wh.gear.onbody', null) : tw('wh.gear.owned', null)) + '</span>' : '') +
+        '</span></div>';
+    }
+    h += '</div>';
+    h += '<div class="wh-muted">' + tw('wh.gear.rest', null) + '</div>';
+    return h;
+  }
 
   function render(cf) {
     var w = cf.w, p = cf.p;
@@ -468,7 +535,7 @@
         tw(TABS[i].key, null) + '</button>';
     }
     tabs += '</div>';
-    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : (cur === 'zones' ? zonesBody(cf) : (cur === 'sect' ? sectBody(cf) : (cur === 'shop' ? shopBody(cf) : (cur === 'jianghu' ? jianghuBody(cf) : (cur === 'people' ? peopleBody(cf) : wipBody(cur)))))))) + '</div>';
+    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : (cur === 'zones' ? zonesBody(cf) : (cur === 'sect' ? sectBody(cf) : (cur === 'shop' ? shopBody(cf) : (cur === 'jianghu' ? jianghuBody(cf) : (cur === 'people' ? peopleBody(cf) : (cur === 'gear' ? gearBody(cf) : wipBody(cur))))))))) + '</div>';
     return top + tabs + body;
   }
 
@@ -502,6 +569,8 @@
       else if (b.id === 'wh-donate') doSect(f2, 'donate', null);
       else if (b.id === 'wh-betray') doSect(f2, 'betray', null);
       else if (b.getAttribute('data-we')) doEvent(f2, b.getAttribute('data-we'), b.getAttribute('data-mode'), false);
+      else if (b.getAttribute('data-eq')) doEquip(f2, b.getAttribute('data-eq'), b.getAttribute('data-gid'));
+      else if (b.getAttribute('data-uneq')) doEquip(f2, b.getAttribute('data-uneq'), null);
       else if (b.getAttribute('data-befriend')) doBefriend(f2, b.getAttribute('data-befriend'));
       else if (b.id === 'wh-retire') doRetire(f2);
       else if (slot) toggleSlot(f2, slot);

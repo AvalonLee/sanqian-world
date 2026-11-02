@@ -21,6 +21,30 @@
   var PLACE_START = 'luoyang'; /* 开局地界（人物与地方 §四，首发 10 之一） */
   var GEAR_SLOTS = ['weapon', 'ranged', 'armor', 'boots'];  /* 兵器 / 暗器 / 护身 / 鞋履 */
 
+  /* ── 兵刃（册227 · G4 兵器槽 + G15 神兵谱，数值与经济 §六/§七）──────────────────
+   * 兵刃乘区正典：空手/不趁手 0.90 · 寻常 1.00 · 好兵刃 1.10 · 名兵 1.20。
+   * **口径两条**：① 装备项只认 `{i}`（册227 起不再读旧的 `power` 字段——旧档残留无害，
+   * 读的是 WEAPONS 表 ⇒ 数值单源）；② 名兵一律 1.20，差异只走取得难度（不造「最强兵」刷点）。
+   * 旧档迁移：册217 市集两件叫 `shop_blade`/`shop_sword`，本批并入表后更名 `wp_tiedao`/`wp_haojian`，
+   * normalize 按 LEGACY_GEAR_ID 一次性映射（旧档在手兵器不至于变成「不趁手 0.90」白损）。 */
+  var WEAPON_MUL_BARE = 0.90;         /* 空手 / 不趁手 */
+  var LEGACY_GEAR_ID = { shop_blade: 'wp_tiedao', shop_sword: 'wp_haojian' };
+  function buildWeaponIndex() {
+    var idx = {};
+    var G = (D && D.WEAPONS) || [];
+    for (var i = 0; i < G.length; i++) idx[G[i].i] = G[i];
+    return idx;
+  }
+  var WEAPON_INDEX = buildWeaponIndex();
+  function weaponRow(id) { return (id && WEAPON_INDEX[id]) ? WEAPON_INDEX[id] : null; }
+  /* 兵刃乘区：装的东西在表里按 mul，不在表里（含空手）按 0.90 —— 「不趁手」即此形。 */
+  function weaponMult(ws) {
+    var g = obj(ws && ws.gear);
+    var w = g.weapon;
+    var row = w && w.i ? weaponRow(w.i) : null;
+    return row ? row.mul : WEAPON_MUL_BARE;
+  }
+
   function isNum(v) { return typeof v === 'number' && isFinite(v); }
   function num(v, def) { return isNum(v) ? v : def; }
   function clampInt(v, lo, hi, def) {
@@ -40,7 +64,7 @@
   function blankPersona() { return { xia: 0, kuang: 0, du: 0 }; }
   function blankHeritage() { return { gen: 1, inherited: [] }; }
 
-  /* ── 存档初始值（字段表 = docs/武侠世界/数值与经济.md §九；P1 后 20 顶层键）────────────
+  /* ── 存档初始值（字段表 = docs/武侠世界/数值与经济.md §九；顶层键集以两份清单实数为准）────────────
    * ⚠️ 加字段必须**两处同动**（initialState ⇔ normalize）——审计 D11 判双向键集相等，只改一侧即红。
    * 册214 摘三键：`ink`（墨）/ `discord`（违和）/ `narrative`（书指针）随书形态退役。 */
   function initialState() {
@@ -60,6 +84,7 @@
       visited: [PLACE_START],
       gear: blankGear(),
       stash: [],
+      blades: [],                      /* 神兵谱（册227）：已收到手过的兵刃 id —— 收集面，卸下不减 */
       relations: {},
       injury: 0,                       /* 内伤 0~15；=15 即死（合卷） */
       worldDay: 0,                     /* 游戏内天数 */
@@ -92,7 +117,10 @@
     var gearIn = obj(p.gear);
     var gear = {};
     for (var i = 0; i < GEAR_SLOTS.length; i++) {
-      gear[GEAR_SLOTS[i]] = gearIn[GEAR_SLOTS[i]] || null;
+      /* 册227：旧 id 一次性迁移（只认 {i}；旧档的 power 字段不再读，残留到下次装备时自然覆盖） */
+      var slotRaw = gearIn[GEAR_SLOTS[i]];
+      if (slotRaw && slotRaw.i && LEGACY_GEAR_ID[slotRaw.i]) slotRaw = { i: LEGACY_GEAR_ID[slotRaw.i] };
+      gear[GEAR_SLOTS[i]] = slotRaw || null;
     }
     var levels = obj(p.artsLevels);
     var known = arr(p.artsKnown);
@@ -131,6 +159,7 @@
       visited: arr(p.visited).length ? arr(p.visited) : [PLACE_START],
       gear: gear,
       stash: arr(p.stash),
+      blades: arr(p.blades),
       relations: obj(p.relations),
       injury: clampInt(p.injury, 0, 15, 0),
       worldDay: Math.max(0, num(p.worldDay, 0)),
@@ -201,9 +230,11 @@
     return cur ? cur.need : 0;
   }
 
-  /* 战力 = 境界基准 × 武艺 × 状态（数值与经济 §六）：武艺 = 1 + Σ(品阶权重×层数)×0.012 封顶 1.35
+  /* 战力 = 境界基准 × 武艺 × 兵刃 × 状态（数值与经济 §六）：武艺 = 1 + Σ(品阶权重×层数)×0.012 封顶 1.35
    * （系统性加成总上限 1.86 < 档差 2.3 的红线不变——满配越一档有戏、跨两档是奇迹）；
-   * 状态 = 内伤 ≥12 ×0.60（咯血档）· ≥8 ×0.75 · else 1.00。兵刃/相性两乘区随兵器/四性批接。 */
+   * 兵刃（册227 接）= 空手/不趁手 0.90 · 寻常 1.00 · 好兵刃 1.10 · 名兵 1.20；
+   * 状态 = 内伤 ≥12 ×0.60（咯血档）· ≥8 ×0.75 · else 1.00。兵刃乘区落码后**空手开局战力降一成**，
+   * 这是正典一直写着的账（此前未接 = 白送了 0.90→1.00 的便宜），不是新削弱。相性乘区随四性批接。 */
   var TIER_W = { tian: 1.0, di: 0.6, xuan: 0.3, huang: 0.1 };
   function artPowerMult(ws) {
     var lv = (ws && ws.artsLevels) || {};
@@ -220,7 +251,7 @@
     if (!cur) return 0;
     var inj = (ws && ws.injury) || 0;
     var status = inj >= 12 ? 0.6 : inj >= 8 ? 0.75 : 1;
-    return cur.power * artPowerMult(ws) * status;
+    return cur.power * artPowerMult(ws) * weaponMult(ws) * status;
   }
 
   /* 见闻值 = visited×2 + 熟人（affinity ≥ 20）——派生，读档时重算一次防旧档漂 */
@@ -458,6 +489,9 @@
         ws.stones = (ws.stones || 0) + loot;
         ws.renown = clampInt((ws.renown || 0) + 5, -1000, 1000, ws.renown || 0);
         rep2.loot = loot;
+        /* 夺兵（册227）：对手档越高越可能携名兵（杂鱼不携）——胜战才判，败了谈不上夺 */
+        var bladeRes = bladeDrop(ws, foe.t, h);
+        if (bladeRes) { rep2.blade = bladeRes.id; if (bladeRes.dupe) rep2.bladeDupe = bladeRes.cash; }
       } else if (big) {
         ws.injury = Math.min(15, (ws.injury || 0) + 4 + (h % 3));
         rep2.injury = ws.injury;
@@ -658,12 +692,14 @@
     return { ok: true, renown: ws.renown };
   }
 
-  /* ── 市集（册217 P6 · 方案卷 §八 坊市恢复）：静态货架 + 秘籍三途之一（稀有格）────── */
+  /* ── 市集（册217 P6 · 方案卷 §八 坊市恢复）：静态货架 + 秘籍三途之一（稀有格）──────
+   * 册227：两件兵刃改走 WEAPONS 表（id `wp_tiedao`/`wp_haojian`，价 2 两/20 两照数值卷 §七）；
+   * 买入不再直接上身，改**入库**（stash）+ 入谱（blades）——上身是玩家的选择（行装页换上）。 */
   var SHOP_LIST = [
     { i: 'shop_salve', kind: 'salve', cost: 50, heal: 2 },      /* 金疮药：内伤 −2 */
     { i: 'shop_ginseng', kind: 'salve', cost: 5000, heal: 8 },  /* 老山参 5 两：内伤 −8 */
-    { i: 'shop_blade', kind: 'gear', slot: 'weapon', cost: 2000, power: 1.05 },   /* 铁刀 */
-    { i: 'shop_sword', kind: 'gear', slot: 'weapon', cost: 20000, power: 1.10 },  /* 好剑 20 两 */
+    { i: 'wp_tiedao', kind: 'gear', slot: 'weapon', cost: 2000 },   /* 铁刀 2 两（寻常 1.00） */
+    { i: 'wp_haojian', kind: 'gear', slot: 'weapon', cost: 20000 }, /* 好剑 20 两（好兵刃 1.10） */
     { i: 'mnl_01', kind: 'manual', cost: 30000 },               /* 秘籍稀有格（MANUALS 抽三） */
     { i: 'mnl_05', kind: 'manual', cost: 45000 },
     { i: 'mnl_09', kind: 'manual', cost: 60000 }
@@ -679,8 +715,10 @@
       return { ok: true, kind: 'salve', heal: it.heal };
     }
     if (it.kind === 'gear') {
-      ws.gear = obj(ws.gear); ws.gear[it.slot] = { i: it.i, power: it.power };
-      return { ok: true, kind: 'gear', slot: it.slot };
+      if (!weaponRow(it.i)) return { err: 'badgear' };
+      ws.stash = arr(ws.stash); ws.stash.push(it.i);
+      ws.blades = arr(ws.blades); if (ws.blades.indexOf(it.i) < 0) ws.blades.push(it.i);
+      return { ok: true, kind: 'gear', slot: it.slot, item: it.i };
     }
     if (it.kind === 'manual') {
       ws.shelf = arr(ws.shelf);
@@ -709,6 +747,72 @@
       ws.artsLevels = obj(ws.artsLevels); ws.artsLevels[artId] = 1;
     }
     return { ok: true, art: artId };
+  }
+
+  /* ── 行装（册227 · G4 兵器槽 + G15 神兵谱）────────────────────────────────────
+   * 装备口只动 gear[slot] 与 stash 两处：旧件回库、新件出库，**不做强制上身**（玩家自己选）。
+   * 神兵谱（blades）是**收集面**：到手即记，卸下不减——与 MANUALS 的 shelf（物品层）分得开，
+   * 谱上「有」不等于「在手」（谱只回答「见过/得过的名兵」，战力只看 gear.weapon）。 */
+  function bladeProgress(ws) {
+    var G = (D && D.WEAPONS) || [];
+    var own = arr(ws && ws.blades);
+    var total = 0, got = 0;
+    for (var i = 0; i < G.length; i++) {
+      if (G[i].k !== 2) continue;                 /* 谱只收名兵（寻常/好兵刃属行货，不上谱） */
+      total++;
+      if (own.indexOf(G[i].i) >= 0) got++;
+    }
+    return { owned: got, total: total };
+  }
+  function equipGear(ws, slot, id) {
+    if (!ws) return { err: 'nows' };
+    var okSlot = false;
+    for (var i = 0; i < GEAR_SLOTS.length; i++) if (GEAR_SLOTS[i] === slot) okSlot = true;
+    if (!okSlot) return { err: 'noslot' };
+    ws.gear = obj(ws.gear);
+    var curId = ws.gear[slot] && ws.gear[slot].i ? ws.gear[slot].i : null;
+    var st = arr(ws.stash);
+    if (!id) {                                     /* 卸下：在手件回库 */
+      if (!curId) return { err: 'empty' };
+      ws.gear[slot] = null;
+      st.push(curId);
+      ws.stash = st;
+      return { ok: true, slot: slot, id: null, off: curId };
+    }
+    if (!weaponRow(id)) return { err: 'badgear' };
+    var at = st.indexOf(id);
+    if (at < 0) return { err: 'notowned' };
+    st.splice(at, 1);
+    if (curId) st.push(curId);                     /* 换手：旧的回库，不消失 */
+    ws.stash = st;
+    ws.gear[slot] = { i: id };
+    return { ok: true, slot: slot, id: id, off: curId };
+  }
+  /* 夺兵（数值卷 §七「名兵多半不卖，只送或抢」的「抢」）：胜战按对手档掷。
+   * 判点用 worldDay 散列 h（不另掷 Math.random）⇒ 同 (worldDay, salt, 地界) 可复现、判据可直测。
+   * 命中从名兵池按 h 取一件：未收 → 入谱 + 入库；已收 → 折价给银（不重复入谱）。 */
+  var BLADE_RATE = { huang: 0, xuan: 2, di: 6, tian: 12 };   /* 百分点：杂鱼不携名兵 */
+  function bladeDrop(ws, foeT, h) {
+    if (!ws) return null;
+    var rate = BLADE_RATE[foeT] | 0;
+    if (!rate) return null;
+    if (((h >>> 3) % 100) >= rate) return null;
+    var G = (D && D.WEAPONS) || [];
+    var pool = [];
+    for (var i = 0; i < G.length; i++) if (G[i].k === 2) pool.push(G[i].i);
+    if (!pool.length) return null;
+    var id = pool[(h >>> 5) % pool.length];
+    var own = arr(ws.blades);
+    if (own.indexOf(id) >= 0) {                    /* 谱上已有：旧兵折价 */
+      var cash = 100 + ((h >>> 7) % 5) * 50;
+      ws.stones = (ws.stones || 0) + cash;
+      return { id: id, dupe: true, cash: cash };
+    }
+    own.push(id);
+    ws.blades = own;
+    var st = arr(ws.stash); st.push(id);
+    ws.stash = st;
+    return { id: id, dupe: false };
   }
 
   /* ── 世界事件层（册218 P5 schema 落码 + 册221 首批 20 案补满 · 世界事件卷 §六/§七/§八）────
@@ -1019,6 +1123,9 @@
     knotChoose: knotChoose, bountyBoard: bountyBoard, bountyTake: bountyTake, escortTake: escortTake, BOUNTY_TIERS: BOUNTY_TIERS,
     joinSect: joinSect, learnArt: learnArt, learnableArts: learnableArts, sectTask: sectTask, donateSect: donateSect, betraySect: betraySect, sectRankOf: sectRankOf,
     shopList: SHOP_LIST, buyItem: buyItem, studyManual: studyManual,
+    /* 行装与神兵谱（册227 · G4/G15）：weapons 表 / 装备口 / 收集进度 / 夺兵（判据直测口） */
+    weapons: (D && D.WEAPONS) || [], weaponMult: weaponMult, weaponRow: weaponRow,
+    equipGear: equipGear, bladeProgress: bladeProgress, bladeDrop: bladeDrop,
     worldEvents: worldEvents, worldRumors: worldRumors, sweepExpired: sweepExpired, worldYearOf: worldYearOf, attendEvent: attendEvent, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,
     zoneUnlocked: zoneUnlocked,
     travelStamina: TRAVEL_STAMINA,
