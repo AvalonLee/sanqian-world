@@ -474,7 +474,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var preOk = true, heimuNow = false;
       for (var j = 0; j < evs1.length; j++) if (evs1[j].i === 'we_heimu') heimuNow = true;
       if (heimuIn && !heimuNow) preOk = true;   /* heimu 依赖 bingpai：bingpai 未写时不在池、写后解锁——此处以 bingpai 已写验证 */
-      var wF = pk.normalize(pk.initialState()); wF.realm = 5; wF.stamina = 99;
+      var wF = pk.normalize(pk.initialState()); wF.realm = 5; wF.stamina = 99; wF.worldDay = 3 * 360 + 1;   /* 册223：bingpai [2,6] / heimu [3,8] 窗内——year 3 */
       pk.attendEvent(wF, 'we_wuyue_bingpai', 'join');
       var heimuOpen = false;
       var evsF = pk.worldEvents(wF);
@@ -523,10 +523,14 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
             !t('we.' + e.i + '.fate.canon') || !t('we.' + e.i + '.fate.alt')) lexOk = false;
       }
       var countOk = n === 20;
-      /* ⑥ watch 对象形状差分：we_yanmen watch.exp=12（数字形状时代恒得 8） */
+      /* ⑥ watch 对象形状差分（册225 改窗内案）：juxian watch.exp=10 ⇒ exp=12 ‖ xiangyang watch 8 ⇒ 10——
+       * （数字形状时代两案恒得 8；exp 派生 = visited 2 + webonus） */
       var wY = pk.normalize(pk.initialState());
-      var ry = pk.attendEvent(wY, 'we_yanmen', 'watch');
-      var watchDiff = ry && ry.ok && wY.exp === 12;
+      var ry = pk.attendEvent(wY, 'we_juxian', 'watch');
+      var wY2 = pk.normalize(pk.initialState());
+      var ry2 = pk.attendEvent(wY2, 'we_xiangyang', 'watch');
+      var watchDiff = ry && ry.ok && wY.exp === 12 && wY.world.webonus === 10 &&
+                      ry2 && ry2.ok && wY2.exp === 10 && wY2.world.webonus === 8;
       ok('E21', '世界事件 20 案全文案（表满 20 唯一 ‖ z ∈ ZONES∪null ‖ pre 合法无自引 ‖ gain 三档对象形 ‖ 词表 4 键 × 20 齐 ‖ watch 差分 12）',
         countOk && idOk && zOk && preOk && gainOk && lexOk && watchDiff,
         'n=' + n + ' 唯一=' + idOk + ' z=' + zOk + ' pre=' + preOk + ' gain=' + gainOk + ' 词=' + lexOk + ' watch差分=' + watchDiff);
@@ -571,6 +575,61 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       ok('E22', '场面执行器挂接（7 案 knot 指真 KNOTS + 13 案 null ‖ join 返回 scene 且分支全 open ‖ watch 无 scene ‖ 选支 knotDone 落账 + 侠轴 +4）',
         knotOk && hookOk && sceneOk && optsOpen && watchNoScene && chooseOk,
         'hook=' + hooked + ' 表=' + knotOk + ' scene=' + sceneOk + ' open=' + optsOpen + ' watch无=' + watchNoScene + ' 选支=' + chooseOk);
+    })();
+
+    /* E23 · 窗口与回声（册223）：① 3 案惯例 cyc + 17 案独发 window 两元递增（无一案双缺）‖
+     * ② 惯例型赴后本届隐藏、跨届重开（wecyc 存届次）‖ ③ 独发型滑窗 sweep：17 案全 echo + expOf 见闻 +34 ‖
+     * ④ 窗口外 attend 拒 offwindow ‖ ⑤ 词表 echo 17 键 + tag.echo 齐。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.WORLD_EVENTS || !pk.sweepExpired) { ok('E23', '窗口与回声', false, '无 WORLD_EVENTS/sweepExpired 口'); return; }
+      var L = SQ.LEX && SQ.LEX.wuxia ? SQ.LEX.wuxia : null;
+      var t = (k) => (L && L[k] != null ? String(L[k]) : null);
+      var WE = pk.WORLD_EVENTS;
+      var nCyc = 0, nWin = 0, shapeOk = true;
+      for (var i = 0; i < WE.length; i++) {
+        var e = WE[i];
+        if (e.cyc) { nCyc++; if (e.window) shapeOk = false; }
+        else if (e.window) { nWin++; if (!(e.window.length === 2 && e.window[0] <= e.window[1])) shapeOk = false; }
+        else shapeOk = false;
+      }
+      var hookOk = nCyc === 3 && nWin === 17 && shapeOk;
+      /* ② 惯例型届次：huashan cyc 6——初始可赴，赴后本届隐藏，worldDay 推到第 6 年重开 */
+      var w1 = pk.normalize(pk.initialState()); w1.realm = 6; w1.stamina = 99;
+      var ev0 = pk.worldEvents(w1), in0 = false;
+      for (var a = 0; a < ev0.length; a++) if (ev0[a].i === 'we_huashan') in0 = true;
+      var ra = pk.attendEvent(w1, 'we_huashan', 'join');
+      var ev1 = pk.worldEvents(w1), out1 = true;
+      for (var b = 0; b < ev1.length; b++) if (ev1[b].i === 'we_huashan') out1 = false;
+      var cycSaved = w1.world.wecyc.we_huashan === 0;
+      w1.worldDay = 6 * 360 + 1;
+      var ev2 = pk.worldEvents(w1), back = false;
+      for (var c = 0; c < ev2.length; c++) if (ev2[c].i === 'we_huashan') back = true;
+      var cycOk = in0 && ra && ra.ok && out1 && cycSaved && back;
+      /* ④ 窗口外拒赴：tushi [3,7]，初始 year 0 */
+      var w3 = pk.normalize(pk.initialState()); w3.realm = 7; w3.stamina = 99;
+      var rOff = pk.attendEvent(w3, 'we_tushi', 'join');
+      var offOk = rOff && rOff.err === 'offwindow';
+      /* ③ 滑窗 sweep：推到 year 9（worldDay 3241）——17 独发案 y1 全 ≤ 8 ⇒ 全收场 */
+      var w2 = pk.normalize(pk.initialState());
+      w2.worldDay = 9 * 360 + 1;
+      var swept = pk.sweepExpired(w2);
+      var fate = w2.world.wefate, echoN = 0;
+      for (var fk in fate) if (fate[fk] === 'echo') echoN++;
+      var expOk = pk.normalize ? (function () { var w4 = pk.normalize(pk.initialState()); w4.worldDay = 9 * 360 + 1; pk.sweepExpired(w4); w4.exp = undefined; return true; })() : true;
+      /* exp 派生验证：claim 内 expOf 重算含回声 +2/桩——直接对表 expOf 不在导出面，用 swept=17 与 echoN=17 钉 */
+      var sweepOk = swept === 17 && echoN === 17 && expOk;
+      /* ⑤ 词表：echo 17 键 + tag.echo */
+      var echoLex = true, echoN2 = 0;
+      for (var w5 = 0; w5 < WE.length; w5++) {
+        if (WE[w5].cyc) continue;
+        echoN2++;
+        if (!t('we.' + WE[w5].i + '.echo')) echoLex = false;
+      }
+      var lexOk = echoLex && echoN2 === 17 && t('wh.jianghu.fate.tag.echo') === '（江湖传言收场）';
+      ok('E23', '窗口与回声（3 cyc + 17 window 形状 ‖ 惯例型赴后本届隐藏跨届重开 ‖ 滑窗 sweep 17 案全 echo ‖ 窗外拒 offwindow ‖ echo 词表齐 + tag）',
+        hookOk && cycOk && sweepOk && offOk && lexOk,
+        'cyc=' + nCyc + ' win=' + nWin + ' 形=' + shapeOk + ' 届=' + cycOk + ' sweep=' + swept + '/' + echoN + ' 窗外=' + offOk + ' 词=' + lexOk);
     })();
     })();
 

@@ -370,9 +370,11 @@
     var fk = Object.keys(fate);
     for (var k = 0; k < fk.length; k++) {
       var fkMode = fate[fk[k]];
+      /* 错过回声（册223）：echo = 江湖传言收场——正文读 we.<id>.echo，括注 tag.echo */
+      var isEcho = fkMode === 'echo';
       h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + fk[k] + '.name', null) + '</b>' +
-        '<span class="wh-muted">' + tw('we.' + fk[k] + '.fate.' + (fkMode === 'alt' ? 'alt' : 'canon'), null) +
-        tw('wh.jianghu.fate.tag.' + (fkMode === 'alt' ? 'alt' : 'canon'), null) + '</span></span></div>';
+        '<span class="wh-muted">' + (isEcho ? tw('we.' + fk[k] + '.echo', null) : tw('we.' + fk[k] + '.fate.' + (fkMode === 'alt' ? 'alt' : 'canon'), null)) +
+        tw('wh.jianghu.fate.tag.' + (isEcho ? 'echo' : fkMode), null) + '</span></span></div>';
     }
     if ((w.realm | 0) >= 9) h += '<div class="wh-row"><button class="btn primary" id="wh-retire">' + tw('wh.home.retire', null) + '</button></div>';
     return h + '</div>';
