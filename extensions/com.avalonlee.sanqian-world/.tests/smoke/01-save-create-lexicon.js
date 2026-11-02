@@ -666,6 +666,43 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         sixOk && noFar && soonOk && zSoon && juxOut && keysOk,
         '预告=' + rm0.length + ' 六案=' + !!sixOk + ' 远窗无=' + !!noFar + ' soon=' + zSoon + ' 赴后无=' + juxOut + ' 词=' + keysOk);
     })();
+
+    /* E25 · EVENTS 遇敌池三倍扩容（册225）：① 全表 148 且 id 唯一 ‖ ② action 78（原 26 × 3）‖
+     * ③ 档覆盖：每地 action 含 huang/xuan/di/tian 四档（原池仅 huang/xuan——realm 3/5 对档落空恒打杂鱼的实勘修正）‖
+     * ④ 词表 event.<id>.name 148 键齐（战报卡 foeName 消费）‖ ⑤ 对档可遇：realm 3 在任一地 pool 非空（di 档 26 案入池）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.events) { ok('E25', 'EVENTS 遇敌池扩容', false, '无 events 口'); return; }
+      var L = SQ.LEX && SQ.LEX.wuxia ? SQ.LEX.wuxia : null;
+      var ev = pk.events, n = ev.length;
+      var seen = {}, act = [], idOk = true;
+      for (var i = 0; i < n; i++) {
+        if (seen[ev[i].i]) idOk = false;
+        seen[ev[i].i] = true;
+        if (ev[i].kind === 'action') act.push(ev[i]);
+      }
+      var countOk = n === 148 && act.length === 78;
+      var zT = {};
+      for (var a = 0; a < act.length; a++) {
+        var z = act[a].z;
+        zT[z] = zT[z] || {};
+        zT[z][act[a].t] = true;
+      }
+      var covOk = true;
+      for (var z2 in zT) {
+        if (!zT[z2].huang || !zT[z2].xuan || !zT[z2].di || !zT[z2].tian) covOk = false;
+      }
+      var nZ = 0; for (var z3 in zT) nZ++;
+      var lexOk = true;
+      for (var b = 0; b < n; b++) if (!L['event.' + ev[b].i + '.name']) lexOk = false;
+      /* ⑤ di 档 26 案（原 0）——realm 3 玩家对档池非空的表级保证 */
+      var diN = 0;
+      for (var c = 0; c < act.length; c++) if (act[c].t === 'di') diN++;
+      var tierOk = diN === 26;
+      ok('E25', 'EVENTS 遇敌池扩容（全表 148 唯一 ‖ action 78 = 26×3 ‖ 每地四档齐（13 地）‖ 词表 148 名齐 ‖ di 档 26 补位）',
+        idOk && countOk && covOk && lexOk && tierOk,
+        'n=' + n + ' action=' + act.length + ' 地=' + nZ + ' 四档=' + covOk + ' 词=' + lexOk + ' di=' + diN);
+    })();
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
