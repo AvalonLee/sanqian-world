@@ -1499,6 +1499,62 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 窗=' + winOk + (badWin.length ? '(' + badWin.join(',') + ')' : ''));
     })();
 
+    /* E40 · 世界事件 next 链式（册241 · 蝴蝶效应）：canon/alt 的 next/close 由已了结事件派生，
+     * 不落新字段——光明顶 canon 开教主之争 / alt 关门；五岳并派 canon 开黑木崖 / alt 关门；
+     * 未表态时 pre 基线照旧（教主之争仍要等光明顶先了结）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.worldEvents) { ok('E40', 'next 链式', false, '无 worldEvents 口'); return; }
+      function mk(fate) {
+        var w = pk.normalize(pk.initialState());
+        w.realm = 9; w.worldDay = 5 * 360 + 1;
+        w.world.wefate = fate || {};
+        return w;
+      }
+      function has(w, id) {
+        var es = pk.worldEvents(w);
+        for (var i = 0; i < es.length; i++) if (es[i].i === id) return true;
+        return false;
+      }
+      var jc = has(mk({ we_weijiao_gm: 'canon' }), 'we_jiaozhu');
+      var ja = has(mk({ we_weijiao_gm: 'alt' }), 'we_jiaozhu');
+      var jn = has(mk({}), 'we_jiaozhu');
+      var hc = has(mk({ we_wuyue_bingpai: 'canon' }), 'we_heimu');
+      var ha = has(mk({ we_wuyue_bingpai: 'alt' }), 'we_heimu');
+      ok('E40', 'next 链式（光明顶 canon 开教主之争 / alt 关门 ‖ 五岳并派 canon 开黑木崖 / alt 关门 ‖ 未表态时 pre 基线照旧）',
+        jc && !ja && !jn && hc && !ha,
+        '教canon=' + jc + ' 教alt=' + ja + ' 无前置=' + jn + ' 黑canon=' + hc + ' 黑alt=' + ha);
+    })();
+
+    /* E41 · 江湖格局跨世（册241 · 世界事件卷 §十一 P7）：人物去向 / 门派声望 / 余波带进来世；
+     * 已了结事件本身（wefate/wecyc/wseen）重置；即使本世没有余响可带，格局照样跨世。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.worldSystems || !pk.worldSystems.rebirthCarry) { ok('E41', '格局跨世', false, '无 rebirthCarry 口'); return; }
+      var old = pk.normalize(pk.initialState());
+      old.realm = 9; old.artsLevels = { quan_basic: 9 };
+      old.world.wefate = { we_juxian: 'alt' };
+      old.world.wecyc = { we_huashan: 2 };
+      old.world.wseen = { we_wangpan: '1' };
+      old.world.wbcast = { xiao_feng: 'dead' };
+      old.world.wbsect = { gaibang: -20 };
+      old.world.wafter = ['we_juxian:alt'];
+      var fresh = pk.initialState();
+      pk.worldSystems.rebirthCarry(old, fresh);
+      var carried = !!(fresh.world && fresh.world.wbcast.xiao_feng === 'dead' &&
+        fresh.world.wbsect.gaibang === -20 && fresh.world.wafter.indexOf('we_juxian:alt') >= 0);
+      var reset = !!(fresh.world && !fresh.world.wefate.we_juxian && !fresh.world.wecyc.we_huashan && !fresh.world.wseen.we_wangpan);
+      var herOk = !!(fresh.heritage && fresh.heritage.gen === 2);
+      var old2 = pk.normalize(pk.initialState());
+      old2.world.wbcast = { xiao_feng: 'flee' };
+      var fresh2 = pk.initialState();
+      pk.worldSystems.rebirthCarry(old2, fresh2);
+      var bareOk = !!(fresh2.world && fresh2.world.wbcast.xiao_feng === 'flee');
+      ok('E41', '江湖格局跨世（人物去向 / 门派声望 / 余波带进来世 ⇔ 已了结事件重置 ⇔ 无余响也带格局）',
+        carried && reset && herOk && bareOk,
+        '格局=' + carried + ' 重置=' + reset + ' 余响=' + herOk + ' 无余响=' + bareOk);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */

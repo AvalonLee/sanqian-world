@@ -642,6 +642,23 @@ const { chromium } = require('playwright-core');
       'known=' + r.artKnown + ' slot=' + r.slot + ' weapon=' + r.weapon + ' stash=' + JSON.stringify(r.stash));
   });
 
+  /* WH14 · next 链式上屏（册241）：光明顶 canon 开教主之争 / alt 关门——江湖页可赴列表跟着变 */
+  const jiaozhuShown = async (fate) => {
+    let shown = null;
+    await runSeeded({ realm: 9, worldDay: 5 * 360 + 1, world: { wefate: { we_weijiao_gm: fate } } }, async (p2) => {
+      await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
+      await p2.waitForTimeout(200);
+      shown = await p2.evaluate(() => document.getElementById('shell-main').textContent
+        .indexOf(window.SQ.LEX.wuxia['we.we_jiaozhu.name']) >= 0);
+    });
+    return shown;
+  };
+  const jzCanon = await jiaozhuShown('canon');
+  const jzAlt = await jiaozhuShown('alt');
+  T(jzCanon && !jzAlt,
+    'WH14 next 链式上屏（光明顶 canon 开「教主之争」⇔ alt 关门——江湖页可赴列表跟着变）',
+    'canon=' + jzCanon + ' alt=' + jzAlt);
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();
