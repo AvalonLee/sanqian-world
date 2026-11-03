@@ -575,9 +575,13 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var wW = pk.normalize(pk.initialState());
       var rW = pk.attendEvent(wW, 'we_juxian', 'watch');
       var watchNoScene = rW && rW.ok && !rW.scene;
-      /* ④ 选支：help（req realm4+silver200 → stones 判）→ 侠轴 +4 + knotDone 落账 */
+      /* ④ 选支：help（req realm4+silver200 → stones 判）→ 侠轴 +4 + knotDone 落账
+       * 册231 补：这里也走 join ⇒ 同样要定种取胜（第二处漏改：册231 只包了 ②，④ 未包） */
       var w2 = pk.normalize(pk.initialState()); w2.realm = 5; w2.stamina = 99; w2.stones = 300;
+      var realRnd22b = Math.random;
+      Math.random = function () { return 0.01; };
       var rJ2 = pk.attendEvent(w2, 'we_juxian', 'join');
+      Math.random = realRnd22b;
       var hasHelp = rJ2 && rJ2.scene ? rJ2.scene.opts.some(function (o) { return o.k === 'help'; }) : false;
       var c1 = hasHelp ? pk.knotChoose(w2, rJ2.scene.knot, 'help') : null;
       var chooseOk = c1 && c1.ok && c1.chose === 'help' && w2.knotDone.knot_juxian === 1 && w2.persona.xia === 4;
@@ -1091,6 +1095,62 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         '胜=' + winOk + '(侠' + (w1 ? w1.renown : '?') + ') 败=' + loseOk + '(伤' + (w2 ? w2.injury : '?') + ',侠' + (w2 ? w2.renown : '?') +
         ',键' + (w2 && w2.world && w2.world.wefate ? w2.world.wefate.we_juxian : '?') + ') 胜率=' + oddsOk +
         '(join ' + (dJoin && dJoin.p) + ' vs lead ' + (dLead && dLead.p) + ')');
+    })();
+
+    /* E32 · 相性乘区（册232 · 武学全录 §一「内力四性」+ 数值卷 §六 第五乘区）：
+     * ① 环克闭合：刚猛→阴柔→中正→邪异→刚猛（四步回环、反向不克、同不克）‖
+     * ② natMult 三值 + 无从判 1.00 ‖
+     * ③ myNat 由**主修内功**定（换主修即换性；无内功 ⇒ 中正）‖
+     * ④ 对手性两源：世界事件 boss 按门派（张三丰→武当→中正）、闯荡杂鱼按地界（少林→刚猛），且 13 地四性齐 ‖
+     * ⑤ battleOdds 差分：同 ws 同战力对手，只改 nat ⇒ 克 > 同 > 被克（1.15 / 1.00 / 0.87 真进判定）‖
+     * ⑥ powerOf 不受相性影响（相性依赖对手，挂对战判定层而非战力式本体）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.natMult || !pk.myNat) { ok('E32', '相性乘区', false, '无 natMult/myNat 口'); return; }
+      var C = pk.NAT_CYCLE;
+      var ringOk = C.length === 4 && pk.natBeats('gang', 'yin') && pk.natBeats('yin', 'zhong') &&
+        pk.natBeats('zhong', 'xie') && pk.natBeats('xie', 'gang') &&
+        !pk.natBeats('yin', 'gang') && !pk.natBeats('gang', 'gang') && !pk.natBeats('gang', 'nope');
+      var mulOk = pk.natMult('gang', 'yin') === 1.15 && pk.natMult('yin', 'gang') === 0.87 &&
+        pk.natMult('gang', 'gang') === 1.00 && pk.natMult('gang', 'nope') === 1.00 && pk.natMult(null, 'gang') === 1.00;
+      /* ③ 主修内功换性：初始只有 neigong_basic(中正) ⇒ 中正；把九阴（阴柔）修到 5 层 ⇒ 阴柔 */
+      var wA = pk.normalize(pk.initialState());
+      var nat0 = pk.myNat(wA);
+      wA.artsKnown = ['quan_basic', 'neigong_basic', 'yg_jiuyin'];
+      wA.artsLevels = { quan_basic: 1, neigong_basic: 1, yg_jiuyin: 5 };
+      var nat1 = pk.myNat(wA);
+      var wB = pk.normalize(pk.initialState());
+      wB.artsLevels = { quan_basic: 9 };                     /* 无内功 ⇒ 中正 */
+      var nat2 = pk.myNat(wB);
+      var myOk = nat0 === 'zhong' && nat1 === 'yin' && nat2 === 'zhong';
+      /* ④ 对手性两源 + 地界四性齐 */
+      var zsf = null;
+      for (var i = 0; i < (pk.cast || []).length; i++) if (pk.cast[i].i === 'zhang_sanfeng') zsf = pk.cast[i];
+      var castOk = pk.castNat(zsf) === 'zhong' && pk.castNat({ sec: 'shaolin' }) === 'gang' && pk.castNat(null) === 'zhong';
+      var zoneSet = {};
+      for (var z = 0; z < (pk.zones || []).length; z++) zoneSet[pk.zoneNat(pk.zones[z].i)] = 1;
+      var zoneOk = pk.zoneNat('shaolin') === 'gang' && pk.zoneNat('yanziwu') === 'yin' &&
+        !!zoneSet.gang && !!zoneSet.yin && !!zoneSet.zhong && !!zoneSet.xie;
+      /* ⑤ 判定差分：同一角色（阴柔）× 三种对手性 */
+      var wF = pk.normalize(pk.initialState()); wF.realm = 4;
+      wF.artsKnown = ['quan_basic', 'neigong_basic', 'yg_jiuyin'];
+      wF.artsLevels = { quan_basic: 1, neigong_basic: 1, yg_jiuyin: 5 };
+      var foeBase = { t: 'A', power: 320 };
+      var pBeat = pk.battleOdds(wF, { t: foeBase.t, power: foeBase.power, nat: 'zhong' });   /* 阴柔克中正 */
+      var pSame = pk.battleOdds(wF, { t: foeBase.t, power: foeBase.power, nat: 'yin' });     /* 同性 */
+      var pLose = pk.battleOdds(wF, { t: foeBase.t, power: foeBase.power, nat: 'gang' });    /* 被刚猛克 */
+      var pNone = pk.battleOdds(wF, { t: foeBase.t, power: foeBase.power });                 /* 无 nat ⇒ 平 */
+      var oddsOk = pBeat > pSame && pSame > pLose && Math.abs(pSame - pNone) < 1e-12;
+      /* ⑥ powerOf 不吃相性 */
+      var pPure = pk.powerOf(wF);
+      wF.gear = wF.gear || {};
+      var powOk = Math.abs(pk.powerOf(wF) - pPure) < 1e-9;
+      ok('E32', '相性乘区（四性环克闭合 刚→阴→中→邪→刚 ‖ natMult 1.15/1.00/0.87 + 无从判 1.00 ‖ myNat 随主修内功（中正→阴柔）· 无内功回落中正 ‖ 对手性两源（boss 按门派 / 杂鱼按地界）+ 13 地四性齐 ‖ battleOdds 差分 克>同>被克 且无 nat 持平 ‖ powerOf 不含相性）',
+        ringOk && mulOk && myOk && castOk && zoneOk && oddsOk && powOk,
+        '环=' + ringOk + ' 乘区=' + mulOk + ' 我=' + myOk + '(初始' + nat0 + ',主修九阴' + nat1 + ',无内功' + nat2 + ')' +
+        ' 门派=' + castOk + ' 地界=' + zoneOk + ' 判定=' + oddsOk +
+        '(' + Math.round(pBeat * 1e3) / 1e3 + '>' + Math.round(pSame * 1e3) / 1e3 + '>' + Math.round(pLose * 1e3) / 1e3 + ')' +
+        ' 战力=' + powOk);
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */

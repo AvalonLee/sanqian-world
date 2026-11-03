@@ -433,8 +433,70 @@
     var row = realmRow(r);
     return row ? row.power * 1.1 : 30;
   }
+  /* ── 相性（册232 · 武学全录 §一「内力四性」+ 数值卷 §六）──────────────────────
+   * 环克：刚猛 → 阴柔 → 中正 → 邪异 → 刚猛。克制方 ×1.15、被克 ×0.87、同性 / 无从判 ×1.00。
+   * **为什么不进 `powerOf`**：`powerOf` 回答「我有多强」，相性回答「**对他**有多强」——
+   * 它依赖对手，而 `powerOf(ws)` 没有对手参数。所以接在 `battleOdds`（对战判定）层，
+   * 数学上等价于战力式里的那一项（比值分子乘 1.15 = 分母除 1.15 的近似，且判定本就用比值）。
+   *
+   * 三处「性」的来源（正典未逐条规定，按可叙事的口径推导，逐条注依据）：
+   *   · 主角 = **主修内功之性**（`artsLevels` 里 neigong 类层数最高那部的 `nat`）——
+   *     正典原话是「内力四性」，内功是内力之源；无内功 ⇒ 中正（无色）。
+   *   · 世界事件 boss = **门派之性**（CAST 行的 `sec` → SECT_NAT）——「他是谁的人」。
+   *   · 闯荡杂鱼 = **地界之性**（EVENTS 行的 `z` → ZONE_NAT）——「你走到谁的场子」。
+   */
+  var NAT_CYCLE = ['gang', 'yin', 'zhong', 'xie'];
+  var NAT_WIN = 1.15, NAT_LOSE = 0.87, NAT_SAME = 1.00;
+  /* 门派主性（26 门全覆盖；未列 ⇒ 中正）。依据 = 该门武学的内力性质：
+   * 少林/嵩山/铁掌/崆峒/丐帮 刚猛（外家与降龙一路）；武当/全真/华山/恒山/泰山/衡山/昆仑/青城/点苍/大理/红花会/天地会 中正；
+   * 桃花岛/古墓/逍遥/灵鹫 阴柔（逍遥一系）；日月/星宿/血刀/天鹰/神龙/长乐/明教/侠客岛 邪异。 */
+  var SECT_NAT = {
+    shaolin: 'gang', songshan: 'gang', tiezhang: 'gang', kongtong: 'gang', gaibang: 'gang',
+    wudang: 'zhong', quanzhen: 'zhong', huashan: 'zhong', hengshan: 'zhong', taishan: 'zhong',
+    hengshan_n: 'zhong', kunlun: 'zhong', qingcheng: 'zhong', diancang: 'zhong', dali: 'zhong',
+    emei: 'zhong', honghuahui: 'zhong', tiandihui: 'zhong',
+    taohua: 'yin', gumu: 'yin', xiaoyao: 'yin', lingjiu: 'yin',
+    riyue: 'xie', xingxiu: 'xie', xuedao: 'xie', tianying: 'xie', shenlong: 'xie',
+    changle: 'xie', mingjiao: 'xie', xiake: 'xie'
+  };
+  /* 地界主性（13 地）：边关与大寺 刚猛 · 城郭与名山 中正 · 水乡与山谷 阴柔 · 三岛与明教圣地 邪异。
+   * 四性齐（刚 3 / 中 5 / 阴 2 / 邪 3）——保证玩家修任何一性都能在闯荡里吃到克制。 */
+  var ZONE_NAT = {
+    shaolin: 'gang', songshan: 'gang', yanmenguan: 'gang',
+    luoyang: 'zhong', yanfulou: 'zhong', kunlun: 'zhong', damo: 'zhong', dali: 'zhong',
+    yanziwu: 'yin', wuliang: 'yin',
+    guangmingding: 'xie', lingshe: 'xie', binghuo: 'xie'
+  };
+  function natBeats(a, b) {
+    var i = NAT_CYCLE.indexOf(a), j = NAT_CYCLE.indexOf(b);
+    if (i < 0 || j < 0) return false;
+    return (i + 1) % NAT_CYCLE.length === j;
+  }
+  function natMult(mine, theirs) {
+    if (!mine || !theirs || mine === theirs) return NAT_SAME;
+    if (natBeats(mine, theirs)) return NAT_WIN;
+    if (natBeats(theirs, mine)) return NAT_LOSE;
+    return NAT_SAME;
+  }
+  function myNat(ws) {
+    var lv = obj(ws && ws.artsLevels);
+    var best = null, bestLv = -1;
+    for (var k in lv) {
+      var a = ART_INDEX[k];
+      if (!a || a.k !== 'neigong') continue;
+      var n = isNum(lv[k]) ? lv[k] : 0;
+      if (n > bestLv) { bestLv = n; best = a; }
+    }
+    return best && best.nat ? best.nat : 'zhong';
+  }
+  function castNat(castRow) { return (castRow && SECT_NAT[castRow.sec]) || 'zhong'; }
+  function zoneNat(zoneId) { return ZONE_NAT[zoneId] || 'zhong'; }
+
   function battleOdds(ws, foe) {
-    var mine = powerOf(ws), theirs = foePower(foe);
+    /* 相性只在「对上谁」时才有意义：对手无 nat ⇒ 不乘（1.00），不当成中正去比（会凭空造出克制） */
+    var fn = foe && foe.nat ? foe.nat : null;
+    var mine = powerOf(ws) * (fn ? natMult(myNat(ws), fn) : 1);
+    var theirs = foePower(foe);
     var p = 1 / (1 + Math.pow(theirs / mine, 1.5));
     return Math.max(0.05, Math.min(0.95, p));
   }
@@ -523,7 +585,7 @@
       var foeRow = realmRow(foe.t === 'tian' ? 5 : foe.t === 'xuan' ? 4 : foe.t === 'di' ? 3 : 2);
       /* 杂鱼系数 0.6：闯荡遭遇是「遇袭/斗殴」级散兵（名场面级对手属 KNOTS/世界事件层），
        * 不打折扣的话 realm1 对 huang 只有一成胜率、必死无疑（册216 实测归因） */
-      var foeObj = { t: foe.t, power: (foeRow ? foeRow.power : 60) * 0.6 };
+      var foeObj = { t: foe.t, power: (foeRow ? foeRow.power : 60) * 0.6, nat: zoneNat(place) };
       var pWin = battleOdds(ws, foeObj);
       var rounds = 0, wins = 0;
       for (var r2 = 0; r2 < 3; r2++) { if (Math.random() < pWin) wins++; rounds++; }
@@ -1000,7 +1062,7 @@
     var boss = null;
     for (var i = 0; i < C.length; i++) if (C[i].i === e.boss) { boss = C[i]; break; }
     if (!boss) return null;
-    var pWin = battleOdds(ws, { t: boss.t, power: foePower({ t: boss.t }) * (isNum(scale) ? scale : 1) });
+    var pWin = battleOdds(ws, { t: boss.t, power: foePower({ t: boss.t }) * (isNum(scale) ? scale : 1), nat: castNat(boss) });
     var wins = 0;
     for (var r = 0; r < 3; r++) if (Math.random() < pWin) wins++;
     return { win: wins >= 2, p: Math.round(pWin * 100) / 100, foe: boss.i, tier: boss.t };
@@ -1337,6 +1399,9 @@
     zoneUnlocked: zoneUnlocked,
     /* 地界素材两型（册229）：到达写景 / 拾遗取条与金额（判据直测口） */
     zoneSceneOf: zoneSceneOf, gainOf: gainOf, gainTip: gainTip, GAIN_RATE: GAIN_RATE,
+    /* 相性（册232 · 武学全录 §一 四性环克）：环 / 乘区 / 主角性 / 对手性两源 —— 判据直测口 */
+    NAT_CYCLE: NAT_CYCLE, SECT_NAT: SECT_NAT, ZONE_NAT: ZONE_NAT,
+    natBeats: natBeats, natMult: natMult, myNat: myNat, castNat: castNat, zoneNat: zoneNat, battleOdds: battleOdds,
     travelStamina: TRAVEL_STAMINA,
     travelUnlock: TRAVEL_UNLOCK,
     /* worldSystems（册162 · S3-c）：引擎通用系统的世界侧接口——通用层只经这些口读世界语义（D3 纪律），
