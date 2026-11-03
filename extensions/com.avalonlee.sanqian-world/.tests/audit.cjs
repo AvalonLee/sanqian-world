@@ -121,7 +121,7 @@ function inlineScripts(file) {
 const CJK_WHITELIST = (rel) =>
   rel === 'assets/lexicon.js' ||
   rel.startsWith('assets/lexicon/') ||
-  /(^|\/)lexicon(-[a-z]+)?\.js$/.test(rel) ||
+  /(^|\/)lexicon(-[a-z]+)*\.js$/.test(rel) ||
   rel === 'assets/worlds/registry.js'; /* 世界名生成池 nameParts（文本数据，非界面文案） */
 const CJK_RE = /[㐀-鿿　-〿豈-﫿＀-￯]/;
 

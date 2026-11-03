@@ -461,6 +461,54 @@ const { chromium } = require('playwright-core');
       'shown=' + g15.shown + ' quiet=' + g15.quiet);
   });
 
+  /* WH16 · 关系网 + 人物小传（册243）：门派 / 师承 / 交情分档 ⇔ S/A 手稿小传 ⇔ 其余派生句。
+   * 种档含门派与四档交情（仇敌走 kind），并挑一位未谋面 S 级与一位已识 B 级对表两种小传来源。 */
+  await runSeeded({
+    sect: { id: 'huashan', rank: 0, contribution: 250, joinedAt: 0, betrayed: false },
+    relations: {
+      guo_jing: { affinity: 85, kind: 'friend' },
+      ling_huohung: { affinity: 65, kind: 'friend' },
+      xuanci: { affinity: 10, kind: 'friend' },
+      xiao_feng: { affinity: 20, kind: 'enemy' }
+    }
+  }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="people"]');
+    await p2.waitForTimeout(400);
+    const g16 = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const pk = window.SQ.Worlds.wuxia.pack;
+      const name = (id) => window.SQ.t('cast.' + id + '.name', null, 'wuxia');
+      const sectLine = L['wh.people.sectline']
+        .replace('{sect}', window.SQ.t('sect.huashan.name', null, 'wuxia'))
+        .replace('{rank}', window.SQ.t('wh.sect.rank', { n: pk.sectRankOf(250) }, 'wuxia'))
+        .replace('{n}', '250');
+      const group = (key, n) => L['wh.people.group'].replace('{label}', L[key]).replace('{n}', String(n));
+      const derived = L['wh.people.bio.derived']
+        .replace('{sect}', window.SQ.t('sect.shaolin.name', null, 'wuxia'))
+        .replace('{tier}', L['wh.cast.tier.B'])
+        .replace('{align}', L['wh.cast.align.zheng']);
+      return {
+        net: t.indexOf(L['wh.people.net']) >= 0,
+        sect: t.indexOf(sectLine) >= 0,
+        master: t.indexOf(L['wh.people.master']) >= 0 && t.indexOf(name('yue_buqun')) >= 0,
+        close: t.indexOf(group('wh.people.g.close', 1) + name('guo_jing')) >= 0,
+        friend: t.indexOf(group('wh.people.g.friend', 1) + name('ling_huohung')) >= 0,
+        known: t.indexOf(group('wh.people.g.known', 1) + name('xuanci')) >= 0,
+        foe: t.indexOf(group('wh.people.g.foe', 1) + name('xiao_feng')) >= 0,
+        record: t.indexOf(L['wh.people.record']) >= 0,
+        bio: t.indexOf(L['cast.zhang_sanfeng.bio']) >= 0,
+        unmet: t.indexOf(name('zhang_sanfeng')) >= 0 && t.indexOf(L['wh.people.unmet']) >= 0,
+        derived: t.indexOf(derived) >= 0 && t.indexOf(L['wh.people.met']) >= 0
+      };
+    });
+    T(g16.net && g16.sect && g16.master && g16.close && g16.friend && g16.known && g16.foe &&
+      g16.record && g16.bio && g16.unmet && g16.derived,
+      'WH16 关系网 + 人物小传（门派/师承/知己/好友/相识/仇敌真词 ⇔ 未谋面 S 级手稿小传 ⇔ 已识 B 级派生小传）',
+      '网=' + g16.net + ' 门=' + g16.sect + ' 师=' + g16.master + ' 档=' + [g16.close, g16.friend, g16.known, g16.foe].join('/') +
+      ' 录=' + g16.record + ' 传=' + g16.bio + ' 未识=' + g16.unmet + ' 派生=' + g16.derived);
+  });
+
   /* WH9d/9e · 行头三槽（册230）：四槽齐 + 口径注上屏 ⇔ 装快靴真落档且**战力乘区不动**
    * （三槽只动判定——界面侧也钉这条，免得日后有人把行头接进 powerOf）。 */
   await runSeeded({ stash: ['gm_xiujian', 'gm_ruanjia', 'gm_kuaixue'], stones: 500 }, async (p2) => {
