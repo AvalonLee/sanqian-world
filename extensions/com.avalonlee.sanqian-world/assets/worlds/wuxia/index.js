@@ -624,6 +624,63 @@
   }
   var GAIN_RATE = 12;                                   /* 平安步拾遗概率（百分点） */
   function gainTip(h) { return 5 + ((h >>> 3) % 16); }  /* 5~20 文 */
+  /* ── 隐世传功（册242 · 武学全录 §八「长尾武学的奇遇获得投放权重」）──────────────
+   * 全表 403 部里，门派可学约 98 + 秘籍 10 + 事件主奖励约 9 ⇒ 约 305 部长尾永远拿不到。
+   * 本通道把长尾接进「平安步」：只传**未学、无门派归属、且不是秘籍/事件主奖励**的武学，
+   * 按品阶加权、按境界开门——黄 0 / 玄 2 / 地 4 / 天 6；平安步 1% 触发（整步约 0.3%）。
+   * 只在玩家主动行走时掷（与遭遇战同口径），不占离线结算，也不改见闻/战斗曲线。 */
+  var TEACH_RATE = 0.01;
+  var TEACH_TIER = { huang: { r: 0, w: 60 }, xuan: { r: 2, w: 30 }, di: { r: 4, w: 8 }, tian: { r: 6, w: 2 } };
+  var LT_EXCLUDE = null;
+  function longTailExclude() {
+    if (LT_EXCLUDE) return LT_EXCLUDE;
+    var set = {};
+    for (var i = 0; i < WORLD_EVENTS.length; i++) {
+      var rw = WORLD_EVENTS[i].reward;
+      if (rw && rw.kind === 'art') set[rw.id] = 1;
+    }
+    var M = (D && D.MANUALS) || [];
+    for (var m = 0; m < M.length; m++) if (M[m].art) set[M[m].art] = 1;
+    LT_EXCLUDE = set;
+    return set;
+  }
+  function longTailPool(ws) {
+    var out = [], known = {}, ex = longTailExclude();
+    (ws && arr(ws.artsKnown)).forEach(function (id) { known[id] = 1; });
+    var A = (D && D.ARTS) || [];
+    var r = (ws && ws.realm) | 0;
+    for (var i = 0; i < A.length; i++) {
+      var a = A[i];
+      if (!a || !a.i || known[a.i] || ex[a.i]) continue;
+      if (arr(a.s).length) continue;                 /* 门派可学的不走私授 */
+      var tt = TEACH_TIER[a.t];
+      if (!tt || r < tt.r) continue;
+      out.push(a);
+    }
+    return out;
+  }
+  function longTailPick(ws, h) {
+    var pool = longTailPool(ws);
+    if (!pool.length) return null;
+    var total = 0;
+    for (var i = 0; i < pool.length; i++) total += TEACH_TIER[pool[i].t].w;
+    var roll = (h >>> 0) % total;
+    for (var j = 0; j < pool.length; j++) {
+      roll -= TEACH_TIER[pool[j].t].w;
+      if (roll < 0) return pool[j];
+    }
+    return pool[pool.length - 1];
+  }
+  function grantLongTail(ws, artId) {
+    if (!ws || !ART_INDEX[artId]) return null;
+    ws.artsKnown = arr(ws.artsKnown);
+    if (ws.artsKnown.indexOf(artId) >= 0) return null;
+    ws.artsKnown.push(artId);
+    ws.artsLevels = obj(ws.artsLevels);
+    ws.artsLevels[artId] = 1;
+    autoSlotArt(ws, artId);
+    return { id: artId, t: ART_INDEX[artId].t };
+  }
   function travel(ws, opt) {
     /* 押镖面（册226）：在途则本步推进一格；败战 = 劫毁（无酬）；满 3 步自动交镖得酬。
      * 三出口（battle/knot/quiet）全覆盖——胜战/剧情/平安步都计押送，只有败战断镖。 */
@@ -746,10 +803,18 @@
         ws.stones = (ws.stones || 0) + gainLoot;
       }
     }
+    /* 隐世传功（册242）：平安步 1% 遇前辈授业——只在主动行走时掷（与遭遇战同口径），
+     * 不占离线结算；本步照常推进子场景与拾遗，传功只是「路上多遇一个人」。 */
+    var taught = null;
+    if (Math.random() < TEACH_RATE) {
+      var ta = longTailPick(ws, h);
+      if (ta && grantLongTail(ws, ta.i)) taught = ta.i;
+    }
     ws.lastReport = { kind: 'quiet', place: place, scene: Math.min(done + 1, scenes.length) };
     if (gainRow) { ws.lastReport.gain = gainRow.i; ws.lastReport.loot = gainLoot; }
+    if (taught) ws.lastReport.teach = taught;
     return { kind: 'quiet', scene: Math.min(done + 1, scenes.length), place: place,
-      gain: gainRow ? gainRow.i : null, loot: gainLoot };
+      gain: gainRow ? gainRow.i : null, loot: gainLoot, teach: taught };
   }
   /* KNOTS 分支直选（册216 · 批书语义摘除）：watch/help/probe/defy/join/flee 玩家直选；
    * 效果 = 性格轴微调（help=侠+4 / defy=狂+4 / join=毒+4 ——册161 AXIS_BY_K 平移）+ 保守项零效果。 */
@@ -1797,6 +1862,9 @@
     zoneUnlocked: zoneUnlocked,
     /* 地界素材两型（册229）：到达写景 / 拾遗取条与金额（判据直测口） */
     zoneSceneOf: zoneSceneOf, gainOf: gainOf, gainTip: gainTip, GAIN_RATE: GAIN_RATE,
+    /* 隐世传功（册242 · 武学全录 §八）：长尾池 / 加权抽取 / 授予口 —— 判据直测口 */
+    TEACH_RATE: TEACH_RATE, TEACH_TIER: TEACH_TIER,
+    longTailExclude: longTailExclude, longTailPool: longTailPool, longTailPick: longTailPick, grantLongTail: grantLongTail,
     /* 相性（册232 · 武学全录 §一 四性环克）：环 / 乘区 / 主角性 / 对手性两源 —— 判据直测口 */
     NAT_CYCLE: NAT_CYCLE, SECT_NAT: SECT_NAT, ZONE_NAT: ZONE_NAT,
     natBeats: natBeats, natMult: natMult, myNat: myNat, castNat: castNat, zoneNat: zoneNat, battleOdds: battleOdds,

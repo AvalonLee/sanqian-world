@@ -1555,6 +1555,48 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         '格局=' + carried + ' 重置=' + reset + ' 余响=' + herOk + ' 无余响=' + bareOk);
     })();
 
+    /* E42 · 隐世传功（册242 · 武学全录 §八「长尾武学的奇遇获得投放权重」）：
+     * ① 长尾池只收「未学 / 无门派 / 非秘籍非事件主奖励」，门派武学与已学不入池
+     * ② 境界开门：黄 0 / 玄 2 / 地 4 / 天 6 ‖ ③ 定种抽取：同 h 同结果
+     * ④ 授予只入档一次；开关开才自动入空槽 ‖ ⑤ 真入口：平安步掷中仍报 quiet 且带 teach。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.longTailPool) { ok('E42', '隐世传功', false, '无 longTailPool 口'); return; }
+      function mk(r) { var w = pk.normalize(pk.initialState()); w.realm = r; return w; }
+      var w9 = mk(9);
+      var pool = pk.longTailPool(w9);
+      var ex = pk.longTailExclude();
+      var shapeOk = pool.length > 0;
+      for (var i = 0; i < pool.length; i++) {
+        var a = pool[i];
+        if ((a.s || []).length || ex[a.i] || w9.artsKnown.indexOf(a.i) >= 0) shapeOk = false;
+      }
+      function tiers(p) { var m = {}; for (var i = 0; i < p.length; i++) m[p[i].t] = 1; return m; }
+      var t0 = tiers(pk.longTailPool(mk(0))), t2 = tiers(pk.longTailPool(mk(2)));
+      var t4 = tiers(pk.longTailPool(mk(4))), t6 = tiers(pk.longTailPool(mk(6)));
+      var gateOk = t0.huang && !t0.xuan && !t0.di && !t0.tian &&
+        t2.xuan && !t2.di && !t2.tian && t4.di && !t4.tian && t6.tian;
+      var a1 = pk.longTailPick(w9, 12345), a2 = pk.longTailPick(mk(9), 12345);
+      var pickOk = !!a1 && !!a2 && a1.i === a2.i;
+      var wg = mk(9); wg.autoSlotArt = true;
+      var g1 = pk.grantLongTail(wg, a1.i), g2 = pk.grantLongTail(wg, a1.i);
+      var grantOk = !!g1 && g2 === null && wg.artsKnown.indexOf(a1.i) >= 0 &&
+        wg.artsLevels[a1.i] === 1 && wg.artsSlots.indexOf(a1.i) >= 0;
+      var wn = mk(9); var gn = pk.grantLongTail(wn, a2.i);
+      var noAutoOk = !!gn && wn.artsSlots.indexOf(a2.i) < 0;
+      var realRnd = Math.random;
+      Math.random = function () { return 0; };
+      var wt = mk(0); wt.stamina = 60; wt.worldDay = 0;
+      var rt = pk.travel(wt, {});
+      Math.random = realRnd;
+      var entryOk = rt.kind === 'quiet' && !!rt.teach && wt.lastReport.kind === 'quiet' &&
+        wt.lastReport.teach === rt.teach && wt.artsKnown.indexOf(rt.teach) >= 0;
+      ok('E42', '隐世传功（长尾池只收未学/无门派/非秘籍非主奖励 ⇔ 境界开门 0/2/4/6 ⇔ 同 h 同抽 ⇔ 授予一次且开关开才入槽 ⇔ 平安步掷中落 teach 且武学入档）',
+        shapeOk && gateOk && pickOk && grantOk && noAutoOk && entryOk,
+        '池=' + pool.length + ' 形=' + shapeOk + ' 门=' + gateOk + ' 抽=' + pickOk +
+        ' 授=' + grantOk + ' 不自动=' + noAutoOk + ' 入口=' + entryOk);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */

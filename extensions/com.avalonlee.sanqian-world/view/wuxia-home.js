@@ -68,6 +68,7 @@
         else if (r.big) SQ.Log.push(w, 'sys', tw('wh.rep.battle.big', { foe: foeName, n: w.injury }));
         else SQ.Log.push(w, 'sys', tw('wh.rep.battle.lose', { foe: foeName, n: w.injury }));
       }
+      if (r.teach) SQ.Log.push(w, 'arts', tw('wh.log.teach', { name: tw('art.' + r.teach + '.name', null) }));
     }, function (f) { refresh(f); });
   }
   /* 前往地界（精力 3，册239 起与「闯荡一步」同价）：visited 记见闻——到达给三处反馈（册231）：
@@ -335,6 +336,10 @@
       /* 拾遗（册229 · gain 条落消费点）：与平安步分行记，不与「风平浪静」混成一句 */
       if (r.gain) {
         h += '<div class="wh-row">' + tw('wh.rep.gain', { place: tw('zone.' + r.place + '.name', null), loot: r.loot || 0 }) + '</div>';
+      }
+      /* 隐世传功（册242）：平安步里偶尔遇见前辈授业——单独一行，与拾遗分行记 */
+      if (r.teach) {
+        h += '<div class="wh-row">' + tw('wh.rep.teach', { name: tw('art.' + r.teach + '.name', null) }) + '</div>';
       }
     }
     return h + '</div>';
