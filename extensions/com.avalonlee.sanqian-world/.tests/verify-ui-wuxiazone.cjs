@@ -84,6 +84,26 @@ const { chromium } = require('playwright-core');
     T(z1.place === 'songshan' && z1.visited.indexOf('songshan') >= 0, 'ZW1 前往真落档（place=songshan ⇔ visited 增长——见闻来源）',
       'place=' + z1.place + ' visited=' + z1.visited.join(','));
 
+    /* ZW7 · 到达提示（册231）：前往后到主页看战报卡 arrive 态——「到了 X」+ 当地写景正文；
+     * 与 ZW6 的「行走页常驻写景」同一份词（event.<scene>.desc），两处各管一段（一次性 / 常驻）。 */
+    await p2.click('#shell-main .wh-tabs button[data-v="home"]');
+    await page_wait(p2, 250);
+    const z7 = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const pk = window.SQ.Worlds.wuxia.pack;
+      const sc = pk.zoneSceneOf('songshan');
+      const arrive = L['wh.rep.arrive'].replace('{place}', window.SQ.t('zone.songshan.name', null, 'wuxia'));
+      return {
+        arrive: t.indexOf(arrive) >= 0,
+        scene: sc ? t.indexOf(window.SQ.t('event.' + sc.i + '.desc', null, 'wuxia')) >= 0 : false,
+        rep: (JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia.lastReport || {}).kind
+      };
+    });
+    T(z7.arrive && z7.scene && z7.rep === 'arrive',
+      'ZW7 到达提示（战报卡 arrive 态：「到了嵩山绝顶」真词 ⇔ 当地写景正文 ⇔ lastReport.kind=arrive）',
+      'arrive=' + z7.arrive + ' scene=' + z7.scene + ' rep=' + z7.rep);
+
     /* ZW2 · 闯荡真落档：主页闯荡钮 → lastReport 落档 + 战报卡渲染 */
     await p2.click('#shell-main .wh-tabs button[data-v="home"]');
     await page_wait(p2, 200);

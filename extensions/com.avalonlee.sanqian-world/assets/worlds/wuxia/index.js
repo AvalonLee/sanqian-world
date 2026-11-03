@@ -987,13 +987,20 @@
    * 是事件的另一种结局：江湖记得败者）。 */
   var LEAD_FAIL_INJURY = [2, 6];
   var LEAD_FAIL_RENOWN = [-40, -20];
-  function leadDuel(ws, e) {
+  /* 卷入档轻败（册231 · 世界事件卷 §三「join 风险 = 战败走窄路（轻）」）：
+   * 卷入是「助拳 / 站队 / 护送」，不是单挑 ⇒ 对手战力按 0.7 折算（胜率高于主导档）；
+   * 败了也只是被波及：内伤 1~3、侠名 −5~−10，**事件的走向不变**（你没资格改史）——
+   * 结局照写 canon，见闻照发（人确实在场），只有侠名不给（败了没人替你扬名）。 */
+  var JOIN_SCALE = 0.7;
+  var JOIN_FAIL_INJURY = [1, 3];
+  var JOIN_FAIL_RENOWN = [-10, -5];
+  function leadDuel(ws, e, scale) {
     if (!e || !e.boss) return null;
     var C = (D && D.CAST) || [];
     var boss = null;
     for (var i = 0; i < C.length; i++) if (C[i].i === e.boss) { boss = C[i]; break; }
     if (!boss) return null;
-    var pWin = battleOdds(ws, { t: boss.t });
+    var pWin = battleOdds(ws, { t: boss.t, power: foePower({ t: boss.t }) * (isNum(scale) ? scale : 1) });
     var wins = 0;
     for (var r = 0; r < 3; r++) if (Math.random() < pWin) wins++;
     return { win: wins >= 2, p: Math.round(pWin * 100) / 100, foe: boss.i, tier: boss.t };
@@ -1068,6 +1075,7 @@
     /* 主导档先掷对赌（册228）：败则走窄路 —— 不发放 gain / 主奖励，结局写 'lose'。
      * watch / join 不掷判：旁观无对手，卷入的「战败走窄路（轻）」留后续批（正典 §三 风险列）。 */
     var duel = null;
+    var joinLose = false;
     if (mode === 'lead') {
       duel = leadDuel(ws, e);
       if (!duel) return { err: 'noboss', event: id };
@@ -1092,12 +1100,34 @@
         return res;
       }
       res.win = true;
+    } else if (mode === 'join' && e.boss) {
+      /* 卷入轻败（册231）：对手 0.7 折，败了也只被波及——走向不变、见闻照发、侠名不给 */
+      duel = leadDuel(ws, e, JOIN_SCALE);
+      if (duel) {
+        res.p = duel.p;
+        res.foe = duel.foe;
+        if (!duel.win) {
+          var jInj = JOIN_FAIL_INJURY[0] + Math.floor(Math.random() * (JOIN_FAIL_INJURY[1] - JOIN_FAIL_INJURY[0] + 1));
+          var jRen = JOIN_FAIL_RENOWN[0] + Math.floor(Math.random() * (JOIN_FAIL_RENOWN[1] - JOIN_FAIL_RENOWN[0] + 1));
+          ws.injury = Math.min(15, (ws.injury || 0) + jInj);
+          ws.renown = clampInt((ws.renown || 0) + jRen, -1000, 1000, ws.renown || 0);
+          res.win = false;
+          res.injury = ws.injury;
+          res.renownLost = -jRen;
+          joinLose = true;
+        } else {
+          res.win = true;
+        }
+      }
     }
     /* 见闻奖励落 webonus 进 expOf 派生式（册225 修）：ws.exp += 会被 claim 重算吞掉 */
     ws.world = obj(ws.world);
     ws.world.webonus = (ws.world.webonus || 0) + (g.exp || 8);
     ws.exp = expOf(ws);
-    ws.renown = clampInt((ws.renown || 0) + (g.renown || 0) * (res.alt ? 2 : 1), -1000, 1000, ws.renown || 0);
+    /* 卷入轻败不发侠名（败了没人替你扬名）；见闻照发——人确实在场 */
+    if (!joinLose) {
+      ws.renown = clampInt((ws.renown || 0) + (g.renown || 0) * (res.alt ? 2 : 1), -1000, 1000, ws.renown || 0);
+    }
     if (g.stones) ws.stones = (ws.stones || 0) + g.stones;
     /* 主奖励池（世界事件卷 §七）：仅 lead 胜发放，逐事件声明在 WORLD_EVENTS[].reward */
     if (mode === 'lead') {
@@ -1117,8 +1147,9 @@
     /* 场面执行器挂接（册222 · 世界事件卷 §六 `knot` 字段落码）：join/lead 赴挂接案 → 返回该 KNOTS
      * 的开放分支（branchOpen 过滤 + watch 兜底，travel 同款）供玩家「当场那段戏」直选——
      * 选支走现成 knotChoose（轴微调 + knotDone 落账 → travel 不再重复撞，同源场面不重写）；
-     * 不选则场面不落账。watch 档旁观不演戏（在场不落子）。 */
-    if (mode !== 'watch' && e.knot) {
+     * 不选则场面不落账。watch 档旁观不演戏（在场不落子）。
+     * 册231：**败局无戏**——卷入轻败（joinLose）不给场面，人被波及退到一边，台上还是那几个人在打。 */
+    if (mode !== 'watch' && e.knot && !joinLose) {
       var kn = null;
       var ks = (D && D.KNOTS) || [];
       for (var i3 = 0; i3 < ks.length; i3++) if (ks[i3].i === e.knot) { kn = ks[i3]; break; }

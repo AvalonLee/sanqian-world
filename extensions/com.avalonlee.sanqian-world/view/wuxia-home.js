@@ -70,7 +70,9 @@
       }
     }, function (f) { refresh(f); });
   }
-  /* 前往地界（免费；visited 记见闻） */
+  /* 前往地界（免费；visited 记见闻）——到达给三处反馈（册231）：
+   * ① 浮层「到了 X」即时一行 ② 战报卡 arrive 态（写景正文）③ 行走页当前地常驻写景。
+   * 三处各管一段：即时感 / 回看 / 常驻，不重复堆在同一屏。 */
   function goZone(slot, zid) {
     act(slot, function (s) {
       var w = s.worlds[s.profile.worldId];
@@ -78,6 +80,9 @@
       if (!pk.zoneUnlocked(w, zid)) { slot.toast(tw('wh.zone.locked', null)); return; }
       w.place = zid;
       if ((w.visited || []).indexOf(zid) < 0) w.visited.push(zid);
+      var sc = pk.zoneSceneOf ? pk.zoneSceneOf(zid) : null;
+      w.lastReport = { kind: 'arrive', place: zid, scene: sc ? sc.i : null };
+      slot.toast(tw('wh.rep.arrive', { place: tw('zone.' + zid + '.name', null) }));
     }, function (f) { refresh(f); });
   }
   /* 剧情直选（批书语义摘除：玩家直接选支） */
@@ -153,6 +158,10 @@
         cur = 'home';
       }
       SQ.Log.push(w, 'sys', tw('we.' + id + '.name', null) + ' · ' + (r.alt ? tw('wh.jianghu.fate.alt', null) : tw('wh.jianghu.fate.canon', null)));
+      /* 卷入轻败（册231）：被波及要留一行账——否则玩家只看到侠名掉了，不知道为什么 */
+      if (mode === 'join' && r && r.win === false) {
+        SQ.Log.push(w, 'sys', tw('wh.jianghu.join.lose', { ev: tw('we.' + id + '.name', null), n: r.injury || 0 }));
+      }
     }, function (f) { refresh(f); });
   }
   /* 悬赏 / 押镖（册226 · 数值与经济 §收入） */
@@ -302,6 +311,10 @@
         }
         h += '</div>';
       }
+    } else if (r.kind === 'arrive') {
+      /* 到达（册231）：一句「到了 X」+ 当地写景——写景正文与行走页常驻那份同源（event.<scene>.desc） */
+      h += '<div class="wh-row">' + tw('wh.rep.arrive', { place: tw('zone.' + r.place + '.name', null) }) + '</div>';
+      if (r.scene) h += '<div class="wh-muted">' + tw('event.' + r.scene + '.desc', null) + '</div>';
     } else if (r.kind === 'quiet') {
       h += r.delivered
         ? '<div class="wh-row">' + tw('wh.rep.escort.done', { pay: r.delivered }) + '</div>'
