@@ -597,17 +597,105 @@
     if ((w.realm | 0) >= 9) h += '<div class="wh-row"><button class="btn primary" id="wh-retire">' + tw('wh.home.retire', null) + '</button></div>';
     return h + '</div>';
   }
-  /* 人物页（册218 P7）：已识之人 + 结交钮 */
+  /* 人物页（册218 P7；册243 关系网 + 人物小传）：
+   * 关系网回答「我跟谁连着」，人物录回答「他是谁」——
+   * 录入 = 已识之人 ∪ 有名有姓的 S/A 级人物（未谋面者只见传闻小传）。
+   * 小传优先取 `cast.<id>.bio`（S/A 手工稿），其余按门派 / 品阶 / 阵营派生一句。 */
+  function castBio(id, row) {
+    var L = SQ.LEX && SQ.LEX[WID];
+    var k = 'cast.' + id + '.bio';
+    if (L && L[k]) return tw(k, null);
+    return tw('wh.people.bio.derived', {
+      sect: row && row.sec ? tw('sect.' + row.sec + '.name', null) : tw('wh.people.nosect', null),
+      tier: tw('wh.cast.tier.' + ((row && row.t) || 'C'), null),
+      align: tw('wh.cast.align.' + ((row && row.align) || 'zhong'), null)
+    });
+  }
   function peopleBody(cf) {
-    var w = cf.w;
+    var w = cf.w, p = cf.p;
+    var C = (p.data && p.data.CAST) || [];
     var rel = w.relations || {};
-    var h = '<div class="wh-card"><h3>' + tw('wh.people.title', null) + '</h3>';
-    var rk = Object.keys(rel);
-    if (!rk.length) h += '<div class="wh-muted">' + tw('wh.people.none', null) + '</div>';
-    for (var i = 0; i < rk.length; i++) {
-      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('cast.' + rk[i] + '.name', null) + '</b></span>' +
-        '<span class="wh-muted">' + tw('wh.people.aff', { n: rel[rk[i]].affinity || 0 }) + '</span>' +
-        '<button class="btn" data-befriend="' + rk[i] + '">' + tw('wh.people.befriend', null) + '</button></div>';
+    var idx = {};
+    for (var i = 0; i < C.length; i++) idx[C[i].i] = C[i];
+    function nm(id) { return tw('cast.' + id + '.name', null); }
+    function namesOf(ids) {
+      var out = [];
+      for (var j = 0; j < ids.length; j++) out.push(nm(ids[j]));
+      return out.join(' · ');
+    }
+    var h = '<div class="wh-card"><h3>' + tw('wh.people.net', null) + '</h3>';
+    /* 门派与师承 */
+    if (w.sect && w.sect.id) {
+      var sectNm = tw('sect.' + w.sect.id + '.name', null);
+      h += '<div class="wh-row"><span class="wh-cell">' + tw('wh.people.sect', null) + '</span><span class="wh-muted">' +
+        (w.sect.betrayed ? tw('wh.people.sectout', { sect: sectNm })
+          : tw('wh.people.sectline', {
+            sect: sectNm,
+            rank: tw('wh.sect.rank', { n: p.sectRankOf(w.sect.contribution | 0) }),
+            n: w.sect.contribution | 0
+          })) + '</span></div>';
+      var masters = [];
+      for (var m = 0; m < C.length; m++) {
+        var cm = C[m];
+        if (cm.sec === w.sect.id && ['master', 'founder', 'abbot', 'chief'].indexOf(cm.role) >= 0) masters.push(nm(cm.i));
+      }
+      h += '<div class="wh-row"><span class="wh-cell">' + tw('wh.people.master', null) + '</span><span class="wh-muted">' +
+        (masters.length ? masters.join(' · ') : tw('wh.people.masternone', null)) + '</span></div>';
+    } else {
+      h += '<div class="wh-row"><span class="wh-cell">' + tw('wh.people.sect', null) + '</span><span class="wh-muted">' +
+        tw('wh.people.sectnone', null) + '</span></div>';
+    }
+    /* 交情分档（仇敌按 kind 单列；affinity ≥80 知己 / ≥60 好友 / 其余相识） */
+    var g = { close: [], friend: [], known: [], foe: [] };
+    for (var id in rel) {
+      var r = rel[id] || {};
+      var a = r.affinity | 0;
+      if (r.kind === 'enemy') g.foe.push(id);
+      else if (a >= 80) g.close.push(id);
+      else if (a >= 60) g.friend.push(id);
+      else g.known.push(id);
+    }
+    function groupRow(key, ids) {
+      if (!ids.length) return '';
+      return '<div class="wh-row"><span class="wh-cell">' +
+        tw('wh.people.group', { label: tw(key, null), n: ids.length }) + '</span>' +
+        '<span class="wh-muted">' + namesOf(ids) + '</span></div>';
+    }
+    h += groupRow('wh.people.g.close', g.close);
+    h += groupRow('wh.people.g.friend', g.friend);
+    h += groupRow('wh.people.g.known', g.known);
+    h += g.foe.length ? groupRow('wh.people.g.foe', g.foe)
+      : '<div class="wh-row"><span class="wh-cell">' + tw('wh.people.g.foe', null) + '</span><span class="wh-muted">' +
+        tw('wh.people.nofoe', null) + '</span></div>';
+    if (!g.close.length && !g.friend.length && !g.known.length) {
+      h += '<div class="wh-muted">' + tw('wh.people.none', null) + '</div>';
+    }
+    h += '</div>';
+    /* 人物录：已识在前（交情降序），未识的 S/A 按品阶与语料频次排 */
+    var TORD = { S: 0, A: 1, B: 2, C: 3 };
+    var seen = {}, ids = [];
+    for (var rid in rel) { ids.push(rid); seen[rid] = 1; }
+    for (var c2 = 0; c2 < C.length; c2++) {
+      if ((C[c2].t === 'S' || C[c2].t === 'A') && !seen[C[c2].i]) { ids.push(C[c2].i); seen[C[c2].i] = 1; }
+    }
+    ids.sort(function (x, y) {
+      var mx = rel[x] ? 1 : 0, my = rel[y] ? 1 : 0;
+      if (mx !== my) return my - mx;
+      if (mx && rel[x] && rel[y] && (rel[y].affinity | 0) !== (rel[x].affinity | 0)) return (rel[y].affinity | 0) - (rel[x].affinity | 0);
+      var tx = TORD[(idx[x] || {}).t], ty = TORD[(idx[y] || {}).t];
+      if (tx == null) tx = 9;
+      if (ty == null) ty = 9;
+      if (tx !== ty) return tx - ty;
+      return ((idx[y] || {}).f | 0) - ((idx[x] || {}).f | 0);
+    });
+    h += '<div class="wh-card"><h3>' + tw('wh.people.record', null) + '</h3>';
+    for (var q = 0; q < ids.length; q++) {
+      var cid = ids[q], met = !!rel[cid];
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + nm(cid) + '</b> <span class="wh-muted">' +
+        (met ? tw('wh.people.met', null) + ' · ' + tw('wh.people.aff', { n: rel[cid].affinity | 0 }) : tw('wh.people.unmet', null)) +
+        '</span></span>' +
+        (met ? '<button class="btn" data-befriend="' + cid + '">' + tw('wh.people.befriend', null) + '</button>' : '') +
+        '</div><div class="wh-muted">' + castBio(cid, idx[cid]) + '</div>';
     }
     return h + '</div>';
   }
