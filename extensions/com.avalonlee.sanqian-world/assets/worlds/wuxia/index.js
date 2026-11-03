@@ -429,6 +429,14 @@
     if (!oldWs || !fresh) return null;
     var her = obj(oldWs.heritage);
     var items = arr(her.inherited).length ? arr(her.inherited).slice(0, 3) : inheritOf(oldWs);
+    /* 江湖格局跨世（册241 · 世界事件卷 §五 / §十一 P7）：人物去向 / 门派声望 / 余波传闻带进来世
+     * ——上世改的格局要看得见。已了结事件本身（wefate/wecyc/wseen）重置：新的一世重新赴会。 */
+    var ow = obj(oldWs.world);
+    fresh.world = {
+      wefate: {}, wecyc: {}, wseen: {},
+      wbcast: obj(ow.wbcast), wbsect: obj(ow.wbsect), wafter: arr(ow.wafter).slice(-20),
+      webonus: 0, fireDays: 0, fireMs: 0, bixieMs: 0
+    };
     if (!items.length) return null;
     fresh.heritage = { gen: Math.max(2, her.gen | 0), inherited: items };
     for (var i = 0; i < items.length; i++) {
@@ -616,6 +624,63 @@
   }
   var GAIN_RATE = 12;                                   /* 平安步拾遗概率（百分点） */
   function gainTip(h) { return 5 + ((h >>> 3) % 16); }  /* 5~20 文 */
+  /* ── 隐世传功（册242 · 武学全录 §八「长尾武学的奇遇获得投放权重」）──────────────
+   * 全表 403 部里，门派可学约 98 + 秘籍 10 + 事件主奖励约 9 ⇒ 约 305 部长尾永远拿不到。
+   * 本通道把长尾接进「平安步」：只传**未学、无门派归属、且不是秘籍/事件主奖励**的武学，
+   * 按品阶加权、按境界开门——黄 0 / 玄 2 / 地 4 / 天 6；平安步 1% 触发（整步约 0.3%）。
+   * 只在玩家主动行走时掷（与遭遇战同口径），不占离线结算，也不改见闻/战斗曲线。 */
+  var TEACH_RATE = 0.01;
+  var TEACH_TIER = { huang: { r: 0, w: 60 }, xuan: { r: 2, w: 30 }, di: { r: 4, w: 8 }, tian: { r: 6, w: 2 } };
+  var LT_EXCLUDE = null;
+  function longTailExclude() {
+    if (LT_EXCLUDE) return LT_EXCLUDE;
+    var set = {};
+    for (var i = 0; i < WORLD_EVENTS.length; i++) {
+      var rw = WORLD_EVENTS[i].reward;
+      if (rw && rw.kind === 'art') set[rw.id] = 1;
+    }
+    var M = (D && D.MANUALS) || [];
+    for (var m = 0; m < M.length; m++) if (M[m].art) set[M[m].art] = 1;
+    LT_EXCLUDE = set;
+    return set;
+  }
+  function longTailPool(ws) {
+    var out = [], known = {}, ex = longTailExclude();
+    (ws && arr(ws.artsKnown)).forEach(function (id) { known[id] = 1; });
+    var A = (D && D.ARTS) || [];
+    var r = (ws && ws.realm) | 0;
+    for (var i = 0; i < A.length; i++) {
+      var a = A[i];
+      if (!a || !a.i || known[a.i] || ex[a.i]) continue;
+      if (arr(a.s).length) continue;                 /* 门派可学的不走私授 */
+      var tt = TEACH_TIER[a.t];
+      if (!tt || r < tt.r) continue;
+      out.push(a);
+    }
+    return out;
+  }
+  function longTailPick(ws, h) {
+    var pool = longTailPool(ws);
+    if (!pool.length) return null;
+    var total = 0;
+    for (var i = 0; i < pool.length; i++) total += TEACH_TIER[pool[i].t].w;
+    var roll = (h >>> 0) % total;
+    for (var j = 0; j < pool.length; j++) {
+      roll -= TEACH_TIER[pool[j].t].w;
+      if (roll < 0) return pool[j];
+    }
+    return pool[pool.length - 1];
+  }
+  function grantLongTail(ws, artId) {
+    if (!ws || !ART_INDEX[artId]) return null;
+    ws.artsKnown = arr(ws.artsKnown);
+    if (ws.artsKnown.indexOf(artId) >= 0) return null;
+    ws.artsKnown.push(artId);
+    ws.artsLevels = obj(ws.artsLevels);
+    ws.artsLevels[artId] = 1;
+    autoSlotArt(ws, artId);
+    return { id: artId, t: ART_INDEX[artId].t };
+  }
   function travel(ws, opt) {
     /* 押镖面（册226）：在途则本步推进一格；败战 = 劫毁（无酬）；满 3 步自动交镖得酬。
      * 三出口（battle/knot/quiet）全覆盖——胜战/剧情/平安步都计押送，只有败战断镖。 */
@@ -738,10 +803,18 @@
         ws.stones = (ws.stones || 0) + gainLoot;
       }
     }
+    /* 隐世传功（册242）：平安步 1% 遇前辈授业——只在主动行走时掷（与遭遇战同口径），
+     * 不占离线结算；本步照常推进子场景与拾遗，传功只是「路上多遇一个人」。 */
+    var taught = null;
+    if (Math.random() < TEACH_RATE) {
+      var ta = longTailPick(ws, h);
+      if (ta && grantLongTail(ws, ta.i)) taught = ta.i;
+    }
     ws.lastReport = { kind: 'quiet', place: place, scene: Math.min(done + 1, scenes.length) };
     if (gainRow) { ws.lastReport.gain = gainRow.i; ws.lastReport.loot = gainLoot; }
+    if (taught) ws.lastReport.teach = taught;
     return { kind: 'quiet', scene: Math.min(done + 1, scenes.length), place: place,
-      gain: gainRow ? gainRow.i : null, loot: gainLoot };
+      gain: gainRow ? gainRow.i : null, loot: gainLoot, teach: taught };
   }
   /* KNOTS 分支直选（册216 · 批书语义摘除）：watch/help/probe/defy/join/flee 玩家直选；
    * 效果 = 性格轴微调（help=侠+4 / defy=狂+4 / join=毒+4 ——册161 AXIS_BY_K 平移）+ 保守项零效果。 */
@@ -1117,8 +1190,8 @@
       alt: { sects: { quanzhen: 8, gaibang: 8, shaolin: 5 } }
     },
     we_weijiao_gm: {
-      canon: { sects: { mingjiao: -40, shaolin: 10, wudang: 10, huashan: 10, kunlun: 10, kongtong: 10, emei: 10 } },
-      alt: { sects: { mingjiao: 50, shaolin: -10, wudang: -10, huashan: -10 } }
+      canon: { sects: { mingjiao: -40, shaolin: 10, wudang: 10, huashan: 10, kunlun: 10, kongtong: 10, emei: 10 }, next: ['we_jiaozhu'] },
+      alt: { sects: { mingjiao: 50, shaolin: -10, wudang: -10, huashan: -10 }, close: ['we_jiaozhu'] }
     },
     we_juxian: {
       canon: { cast: { xiao_feng: 'flee' }, sects: { gaibang: -20 } },
@@ -1146,8 +1219,8 @@
       alt: { sects: { shaolin: 5, gaibang: 5 } }
     },
     we_wuyue_bingpai: {
-      canon: { sects: { songshan: 15, taishan: -5, hengshan_n: -5, hengshan: -5, huashan: -5 } },
-      alt: { sects: { songshan: -10, huashan: 5 } }
+      canon: { sects: { songshan: 15, taishan: -5, hengshan_n: -5, hengshan: -5, huashan: -5 }, next: ['we_heimu'] },
+      alt: { sects: { songshan: -10, huashan: 5 }, close: ['we_heimu'] }
     },
     we_xiake: {
       canon: { sects: {} },
@@ -1262,6 +1335,19 @@
    * 独发型 window [y0,y1] ＝一次性条件窗——未到 y0 隐藏，滑过 y1 由 sweepExpired 按「江湖传言收场」落定（wefate=echo）。 */
   function worldYearOf(ws) { return Math.floor((ws.worldDay || 0) / 360); }
   function wecycOf(ws) { return obj(ws.world && ws.world.wecyc); }
+  /* next 链式（册241 · 世界事件卷 §五 蝴蝶效应）：由**已了结事件的结局**派生，不落新字段。
+   * canon/alt 的 `next` 显式开门、`close` 显式关门；lose/echo 按 canon 落定（与 applyWriteback 同口径）。
+   * 返回 'open' / 'close' / null（未表态）——多案冲突时 close 优先（江湖关门比开门更硬）。 */
+  function nextVerdict(ws, id) {
+    var fate = wefateOf(ws), seenOpen = false;
+    for (var eid in fate) {
+      var wb = (WRITEBACK[eid] || {})[fate[eid] === 'alt' ? 'alt' : 'canon'];
+      if (!wb) continue;
+      if (arr(wb.close).indexOf(id) >= 0) return 'close';
+      if (arr(wb.next).indexOf(id) >= 0) seenOpen = true;
+    }
+    return seenOpen ? 'open' : null;
+  }
   function inWindow(ws, e) {
     var yr = worldYearOf(ws);
     if (e.cyc) return true;                                  /* 惯例型常驻（本届已赴由 wecyc 管） */
@@ -1277,6 +1363,7 @@
     for (var i = 0; i < WORLD_EVENTS.length; i++) {
       var e = WORLD_EVENTS[i];
       if (e.cyc || !e.window || fate[e.i]) continue;
+      if (nextVerdict(ws, e.i) === 'close') continue;   /* 被上一案的结局关掉：不算「错过」，不落回声 */
       if (worldYearOf(ws) > e.window[1]) {
         ws.world.wefate[e.i] = 'echo';   /* 江湖没有等你：按 canon 落定为回声结局（见闻 +2 走 expOf 派生） */
         applyWriteback(ws, e, 'canon');  /* 错过也照样推进江湖格局（册236 · §五「按 canon 落定」） */
@@ -1290,6 +1377,8 @@
     var out = [];
     for (var i = 0; i < WORLD_EVENTS.length; i++) {
       var e = WORLD_EVENTS[i];
+      var nv = nextVerdict(ws, e.i);
+      if (nv === 'close') continue;          /* 蝴蝶效应关门（含惯例型） */
       if (e.cyc) {
         var cur = Math.floor(worldYearOf(ws) / e.cyc);
         if (cyc[e.i] === cur) continue;   /* 惯例型：本届已赴——跨届重开 */
@@ -1299,7 +1388,7 @@
       }
       var preOk = true;
       for (var p2 = 0; p2 < (e.pre || []).length; p2++) if (!fate[e.pre[p2]]) preOk = false;
-      if (!preOk) continue;
+      if (!preOk && nv !== 'open') continue;   /* next 可越过 pre 直接开门 */
       out.push(e);
     }
     return out;
@@ -1328,6 +1417,7 @@
     for (var i = 0; i < WORLD_EVENTS.length; i++) {
       var e = WORLD_EVENTS[i];
       if (e.cyc || !e.window || fate[e.i]) continue;
+      if (nextVerdict(ws, e.i) === 'close') continue;
       var days = e.window[0] * 360 - day;
       if (days > 0 && days <= 360) out.push({ i: e.i, days: days, soon: days <= 30 });
     }
@@ -1406,6 +1496,7 @@
     var e = null;
     for (var i = 0; i < WORLD_EVENTS.length; i++) if (WORLD_EVENTS[i].i === id) { e = WORLD_EVENTS[i]; break; }
     if (!e) return { err: 'noevent' };
+    if (nextVerdict(ws, id) === 'close') return { err: 'closed' };
     var fate = wefateOf(ws);
     /* 拒重口径按型分叉（册228 修既有缺陷）：惯例型看「本届届次」（wecyc），**不看 fate**——
      * 原先一刀切 `if (fate[id]) done` 会让惯例型（华山论剑 / 腊八 / 杀龟）赴过一届后永久点不动，
@@ -1771,6 +1862,9 @@
     zoneUnlocked: zoneUnlocked,
     /* 地界素材两型（册229）：到达写景 / 拾遗取条与金额（判据直测口） */
     zoneSceneOf: zoneSceneOf, gainOf: gainOf, gainTip: gainTip, GAIN_RATE: GAIN_RATE,
+    /* 隐世传功（册242 · 武学全录 §八）：长尾池 / 加权抽取 / 授予口 —— 判据直测口 */
+    TEACH_RATE: TEACH_RATE, TEACH_TIER: TEACH_TIER,
+    longTailExclude: longTailExclude, longTailPool: longTailPool, longTailPick: longTailPick, grantLongTail: grantLongTail,
     /* 相性（册232 · 武学全录 §一 四性环克）：环 / 乘区 / 主角性 / 对手性两源 —— 判据直测口 */
     NAT_CYCLE: NAT_CYCLE, SECT_NAT: SECT_NAT, ZONE_NAT: ZONE_NAT,
     natBeats: natBeats, natMult: natMult, myNat: myNat, castNat: castNat, zoneNat: zoneNat, battleOdds: battleOdds,

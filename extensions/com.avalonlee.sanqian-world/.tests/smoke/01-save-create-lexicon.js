@@ -1499,6 +1499,104 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 窗=' + winOk + (badWin.length ? '(' + badWin.join(',') + ')' : ''));
     })();
 
+    /* E40 · 世界事件 next 链式（册241 · 蝴蝶效应）：canon/alt 的 next/close 由已了结事件派生，
+     * 不落新字段——光明顶 canon 开教主之争 / alt 关门；五岳并派 canon 开黑木崖 / alt 关门；
+     * 未表态时 pre 基线照旧（教主之争仍要等光明顶先了结）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.worldEvents) { ok('E40', 'next 链式', false, '无 worldEvents 口'); return; }
+      function mk(fate) {
+        var w = pk.normalize(pk.initialState());
+        w.realm = 9; w.worldDay = 5 * 360 + 1;
+        w.world.wefate = fate || {};
+        return w;
+      }
+      function has(w, id) {
+        var es = pk.worldEvents(w);
+        for (var i = 0; i < es.length; i++) if (es[i].i === id) return true;
+        return false;
+      }
+      var jc = has(mk({ we_weijiao_gm: 'canon' }), 'we_jiaozhu');
+      var ja = has(mk({ we_weijiao_gm: 'alt' }), 'we_jiaozhu');
+      var jn = has(mk({}), 'we_jiaozhu');
+      var hc = has(mk({ we_wuyue_bingpai: 'canon' }), 'we_heimu');
+      var ha = has(mk({ we_wuyue_bingpai: 'alt' }), 'we_heimu');
+      ok('E40', 'next 链式（光明顶 canon 开教主之争 / alt 关门 ‖ 五岳并派 canon 开黑木崖 / alt 关门 ‖ 未表态时 pre 基线照旧）',
+        jc && !ja && !jn && hc && !ha,
+        '教canon=' + jc + ' 教alt=' + ja + ' 无前置=' + jn + ' 黑canon=' + hc + ' 黑alt=' + ha);
+    })();
+
+    /* E41 · 江湖格局跨世（册241 · 世界事件卷 §十一 P7）：人物去向 / 门派声望 / 余波带进来世；
+     * 已了结事件本身（wefate/wecyc/wseen）重置；即使本世没有余响可带，格局照样跨世。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.worldSystems || !pk.worldSystems.rebirthCarry) { ok('E41', '格局跨世', false, '无 rebirthCarry 口'); return; }
+      var old = pk.normalize(pk.initialState());
+      old.realm = 9; old.artsLevels = { quan_basic: 9 };
+      old.world.wefate = { we_juxian: 'alt' };
+      old.world.wecyc = { we_huashan: 2 };
+      old.world.wseen = { we_wangpan: '1' };
+      old.world.wbcast = { xiao_feng: 'dead' };
+      old.world.wbsect = { gaibang: -20 };
+      old.world.wafter = ['we_juxian:alt'];
+      var fresh = pk.initialState();
+      pk.worldSystems.rebirthCarry(old, fresh);
+      var carried = !!(fresh.world && fresh.world.wbcast.xiao_feng === 'dead' &&
+        fresh.world.wbsect.gaibang === -20 && fresh.world.wafter.indexOf('we_juxian:alt') >= 0);
+      var reset = !!(fresh.world && !fresh.world.wefate.we_juxian && !fresh.world.wecyc.we_huashan && !fresh.world.wseen.we_wangpan);
+      var herOk = !!(fresh.heritage && fresh.heritage.gen === 2);
+      var old2 = pk.normalize(pk.initialState());
+      old2.world.wbcast = { xiao_feng: 'flee' };
+      var fresh2 = pk.initialState();
+      pk.worldSystems.rebirthCarry(old2, fresh2);
+      var bareOk = !!(fresh2.world && fresh2.world.wbcast.xiao_feng === 'flee');
+      ok('E41', '江湖格局跨世（人物去向 / 门派声望 / 余波带进来世 ⇔ 已了结事件重置 ⇔ 无余响也带格局）',
+        carried && reset && herOk && bareOk,
+        '格局=' + carried + ' 重置=' + reset + ' 余响=' + herOk + ' 无余响=' + bareOk);
+    })();
+
+    /* E42 · 隐世传功（册242 · 武学全录 §八「长尾武学的奇遇获得投放权重」）：
+     * ① 长尾池只收「未学 / 无门派 / 非秘籍非事件主奖励」，门派武学与已学不入池
+     * ② 境界开门：黄 0 / 玄 2 / 地 4 / 天 6 ‖ ③ 定种抽取：同 h 同结果
+     * ④ 授予只入档一次；开关开才自动入空槽 ‖ ⑤ 真入口：平安步掷中仍报 quiet 且带 teach。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.longTailPool) { ok('E42', '隐世传功', false, '无 longTailPool 口'); return; }
+      function mk(r) { var w = pk.normalize(pk.initialState()); w.realm = r; return w; }
+      var w9 = mk(9);
+      var pool = pk.longTailPool(w9);
+      var ex = pk.longTailExclude();
+      var shapeOk = pool.length > 0;
+      for (var i = 0; i < pool.length; i++) {
+        var a = pool[i];
+        if ((a.s || []).length || ex[a.i] || w9.artsKnown.indexOf(a.i) >= 0) shapeOk = false;
+      }
+      function tiers(p) { var m = {}; for (var i = 0; i < p.length; i++) m[p[i].t] = 1; return m; }
+      var t0 = tiers(pk.longTailPool(mk(0))), t2 = tiers(pk.longTailPool(mk(2)));
+      var t4 = tiers(pk.longTailPool(mk(4))), t6 = tiers(pk.longTailPool(mk(6)));
+      var gateOk = t0.huang && !t0.xuan && !t0.di && !t0.tian &&
+        t2.xuan && !t2.di && !t2.tian && t4.di && !t4.tian && t6.tian;
+      var a1 = pk.longTailPick(w9, 12345), a2 = pk.longTailPick(mk(9), 12345);
+      var pickOk = !!a1 && !!a2 && a1.i === a2.i;
+      var wg = mk(9); wg.autoSlotArt = true;
+      var g1 = pk.grantLongTail(wg, a1.i), g2 = pk.grantLongTail(wg, a1.i);
+      var grantOk = !!g1 && g2 === null && wg.artsKnown.indexOf(a1.i) >= 0 &&
+        wg.artsLevels[a1.i] === 1 && wg.artsSlots.indexOf(a1.i) >= 0;
+      var wn = mk(9); var gn = pk.grantLongTail(wn, a2.i);
+      var noAutoOk = !!gn && wn.artsSlots.indexOf(a2.i) < 0;
+      var realRnd = Math.random;
+      Math.random = function () { return 0; };
+      var wt = mk(0); wt.stamina = 60; wt.worldDay = 0;
+      var rt = pk.travel(wt, {});
+      Math.random = realRnd;
+      var entryOk = rt.kind === 'quiet' && !!rt.teach && wt.lastReport.kind === 'quiet' &&
+        wt.lastReport.teach === rt.teach && wt.artsKnown.indexOf(rt.teach) >= 0;
+      ok('E42', '隐世传功（长尾池只收未学/无门派/非秘籍非主奖励 ⇔ 境界开门 0/2/4/6 ⇔ 同 h 同抽 ⇔ 授予一次且开关开才入槽 ⇔ 平安步掷中落 teach 且武学入档）',
+        shapeOk && gateOk && pickOk && grantOk && noAutoOk && entryOk,
+        '池=' + pool.length + ' 形=' + shapeOk + ' 门=' + gateOk + ' 抽=' + pickOk +
+        ' 授=' + grantOk + ' 不自动=' + noAutoOk + ' 入口=' + entryOk);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */

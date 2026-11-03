@@ -94,6 +94,8 @@
     'wh.rep.quiet': '在{place}走了一程（行至第 {n} 处），风平浪静，得{loot}文花销。',
     'wh.rep.knot.ask': '撞上一桩事：{title}', 'wh.rep.knotDone': '此事了结（{chose}）。',
     'wh.rep.gain': '在{place}拾得{loot}文——不知是谁掉的，也没人来寻。',
+    'wh.rep.teach': '途中遇见一位前辈，见你根骨不俗，传了一套「{name}」。',
+    'wh.log.teach': '得隐世前辈传授「{name}」。',
     'wh.jianghu.join.lose': '卷入「{ev}」时被波及（内伤至 {n}）。',
     'wh.rep.arrive': '到了{place}。',
     'wh.rep.duel.win': '主导「{ev}」：你站到了最后，事情按你的意思定了。',

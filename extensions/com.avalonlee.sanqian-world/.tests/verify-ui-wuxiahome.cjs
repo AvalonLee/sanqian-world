@@ -447,6 +447,20 @@ const { chromium } = require('playwright-core');
       'shown=' + g10.shown + ' home=' + g10.quiet);
   });
 
+  /* WH15 · 隐世传功行（册242 · 武学全录 §八）：种档直给一条带 teach 的战报 —— 判展示面；
+   * 概率面与入档面由冒烟 E42 真入口覆盖，此处不掷骰。 */
+  await runSeeded({ lastReport: { kind: 'quiet', place: 'luoyang', scene: 1, teach: 'yg_hama' } }, async (p2) => {
+    await p2.waitForTimeout(500);
+    const g15 = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const want = L['wh.rep.teach'].replace('{name}', window.SQ.t('art.yg_hama.name', null, 'wuxia'));
+      return { shown: t.indexOf(want) >= 0, quiet: t.indexOf(L['wh.rep.quiet'].split('{place}')[0]) >= 0 };
+    });
+    T(g15.shown && g15.quiet, 'WH15 隐世传功报卡（quiet 态 + teach 字段 ⇒ 「传了一套『蛤蟆功』」真词上屏）',
+      'shown=' + g15.shown + ' quiet=' + g15.quiet);
+  });
+
   /* WH9d/9e · 行头三槽（册230）：四槽齐 + 口径注上屏 ⇔ 装快靴真落档且**战力乘区不动**
    * （三槽只动判定——界面侧也钉这条，免得日后有人把行头接进 powerOf）。 */
   await runSeeded({ stash: ['gm_xiujian', 'gm_ruanjia', 'gm_kuaixue'], stones: 500 }, async (p2) => {
@@ -641,6 +655,23 @@ const { chromium } = require('playwright-core');
       'WH13 自动开关真生效（研读九阴 ⇒ 自动入槽 ⇔ 买入铁刀 ⇒ 自动上身且出库）',
       'known=' + r.artKnown + ' slot=' + r.slot + ' weapon=' + r.weapon + ' stash=' + JSON.stringify(r.stash));
   });
+
+  /* WH14 · next 链式上屏（册241）：光明顶 canon 开教主之争 / alt 关门——江湖页可赴列表跟着变 */
+  const jiaozhuShown = async (fate) => {
+    let shown = null;
+    await runSeeded({ realm: 9, worldDay: 5 * 360 + 1, world: { wefate: { we_weijiao_gm: fate } } }, async (p2) => {
+      await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
+      await p2.waitForTimeout(200);
+      shown = await p2.evaluate(() => document.getElementById('shell-main').textContent
+        .indexOf(window.SQ.LEX.wuxia['we.we_jiaozhu.name']) >= 0);
+    });
+    return shown;
+  };
+  const jzCanon = await jiaozhuShown('canon');
+  const jzAlt = await jiaozhuShown('alt');
+  T(jzCanon && !jzAlt,
+    'WH14 next 链式上屏（光明顶 canon 开「教主之争」⇔ alt 关门——江湖页可赴列表跟着变）',
+    'canon=' + jzCanon + ' alt=' + jzAlt);
 
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
