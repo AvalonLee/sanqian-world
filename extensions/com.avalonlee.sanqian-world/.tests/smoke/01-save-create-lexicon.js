@@ -557,7 +557,11 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       }
       var hookOk = hooked === 7;
       var w1 = pk.normalize(pk.initialState()); w1.realm = 5; w1.stamina = 99;
+      /* 册231：join 也变对赌了 ⇒ 定种取胜，否则「有戏」这一面会随机红（败局无戏是修订口径） */
+      var realRnd22 = Math.random;
+      Math.random = function () { return 0.01; };
       var rJ = pk.attendEvent(w1, 'we_juxian', 'join');
+      Math.random = realRnd22;
       var sceneOk = rJ && rJ.ok && rJ.scene && rJ.scene.knot === 'knot_juxian' && rJ.scene.opts.length >= 1;
       var optsOpen = sceneOk;
       for (var o = 0; sceneOk && o < rJ.scene.opts.length; o++) {
@@ -912,7 +916,8 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var rI = pk.attendEvent(wI, 'we_juxian', 'join', false);
       var wJ = pk.normalize(pk.initialState()); wJ.realm = 6; wJ.stamina = 99;
       var rJ = pk.attendEvent(wJ, 'we_huashan', 'watch', false);
-      var plainOk = rI && rI.ok && !rI.reward && rI.win === undefined && wI.world.wefate.we_juxian === 'canon' &&
+      /* ⑦ watch 不判胜负；join 已判轻败（册231）但**结局仍 canon**（卷入不改史）、不产主奖励 */
+      var plainOk = rI && rI.ok && !rI.reward && wI.world.wefate.we_juxian === 'canon' && rI.win !== undefined &&
         rJ && rJ.ok && !rJ.reward && rJ.win === undefined;
       /* ⑧ 惯例型跨届重开（册228 顺修）：we_huashan cyc 6 —— 本届赴过同届拒重、**下届可再赴**。
        * 修复前 `if (fate[id]) done` 一刀切 ⇒ 惯例型赴过一届后永久点不动（列表可见、按下 done）。 */
@@ -1052,6 +1057,40 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         tableOk && effOk && redline && eqOk && codexOk && lootOk && injOk && evadeOk,
         '表=' + tableOk + ' 效果=' + effOk + ' 红线=' + redline + ' 装备=' + eqOk + ' 谱=' + codexOk +
         ' 战利=' + lootOk + ' 减伤=' + injOk + ' 避遇=' + evadeOk);
+    })();
+
+    /* E31 · 卷入档轻败（册231 · 世界事件卷 §三「join 风险 = 战败走窄路（轻）」）：
+     * ① 胜（stub 0）：gain 照发（侠名 = gain.join.renown）、无伤、win=true ‖
+     * ② 败（stub 0.99 ⇒ 带端定种）：内伤 3、侠名 −5、**见闻照发**、不发 gain 侠名、无主奖励、win=false ‖
+     * ③ **结局键仍 canon**——卷入不是「改变走向的人」，败了也不写 lose ‖
+     * ④ 轻重的量化差：join 对手 0.7 折 ⇒ 同一 ws 下 join 胜率 > lead 胜率。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.attendEvent || !pk.leadDuel) { ok('E31', '卷入轻败', false, '无 attendEvent/leadDuel'); return; }
+      var evJ = null;
+      for (var q = 0; q < pk.WORLD_EVENTS.length; q++) if (pk.WORLD_EVENTS[q].i === 'we_juxian') evJ = pk.WORLD_EVENTS[q];
+      var realRnd = Math.random;
+      Math.random = function () { return 0; };
+      var w1 = pk.normalize(pk.initialState()); w1.realm = 6; w1.stamina = 99; w1.worldDay = 0; w1.injury = 0; w1.renown = 0;
+      var r1 = pk.attendEvent(w1, 'we_juxian', 'join', false);
+      Math.random = function () { return 0.99; };
+      var w2 = pk.normalize(pk.initialState()); w2.realm = 6; w2.stamina = 99; w2.worldDay = 0; w2.injury = 0; w2.renown = 0;
+      var exp0 = w2.exp;
+      var r2 = pk.attendEvent(w2, 'we_juxian', 'join', false);
+      Math.random = realRnd;
+      var gainJ = (evJ && evJ.gain && evJ.gain.join) ? evJ.gain.join : {};
+      var winOk = r1 && r1.ok && r1.win === true && w1.injury === 0 && w1.renown === (gainJ.renown | 0) &&
+        w1.world.wefate.we_juxian === 'canon' && !r1.reward;
+      var loseOk = r2 && r2.ok && r2.win === false && w2.injury === 3 && w2.renown === -5 &&
+        w2.world.wefate.we_juxian === 'canon' && w2.exp > exp0 && !r2.reward && !r2.scene;
+      var w3 = pk.normalize(pk.initialState()); w3.realm = 5;
+      var dLead = pk.leadDuel(w3, evJ, 1), dJoin = pk.leadDuel(w3, evJ, 0.7);
+      var oddsOk = dJoin && dLead && dJoin.p > dLead.p;
+      ok('E31', '卷入轻败（胜 gain 照发无伤 ‖ 败 伤3/侠−5/见闻照发/不发侠名/无奖励 ‖ **结局仍 canon**（卷入不改史）‖ join 0.7 折胜率 > lead）',
+        winOk && loseOk && oddsOk,
+        '胜=' + winOk + '(侠' + (w1 ? w1.renown : '?') + ') 败=' + loseOk + '(伤' + (w2 ? w2.injury : '?') + ',侠' + (w2 ? w2.renown : '?') +
+        ',键' + (w2 && w2.world && w2.world.wefate ? w2.world.wefate.we_juxian : '?') + ') 胜率=' + oddsOk +
+        '(join ' + (dJoin && dJoin.p) + ' vs lead ' + (dLead && dLead.p) + ')');
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
