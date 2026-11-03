@@ -375,7 +375,7 @@
   }
   /* 修习页：资质三轴 + 修习槽管理 + 已知武学全列表（入槽） */
   function artsBody(cf) {
-    var w = cf.w;
+    var w = cf.w, p = cf.p;
     var a = w.atts || { zhi: 50, gu: 50, xing: 50 };
     var known = (w.artsKnown || []).slice();
     var inSlot = {};
@@ -385,7 +385,10 @@
       '<span class="wh-cell">' + tw('wh.atts.zhi', null) + ' <b>' + a.zhi + '</b></span>' +
       '<span class="wh-cell">' + tw('wh.atts.gu', null) + ' <b>' + a.gu + '</b></span>' +
       '<span class="wh-cell">' + tw('wh.atts.xing', null) + ' <b>' + a.xing + '</b></span>' +
-      '</div><div class="wh-muted">' + tw('wh.arts.attsnote', null) + '</div></div>';
+      /* 内力四性（册232）：由主修内功定——修什么内功 = 走哪一路，与「学最高级的」形成取舍 */
+      '<span class="wh-cell">' + tw('wh.arts.nat', { name: tw('nat.' + (p.myNat ? p.myNat(w) : 'zhong'), null) }) + '</span>' +
+      '</div><div class="wh-muted">' + tw('wh.arts.attsnote', null) + '</div>' +
+      '<div class="wh-muted">' + tw('wh.arts.natNote', null) + '</div></div>';
     h += slotsBody(w, false);
     h += '<div class="wh-card"><h3>' + tw('wh.arts.known', null) + '</h3>';
     if (!known.length) h += '<div class="wh-muted">' + tw('wh.home.slotsEmpty', null) + '</div>';

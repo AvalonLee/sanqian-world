@@ -396,6 +396,25 @@ const { chromium } = require('playwright-core');
       'id=' + g9e.id + ' eff=' + g9e.eff + ' mult=' + g9e.mult + ' fx=' + JSON.stringify(g9e.fx));
   });
 
+  /* WH1b · 内力四性上屏（册232）：主修九阴（阴柔，5 层）⇒ 修习页资质卡显示「内力 阴柔」+ 相性注；
+   * 判据同时校验 pack.myNat 与屏上一致——「性由主修内功定」这条在界面侧也成立。 */
+  await runSeeded({ artsKnown: ['quan_basic', 'neigong_basic', 'yg_jiuyin'],
+    artsLevels: { quan_basic: 1, neigong_basic: 1, yg_jiuyin: 5 } }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="arts"]');
+    await p2.waitForTimeout(300);
+    const r1b = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const want = L['wh.arts.nat'].replace('{name}', L['nat.yin']);
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      return { shown: t.indexOf(want) >= 0, note: t.indexOf(L['wh.arts.natNote']) >= 0,
+        nat: window.SQ.Worlds.wuxia.pack.myNat(w) };
+    });
+    T(r1b.shown && r1b.note && r1b.nat === 'yin',
+      'WH1b 内力四性上屏（主修九阴 ⇒ 「内力 阴柔」真词 ⇔ 相性注 ×1.15/×0.87 ⇔ pack.myNat=yin 对表）',
+      'shown=' + r1b.shown + ' note=' + r1b.note + ' nat=' + r1b.nat);
+  });
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();

@@ -36,6 +36,10 @@
     'wh.home.vitals': '状态与破关', 'wh.act.break': '破关', 'wh.act.force': '强行冲关（精力 20）',
     'wh.act.forcenote': '心境差得远却硬闯：成功率看见闻与心性，失败内伤加重、功力折损两成。',
     'wh.act.in': '入槽', 'wh.act.out': '出槽',
+    /* 内力四性（册232 · 武学全录 §一）：环克 刚猛→阴柔→中正→邪异→刚猛 */
+    'nat.gang': '刚猛', 'nat.yin': '阴柔', 'nat.zhong': '中正', 'nat.xie': '邪异',
+    'wh.arts.nat': '内力 {name}',
+    'wh.arts.natNote': '相性：克对方 ×1.15 / 被克 ×0.87 / 同性 ×1.00——内力之性由主修内功定。',
     'wh.arts.atts': '资质三轴', 'wh.atts.zhi': '悟性', 'wh.atts.gu': '根骨', 'wh.atts.xing': '心性',
     'wh.arts.attsnote': '悟性加速练功，心性助强行冲关；根骨随行走江湖历练（后续批）。',
     'wh.arts.known': '已知武学', 'wh.arts.inslot': '（修习中）',
