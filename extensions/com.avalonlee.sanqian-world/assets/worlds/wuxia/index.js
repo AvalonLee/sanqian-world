@@ -197,7 +197,7 @@
       mode: p.mode === 'seclude' ? 'seclude' : 'travel',
       sceneProg: obj(p.sceneProg),
       knotDone: obj(p.knotDone),
-      world: (function () { var wd = obj(p.world); return { wefate: obj(wd.wefate), wecyc: obj(wd.wecyc), webonus: isNum(wd.webonus) ? wd.webonus : 0 }; })(),
+      world: (function () { var wd = obj(p.world); return { wefate: obj(wd.wefate), wecyc: obj(wd.wecyc), webonus: isNum(wd.webonus) ? wd.webonus : 0, fireDays: clampInt(wd.fireDays, 0, 99, 0) }; })(),
       lastReport: obj(p.lastReport),
       escort: (function () { var e2 = p.escort; return e2 && isNum(e2.steps) && isNum(e2.pay) ? { steps: e2.steps, pay: e2.pay } : null; })(),
       atts: (function () {
@@ -230,6 +230,9 @@
   var BASE_PER_MIN = 8.0;
   var LAYER_MULT = 0.15;
   var TRAVEL_MULT = 0.6;
+  /* 行功日（册233 · 走火入魔专用）：10 现实分钟 = 1 日。**不是世界日**——worldDay 目前不推进
+   * （缺陷已登记下一批修），走火不能等它；且世界日的尺度一动就牵动整个 sim 时间模型。 */
+  var FIRE_DAY_MS = 10 * 60 * 1000;
 
   function totalLayers(ws) {
     var lv = ws && ws.artsLevels ? ws.artsLevels : {};
@@ -422,7 +425,7 @@
     return false;
   }
   function worldDayHash(ws, salt) {
-    var x = (((ws.worldDay || 0) + 1) * 2654435761 + (salt || 0) * 2246822519) >>> 0;
+    var x = ((Math.floor(ws.worldDay || 0) + 1) * 2654435761 + (salt || 0) * 2246822519) >>> 0;   /* 整日取整：worldDay 含当日进度后哈希仍按日稳定（册233） */
     x ^= x >>> 15; x = (x * 4093) >>> 0;
     return x >>> 0;
   }
@@ -491,6 +494,31 @@
   }
   function castNat(castRow) { return (castRow && SECT_NAT[castRow.sec]) || 'zhong'; }
   function zoneNat(zoneId) { return ZONE_NAT[zoneId] || 'zhong'; }
+  /* 走火入魔判据（册233 · 武学全录 §一 注）：**修习槽**里同时挂着相冲两性（环上相邻、互克）
+   * = 强行兼修。只看槽（正在练的），已学但不练不算——这给「学什么内功」加了真实约束。
+   * **中正不参与相冲**：它是「不偏不倚」的基准性，能调和刚猛与阴柔，与谁都冲不起来——
+   * 所以相冲对实际只有「刚猛 ↔ 阴柔」「刚猛 ↔ 邪异」两对（邪异与阴柔隔一位、不相克，也不冲）。
+   * 这条同时保证「标准玩家」练中正入门内功 + 一路专精内功不会莫名走火（册233 sim R4 的实证）。 */
+  function natClash(ws) {
+    var slots = arr(ws && ws.artsSlots).slice(0, SLOTS_MAX);
+    var seen = {};
+    for (var i = 0; i < slots.length; i++) {
+      var aid = typeof slots[i] === 'string' ? slots[i] : (slots[i] && slots[i].id);
+      var a = aid ? ART_INDEX[aid] : null;
+      if (a && a.nat) seen[a.nat] = 1;
+    }
+    var keys = Object.keys(seen);
+    for (var x = 0; x < keys.length; x++) {
+      if (keys[x] === 'zhong') continue;
+      for (var y = x + 1; y < keys.length; y++) {
+        if (keys[y] === 'zhong') continue;
+        if (natBeats(keys[x], keys[y]) || natBeats(keys[y], keys[x])) {
+          return { clash: true, a: keys[x], b: keys[y] };
+        }
+      }
+    }
+    return { clash: false, a: null, b: null };
+  }
 
   function battleOdds(ws, foe) {
     /* 相性只在「对上谁」时才有意义：对手无 nat ⇒ 不乘（1.00），不当成中正去比（会凭空造出克制） */
@@ -1032,7 +1060,7 @@
   function worldRumors(ws) {
     var fate = wefateOf(ws), out = [];
     if (!ws) return out;
-    var day = ws.worldDay || 0;
+    var day = Math.floor(ws.worldDay || 0);   /* 整日（worldDay 含当日进度，册233） */
     for (var i = 0; i < WORLD_EVENTS.length; i++) {
       var e = WORLD_EVENTS[i];
       if (e.cyc || !e.window || fate[e.i]) continue;
@@ -1271,7 +1299,41 @@
   function claim(ws, dtMs, now, profile, settings) {
     void now; void profile; void settings;
     if (!ws || !isNum(dtMs) || dtMs <= 0) return { gain: 0, broke: 0, layers: 0 };
-    sweepExpired(ws);   /* 独发型滑窗收场检查（册223）：挂机节拍必然经过——错过即回声 */
+    /* ── 走火入魔（册233 · 武学全录 §一 注）────────────────────────────────────
+     * 修习槽里同时挂**相冲两性**（环上相邻、互克；中正不参与）＝ 强行兼修，每「行功日」内伤 +1。
+     * **日尺度用行功日（10 现实分钟）而非 worldDay**：`worldDay` 目前不推进（见下条注），且它的
+     * 尺度一动就牵动整个 sim 时间模型 —— 两件事分开办。对照既有恢复速率（内伤 1 层/30 现实分钟）：
+     * 走火 +1/10 分 ≫ 恢复 −1/30 分 ⇒ 净每小时约 +4 层，3 小时走满 12 层封顶，逼玩家撤槽或疗伤。
+     * **封 12 不致死**：正典「超过 3 日进濒死预警」是压力不是死刑——内伤 15 即死那条留给战斗与
+     * 极端运气，别让挂机把人练死；到 12 进咯血档（行走被拒 + 页面转红）。fireDays 记连续走火日，
+     * 撤槽即清零，≥3 日给预警。 */
+    ws.world = obj(ws.world);
+    var fireMs = isNum(ws.world.fireMs) ? ws.world.fireMs : 0;
+    var fireDays0 = clampInt(ws.world.fireDays, 0, 99, 0);
+    var clash = natClash(ws);
+    if (clash.clash) {
+      fireMs += dtMs;
+      var fireAdd = Math.floor(fireMs / FIRE_DAY_MS);
+      if (fireAdd > 0) {
+        fireMs -= fireAdd * FIRE_DAY_MS;
+        var room = 12 - (ws.injury || 0);
+        if (room > 0) ws.injury = Math.min(12, (ws.injury || 0) + Math.min(fireAdd, room));
+        ws.world.fireDays = clampInt(fireDays0 + fireAdd, 0, 99, 0);
+      }
+      ws.world.fireMs = fireMs;
+    } else {
+      ws.world.fireMs = 0;
+      ws.world.fireDays = 0;
+    }
+    /* ⚠️ 已登记的下一批头等事项（册233 发现，未修）：`worldDay` 在日常挂机里**从不推进** ——
+     * 只有 retire 时 +3600。后果：窗口型世界事件（year 恒 0，[2,6]/[3,8] 永不开）、惯例型届次
+     * （恒 0，赴过一届再不重开）、sweepExpired 滑窗回声（永不触发）、worldRumors 预告（day 恒 0）、
+     * 寿元（age 恒 16 永不老死）——一整族机制在真实游玩中是死的。修它必须连带重标定
+     * `.tests/sim-wuxia.cjs` 的「一月 = 43200 挂机分钟」口径（12 段 = 360 现实天挂机），
+     * 并复核 echo 见闻值（世界日一旦推进，17 案 echo × 2 = +34 见闻会顶穿心境墙）⇒ 独立成批，
+     * 见 §七A 第 233 条余量。 */
+    sweepExpired(ws);   /* 独发型滑窗收场检查（册223）：挂机节拍必然经过——错过即回声
+                         * ⚠️ 上条缺陷未修前，此处因 year 恒 0 实际不触发（等世界日批激活） */
     ws.exp = expOf(ws);
     var before = isNum(ws.qi) ? ws.qi : 0;
     var broke = 0;
@@ -1402,6 +1464,7 @@
     /* 相性（册232 · 武学全录 §一 四性环克）：环 / 乘区 / 主角性 / 对手性两源 —— 判据直测口 */
     NAT_CYCLE: NAT_CYCLE, SECT_NAT: SECT_NAT, ZONE_NAT: ZONE_NAT,
     natBeats: natBeats, natMult: natMult, myNat: myNat, castNat: castNat, zoneNat: zoneNat, battleOdds: battleOdds,
+    natClash: natClash, FIRE_DAY_MS: FIRE_DAY_MS,
     travelStamina: TRAVEL_STAMINA,
     travelUnlock: TRAVEL_UNLOCK,
     /* worldSystems（册162 · S3-c）：引擎通用系统的世界侧接口——通用层只经这些口读世界语义（D3 纪律），

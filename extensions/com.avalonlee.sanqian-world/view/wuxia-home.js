@@ -390,6 +390,18 @@
       '</div><div class="wh-muted">' + tw('wh.arts.attsnote', null) + '</div>' +
       '<div class="wh-muted">' + tw('wh.arts.natNote', null) + '</div></div>';
     h += slotsBody(w, false);
+    /* 走火入魔红警（册233）：槽里同时挂相冲两性 ⇒ 每行功日内伤 +1。
+     * 播报口径分两档：刚起（fireDays < 3）只提示「撤一部方解」；连走 ≥3 日加重（正典「濒死预警」）。 */
+    var clash = p.natClash ? p.natClash(w) : null;
+    if (clash && clash.clash) {
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('wh.arts.clashWarn', {
+        a: tw('nat.' + clash.a, null), b: tw('nat.' + clash.b, null)
+      }) + '</b></span></div>';
+      var fd = (w.world && w.world.fireDays) | 0;
+      if (fd >= 3) {
+        h += '<div class="wh-row"><span class="wh-cell">' + tw('wh.arts.fireAlert', { n: fd, inj: Math.round(w.injury || 0) }) + '</span></div>';
+      }
+    }
     h += '<div class="wh-card"><h3>' + tw('wh.arts.known', null) + '</h3>';
     if (!known.length) h += '<div class="wh-muted">' + tw('wh.home.slotsEmpty', null) + '</div>';
     for (var i = 0; i < known.length; i++) {
