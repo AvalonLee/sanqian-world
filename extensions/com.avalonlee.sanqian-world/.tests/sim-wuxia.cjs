@@ -2,8 +2,11 @@
  *
  * 🆕 册214 重写归因（P1 契约改版）：书形态退役——`pack.narrative` 整族（advance 章事务/卡点投放/
  *   墨账/违和）与 `settings.offlineStory` 闸摘除，原 200 章「卷-章」定种面随之消失。本件改为
- *   **claim 内核 12 游戏月定种**：标准玩家日程直设（层数/到访/关系按月推进），全链只走
+ *   **claim 内核 12 游戏年定种**：标准玩家日程直设（层数/到访/关系按年推进），全链只走
  *   `pack.claim`（产出/封顶/破关/修习练习度），验证放置 RPG 的成长曲线骨架。
+ *   🆕 册234 重标定归因：世界日时钟落地（1 现实分钟 = 1 游戏日）——步长从「30 现实天 = 1 游戏月」
+ *   改为「1 游戏年 = 6 现实小时」，12 段 = 12 游戏年 = 3 现实天；R1~R6 阈值不变（投影实测终年仍
+ *   大宗师），新增 R7 世界年推进。锚值 = 本批首跑实测。
  *   ⚠️ P2 将重定产出基准（功力/精力价目）——届时本件同式重跑换锚，归因 = 「产出重定种」。
  *
  * 「标准玩家」日程直设口径不变（卷首注承册160）：修习/游历的**操作循环**属 P2 界面批，
@@ -24,11 +27,13 @@ const SQ = sandbox.window.SQ;
 const pack = SQ.Worlds.wuxia.pack;
 const D = pack.data;
 const ANCHOR_ON = process.env.SQ_ANCHOR === '1';
-/* 在册锚（册214 首钉 · P1 过渡态）：标准玩家 12 游戏月的逐月读数指纹。
- * 🆕 首钉归因：册214 摘叙事层（advance/卡点投放/墨账/offlineStory 闸退役）⇒ 原 200 章定种面消失，
- *   本件重写为 claim 链定种，锚值 = 重写批首跑实测；三连跑指纹逐位相同自证可复现。
+/* 在册锚（册234 换钉）：标准玩家 12 游戏年的逐年读数指纹。
+ * 首钉归因（册214）：摘叙事层（advance/卡点投放/墨账/offlineStory 闸退役）⇒ 原 200 章定种面消失，
+ *   本件重写为 claim 链定种。第一次重标定（册234）：世界日时钟落地——步长从 30 现实天/段
+ *   改为 1 游戏年/段（6 现实小时），R1~R6 阈值不变、新增 R7；锚值 = 本批首跑实测，
+ *   同参数双跑逐位相同自证可复现。
  *   ⚠️ P2 产出重定种后本锚必换（预登记：归因 = 「产出重定种」，别当漂移处理）。 */
-const ANCHOR_MD5 = 'd3004be177250dbdcaff7b097e9c5eda';
+const ANCHOR_MD5 = 'f4bcc5ea4d310980b862dfd753afbdca';
 
 const fails = [];
 function chk(no, cond, detail) {
@@ -44,7 +49,7 @@ function chk(no, cond, detail) {
  * 天人门槛 = exp 45 + bond80：13×2 + 10 = 36 不足 45，故天人以「强行冲关定种 stub」验证，
  * 正常破关止步大宗师（exp 32 + tian_full）——这正是「纯挂机能到大宗师、上不去天人」的
  * 数值体感（方案卷 §三 铁律 1 的内核账形态）。 */
-const MONTHS = 12;
+const YEARS = 12;
 const ART_PLAN = [
   { layers: { quan_basic: 1, neigong_basic: 1 }, visited: 1, friends: 0 },
   { layers: { quan_basic: 1, neigong_basic: 4 }, visited: 2, friends: 0 },
@@ -63,14 +68,14 @@ const ART_PLAN = [
 const FRIEND_IDS = ['ling_huohung', 'zhou_botong', 'huang_rong', 'guo_jing', 'yang_guo', 'xiao_feng', 'duan_yu', 'xu_zhu', 'wei_xiaobao', 'zhang_wuji'];
 /* 到访序列：13 地 id（ZONES 全表） */
 const ZONE_SEQ = (D.ZONES || []).map(function (z) { return z.i; });
-const MONTH_MS = 30 * 24 * 60 * 60000;   /* 1 游戏月 = 30 游戏日的挂机时长（claim 口径 = 现实分钟） */
+const YEAR_MS = 360 * 60 * 1000;   /* 1 游戏年 = 360 游戏日 = 6 现实小时（1 日 = 1 现实分钟，册234） */
 
-/* ── 跑 12 个月 ─────────────────────────────────────────────────────────────── */
+/* ── 跑 12 个游戏年 ──────────────────────────────────────────────────────────── */
 const ws = pack.normalize(pack.initialState());
 ws.artsSlots = ['quan_basic', 'neigong_basic', 'yg_jiuyin'];
-const monthRows = [];
-for (let m = 0; m < MONTHS; m++) {
-  /* 月初：标准玩家日程直设（操作循环属 P2，卷首注已记） */
+const yearRows = [];
+for (let m = 0; m < YEARS; m++) {
+  /* 年初：标准玩家日程直设（操作循环属 P2，卷首注已记） */
   const plan = ART_PLAN[m];
   ws.artsLevels = Object.assign({}, plan.layers);
   ws.artsKnown = Object.keys(plan.layers);
@@ -80,9 +85,9 @@ for (let m = 0; m < MONTHS; m++) {
     ws.relations[FRIEND_IDS[f]] = { affinity: f === 9 ? 85 : 30, kind: 'friend' };
   }
   const startQi = ws.qi;
-  pack.claim(ws, MONTH_MS, 0, {}, {});   /* 一整月的挂机推进（产出/封顶/破关/修习同一份内核） */
+  pack.claim(ws, YEAR_MS, 0, {}, {});   /* 一整年的挂机推进（产出/封顶/破关/修习同一份内核） */
   const nx = (D.REALMS || []).find(function (r) { return r.r === ws.realm + 1; });
-  monthRows.push({
+  yearRows.push({
     m: m + 1,
     realm: ws.realm,
     qi: Math.round(ws.qi * 10) / 10,
@@ -92,35 +97,37 @@ for (let m = 0; m < MONTHS; m++) {
   });
 }
 
-/* 逐月读数行（锚参与哈希的就是这些行） */
-for (const r of monthRows) {
-  console.log(`月${r.m} 境界=${r.realm} 功力=${r.qi} 距下档=${r.gap} 总层=${r.layers} 月增=${r.gain}`);
+/* 逐年读数行（锚参与哈希的就是这些行） */
+for (const r of yearRows) {
+  console.log(`年${r.m} 境界=${r.realm} 功力=${r.qi} 距下档=${r.gap} 总层=${r.layers} 年增=${r.gain}`);
 }
 
-/* ── 验收断言（P1 内核账结构面；逐月境界行精确值由锚管，断言钉结构不变式）───────── */
+/* ── 验收断言（P1 内核账结构面；逐年境界行精确值由锚管，断言钉结构不变式）───────── */
 /* R1 境界单调不减（封顶可以卡住，但绝不回落） */
 let mono = true;
-for (let i = 1; i < monthRows.length; i++) if (monthRows[i].realm < monthRows[i - 1].realm) mono = false;
-chk('R1', mono, `境界单调不减 ${JSON.stringify(monthRows.map(function (r) { return r.realm; }))}`);
-/* R2 三流在头两个月内达成（一档阈值 400：首月产出 ≈ 1.24 功力/分 × 43200 ≈ 5.4 万 ⇒ 秒过） */
-chk('R2', monthRows[0].realm >= 1, `首月至少破到三流（实测 ${monthRows[0].realm}）`);
-/* R3 天人心境墙：纯挂机 + 常规日程到不了天人（exp 36 < 45——见闻是硬墙，方案卷铁律 1 的内核形态） */
-chk('R3', monthRows[MONTHS - 1].realm <= 6, `终月境界 ≤ 大宗师（实测 ${monthRows[MONTHS - 1].realm}；天人需见闻 45，日程上限 36）`);
+for (let i = 1; i < yearRows.length; i++) if (yearRows[i].realm < yearRows[i - 1].realm) mono = false;
+chk('R1', mono, `境界单调不减 ${JSON.stringify(yearRows.map(function (r) { return r.realm; }))}`);
+/* R2 三流在头一年内达成（一档阈值 400：首年产出 ≈ 1.24 功力/分 × 360 ≈ 446 ⇒ 刚好过线） */
+chk('R2', yearRows[0].realm >= 1, `首年至少破到三流（实测 ${yearRows[0].realm}）`);
+/* R3 天人心境墙：纯挂机 + 常规日程到不了天人（exp 36 + 回声封顶 2 = 38 < 45——见闻是硬墙） */
+chk('R3', yearRows[YEARS - 1].realm <= 6, `终年境界 ≤ 大宗师（实测 ${yearRows[YEARS - 1].realm}；天人需见闻 45，日程上限 38）`);
 /* R4 大宗师达成（exp 32 + tian_full 双门槛在日程内可达） */
-chk('R4', monthRows[MONTHS - 1].realm >= 6, `终月至少大宗师（实测 ${monthRows[MONTHS - 1].realm}）`);
-/* R5 封顶行为：某月功力恰停在下一档 need（capOf 生效）——找第一个「卡满」的月 */
-const capped = monthRows.some(function (r, i) {
-  const nx2 = (D.REALMS || []).find(function (x) { return x.r === monthRows[i].realm + 1; });
+chk('R4', yearRows[YEARS - 1].realm >= 6, `终年至少大宗师（实测 ${yearRows[YEARS - 1].realm}）`);
+/* R5 封顶行为：某年功力恰停在下一档 need（capOf 生效）——找第一个「卡满」的年 */
+const capped = yearRows.some(function (r, i) {
+  const nx2 = (D.REALMS || []).find(function (x) { return x.r === yearRows[i].realm + 1; });
   return nx2 && Math.abs(r.qi - nx2.need) < 0.5;
 });
-chk('R5', capped, '封顶行为可见（至少一月功力恰停下一档阈值——心境墙顶住）');
-/* R6（册218 后由 E20 承接世界事件面——事件参与 exp 直接喂心境线：主导 1+卷入 2 ≈ 90+ 覆盖天人线 45；事件面不进本件定种哈希，改 attendEvent 后复跑 E20 即可） 修习练习度推进了（总层数随月涨到满配 27 = 3 部 × 9） */
-chk('R6', monthRows[MONTHS - 1].layers === 27, `终月总层数 27 = 3 部 × 9 层封顶（实测 ${monthRows[MONTHS - 1].layers}）`);
+chk('R5', capped, '封顶行为可见（至少一年功力恰停下一档阈值——心境墙顶住）');
+/* R6（册218 后由 E20 承接世界事件面——事件参与 exp 直接喂心境线：主导 1+卷入 2 ≈ 90+ 覆盖天人线 45；事件面不进本件定种哈希，改 attendEvent 后复跑 E20 即可） 修习练习度推进了（总层数随年涨到满配 27 = 3 部 × 9） */
+chk('R6', yearRows[YEARS - 1].layers === 27, `终年总层数 27 = 3 部 × 9 层封顶（实测 ${yearRows[YEARS - 1].layers}）`);
+/* R7（册234）世界日时钟走真实 claim：12 段 × 360 日 = 4320 日 */
+chk('R7', Math.abs(ws.worldDay - YEARS * 360) < 1e-6, `世界日推进 = ${Math.round(ws.worldDay)} 日（应 ${YEARS * 360}）`);
 
 /* ── 锚对表 + 末行 ──────────────────────────────────────────────────────────── */
 const lines = [];
-for (const r of monthRows) {
-  lines.push(`月${r.m} 境界=${r.realm} 功力=${r.qi} 距下档=${r.gap} 总层=${r.layers} 月增=${r.gain}`);
+for (const r of yearRows) {
+  lines.push(`年${r.m} 境界=${r.realm} 功力=${r.qi} 距下档=${r.gap} 总层=${r.layers} 年增=${r.gain}`);
 }
 const digest = crypto.createHash('md5').update(lines.join('\n'), 'utf8').digest('hex');
 if (ANCHOR_ON) {
@@ -139,6 +146,6 @@ if (ANCHOR_ON) {
 
 const marker = fails.length
   ? `WUXIA_SIM_FAILED ${fails.length}`
-  : `WUXIA_SIM_ALL_GREEN ${6 + 0}/${6 + 0}`;
+  : `WUXIA_SIM_ALL_GREEN ${7 + 0}/${7 + 0}`;
 console.log(marker);
 process.exit(fails.length ? 1 : 0);

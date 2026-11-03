@@ -591,7 +591,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
     })();
 
     /* E23 · 窗口与回声（册223）：① 3 案惯例 cyc + 17 案独发 window 两元递增（无一案双缺）‖
-     * ② 惯例型赴后本届隐藏、跨届重开（wecyc 存届次）‖ ③ 独发型滑窗 sweep：17 案全 echo + expOf 见闻 +34 ‖
+     * ② 惯例型赴后本届隐藏、跨届重开（wecyc 存届次）‖ ③ 独发型滑窗 sweep：17 案全 echo（见闻封顶 +2，册234）‖
      * ④ 窗口外 attend 拒 offwindow ‖ ⑤ 词表 echo 17 键 + tag.echo 齐。 */
     (function () {
       var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
@@ -630,7 +630,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var fate = w2.world.wefate, echoN = 0;
       for (var fk in fate) if (fate[fk] === 'echo') echoN++;
       var expOk = pk.normalize ? (function () { var w4 = pk.normalize(pk.initialState()); w4.worldDay = 9 * 360 + 1; pk.sweepExpired(w4); w4.exp = undefined; return true; })() : true;
-      /* exp 派生验证：claim 内 expOf 重算含回声 +2/桩——直接对表 expOf 不在导出面，用 swept=17 与 echoN=17 钉 */
+      /* 回声见闻封顶 +2（册234）：expOf 不在导出面，用 swept=17 与 echoN=17 钉（封顶值由 E34 钉） */
       var sweepOk = swept === 17 && echoN === 17 && expOk;
       /* ⑤ 词表：echo 17 键 + tag.echo */
       var echoLex = true, echoN2 = 0;
@@ -1203,11 +1203,300 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var wN = mk(['yg_jiuyin', 'neigong_basic']);
       pk.claim(wN, DAY * 5, 0, {}, {});
       var noneOk = wN.injury === 0;
-      ok('E33', '走火入魔（相冲对 刚+阴 / 刚+邪 生效 · **中正豁免** · 同性不冲 ‖ 行功日结算（净增 = 走火 − 既有恢复）：1 日 2/3 / 5 日 10/3 / 不足 1 日不动 ‖ 封 12 不致死 ‖ fireDays 累积 3 且撤槽清零 ‖ 无相冲不涨）',
-        clashOk && stepOk && capOk && fireOk && noneOk,
+      /* ⑥ fireMs 进存档口径（册235）：normalize 不再把行功日进度丢掉——半日后存读仍半日 */
+      var wM = mk(['yg_jiuyin', 'yg_xianglong']);
+      wM.world.fireMs = 12345;
+      var nM = pk.normalize(wM);
+      var msOk = nM.world.fireMs === 12345 && nM.world.fireDays === 0;
+      ok('E33', '走火入魔（相冲对 刚+阴 / 刚+邪 生效 · **中正豁免** · 同性不冲 ‖ 行功日结算（净增 = 走火 − 既有恢复）：1 日 2/3 / 5 日 10/3 / 不足 1 日不动 ‖ 封 12 不致死 ‖ fireDays 累积 3 且撤槽清零 ‖ 无相冲不涨 ‖ fireMs 存档往返）',
+        clashOk && stepOk && capOk && fireOk && noneOk && msOk,
         '相冲=' + clashOk + '(阴刚' + c1.clash + ',刚邪' + c2.clash + ',阴中' + c3.clash + ',刚中' + c4.clash + ')' +
         ' 步进=' + stepOk + '(1日' + day1Add + ',5日' + day5Add + ',不足1日' + subDay + ')' +
-        ' 封顶=' + capOk + '(' + wC.injury + ') 火日=' + fireOk + '(' + fire3 + '→' + fireClear + ') 平常=' + noneOk);
+        ' 封顶=' + capOk + '(' + wC.injury + ') 火日=' + fireOk + '(' + fire3 + '→' + fireClear + ') 平常=' + noneOk + ' 火进度=' + msOk);
+    })();
+
+    /* E34 · 世界日时钟（册234）：① 1 现实分钟 = 1 游戏日、离线单次封顶 12 现实小时（2 游戏年）‖
+     * ② 窗口走真实 claim 落账（year1→year3 开 [2,6]、闭窗案转 echo）‖
+     * ③ 滑窗回声走真实 claim（year7→year9：17 案全 echo；见闻封顶 +2 不是 +34；world={} 无 wefate 不抛）‖
+     * ④ 惯例跨届走真实 claim（year0 赴华山 → +36h → year6 重开）‖ ⑤ 寿元随世界日推进（24 年即 shoujin）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.worldYearOf || !pk.worldRumors) { ok('E34', '世界日时钟', false, '无 worldYearOf/worldRumors 口'); return; }
+      var DAY_MS = 60 * 1000, CAP_MS = 12 * 3600 * 1000;
+      function mk() { return pk.normalize(pk.initialState()); }
+      /* ① 时钟推进 + 离线单次封顶 */
+      var w1 = mk();
+      pk.claim(w1, DAY_MS, 0, {}, {});
+      var oneDay = w1.worldDay;
+      var w2 = mk();
+      pk.claim(w2, CAP_MS, 0, {}, {});
+      var capDays = w2.worldDay;
+      var w3 = mk();
+      pk.claim(w3, CAP_MS * 2, 0, {}, {});
+      var capDays2 = w3.worldDay;
+      var clockOk = Math.abs(oneDay - 1) < 1e-9 && Math.abs(capDays - 720) < 1e-9 && Math.abs(capDays2 - 720) < 1e-9;
+      /* ② 窗口走真实 claim：year1（361）＋12h ⇒ year3（1081）——[2,6] 的 weijiao 开、[0,2] 的 wangpan 转 echo */
+      var w4 = mk();
+      w4.worldDay = 360 + 1;
+      pk.claim(w4, CAP_MS, 0, {}, {});
+      var evs4 = pk.worldEvents(w4);
+      var open4 = false;
+      for (var a = 0; a < evs4.length; a++) if (evs4[a].i === 'we_weijiao_gm') open4 = true;
+      var winOk = pk.worldYearOf(w4) === 3 && open4 && w4.world.wefate.we_wangpan === 'echo';
+      /* ③ 回声走真实 claim：year7（2521）＋12h ⇒ year9（3241）——17 窗全 echo，见闻只 +2
+       *    （13 地 ×2 + 10 熟人 = 36 基线，封顶后 38）；另证 world={} 无 wefate 也不再抛 */
+      var w5 = mk();
+      w5.worldDay = 7 * 360 + 1;
+      w5.visited = ['luoyang', 'shaolin', 'songshan', 'yanziwu', 'yanfulou', 'guangmingding', 'kunlun', 'yanmenguan', 'damo', 'wuliang', 'dali', 'lingshe', 'binghuo'];
+      w5.relations = {};
+      var FRI = ['ling_huohung', 'zhou_botong', 'huang_rong', 'guo_jing', 'yang_guo', 'xiao_feng', 'duan_yu', 'xu_zhu', 'wei_xiaobao', 'zhang_wuji'];
+      for (var b = 0; b < FRI.length; b++) w5.relations[FRI[b]] = { affinity: 30, kind: 'friend' };
+      pk.claim(w5, CAP_MS, 0, {}, {});
+      var echoN = 0;
+      for (var fk in (w5.world.wefate || {})) if (w5.world.wefate[fk] === 'echo') echoN++;
+      var echoOk = pk.worldYearOf(w5) === 9 && echoN === 17 && w5.exp === 38;
+      var w6 = mk(); w6.world = {}; w6.worldDay = 9 * 360 + 1;
+      var bareOk = true;
+      try { pk.claim(w6, DAY_MS, 0, {}, {}); } catch (e) { bareOk = false; }
+      bareOk = bareOk && Object.keys(w6.world.wefate || {}).length === 17;
+      /* ④ 惯例跨届走真实 claim：year0 赴华山（join 败也写届次）→ 三个 12h ⇒ year6 重开 */
+      var w7 = mk(); w7.realm = 6; w7.stamina = 99;
+      var r7 = pk.attendEvent(w7, 'we_huashan', 'join');
+      var cyc0 = w7.world.wecyc && w7.world.wecyc.we_huashan === 0;
+      pk.claim(w7, CAP_MS, 0, {}, {});
+      pk.claim(w7, CAP_MS, 0, {}, {});
+      pk.claim(w7, CAP_MS, 0, {}, {});
+      var evs7 = pk.worldEvents(w7), back7 = false;
+      for (var c = 0; c < evs7.length; c++) if (evs7[c].i === 'we_huashan') back7 = true;
+      var cycOk = r7 && r7.ok && cyc0 && pk.worldYearOf(w7) === 6 && back7;
+      /* ⑤ 寿元随世界日推进：24 游戏年 age 40 即寿尽；23 年未到 */
+      var w8 = mk(); w8.worldDay = 24 * 360;
+      var li8 = pk.worldSystems.lifeInfo(w8);
+      w8.worldDay = 23 * 360;
+      var li23 = pk.worldSystems.lifeInfo(w8);
+      var lifeOk = li8.age === 40 && li8.cause === 'shoujin' && li23.age === 39 && !li23.cause;
+      /* ⑥ 旁观一次性（册235）：同一案一届只旁观一次（wefate 不写，另记 wseen）；跨届重开；
+       *    旁观只需精力 3（原先门槛写 5 而实际扣 3，两者对齐） */
+      var w9 = mk(); w9.realm = 6; w9.stamina = 99;
+      var rw1 = pk.attendEvent(w9, 'we_huashan', 'watch');
+      var rw2 = pk.attendEvent(w9, 'we_huashan', 'watch');
+      w9.worldDay = 6 * 360 + 1;
+      var rw3 = pk.attendEvent(w9, 'we_huashan', 'watch');
+      var w10 = mk(); w10.realm = 6; w10.stamina = 4;
+      var rw4 = pk.attendEvent(w10, 'we_xiangyang', 'watch');
+      var watchOk = rw1.ok && rw2.err === 'watched' && rw3.ok && rw4.ok && w10.stamina === 1 &&
+        !(w9.world.wefate && w9.world.wefate.we_huashan);
+      /* ⑦ 地界侧事件入口（册235）：worldEventsAt 只吐「此地 + 此刻可赴」的案 */
+      var wZ = mk(); wZ.worldDay = 3 * 360 + 1;
+      var atG = pk.worldEventsAt(wZ, 'guangmingding'), atL = pk.worldEventsAt(wZ, 'luoyang');
+      var has = function (list, id) { for (var x = 0; x < list.length; x++) if (list[x].i === id) return true; return false; };
+      var atOk = has(atG, 'we_weijiao_gm') && !has(atG, 'we_juxian') && has(atL, 'we_juxian') &&
+        pk.worldEventsAt(wZ, 'nowhere').length === 0;
+      ok('E34', '世界日时钟（1 现实分 = 1 游戏日 · 离线单次封顶 12h ‖ 窗口/回声/惯例届次走真实 claim ‖ 全 echo 见闻封顶 +2（36→38）‖ world={} 不抛 ‖ 寿元 24 年寿尽 ‖ 旁观一届一次且精力 3 ‖ 地界事件入口）',
+        clockOk && winOk && echoOk && bareOk && cycOk && lifeOk && watchOk && atOk,
+        '时钟=' + clockOk + '(1分' + oneDay + ',12h' + capDays + ',24h' + capDays2 + ')' +
+        ' 窗口=' + winOk + '(year' + pk.worldYearOf(w4) + ',weijiao' + open4 + ')' +
+        ' 回声=' + echoOk + '(' + echoN + '桩,exp' + w5.exp + ')' + ' 空壳=' + bareOk +
+        ' 届=' + cycOk + '(year' + pk.worldYearOf(w7) + ')' + ' 寿=' + lifeOk +
+        ' 旁观=' + watchOk + '(重复' + rw2.err + ',跨届' + rw3.ok + ',低精力' + rw4.ok + ')' + ' 地界=' + atOk);
+    })();
+
+    /* E35 · 写回四写口（册236 · 世界事件卷 §五）：① 八案白名单键全部对表（cast 在 CAST / sect 在 SECTS）‖
+     * ② cast / sects / 余波三面按 canon/alt 落账且重复写幂等 ‖ ③ 真赴会（join canon）走同一写口 ‖
+     * ④ 错过回声也按 canon 落定（sweepExpired）‖ ⑤ normalize 往返不丢三面。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.WRITEBACK) { ok('E35', '写回四写口', false, '无 WRITEBACK 口'); return; }
+      var castIds = {}, sectIds = {};
+      for (var ci = 0; ci < pk.cast.length; ci++) castIds[pk.cast[ci].i] = 1;
+      for (var si = 0; si < pk.sects.length; si++) sectIds[pk.sects[si].id] = 1;
+      var keys = Object.keys(pk.WRITEBACK), bad = [];
+      for (var k = 0; k < keys.length; k++) {
+        var rows = pk.WRITEBACK[keys[k]];
+        for (var o in rows) {
+          var wb = rows[o];
+          for (var c in (wb.cast || {})) if (!castIds[c] || ['dead', 'flee', 'secluded', 'saved'].indexOf(wb.cast[c]) < 0) bad.push(keys[k] + '.cast.' + c);
+          for (var s in (wb.sects || {})) if (!sectIds[s]) bad.push(keys[k] + '.sect.' + s);
+        }
+      }
+      var tableOk = keys.length === 20 && bad.length === 0;
+      function mk() { return pk.normalize(pk.initialState()); }
+      function evOf(id) { for (var i = 0; i < pk.WORLD_EVENTS.length; i++) if (pk.WORLD_EVENTS[i].i === id) return pk.WORLD_EVENTS[i]; return null; }
+      var yanmen = evOf('we_yanmen');
+      var w1 = mk(); pk.applyWriteback(w1, yanmen, 'canon');
+      var w2 = mk(); pk.applyWriteback(w2, yanmen, 'alt');
+      pk.applyWriteback(w2, yanmen, 'alt');
+      var canonOk = pk.castStateOf(w1, 'xiao_feng') === 'dead' && pk.sectRepOf(w1, 'gaibang') === -10 &&
+        pk.aftermathOf(w1).length === 1 && pk.aftermathOf(w1)[0].outcome === 'canon';
+      var altOk = pk.castStateOf(w2, 'xiao_feng') === 'secluded' && pk.sectRepOf(w2, 'gaibang') === 5 &&
+        pk.aftermathOf(w2).length === 1;   /* 重复写同结果不叠加余波行 */
+      /* ③ 真赴会：光明顶 join（canon）→ 明教 −40、少林 +10、余波一条 */
+      var w3 = mk(); w3.realm = 5; w3.stamina = 99; w3.worldDay = 3 * 360 + 1;
+      var r3 = pk.attendEvent(w3, 'we_weijiao_gm', 'join');
+      var joinOk = r3 && r3.ok && pk.sectRepOf(w3, 'mingjiao') === -40 && pk.sectRepOf(w3, 'shaolin') === 10 &&
+        pk.aftermathOf(w3).length === 1;
+      /* ④ 错过回声：year 9 ⇒ 全 17 个窗型按 canon 落定（3 案惯例型不在 sweep 射程） */
+      var w4 = mk(); w4.worldDay = 9 * 360 + 1;
+      pk.sweepExpired(w4);
+      var echoOk = pk.castStateOf(w4, 'xiao_feng') === 'dead' && pk.castStateOf(w4, 'dongfang_bubai') === 'flee' &&
+        pk.sectRepOf(w4, 'mingjiao') === -35 && pk.aftermathOf(w4).length === 17;   /* 光明顶 −40 + 继位 +5 */
+      /* ⑤ 存档往返 */
+      var n2 = pk.normalize(w2);
+      var normOk = pk.castStateOf(n2, 'xiao_feng') === 'secluded' && pk.sectRepOf(n2, 'gaibang') === 5 &&
+        pk.aftermathOf(n2).length === 1;
+      ok('E35', '写回四写口（20 案全覆盖白名单对表 ‖ cast/sects/余波 canon·alt 落账且幂等 ‖ join canon 真入口 ‖ 错过回声按 canon 落定 17 案 ‖ normalize 往返不丢）',
+        tableOk && canonOk && altOk && joinOk && echoOk && normOk,
+        '表=' + tableOk + '案数' + keys.length + '违例' + JSON.stringify(bad) +
+        ' canon=' + canonOk + ' alt=' + altOk + ' join=' + joinOk +
+        ' 回声=' + echoOk + '(' + pk.aftermathOf(w4).length + ')' + ' 往返=' + normOk);
+    })();
+
+    /* E36 · 余响传承（册236）：① 一世三轴取余响（≤3：境界 / 最高武学 / 最深交情）‖
+     * ② rebirthCarry 带进来世（gen 2 / 见闻 / 功力 / 武学三层入槽 / 交情 30）‖
+     * ③ GATES 8/9 的 heritage 门槛：第一世锁死、来世解锁 ‖ ④ retire 生时即定余响且重复转世不叠 gen。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.inheritOf) { ok('E36', '余响传承', false, '无 inheritOf 口'); return; }
+      var old = pk.normalize(pk.initialState());
+      old.realm = 7;
+      old.artsKnown = ['quan_basic', 'neigong_basic', 'yg_jiuyin'];
+      old.artsLevels = { quan_basic: 1, neigong_basic: 1, yg_jiuyin: 8 };
+      old.relations = { xiao_feng: { affinity: 80, kind: 'friend' } };
+      var items = pk.inheritOf(old);
+      var shapeOk = items.length === 3 && items[0].k === 'realm' && items[1].k === 'art' &&
+        items[1].id === 'yg_jiuyin' && items[2].k === 'bond' && items[2].id === 'xiao_feng';
+      var fresh = pk.normalize(pk.initialState());
+      fresh.heritage = { gen: 1, inherited: [] };
+      var got = pk.worldSystems.rebirthCarry(old, fresh);
+      var row6 = pk.realms[6];
+      var carryOk = got && got.length === 3 && fresh.heritage.gen === 2 &&
+        fresh.exp === 14 && fresh.qi === row6.need &&
+        fresh.artsLevels.yg_jiuyin === 3 && fresh.artsSlots.indexOf('yg_jiuyin') >= 0 &&
+        fresh.relations.xiao_feng && fresh.relations.xiao_feng.affinity === 30;
+      /* ③ heritage 门槛：同条件（realm7 / 功力足 / 见闻足）只有 heritage 一项在变 */
+      function gateWs(gen) {
+        var w = pk.normalize(pk.initialState());
+        w.realm = 7; w.qi = pk.realms[8].need; w.exp = 60;
+        w.heritage = { gen: gen, inherited: gen > 1 ? [{ k: 'realm', n: 7 }] : [] };
+        return pk.canBreak(w);
+      }
+      var gateOk = gateWs(1) === false && gateWs(2) === true;
+      /* ④ retire 生时定余响；转世沿用（gen 不再 +1） */
+      var end = pk.normalize(pk.initialState());
+      end.realm = 9; end.artsLevels = { yg_jiuyin: 9 }; end.artsKnown = ['yg_jiuyin'];
+      end.relations = { xiao_feng: { affinity: 90 } };
+      var rr = pk.retire(end);
+      var fresh2 = pk.normalize(pk.initialState());
+      pk.worldSystems.rebirthCarry(end, fresh2);
+      var retireOk = rr && rr.ok && end.heritage.gen === 2 && end.heritage.inherited.length === 3 &&
+        fresh2.heritage.gen === 2 && fresh2.heritage.inherited.length === 3;
+      ok('E36', '余响传承（三轴余响 ≤3 ‖ rebirthCarry 带进来世 ‖ heritage 门槛第一世锁死·来世解锁 ‖ retire 生时定余响且转世不叠 gen）',
+        shapeOk && carryOk && gateOk && retireOk,
+        '形状=' + shapeOk + '(' + items.map(function (x) { return x.k; }).join(',') + ')' +
+        ' 携带=' + carryOk + '(gen' + fresh.heritage.gen + ',exp' + fresh.exp + ',qi' + fresh.qi + ',art' + fresh.artsLevels.yg_jiuyin + ')' +
+        ' 门=' + gateOk + ' 退隐=' + retireOk);
+    })();
+
+    /* E37 · 逐案失败代价（册237 · 世界事件卷 §六 fail）：① 八案表键都在 WORLD_EVENTS 且数值在带内 ‖
+     * ② 论剑败者不掉名（renown +20）· 黑木崖最重（伤 5~7 / 名 −40~−30）‖
+     * ③ 未声明案回落常量默认（lead 2~6 / −40~−20）‖ ④ join 档不受 lead 覆盖（轻败 1~3 / −10~−5）。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.failOf) { ok('E37', '逐案失败代价', false, '无 failOf 口'); return; }
+      var ids = {}, bad = [];
+      for (var i = 0; i < pk.WORLD_EVENTS.length; i++) ids[pk.WORLD_EVENTS[i].i] = 1;
+      for (var k in pk.FAIL) {
+        if (!ids[k]) bad.push(k);
+        var f = pk.FAIL[k];
+        if (!Array.isArray(f.injury) || f.injury.length !== 2 || f.injury[0] < 1 || f.injury[1] > 10 ||
+            !Array.isArray(f.renown) || f.renown.length !== 2 || f.renown[0] < -60 || f.renown[1] > 30) bad.push(k + '.range');
+      }
+      function ev(id) { for (var j = 0; j < pk.WORLD_EVENTS.length; j++) if (pk.WORLD_EVENTS[j].i === id) return pk.WORLD_EVENTS[j]; return null; }
+      var hs = pk.failOf(ev('we_huashan'), 'lead');
+      var hm = pk.failOf(ev('we_heimu'), 'lead');
+      var other = pk.failOf({ i: 'no_such_event' }, 'lead');
+      var join = pk.failOf(ev('we_huashan'), 'join');
+      var tableOk = Object.keys(pk.FAIL).length === 20 && bad.length === 0;
+      var themeOk = hs.renown[0] === 20 && hs.renown[1] === 20 && hs.injury[0] === 4 &&
+        hm.injury[0] === 5 && hm.injury[1] === 7 && hm.renown[1] === -30;
+      var fallbackOk = other.injury[0] === 2 && other.injury[1] === 6 && other.renown[0] === -40 && other.renown[1] === -20;
+      var joinOk = join.injury[0] === 1 && join.injury[1] === 3 && join.renown[0] === -10 && join.renown[1] === -5;
+      ok('E37', '逐案失败代价（20 案表对表且在带内 ‖ 论剑 +20 不掉名·黑木崖最重 ‖ 未声明案回落默认 ‖ join 档不被 lead 覆盖）',
+        tableOk && themeOk && fallbackOk && joinOk,
+        '表=' + tableOk + '(' + Object.keys(pk.FAIL).length + ',' + JSON.stringify(bad) + ')' +
+        ' 主题=' + themeOk + ' 默认=' + fallbackOk + ' join=' + joinOk);
+    })();
+
+    /* E38 · 辟邪自伤（册237 · 武学全录 §2.3「修习即损寿元」）：① 在槽每满 1 游戏年折寿 1 年、age 同步 ‖
+     * ② 离线封顶同世界日（12h 只折 2 年）‖ ③ 撤槽即停（已折的不还）‖ ④ 不在槽不折 ‖ ⑤ normalize 往返。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk) { ok('E38', '辟邪自伤', false, '无 pack'); return; }
+      var YEAR_MS = 360 * 60 * 1000;
+      function mk(slot) {
+        var w = pk.normalize(pk.initialState());
+        w.artsKnown = ['quan_basic', 'neigong_basic', 'yg_bixie'];
+        w.artsLevels = { quan_basic: 1, neigong_basic: 1, yg_bixie: 1 };
+        w.artsSlots = slot ? [slot] : [];
+        return w;
+      }
+      var w1 = mk('yg_bixie');
+      pk.claim(w1, YEAR_MS, 0, {}, {});
+      var li1 = pk.worldSystems.lifeInfo(w1);
+      var oneOk = w1.lifeCut === 1 && li1.age === 18;   /* 1 游戏年 + 1 折寿 */
+      pk.claim(w1, YEAR_MS * 2, 0, {}, {});
+      var li2 = pk.worldSystems.lifeInfo(w1);
+      var capOk = w1.lifeCut === 3 && w1.world.bixieMs === 0 && li2.age === 22;   /* 再 12h 上限 = 2 年 */
+      var cutNow = w1.lifeCut;
+      w1.artsSlots = [];
+      pk.claim(w1, YEAR_MS, 0, {}, {});
+      var stopOk = w1.lifeCut === cutNow && w1.world.bixieMs === 0;
+      var w2 = mk('yg_jiuyin');
+      pk.claim(w2, YEAR_MS, 0, {}, {});
+      var noneOk = w2.lifeCut === 0;
+      var n = pk.normalize(w1);
+      var normOk = n.lifeCut === cutNow && n.world.bixieMs === 0;
+      ok('E38', '辟邪自伤（在槽每游戏年折寿 1 年且 age 同步 ‖ 离线封顶 12h 只折 2 年 ‖ 撤槽即停不还 ‖ 不在槽不折 ‖ normalize 往返）',
+        oneOk && capOk && stopOk && noneOk && normOk,
+        '一年=' + oneOk + '(' + li1.age + ') 封顶=' + capOk + '(' + li2.age + ') 停=' + stopOk +
+        ' 不练=' + noneOk + ' 往返=' + normOk);
+    })();
+
+    /* E39 · 赴会须到场 + 窗口放宽（册239 · 节奏试跑）：
+     * ① 有地界的事件人在别处 ⇒ 自动赶路（精力 3 + 本档），place 落当地、visited 记见闻 ‖
+     * ② z:null 的全局事件不付脚程 ‖ ③ 精力不足以覆盖「本档 + 脚程」⇒ stamina 拒且人不动 ‖
+     * ④ 地界未解锁 ⇒ locked ‖ ⑤ 独发窗按 lead 门槛分级（≤4→y6 / 5→y7，襄阳 [0,8] / 6~7→y8；王盘山教程窗 [0,2]），保证 lead 档够得着。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.attendEvent) { ok('E39', '赴会须到场', false, '无 attendEvent 口'); return; }
+      function mk() { return pk.normalize(pk.initialState()); }
+      var w1 = mk(); w1.realm = 6; w1.stamina = 99; w1.worldDay = 3 * 360 + 1; w1.place = 'shaolin';
+      var r1 = pk.attendEvent(w1, 'we_juxian', 'join');
+      var tripOk = !!r1 && r1.ok && r1.trip === 'luoyang' && w1.place === 'luoyang' &&
+        w1.visited.indexOf('luoyang') >= 0 && w1.stamina === 91;   /* 99 − join5 − 脚程3 */
+      var w2 = mk(); w2.realm = 6; w2.stamina = 99; w2.place = 'shaolin';
+      var r2 = pk.attendEvent(w2, 'we_wangpan', 'watch');
+      var globalOk = !!r2 && r2.ok && !r2.trip && w2.place === 'shaolin' && w2.stamina === 96;
+      var w3 = mk(); w3.realm = 6; w3.stamina = 7; w3.worldDay = 3 * 360 + 1; w3.place = 'shaolin';
+      var r3 = pk.attendEvent(w3, 'we_juxian', 'join');
+      var poorOk = !!r3 && r3.err === 'stamina' && w3.place === 'shaolin';
+      var w4 = mk(); w4.realm = 0; w4.stamina = 99; w4.worldDay = 3 * 360 + 1; w4.place = 'luoyang';
+      var r4 = pk.attendEvent(w4, 'we_weijiao_gm', 'join');
+      var lockOk = !!r4 && r4.err === 'locked';
+      var winOk = true, badWin = [];
+      for (var i = 0; i < pk.WORLD_EVENTS.length; i++) {
+        var e = pk.WORLD_EVENTS[i];
+        if (e.cyc) continue;
+        var wantEnd = e.i === 'we_wangpan' ? 2
+          : e.tier.lead <= 4 ? 6
+          : e.tier.lead === 5 ? (e.i === 'we_xiangyang' ? 8 : 7)
+          : 8;
+        if (!e.window || e.window[1] !== wantEnd) { winOk = false; badWin.push(e.i + ':' + (e.window && e.window[1])); }
+      }
+      ok('E39', '赴会须到场（有地界案自动赶路 精力3+本档 ⇒ place/visited 落当地 ‖ 全局案不付脚程 ‖ 穷到付不起拒不移动 ‖ 未解锁地界 locked ‖ 独发窗按 lead 档分级到 year6/7/8、王盘山教程例外）',
+        tripOk && globalOk && poorOk && lockOk && winOk,
+        '赶路=' + tripOk + ' 全局=' + globalOk + ' 穷=' + poorOk + ' 锁=' + lockOk +
+        ' 窗=' + winOk + (badWin.length ? '(' + badWin.join(',') + ')' : ''));
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */

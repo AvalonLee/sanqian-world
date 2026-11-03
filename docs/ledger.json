@@ -1,17 +1,17 @@
 {
  "generated_by": ".tests/gen-ledger.cjs",
- "at": "2026-11-03T01:38:30.387Z",
+ "at": "2026-11-03T06:44:36.188Z",
  "values": {
-  "ext_version": "0.6.48",
+  "ext_version": "0.6.55",
   "dod_items": 64,
-  "dod_asserts": 1634,
-  "dod_secs": 448.2,
-  "smoke": 350,
+  "dod_asserts": 1650,
+  "dod_secs": 422,
+  "smoke": 356,
   "audit_gates": 37,
   "versions_rows": null,
   "probe_asserts": 245,
   "ui_files": 43,
-  "ui_asserts": 996,
+  "ui_asserts": 1005,
   "sim_playthrough": false,
   "arts": 70,
   "events": 131,
@@ -31,7 +31,7 @@
   "visible_worlds": 6,
   "log_cats": 11,
   "name_pool": "9 × 7 × 5",
-  "lex_keys": 6374
+  "lex_keys": 6464
  },
  "segments": [
   {

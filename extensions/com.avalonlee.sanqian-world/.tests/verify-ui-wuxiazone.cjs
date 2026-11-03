@@ -23,7 +23,7 @@ const { chromium } = require('playwright-core');
       gear: { weapon: null, ranged: null, armor: null, boots: null },
       stash: [], relations: {}, injury: 0, worldDay: 0, exp: 2, debts: [],
       stamina: 60, atts: { zhi: 50, gu: 50, xing: 50 },
-      lastSave: 1, log: [], eventHistory: { lastId: null, seen: {}, feed: [] },
+      lastSave: Date.now(), log: [], eventHistory: { lastId: null, seen: {}, feed: [] },
       heritage: { gen: 1, inherited: [] } };
     const w = Object.assign(base, patch || {});
     return JSON.stringify({ v: 1,
