@@ -562,6 +562,86 @@ const { chromium } = require('playwright-core');
       'warn=' + r1e.warn + ' cut=' + r1e.cut + ' lifeCut=' + r1e.lifeCut);
   });
 
+  /* WH11 · 书笺页（册240）：侠名录五谱真词上屏 + 本世传记由当前存档派生。
+   * 判据同时对表引擎侧读数（分母取 pack 数据表、已得数取盘上真值），防「屏上另说一套」。 */
+  await runSeeded({ artsKnown: ['quan_basic', 'neigong_basic'], blades: ['wp_tulong'],
+    relations: { xuanci: { affinity: 12, kind: 'friend' } }, visited: ['luoyang', 'shaolin'],
+    world: { wefate: { we_wangpan: 'canon', we_juxian: 'alt' }, wecyc: {}, webonus: 0, fireDays: 0, fireMs: 0 } },
+  async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="book"]');
+    await p2.waitForTimeout(300);
+    const r10 = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const pk = window.SQ.Worlds.wuxia.pack;
+      const D = pk.data;
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const count = (n, tot) => L['wh.book.count'].replace('{n}', String(n)).replace('{t}', String(tot));
+      const blades = (D.WEAPONS || []).filter(x => x.k === 2).length;
+      const weIds = pk.WORLD_EVENTS.map(x => x.i);
+      return {
+        album: t.indexOf(L['wh.book.album']) >= 0,
+        faces: [L['wh.book.face.art'], L['wh.book.face.blade'], L['wh.book.face.people'], L['wh.book.face.zone']].every(x => t.indexOf(x) >= 0),
+        counts: [count(2, (D.ARTS || []).length), count(1, blades), count(1, (D.CAST || []).length),
+          count(2, (D.ZONES || []).length), count(2, weIds.length)].every(x => t.indexOf(x) >= 0),
+        names: [L['art.quan_basic.name'], L['wp.wp_tulong.name'], L['cast.xuanci.name'],
+          L['zone.shaolin.name'], L['we.we_wangpan.name']].every(x => t.indexOf(x) >= 0),
+        fate: t.indexOf(L['wh.book.fate.canon']) >= 0 && t.indexOf(L['wh.book.fate.alt']) >= 0,
+        bio: t.indexOf(L['wh.book.bio']) >= 0 && t.indexOf('走查侠') >= 0 && t.indexOf(L['wh.book.bio.walking']) >= 0,
+        w: w
+      };
+    });
+    T(r10.album && r10.faces && r10.counts && r10.names && r10.fate && r10.bio,
+      'WH11 书笺页（侠名录四谱 + 五组分母对表 ⇔ 已得名字上屏 ⇔ 江湖大事结局词 ⇔ 本世传记含姓名与当下状态）',
+      'album=' + r10.album + ' faces=' + r10.faces + ' counts=' + r10.counts + ' names=' + r10.names + ' fate=' + r10.fate + ' bio=' + r10.bio);
+  });
+
+  /* WH12 · 设置页（册240）：离线效率/世界钟/自动开关/存档行上屏 ⇔ 开关真落档（关→开→关） */
+  await runSeeded({}, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="settings"]');
+    await p2.waitForTimeout(200);
+    const s1 = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      return { off: t.indexOf(L['wh.set.offline']) >= 0, clock: t.indexOf(L['wh.set.offline.clock']) >= 0,
+        slot: t.indexOf(L['wh.set.auto.slot']) >= 0, gear: t.indexOf(L['wh.set.auto.gear']) >= 0,
+        save: t.indexOf(L['wh.set.save.line'].split('{')[0]) >= 0,
+        v1: w.autoSlotArt === false && w.autoEquipGear === false };
+    });
+    await p2.click('#shell-main [data-wset="autoSlotArt"]');
+    await p2.waitForTimeout(300);
+    const s2 = await p2.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const t = document.getElementById('shell-main').textContent;
+      return { slotOn: w.autoSlotArt === true, onTxt: t.indexOf(window.SQ.LEX.wuxia['wh.set.on']) >= 0 };
+    });
+    await p2.click('#shell-main [data-wset="autoSlotArt"]');
+    await p2.waitForTimeout(300);
+    const s3 = await p2.evaluate(() => JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia.autoSlotArt);
+    T(s1.off && s1.clock && s1.slot && s1.gear && s1.save && s1.v1 && s2.slotOn && s2.onTxt && s3 === false,
+      'WH12 设置页（离线效率/世界钟/自动开关/存档行上屏 ⇔ 开关真落档 关→开→关）',
+      'off=' + s1.off + ' clock=' + s1.clock + ' slot=' + s1.slot + ' gear=' + s1.gear + ' save=' + s1.save + ' def=' + s1.v1 + ' on=' + s2.slotOn + ' off2=' + (s3 === false));
+  });
+
+  /* WH13 · 自动开关真生效（册240）：研读秘籍 ⇒ 自动入槽；买入兵刃 ⇒ 自动上身且出库 */
+  await runSeeded({ autoSlotArt: true, autoEquipGear: true, stones: 5000, shelf: ['mnl_01'] }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="shop"]');
+    await p2.waitForTimeout(200);
+    await p2.click('#shell-main [data-study="mnl_01"]');
+    await p2.waitForTimeout(300);
+    await p2.click('#shell-main [data-buy="wp_tiedao"]');
+    await p2.waitForTimeout(300);
+    const r = await p2.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      return { slot: w.artsSlots.indexOf('yg_jiuyin') >= 0, weapon: w.gear.weapon && w.gear.weapon.i,
+        stash: w.stash, artKnown: w.artsKnown.indexOf('yg_jiuyin') >= 0 };
+    });
+    T(r.artKnown && r.slot && r.weapon === 'wp_tiedao' && r.stash.indexOf('wp_tiedao') < 0,
+      'WH13 自动开关真生效（研读九阴 ⇒ 自动入槽 ⇔ 买入铁刀 ⇒ 自动上身且出库）',
+      'known=' + r.artKnown + ' slot=' + r.slot + ' weapon=' + r.weapon + ' stash=' + JSON.stringify(r.stash));
+  });
+
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
 
   await browser.close();

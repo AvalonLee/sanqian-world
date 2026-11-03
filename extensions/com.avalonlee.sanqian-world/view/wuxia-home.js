@@ -219,6 +219,14 @@
       w.mode = w.mode === 'seclude' ? 'travel' : 'seclude';
     }, function (f) { refresh(f); });
   }
+  /* 设置页自动开关（册240）：写档走 mutate，开关即时生效。 */
+  function toggleSetting(slot, key) {
+    act(slot, function (s) {
+      var w = s.worlds[s.profile.worldId];
+      if (key === 'autoSlotArt') w.autoSlotArt = !w.autoSlotArt;
+      else if (key === 'autoEquipGear') w.autoEquipGear = !w.autoEquipGear;
+    }, function (f) { refresh(f); });
+  }
   /* 强行冲关（数值卷 §四 唯一失败路径；精力 20；p = 0.5×(见闻/门槛)×(1+心性/400)） */
   function doForceBreak(slot) {
     act(slot, function (s) {
@@ -675,6 +683,85 @@
     return h;
   }
 
+  /* 书笺页（册240）：侠名录五谱 + 本世传记——全部由当前存档派生，零新增落盘字段。
+   * 「谱」回答的是「见过没有」：已得的列名字，未得的只进分母；传记是活人传，随时可读。 */
+  function bookRow(titleKey, ids, total, nameOf) {
+    var got = ids || [];
+    var names = [];
+    for (var i = 0; i < got.length && i < 8; i++) names.push(nameOf(got[i]));
+    if (got.length > 8) names.push(tw('wh.book.more', { n: got.length - 8 }));
+    return '<div class="wh-row"><span class="wh-cell"><b>' + tw(titleKey, null) + '</b> ' +
+      (names.length ? names.join(' · ') : '<span class="wh-muted">' + tw('wh.book.empty', null) + '</span>') +
+      '</span><span class="wh-muted">' + tw('wh.book.count', { n: got.length, t: total }) + '</span></div>';
+  }
+  function bookBody(cf) {
+    var w = cf.w, p = cf.p;
+    var D = p.data || {};
+    var artsTotal = (D.ARTS || []).length;
+    var bladesTotal = (D.WEAPONS || []).filter(function (x) { return x.k === 2; }).length;
+    var peopleTotal = (D.CAST || []).length;
+    var zonesTotal = (D.ZONES || []).length;
+    var weTotal = (p.WORLD_EVENTS || []).length;
+    var fate = (w.world && w.world.wefate) || {};
+    var knownWe = Object.keys(fate);
+    var h = '<div class="wh-card"><h3>' + tw('wh.book.album', null) + '</h3>';
+    h += bookRow('wh.book.face.art', w.artsKnown, artsTotal, function (id) { return tw('art.' + id + '.name', null); });
+    h += bookRow('wh.book.face.blade', w.blades, bladesTotal, function (id) { return tw('wp.' + id + '.name', null); });
+    h += bookRow('wh.book.face.people', Object.keys(w.relations || {}), peopleTotal, function (id) { return tw('cast.' + id + '.name', null); });
+    h += bookRow('wh.book.face.zone', w.visited, zonesTotal, function (id) { return tw('zone.' + id + '.name', null); });
+    h += '</div>';
+    /* 江湖大事单独一块：谱上要看得见「守了旧局 / 改了结局」，只数个数不够 */
+    h += '<div class="wh-card"><h3>' + tw('wh.book.face.we', null) +
+      ' <span class="wh-muted">' + tw('wh.book.count', { n: knownWe.length, t: weTotal }) + '</span></h3>';
+    if (!knownWe.length) h += '<div class="wh-muted">' + tw('wh.book.empty', null) + '</div>';
+    for (var i = 0; i < knownWe.length; i++) {
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + knownWe[i] + '.name', null) + '</b></span>' +
+        '<span class="wh-muted">' + tw('wh.book.fate.' + fate[knownWe[i]], null) + '</span></div>';
+    }
+    h += '</div>';
+    /* 本世传记：名字 / 境界 / 年岁 + 师门 / 武学 / 足迹 / 人脉 / 大事 + 当下状态 */
+    var prof = cf.s && cf.s.profile ? cf.s.profile : {};
+    var age = p.worldSystems && p.worldSystems.lifeInfo ? p.worldSystems.lifeInfo(w, p, D).age : 16;
+    var bio = tw('wh.book.bio.intro', { name: prof.name || '', realm: tw('realm.' + (w.realm | 0), null), age: age });
+    if (w.sect && w.sect.id && !w.sect.betrayed) {
+      bio += tw('wh.book.bio.sect', {
+        sect: tw('sect.' + w.sect.id + '.name', null),
+        rank: tw('wh.sect.rank', { n: p.sectRankOf(w.sect.contribution | 0) })
+      });
+    }
+    bio += tw('wh.book.bio.arts', { n: (w.artsKnown || []).length, b: (w.blades || []).length });
+    bio += tw('wh.book.bio.travel', { n: (w.visited || []).length });
+    bio += tw('wh.book.bio.people', { n: Object.keys(w.relations || {}).length });
+    if (knownWe.length) bio += tw('wh.book.bio.events', { n: knownWe.length });
+    bio += (w.heritage && (w.heritage.gen | 0) > 1) ? tw('wh.book.bio.retired', null) : tw('wh.book.bio.walking', null);
+    h += '<div class="wh-card"><h3>' + tw('wh.book.bio', null) + '</h3><div class="wh-muted">' + bio + '</div></div>';
+    return h;
+  }
+
+  /* 设置页（册240）：自动开关族（真实写档）+ 离线效率说明 + 本世存档信息。
+   * 说明文字只复述引擎口径（模式系数与离线封顶），不另造第二份数值。 */
+  function settingsBody(cf) {
+    var w = cf.w, p = cf.p;
+    var yr = p.worldYearOf ? p.worldYearOf(w) + 1 : 1;
+    var age = p.worldSystems && p.worldSystems.lifeInfo ? p.worldSystems.lifeInfo(w).age : 16;
+    var h = '<div class="wh-card"><h3>' + tw('wh.set.offline', null) + '</h3>' +
+      '<div class="wh-muted">' + tw('wh.mode.note', null) + '</div>' +
+      '<div class="wh-muted">' + tw('wh.set.offline.stamina', null) + '</div>' +
+      '<div class="wh-muted">' + tw('wh.set.offline.clock', null) + '</div></div>';
+    h += '<div class="wh-card"><h3>' + tw('wh.set.auto', null) + '</h3>' +
+      '<div class="wh-row"><span class="wh-cell">' + tw('wh.set.auto.slot', null) + '</span>' +
+      '<button class="btn" data-wset="autoSlotArt">' + tw(w.autoSlotArt ? 'wh.set.on' : 'wh.set.off', null) + '</button></div>' +
+      '<div class="wh-muted">' + tw('wh.set.auto.slotNote', null) + '</div>' +
+      '<div class="wh-row"><span class="wh-cell">' + tw('wh.set.auto.gear', null) + '</span>' +
+      '<button class="btn" data-wset="autoEquipGear">' + tw(w.autoEquipGear ? 'wh.set.on' : 'wh.set.off', null) + '</button></div>' +
+      '<div class="wh-muted">' + tw('wh.set.auto.gearNote', null) + '</div>' +
+      '<div class="wh-muted">' + tw('wh.set.auto.note', null) + '</div></div>';
+    h += '<div class="wh-card"><h3>' + tw('wh.set.save', null) + '</h3>' +
+      '<div class="wh-row"><span class="wh-cell">' + tw('wh.set.save.line', { y: yr, age: age }) + '</span></div>' +
+      '<div class="wh-muted">' + tw('wh.set.save.note', null) + '</div></div>';
+    return h;
+  }
+
   function render(cf) {
     var w = cf.w, p = cf.p;
     var inj = w.injury || 0;
@@ -695,7 +782,7 @@
         tw(TABS[i].key, null) + '</button>';
     }
     tabs += '</div>';
-    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : (cur === 'zones' ? zonesBody(cf) : (cur === 'sect' ? sectBody(cf) : (cur === 'shop' ? shopBody(cf) : (cur === 'jianghu' ? jianghuBody(cf) : (cur === 'people' ? peopleBody(cf) : (cur === 'gear' ? gearBody(cf) : wipBody(cur))))))))) + '</div>';
+    var body = '<div class="wh-body">' + (cur === 'home' ? homeBody(cf) : (cur === 'arts' ? artsBody(cf) : (cur === 'zones' ? zonesBody(cf) : (cur === 'sect' ? sectBody(cf) : (cur === 'shop' ? shopBody(cf) : (cur === 'jianghu' ? jianghuBody(cf) : (cur === 'people' ? peopleBody(cf) : (cur === 'book' ? bookBody(cf) : (cur === 'gear' ? gearBody(cf) : (cur === 'settings' ? settingsBody(cf) : wipBody(cur))))))))))) + '</div>';
     return top + tabs + body;
   }
 
@@ -732,6 +819,7 @@
       else if (b.getAttribute('data-we-go')) { cur = 'jianghu'; refresh(f2); }
       else if (b.getAttribute('data-eq')) doEquip(f2, b.getAttribute('data-eq'), b.getAttribute('data-gid'));
       else if (b.getAttribute('data-uneq')) doEquip(f2, b.getAttribute('data-uneq'), null);
+      else if (b.getAttribute('data-wset')) toggleSetting(f2, b.getAttribute('data-wset'));
       else if (b.getAttribute('data-befriend')) doBefriend(f2, b.getAttribute('data-befriend'));
       else if (b.id === 'wh-retire') doRetire(f2);
       else if (slot) toggleSlot(f2, slot);

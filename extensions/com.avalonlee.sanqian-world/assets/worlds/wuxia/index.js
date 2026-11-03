@@ -121,6 +121,8 @@
       debts: [],                       /* 人情债 {who, kind, what, due?}，跨代继承 */
       stamina: 60,                     /* 精力（册215 P2）：主动动作闸——上限 staminaCapOf()，claim 按时长恢复 */
       mode: 'travel',                  /* 挂机模态（册216 P3）：travel 闯荡 0.6 产出 + 见闻增长 / seclude 闭关 1.0 */
+      autoSlotArt: false,              /* 设置页（册240）：学到新武学时自动入槽（有空位才放；缺省关 = 旧行为） */
+      autoEquipGear: false,            /* 设置页（册240）：买到 / 夺得兵刃行头时自动上身（该部位空着才穿） */
       sceneProg: {},                   /* 子场景进度（册216 P3）：zoneId → 已推进场景数 */
       knotDone: {},                    /* 已走过的剧情桥段（册216 P3）：knotId → 1（一次性名场面） */
       world: null,                     /* 江湖格局写回（册218 P5）：{wefate: {事件id → canon|alt}}——只存结果键 */
@@ -197,6 +199,8 @@
       debts: arr(p.debts),
       stamina: clampInt(p.stamina, 0, 999, 60),
       mode: p.mode === 'seclude' ? 'seclude' : 'travel',
+      autoSlotArt: p.autoSlotArt === true,
+      autoEquipGear: p.autoEquipGear === true,
       sceneProg: obj(p.sceneProg),
       knotDone: obj(p.knotDone),
       world: (function () {
@@ -867,6 +871,25 @@
     }
     return out;
   }
+  /* 设置页自动开关（册240）：只填空位，不顶替玩家已选——自动是省手，不是替人做主。 */
+  function autoSlotArt(ws, artId) {
+    if (!ws || !ws.autoSlotArt) return;
+    var slots = arr(ws.artsSlots);
+    if (slots.length >= 6 || slots.indexOf(artId) >= 0) return;
+    slots.push(artId);
+    ws.artsSlots = slots;
+  }
+  function autoEquipGear(ws, slot, id) {
+    if (!ws || !ws.autoEquipGear) return;
+    ws.gear = obj(ws.gear);
+    if (ws.gear[slot] && ws.gear[slot].i) return;   /* 已有着装：留给玩家自己换 */
+    var st = arr(ws.stash);
+    var at = st.indexOf(id);
+    if (at < 0) return;
+    st.splice(at, 1);
+    ws.stash = st;
+    ws.gear[slot] = { i: id };
+  }
   function learnArt(ws, artId) {
     if (!ws || !ws.sect || !ws.sect.id) return { err: 'nosect' };
     var a = ART_INDEX[artId];
@@ -879,6 +902,7 @@
     ws.sect.contribution -= cost;
     ws.artsKnown = (ws.artsKnown || []).concat([artId]);
     ws.artsLevels = obj(ws.artsLevels); ws.artsLevels[artId] = 1;
+    autoSlotArt(ws, artId);
     return { ok: true, art: artId, layer: 1 };
   }
   function sectTask(ws) {
@@ -940,12 +964,14 @@
       if (!weaponRow(it.i)) return { err: 'badgear' };
       ws.stash = arr(ws.stash); ws.stash.push(it.i);
       ws.blades = arr(ws.blades); if (ws.blades.indexOf(it.i) < 0) ws.blades.push(it.i);
+      autoEquipGear(ws, 'weapon', it.i);
       return { ok: true, kind: 'gear', slot: it.slot, item: it.i };
     }
     if (it.kind === 'misc') {
       /* 行头（册230）：入兵器库，不上谱（谱只收名兵）、也不上战力 */
       if (!miscRow(it.i)) return { err: 'badgear' };
       ws.stash = arr(ws.stash); ws.stash.push(it.i);
+      autoEquipGear(ws, it.slot, it.i);
       return { ok: true, kind: 'misc', slot: it.slot, item: it.i };
     }
     if (it.kind === 'manual') {
@@ -973,6 +999,7 @@
     if ((ws.artsKnown || []).indexOf(artId) < 0) {
       ws.artsKnown = (ws.artsKnown || []).concat([artId]);
       ws.artsLevels = obj(ws.artsLevels); ws.artsLevels[artId] = 1;
+      autoSlotArt(ws, artId);
     }
     return { ok: true, art: artId };
   }
@@ -1043,6 +1070,7 @@
     ws.blades = own;
     var st = arr(ws.stash); st.push(id);
     ws.stash = st;
+    autoEquipGear(ws, 'weapon', id);
     return { id: id, dupe: false };
   }
 
@@ -1343,6 +1371,7 @@
       if (ws.artsKnown.indexOf(rw.id) < 0) {
         ws.artsKnown.push(rw.id);
         ws.artsLevels[rw.id] = 1;
+        autoSlotArt(ws, rw.id);
         return { kind: 'art', id: rw.id, fresh: true, level: 1 };
       }
       var lv = ws.artsLevels[rw.id] | 0;
@@ -1356,6 +1385,7 @@
       if (ws.blades.indexOf(rw.id) < 0) {
         ws.blades.push(rw.id);
         ws.stash.push(rw.id);
+        autoEquipGear(ws, 'weapon', rw.id);
         return { kind: 'blade', id: rw.id, fresh: true };
       }
       ws.stones = (ws.stones || 0) + 300;              /* 谱上已有：折价 3 两 */
