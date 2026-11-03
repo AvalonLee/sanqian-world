@@ -473,6 +473,9 @@
     /* ⑤ ws 重置（继承/重置矩阵 §四：未列出字段一律重置 = initialState 重建） */
     if (s.profile.name !== '' || ws.realm > 0 || ws.total > 0 || (ws.tribulation && ws.tribulation.attempts > 0)) {
       var fresh = pack.initialState();
+      /* 世界侧余响挂接（册236）：转世重建初始态后，由世界包把本世可继承项带进来
+       * （武侠 = 境界 / 最高武学 / 最深交情三轴，通用层不读世界字段）。 */
+      if (pack.worldSystems && pack.worldSystems.rebirthCarry) pack.worldSystems.rebirthCarry(ws, fresh);
       if (meta.heirTreasure && SQ.Treasures && SQ.Treasures.gain) {
         SQ.Treasures.gain(fresh, pack, D, meta.heirTreasure, null);
         /* 器灵随件承继（§九 数据契约兑现）：觉醒态 + 人格 + 温养值落回新世该件，冷却类字段归零 */

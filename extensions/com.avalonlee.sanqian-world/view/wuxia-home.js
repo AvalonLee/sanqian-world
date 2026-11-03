@@ -137,6 +137,7 @@
       var r = pk.attendEvent(w, id, mode, alt);
       if (r && r.err === 'realm') { slot.toast(tw('wh.err.gate', null)); return; }
       if (r && r.err === 'stamina') { slot.toast(tw('wh.rep.stamina', null)); return; }
+      if (r && r.err === 'watched') { slot.toast(tw('wh.err.watched', null)); return; }
       if (r && r.err) { slot.toast(tw('wh.err.save', null)); return; }
       /* 主导对赌（册228）：胜 = 结局 + 主奖励，败 = 力战而竭（结局 'lose'，无奖励）——
        * 结果落战报卡（挂主页），与闯荡战报同构；join/watch 不产战报。 */
@@ -348,6 +349,16 @@
         var sc = p.zoneSceneOf(z.i);
         if (sc) h += '<div class="wh-muted">' + tw('event.' + sc.i + '.desc', null) + '</div>';
       }
+      /* 地界侧世界事件入口（册235）：此地此刻有可赴的大事的，就地挂一句 + 「往江湖页」——
+       * 事件选项（旁观/卷入/主导）仍在江湖页，这里只做提示与跳转，不另开一套按钮。 */
+      if (here && p.worldEventsAt) {
+        var wes = p.worldEventsAt(w, z.i);
+        for (var q = 0; q < wes.length; q++) {
+          h += '<div class="wh-row"><span class="wh-muted">' +
+            tw('wh.zone.weHere', { name: tw('we.' + wes[q].i + '.name', null) }) + '</span>' +
+            '<button class="btn" data-we-go="1">' + tw('wh.zone.weGo', null) + '</button></div>';
+        }
+      }
     }
     return h + '</div>';
   }
@@ -401,6 +412,11 @@
       if (fd >= 3) {
         h += '<div class="wh-row"><span class="wh-cell">' + tw('wh.arts.fireAlert', { n: fd, inj: Math.round(w.injury || 0) }) + '</span></div>';
       }
+    }
+    /* 辟邪自伤（册237）：在槽即折寿——把暗扣摆到明面上，玩家撤槽前有权知道代价 */
+    if (inSlot['yg_bixie']) {
+      h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('wh.arts.bixieWarn', null) + '</b>' +
+        ' · ' + tw('wh.arts.bixieCut', { n: w.lifeCut | 0 }) + '</span></div>';
     }
     h += '<div class="wh-card"><h3>' + tw('wh.arts.known', null) + '</h3>';
     if (!known.length) h += '<div class="wh-muted">' + tw('wh.home.slotsEmpty', null) + '</div>';
@@ -512,11 +528,16 @@
       /* 主导门槛之外再给一条「对上谁」的线索（数值卷 §八 第 3 条「门槛必须可推断」）；
        * e.boss = CAST id，名走 cast 词族——不给胜算数字（正文不给数字，江湖自己掂量）。 */
       var foeTip = e.boss ? ' · ' + tw('wh.jianghu.lead.foe', { name: tw('cast.' + e.boss + '.name', null) }) : '';
+      /* 按钮三态（册235）：门槛/精力不足置灰（判据在引擎，这里只给不可点的样子）；
+       * 旁观记过 ⇒ 显示「已旁观」并锁住（join/lead 仍可赴——旁听一次不影响落子）。 */
+      var watched = p.watchDone ? p.watchDone(w, e) : false;
+      var st = w.stamina | 0;
       h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + e.i + '.name', null) + '</b>' +
         '<span class="wh-muted">' + tw('we.' + e.i + '.desc', null) + foeTip + '</span></span>' +
-        '<button class="btn" data-we="' + e.i + '" data-mode="watch">' + tw('wh.jianghu.watch', null) + '</button>' +
-        '<button class="btn" data-we="' + e.i + '" data-mode="join">' + tw('wh.jianghu.join', { n: e.tier.join }) + '</button>' +
-        '<button class="btn" data-we="' + e.i + '" data-mode="lead">' + tw('wh.jianghu.lead', { n: e.tier.lead }) + '</button>' +
+        '<button class="btn" data-we="' + e.i + '" data-mode="watch"' + (watched || st < 3 ? ' disabled' : '') + '>' +
+        (watched ? tw('wh.jianghu.watched', null) : tw('wh.jianghu.watch', null)) + '</button>' +
+        '<button class="btn" data-we="' + e.i + '" data-mode="join"' + ((w.realm | 0) < e.tier.join || st < 5 ? ' disabled' : '') + '>' + tw('wh.jianghu.join', { n: e.tier.join }) + '</button>' +
+        '<button class="btn" data-we="' + e.i + '" data-mode="lead"' + ((w.realm | 0) < e.tier.lead || st < 10 ? ' disabled' : '') + '>' + tw('wh.jianghu.lead', { n: e.tier.lead }) + '</button>' +
         '</div>';
     }
     var fate = (w.world && w.world.wefate) || {};
@@ -531,6 +552,26 @@
         : (isLose ? tw('we.' + fk[k] + '.fate.lose', null) : tw('we.' + fk[k] + '.fate.' + (fkMode === 'alt' ? 'alt' : 'canon'), null));
       h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + fk[k] + '.name', null) + '</b>' +
         '<span class="wh-muted">' + fbody + tw('wh.jianghu.fate.tag.' + (isEcho ? 'echo' : (isLose ? 'lose' : fkMode)), null) + '</span></span></div>';
+    }
+    /* 江湖格局（册236 · 写回四写口的展示面）：人物去向 / 门派声望 / 余波句——只读派生，不写档 */
+    var wbc = (w.world && w.world.wbcast) || {};
+    var wbs = (w.world && w.world.wbsect) || {};
+    var aft = p.aftermathOf ? p.aftermathOf(w) : [];
+    var wbk = Object.keys(wbc), wsk = Object.keys(wbs);
+    if (wbk.length || wsk.length || aft.length) {
+      h += '<div class="wh-row"><span class="wh-muted"><b>' + tw('wh.jianghu.wb', null) + '</b></span></div>';
+      for (var wc = 0; wc < wbk.length; wc++) {
+        h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('cast.' + wbk[wc] + '.name', null) + '</b>' +
+          ' · <span class="wh-muted">' + tw('wh.castState.' + wbc[wbk[wc]], null) + '</span></span></div>';
+      }
+      for (var wsx = 0; wsx < wsk.length; wsx++) {
+        var n = wbs[wsk[wsx]] | 0;
+        h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('sect.' + wsk[wsx] + '.name', null) + '</b>' +
+          ' · <span class="wh-muted">' + tw('wh.jianghu.rep', { n: (n > 0 ? '+' : '') + n }) + '</span></span></div>';
+      }
+      for (var wa = 0; wa < aft.length; wa++) {
+        h += '<div class="wh-row"><span class="wh-muted">' + tw('we.' + aft[wa].i + '.wb.' + aft[wa].outcome, null) + '</span></div>';
+      }
     }
     if ((w.realm | 0) >= 9) h += '<div class="wh-row"><button class="btn primary" id="wh-retire">' + tw('wh.home.retire', null) + '</button></div>';
     return h + '</div>';
@@ -629,7 +670,12 @@
   function render(cf) {
     var w = cf.w, p = cf.p;
     var inj = w.injury || 0;
-    var top = '<div class="wh-top"><span class="wh-id">' + tw('wh.title', null) + ' · ' + tw('realm.' + (w.realm | 0), null) +
+    /* 年份/年岁（册235）：worldDay 已活（册234）⇒ 把「第几年 · 多少岁」摆到顶栏——
+     * 窗口型事件与寿元判势都按它走，玩家得看得见这本钟。 */
+    var yr = p.worldYearOf ? p.worldYearOf(w) + 1 : 1;
+    var age = p.worldSystems && p.worldSystems.lifeInfo ? p.worldSystems.lifeInfo(w).age : 16;
+    var top = '<div class="wh-top"><span class="wh-id">' + tw('wh.title', null) + ' · ' + tw('realm.' + (w.realm | 0), null) + ' · ' +
+      tw('wh.stat.year', { y: yr, age: age }) +
       (inj >= 12 ? ' · ' + tw('wh.stat.hurt', null) : '') + '</span>' +
       '<span class="wh-stats">' + tw('wh.stat.qi', null) + ' ' + Math.floor(w.qi || 0) + ' · ' +
       tw('wh.stat.stones', null) + ' ' + tw('wh.fmt.wen', { n: Math.floor(w.stones || 0) }) + ' · ' +
@@ -675,6 +721,7 @@
       else if (b.id === 'wh-donate') doSect(f2, 'donate', null);
       else if (b.id === 'wh-betray') doSect(f2, 'betray', null);
       else if (b.getAttribute('data-we')) doEvent(f2, b.getAttribute('data-we'), b.getAttribute('data-mode'), false);
+      else if (b.getAttribute('data-we-go')) { cur = 'jianghu'; refresh(f2); }
       else if (b.getAttribute('data-eq')) doEquip(f2, b.getAttribute('data-eq'), b.getAttribute('data-gid'));
       else if (b.getAttribute('data-uneq')) doEquip(f2, b.getAttribute('data-uneq'), null);
       else if (b.getAttribute('data-befriend')) doBefriend(f2, b.getAttribute('data-befriend'));

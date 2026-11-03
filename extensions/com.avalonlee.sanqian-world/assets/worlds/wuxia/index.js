@@ -115,6 +115,7 @@
       blades: [],                      /* 神兵谱（册227）：已收到手过的兵刃 id —— 收集面，卸下不减 */
       relations: {},
       injury: 0,                       /* 内伤 0~15；=15 即死（合卷） */
+      lifeCut: 0,                      /* 折寿年数（册237 · 辟邪剑法自伤）：lifeInfo 的 age 直接加上它 */
       worldDay: 0,                     /* 游戏内天数 */
       exp: 0,                          /* 见闻值 = visited×2 + 熟人，派生落盘只为免重算 */
       debts: [],                       /* 人情债 {who, kind, what, due?}，跨代继承 */
@@ -190,6 +191,7 @@
       blades: arr(p.blades),
       relations: obj(p.relations),
       injury: clampInt(p.injury, 0, 15, 0),
+      lifeCut: clampInt(p.lifeCut, 0, 200, 0),
       worldDay: Math.max(0, num(p.worldDay, 0)),
       exp: Math.max(0, num(p.exp, 0)),
       debts: arr(p.debts),
@@ -197,7 +199,17 @@
       mode: p.mode === 'seclude' ? 'seclude' : 'travel',
       sceneProg: obj(p.sceneProg),
       knotDone: obj(p.knotDone),
-      world: (function () { var wd = obj(p.world); return { wefate: obj(wd.wefate), wecyc: obj(wd.wecyc), webonus: isNum(wd.webonus) ? wd.webonus : 0, fireDays: clampInt(wd.fireDays, 0, 99, 0) }; })(),
+      world: (function () {
+        var wd = obj(p.world);
+        var cast = {}, castIn = obj(wd.wbcast);
+        for (var ck in castIn) if (WB_STATE[castIn[ck]]) cast[ck] = castIn[ck];
+        var rep = {}, repIn = obj(wd.wbsect);
+        for (var sk in repIn) if (isNum(repIn[sk])) rep[sk] = clampInt(repIn[sk], -100, 100, 0);
+        return { wefate: obj(wd.wefate), wecyc: obj(wd.wecyc), wseen: obj(wd.wseen),
+          wbcast: cast, wbsect: rep, wafter: arr(wd.wafter).slice(-20),
+          webonus: isNum(wd.webonus) ? wd.webonus : 0, fireDays: clampInt(wd.fireDays, 0, 99, 0), fireMs: isNum(wd.fireMs) ? wd.fireMs : 0,
+          bixieMs: isNum(wd.bixieMs) ? wd.bixieMs : 0 };
+      })(),
       lastReport: obj(p.lastReport),
       escort: (function () { var e2 = p.escort; return e2 && isNum(e2.steps) && isNum(e2.pay) ? { steps: e2.steps, pay: e2.pay } : null; })(),
       atts: (function () {
@@ -230,9 +242,15 @@
   var BASE_PER_MIN = 8.0;
   var LAYER_MULT = 0.15;
   var TRAVEL_MULT = 0.6;
-  /* 行功日（册233 · 走火入魔专用）：10 现实分钟 = 1 日。**不是世界日**——worldDay 目前不推进
-   * （缺陷已登记下一批修），走火不能等它；且世界日的尺度一动就牵动整个 sim 时间模型。 */
+  /* 行功日（册233 · 走火入魔专用）：10 现实分钟 = 1 日。**不是世界日**——世界日的尺度一动就
+   * 牵动整个 sim 时间模型，走火按练功尺度结算、与历法日解耦。 */
   var FIRE_DAY_MS = 10 * 60 * 1000;
+  /* 世界日（册234 · worldDay 时钟）：1 现实分钟 = 1 游戏日（1 游戏年 = 6 现实小时）——
+   * 倒推自「一局 18~22 游戏年 = 5 现实天」（数值卷 §二）与「一档 ≈ 3 游戏年」（世界事件卷 §七）。
+   * 离线一次性最多推进 12 现实小时（= 2 游戏年）：与第一世界经济侧 OFFLINE_CAP_H 同尺，
+   * 避免「回来一次被寿元一次咬掉一辈子」。 */
+  var GAME_DAY_MS = 60 * 1000;
+  var WD_OFFLINE_CAP_MS = 12 * 3600 * 1000;
 
   function totalLayers(ws) {
     var lv = ws && ws.artsLevels ? ws.artsLevels : {};
@@ -293,11 +311,13 @@
     for (var k in rel) { if (rel[k] && isNum(rel[k].affinity) && rel[k].affinity >= 20) known++; }
     /* 错过回声（册223）与事件见闻奖励（册225 修）：两者都必须进派生式——exp 是派生值，
      * 走 ws.exp += 会被 claim 的 expOf 重算静默吞掉（册221 埋、册225 sweep 批抓出）。 */
+    /* 回声见闻封顶 +2（册234）：世界日一推进，17 案全错过 ×2 = +34 会顶穿「天人须亲身赴会」
+     * 的心境墙——封顶只记一次「听说过江湖上的事」。 */
     var fate = wefateOf(ws);
-    var echoes = 0;
-    for (var fk in fate) { if (fate[fk] === 'echo') echoes++; }
+    var echo = false;
+    for (var fk in fate) { if (fate[fk] === 'echo') { echo = true; break; } }
     var bonus = (ws.world && isNum(ws.world.webonus)) ? ws.world.webonus : 0;
-    return visited * 2 + known + echoes * 2 + bonus;
+    return visited * 2 + known + (echo ? 2 : 0) + bonus;
   }
 
   /* ── 修习常量（册162 · 武学全录 §五「自悟」最小闭环 + §五 瓶颈）────────────────── */
@@ -380,6 +400,53 @@
     }
     return n;
   }
+  /* 余响 / 传承（册236 · GATES 的 `heritage` 标记终于有写口）：一世了结时按「境界 / 最高武学 /
+   * 最深交情」三轴各取一项（≤3）带进下一世——数值只给薄赠（见闻 / 功力 / 武学三层 / 交情 30），
+   * 不继承满配（合卷折分 0.5 口径）。GATES 8/9 的 `heritage` 门槛据此解锁：单局不可达
+   * = 第一世永远破不到「无招」，须死过一次（或退隐）方有来世之资。 */
+  function heritageAwake(ws) {
+    var her = obj(ws && ws.heritage);
+    return (her.gen | 0) > 1 || arr(her.inherited).length > 0;
+  }
+  function inheritOf(ws) {
+    var out = [];
+    if (!ws) return out;
+    var r = ws.realm | 0;
+    if (r >= 5) out.push({ k: 'realm', n: r });
+    var lv = obj(ws.artsLevels), best = null, bl = 0;
+    for (var aid in lv) { var l = lv[aid] | 0; if (l > bl) { bl = l; best = aid; } }
+    if (best && bl >= 6 && ART_INDEX[best]) out.push({ k: 'art', id: best, lv: Math.min(3, bl) });
+    var rel = obj(ws.relations), bid = null, ba = 0;
+    for (var cid in rel) { var a = (rel[cid] || {}).affinity | 0; if (a > ba) { ba = a; bid = cid; } }
+    if (bid && ba >= 60 && CAST_INDEX[bid]) out.push({ k: 'bond', id: bid, aff: 30 });
+    return out.slice(0, 3);
+  }
+  function rebirthCarry(oldWs, fresh) {
+    if (!oldWs || !fresh) return null;
+    var her = obj(oldWs.heritage);
+    var items = arr(her.inherited).length ? arr(her.inherited).slice(0, 3) : inheritOf(oldWs);
+    if (!items.length) return null;
+    fresh.heritage = { gen: Math.max(2, her.gen | 0), inherited: items };
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (it.k === 'realm') {
+        fresh.exp = (fresh.exp | 0) + (it.n | 0) * 2;
+        var row = realmRow((it.n | 0) - 1);
+        if (row) fresh.qi = Math.max(fresh.qi || 0, row.need || 0);
+      } else if (it.k === 'art' && ART_INDEX[it.id]) {
+        fresh.artsKnown = arr(fresh.artsKnown);
+        if (fresh.artsKnown.indexOf(it.id) < 0) fresh.artsKnown.push(it.id);
+        fresh.artsLevels = obj(fresh.artsLevels);
+        fresh.artsLevels[it.id] = Math.max(fresh.artsLevels[it.id] | 0, clampInt(it.lv, 1, 9, 3));
+        fresh.artsSlots = arr(fresh.artsSlots);
+        if (fresh.artsSlots.indexOf(it.id) < 0 && fresh.artsSlots.length < 6) fresh.artsSlots.push(it.id);
+      } else if (it.k === 'bond' && CAST_INDEX[it.id]) {
+        fresh.relations = obj(fresh.relations);
+        fresh.relations[it.id] = { affinity: clampInt(it.aff, 0, 100, 30), kind: 'friend' };
+      }
+    }
+    return items;
+  }
   function canBreak(ws) {
     var r = ws.realm | 0;
     var nx = realmRow(r + 1);
@@ -394,7 +461,7 @@
     if (g.extra === 'sect3' && countOuterTies(ws) < 3) return false;
     if (g.extra === 'tian_full' && !hasTianFull(ws)) return false;
     if (g.extra === 'bond80' && !hasBond80(ws)) return false;
-    if (g.extra === 'heritage') return false;    /* 余响类：单局不可达（保守不破） */
+    if (g.extra === 'heritage' && !heritageAwake(ws)) return false;   /* 余响类：第一世不可达，来世解锁（册236） */
     return true;
   }
 
@@ -1008,7 +1075,160 @@
     { i: 'we_cangjing', z: 'shaolin', knot: 'knot_cangjing', window: [1, 6], tier: { join: 3, lead: 6 }, pre: [], boss: 'xiao_longn', reward: { kind: 'manual', id: 'mnl_04' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 2000 } } },
     { i: 'we_huanshi', z: 'yanziwu', knot: 'knot_huanshi', window: [1, 6], tier: { join: 3, lead: 4 }, pre: [], boss: 'murong_fu', reward: { kind: 'manual', id: 'mnl_06' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 3000 } } }
   ];
+  /* 写回四写口（册236 · 世界事件卷 §五）：首批只给 §九 八案声明（逐案白名单，不开放全 CAST）。
+   * ① cast 人物生死/去向（白名单短码 dead/flee/secluded/saved）② sects 门派声望增量
+   * ③ rumor + ④ next 合并成一条「余波」句（展示面，不链式触发）——只存短码/数值，叙述走词表。 */
+  var WB_STATE = { dead: 1, flee: 1, secluded: 1, saved: 1 };
+  var WRITEBACK = {
+    we_huashan: {
+      canon: { sects: { huashan: 5 } },
+      alt: { sects: { huashan: -5, wudang: 3 } }
+    },
+    we_xiangyang: {
+      canon: { sects: { quanzhen: -5, gaibang: -5, shaolin: -3 } },
+      alt: { sects: { quanzhen: 8, gaibang: 8, shaolin: 5 } }
+    },
+    we_weijiao_gm: {
+      canon: { sects: { mingjiao: -40, shaolin: 10, wudang: 10, huashan: 10, kunlun: 10, kongtong: 10, emei: 10 } },
+      alt: { sects: { mingjiao: 50, shaolin: -10, wudang: -10, huashan: -10 } }
+    },
+    we_juxian: {
+      canon: { cast: { xiao_feng: 'flee' }, sects: { gaibang: -20 } },
+      alt: { cast: { xiao_feng: 'flee' }, sects: { gaibang: -10 } }
+    },
+    we_yanmen: {
+      canon: { cast: { xiao_feng: 'dead' }, sects: { gaibang: -10, shaolin: -5, wudang: -5 } },
+      alt: { cast: { xiao_feng: 'secluded' }, sects: { gaibang: 5 } }
+    },
+    we_zhenlong: {
+      canon: { sects: { shaolin: 5 } },
+      alt: { sects: { xiaoyao: 10 } }
+    },
+    we_tushi: {
+      canon: { sects: { shaolin: -10, wudang: -10, emei: -10 } },
+      alt: { sects: { shaolin: 3, wudang: 3 } }
+    },
+    we_heimu: {
+      canon: { cast: { dongfang_bubai: 'flee' }, sects: { riyue: -10 } },
+      alt: { cast: { dongfang_bubai: 'dead' }, sects: { riyue: -30, shaolin: 10, wudang: 10, huashan: 10 } }
+    },
+    /* 册238：其余 12 案补齐（现役 20 案全覆盖；非 §九 重点案的写回只动门派声望，不扩 cast 白名单） */
+    we_shaoshishan: {
+      canon: { sects: { shaolin: -5, gaibang: -5 } },
+      alt: { sects: { shaolin: 5, gaibang: 5 } }
+    },
+    we_wuyue_bingpai: {
+      canon: { sects: { songshan: 15, taishan: -5, hengshan_n: -5, hengshan: -5, huashan: -5 } },
+      alt: { sects: { songshan: -10, huashan: 5 } }
+    },
+    we_xiake: {
+      canon: { sects: {} },
+      alt: { sects: { xiaoyao: 5 } }
+    },
+    we_shagui: {
+      canon: { sects: { tiandihui: 10, honghuahui: 5 } },
+      alt: { sects: { tiandihui: 5 } }
+    },
+    we_wangpan: {
+      canon: { sects: { riyue: -5 } },
+      alt: { sects: { riyue: -10 } }
+    },
+    we_jueqinggu: {
+      canon: { sects: { quanzhen: -3 } },
+      alt: { sects: { quanzhen: 5, gumu: 5 } }
+    },
+    we_liuheta: {
+      canon: { sects: { honghuahui: -5 } },
+      alt: { sects: { honghuahui: 10 } }
+    },
+    we_chuangwang: {
+      canon: { sects: {} },
+      alt: { sects: { tiandihui: 5 } }
+    },
+    we_liancheng: {
+      canon: { sects: {} },
+      alt: { sects: { xuedao: 5 } }
+    },
+    we_jiaozhu: {
+      canon: { sects: { mingjiao: 5 } },
+      alt: { sects: { mingjiao: 20 } }
+    },
+    we_cangjing: {
+      canon: { sects: { shaolin: -10 } },
+      alt: { sects: { shaolin: 10 } }
+    },
+    we_huanshi: {
+      canon: { sects: { murong: -5 } },
+      alt: { sects: { murong: -10, xiaoyao: 5 } }
+    }
+  };
+  function applyWriteback(ws, e, outcome) {
+    if (!ws || !e || !WRITEBACK[e.i]) return null;
+    var okey = outcome === 'alt' ? 'alt' : 'canon';
+    var wb = WRITEBACK[e.i][okey];
+    if (!wb) return null;
+    ws.world = obj(ws.world);
+    /* 一场（惯例型按本届）只写一次：同事件同结果重复调用不叠门派声望/余波 */
+    var tok = e.i + ':' + okey + (e.cyc ? ':' + Math.floor(worldYearOf(ws) / e.cyc) : '');
+    var after = arr(ws.world.wafter);
+    if (after.indexOf(tok) >= 0) return wb;
+    if (wb.cast) {
+      var cast = obj(ws.world.wbcast);
+      for (var cid in wb.cast) if (WB_STATE[wb.cast[cid]]) cast[cid] = wb.cast[cid];
+      ws.world.wbcast = cast;
+    }
+    if (wb.sects) {
+      var rep = obj(ws.world.wbsect);
+      for (var sid in wb.sects) rep[sid] = clampInt((rep[sid] | 0) + wb.sects[sid], -100, 100, 0);
+      ws.world.wbsect = rep;
+    }
+    after.push(tok);
+    ws.world.wafter = after.slice(-20);
+    return wb;
+  }
+  function castStateOf(ws, id) { return obj(ws && ws.world && ws.world.wbcast)[id] || null; }
+  function sectRepOf(ws, id) { return obj(ws && ws.world && ws.world.wbsect)[id] | 0; }
+  function aftermathOf(ws) {
+    var out = [], wa = arr(ws && ws.world && ws.world.wafter);
+    for (var i = 0; i < wa.length; i++) {
+      var p = String(wa[i]).split(':');
+      if (p[0] && (p[1] === 'alt' || p[1] === 'canon')) out.push({ i: p[0], outcome: p[1] });
+    }
+    return out;
+  }
   function wefateOf(ws) { return obj(ws.world && ws.world.wefate); }
+  /* 逐案失败代价（册237 · 世界事件卷 §六 `fail` 字段）：只覆盖 lead 档，join 维持轻败常量。
+   * 主题差：论剑败者不掉名（+20「虽败犹荣」）· 黑木崖代价最重（伤 5~7 / 名 −40~−30）。 */
+  var FAIL = {
+    we_huashan: { injury: [4, 6], renown: [20, 20] },
+    we_xiangyang: { injury: [3, 5], renown: [-20, -10] },
+    we_weijiao_gm: { injury: [2, 5], renown: [-30, -15] },
+    we_juxian: { injury: [3, 6], renown: [-30, -20] },
+    we_yanmen: { injury: [4, 6], renown: [-20, -10] },
+    we_zhenlong: { injury: [4, 4], renown: [-10, -5] },
+    we_tushi: { injury: [2, 5], renown: [-30, -20] },
+    we_heimu: { injury: [5, 7], renown: [-40, -30] },
+    /* 册238：其余 12 案补齐（全 20 案 lead 档都有逐案代价） */
+    we_shaoshishan: { injury: [4, 6], renown: [-30, -20] },
+    we_wuyue_bingpai: { injury: [3, 5], renown: [-25, -15] },
+    we_xiake: { injury: [3, 5], renown: [-20, -10] },
+    we_shagui: { injury: [2, 4], renown: [-20, -10] },
+    we_wangpan: { injury: [3, 5], renown: [-25, -15] },
+    we_jueqinggu: { injury: [3, 4], renown: [-15, -5] },
+    we_liuheta: { injury: [3, 5], renown: [-30, -20] },
+    we_chuangwang: { injury: [2, 5], renown: [-20, -10] },
+    we_liancheng: { injury: [2, 5], renown: [-20, -10] },
+    we_jiaozhu: { injury: [3, 6], renown: [-30, -20] },
+    we_cangjing: { injury: [3, 5], renown: [-25, -15] },
+    we_huanshi: { injury: [2, 4], renown: [-20, -10] }
+  };
+  function failOf(e, mode) {
+    var f = mode === 'lead' && e ? FAIL[e.i] : null;
+    return {
+      injury: f && arr(f.injury).length === 2 ? f.injury : (mode === 'join' ? JOIN_FAIL_INJURY : LEAD_FAIL_INJURY),
+      renown: f && arr(f.renown).length === 2 ? f.renown : (mode === 'join' ? JOIN_FAIL_RENOWN : LEAD_FAIL_RENOWN)
+    };
+  }
   /* 窗口与届次（册223 · 世界事件卷 §四）：worldDay 360 天 = 1 游戏年。
    * 惯例型 cyc（游戏年）＝周期重开——本届（floor(年/cyc)）已赴则隐藏，跨届自动重现（wecyc 存届次）；
    * 独发型 window [y0,y1] ＝一次性条件窗——未到 y0 隐藏，滑过 y1 由 sweepExpired 按「江湖传言收场」落定（wefate=echo）。 */
@@ -1021,15 +1241,17 @@
     return yr >= e.window[0] && yr <= e.window[1];
   }
   function sweepExpired(ws) {
-    /* 独发型滑窗收场（错过 = 江湖没有等你）：wefate=echo（回声结局）+ 见闻 +2 零奖励。
+    /* 独发型滑窗收场（错过 = 江湖没有等你）：wefate=echo（回声结局）+ 见闻封顶 +2 零奖励。
      * 只做数据面；回声正文由结局展示面读词表 we.<id>.echo。 */
     if (!ws || !ws.world) return 0;
+    if (!ws.world.wefate) ws.world.wefate = {};   /* claim 的 obj(ws.world) 会造出无 wefate 的空壳 */
     var fate = wefateOf(ws), n = 0;
     for (var i = 0; i < WORLD_EVENTS.length; i++) {
       var e = WORLD_EVENTS[i];
       if (e.cyc || !e.window || fate[e.i]) continue;
       if (worldYearOf(ws) > e.window[1]) {
         ws.world.wefate[e.i] = 'echo';   /* 江湖没有等你：按 canon 落定为回声结局（见闻 +2 走 expOf 派生） */
+        applyWriteback(ws, e, 'canon');  /* 错过也照样推进江湖格局（册236 · §五「按 canon 落定」） */
         n++;
       }
     }
@@ -1052,6 +1274,20 @@
       if (!preOk) continue;
       out.push(e);
     }
+    return out;
+  }
+  /* 旁观一次性（册235）：旁观不写结局（在场不落子），原本可反复点同一案刷见闻——
+   * 按「本案本届」记 wseen（惯例型随届次重开，独发型终身一次）。只挡旁观档，join/lead 不受影响。 */
+  function watchKeyOf(ws, e) { return e.cyc ? String(Math.floor(worldYearOf(ws) / e.cyc)) : '1'; }
+  function watchDone(ws, e) {
+    return !!(e && obj(ws && ws.world && ws.world.wseen)[e.i] === watchKeyOf(ws, e));
+  }
+  /* 地界侧事件入口（册235）：此地此刻可赴的世界事件（行走页挂一行「此地有大事」） */
+  function worldEventsAt(ws, place) {
+    var out = [];
+    if (!place) return out;
+    var all = worldEvents(ws);
+    for (var i = 0; i < all.length; i++) if (all[i].z === place) out.push(all[i]);
     return out;
   }
   /* G17 传闻预告（册224 · 世界事件卷 §四）：独发型窗口将开（≤1 游戏年）进「江湖风闻」——
@@ -1151,9 +1387,13 @@
       if (fate[id]) return { err: 'done' };
       if (!inWindow(ws, e)) return { err: 'offwindow' };   /* 直调防御 */
     }
-    if ((ws.stamina | 0) < (mode === 'lead' ? 10 : 5)) return { err: 'stamina' };
+    if (mode === 'watch' && watchDone(ws, e)) return { err: 'watched' };   /* 旁观记过（册235） */
+    if ((ws.stamina | 0) < (mode === 'lead' ? 10 : mode === 'watch' ? 3 : 5)) return { err: 'stamina' };
     if (mode === 'watch') {   /* 旁观：无门槛、精力 3——在场不落子（世界事件卷 §三） */
       ws.stamina = Math.max(0, (ws.stamina | 0) - 3);
+      ws.world = obj(ws.world);
+      if (!ws.world.wseen) ws.world.wseen = {};
+      ws.world.wseen[id] = watchKeyOf(ws, e);
     } else {
       var need = e.tier[mode];
       if (need == null) return { err: 'tier' };
@@ -1172,14 +1412,15 @@
       res.p = duel.p;
       res.foe = duel.foe;
       if (!duel.win) {
-        var injAdd = LEAD_FAIL_INJURY[0] + Math.floor(Math.random() * (LEAD_FAIL_INJURY[1] - LEAD_FAIL_INJURY[0] + 1));
-        var renLoss = LEAD_FAIL_RENOWN[0] + Math.floor(Math.random() * (LEAD_FAIL_RENOWN[1] - LEAD_FAIL_RENOWN[0] + 1));
+        var fail = failOf(e, 'lead');
+        var injAdd = fail.injury[0] + Math.floor(Math.random() * (fail.injury[1] - fail.injury[0] + 1));
+        var renDelta = fail.renown[0] + Math.floor(Math.random() * (fail.renown[1] - fail.renown[0] + 1));
         ws.injury = Math.min(15, (ws.injury || 0) + injAdd);
-        ws.renown = clampInt((ws.renown || 0) + renLoss, -1000, 1000, ws.renown || 0);
+        ws.renown = clampInt((ws.renown || 0) + renDelta, -1000, 1000, ws.renown || 0);
         res.ok = true;                 /* 赴了、打了、败了 —— 这也是赴会成功的一种结局 */
         res.win = false;
         res.injury = ws.injury;
-        res.renownLost = -renLoss;
+        res.renownLost = -renDelta;
         ws.world = obj(ws.world);
         if (!ws.world.wefate) ws.world.wefate = {};
         ws.world.wefate[id] = 'lose';
@@ -1187,6 +1428,7 @@
           if (!ws.world.wecyc) ws.world.wecyc = {};
           ws.world.wecyc[id] = Math.floor(worldYearOf(ws) / e.cyc);
         }
+        applyWriteback(ws, e, 'canon');   /* 主导败 = 没改得动史，江湖按 canon 写回（册236） */
         return res;
       }
       res.win = true;
@@ -1233,6 +1475,7 @@
         if (!ws.world.wecyc) ws.world.wecyc = {};
         ws.world.wecyc[id] = Math.floor(worldYearOf(ws) / e.cyc);
       }
+      applyWriteback(ws, e, res.alt ? 'alt' : 'canon');
     }
     /* 场面执行器挂接（册222 · 世界事件卷 §六 `knot` 字段落码）：join/lead 赴挂接案 → 返回该 KNOTS
      * 的开放分支（branchOpen 过滤 + watch 兜底，travel 同款）供玩家「当场那段戏」直选——
@@ -1274,6 +1517,7 @@
     if ((ws.realm | 0) < 9) return { err: 'realm', need: 9 };
     ws.renown = clampInt((ws.renown || 0) + 200, -1000, 1000, ws.renown || 0);
     ws.heritage = obj(ws.heritage);
+    ws.heritage.inherited = inheritOf(ws);       /* 本世余响（生时即定：境界 / 最高武学 / 最深交情） */
     ws.heritage.gen = ((ws.heritage.gen || 1)) + 1;
     ws.worldDay = (ws.worldDay || 0) + 3600;   /* 退隐十年 */
     return { ok: true, gen: ws.heritage.gen };
@@ -1299,10 +1543,14 @@
   function claim(ws, dtMs, now, profile, settings) {
     void now; void profile; void settings;
     if (!ws || !isNum(dtMs) || dtMs <= 0) return { gain: 0, broke: 0, layers: 0 };
+    /* ── 世界日时钟（册234）：1 现实分钟 = 1 游戏日，离线单次封顶 12 现实小时 ─────────
+     * 在 sweep 之前推进：窗口关窗与回声同一拍落账。生产/修习仍按未封顶的 dtMs 结算——
+     * 两把尺子是刻意的（经济侧照全额，寿元侧别让一次回归咬掉一辈子），同第一世界口径。 */
+    ws.worldDay = (ws.worldDay || 0) + Math.min(dtMs, WD_OFFLINE_CAP_MS) / GAME_DAY_MS;
     /* ── 走火入魔（册233 · 武学全录 §一 注）────────────────────────────────────
      * 修习槽里同时挂**相冲两性**（环上相邻、互克；中正不参与）＝ 强行兼修，每「行功日」内伤 +1。
-     * **日尺度用行功日（10 现实分钟）而非 worldDay**：`worldDay` 目前不推进（见下条注），且它的
-     * 尺度一动就牵动整个 sim 时间模型 —— 两件事分开办。对照既有恢复速率（内伤 1 层/30 现实分钟）：
+     * **日尺度用行功日（10 现实分钟）而非 worldDay**：世界日走历法尺度（1 现实分钟 = 1 日，册234），
+     * 走火是练功压力、按练功日结算——两件事分开办。对照既有恢复速率（内伤 1 层/30 现实分钟）：
      * 走火 +1/10 分 ≫ 恢复 −1/30 分 ⇒ 净每小时约 +4 层，3 小时走满 12 层封顶，逼玩家撤槽或疗伤。
      * **封 12 不致死**：正典「超过 3 日进濒死预警」是压力不是死刑——内伤 15 即死那条留给战斗与
      * 极端运气，别让挂机把人练死；到 12 进咯血档（行走被拒 + 页面转红）。fireDays 记连续走火日，
@@ -1325,15 +1573,26 @@
       ws.world.fireMs = 0;
       ws.world.fireDays = 0;
     }
-    /* ⚠️ 已登记的下一批头等事项（册233 发现，未修）：`worldDay` 在日常挂机里**从不推进** ——
-     * 只有 retire 时 +3600。后果：窗口型世界事件（year 恒 0，[2,6]/[3,8] 永不开）、惯例型届次
-     * （恒 0，赴过一届再不重开）、sweepExpired 滑窗回声（永不触发）、worldRumors 预告（day 恒 0）、
-     * 寿元（age 恒 16 永不老死）——一整族机制在真实游玩中是死的。修它必须连带重标定
-     * `.tests/sim-wuxia.cjs` 的「一月 = 43200 挂机分钟」口径（12 段 = 360 现实天挂机），
-     * 并复核 echo 见闻值（世界日一旦推进，17 案 echo × 2 = +34 见闻会顶穿心境墙）⇒ 独立成批，
-     * 见 §七A 第 233 条余量。 */
-    sweepExpired(ws);   /* 独发型滑窗收场检查（册223）：挂机节拍必然经过——错过即回声
-                         * ⚠️ 上条缺陷未修前，此处因 year 恒 0 实际不触发（等世界日批激活） */
+    /* 辟邪剑法自伤（册237 · 武学全录 §2.0/§2.3「修习即损寿元」）：槽里有 yg_bixie ⇒
+     * 每修满 1 游戏年折寿 1 年（世界日同尺）；撤槽即停，已经折掉的不还。 */
+    var bixieIn = false;
+    var bslots = arr(ws.artsSlots).slice(0, SLOTS_MAX);
+    for (var bi = 0; bi < bslots.length; bi++) {
+      var bid = typeof bslots[bi] === 'string' ? bslots[bi] : (bslots[bi] && bslots[bi].id);
+      if (bid === 'yg_bixie') bixieIn = true;
+    }
+    if (bixieIn) {
+      var bixieMs = (isNum(ws.world.bixieMs) ? ws.world.bixieMs : 0) + Math.min(dtMs, WD_OFFLINE_CAP_MS);
+      var cutYears = Math.floor(bixieMs / (GAME_DAY_MS * 360));
+      if (cutYears > 0) {
+        bixieMs -= cutYears * GAME_DAY_MS * 360;
+        ws.lifeCut = clampInt((ws.lifeCut || 0) + cutYears, 0, 200, 0);
+      }
+      ws.world.bixieMs = bixieMs;
+    } else {
+      ws.world.bixieMs = 0;   /* 撤槽即停；已折的寿数不还 */
+    }
+    sweepExpired(ws);   /* 独发型滑窗收场检查（册223）：世界日时钟已活（册234），跨过 y1 即回声 */
     ws.exp = expOf(ws);
     var before = isNum(ws.qi) ? ws.qi : 0;
     var broke = 0;
@@ -1455,7 +1714,13 @@
     equipGear: equipGear, bladeProgress: bladeProgress, bladeDrop: bladeDrop,
     /* 行头三槽（册230）：表 / 取行 / 效果读数 —— 效果只在判定层，不进 powerOf */
     gearMisc: (D && D.GEAR_MISC) || [], miscRow: miscRow, gearRow: gearRow, effectsOfGear: effectsOfGear,
-    worldEvents: worldEvents, worldRumors: worldRumors, sweepExpired: sweepExpired, worldYearOf: worldYearOf, attendEvent: attendEvent, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,
+    worldEvents: worldEvents, worldEventsAt: worldEventsAt, worldRumors: worldRumors, sweepExpired: sweepExpired, worldYearOf: worldYearOf, attendEvent: attendEvent, watchDone: watchDone, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,
+    /* 写回四写口（册236）：白名单表 / 写口 / 读取面 —— 判据直测口 */
+    WRITEBACK: WRITEBACK, applyWriteback: applyWriteback, castStateOf: castStateOf, sectRepOf: sectRepOf, aftermathOf: aftermathOf,
+    /* 逐案失败代价（册237 · 世界事件卷 §六 fail） */
+    FAIL: FAIL, failOf: failOf,
+    /* 余响（册236）：一世余响计算（retire / rebirthCarry 共用） */
+    inheritOf: inheritOf,
     /* 主导对赌（册228）：掷判与主奖励发放拆成两口——判据直测用，视图只经 attendEvent 的返回面 */
     leadDuel: leadDuel, grantReward: grantReward,
     zoneUnlocked: zoneUnlocked,
@@ -1475,7 +1740,7 @@
       lifeInfo: function (ws) {
         var r = Math.min(ws && isNum(ws.realm) ? ws.realm : 0, 9);
         var row = realmRow(r);
-        var age = 16 + Math.floor((ws && ws.worldDay || 0) / 360);
+        var age = 16 + Math.floor((ws && ws.worldDay || 0) / 360) + ((ws && ws.lifeCut) | 0);
         var cap = row ? row.life : 40;
         var inj = (ws && ws.injury) || 0;
         var cause = null;
@@ -1493,6 +1758,8 @@
       },
       /* 寿元增减：本世界寿元不做倒计时（数值与经济 §二），通用层的得寿/折寿在此不落账 */
       lifeAdd: function (ws) { void ws; return 0; },
+      /* 转世余响（册236 · Legacy.finishRebirth 在重建初始态后调用）：把本世三轴余响带进来世 */
+      rebirthCarry: rebirthCarry,
       /* 掉落乘区（combat 的 eff.*）：武侠无法宝掉落面，恒空 = 引擎守卫回落 */
       effectsOf: function (ws) { void ws; return null; },
       /* 功法业力加成（arts.js）：武侠无善恶业力，恒 0 */

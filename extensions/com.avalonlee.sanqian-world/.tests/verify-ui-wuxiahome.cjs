@@ -38,7 +38,7 @@ const { chromium } = require('playwright-core');
           stash: [], relations: {}, injury: 0,
           worldDay: 0, exp: 2, debts: [],
           stamina: 60, atts: { zhi: 50, gu: 50, xing: 50 },
-          lastSave: 1, log: [], eventHistory: { lastId: null, seen: {}, feed: [] },
+          lastSave: Date.now(), log: [], eventHistory: { lastId: null, seen: {}, feed: [] },
           heritage: { gen: 1, inherited: [] }
         }
       },
@@ -98,7 +98,7 @@ const { chromium } = require('playwright-core');
       gear: { weapon: null, ranged: null, armor: null, boots: null },
       stash: [], relations: {}, injury: 0, worldDay: 0, exp: 2, debts: [],
       stamina: 60, atts: { zhi: 50, gu: 50, xing: 50 },
-      lastSave: 1, log: [], eventHistory: { lastId: null, seen: {}, feed: [] },
+      lastSave: Date.now(), log: [], eventHistory: { lastId: null, seen: {}, feed: [] },
       heritage: { gen: 1, inherited: [] } };
     const w = Object.assign(base, patch || {});
     return JSON.stringify({ v: 1,
@@ -121,9 +121,9 @@ const { chromium } = require('playwright-core');
     return r;
   };
 
-  /* WH4 · 练习度真推进：种 prac 99 + 在槽 → 熬 tick ⇒ 层 +1（独立 context 无竞态） */
-  await runSeeded({ artsSlots: ['neigong_basic'], artsPractice: { neigong_basic: 99 } }, async (p2) => {
-    await p2.waitForTimeout(3500);   /* 熬三个 tick：99 + 3×0.69 ≥ 100 ⇒ 升层 */
+  /* WH4 · 练习度真推进：种 prac 99.9 + 在槽 → 熬 tick ⇒ 层 +1（独立 context 无竞态） */
+  await runSeeded({ artsSlots: ['neigong_basic'], artsPractice: { neigong_basic: 99.9 } }, async (p2) => {
+    await p2.waitForTimeout(3500);   /* 熬三个 1s tick：99.9 + 3×0.07 ≥ 100 ⇒ 升层 */
     const t2 = await p2.evaluate(() => document.getElementById('shell-main').textContent);
     T(/第 2 层/.test(t2), 'WH4 练习度真推进（99 + tick 度 ≥ 100 ⇒ 层 +1——屏上「第 2 层」见证）', 'txt=' + t2.replace(/\s+/g, ' ').slice(60, 140));
   });
@@ -149,7 +149,7 @@ const { chromium } = require('playwright-core');
 
   /* WH8 · 江湖页 20 案全文案（册221）+ 窗口过滤（册223）：初始可见 7 = 惯例 3（huashan/xiake/shagui 常驻）
    * + 开局窗独发 4（xiangyang/juxian/wangpan/liancheng）——其余 13 案窗口未开或 pre 未过。 */
-  await runSeeded({}, async (p2) => {
+  await runSeeded({ realm: 1 }, async (p2) => {
     await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
     await p2.waitForTimeout(300);
     const r8a = await p2.evaluate(() => {
@@ -175,6 +175,71 @@ const { chromium } = require('playwright-core');
     T(r8b.fate === 'canon' && r8b.canon,
       'WH8b 赴会真落档（join ⇒ wefate.we_wangpan=canon 落盘 ⇔ 结局正文真词上屏——精力扣 5 与 tick 恢复叠加不判定值，WH2/WH6 同口径）',
       'fate=' + r8b.fate + ' stamina=' + r8b.stamina + ' canon=' + r8b.canon);
+  });
+
+  /* WH8h · 旁观一次性（册235）：旁观后同案本届旁观钮置灰「已旁观」⇔ 不写 wefate（在场不落子） */
+  await runSeeded({ realm: 1, stamina: 60 }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
+    await p2.waitForTimeout(300);
+    await p2.click('#shell-main [data-we="we_wangpan"][data-mode="watch"]');
+    await p2.waitForTimeout(500);
+    const h8 = await p2.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const b = document.querySelector('#shell-main [data-we="we_wangpan"][data-mode="watch"]');
+      const L = window.SQ.LEX.wuxia;
+      return { seen: raw.world && raw.world.wseen && raw.world.wseen.we_wangpan,
+        fate: raw.world && raw.world.wefate && raw.world.wefate.we_wangpan,
+        off: !!b && b.disabled, label: b ? b.textContent : '' , want: L['wh.jianghu.watched'] };
+    });
+    T(h8.seen === '1' && !h8.fate && h8.off && h8.label === h8.want,
+      'WH8h 旁观一次性（wseen.we_wangpan=1 落盘 ⇔ wefate 不写 ⇔ 钮置灰且文案「已旁观」）',
+      'seen=' + h8.seen + ' fate=' + h8.fate + ' off=' + h8.off + ' label=' + h8.label);
+  });
+
+  /* WH8i · 地界侧事件入口（册235）：所在洛阳（year 3，聚贤庄窗内）⇒ 行走页「此地有大事」+ 跳江湖页 */
+  await runSeeded({ place: 'luoyang', worldDay: 3 * 360 + 1 }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="zones"]');
+    await p2.waitForTimeout(300);
+    const h9 = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      return { here: t.indexOf(L['we.we_juxian.name']) >= 0 && t.indexOf(L['wh.zone.weHere'].split('{')[0]) >= 0,
+        go: !!document.querySelector('#shell-main [data-we-go]') };
+    });
+    await p2.click('#shell-main [data-we-go]');
+    await p2.waitForTimeout(300);
+    const h9b = await p2.evaluate(() => {
+      const on = (document.querySelector('#shell-main .wh-tabs button.on') || {}).textContent;
+      return { on: on,
+        tab: on === window.SQ.LEX.wuxia['wh.tab.jianghu'],
+        row: !!document.querySelector('#shell-main [data-we="we_juxian"][data-mode="join"]') };
+    });
+    T(h9.here && h9.go && h9b.row && h9b.tab,
+      'WH8i 地界事件入口（洛阳所在行挂「此地有大事：聚贤庄」⇔ 「往江湖页」钮切到江湖页 ⇔ 聚贤庄三钮在屏）',
+      'here=' + h9.here + ' go=' + h9.go + ' on=' + h9b.on + ' row=' + h9b.row);
+  });
+
+  /* WH8j · 江湖格局展示面（册236）：种写回三面 ⇒ 江湖页「人物去向 / 门派声望 / 余波」真词上屏 */
+  await runSeeded({ realm: 1, world: { wefate: {}, wecyc: {}, wseen: {},
+    wbcast: { xiao_feng: 'dead' }, wbsect: { gaibang: -20 }, wafter: ['we_yanmen:canon'] } }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
+    await p2.waitForTimeout(300);
+    const wbj = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const pk = window.SQ.Worlds.wuxia.pack;
+      return {
+        title: t.indexOf(L['wh.jianghu.wb']) >= 0,
+        cast: t.indexOf(L['cast.xiao_feng.name']) >= 0 && t.indexOf(L['wh.castState.dead']) >= 0,
+        sect: t.indexOf(L['sect.gaibang.name']) >= 0 && t.indexOf(L['wh.jianghu.rep'].replace('{n}', '-20')) >= 0,
+        after: t.indexOf(L['we.we_yanmen.wb.canon']) >= 0,
+        state: pk.castStateOf(w, 'xiao_feng'), rep: pk.sectRepOf(w, 'gaibang')
+      };
+    });
+    T(wbj.title && wbj.cast && wbj.sect && wbj.after && wbj.state === 'dead' && wbj.rep === -20,
+      'WH8j 江湖格局上屏（人物去向「乔峰·身死」⇔ 丐帮「声望 -20」⇔ 余波句真词 ⇔ pack 读数对表）',
+      'title=' + wbj.title + ' cast=' + wbj.cast + ' sect=' + wbj.sect + ' after=' + wbj.after + ' state=' + wbj.state + ' rep=' + wbj.rep);
   });
 
   /* WH8c · 场面执行器挂接（册222）：赴挂接案 → 自动切主页战报卡 knot 态上屏 → 选支 knotDone 真落档。
@@ -439,6 +504,40 @@ const { chromium } = require('playwright-core');
     T(r1c.clash && r1c.warn && r1c.alert,
       'WH1c 走火红警（满槽阴柔+刚猛 ⇒ 引擎认相冲 ⇔ 「两性相冲：阴柔 × 刚猛」真词 ⇔ 连走 3 日火加重提示）',
       'clash=' + r1c.clash + ' warn=' + r1c.warn + ' alert=' + r1c.alert + ' fd=' + r1c.fd);
+  });
+
+  /* WH1d · 年份/年岁上屏（册235）：worldDay 1090（第 3 年）⇒ 顶栏「第 4 年 · 19 岁」 */
+  await runSeeded({ worldDay: 3 * 360 + 10 }, async (p2) => {
+    const r1d = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const yr = window.SQ.Worlds.wuxia.pack.worldYearOf(w);
+      const age = window.SQ.Worlds.wuxia.pack.worldSystems.lifeInfo(w).age;
+      const want = L['wh.stat.year'].replace('{y}', String(yr + 1)).replace('{age}', String(age));
+      return { shown: t.indexOf(want) >= 0, yr: yr, age: age, want: want };
+    });
+    T(r1d.shown && r1d.yr === 3 && r1d.age === 19,
+      'WH1d 年份与年岁上屏（worldDay 1090 ⇒ 顶栏「第 4 年 · 19 岁」⇔ pack.worldYearOf/lifeInfo 对表）',
+      'shown=' + r1d.shown + ' want=' + r1d.want + ' yr=' + r1d.yr + ' age=' + r1d.age);
+  });
+
+  /* WH1e · 辟邪自伤提示（册237）：辟邪在槽 ⇒ 修习页红字提示 + 已折寿读数 */
+  await runSeeded({ artsKnown: ['quan_basic', 'neigong_basic', 'yg_bixie'],
+    artsLevels: { quan_basic: 1, neigong_basic: 1, yg_bixie: 1 }, artsSlots: ['yg_bixie'] }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="arts"]');
+    await p2.waitForTimeout(300);
+    const r1e = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      return { warn: t.indexOf(L['wh.arts.bixieWarn']) >= 0,
+        cut: t.indexOf(L['wh.arts.bixieCut'].replace('{n}', String(w.lifeCut | 0))) >= 0,
+        lifeCut: w.lifeCut | 0 };
+    });
+    T(r1e.warn && r1e.cut,
+      'WH1e 辟邪自伤提示（辟邪在槽 ⇒ 「修习即折寿」真词 ⇔ 「已折寿 0 年」读数上屏）',
+      'warn=' + r1e.warn + ' cut=' + r1e.cut + ' lifeCut=' + r1e.lifeCut);
   });
 
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');
