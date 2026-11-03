@@ -1462,6 +1462,43 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 不练=' + noneOk + ' 往返=' + normOk);
     })();
 
+    /* E39 · 赴会须到场 + 窗口放宽（册239 · 节奏试跑）：
+     * ① 有地界的事件人在别处 ⇒ 自动赶路（精力 3 + 本档），place 落当地、visited 记见闻 ‖
+     * ② z:null 的全局事件不付脚程 ‖ ③ 精力不足以覆盖「本档 + 脚程」⇒ stamina 拒且人不动 ‖
+     * ④ 地界未解锁 ⇒ locked ‖ ⑤ 独发窗按 lead 门槛分级（≤4→y6 / 5→y7，襄阳 [0,8] / 6~7→y8；王盘山教程窗 [0,2]），保证 lead 档够得着。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.attendEvent) { ok('E39', '赴会须到场', false, '无 attendEvent 口'); return; }
+      function mk() { return pk.normalize(pk.initialState()); }
+      var w1 = mk(); w1.realm = 6; w1.stamina = 99; w1.worldDay = 3 * 360 + 1; w1.place = 'shaolin';
+      var r1 = pk.attendEvent(w1, 'we_juxian', 'join');
+      var tripOk = !!r1 && r1.ok && r1.trip === 'luoyang' && w1.place === 'luoyang' &&
+        w1.visited.indexOf('luoyang') >= 0 && w1.stamina === 91;   /* 99 − join5 − 脚程3 */
+      var w2 = mk(); w2.realm = 6; w2.stamina = 99; w2.place = 'shaolin';
+      var r2 = pk.attendEvent(w2, 'we_wangpan', 'watch');
+      var globalOk = !!r2 && r2.ok && !r2.trip && w2.place === 'shaolin' && w2.stamina === 96;
+      var w3 = mk(); w3.realm = 6; w3.stamina = 7; w3.worldDay = 3 * 360 + 1; w3.place = 'shaolin';
+      var r3 = pk.attendEvent(w3, 'we_juxian', 'join');
+      var poorOk = !!r3 && r3.err === 'stamina' && w3.place === 'shaolin';
+      var w4 = mk(); w4.realm = 0; w4.stamina = 99; w4.worldDay = 3 * 360 + 1; w4.place = 'luoyang';
+      var r4 = pk.attendEvent(w4, 'we_weijiao_gm', 'join');
+      var lockOk = !!r4 && r4.err === 'locked';
+      var winOk = true, badWin = [];
+      for (var i = 0; i < pk.WORLD_EVENTS.length; i++) {
+        var e = pk.WORLD_EVENTS[i];
+        if (e.cyc) continue;
+        var wantEnd = e.i === 'we_wangpan' ? 2
+          : e.tier.lead <= 4 ? 6
+          : e.tier.lead === 5 ? (e.i === 'we_xiangyang' ? 8 : 7)
+          : 8;
+        if (!e.window || e.window[1] !== wantEnd) { winOk = false; badWin.push(e.i + ':' + (e.window && e.window[1])); }
+      }
+      ok('E39', '赴会须到场（有地界案自动赶路 精力3+本档 ⇒ place/visited 落当地 ‖ 全局案不付脚程 ‖ 穷到付不起拒不移动 ‖ 未解锁地界 locked ‖ 独发窗按 lead 档分级到 year6/7/8、王盘山教程例外）',
+        tripOk && globalOk && poorOk && lockOk && winOk,
+        '赶路=' + tripOk + ' 全局=' + globalOk + ' 穷=' + poorOk + ' 锁=' + lockOk +
+        ' 窗=' + winOk + (badWin.length ? '(' + badWin.join(',') + ')' : ''));
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */

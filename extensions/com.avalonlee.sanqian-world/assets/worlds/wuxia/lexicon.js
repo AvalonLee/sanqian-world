@@ -116,6 +116,7 @@
     "wh.jianghu.none": "（眼下没有可赴的大事）",
     "wh.jianghu.watch": "旁观",
     "wh.jianghu.watched": "已旁观",
+    "wh.jianghu.away": "须往{place}（精力 3）",
     "wh.jianghu.join": "卷入（境界 {n}）",
     "wh.jianghu.lead": "主导（境界 {n}）",
     "wh.jianghu.alt": "改写走向",

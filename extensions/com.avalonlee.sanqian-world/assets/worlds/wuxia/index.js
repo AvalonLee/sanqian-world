@@ -1056,23 +1056,23 @@
   var WORLD_EVENTS = [
     { i: 'we_huashan', z: null, knot: null, cyc: 6, tier: { join: 3, lead: 6 }, pre: [], boss: 'huang_yaoshi', reward: { kind: 'art', id: 'yg_jiuyin' }, gain: { watch: { exp: 8 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 60, stones: 5000 } } },
     { i: 'we_xiangyang', z: null, knot: null, window: [0, 8], tier: { join: 3, lead: 5 }, pre: [], boss: 'guo_jing', reward: { kind: 'art', id: 'yg_xianglong' }, gain: { watch: { exp: 8 }, join: { exp: 25, renown: 20 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
-    { i: 'we_weijiao_gm', z: 'guangmingding', knot: 'knot_weijiao', window: [2, 6], tier: { join: 3, lead: 5 }, pre: [], boss: 'zhang_wuji', reward: { kind: 'art', id: 'yg_qiankun' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 4000 } } },
-    { i: 'we_juxian', z: 'luoyang', knot: 'knot_juxian', window: [0, 4], tier: { join: 3, lead: 5 }, pre: [], boss: 'xiao_feng', reward: { kind: 'art', id: 'yg_dagou' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 30, stones: 2000 } } },
-    { i: 'we_shaoshishan', z: 'shaolin', knot: 'knot_saodi', window: [2, 6], tier: { join: 4, lead: 6 }, pre: ['we_juxian'], boss: 'xu_zhu', reward: { kind: 'art', id: 'yg_liumai' }, gain: { watch: { exp: 10 }, join: { exp: 30, renown: 20 }, lead: { exp: 50, renown: 45, stones: 3000 } } },
-    { i: 'we_zhenlong', z: 'wuliang', knot: null, window: [1, 5], tier: { join: 1, lead: 5 }, pre: [], boss: 'ding_chunqiu', reward: { kind: 'art', id: 'yg_lingbo' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 5 }, lead: { exp: 50, renown: 10, stones: 0 } } },
-    { i: 'we_yanmen', z: 'yanmenguan', knot: 'knot_yanmen', window: [2, 6], tier: { join: 4, lead: 7 }, pre: ['we_juxian'], boss: 'xiao_longn', reward: { kind: 'art', id: 'yg_yijin' }, gain: { watch: { exp: 12 }, join: { exp: 30, renown: 25 }, lead: { exp: 60, renown: 60, stones: 0 } } },
+    { i: 'we_weijiao_gm', z: 'guangmingding', knot: 'knot_weijiao', window: [2, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'zhang_wuji', reward: { kind: 'art', id: 'yg_qiankun' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 4000 } } },
+    { i: 'we_juxian', z: 'luoyang', knot: 'knot_juxian', window: [0, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'xiao_feng', reward: { kind: 'art', id: 'yg_dagou' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 30, stones: 2000 } } },
+    { i: 'we_shaoshishan', z: 'shaolin', knot: 'knot_saodi', window: [2, 8], tier: { join: 4, lead: 6 }, pre: ['we_juxian'], boss: 'xu_zhu', reward: { kind: 'art', id: 'yg_liumai' }, gain: { watch: { exp: 10 }, join: { exp: 30, renown: 20 }, lead: { exp: 50, renown: 45, stones: 3000 } } },
+    { i: 'we_zhenlong', z: 'wuliang', knot: null, window: [1, 7], tier: { join: 1, lead: 5 }, pre: [], boss: 'ding_chunqiu', reward: { kind: 'art', id: 'yg_lingbo' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 5 }, lead: { exp: 50, renown: 10, stones: 0 } } },
+    { i: 'we_yanmen', z: 'yanmenguan', knot: 'knot_yanmen', window: [2, 8], tier: { join: 4, lead: 7 }, pre: ['we_juxian'], boss: 'xiao_longn', reward: { kind: 'art', id: 'yg_yijin' }, gain: { watch: { exp: 12 }, join: { exp: 30, renown: 25 }, lead: { exp: 60, renown: 60, stones: 0 } } },
     { i: 'we_tushi', z: 'shaolin', knot: null, window: [3, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'xie_xun', reward: { kind: 'blade', id: 'wp_yitian' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 10 }, lead: { exp: 45, renown: 35, stones: 3000 } } },
-    { i: 'we_wuyue_bingpai', z: 'songshan', knot: 'knot_fengchan', window: [2, 6], tier: { join: 3, lead: 5 }, pre: [], boss: 'yue_buqun', reward: { kind: 'manual', id: 'mnl_03' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
+    { i: 'we_wuyue_bingpai', z: 'songshan', knot: 'knot_fengchan', window: [2, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'yue_buqun', reward: { kind: 'manual', id: 'mnl_03' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 40, stones: 3000 } } },
     { i: 'we_heimu', z: null, knot: null, window: [3, 8], tier: { join: 4, lead: 7 }, pre: ['we_wuyue_bingpai'], boss: 'dongfang_bubai', reward: { kind: 'manual', id: 'mnl_05' }, gain: { watch: { exp: 12 }, join: { exp: 30, renown: 20 }, lead: { exp: 60, renown: 60, stones: 6000 } } },
     { i: 'we_xiake', z: null, knot: null, cyc: 1, tier: { join: 2, lead: 5 }, pre: [], boss: 'shi_poitian', reward: { kind: 'art', id: 'yg_dugu' }, gain: { watch: { exp: 10 }, join: { exp: 20, renown: 10 }, lead: { exp: 45, renown: 20, stones: 2000 } } },
     { i: 'we_shagui', z: 'luoyang', knot: null, cyc: 3, tier: { join: 2, lead: 4 }, pre: [], boss: 'hong_antong', reward: { kind: 'blade', id: 'wp_jinshe' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 15 }, lead: { exp: 40, renown: 30, stones: 1500 } } },
     { i: 'we_wangpan', z: null, knot: null, window: [0, 2], tier: { join: 1, lead: 4 }, pre: [], boss: 'xie_xun', reward: { kind: 'blade', id: 'wp_tulong' }, gain: { watch: { exp: 8 }, join: { exp: 15, renown: 10 }, lead: { exp: 35, renown: 20, stones: 2500 } } },
-    { i: 'we_jueqinggu', z: null, knot: null, window: [1, 5], tier: { join: 2, lead: 5 }, pre: [], boss: 'yang_guo', reward: { kind: 'blade', id: 'wp_junzi' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 1000 } } },
-    { i: 'we_liuheta', z: null, knot: null, window: [1, 4], tier: { join: 3, lead: 5 }, pre: [], boss: 'chen_jialuo', reward: { kind: 'blade', id: 'wp_ningbi' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 35, stones: 2000 } } },
-    { i: 'we_chuangwang', z: null, knot: null, window: [1, 5], tier: { join: 2, lead: 4 }, pre: [], boss: 'hu_fei', reward: { kind: 'blade', id: 'wp_lengyue' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 4000 } } },
-    { i: 'we_liancheng', z: null, knot: null, window: [0, 4], tier: { join: 1, lead: 4 }, pre: [], boss: 'hua_tiegan', reward: { kind: 'manual', id: 'mnl_11' }, gain: { watch: { exp: 8 }, join: { exp: 15, renown: 5 }, lead: { exp: 35, renown: 15, stones: 3500 } } },
+    { i: 'we_jueqinggu', z: null, knot: null, window: [1, 7], tier: { join: 2, lead: 5 }, pre: [], boss: 'yang_guo', reward: { kind: 'blade', id: 'wp_junzi' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 1000 } } },
+    { i: 'we_liuheta', z: null, knot: null, window: [1, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'chen_jialuo', reward: { kind: 'blade', id: 'wp_ningbi' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 35, stones: 2000 } } },
+    { i: 'we_chuangwang', z: null, knot: null, window: [1, 6], tier: { join: 2, lead: 4 }, pre: [], boss: 'hu_fei', reward: { kind: 'blade', id: 'wp_lengyue' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 4000 } } },
+    { i: 'we_liancheng', z: null, knot: null, window: [0, 6], tier: { join: 1, lead: 4 }, pre: [], boss: 'hua_tiegan', reward: { kind: 'manual', id: 'mnl_11' }, gain: { watch: { exp: 8 }, join: { exp: 15, renown: 5 }, lead: { exp: 35, renown: 15, stones: 3500 } } },
     { i: 'we_jiaozhu', z: 'guangmingding', knot: null, window: [3, 8], tier: { join: 4, lead: 6 }, pre: ['we_weijiao_gm'], boss: 'ren_woxing', reward: { kind: 'art', id: 'yg_jiuyang' }, gain: { watch: { exp: 10 }, join: { exp: 30, renown: 25 }, lead: { exp: 55, renown: 55, stones: 0 } } },
-    { i: 'we_cangjing', z: 'shaolin', knot: 'knot_cangjing', window: [1, 6], tier: { join: 3, lead: 6 }, pre: [], boss: 'xiao_longn', reward: { kind: 'manual', id: 'mnl_04' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 2000 } } },
+    { i: 'we_cangjing', z: 'shaolin', knot: 'knot_cangjing', window: [1, 8], tier: { join: 3, lead: 6 }, pre: [], boss: 'xiao_longn', reward: { kind: 'manual', id: 'mnl_04' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 2000 } } },
     { i: 'we_huanshi', z: 'yanziwu', knot: 'knot_huanshi', window: [1, 6], tier: { join: 3, lead: 4 }, pre: [], boss: 'murong_fu', reward: { kind: 'manual', id: 'mnl_06' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 3000 } } }
   ];
   /* 写回四写口（册236 · 世界事件卷 §五）：首批只给 §九 八案声明（逐案白名单，不开放全 CAST）。
@@ -1388,7 +1388,15 @@
       if (!inWindow(ws, e)) return { err: 'offwindow' };   /* 直调防御 */
     }
     if (mode === 'watch' && watchDone(ws, e)) return { err: 'watched' };   /* 旁观记过（册235） */
-    if ((ws.stamina | 0) < (mode === 'lead' ? 10 : mode === 'watch' ? 3 : 5)) return { err: 'stamina' };
+    /* 赴会须到场（册239 · 节奏试跑）：有地界的事件要先赶到——人不在就付一脚程（精力 3）并移动，
+     * z:null 的全局大事（华山/襄阳等）不受此限。地界未解锁照 zoneUnlocked 拒。 */
+    var trip = null;
+    if (e.z && ws.place !== e.z) {
+      if (!zoneUnlocked(ws, e.z)) return { err: 'locked', zone: e.z };
+      trip = e.z;
+    }
+    var cost = (mode === 'lead' ? 10 : mode === 'watch' ? 3 : 5) + (trip ? TRAVEL_STAMINA : 0);
+    if ((ws.stamina | 0) < cost) return { err: 'stamina', need: cost };
     if (mode === 'watch') {   /* 旁观：无门槛、精力 3——在场不落子（世界事件卷 §三） */
       ws.stamina = Math.max(0, (ws.stamina | 0) - 3);
       ws.world = obj(ws.world);
@@ -1400,8 +1408,15 @@
       if ((ws.realm | 0) < need) return { err: 'realm', need: need };
       ws.stamina -= (mode === 'lead' ? 10 : 5);
     }
+    if (trip) {
+      ws.stamina = Math.max(0, (ws.stamina | 0) - TRAVEL_STAMINA);
+      ws.place = trip;
+      ws.visited = arr(ws.visited);
+      if (ws.visited.indexOf(trip) < 0) ws.visited.push(trip);
+    }
     var g = e.gain[mode] || {};
     var res = { ok: true, event: id, mode: mode, alt: alt === true && mode === 'lead' ? true : false };
+    if (trip) res.trip = trip;
     /* 主导档先掷对赌（册228）：败则走窄路 —— 不发放 gain / 主奖励，结局写 'lose'。
      * watch / join 不掷判：旁观无对手，卷入的「战败走窄路（轻）」留后续批（正典 §三 风险列）。 */
     var duel = null;

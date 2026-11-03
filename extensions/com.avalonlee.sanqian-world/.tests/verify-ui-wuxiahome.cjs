@@ -242,6 +242,28 @@ const { chromium } = require('playwright-core');
       'title=' + wbj.title + ' cast=' + wbj.cast + ' sect=' + wbj.sect + ' after=' + wbj.after + ' state=' + wbj.state + ' rep=' + wbj.rep);
   });
 
+  /* WH8k · 赴会须到场（册239）：人在少林、聚贤庄在洛阳 ⇒ 行内「须往洛阳（精力 3）」；
+   * 点 join ⇒ 自动赶路落 place=luoyang + 结局写回（精力扣本档+脚程，与 tick 恢复叠加不判绝对值）。 */
+  await runSeeded({ realm: 6, stamina: 60, worldDay: 3 * 360 + 1, place: 'shaolin' }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
+    await p2.waitForTimeout(300);
+    const r8k = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      return { away: t.indexOf(L['wh.jianghu.away'].replace('{place}', L['zone.luoyang.name'])) >= 0 };
+    });
+    await p2.click('#shell-main [data-we="we_juxian"][data-mode="join"]');
+    await p2.waitForTimeout(500);
+    const r8k2 = await p2.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      return { place: w.place, stamina: Math.floor(w.stamina), fate: w.world && w.world.wefate && w.world.wefate.we_juxian,
+        visited: (w.visited || []).indexOf('luoyang') >= 0 };
+    });
+    T(r8k.away && r8k2.place === 'luoyang' && r8k2.stamina < 60 && r8k2.fate === 'canon' && r8k2.visited,
+      'WH8k 赴会须到场（「须往洛阳（精力 3）」真词 ⇔ 点 join 自动赶路 place=luoyang ⇔ 精力扣脚程 ⇔ wefate 写回）',
+      'away=' + r8k.away + ' place=' + r8k2.place + ' stamina=' + r8k2.stamina + ' fate=' + r8k2.fate + ' visited=' + r8k2.visited);
+  });
+
   /* WH8c · 场面执行器挂接（册222）：赴挂接案 → 自动切主页战报卡 knot 态上屏 → 选支 knotDone 真落档。
    * 种 stones 300 让 knot_juxian 的 help 分支（req realm4+silver200→stones 判）开放。 */
   /* 种档 realm 8（册231 起 join 是对赌：realm 5 对萧峰约四成败，败则无戏 ⇒ 走查会随机红；

@@ -70,14 +70,16 @@
       }
     }, function (f) { refresh(f); });
   }
-  /* 前往地界（免费；visited 记见闻）——到达给三处反馈（册231）：
+  /* 前往地界（精力 3，册239 起与「闯荡一步」同价）：visited 记见闻——到达给三处反馈（册231）：
    * ① 浮层「到了 X」即时一行 ② 战报卡 arrive 态（写景正文）③ 行走页当前地常驻写景。
-   * 三处各管一段：即时感 / 回看 / 常驻，不重复堆在同一屏。 */
+   * 三处各管一段：即时感 / 回看 / 常驻，不重复堆在同一屏。事件赴会也走同一脚价（引擎内扣）。 */
   function goZone(slot, zid) {
     act(slot, function (s) {
       var w = s.worlds[s.profile.worldId];
       var pk = SQ.Worlds[s.profile.worldId].pack;
       if (!pk.zoneUnlocked(w, zid)) { slot.toast(tw('wh.zone.locked', null)); return; }
+      if ((w.stamina | 0) < 3) { slot.toast(tw('wh.rep.stamina', null)); return; }
+      w.stamina = Math.max(0, (w.stamina | 0) - 3);
       w.place = zid;
       if ((w.visited || []).indexOf(zid) < 0) w.visited.push(zid);
       var sc = pk.zoneSceneOf ? pk.zoneSceneOf(zid) : null;
@@ -136,9 +138,11 @@
       var pk = SQ.Worlds[s.profile.worldId].pack;
       var r = pk.attendEvent(w, id, mode, alt);
       if (r && r.err === 'realm') { slot.toast(tw('wh.err.gate', null)); return; }
+      if (r && r.err === 'locked') { slot.toast(tw('wh.zone.locked', null)); return; }
       if (r && r.err === 'stamina') { slot.toast(tw('wh.rep.stamina', null)); return; }
       if (r && r.err === 'watched') { slot.toast(tw('wh.err.watched', null)); return; }
       if (r && r.err) { slot.toast(tw('wh.err.save', null)); return; }
+      if (r && r.trip) slot.toast(tw('wh.rep.arrive', { place: tw('zone.' + r.trip + '.name', null) }));
       /* 主导对赌（册228）：胜 = 结局 + 主奖励，败 = 力战而竭（结局 'lose'，无奖励）——
        * 结果落战报卡（挂主页），与闯荡战报同构；join/watch 不产战报。 */
       if (mode === 'lead') {
@@ -341,7 +345,7 @@
       h += '<div class="wh-row">' +
         '<span class="wh-cell"><b>' + tw('zone.' + z.i + '.name', null) + '</b>' + (here ? tw('wh.zone.cur', null) : '') + '</span>' +
         '<span class="wh-muted">' + (unlocked ? tw('wh.zone.scene', { n: Math.min(prog, total), t: total }) : tw('wh.zone.locked', null)) + '</span>' +
-        (unlocked && !here ? '<button class="btn" data-zone="' + z.i + '">' + tw('wh.zone.go', null) + '</button>' : '') +
+        (unlocked && !here ? '<button class="btn" data-zone="' + z.i + '"' + ((w.stamina | 0) < 3 ? ' disabled' : '') + '>' + tw('wh.zone.go', null) + '</button>' : '') +
         '</div>';
       /* 到达写景（册229 · scene 条落消费点）：只在「当前所在」那一行下挂一句——
        * 写景属转场氛围，不改数值，也不单独占卡片（一屏一主事：行走页主事仍是地界列表）。 */
@@ -528,16 +532,20 @@
       /* 主导门槛之外再给一条「对上谁」的线索（数值卷 §八 第 3 条「门槛必须可推断」）；
        * e.boss = CAST id，名走 cast 词族——不给胜算数字（正文不给数字，江湖自己掂量）。 */
       var foeTip = e.boss ? ' · ' + tw('wh.jianghu.lead.foe', { name: tw('cast.' + e.boss + '.name', null) }) : '';
-      /* 按钮三态（册235）：门槛/精力不足置灰（判据在引擎，这里只给不可点的样子）；
-       * 旁观记过 ⇒ 显示「已旁观」并锁住（join/lead 仍可赴——旁听一次不影响落子）。 */
+      /* 按钮三态（册235/239）：门槛/精力不足置灰（判据在引擎，这里只给不可点的样子）；
+       * 旁观记过 ⇒ 显示「已旁观」并锁住（join/lead 仍可赴——旁听一次不影响落子）。
+       * 册239：有地界的事件人在别处时要多付一脚程（精力 3），按钮门槛按 3+本档计。 */
       var watched = p.watchDone ? p.watchDone(w, e) : false;
       var st = w.stamina | 0;
+      var away = e.z && w.place !== e.z;
+      var trip = away ? 3 : 0;
+      var awayTip = away ? ' · ' + tw('wh.jianghu.away', { place: tw('zone.' + e.z + '.name', null) }) : '';
       h += '<div class="wh-row"><span class="wh-cell"><b>' + tw('we.' + e.i + '.name', null) + '</b>' +
-        '<span class="wh-muted">' + tw('we.' + e.i + '.desc', null) + foeTip + '</span></span>' +
-        '<button class="btn" data-we="' + e.i + '" data-mode="watch"' + (watched || st < 3 ? ' disabled' : '') + '>' +
+        '<span class="wh-muted">' + tw('we.' + e.i + '.desc', null) + foeTip + awayTip + '</span></span>' +
+        '<button class="btn" data-we="' + e.i + '" data-mode="watch"' + (watched || st < 3 + trip ? ' disabled' : '') + '>' +
         (watched ? tw('wh.jianghu.watched', null) : tw('wh.jianghu.watch', null)) + '</button>' +
-        '<button class="btn" data-we="' + e.i + '" data-mode="join"' + ((w.realm | 0) < e.tier.join || st < 5 ? ' disabled' : '') + '>' + tw('wh.jianghu.join', { n: e.tier.join }) + '</button>' +
-        '<button class="btn" data-we="' + e.i + '" data-mode="lead"' + ((w.realm | 0) < e.tier.lead || st < 10 ? ' disabled' : '') + '>' + tw('wh.jianghu.lead', { n: e.tier.lead }) + '</button>' +
+        '<button class="btn" data-we="' + e.i + '" data-mode="join"' + ((w.realm | 0) < e.tier.join || st < 5 + trip ? ' disabled' : '') + '>' + tw('wh.jianghu.join', { n: e.tier.join }) + '</button>' +
+        '<button class="btn" data-we="' + e.i + '" data-mode="lead"' + ((w.realm | 0) < e.tier.lead || st < 10 + trip ? ' disabled' : '') + '>' + tw('wh.jianghu.lead', { n: e.tier.lead }) + '</button>' +
         '</div>';
     }
     var fate = (w.world && w.world.wefate) || {};
