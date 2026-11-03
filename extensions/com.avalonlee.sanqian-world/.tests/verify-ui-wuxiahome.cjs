@@ -179,7 +179,9 @@ const { chromium } = require('playwright-core');
 
   /* WH8c · 场面执行器挂接（册222）：赴挂接案 → 自动切主页战报卡 knot 态上屏 → 选支 knotDone 真落档。
    * 种 stones 300 让 knot_juxian 的 help 分支（req realm4+silver200→stones 判）开放。 */
-  await runSeeded({ realm: 5, stamina: 60, stones: 300 }, async (p2) => {
+  /* 种档 realm 8（册231 起 join 是对赌：realm 5 对萧峰约四成败，败则无戏 ⇒ 走查会随机红；
+   * 抬到 realm 8 使胜率 ~99%，同时仍满足 knot_juxian help 分支的 realm4 + silver200 门槛） */
+  await runSeeded({ realm: 8, stamina: 60, stones: 300 }, async (p2) => {
     await p2.click('#shell-main .wh-tabs button[data-v="jianghu"]');
     await p2.waitForTimeout(300);
     await p2.click('#shell-main [data-we="we_juxian"][data-mode="join"]');
@@ -413,6 +415,30 @@ const { chromium } = require('playwright-core');
     T(r1b.shown && r1b.note && r1b.nat === 'yin',
       'WH1b 内力四性上屏（主修九阴 ⇒ 「内力 阴柔」真词 ⇔ 相性注 ×1.15/×0.87 ⇔ pack.myNat=yin 对表）',
       'shown=' + r1b.shown + ' note=' + r1b.note + ' nat=' + r1b.nat);
+  });
+
+  /* WH1c · 走火入魔红警（册233）：槽里同挂阴柔 + 刚猛（相冲）⇒ 修习页出「两性相冲：阴柔 × 刚猛」
+   * + 连走 3 日火的加重提示；判据同时校验 pack.natClash 认这对相冲（防文案与引擎各说各话）。 */
+  await runSeeded({ artsKnown: ['quan_basic', 'neigong_basic', 'yg_jiuyin', 'yg_xianglong'],
+    artsLevels: { quan_basic: 1, neigong_basic: 1, yg_jiuyin: 1, yg_xianglong: 1 },
+    artsSlots: ['yg_jiuyin', 'yg_xianglong'],
+    world: { fireDays: 3, wefate: {}, wecyc: {}, webonus: 0, fireMs: 0 } }, async (p2) => {
+    await p2.click('#shell-main .wh-tabs button[data-v="arts"]');
+    await p2.waitForTimeout(300);
+    const r1c = await p2.evaluate(() => {
+      const t = document.getElementById('shell-main').textContent;
+      const L = window.SQ.LEX.wuxia;
+      const w = JSON.parse(localStorage.getItem('sanqian-state-v1')).worlds.wuxia;
+      const pk = window.SQ.Worlds.wuxia.pack;
+      const cl = pk.natClash(w);
+      const want = L['wh.arts.clashWarn'].replace('{a}', L['nat.' + cl.a]).replace('{b}', L['nat.' + cl.b]);
+      const fdNow = (w.world || {}).fireDays | 0;   /* 离线补算会把火日推高（封 99），据实际值拼词 */
+      const alertHead = L['wh.arts.fireAlert'].split('（')[0].replace('{n}', String(fdNow));
+      return { clash: cl.clash, warn: t.indexOf(want) >= 0, alert: t.indexOf(alertHead) >= 0, fd: (w.world || {}).fireDays, head: alertHead };
+    });
+    T(r1c.clash && r1c.warn && r1c.alert,
+      'WH1c 走火红警（满槽阴柔+刚猛 ⇒ 引擎认相冲 ⇔ 「两性相冲：阴柔 × 刚猛」真词 ⇔ 连走 3 日火加重提示）',
+      'clash=' + r1c.clash + ' warn=' + r1c.warn + ' alert=' + r1c.alert + ' fd=' + r1c.fd);
   });
 
   T(errs.length === 0, 'WH7 全程零报错（pageerror / console.error）', errs.slice(0, 2).join(' | ') || 'clean');

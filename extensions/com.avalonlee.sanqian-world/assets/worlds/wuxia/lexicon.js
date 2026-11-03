@@ -38,6 +38,8 @@
     'wh.act.in': '入槽', 'wh.act.out': '出槽',
     /* 内力四性（册232 · 武学全录 §一）：环克 刚猛→阴柔→中正→邪异→刚猛 */
     'nat.gang': '刚猛', 'nat.yin': '阴柔', 'nat.zhong': '中正', 'nat.xie': '邪异',
+    'wh.arts.clashWarn': '两性相冲：{a} × {b} —— 每行功日内伤 +1，撤一部方解。',
+    'wh.arts.fireAlert': '已连走 {n} 日火，内息翻涌（内伤 {inj}）——再练要出事。',
     'wh.arts.nat': '内力 {name}',
     'wh.arts.natNote': '相性：克对方 ×1.15 / 被克 ×0.87 / 同性 ×1.00——内力之性由主修内功定。',
     'wh.arts.atts': '资质三轴', 'wh.atts.zhi': '悟性', 'wh.atts.gu': '根骨', 'wh.atts.xing': '心性',

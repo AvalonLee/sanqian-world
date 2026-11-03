@@ -1153,6 +1153,63 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 战力=' + powOk);
     })();
 
+    /* E33 · 走火入魔（册233 · 武学全录 §一 注「同修相冲两性 → 内伤 +1/日」）：
+     * ① 相冲判据：刚+阴 冲 · 刚+邪 冲 · **中正豁免（阴+中正 / 刚+中正 都不冲）** · 同性不冲 ‖
+     * ② 行功日结算：跨 1 日 +1、跨 5 日 +5、不足 1 日不动 ‖
+     * ③ 封 12 不致死（11 层再走 10 日也只到 12，不碰 15 即死线）‖
+     * ④ fireDays 连续累积；撤槽（无相冲）即清零 ‖ ⑤ 无相冲时内伤只按既有恢复走、不涨。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.natClash) { ok('E33', '走火入魔', false, '无 natClash 口'); return; }
+      var DAY = pk.FIRE_DAY_MS || (10 * 60 * 1000);
+      function mk(slots) {
+        var w = pk.normalize(pk.initialState());
+        w.artsSlots = slots;
+        return w;
+      }
+      var c1 = pk.natClash(mk(['yg_jiuyin', 'yg_xianglong']));      /* 阴 + 刚 */
+      var c2 = pk.natClash(mk(['yg_xianglong', 'yg_bixie']));       /* 刚 + 邪 */
+      var c3 = pk.natClash(mk(['yg_jiuyin', 'neigong_basic']));     /* 阴 + 中正 ⇒ 不冲 */
+      var c4 = pk.natClash(mk(['yg_xianglong', 'quan_basic']));     /* 刚 + 中正 ⇒ 不冲 */
+      var c5 = pk.natClash(mk(['yg_jiuyin', 'mn_020']));            /* 同阴（mn_020 为内功） */
+      var clashOk = c1.clash && c2.clash && !c3.clash && !c4.clash && (!c5.clash || c5.a === null);
+      /* ② 行功日结算（⚠️ 内伤同时按「1 层/30 现实分钟」恢复，故净增 = 走火 − 恢复）：
+       * 1 日（10 分）净 +1−1/3 = 2/3；累计 5 日（50 分）净 +5−5/3 = 10/3 */
+      var REC_MS = 30 * 60000;
+      var w1 = mk(['yg_jiuyin', 'yg_xianglong']);
+      pk.claim(w1, DAY, 0, {}, {});
+      var day1Add = w1.injury;
+      pk.claim(w1, DAY * 4, 0, {}, {});
+      var day5Add = w1.injury;
+      var w0 = mk(['yg_jiuyin', 'yg_xianglong']);
+      pk.claim(w0, DAY - 1000, 0, {}, {});
+      var subDay = w0.injury;
+      var stepOk = Math.abs(day1Add - (1 - DAY / REC_MS)) < 1e-9 &&
+        Math.abs(day5Add - (5 - (DAY * 5) / REC_MS)) < 1e-9 && subDay === 0;
+      /* ③ 封 12 不致死：11 层起走 10 日，走火只顶到 12（不是 15），再被恢复拉到 12−100/30 */
+      var wC = mk(['yg_jiuyin', 'yg_xianglong']);
+      wC.injury = 11;
+      pk.claim(wC, DAY * 10, 0, {}, {});
+      var capOk = Math.abs(wC.injury - (12 - (DAY * 10) / REC_MS)) < 1e-9;
+      /* ④ fireDays 累积与清零 */
+      var wF = mk(['yg_jiuyin', 'yg_xianglong']);
+      pk.claim(wF, DAY * 3, 0, {}, {});
+      var fire3 = (wF.world && wF.world.fireDays) | 0;
+      wF.artsSlots = ['yg_jiuyin'];                                  /* 撤掉相冲的那部 */
+      pk.claim(wF, DAY * 2, 0, {}, {});
+      var fireClear = (wF.world && wF.world.fireDays) | 0;
+      var fireOk = fire3 === 3 && fireClear === 0;
+      /* ⑤ 无相冲不涨 */
+      var wN = mk(['yg_jiuyin', 'neigong_basic']);
+      pk.claim(wN, DAY * 5, 0, {}, {});
+      var noneOk = wN.injury === 0;
+      ok('E33', '走火入魔（相冲对 刚+阴 / 刚+邪 生效 · **中正豁免** · 同性不冲 ‖ 行功日结算（净增 = 走火 − 既有恢复）：1 日 2/3 / 5 日 10/3 / 不足 1 日不动 ‖ 封 12 不致死 ‖ fireDays 累积 3 且撤槽清零 ‖ 无相冲不涨）',
+        clashOk && stepOk && capOk && fireOk && noneOk,
+        '相冲=' + clashOk + '(阴刚' + c1.clash + ',刚邪' + c2.clash + ',阴中' + c3.clash + ',刚中' + c4.clash + ')' +
+        ' 步进=' + stepOk + '(1日' + day1Add + ',5日' + day5Add + ',不足1日' + subDay + ')' +
+        ' 封顶=' + capOk + '(' + wC.injury + ') 火日=' + fireOk + '(' + fire3 + '→' + fireClear + ') 平常=' + noneOk);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */
