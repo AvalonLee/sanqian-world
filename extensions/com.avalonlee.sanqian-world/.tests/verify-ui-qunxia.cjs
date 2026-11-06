@@ -174,6 +174,25 @@ const { chromium } = require('playwright-core');
     T(rwM.book && rwM.have === 1 && rwM.after === rwM.before + 1 && /获秘籍《辟邪剑谱》/.test(rwM.shown),
       'QX10 秘籍奖励（五岳并派得辟邪剑谱 ⇔ 研读习得辟邪剑法）', JSON.stringify(rwM));
 
+    const rwL = await frame2.evaluate(() => {
+      state.fame = 100;
+      state.hp = 100;
+      state.maxHp = Math.max(state.maxHp, 100);
+      state.crises.push({ id: 'we_heimu', region: 'heimuya', title: '黑木崖', enemyName: '东方不败' });
+      duelState = {
+        finished: false, enemyCurHp: 60, playerWins: 0, enemyWins: 2,
+        rewardGold: 0, rewardFame: 0, rewardExp: 0,
+        crisisId: 'we_heimu', contextTitle: '黑木崖', enemyName: '东方不败'
+      };
+      finishDuel();
+      const shown = document.getElementById('duel-result-reward').textContent;
+      duelState = null;
+      return { fame: state.fame, hp: state.hp, shown, manual: state.inventory.mnl_05 || 0 };
+    });
+    T(rwL.hp >= 93 && rwL.hp <= 95 && rwL.fame >= 60 && rwL.fame <= 70 && rwL.manual === 0 &&
+      /虽败犹荣/.test(rwL.shown) && /内伤 \+[5-7]/.test(rwL.shown) && /侠名 -[34]\d/.test(rwL.shown),
+      'QX11 事件败局代价（黑木崖败：内伤 5~7 / 侠名 -40~-30 ⇔ 不发主奖励）', JSON.stringify(rwL));
+
     T(errs.length === 0, 'QX5 无脚本错误', errs.slice(0, 2).join(' | '));
   } catch (e) {
     console.log('FAIL QX_CRASH (' + (e && e.message || e) + ')');

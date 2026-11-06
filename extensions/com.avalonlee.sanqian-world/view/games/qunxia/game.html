@@ -7919,9 +7919,21 @@
         if (d.sideCastResult && typeof applySideCastDuelResult === 'function') {
           applySideCastDuelResult(d.sideCastResult, false);
         }
+        let failMsg = '';
+        if (d.crisisId) {
+          const sched = CANON_EVENTS_SCHEDULE.find(x => x.id === d.crisisId);
+          if (sched && sched.failInjury && sched.failRenown) {
+            const roll = a => a[0] + Math.floor(Math.random() * (a[1] - a[0] + 1));
+            const inj = roll(sched.failInjury);
+            const ren = roll(sched.failRenown);
+            state.hp = Math.max(1, state.hp - inj);
+            state.fame = Math.max(0, state.fame + ren);
+            failMsg = `，内伤 +${inj}，侠名 ${ren >= 0 ? '+' : ''}${ren}`;
+          }
+        }
         titleEl.textContent = `🍂 棋差一着 · 惜败收招`;
-        rewardEl.textContent = `虽败犹荣，印证招式破绽，获得武学修为 +10`;
-        addLog(`于「${d.contextTitle}」与【${d.enemyName}】激战三招惜败，感悟良多（修为 +10）。`);
+        rewardEl.textContent = `虽败犹荣，印证招式破绽，获得武学修为 +10${failMsg}`;
+        addLog(`于「${d.contextTitle}」与【${d.enemyName}】激战三招惜败，感悟良多（修为 +10${failMsg}）。`);
       }
       saveGame();
     }

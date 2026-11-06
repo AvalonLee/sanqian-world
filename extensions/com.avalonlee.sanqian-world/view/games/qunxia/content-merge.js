@@ -180,7 +180,9 @@
         rewardArt: ev.reward && ev.reward.kind === 'art' ? ev.reward.id : '',
         rewardBlade: ev.reward && ev.reward.kind === 'blade' ? ev.reward.id : '',
         rewardManual: ev.reward && ev.reward.kind === 'manual' ? ev.reward.id : '',
-        rewardKind: ev.reward ? ev.reward.kind : ''
+        rewardKind: ev.reward ? ev.reward.kind : '',
+        failInjury: ev.fail && ev.fail.injury || null,
+        failRenown: ev.fail && ev.fail.renown || null
       });
     });
 

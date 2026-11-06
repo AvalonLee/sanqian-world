@@ -42,7 +42,8 @@
         rumor: label(cf, 'we.' + e.i + '.rumor'),
         canon: label(cf, 'we.' + e.i + '.fate.canon'),
         boss: e.boss || '', z: e.z || '',
-        reward: e.reward || null
+        reward: e.reward || null,
+        fail: (cf.p && cf.p.FAIL && cf.p.FAIL[e.i]) || null
       };
     }).filter(Boolean);
     var blades = (D.WEAPONS || []).map(function (w) {
