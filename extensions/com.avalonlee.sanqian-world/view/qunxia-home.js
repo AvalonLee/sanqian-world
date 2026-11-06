@@ -1,13 +1,13 @@
 /* qunxia-home.js — 武侠世界主壳（山河棋盘 · 自包含子应用）
- * 宿主只负责全屏挂载、生命周期与内容桥；正文、样式、存档都在 games/qunxia/ 内自成一体。
- * 内容桥：从 ctx().d（世界包数据）+ 当前世界词表拼出 {arts, sects, cast}，iframe load 后注入。
- * 游戏侧 QUNXIA_MERGE 只增不覆盖；名称/正文由子应用自己渲染。
+ * 真实宿主的扩展页面 CSP 是 frame-src 'none'，不能嵌 iframe。主壳只做两件事：
+ * 把内容桥 payload 写进同源 localStorage，再把当前视图导航到 games/qunxia/game.html；
+ * 游戏侧 content-merge.js 在 load 时自读 payload。
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
   SQ.UI = SQ.UI || {};
-  var frame = null;
-  var payload = null;
+  var PAYLOAD_KEY = 'qunxia-payload-v1';
+  var GAME_PAGE = 'games/qunxia/game.html';
 
   /* 缺键时 SQ.t 会回显键名，这里按「回显 === 键」判空 */
   function label(cf, key) {
@@ -57,31 +57,14 @@
     return { arts: arts, sects: sects, cast: cast, events: events, blades: blades, manuals: manuals };
   }
 
-  function inject() {
-    if (!frame || !payload) return;
-    try {
-      /* postMessage 不走同源直读：file:// 预览与 http 宿主同一路径 */
-      frame.contentWindow.postMessage({ __qunxia: 1, payload: payload }, '*');
-    } catch (e) {}
-  }
-
   function mount(cf) {
-    var host = document.getElementById('shell-main');
-    if (!host) return;
-    if (!frame) {
-      frame = document.createElement('iframe');
-      frame.id = 'qunxia-frame';
-      frame.src = 'games/qunxia/game.html';
-      frame.setAttribute('title', 'jianghu board');
-      frame.style.cssText = 'flex:1;width:100%;height:100%;border:0;display:block;background:#171310';
-      frame.addEventListener('load', inject);
-    }
-    if (frame.parentNode !== host) host.appendChild(frame);
-    payload = buildPayload(cf);
-    inject();
+    try {
+      localStorage.setItem(PAYLOAD_KEY, JSON.stringify(buildPayload(cf)));
+    } catch (e) {}
+    if (location.pathname.indexOf(GAME_PAGE) < 0) location.replace(GAME_PAGE);
   }
 
-  /* 游戏自己按回合重绘，宿主 tick 不碰 iframe 内容 */
+  /* 游戏自己按回合重绘，宿主 tick 不碰游戏页面 */
   function refresh(cf) {}
 
   SQ.UI.qunxiaHome = { mount: mount, refresh: refresh };

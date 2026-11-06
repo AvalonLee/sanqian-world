@@ -1,7 +1,8 @@
 /* content-merge.js — 内容桥接收端（山河棋盘侧）
- * 宿主 qunxia-home.js 在 iframe load 后调用 window.QUNXIA_MERGE(payload)：
+ * 主壳 qunxia-home.js 导航前把 payload 写进同源 localStorage（key: qunxia-payload-v1）：
  *   payload = { arts:[{id,name,k,nat,t,f,s}], sects:[...], cast:[...], events:[...],
  *               blades:[{id,name,k}], manuals:[{id,name,art}] }
+ * 本件在 window load 后自读并合并（真实宿主 CSP frame-src 'none'，不能嵌 iframe / postMessage 直连）。
  * 只增不覆盖：游戏自带条目与同名人物/武学优先；新门派落在对应州府。
  */
 (function () {
@@ -214,8 +215,10 @@
     return msg;
   };
 
-  window.addEventListener('message', function (e) {
-    if (!e.data || e.data.__qunxia !== 1) return;
-    try { window.QUNXIA_MERGE(e.data.payload); } catch (err) {}
+  window.addEventListener('load', function () {
+    try {
+      var raw = localStorage.getItem('qunxia-payload-v1');
+      if (raw) window.QUNXIA_MERGE(JSON.parse(raw));
+    } catch (err) {}
   });
 })();

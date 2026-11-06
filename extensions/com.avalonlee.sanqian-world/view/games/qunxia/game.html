@@ -3306,7 +3306,10 @@
     /* 宿主存储桥：localStorage 为主（同步），xhub.storage 作镜像与清缓存兜底 */
     function hostStore() {
       try {
-        var x = (window.parent && window.parent !== window && window.parent.xhub) || window.xhub;
+        if (window.xhub && window.xhub.storage) return window.xhub.storage;
+      } catch (e) {}
+      try {
+        var x = window.parent && window.parent !== window && window.parent.xhub;
         return (x && x.storage) ? x.storage : null;
       } catch (e) { return null; }
     }
