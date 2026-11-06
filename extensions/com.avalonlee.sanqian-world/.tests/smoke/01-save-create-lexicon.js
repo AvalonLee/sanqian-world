@@ -1598,6 +1598,36 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 授=' + grantOk + ' 不自动=' + noAutoOk + ' 入口=' + entryOk);
     })();
 
+    /* E43 · 主导败局结仇（册256 · 世界事件卷 §五 第五个写回面）：
+     * ① 主导败给主使 ⇒ relations[ boss ] 记 kind='enemy' 且交情 ≤ −30 ‖
+     * ② 原本交情 90 也压到 −30（不叠加扣减）‖ ③ 重复败仍 −30（幂等）‖
+     * ④ 主导胜不凭空造仇 ‖ ⑤ normalize 往返保住 kind。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.attendEvent) { ok('E43', '败局结仇', false, '无 attendEvent 口'); return; }
+      var realRnd = Math.random;
+      Math.random = function () { return 0.99; };
+      var w1 = pk.normalize(pk.initialState()); w1.realm = 9; w1.stamina = 99; w1.worldDay = 0;
+      w1.relations = { huang_yaoshi: { affinity: 90, kind: 'friend' } };
+      var r1 = pk.attendEvent(w1, 'we_huashan', 'lead', false);
+      var rel1 = w1.relations.huang_yaoshi || {};
+      var loseOk = r1 && r1.ok && r1.win === false && rel1.kind === 'enemy' && rel1.affinity === -30;
+      delete w1.world.wefate.we_huashan;
+      w1.world.wecyc = {}; w1.stamina = 99;
+      var r2 = pk.attendEvent(w1, 'we_huashan', 'lead', false);
+      var idemOk = r2 && r2.ok && w1.relations.huang_yaoshi.affinity === -30;
+      Math.random = function () { return 0; };
+      var w2 = pk.normalize(pk.initialState()); w2.realm = 9; w2.stamina = 99; w2.worldDay = 0;
+      var r3 = pk.attendEvent(w2, 'we_huashan', 'lead', false);
+      Math.random = realRnd;
+      var winOk = r3 && r3.ok && r3.win === true && !w2.relations.huang_yaoshi;
+      var rtOk = pk.normalize(w1).relations.huang_yaoshi.kind === 'enemy';
+      ok('E43', '败局结仇（主导败 ⇒ boss kind=enemy 且交情 ≤ −30 ‖ 旧友也压到 −30 ‖ 重复败幂等 ‖ 主导胜不造仇 ‖ normalize 往返保住）',
+        loseOk && idemOk && winOk && rtOk,
+        '败=' + loseOk + '(交情' + rel1.affinity + '/型' + rel1.kind + ') 幂等=' + idemOk +
+        ' 胜不造仇=' + winOk + ' 往返=' + rtOk);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */
