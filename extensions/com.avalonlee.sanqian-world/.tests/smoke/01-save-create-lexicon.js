@@ -541,9 +541,10 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         'n=' + n + ' 唯一=' + idOk + ' z=' + zOk + ' pre=' + preOk + ' gain=' + gainOk + ' 词=' + lexOk + ' watch差分=' + watchDiff);
     })();
 
-    /* E22 · 场面执行器挂接（册222）：① 7 案 knot 字段指向真 KNOTS、13 案显式 null ‖
+    /* E22 · 场面执行器挂接（册222 / 册257）：① 11 案 knot 字段指向真 KNOTS、25 案显式 null ‖
      * ② join/lead 赴挂接案返回 scene（branchOpen 过滤 + watch 兜底）‖ ③ watch 档不返回 scene（在场不落子）‖
-     * ④ 场面选支走 knotChoose → knotDone 落账（travel 不再重复撞）+ 轴微调 help=侠+4。 */
+     * ④ 场面选支走 knotChoose → knotDone 落账（travel 不再重复撞）+ 轴微调 help=侠+4 ‖
+     * ⑤ 册257 四个新挂接案（思过崖 / 灵鹫宫 / 重阳宫 / 冰火岛）经真入口带回场面。 */
     (function () {
       var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
       if (!pk || !pk.WORLD_EVENTS || !pk.knotChoose) { ok('E22', '场面执行器挂接', false, '无 WORLD_EVENTS/knotChoose 口'); return; }
@@ -555,7 +556,20 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         if (WE[i].knot) { hooked++; if (!kin[WE[i].knot]) knotOk = false; }
         else if (WE[i].knot !== null) knotOk = false;
       }
-      var hookOk = hooked === 7;
+      var hookOk = hooked === 11;
+      /* 册257：四个新挂接案经真入口都要带回场面（lead 定种胜，year3 在窗口内） */
+      var hookSceneOk = true;
+      var newHooks = ['we_siguoya', 'we_lingjiu', 'we_chongyang', 'we_binghuo'];
+      var realRnd22n = Math.random;
+      Math.random = function () { return 0.01; };
+      for (var nh = 0; nh < newHooks.length; nh++) {
+        var wn = pk.normalize(pk.initialState()); wn.realm = 9; wn.stamina = 99; wn.worldDay = 3 * 360;
+        var rn = pk.attendEvent(wn, newHooks[nh], 'lead', false);
+        var want = null;
+        for (var we2 = 0; we2 < WE.length; we2++) if (WE[we2].i === newHooks[nh]) want = WE[we2].knot;
+        if (!(rn && rn.ok && rn.scene && rn.scene.knot === want)) hookSceneOk = false;
+      }
+      Math.random = realRnd22n;
       var w1 = pk.normalize(pk.initialState()); w1.realm = 5; w1.stamina = 99;
       /* 册231：join 也变对赌了 ⇒ 定种取胜，否则「有戏」这一面会随机红（败局无戏是修订口径） */
       var realRnd22 = Math.random;
@@ -585,9 +599,9 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var hasHelp = rJ2 && rJ2.scene ? rJ2.scene.opts.some(function (o) { return o.k === 'help'; }) : false;
       var c1 = hasHelp ? pk.knotChoose(w2, rJ2.scene.knot, 'help') : null;
       var chooseOk = c1 && c1.ok && c1.chose === 'help' && w2.knotDone.knot_juxian === 1 && w2.persona.xia === 4;
-      ok('E22', '场面执行器挂接（7 案 knot 指真 KNOTS + 29 案 null ‖ join 返回 scene 且分支全 open ‖ watch 无 scene ‖ 选支 knotDone 落账 + 侠轴 +4）',
-        knotOk && hookOk && sceneOk && optsOpen && watchNoScene && chooseOk,
-        'hook=' + hooked + ' 表=' + knotOk + ' scene=' + sceneOk + ' open=' + optsOpen + ' watch无=' + watchNoScene + ' 选支=' + chooseOk);
+      ok('E22', '场面执行器挂接（11 案 knot 指真 KNOTS + 25 案 null ‖ join 返回 scene 且分支全 open ‖ watch 无 scene ‖ 选支 knotDone 落账 + 侠轴 +4 ‖ 四新案真入口带场面）',
+        knotOk && hookOk && sceneOk && optsOpen && watchNoScene && chooseOk && hookSceneOk,
+        'hook=' + hooked + ' 表=' + knotOk + ' scene=' + sceneOk + ' open=' + optsOpen + ' watch无=' + watchNoScene + ' 选支=' + chooseOk + ' 新案场面=' + hookSceneOk);
     })();
 
     /* E23 · 窗口与回声（册223）：① 3 案惯例 cyc + 17 案独发 window 两元递增（无一案双缺）‖
