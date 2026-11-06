@@ -45,7 +45,15 @@
         reward: e.reward || null
       };
     }).filter(Boolean);
-    return { arts: arts, sects: sects, cast: cast, events: events };
+    var blades = (D.WEAPONS || []).map(function (w) {
+      var name = label(cf, 'wp.' + w.i + '.name');
+      return name ? { id: w.i, name: name, k: w.k } : null;
+    }).filter(Boolean);
+    var manuals = (D.MANUALS || []).map(function (m) {
+      var name = label(cf, 'manual.' + m.i + '.name');
+      return name ? { id: m.i, name: name, art: m.art || '' } : null;
+    }).filter(Boolean);
+    return { arts: arts, sects: sects, cast: cast, events: events, blades: blades, manuals: manuals };
   }
 
   function inject() {

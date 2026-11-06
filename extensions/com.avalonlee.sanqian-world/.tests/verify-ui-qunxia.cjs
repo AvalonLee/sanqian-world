@@ -135,6 +135,45 @@ const { chromium } = require('playwright-core');
     T(rw.after === rw.before + 1 && /获传《九阴真经》/.test(rw.shown) && rw.bogus === '',
       'QX8 事件主奖励（华山论剑胜出传九阴真经且上屏 ⇔ 未知案不发）', JSON.stringify(rw));
 
+    const rwB = await frame2.evaluate(() => {
+      state.crises.push({ id: 'we_tushi', region: 'shaolin', title: '屠狮大会', enemyName: '谢逊' });
+      duelState = {
+        finished: false, enemyCurHp: 0, playerWins: 2, enemyWins: 1,
+        rewardGold: 0, rewardFame: 0, rewardExp: 0,
+        crisisId: 'we_tushi', contextTitle: '屠狮大会', enemyName: '谢逊'
+      };
+      finishDuel();
+      const shown = document.getElementById('duel-result-reward').textContent;
+      duelState = null;
+      return {
+        item: !!ITEMS_DB.wp_yitian,
+        name: ITEMS_DB.wp_yitian && ITEMS_DB.wp_yitian.name,
+        have: state.inventory.wp_yitian || 0,
+        shown
+      };
+    });
+    T(rwB.item && rwB.name === '倚天剑' && rwB.have === 1 && /获神兵《倚天剑》/.test(rwB.shown),
+      'QX9 名兵奖励（屠狮大会得倚天剑入行囊 ⇔ 战果行上屏）', JSON.stringify(rwB));
+
+    const rwM = await frame2.evaluate(() => {
+      state.crises.push({ id: 'we_wuyue_bingpai', region: 'shaolin', title: '五岳并派', enemyName: '岳不群' });
+      duelState = {
+        finished: false, enemyCurHp: 0, playerWins: 2, enemyWins: 1,
+        rewardGold: 0, rewardFame: 0, rewardExp: 0,
+        crisisId: 'we_wuyue_bingpai', contextTitle: '五岳并派', enemyName: '岳不群'
+      };
+      finishDuel();
+      const shown = document.getElementById('duel-result-reward').textContent;
+      duelState = null;
+      const book = !!ITEMS_DB.mnl_03 && ITEMS_DB.mnl_03.learnArt;
+      const have = state.inventory.mnl_03 || 0;
+      const before = state.learnedArts.yg_bixie || 0;
+      if (have > 0) useInventoryItem('mnl_03');
+      return { book, have, before, after: state.learnedArts.yg_bixie || 0, shown };
+    });
+    T(rwM.book && rwM.have === 1 && rwM.after === rwM.before + 1 && /获秘籍《辟邪剑谱》/.test(rwM.shown),
+      'QX10 秘籍奖励（五岳并派得辟邪剑谱 ⇔ 研读习得辟邪剑法）', JSON.stringify(rwM));
+
     T(errs.length === 0, 'QX5 无脚本错误', errs.slice(0, 2).join(' | '));
   } catch (e) {
     console.log('FAIL QX_CRASH (' + (e && e.message || e) + ')');

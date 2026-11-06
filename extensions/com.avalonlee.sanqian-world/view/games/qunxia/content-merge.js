@@ -1,6 +1,7 @@
 /* content-merge.js — 内容桥接收端（山河棋盘侧）
  * 宿主 qunxia-home.js 在 iframe load 后调用 window.QUNXIA_MERGE(payload)：
- *   payload = { arts:[{id,name,k,nat,t,f,s}], sects:[{id,name,camp,launch}], cast:[{id,name,t,sec,role,align,bio}] }
+ *   payload = { arts:[{id,name,k,nat,t,f,s}], sects:[...], cast:[...], events:[...],
+ *               blades:[{id,name,k}], manuals:[{id,name,art}] }
  * 只增不覆盖：游戏自带条目与同名人物/武学优先；新门派落在对应州府。
  */
 (function () {
@@ -70,6 +71,28 @@
           poetry: ''
         };
       }
+    });
+
+    /* 名兵 / 秘籍：转成游戏物品表条目；名兵进神兵行囊，秘籍研读后习得 art。
+     * 非 martial 秘籍（线索/医术/乐理）没有 art 目标，不入物品表，奖励回落到游戏固定战利品。 */
+    (p.blades || []).forEach(function (b) {
+      if (!b || !b.name || ITEMS_DB[b.id]) return;
+      var tier = b.k >= 2 ? 2 : b.k === 1 ? 1 : 0;
+      ITEMS_DB[b.id] = {
+        id: b.id, name: b.name, slot: 'weapon',
+        atk: tier === 2 ? 34 : tier === 1 ? 18 : 10,
+        hp: tier === 2 ? 15 : 0,
+        price: 0, maxStock: 1,
+        desc: '江湖名兵 · 扩展世界兵刃，攻击 +' + (tier === 2 ? 34 : tier === 1 ? 18 : 10) + '。'
+      };
+    });
+    (p.manuals || []).forEach(function (m) {
+      if (!m || !m.name || !m.art || !MARTIAL_DB[m.art] || ITEMS_DB[m.id]) return;
+      ITEMS_DB[m.id] = {
+        id: m.id, name: '《' + m.name + '》', slot: 'scroll', learnArt: m.art,
+        price: 0, maxStock: 1,
+        desc: '扩展世界秘籍，研读可习得《' + MARTIAL_DB[m.art].name + '》。'
+      };
     });
 
     var sectNames = {};
@@ -155,6 +178,8 @@
         canonOutcomeTitle: '《江湖邸报 · ' + ev.name + '落幕》',
         canonOutcomeText: ev.canon || ('因你未在限期内赶赴，' + ev.name + '已按江湖轨迹落幕。'),
         rewardArt: ev.reward && ev.reward.kind === 'art' ? ev.reward.id : '',
+        rewardBlade: ev.reward && ev.reward.kind === 'blade' ? ev.reward.id : '',
+        rewardManual: ev.reward && ev.reward.kind === 'manual' ? ev.reward.id : '',
         rewardKind: ev.reward ? ev.reward.kind : ''
       });
     });
@@ -162,16 +187,26 @@
     try { if (typeof renderAll === 'function') renderAll(); } catch (e) {}
   };
 
-  /* 打赢扩展世界事件后的主奖励（目前只接武学；名兵/秘籍沿用游戏固定战利品） */
+  /* 打赢扩展世界事件后的主奖励：武学即时入身；名兵 / 秘籍进神兵行囊（秘籍研读后习得）。
+   * 无对应物品（线索类秘籍 / 未知 id）返回空串，沿用游戏固定战利品。 */
   window.QUNXIA_CRISIS_REWARD = function (id) {
     var ev = null;
     for (var i = 0; i < CANON_EVENTS_SCHEDULE.length; i++) {
       if (CANON_EVENTS_SCHEDULE[i].id === id) { ev = CANON_EVENTS_SCHEDULE[i]; break; }
     }
-    if (!ev || !ev.rewardArt || !MARTIAL_DB[ev.rewardArt]) return '';
-    var lv = state.learnedArts[ev.rewardArt] || 0;
-    state.learnedArts[ev.rewardArt] = Math.min(10, lv + 1);
-    var msg = '获传《' + MARTIAL_DB[ev.rewardArt].name + '》';
+    if (!ev) return '';
+    var msg = '';
+    if (ev.rewardKind === 'art' && ev.rewardArt && MARTIAL_DB[ev.rewardArt]) {
+      state.learnedArts[ev.rewardArt] = Math.min(10, (state.learnedArts[ev.rewardArt] || 0) + 1);
+      msg = '获传《' + MARTIAL_DB[ev.rewardArt].name + '》';
+    } else if (ev.rewardKind === 'blade' && ITEMS_DB[ev.rewardBlade]) {
+      state.inventory[ev.rewardBlade] = (state.inventory[ev.rewardBlade] || 0) + 1;
+      msg = '获神兵《' + ITEMS_DB[ev.rewardBlade].name + '》';
+    } else if (ev.rewardKind === 'manual' && ITEMS_DB[ev.rewardManual]) {
+      state.inventory[ev.rewardManual] = (state.inventory[ev.rewardManual] || 0) + 1;
+      msg = '获秘籍' + ITEMS_DB[ev.rewardManual].name;
+    }
+    if (!msg) return '';
     try { addLog('🎁【江湖大事】' + msg); } catch (e) {}
     try { renderAll(); } catch (e) {}
     return msg;
