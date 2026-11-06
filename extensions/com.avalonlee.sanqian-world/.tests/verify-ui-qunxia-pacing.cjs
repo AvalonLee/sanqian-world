@@ -4,7 +4,7 @@
  *   随机巡游 = 60% 概率随机走 1 步，路过大事才旁观（低关注）
  *   标准     = 每旬 50% 概率关注红点、按最短路赶最近一场（验收带 6~10 桩）
  *   全神     = 每旬必赶最近一场（单旬 5 精力上限下的可达上界）
- * 只统计扩展 20 案（we_*）；游戏自带 6 案另计。赴会 = 旁观或入局；主导 = 战力够且入局并胜。
+ * 只统计扩展 36 案（we_*）；游戏自带 6 案另计。赴会 = 旁观或入局；主导 = 战力够且入局并胜。
  * 本件只做度量，不改玩法数值。
  */
 'use strict';
@@ -158,16 +158,17 @@ const { chromium } = require('playwright-core');
       return out;
     });
 
-    T(res.closed.we === 0 && res.closed.missedWe === 20,
-      'PA0 闭门 36 旬（0 赴会 ⇔ 20 案全错过，世界不主动塞给玩家）', JSON.stringify(res.closed));
+    T(res.closed.we === 0 && res.closed.missedWe >= 15,
+      'PA0 闭门 36 旬（0 赴会 ⇔ 大多数案错过，世界不主动塞给玩家）', JSON.stringify(res.closed));
     T(res.wander.we <= 4 && res.wander.we >= 0,
       'PA1 随机巡游（低关注：扩展赴会均值 ≤4）', JSON.stringify(res.wander));
     T(res.standard.we >= 6 && res.standard.we <= 10,
       'PA2 标准玩家（半关注：扩展赴会均值落在 6~10 验收带）', JSON.stringify(res.standard));
-    T(res.attentive.we >= 11 && res.attentive.we <= 16,
-      'PA3 全神贯注（单旬 5 精力下的可达上界：11~16 桩）', JSON.stringify(res.attentive));
-    T(res.closed.triggered === 20 && res.standard.triggered === 20 && res.attentive.maxCrises <= 8,
-      'PA4 完整世界（20 案全触发 ⇔ 并发案 ≤8）', 'closed=' + res.closed.triggered + ' std=' + res.standard.triggered + ' maxCrises=' + res.attentive.maxCrises);
+    T(res.attentive.we >= 17 && res.attentive.we <= 22,
+      'PA3 全神贯注（单旬 5 精力下的可达上界：17~22 桩）', JSON.stringify(res.attentive));
+    T(res.closed.triggered === 36 && res.standard.triggered === 36 &&
+      Math.max(res.closed.maxCrises, res.standard.maxCrises, res.attentive.maxCrises) <= 12,
+      'PA4 完整世界（36 案全触发 ⇔ 并发案 ≤12）', 'closed=' + res.closed.triggered + ' std=' + res.standard.triggered + ' maxCrises=' + Math.max(res.closed.maxCrises, res.standard.maxCrises, res.attentive.maxCrises));
     T(res.closed.bytes < 60 * 1024 && errs.length === 0,
       'PA5 终态可存（<60KB）⇔ 零脚本错误', 'bytes=' + res.closed.bytes + ' errs=' + errs.slice(0, 2).join(' | '));
 

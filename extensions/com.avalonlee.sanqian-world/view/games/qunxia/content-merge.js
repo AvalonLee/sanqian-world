@@ -153,9 +153,10 @@
       }
     });
 
-    /* 世界事件：20 案按固定旬位并入日程；游戏每旬检查 triggerTurn，逾期走邸报。 */
-    var EV_TURNS = [6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 24, 26, 27, 28, 29];
-    var EV_REGION = { guangmingding: 'guangming', luoyang: 'luoyang', shaolin: 'shaolin', yanmenguan: 'yanmenguan', yanziwu: 'yanziwu', wuliang: 'wuliang', songshan: 'shaolin' };
+    /* 世界事件：36 案按固定旬位并入日程；游戏每旬检查 triggerTurn，逾期走邸报。
+     * 册253：二批 16 案后 20→36，旬位压进 6~35（36 旬一局内跑完），重位只在 6 个旬。 */
+    var EV_TURNS = [6, 7, 7, 8, 9, 10, 11, 11, 12, 13, 14, 15, 15, 16, 17, 18, 19, 19, 20, 21, 22, 23, 23, 24, 25, 26, 27, 27, 28, 29, 30, 31, 32, 33, 34, 35];
+    var EV_REGION = { guangmingding: 'guangming', luoyang: 'luoyang', shaolin: 'shaolin', yanmenguan: 'yanmenguan', yanziwu: 'yanziwu', wuliang: 'wuliang', songshan: 'shaolin', yanfulou: 'linan', lingshe: 'lingjiu', kunlun: 'xueshan', dali: 'dali', binghuo: 'binghuodao' };
     (p.events || []).forEach(function (ev, idx) {
       if (!ev || !ev.name) return;
       if (CANON_EVENTS_SCHEDULE.some(function (x) { return x.id === ev.id; })) return;

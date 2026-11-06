@@ -64,7 +64,7 @@ const { chromium } = require('playwright-core');
       jx: CANON_EVENTS_SCHEDULE.some((x) => x.title === '聚贤庄英雄宴'),
       turns: CANON_EVENTS_SCHEDULE.filter((x) => /^we_/.test(x.id)).length
     }));
-    T(ev.n >= 26 && ev.jx && ev.turns >= 20, 'QX1e 事件桥（20 案并入日程 ⇔ 聚贤庄英雄宴在册）', 'sched=' + ev.n + ' we=' + ev.turns + ' jx=' + ev.jx);
+    T(ev.n >= 42 && ev.jx && ev.turns >= 36, 'QX1e 事件桥（36 案并入日程 ⇔ 聚贤庄英雄宴在册）', 'sched=' + ev.n + ' we=' + ev.turns + ' jx=' + ev.jx);
 
     await page.evaluate(() => { meditateRest(); });
     await page.waitForTimeout(300);
@@ -101,8 +101,8 @@ const { chromium } = require('playwright-core');
         bytes: JSON.stringify(state).length
       };
     });
-    T(!run.err && run.triggered === 20 && run.maxCrises <= 8 && run.bytes < 60 * 1024,
-      'QX7 长跑至 40 旬（20 案全触发 ⇔ 并发案 ≤ 8 ⇔ 存档 < 60KB）', JSON.stringify(run));
+    T(!run.err && run.triggered === 36 && run.maxCrises <= 12 && run.bytes < 60 * 1024,
+      'QX7 长跑至 40 旬（36 案全触发 ⇔ 并发案 ≤ 12 ⇔ 存档 < 60KB）', JSON.stringify(run));
 
     const rw = await page.evaluate(() => {
       const before = state.learnedArts.yg_jiuyin || 0;

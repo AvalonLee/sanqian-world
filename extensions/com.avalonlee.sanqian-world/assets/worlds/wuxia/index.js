@@ -1174,7 +1174,26 @@
     { i: 'we_liancheng', z: null, knot: null, window: [0, 6], tier: { join: 1, lead: 4 }, pre: [], boss: 'hua_tiegan', reward: { kind: 'manual', id: 'mnl_11' }, gain: { watch: { exp: 8 }, join: { exp: 15, renown: 5 }, lead: { exp: 35, renown: 15, stones: 3500 } } },
     { i: 'we_jiaozhu', z: 'guangmingding', knot: null, window: [3, 8], tier: { join: 4, lead: 6 }, pre: ['we_weijiao_gm'], boss: 'ren_woxing', reward: { kind: 'art', id: 'yg_jiuyang' }, gain: { watch: { exp: 10 }, join: { exp: 30, renown: 25 }, lead: { exp: 55, renown: 55, stones: 0 } } },
     { i: 'we_cangjing', z: 'shaolin', knot: 'knot_cangjing', window: [1, 8], tier: { join: 3, lead: 6 }, pre: [], boss: 'xiao_longn', reward: { kind: 'manual', id: 'mnl_04' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 2000 } } },
-    { i: 'we_huanshi', z: 'yanziwu', knot: 'knot_huanshi', window: [1, 6], tier: { join: 3, lead: 4 }, pre: [], boss: 'murong_fu', reward: { kind: 'manual', id: 'mnl_06' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 3000 } } }
+    { i: 'we_huanshi', z: 'yanziwu', knot: 'knot_huanshi', window: [1, 6], tier: { join: 3, lead: 4 }, pre: [], boss: 'murong_fu', reward: { kind: 'manual', id: 'mnl_06' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 3000 } } },
+    /* 册253 · 二批 16 案（世界事件卷 §八 二批名录入码）：补十五部覆盖，全部独发窗口；
+     * 窗口终点按 lead 档分级（lead≤4→year6 / 5→year7 / ≥6→year8，与首批同口径）；
+     * 主奖励取首批未用尽的名兵 / 秘籍 / 天阶武学，boss 全部落 CAST。 */
+    { i: 'we_siguoya', z: null, knot: null, window: [2, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'feng_qingyang', reward: { kind: 'blade', id: 'wp_xuantie' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 5 }, lead: { exp: 40, renown: 20, stones: 1000 } } },
+    { i: 'we_taishan', z: null, knot: null, window: [1, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'ding_yi', reward: { kind: 'manual', id: 'mnl_08' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 42, renown: 25, stones: 2000 } } },
+    { i: 'we_junshan', z: null, knot: null, window: [0, 6], tier: { join: 2, lead: 4 }, pre: [], boss: 'hong_qigong', reward: { kind: 'blade', id: 'wp_dagou' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 15 }, lead: { exp: 40, renown: 30, stones: 1500 } } },
+    { i: 'we_chongyang', z: null, knot: null, window: [2, 8], tier: { join: 4, lead: 6 }, pre: [], boss: 'ouyang_feng', reward: { kind: 'manual', id: 'mnl_01' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 40, stones: 2500 } } },
+    { i: 'we_tiezhang', z: null, knot: null, window: [0, 6], tier: { join: 2, lead: 4 }, pre: [], boss: 'qiu_qianren', reward: { kind: 'manual', id: 'mnl_15' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 38, renown: 25, stones: 1500 } } },
+    { i: 'we_jueding', z: 'yanfulou', knot: null, window: [1, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'huang_yaoshi', reward: { kind: 'blade', id: 'wp_yuxiao' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 45, renown: 35, stones: 2000 } } },
+    { i: 'we_lingjiu', z: 'lingshe', knot: null, window: [2, 8], tier: { join: 4, lead: 6 }, pre: [], boss: 'tonglao', reward: { kind: 'art', id: 'mn_008' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 20 }, lead: { exp: 50, renown: 45, stones: 2000 } } },
+    { i: 'we_taixuan', z: null, knot: null, window: [2, 8], tier: { join: 4, lead: 6 }, pre: [], boss: 'zhang_san', reward: { kind: 'art', id: 'mn_014' }, gain: { watch: { exp: 12 }, join: { exp: 30, renown: 20 }, lead: { exp: 55, renown: 50, stones: 0 } } },
+    { i: 'we_xueshan', z: 'kunlun', knot: null, window: [1, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'bai_zizai', reward: { kind: 'blade', id: 'wp_lvbo' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 42, renown: 25, stones: 1500 } } },
+    { i: 'we_xuedao', z: 'kunlun', knot: null, window: [2, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'feng_wanli', reward: { kind: 'manual', id: 'mnl_14' }, gain: { watch: { exp: 8 }, join: { exp: 22, renown: 10 }, lead: { exp: 42, renown: 30, stones: 2000 } } },
+    { i: 'we_wudu', z: 'dali', knot: null, window: [2, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'ding_chunqiu', reward: { kind: 'blade', id: 'wp_ezui' }, gain: { watch: { exp: 8 }, join: { exp: 22, renown: 10 }, lead: { exp: 42, renown: 25, stones: 2000 } } },
+    { i: 'we_wenjia', z: 'yanfulou', knot: null, window: [0, 6], tier: { join: 2, lead: 4 }, pre: [], boss: 'hu_fei', reward: { kind: 'blade', id: 'wp_bixue' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 25, stones: 1500 } } },
+    { i: 'we_siguofengbo', z: null, knot: null, window: [1, 6], tier: { join: 2, lead: 4 }, pre: [], boss: 'yue_buqun', reward: { kind: 'art', id: 'yg_dugu' }, gain: { watch: { exp: 8 }, join: { exp: 20, renown: 10 }, lead: { exp: 40, renown: 30, stones: 1500 } } },
+    { i: 'we_dalun', z: 'kunlun', knot: null, window: [2, 8], tier: { join: 4, lead: 6 }, pre: [], boss: 'he_taichong', reward: { kind: 'art', id: 'mn_001' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 15 }, lead: { exp: 50, renown: 45, stones: 2000 } } },
+    { i: 'we_binghuo', z: 'binghuo', knot: null, window: [2, 8], tier: { join: 4, lead: 6 }, pre: [], boss: 'xie_xun', reward: { kind: 'blade', id: 'wp_tulong' }, gain: { watch: { exp: 10 }, join: { exp: 25, renown: 20 }, lead: { exp: 50, renown: 50, stones: 3000 } } },
+    { i: 'we_shenlong', z: null, knot: null, window: [1, 7], tier: { join: 3, lead: 5 }, pre: [], boss: 'hong_antong', reward: { kind: 'blade', id: 'wp_yuanyang' }, gain: { watch: { exp: 8 }, join: { exp: 22, renown: 15 }, lead: { exp: 44, renown: 35, stones: 2500 } } }
   ];
   /* 写回四写口（册236 · 世界事件卷 §五）：首批只给 §九 八案声明（逐案白名单，不开放全 CAST）。
    * ① cast 人物生死/去向（白名单短码 dead/flee/secluded/saved）② sects 门派声望增量
@@ -1261,6 +1280,71 @@
     we_huanshi: {
       canon: { sects: { murong: -5 } },
       alt: { sects: { murong: -10, xiaoyao: 5 } }
+    },
+    /* 册253：二批 16 案写回（只动门派声望，不扩 cast 白名单） */
+    we_siguoya: {
+      canon: { sects: { huashan: 5 } },
+      alt: { sects: { huashan: -5 } }
+    },
+    we_taishan: {
+      canon: { sects: { songshan: 10, taishan: -3 } },
+      alt: { sects: { taishan: 8, songshan: -5 } }
+    },
+    we_junshan: {
+      canon: { sects: { gaibang: -10 } },
+      alt: { sects: { gaibang: 10 } }
+    },
+    we_chongyang: {
+      canon: { sects: { quanzhen: -10 } },
+      alt: { sects: { quanzhen: 10, gumu: 5 } }
+    },
+    we_tiezhang: {
+      canon: { sects: { tiezhang: 10 } },
+      alt: { sects: { tiezhang: -10, gaibang: 5 } }
+    },
+    we_jueding: {
+      canon: { sects: { taohua: 5 } },
+      alt: { sects: { taohua: -5, quanzhen: 5 } }
+    },
+    we_lingjiu: {
+      canon: { sects: { lingjiu: -5 } },
+      alt: { sects: { lingjiu: 10, xiaoyao: 5 } }
+    },
+    we_taixuan: {
+      canon: { sects: { xiake: 5 } },
+      alt: { sects: { xiake: 10 } }
+    },
+    we_xueshan: {
+      canon: { sects: { xueshan: -10 } },
+      alt: { sects: { xueshan: 10 } }
+    },
+    we_xuedao: {
+      canon: { sects: { xuedao: 10, xueshan: -5 } },
+      alt: { sects: { xuedao: -10, xueshan: 5 } }
+    },
+    we_wudu: {
+      canon: { sects: { xingxiu: 5 } },
+      alt: { sects: { xingxiu: -10, dali: 5 } }
+    },
+    we_wenjia: {
+      canon: { sects: { honghuahui: -5 } },
+      alt: { sects: { honghuahui: 5 } }
+    },
+    we_siguofengbo: {
+      canon: { sects: { huashan: -5 } },
+      alt: { sects: { huashan: 5 } }
+    },
+    we_dalun: {
+      canon: { sects: { shaolin: -10 } },
+      alt: { sects: { shaolin: 5, xueshan: 5 } }
+    },
+    we_binghuo: {
+      canon: { sects: { shaolin: -3 } },
+      alt: { sects: { shaolin: 3 } }
+    },
+    we_shenlong: {
+      canon: { sects: { shenlong: 10 } },
+      alt: { sects: { shenlong: -10, tiandihui: 5 } }
     }
   };
   function applyWriteback(ws, e, outcome) {
@@ -1321,7 +1405,24 @@
     we_liancheng: { injury: [2, 5], renown: [-20, -10] },
     we_jiaozhu: { injury: [3, 6], renown: [-30, -20] },
     we_cangjing: { injury: [3, 5], renown: [-25, -15] },
-    we_huanshi: { injury: [2, 4], renown: [-20, -10] }
+    we_huanshi: { injury: [2, 4], renown: [-20, -10] },
+    /* 册253：二批 16 案 lead 代价 */
+    we_siguoya: { injury: [3, 5], renown: [-25, -15] },
+    we_taishan: { injury: [3, 5], renown: [-25, -15] },
+    we_junshan: { injury: [2, 5], renown: [-20, -10] },
+    we_chongyang: { injury: [4, 6], renown: [-30, -20] },
+    we_tiezhang: { injury: [3, 6], renown: [-30, -20] },
+    we_jueding: { injury: [3, 5], renown: [-25, -15] },
+    we_lingjiu: { injury: [3, 6], renown: [-30, -20] },
+    we_taixuan: { injury: [3, 6], renown: [-30, -20] },
+    we_xueshan: { injury: [3, 5], renown: [-25, -15] },
+    we_xuedao: { injury: [4, 6], renown: [-30, -20] },
+    we_wudu: { injury: [2, 5], renown: [-20, -10] },
+    we_wenjia: { injury: [2, 5], renown: [-20, -10] },
+    we_siguofengbo: { injury: [2, 4], renown: [-20, -10] },
+    we_dalun: { injury: [4, 6], renown: [-30, -20] },
+    we_binghuo: { injury: [4, 7], renown: [-40, -25] },
+    we_shenlong: { injury: [3, 6], renown: [-30, -20] }
   };
   function failOf(e, mode) {
     var f = mode === 'lead' && e ? FAIL[e.i] : null;
