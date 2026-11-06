@@ -3882,7 +3882,9 @@
           </button>
         `;
       }
-      pillsHtml += state.crises.map(c => {
+      const crisisOrder = state.crises.slice().sort((a, b) => crisisRemain(a) - crisisRemain(b));
+      const crisisShown = crisisOrder.slice(0, 3);
+      pillsHtml += crisisShown.map(c => {
         const r = getRegion(c.region);
         return `
           <button onclick="jumpToCrisisRegion('${c.region}', ${c.tileIdx})" class="px-2.5 py-1 rounded-full bg-red-950/90 hover:bg-red-900 border border-red-500/60 text-red-100 text-xs font-bold flex items-center gap-1 shadow transition">
@@ -3891,6 +3893,9 @@
           </button>
         `;
       }).join('');
+      if (crisisOrder.length > crisisShown.length) {
+        pillsHtml += `<span class="px-2.5 py-1 rounded-full bg-stone-800/90 border border-amber-500/40 text-amber-200/90 text-xs font-bold">还有 ${crisisOrder.length - crisisShown.length} 桩 · 见传闻</span>`;
+      }
       crisisContainer.innerHTML = pillsHtml;
 
       if (state.viewLayer === 'world') {
@@ -5429,7 +5434,8 @@
           </div>
         `;
       } else {
-        html += state.crises.map(c => {
+        const crisisList = state.crises.slice().sort((a, b) => crisisRemain(a) - crisisRemain(b));
+        html += crisisList.map(c => {
           const reg = getRegion(c.region);
           const remainShow = c.phase === 'aftermath' ? (c.aftermathRemain || 0) : c.remainTurns;
           const urgency = remainShow <= 2 ? 'bg-red-600' : (remainShow <= 4 ? 'bg-amber-500' : 'bg-emerald-600');
@@ -6983,6 +6989,10 @@
         return `可入余波·余${c.aftermathRemain || 0}旬`;
       }
       return `高潮进行中·余${c.remainTurns}旬`;
+    }
+
+    function crisisRemain(c) {
+      return c && c.phase === 'aftermath' ? (c.aftermathRemain || 0) : ((c && c.remainTurns) || 0);
     }
 
     function openJuxianAftermathModal(crisis) {

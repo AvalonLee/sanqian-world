@@ -180,6 +180,34 @@ const { chromium } = require('playwright-core');
       /虽败犹荣/.test(rwL.shown) && /内伤 \+[5-7]/.test(rwL.shown) && /侠名 -[34]\d/.test(rwL.shown),
       'QX11 事件败局代价（黑木崖败：内伤 5~7 / 侠名 -40~-30 ⇔ 不发主奖励）', JSON.stringify(rwL));
 
+    const qc = await page.evaluate(() => {
+      const old = state.crises;
+      const reg = state.currentRegion;
+      state.crises = [
+        { id: 'we_qc_slow', region: reg, title: '缓事', remainTurns: 7, tileIdx: 0 },
+        { id: 'we_qc_urgent', region: reg, title: '急事', remainTurns: 1, tileIdx: 0 },
+        { id: 'we_qc_mid', region: reg, title: '中事', remainTurns: 4, tileIdx: 0 },
+        { id: 'we_qc_aft', region: reg, title: '余波事', phase: 'aftermath', aftermathRemain: 2, tileIdx: 0 },
+        { id: 'we_qc_last', region: reg, title: '末事', remainTurns: 8, tileIdx: 0 }
+      ];
+      renderBoardLayers();
+      const pills = Array.from(document.querySelectorAll('#crisis-pill-container button'))
+        .filter(b => ((b.getAttribute('onclick') || '').indexOf('jumpToCrisisRegion') >= 0));
+      const text = document.getElementById('crisis-pill-container').textContent;
+      const rumor = renderInspectorRumorTab(getRegion(reg));
+      state.crises = old;
+      renderBoardLayers();
+      return {
+        n: pills.length,
+        first: pills[0] ? pills[0].textContent : '',
+        text: text,
+        rumorOrder: [rumor.indexOf('急事'), rumor.indexOf('缓事')]
+      };
+    });
+    T(qc.n === 3 && /还有 2 桩/.test(qc.text) && /急事/.test(qc.first) &&
+      qc.rumorOrder[0] >= 0 && qc.rumorOrder[0] < qc.rumorOrder[1],
+      'QX12 大事列表收敛（并发 5 桩 ⇒ 顶栏只留 3 桩最急 + 「还有 2 桩」⇔ 传闻页按剩余旬升序）', JSON.stringify(qc));
+
     T(errs.length === 0, 'QX5 无脚本错误', errs.slice(0, 2).join(' | '));
   } catch (e) {
     console.log('FAIL QX_CRASH (' + (e && e.message || e) + ')');
