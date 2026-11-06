@@ -54,6 +54,21 @@ const { chromium } = require('playwright-core');
     const t0 = await frame.evaluate(() => ({ title: document.title, turn: state.turn }));
     T(/群侠传/.test(t0.title) && t0.turn === 1, 'QX1 游戏真载入（标题含「群侠传」⇔ 首回合 = 1）', JSON.stringify(t0));
 
+    /* 内容桥：宿主在 iframe load 后注入，稍等一拍再读 */
+    await page.waitForTimeout(1000);
+    const br = await frame.evaluate(() => ({
+      arts: Object.keys(MARTIAL_DB).length,
+      sects: Object.keys(SECTS_DB).length,
+      masters: MASTERS_INIT.length,
+      side: SIDE_CAST.length,
+      jiuyin: MARTIAL_DB.yg_jiuyin && MARTIAL_DB.yg_jiuyin.name,
+      mingjiao: SECTS_DB.mingjiao && SECTS_DB.mingjiao.name,
+      ding: MASTERS_INIT.some((m) => m.name === '丁春秋') || SIDE_CAST.some((m) => m.name === '丁春秋')
+    }));
+    T(br.arts > 100 && br.jiuyin === '九阴真经', 'QX1b 武学桥（扩展 403 部并入 ⇔ 九阴真经可见）', 'arts=' + br.arts + ' jiuyin=' + br.jiuyin);
+    T(br.sects > 12 && br.mingjiao === '明教', 'QX1c 门派桥（扩展门派并入 ⇔ 明教可见）', 'sects=' + br.sects + ' mingjiao=' + br.mingjiao);
+    T(br.masters > 24 || br.side > 34, 'QX1d 人物桥（S/A 进名宿池 / B/C 进市井池）', 'masters=' + br.masters + ' side=' + br.side + ' ding=' + br.ding);
+
     await frame.evaluate(() => { meditateRest(); });
     await page.waitForTimeout(300);
     await frame.evaluate(() => { meditateRest(); });
