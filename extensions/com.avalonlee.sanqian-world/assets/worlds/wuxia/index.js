@@ -1817,7 +1817,8 @@
      * `SQ.UI.wuxiaHome` 渲染的自定义主壳（view/wuxia-home.js），九页 tab 不进本世界；
      * 不声明 = 默认 tab 形态（xiuxian 零改动）。与旧 worldView 的差别：只指**件名**不指形态，
      * 核内零世界 id 点名（D12 封闭性）。 */
-    shell: 'wuxiaHome',
+    /* 册244 勘正：主壳已换 `qunxiaHome`（view/qunxia-home.js，山河棋盘自包含页）；旧 wuxia-home.js 同批退役。 */
+    shell: 'qunxiaHome',
     lexicon: null,                 /* 词表分卷已注册进 SQ.LEX.wuxia，此处不重复引用（避免两处同键漂） */
     initialState: initialState,
     normalize: normalize,

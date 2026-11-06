@@ -100,7 +100,10 @@ const allFiles = walk(ROOT, []).filter((f) => !f.includes(path.sep + '.') &&
   !relOf(f).startsWith('extensions/') &&
   /* 开发期依赖与构建产物不是事实源。.tests/README 指示「在扩展根目录安装 playwright-core」，
    * 装完 node_modules（1300+ 包）就在根树里，整树扫描会把审计撑到 4GB heap OOM（2026-10-07 实测）。 */
-  !/(^|\/)(node_modules|dist|dist-ssr|build)\//.test(relOf(f)));
+  !/(^|\/)(node_modules|dist|dist-ssr|build)\//.test(relOf(f)) &&
+  /* 山河棋盘 = 自包含子应用（单文件 + 自带样式/存储桥）：正文、数据、Tailwind 一体交付，
+     不接词表、不按扩展外置件分区。只剪这一目录，边界写死在此，别扩到 view/ 其它文件。 */
+  !relOf(f).startsWith('view/games/'));
 const jsFiles = allFiles.filter((f) => f.endsWith('.js'));
 const htmlFiles = allFiles.filter((f) => f.endsWith('.html'));
 
