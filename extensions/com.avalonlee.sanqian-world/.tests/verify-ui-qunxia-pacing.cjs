@@ -1,10 +1,11 @@
-/* .tests/verify-ui-qunxia-pacing.cjs — 标准玩家节奏试跑（册251）
- * 口径：36 旬 / 三种关注度策略，随机策略跑 20 个定种（20261001~20261020）+ mulberry32。
- *   闭门     = 每旬只吐纳，从不赴会（下界）
- *   随机巡游 = 60% 概率随机走 1 步，路过大事才旁观（低关注）
- *   标准     = 每旬 50% 概率关注红点、按最短路赶最近一场（验收带 6~10 桩）
- *   全神     = 每旬必赶最近一场（单旬 5 精力上限下的可达上界）
- * 只统计扩展 36 案（we_*）；游戏自带 6 案另计。赴会 = 旁观或入局；主导 = 战力够且入局并胜。
+/* .tests/verify-ui-qunxia-pacing.cjs — 标准玩家节奏试跑（册251 / 册254 加成长曲线）
+ * 口径：36 旬 / 五种策略，随机策略跑 20 个定种（20261001~20261020）+ mulberry32。
+ *   闭门       = 每旬只吐纳，从不赴会（下界）
+ *   随机巡游   = 60% 概率随机走 1 步，路过大事才旁观（低关注）
+ *   标准       = 每旬 50% 概率关注红点、按最短路赶最近一场（验收带 6~10 桩 / 主导 0~1）
+ *   成长标准   = 标准关注度 + 每旬演武参悟（+25 修为）与吐纳回精力（主导验收带 2~4 桩）
+ *   全神       = 每旬必赶最近一场（单旬 5 精力上限下的可达上界）
+ * 只统计扩展 36 案（we_*）；游戏自带 6 案另计。赴会 = 旁观或入局；主导 = 战力 ≥ 对手−8 且入局并胜。
  * 本件只做度量，不改玩法数值。
  */
 'use strict';
@@ -81,7 +82,7 @@ const { chromium } = require('playwright-core');
       function joinC(c, joined, led) {
         if (!c || state.ap < 1 || joined.has(c.id)) return false;
         const power = calcPlayerCombatPower();
-        const duel = power >= c.enemyPower;
+        const duel = power >= c.enemyPower - 8;   /* 势均力敌也接（游戏内可战；差值 ≤8 视作可尝试） */
         try { joinWorldCrisis(c.id, duel ? undefined : 'watch'); } catch (e) { return false; }
         if (duel && duelState) {
           duelState.enemyCurHp = 0;
@@ -99,11 +100,14 @@ const { chromium } = require('playwright-core');
         const R = rng(seed);
         Math.random = R;
         const joined = new Set(), led = new Set();
+        const grow = policy === 'standardGrow';
         let maxCrises = 0;
         for (let t = 1; t <= 36; t++) {
+          /* 成长玩家：每旬先在演武堂参悟（+25 修为），再按标准关注度赶会；吐纳回满精力。 */
+          if (grow) { try { sectPractice(); } catch (e) {} }
           const crises = (state.crises || []).filter((c) => c.phase !== 'aftermath');
           maxCrises = Math.max(maxCrises, (state.crises || []).length);
-          const pursue = policy === 'attentive' || (policy === 'standard' && R() < p);
+          const pursue = policy === 'attentive' || ((policy === 'standard' || grow) && R() < p);
           if (pursue && crises.length) {
             crises.sort((a, b) => bfs(state.currentRegion, a.region).length - bfs(state.currentRegion, b.region).length || a.remainTurns - b.remainTurns);
             const target = crises[0];
@@ -111,7 +115,7 @@ const { chromium } = require('playwright-core');
             for (let i = 1; i < route.length && i <= 4 && state.ap >= 1; i++) commitTravelToRegion(route[i], false);
             const here = (state.crises || []).find((c) => c.phase !== 'aftermath' && c.region === state.currentRegion);
             if (here) joinC(here, joined, led);
-          } else if (policy === 'wander' || policy === 'standard') {
+          } else if (policy === 'wander' || policy === 'standard' || grow) {
             if (R() < 0.6 && state.ap >= 1) {
               const ns = getRegion(state.currentRegion).neighbors;
               commitTravelToRegion(ns[Math.floor(R() * ns.length)], false);
@@ -119,7 +123,10 @@ const { chromium } = require('playwright-core');
             const here = (state.crises || []).find((c) => c.phase !== 'aftermath' && c.region === state.currentRegion);
             if (here) joinC(here, joined, led);
           }
-          if (t < 36) advanceTime(1, true);
+          if (t < 36) {
+            if (grow) meditateRest();
+            else advanceTime(1, true);
+          }
         }
         const active = (state.crises || []).filter((c) => /^we_/.test(c.id) && c.phase !== 'aftermath').length;
         const we = [...joined].filter((id) => /^we_/.test(id)).length;
@@ -127,9 +134,11 @@ const { chromium } = require('playwright-core');
           we,
           local: joined.size - we,
           led: led.size,
-          missedWe: 20 - we - active,
+          missedWe: 36 - we - active,
           triggered: Object.keys(state.canonEventsTriggered || {}).filter((k) => /^we_/.test(k)).length,
           maxCrises,
+          power: calcPlayerCombatPower(),
+          realm: state.realmIdx,
           turn: state.turn,
           bytes: JSON.stringify(state).length
         };
@@ -138,7 +147,7 @@ const { chromium } = require('playwright-core');
 
       const power0 = calcPlayerCombatPower();
       const out = { power0, closed: run('closed', 1) };
-      for (const pol of ['wander', 'standard', 'attentive']) {
+      for (const pol of ['wander', 'standard', 'attentive', 'standardGrow']) {
         const rows = [];
         for (let s = 1; s <= 20; s++) rows.push(run(pol, 20261000 + s, 0.5));
         out[pol] = {
@@ -146,7 +155,12 @@ const { chromium } = require('playwright-core');
           minWe: Math.min(...rows.map((r) => r.we)),
           maxWe: Math.max(...rows.map((r) => r.we)),
           led: +mean(rows, 'led').toFixed(1),
+          minLed: Math.min(...rows.map((r) => r.led)),
+          maxLed: Math.max(...rows.map((r) => r.led)),
           missedWe: +mean(rows, 'missedWe').toFixed(1),
+          power: +mean(rows, 'power').toFixed(1),
+          realm: +mean(rows, 'realm').toFixed(2),
+          bytes: Math.max(...rows.map((r) => r.bytes)),
           triggered: Math.min(...rows.map((r) => r.triggered)),
           maxCrises: Math.max(...rows.map((r) => r.maxCrises))
         };
@@ -172,9 +186,14 @@ const { chromium } = require('playwright-core');
     T(res.closed.bytes < 60 * 1024 && errs.length === 0,
       'PA5 终态可存（<60KB）⇔ 零脚本错误', 'bytes=' + res.closed.bytes + ' errs=' + errs.slice(0, 2).join(' | '));
 
+    T(res.standardGrow.we >= 6 && res.standardGrow.we <= 10 && res.standardGrow.led >= 2 && res.standardGrow.led <= 4 &&
+      res.standardGrow.power >= 60 && res.standardGrow.realm >= 2 && res.standardGrow.bytes < 60 * 1024 && errs.length === 0,
+      'PA6 成长曲线标准玩家（每旬演武 +25 修为 ⇒ 终态战力 ≥60 / 境界 ≥2 ⇔ 赴会 6~10 / 主导 2~4）', JSON.stringify(res.standardGrow));
+
     console.log('读数：创角战力 ' + res.power0 + ' · 闭门 ' + res.closed.we + ' · 巡游 ' + res.wander.we +
-      ' · 标准 ' + res.standard.we + '（' + res.standard.minWe + '~' + res.standard.maxWe + '） · 全神 ' + res.attentive.we +
-      ' · 主导（标准） ' + res.standard.led);
+      ' · 标准 ' + res.standard.we + '（' + res.standard.minWe + '~' + res.standard.maxWe + '，主导 ' + res.standard.led + '）' +
+      ' · 成长标准 ' + res.standardGrow.we + '（主导 ' + res.standardGrow.led + '，战力 ' + res.standardGrow.power + ' / 境界 ' + res.standardGrow.realm + '）' +
+      ' · 全神 ' + res.attentive.we + '（主导 ' + res.attentive.led + '）');
   } catch (e) {
     console.log('FAIL PA_CRASH (' + (e && e.message || e) + ')');
     fail++;
