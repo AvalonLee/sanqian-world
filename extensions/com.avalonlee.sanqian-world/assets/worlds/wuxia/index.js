@@ -1593,6 +1593,17 @@
     }
     return null;
   }
+  /* 主导败局结仇（册256）：败给事件主使 ⇒ 该人物记仇，交情封到 −30 以下。
+   * 只改既有 relations 条目的 kind/affinity，不新增落盘字段；重复败不叠。 */
+  function markEnemy(ws, e) {
+    if (!e || !e.boss || !CAST_INDEX[e.boss]) return null;
+    ws.relations = obj(ws.relations);
+    var r = ws.relations[e.boss] || { affinity: 0 };
+    r.affinity = Math.min(isNum(r.affinity) ? r.affinity : 0, -30);
+    r.kind = 'enemy';
+    ws.relations[e.boss] = r;
+    return r;
+  }
   function attendEvent(ws, id, mode, alt) {
     var e = null;
     for (var i = 0; i < WORLD_EVENTS.length; i++) if (WORLD_EVENTS[i].i === id) { e = WORLD_EVENTS[i]; break; }
@@ -1665,6 +1676,7 @@
           if (!ws.world.wecyc) ws.world.wecyc = {};
           ws.world.wecyc[id] = Math.floor(worldYearOf(ws) / e.cyc);
         }
+        markEnemy(ws, e);                 /* 册256：败给主使 ⇒ 结仇 */
         applyWriteback(ws, e, 'canon');   /* 主导败 = 没改得动史，江湖按 canon 写回（册236） */
         return res;
       }
