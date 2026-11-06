@@ -32,6 +32,9 @@ const { chromium } = require('playwright-core');
       settings: { autoTrib: false, autoEvent: false, eventPref: 'none', tabOrder: [] }
     };
     localStorage.setItem('sanqian-state-v1', JSON.stringify(st));
+    if (location.pathname.indexOf('games/qunxia') < 0 && !localStorage.getItem('qunxia-result-queue-v1')) {
+      localStorage.setItem('qunxia-result-queue-v1', JSON.stringify([{ id: 'we_huashan', outcome: 'alt' }]));
+    }
   });
 
   try {
@@ -65,6 +68,19 @@ const { chromium } = require('playwright-core');
       turns: CANON_EVENTS_SCHEDULE.filter((x) => /^we_/.test(x.id)).length
     }));
     T(ev.n >= 42 && ev.jx && ev.turns >= 36, 'QX1e 事件桥（36 案并入日程 ⇔ 聚贤庄英雄宴在册）', 'sched=' + ev.n + ' we=' + ev.turns + ' jx=' + ev.jx);
+
+    const rq = await page.evaluate(() => {
+      let st = null;
+      try { st = JSON.parse(localStorage.getItem('sanqian-state-v1') || 'null'); } catch (e) {}
+      const w = st && st.worlds && st.worlds.wuxia && st.worlds.wuxia.world;
+      return {
+        queue: localStorage.getItem('qunxia-result-queue-v1'),
+        fate: w && w.wefate ? w.wefate.we_huashan : null,
+        rep: w && w.wbsect ? w.wbsect.huashan : null
+      };
+    });
+    T(rq.queue === null && rq.fate === 'alt' && rq.rep === -5,
+      'QX13 结果回流（棋盘终局队列 ⇒ 主壳单写 wefate=alt + 华山 −5 ⇔ 队列清空）', JSON.stringify(rq));
 
     await page.evaluate(() => { meditateRest(); });
     await page.waitForTimeout(300);
@@ -116,11 +132,14 @@ const { chromium } = require('playwright-core');
       const shown = document.getElementById('duel-result-reward').textContent;
       const after = state.learnedArts.yg_jiuyin || 0;
       const bogus = QUNXIA_CRISIS_REWARD('we_not_a_case');
+      const q = JSON.parse(localStorage.getItem('qunxia-result-queue-v1') || '[]');
+      const last = q[q.length - 1] || null;
       duelState = null;
-      return { before, after, shown, bogus };
+      return { before, after, shown, bogus, last };
     });
-    T(rw.after === rw.before + 1 && /获传《九阴真经》/.test(rw.shown) && rw.bogus === '',
-      'QX8 事件主奖励（华山论剑胜出传九阴真经且上屏 ⇔ 未知案不发）', JSON.stringify(rw));
+    T(rw.after === rw.before + 1 && /获传《九阴真经》/.test(rw.shown) && rw.bogus === '' &&
+      rw.last && rw.last.id === 'we_huashan' && rw.last.outcome === 'alt',
+      'QX8 事件主奖励（华山论剑胜出传九阴真经且上屏 ⇔ 未知案不发 ⇔ 终局入回流队列 alt）', JSON.stringify(rw));
 
     const rwB = await page.evaluate(() => {
       state.crises.push({ id: 'we_tushi', region: 'shaolin', title: '屠狮大会', enemyName: '谢逊' });

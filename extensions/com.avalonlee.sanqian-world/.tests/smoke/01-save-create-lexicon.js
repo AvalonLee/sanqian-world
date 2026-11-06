@@ -1642,6 +1642,33 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 胜不造仇=' + winOk + ' 往返=' + rtOk);
     })();
 
+    /* E44 · 棋盘结果回流（册259 · 世界事件卷 §五）：① 胜 → alt + alt 写回（华山 −5 / 武当 +3）‖
+     * ② 错过 → echo + canon 写回（丐帮 −20）‖ ③ 重复结果幂等 ‖ ④ 未知案 / 非法结果拒绝且不落 fate ‖
+     * ⑤ normalize 往返保住。 */
+    (function () {
+      var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
+      if (!pk || !pk.applyResult) { ok('E44', '棋盘结果回流', false, '无 applyResult 口'); return; }
+      var w1 = pk.normalize(pk.initialState());
+      var r1 = pk.applyResult(w1, 'we_huashan', 'alt');
+      var altOk = r1.ok && w1.world.wefate.we_huashan === 'alt' &&
+        pk.sectRepOf(w1, 'huashan') === -5 && pk.sectRepOf(w1, 'wudang') === 3;
+      var d1 = pk.applyResult(w1, 'we_huashan', 'alt');
+      var dupOk = d1.err === 'dup' && pk.sectRepOf(w1, 'huashan') === -5;
+      var w2 = pk.normalize(pk.initialState());
+      var r2 = pk.applyResult(w2, 'we_juxian', 'echo');
+      var echoOk = r2.ok && w2.world.wefate.we_juxian === 'echo' && pk.sectRepOf(w2, 'gaibang') === -20;
+      var w3 = pk.normalize(pk.initialState());
+      var r3 = pk.applyResult(w3, 'we_nope', 'alt');
+      var r4 = pk.applyResult(w3, 'we_huashan', 'lose');
+      var badOk = r3.err === 'noevent' && r4.err === 'badoutcome' &&
+        !(w3.world.wefate && w3.world.wefate.we_huashan);
+      var rtOk = pk.normalize(w1).world.wefate.we_huashan === 'alt';
+      ok('E44', '棋盘结果回流（胜 ⇒ alt + alt 写回 ⇔ 错过 ⇒ echo + canon 写回 ⇔ 重复幂等 ⇔ 未知案/非法结果拒绝 ⇔ normalize 往返）',
+        altOk && dupOk && echoOk && badOk && rtOk,
+        '胜=' + altOk + '(华' + pk.sectRepOf(w1, 'huashan') + '/武' + pk.sectRepOf(w1, 'wudang') + ') 幂等=' + dupOk +
+        ' 错过=' + echoOk + '(丐' + pk.sectRepOf(w2, 'gaibang') + ') 拒=' + badOk + ' 往返=' + rtOk);
+    })();
+
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
 
     /* #11 起名校验：空/1字/9字 拒绝；2~8字 通过 */

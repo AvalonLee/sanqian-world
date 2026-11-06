@@ -1473,6 +1473,30 @@
     }
     return n;
   }
+  /* 棋盘结果回流（册259 · 世界事件卷 §五）：游戏侧只写本地结果队列，主壳回程时单写此口。
+   * 终局只有两种——胜 = alt（亲手改史）/ 错过 = echo（按 canon 落定）；游戏内败局可重试，
+   * 不是终局，故不回流。已写结局的事件直接拒绝，队列重放幂等。 */
+  function applyResult(ws, id, outcome) {
+    if (outcome !== 'alt' && outcome !== 'echo') return { err: 'badoutcome' };
+    var e = null;
+    for (var i = 0; i < WORLD_EVENTS.length; i++) if (WORLD_EVENTS[i].i === id) { e = WORLD_EVENTS[i]; break; }
+    if (!e) return { err: 'noevent' };
+    var fate = wefateOf(ws);
+    if (e.cyc) {
+      if (wecycOf(ws)[id] === Math.floor(worldYearOf(ws) / e.cyc)) return { err: 'dup' };
+    } else if (fate[id]) return { err: 'dup' };
+    if (outcome === 'echo' && nextVerdict(ws, id) === 'close') return { err: 'closed' };
+    ws.world = obj(ws.world);
+    if (!ws.world.wefate) ws.world.wefate = {};
+    ws.world.wefate[id] = outcome;
+    if (e.cyc) {
+      if (!ws.world.wecyc) ws.world.wecyc = {};
+      ws.world.wecyc[id] = Math.floor(worldYearOf(ws) / e.cyc);
+    }
+    applyWriteback(ws, e, outcome === 'alt' ? 'alt' : 'canon');
+    ws.exp = expOf(ws);
+    return { ok: true, outcome: outcome };
+  }
   function worldEvents(ws) {
     var fate = wefateOf(ws), cyc = wecycOf(ws);
     var out = [];
@@ -1965,6 +1989,8 @@
     /* 行头三槽（册230）：表 / 取行 / 效果读数 —— 效果只在判定层，不进 powerOf */
     gearMisc: (D && D.GEAR_MISC) || [], miscRow: miscRow, gearRow: gearRow, effectsOfGear: effectsOfGear,
     worldEvents: worldEvents, worldEventsAt: worldEventsAt, worldRumors: worldRumors, sweepExpired: sweepExpired, worldYearOf: worldYearOf, attendEvent: attendEvent, watchDone: watchDone, WORLD_EVENTS: WORLD_EVENTS, befriend: befriend, retire: retire,
+    /* 棋盘结果回流（册259）：游戏终局 → 扩展 wefate / 写回 —— 主壳单写口 */
+    applyResult: applyResult,
     /* 写回四写口（册236）：白名单表 / 写口 / 读取面 —— 判据直测口 */
     WRITEBACK: WRITEBACK, applyWriteback: applyWriteback, castStateOf: castStateOf, sectRepOf: sectRepOf, aftermathOf: aftermathOf,
     /* 逐案失败代价（册237 · 世界事件卷 §六 fail） */
