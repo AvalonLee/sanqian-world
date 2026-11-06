@@ -3352,6 +3352,19 @@
       }
     }
 
+    var QUNXIA_RESULT_KEY = 'qunxia-result-queue-v1';
+    /* 扩展大事终局回流（册259）：只写本地队列，由扩展主壳回程时单写，避开宿主存储竞态。
+     * 终局 = 胜（alt）/ 错过（echo）；败局可重试，不算终局。 */
+    function queueWorldResult(crisisId, outcome) {
+      if (!crisisId || crisisId.indexOf('we_') !== 0) return;
+      try {
+        var q = JSON.parse(localStorage.getItem(QUNXIA_RESULT_KEY) || '[]');
+        if (!Array.isArray(q)) q = [];
+        q.push({ id: crisisId, outcome: outcome });
+        localStorage.setItem(QUNXIA_RESULT_KEY, JSON.stringify(q));
+      } catch (e) {}
+    }
+
     function loadGame() {
       try {
         clearOldSaves();
@@ -7855,6 +7868,7 @@
           extraMsg = '，成功缉拿悬赏要犯';
         }
         if (d.crisisId) {
+          queueWorldResult(d.crisisId, 'alt');
           const wonCrisis = state.crises.find(c => c.id === d.crisisId);
         if (wonCrisis) {
           if (!state.canonEventReports) state.canonEventReports = [];
@@ -11032,6 +11046,7 @@
     }
 
     function handleExpiredCanonEvent(expired) {
+      queueWorldResult(expired.id, 'echo');
       if (!state.canonEventReports) state.canonEventReports = [];
       const sched = CANON_EVENTS_SCHEDULE.find(x => x.id === expired.id);
       if (sched && sched.onCanonExpire) {
