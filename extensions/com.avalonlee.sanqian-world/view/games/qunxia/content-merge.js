@@ -36,12 +36,12 @@
   window.QUNXIA_MERGE = function (p) {
     if (!p) return;
     var arts = p.arts || [], sects = p.sects || [], cast = p.cast || [];
-    var artBySect = {}, sectCamp = {};
+    var artBySect = {}, sectCamp = {}, sectName = {};
 
     arts.forEach(function (a) {
       if (a && a.s) a.s.forEach(function (sid) { (artBySect[sid] = artBySect[sid] || []).push(a); });
     });
-    sects.forEach(function (s) { sectCamp[s.id] = s.camp; });
+    sects.forEach(function (s) { sectCamp[s.id] = s.camp; if (s.name) sectName[s.id] = s.name; });
 
     var artNames = {};
     for (var id in MARTIAL_DB) artNames[MARTIAL_DB[id].name] = 1;
@@ -127,6 +127,34 @@
           lines: [c.bio || (c.name + '行色匆匆。'), c.name + '不愿多谈。', c.name + '拱手作别。']
         });
       }
+    });
+
+    /* 世界事件：20 案按固定旬位并入日程；游戏每旬检查 triggerTurn，逾期走邸报。 */
+    var EV_TURNS = [6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 24, 26, 27, 28, 29];
+    var EV_REGION = { guangmingding: 'guangming', luoyang: 'luoyang', shaolin: 'shaolin', yanmenguan: 'yanmenguan', yanziwu: 'yanziwu', wuliang: 'wuliang', songshan: 'shaolin' };
+    (p.events || []).forEach(function (ev, idx) {
+      if (!ev || !ev.name) return;
+      if (CANON_EVENTS_SCHEDULE.some(function (x) { return x.id === ev.id; })) return;
+      var boss = null;
+      for (var i = 0; i < cast.length; i++) if (cast[i].id === ev.boss) { boss = cast[i]; break; }
+      var st = boss ? (CAMP_STANCE[sectCamp[boss.sec]] || 'rou') : 'rou';
+      var tier = boss ? boss.t : 'B';
+      CANON_EVENTS_SCHEDULE.push({
+        id: ev.id,
+        triggerTurn: EV_TURNS[idx % EV_TURNS.length],
+        duration: 4,
+        region: EV_REGION[ev.z] || 'luoyang',
+        tileIdx: (hash(ev.id) % 5) + 2,
+        title: ev.name,
+        enemyName: boss ? (boss.name + '·' + (ROLE_TITLE[boss.role] || '江湖人')) : '江湖群豪',
+        enemyTitle: boss && sectName[boss.sec] ? (sectName[boss.sec] + ' · 江湖名宿') : '天下群雄',
+        enemyStance: st,
+        enemyPower: tier === 'S' ? 80 : tier === 'A' ? 70 : tier === 'B' ? 58 : 50,
+        enemyHp: tier === 'S' ? 160 : tier === 'A' ? 145 : tier === 'B' ? 120 : 105,
+        desc: ev.desc || ev.rumor || (ev.name + '之事已在江湖传开。'),
+        canonOutcomeTitle: '《江湖邸报 · ' + ev.name + '落幕》',
+        canonOutcomeText: ev.canon || ('因你未在限期内赶赴，' + ev.name + '已按江湖轨迹落幕。')
+      });
     });
 
     try { if (typeof renderAll === 'function') renderAll(); } catch (e) {}

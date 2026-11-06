@@ -69,6 +69,13 @@ const { chromium } = require('playwright-core');
     T(br.sects > 12 && br.mingjiao === '明教', 'QX1c 门派桥（扩展门派并入 ⇔ 明教可见）', 'sects=' + br.sects + ' mingjiao=' + br.mingjiao);
     T(br.masters > 24 || br.side > 34, 'QX1d 人物桥（S/A 进名宿池 / B/C 进市井池）', 'masters=' + br.masters + ' side=' + br.side + ' ding=' + br.ding);
 
+    const ev = await frame.evaluate(() => ({
+      n: CANON_EVENTS_SCHEDULE.length,
+      jx: CANON_EVENTS_SCHEDULE.some((x) => x.title === '聚贤庄英雄宴'),
+      turns: CANON_EVENTS_SCHEDULE.filter((x) => /^we_/.test(x.id)).length
+    }));
+    T(ev.n >= 26 && ev.jx && ev.turns >= 20, 'QX1e 事件桥（20 案并入日程 ⇔ 聚贤庄英雄宴在册）', 'sched=' + ev.n + ' we=' + ev.turns + ' jx=' + ev.jx);
+
     await frame.evaluate(() => { meditateRest(); });
     await page.waitForTimeout(300);
     await frame.evaluate(() => { meditateRest(); });
@@ -84,6 +91,14 @@ const { chromium } = require('playwright-core');
     await frame2.waitForFunction(() => typeof state !== 'undefined', null, { timeout: 30000 });
     const t2 = await frame2.evaluate(() => ({ turn: state.turn }));
     T(t2.turn === 3, 'QX4 刷新恢复（重载后 turn 仍为 3）', 'turn=' + t2.turn);
+
+    const spawn = await frame2.evaluate(() => {
+      state.turn = 5;
+      state.crises = [];
+      meditateRest();
+      return { turn: state.turn, crises: state.crises.map((c) => c.id) };
+    });
+    T(spawn.turn === 6 && spawn.crises.some((id) => /^we_/.test(id)), 'QX6 事件真触发（第 6 旬生成扩展大事）', 'turn=' + spawn.turn + ' crises=' + spawn.crises.join(','));
 
     T(errs.length === 0, 'QX5 无脚本错误', errs.slice(0, 2).join(' | '));
   } catch (e) {

@@ -33,7 +33,18 @@
       var bio = label(cf, 'cast.' + p.i + '.bio');
       return { id: p.i, name: name, t: p.t, sec: p.sec || '', role: p.role || '', align: p.align || '', bio: bio };
     }).filter(Boolean);
-    return { arts: arts, sects: sects, cast: cast };
+    var events = ((cf.p && cf.p.WORLD_EVENTS) || []).map(function (e) {
+      var name = label(cf, 'we.' + e.i + '.name');
+      if (!name) return null;
+      return {
+        id: e.i, name: name,
+        desc: label(cf, 'we.' + e.i + '.desc'),
+        rumor: label(cf, 'we.' + e.i + '.rumor'),
+        canon: label(cf, 'we.' + e.i + '.fate.canon'),
+        boss: e.boss || '', z: e.z || ''
+      };
+    }).filter(Boolean);
+    return { arts: arts, sects: sects, cast: cast, events: events };
   }
 
   function inject() {
