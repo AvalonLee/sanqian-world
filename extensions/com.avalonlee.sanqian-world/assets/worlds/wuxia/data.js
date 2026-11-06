@@ -846,7 +846,11 @@
     {i:'knot_tianlong',z:'dali',act:2,cast:['duan_zhengchun','duan_yu'],need:{realm:3},br:[{k:'watch',label:'knot.knot_tianlong.watch'},{k:'help',label:'knot.knot_tianlong.help',req:{realm:4}}]},
     {i:'knot_wanjie',z:'dali',act:2,cast:['duan_yanqing','mu_wanqing'],need:{realm:2},br:[{k:'help',label:'knot.knot_wanjie.help'},{k:'flee',label:'knot.knot_wanjie.flee'},{k:'probe',label:'knot.knot_wanjie.probe'}]},
     {i:'knot_lingshe',z:'lingshe',act:3,cast:['xie_xun'],need:{realm:4},br:[{k:'watch',label:'knot.knot_lingshe.watch'},{k:'defy',label:'knot.knot_lingshe.defy',req:{realm:5}}]},
-    {i:'knot_binghuo',z:'binghuo',act:3,cast:['xie_xun','zhang_wuji'],need:{realm:4},br:[{k:'probe',label:'knot.knot_binghuo.probe'},{k:'help',label:'knot.knot_binghuo.help'},{k:'watch',label:'knot.knot_binghuo.watch'}]}
+    {i:'knot_binghuo',z:'binghuo',act:3,cast:['xie_xun','zhang_wuji'],need:{realm:4},br:[{k:'probe',label:'knot.knot_binghuo.probe'},{k:'help',label:'knot.knot_binghuo.help'},{k:'watch',label:'knot.knot_binghuo.watch'}]},
+    /* 世界事件场面（册257）：z:null = 只经 `WE.knot` 挂接演出，闯荡不撞（华山/终南/天山无独立地界） */
+    {i:'knot_siguoya',z:null,act:3,cast:['feng_qingyang'],need:{realm:4},br:[{k:'watch',label:'knot.knot_siguoya.watch'},{k:'probe',label:'knot.knot_siguoya.probe',req:{realm:5}},{k:'flee',label:'knot.knot_siguoya.flee'}]},
+    {i:'knot_lingjiu',z:null,act:3,cast:['tonglao','xu_zhu'],need:{realm:4},br:[{k:'watch',label:'knot.knot_lingjiu.watch'},{k:'help',label:'knot.knot_lingjiu.help'},{k:'defy',label:'knot.knot_lingjiu.defy',req:{realm:5}}]},
+    {i:'knot_chongyang',z:null,act:2,cast:['ouyang_feng','zhou_botong'],need:{realm:4},br:[{k:'watch',label:'knot.knot_chongyang.watch'},{k:'help',label:'knot.knot_chongyang.help',req:{realm:5}},{k:'flee',label:'knot.knot_chongyang.flee'}]}
     ]
   };
 })();
