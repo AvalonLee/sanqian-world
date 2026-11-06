@@ -7881,6 +7881,10 @@
         }
         state.crises = state.crises.filter(c => c.id !== d.crisisId);
           extraMsg = '，力挽狂澜平定江湖大事';
+        if (typeof window.QUNXIA_CRISIS_REWARD === 'function') {
+          const rwMsg = window.QUNXIA_CRISIS_REWARD(d.crisisId);
+          if (rwMsg) extraMsg += '，' + rwMsg;
+        }
         }
         if (typeof d.mainQuestAdvanceTo === 'number') {
           state.mainQuestStep = d.mainQuestAdvanceTo;

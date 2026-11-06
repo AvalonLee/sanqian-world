@@ -153,11 +153,28 @@
         enemyHp: tier === 'S' ? 160 : tier === 'A' ? 145 : tier === 'B' ? 120 : 105,
         desc: ev.desc || ev.rumor || (ev.name + '之事已在江湖传开。'),
         canonOutcomeTitle: '《江湖邸报 · ' + ev.name + '落幕》',
-        canonOutcomeText: ev.canon || ('因你未在限期内赶赴，' + ev.name + '已按江湖轨迹落幕。')
+        canonOutcomeText: ev.canon || ('因你未在限期内赶赴，' + ev.name + '已按江湖轨迹落幕。'),
+        rewardArt: ev.reward && ev.reward.kind === 'art' ? ev.reward.id : '',
+        rewardKind: ev.reward ? ev.reward.kind : ''
       });
     });
 
     try { if (typeof renderAll === 'function') renderAll(); } catch (e) {}
+  };
+
+  /* 打赢扩展世界事件后的主奖励（目前只接武学；名兵/秘籍沿用游戏固定战利品） */
+  window.QUNXIA_CRISIS_REWARD = function (id) {
+    var ev = null;
+    for (var i = 0; i < CANON_EVENTS_SCHEDULE.length; i++) {
+      if (CANON_EVENTS_SCHEDULE[i].id === id) { ev = CANON_EVENTS_SCHEDULE[i]; break; }
+    }
+    if (!ev || !ev.rewardArt || !MARTIAL_DB[ev.rewardArt]) return '';
+    var lv = state.learnedArts[ev.rewardArt] || 0;
+    state.learnedArts[ev.rewardArt] = Math.min(10, lv + 1);
+    var msg = '获传《' + MARTIAL_DB[ev.rewardArt].name + '》';
+    try { addLog('🎁【江湖大事】' + msg); } catch (e) {}
+    try { renderAll(); } catch (e) {}
+    return msg;
   };
 
   window.addEventListener('message', function (e) {

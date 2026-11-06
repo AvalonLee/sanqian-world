@@ -100,6 +100,41 @@ const { chromium } = require('playwright-core');
     });
     T(spawn.turn === 6 && spawn.crises.some((id) => /^we_/.test(id)), 'QX6 事件真触发（第 6 旬生成扩展大事）', 'turn=' + spawn.turn + ' crises=' + spawn.crises.join(','));
 
+    const run = await frame2.evaluate(() => {
+      let maxCrises = 0;
+      for (let i = 0; i < 34; i++) {
+        try { meditateRest(); } catch (e) { return { err: e.message }; }
+        maxCrises = Math.max(maxCrises, (state.crises || []).length);
+      }
+      return {
+        turn: state.turn,
+        triggered: Object.keys(state.canonEventsTriggered || {}).filter((k) => /^we_/.test(k)).length,
+        maxCrises,
+        reports: (state.canonEventReports || []).length,
+        bytes: JSON.stringify(state).length
+      };
+    });
+    T(!run.err && run.triggered === 20 && run.maxCrises <= 8 && run.bytes < 60 * 1024,
+      'QX7 长跑至 40 旬（20 案全触发 ⇔ 并发案 ≤ 8 ⇔ 存档 < 60KB）', JSON.stringify(run));
+
+    const rw = await frame2.evaluate(() => {
+      const before = state.learnedArts.yg_jiuyin || 0;
+      state.crises.push({ id: 'we_huashan', region: 'huashan', title: '华山论剑', enemyName: '黄药师' });
+      duelState = {
+        finished: false, enemyCurHp: 0, playerWins: 2, enemyWins: 1,
+        rewardGold: 0, rewardFame: 0, rewardExp: 0,
+        crisisId: 'we_huashan', contextTitle: '华山论剑', enemyName: '黄药师'
+      };
+      finishDuel();
+      const shown = document.getElementById('duel-result-reward').textContent;
+      const after = state.learnedArts.yg_jiuyin || 0;
+      const bogus = QUNXIA_CRISIS_REWARD('we_not_a_case');
+      duelState = null;
+      return { before, after, shown, bogus };
+    });
+    T(rw.after === rw.before + 1 && /获传《九阴真经》/.test(rw.shown) && rw.bogus === '',
+      'QX8 事件主奖励（华山论剑胜出传九阴真经且上屏 ⇔ 未知案不发）', JSON.stringify(rw));
+
     T(errs.length === 0, 'QX5 无脚本错误', errs.slice(0, 2).join(' | '));
   } catch (e) {
     console.log('FAIL QX_CRASH (' + (e && e.message || e) + ')');

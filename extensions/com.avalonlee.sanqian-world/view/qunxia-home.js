@@ -41,7 +41,8 @@
         desc: label(cf, 'we.' + e.i + '.desc'),
         rumor: label(cf, 'we.' + e.i + '.rumor'),
         canon: label(cf, 'we.' + e.i + '.fate.canon'),
-        boss: e.boss || '', z: e.z || ''
+        boss: e.boss || '', z: e.z || '',
+        reward: e.reward || null
       };
     }).filter(Boolean);
     return { arts: arts, sects: sects, cast: cast, events: events };
