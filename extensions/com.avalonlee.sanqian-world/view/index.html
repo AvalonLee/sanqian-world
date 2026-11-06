@@ -597,7 +597,7 @@
 <script src="arts.js"></script>
 <script src="gear.js"></script>
 <script src="treasure.js"></script>
-<script src="wuxia-home.js"></script>
+<script src="qunxia-home.js"></script>
 <script src="faction.js"></script>
 <script src="rumor.js"></script>
 <script src="zone.js"></script>
@@ -2902,7 +2902,7 @@
         var sh0 = shellOf();
         if (sh0) {
           await SQ.claim(state);
-          if (sh0 === 'wuxiaHome' && SQ.UI.wuxiaHome) SQ.UI.wuxiaHome.refresh(ctx());   /* 静态引用（D14）；通用兜底下行 */
+          if (sh0 === 'qunxiaHome' && SQ.UI.qunxiaHome) SQ.UI.qunxiaHome.refresh(ctx());   /* 静态引用（D14）；通用兜底下行 */
           else if (SQ.UI[sh0]) SQ.UI[sh0].refresh(ctx());
           return;
         }
@@ -2929,7 +2929,7 @@
   function redrawFrame() {
     if (document.hidden || !ws()) return;
     var sh1 = shellOf();
-    if (sh1) { if (sh1 === 'wuxiaHome' && SQ.UI.wuxiaHome) SQ.UI.wuxiaHome.refresh(ctx()); else if (SQ.UI[sh1]) SQ.UI[sh1].refresh(ctx()); return; }
+    if (sh1) { if (sh1 === 'qunxiaHome' && SQ.UI.qunxiaHome) SQ.UI.qunxiaHome.refresh(ctx()); else if (SQ.UI[sh1]) SQ.UI[sh1].refresh(ctx()); return; }
     _mods = null; renderAll();
   }
   document.addEventListener('visibilitychange', function () { redrawFrame(); });
@@ -2986,7 +2986,7 @@
     ui.tickErrSeen = '';
     $('sc-main').classList.add('shellmode');
     $('shell-main').classList.remove('hide');
-    if (sh === 'wuxiaHome' && SQ.UI.wuxiaHome && SQ.UI.wuxiaHome.mount) SQ.UI.wuxiaHome.mount(ctx());   /* 静态引用（D14） */
+    if (sh === 'qunxiaHome' && SQ.UI.qunxiaHome && SQ.UI.qunxiaHome.mount) SQ.UI.qunxiaHome.mount(ctx());   /* 静态引用（D14） */
     else if (SQ.UI[sh] && SQ.UI[sh].mount) SQ.UI[sh].mount(ctx());
     show('main');
     checkIo();
