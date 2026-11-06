@@ -3303,22 +3303,15 @@
 
     const SAVE_KEY = 'jianghu_shanshui_hardcore_v7';
 
-    /* 宿主存储桥：localStorage 为主（同步），xhub.storage 作镜像与清缓存兜底 */
-    function hostStore() {
-      try {
-        if (window.xhub && window.xhub.storage) return window.xhub.storage;
-      } catch (e) {}
-      try {
-        var x = window.parent && window.parent !== window && window.parent.xhub;
-        return (x && x.storage) ? x.storage : null;
-      } catch (e) { return null; }
-    }
-    async function hydrateFromHost() {
+    /* 册252：游戏档只落 localStorage。宿主 storage_set 是整文件读-改-写且无锁，
+     * 与扩展主壳并发写同一份 .storage.json 时会互相覆盖（实测主档被整份抹掉）。
+     * 扩展 origin（xhub-ext.e-<id>.localhost）稳定，localStorage 跨启动保留。 */
+    async function migrateFromHost() {
       var hasLocal = false;
       try { hasLocal = !!localStorage.getItem(SAVE_KEY); } catch (e) {}
       if (hasLocal) return;
       try {
-        var st = hostStore();
+        var st = window.xhub && window.xhub.storage;
         if (!st) return;
         var raw = await st.get(SAVE_KEY);
         if (raw) localStorage.setItem(SAVE_KEY, typeof raw === 'string' ? raw : JSON.stringify(raw));
@@ -3340,18 +3333,6 @@
       } catch (e) {
         // Ignore
       }
-      try {
-        var st = hostStore();
-        if (st) {
-          if (st.remove) st.remove(SAVE_KEY);
-          else {
-            var p = st.set(SAVE_KEY, '');
-            if (p && p.catch) p.catch(function () {});
-          }
-        }
-      } catch (e) {
-        // Ignore
-      }
       state.hasCreatedChar = false;
       openOriginModal(true);
       showToast('已清除存档！请重新题写名号、择定先天天赋与身世入世。', 'emerald');
@@ -3366,15 +3347,6 @@
       }
       try {
         localStorage.setItem(SAVE_KEY, raw);
-      } catch (e) {
-        // Ignore storage errors
-      }
-      try {
-        var st = hostStore();
-        if (st) {
-          var p = st.set(SAVE_KEY, raw);
-          if (p && p.catch) p.catch(function () {});
-        }
       } catch (e) {
         // Ignore storage errors
       }
@@ -16477,7 +16449,7 @@
     });
 
     window.addEventListener('load', async () => {
-      await hydrateFromHost();
+      await migrateFromHost();
       loadGame();
       if (state.turn <= 4) {
         state.crises = [];
