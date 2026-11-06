@@ -234,15 +234,21 @@ function fatState(SQ) {
   if (livePath && fs.existsSync(livePath)) {
     const wrapped = JSON.parse(fs.readFileSync(livePath, 'utf8'));
     const main = wrapped[SQ.KEY], logs = wrapped[SQ.Log.KEY];
-    const decMain = await SQ.decodeStoredObject(main);
-    const decLogs = await SQ.decodeStoredObject(logs);
-    const rawMainBytes = utf8(JSON.stringify(main === undefined ? null : main));
-    const storedMainBytes = utf8(typeof main === 'string' ? main : JSON.stringify(main));
-    T(decMain && decMain.profile, 'F1 真实玩家档可解（改造后读端仍认现有档，零迁移）',
-      '现状类型=' + (typeof main) + ' 落盘 ' + storedMainBytes + 'B');
-    T(decLogs && decLogs.logs, 'F2 真实日志档可解（独立键结构不变）',
-      '世界=' + Object.keys((decLogs && decLogs.logs) || {}).length);
-    console.log('  实测：主档 raw=' + rawMainBytes + 'B · 日志 raw=' + utf8(JSON.stringify(logs || {})) + 'B');
+    if (main === undefined && logs === undefined) {
+      /* 册251：宿主存储还可能有另一页写的键（武侠主壳把游戏档也写进同一文件）——
+       * 没有扩展主档/侧档时 F 相无取证对象，跳过；不要把缺键当崩溃。 */
+      console.log('  SKIP F 相：平台档存在但无扩展主档/侧档键 ' + livePath);
+    } else {
+      const decMain = await SQ.decodeStoredObject(main);
+      const decLogs = await SQ.decodeStoredObject(logs);
+      const rawMainBytes = utf8(JSON.stringify(main === undefined ? null : main));
+      const storedMainBytes = utf8(typeof main === 'string' ? main : JSON.stringify(main));
+      T(decMain && decMain.profile, 'F1 真实玩家档可解（改造后读端仍认现有档，零迁移）',
+        '现状类型=' + (typeof main) + ' 落盘 ' + storedMainBytes + 'B');
+      T(decLogs && decLogs.logs, 'F2 真实日志档可解（独立键结构不变）',
+        '世界=' + Object.keys((decLogs && decLogs.logs) || {}).length);
+      console.log('  实测：主档 raw=' + rawMainBytes + 'B · 日志 raw=' + utf8(JSON.stringify(logs || {})) + 'B');
+    }
   } else {
     console.log('  SKIP F 相：本机没有平台实时档 ' + livePath);
   }
