@@ -2,7 +2,7 @@
  * 宿主扩展页 CSP（x-hub src-tauri/src/ext_protocol.rs::build_content_csp）：
  *   frame-src 'none' —— 扩展页面里任何 iframe 都会被拦。
  * 本件用同样的 CSP + 注入式 window.xhub 起本地服务，验：主壳不嵌 iframe、导航到 game.html、
- * 内容桥 payload 生效、宿主存储镜像写入、零 CSP/脚本错误。
+ * 内容桥 payload 生效、游戏页不写宿主存储（免与扩展主档互相覆盖）、零 CSP/脚本错误。
  */
 'use strict';
 const path = require('path');
@@ -47,13 +47,15 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
       settings: { autoTrib: false, autoEvent: false, eventPref: 'none', tabOrder: [] }
     };
     const mem = { 'sanqian-state-v1': st };
+    const writes = [];
     window.__mirror = mem;
+    window.__hostWrites = writes;
     window.xhub = {
       storage: {
         get: (k) => Promise.resolve(mem[k] === undefined ? null : mem[k]),
-        set: (k, v) => { mem[k] = v; return Promise.resolve(); },
-        remove: (k) => { delete mem[k]; return Promise.resolve(); },
-        clear: () => { for (const k in mem) delete mem[k]; return Promise.resolve(); }
+        set: (k, v) => { mem[k] = v; writes.push(k); return Promise.resolve(); },
+        remove: (k) => { delete mem[k]; writes.push('rm:' + k); return Promise.resolve(); },
+        clear: () => { for (const k in mem) delete mem[k]; writes.push('clear'); return Promise.resolve(); }
       }
     };
   });
@@ -83,10 +85,31 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
     await page.waitForTimeout(800);
     const mirror = await page.evaluate(() => ({
       saved: (localStorage.getItem('jianghu_shanshui_hardcore_v7') || '').length,
-      mirrored: !!(window.__mirror && window.__mirror['jianghu_shanshui_hardcore_v7']),
+      gameWrites: (window.__hostWrites || []).filter(k => k.indexOf('jianghu_shanshui') === 0).length,
+      stateIntact: !!(window.__mirror && window.__mirror['sanqian-state-v1'] && window.__mirror['sanqian-state-v1'].profile),
       turn: state.turn
     }));
-    T(mirror.turn === 2 && mirror.saved > 1000 && mirror.mirrored, 'HX2 存档双写（localStorage 落档 ⇔ 宿主存储镜像写入）', JSON.stringify(mirror));
+    T(mirror.turn === 2 && mirror.saved > 1000 && mirror.gameWrites === 0 && mirror.stateIntact,
+      'HX2 存档只落 localStorage ⇔ 游戏页零宿主写入 ⇔ 扩展主档仍在', JSON.stringify(mirror));
+
+    /* 旧版把游戏档镜像在宿主存储里：本地缺档时只读迁回，且不写回宿主 */
+    const legacy = await page.evaluate(() => {
+      const raw = localStorage.getItem('jianghu_shanshui_hardcore_v7');
+      localStorage.removeItem('jianghu_shanshui_hardcore_v7');
+      return raw;
+    });
+    /* 宿主存储的 init 脚本每次导航都会重建，旧档要在 reload 前挂进下一轮 init */
+    await page.addInitScript((raw) => { window.__mirror['jianghu_shanshui_hardcore_v7'] = raw; }, legacy);
+    await page.reload();
+    await page.waitForTimeout(1200);
+    const migrated = await page.evaluate(() => ({
+      turn: state.turn,
+      saved: (localStorage.getItem('jianghu_shanshui_hardcore_v7') || '').length,
+      gameWrites: (window.__hostWrites || []).filter(k => k.indexOf('jianghu_shanshui') === 0).length,
+      stateIntact: !!(window.__mirror && window.__mirror['sanqian-state-v1'] && window.__mirror['sanqian-state-v1'].profile)
+    }));
+    T(legacy && legacy.length > 1000 && migrated.turn === 2 && migrated.saved > 1000 && migrated.gameWrites === 0 && migrated.stateIntact,
+      'HX2b 旧宿主镜像只读迁回 localStorage（零写回 ⇔ 主档仍在）', JSON.stringify(migrated));
 
     T(errs.length === 0, 'HX3 零 CSP / 脚本错误', errs.slice(0, 3).join(' | '));
   } catch (e) {
