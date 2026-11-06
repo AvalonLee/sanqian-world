@@ -527,7 +527,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         if (!t('we.' + e.i + '.name') || !t('we.' + e.i + '.desc') ||
             !t('we.' + e.i + '.fate.canon') || !t('we.' + e.i + '.fate.alt')) lexOk = false;
       }
-      var countOk = n === 20;
+      var countOk = n === 36;
       /* ⑥ watch 对象形状差分（册225 改窗内案）：juxian watch.exp=10 ⇒ exp=12 ‖ xiangyang watch 8 ⇒ 10——
        * （数字形状时代两案恒得 8；exp 派生 = visited 2 + webonus） */
       var wY = pk.normalize(pk.initialState());
@@ -536,7 +536,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var ry2 = pk.attendEvent(wY2, 'we_xiangyang', 'watch');
       var watchDiff = ry && ry.ok && wY.exp === 12 && wY.world.webonus === 10 &&
                       ry2 && ry2.ok && wY2.exp === 10 && wY2.world.webonus === 8;
-      ok('E21', '世界事件 20 案全文案（表满 20 唯一 ‖ z ∈ ZONES∪null ‖ pre 合法无自引 ‖ gain 三档对象形 ‖ 词表 4 键 × 20 齐 ‖ watch 差分 12）',
+      ok('E21', '世界事件 36 案全文案（表满 36 唯一 ‖ z ∈ ZONES∪null ‖ pre 合法无自引 ‖ gain 三档对象形 ‖ 词表 4 键 × 36 齐 ‖ watch 差分 12）',
         countOk && idOk && zOk && preOk && gainOk && lexOk && watchDiff,
         'n=' + n + ' 唯一=' + idOk + ' z=' + zOk + ' pre=' + preOk + ' gain=' + gainOk + ' 词=' + lexOk + ' watch差分=' + watchDiff);
     })();
@@ -585,7 +585,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var hasHelp = rJ2 && rJ2.scene ? rJ2.scene.opts.some(function (o) { return o.k === 'help'; }) : false;
       var c1 = hasHelp ? pk.knotChoose(w2, rJ2.scene.knot, 'help') : null;
       var chooseOk = c1 && c1.ok && c1.chose === 'help' && w2.knotDone.knot_juxian === 1 && w2.persona.xia === 4;
-      ok('E22', '场面执行器挂接（7 案 knot 指真 KNOTS + 13 案 null ‖ join 返回 scene 且分支全 open ‖ watch 无 scene ‖ 选支 knotDone 落账 + 侠轴 +4）',
+      ok('E22', '场面执行器挂接（7 案 knot 指真 KNOTS + 29 案 null ‖ join 返回 scene 且分支全 open ‖ watch 无 scene ‖ 选支 knotDone 落账 + 侠轴 +4）',
         knotOk && hookOk && sceneOk && optsOpen && watchNoScene && chooseOk,
         'hook=' + hooked + ' 表=' + knotOk + ' scene=' + sceneOk + ' open=' + optsOpen + ' watch无=' + watchNoScene + ' 选支=' + chooseOk);
     })();
@@ -606,7 +606,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         else if (e.window) { nWin++; if (!(e.window.length === 2 && e.window[0] <= e.window[1])) shapeOk = false; }
         else shapeOk = false;
       }
-      var hookOk = nCyc === 3 && nWin === 17 && shapeOk;
+      var hookOk = nCyc === 3 && nWin === 33 && shapeOk;
       /* ② 惯例型届次：huashan cyc 6——初始可赴，赴后本届隐藏，worldDay 推到第 6 年重开 */
       var w1 = pk.normalize(pk.initialState()); w1.realm = 6; w1.stamina = 99;
       var ev0 = pk.worldEvents(w1), in0 = false;
@@ -631,16 +631,16 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       for (var fk in fate) if (fate[fk] === 'echo') echoN++;
       var expOk = pk.normalize ? (function () { var w4 = pk.normalize(pk.initialState()); w4.worldDay = 9 * 360 + 1; pk.sweepExpired(w4); w4.exp = undefined; return true; })() : true;
       /* 回声见闻封顶 +2（册234）：expOf 不在导出面，用 swept=17 与 echoN=17 钉（封顶值由 E34 钉） */
-      var sweepOk = swept === 17 && echoN === 17 && expOk;
-      /* ⑤ 词表：echo 17 键 + tag.echo */
+      var sweepOk = swept === 33 && echoN === 33 && expOk;
+      /* ⑤ 词表：echo 33 键 + tag.echo */
       var echoLex = true, echoN2 = 0;
       for (var w5 = 0; w5 < WE.length; w5++) {
         if (WE[w5].cyc) continue;
         echoN2++;
         if (!t('we.' + WE[w5].i + '.echo')) echoLex = false;
       }
-      var lexOk = echoLex && echoN2 === 17 && t('wh.jianghu.fate.tag.echo') === '（江湖传言收场）';
-      ok('E23', '窗口与回声（3 cyc + 17 window 形状 ‖ 惯例型赴后本届隐藏跨届重开 ‖ 滑窗 sweep 17 案全 echo ‖ 窗外拒 offwindow ‖ echo 词表齐 + tag）',
+      var lexOk = echoLex && echoN2 === 33 && t('wh.jianghu.fate.tag.echo') === '（江湖传言收场）';
+      ok('E23', '窗口与回声（3 cyc + 33 window 形状 ‖ 惯例型赴后本届隐藏跨届重开 ‖ 滑窗 sweep 33 案全 echo ‖ 窗外拒 offwindow ‖ echo 词表齐 + tag）',
         hookOk && cycOk && sweepOk && offOk && lexOk,
         'cyc=' + nCyc + ' win=' + nWin + ' 形=' + shapeOk + ' 届=' + cycOk + ' sweep=' + swept + '/' + echoN + ' 窗外=' + offOk + ' 词=' + lexOk);
     })();
@@ -674,8 +674,8 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       /* ⑤ 词表 */
       var lexOk = true, nR = 0;
       for (var q = 0; q < WE.length; q++) { if (t('we.' + WE[q].i + '.rumor')) nR++; else lexOk = false; }
-      var keysOk = t('wh.rumor.title') && t('wh.rumor.none') && t('wh.rumor.soon') && lexOk && nR === 20;
-      ok('E24', 'G17 传闻预告（将开 ≤1 年 6 案在预告、远窗与惯例/已开不在 ‖ 推近 15 天 soon「在即」‖ 赴后不预告 ‖ rumor 20 键 + 风闻键齐）',
+      var keysOk = t('wh.rumor.title') && t('wh.rumor.none') && t('wh.rumor.soon') && lexOk && nR === 36;
+      ok('E24', 'G17 传闻预告（将开 ≤1 年 6 案在预告、远窗与惯例/已开不在 ‖ 推近 15 天 soon「在即」‖ 赴后不预告 ‖ rumor 36 键 + 风闻键齐）',
         sixOk && noFar && soonOk && zSoon && juxOut && keysOk,
         '预告=' + rm0.length + ' 六案=' + !!sixOk + ' 远窗无=' + !!noFar + ' soon=' + zSoon + ' 赴后无=' + juxOut + ' 词=' + keysOk);
     })();
@@ -853,7 +853,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       (pk.arts || []).forEach(function (x) { artSet[x.i] = 1; });
       (pk.weapons || []).forEach(function (x) { if (x.k === 2) bladeSet[x.i] = 1; });
       (pk.manuals || []).forEach(function (x) { manSet[x.i] = 1; });
-      var planOk = WE.length === 20, planBad = [];
+      var planOk = WE.length === 36, planBad = [];
       for (var i = 0; i < WE.length; i++) {
         var e = WE[i], rw = e.reward || {};
         if (!castSet[e.boss]) planBad.push(e.i + ':boss');
@@ -932,7 +932,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var k3 = pk.attendEvent(wK, 'we_huashan', 'join');
       var cycOk = k1 && k1.ok && k2 && k2.err === 'done' && k3 && k3.ok;
 
-      ok('E28', '主导对赌与主奖励池（20 案 boss/reward 声明齐（CAST/ARTS/WEAPONS k=2/MANUALS 四表对账）‖ 词表 30 键齐 ‖ 胜三型发放（art 入已知 1 层 / blade 入谱入库 / manual 入架）‖ alt 侠名翻倍 120 ‖ 败 wefate=lose + 内伤6 + 侠名−20 + 无奖励 + gain 不落地 ‖ 重复处置（art 升层 / blade 折价 300 / manual 可重复）‖ watch·join 不产 reward 不判胜负 ‖ 惯例型跨届重开）',
+      ok('E28', '主导对赌与主奖励池（36 案 boss/reward 声明齐（CAST/ARTS/WEAPONS k=2/MANUALS 四表对账）‖ 词表 30 键齐 ‖ 胜三型发放（art 入已知 1 层 / blade 入谱入库 / manual 入架）‖ alt 侠名翻倍 120 ‖ 败 wefate=lose + 内伤6 + 侠名−20 + 无奖励 + gain 不落地 ‖ 重复处置（art 升层 / blade 折价 300 / manual 可重复）‖ watch·join 不产 reward 不判胜负 ‖ 惯例型跨届重开）',
         planOk && lexOk && winArt && winBlade && winMan && altOk && loseOk && artUp && bladeDupe && manTwice && plainOk && cycOk,
         '声明=' + planOk + (planBad.length ? '[' + planBad.join(',') + ']' : '') + ' 词表=' + lexOk + (lexBad.length ? '[' + lexBad.slice(0, 3).join(',') + ']' : '') +
         ' 胜art=' + winArt + ' 胜blade=' + winBlade + ' 胜manual=' + winMan + ' alt=' + altOk +
@@ -1217,7 +1217,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
 
     /* E34 · 世界日时钟（册234）：① 1 现实分钟 = 1 游戏日、离线单次封顶 12 现实小时（2 游戏年）‖
      * ② 窗口走真实 claim 落账（year1→year3 开 [2,6]、闭窗案转 echo）‖
-     * ③ 滑窗回声走真实 claim（year7→year9：17 案全 echo；见闻封顶 +2 不是 +34；world={} 无 wefate 不抛）‖
+     * ③ 滑窗回声走真实 claim（year7→year9：33 案全 echo；见闻封顶 +2 不是 +34；world={} 无 wefate 不抛）‖
      * ④ 惯例跨届走真实 claim（year0 赴华山 → +36h → year6 重开）‖ ⑤ 寿元随世界日推进（24 年即 shoujin）。 */
     (function () {
       var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
@@ -1254,11 +1254,11 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       pk.claim(w5, CAP_MS, 0, {}, {});
       var echoN = 0;
       for (var fk in (w5.world.wefate || {})) if (w5.world.wefate[fk] === 'echo') echoN++;
-      var echoOk = pk.worldYearOf(w5) === 9 && echoN === 17 && w5.exp === 38;
+      var echoOk = pk.worldYearOf(w5) === 9 && echoN === 33 && w5.exp === 38;
       var w6 = mk(); w6.world = {}; w6.worldDay = 9 * 360 + 1;
       var bareOk = true;
       try { pk.claim(w6, DAY_MS, 0, {}, {}); } catch (e) { bareOk = false; }
-      bareOk = bareOk && Object.keys(w6.world.wefate || {}).length === 17;
+      bareOk = bareOk && Object.keys(w6.world.wefate || {}).length === 33;
       /* ④ 惯例跨届走真实 claim：year0 赴华山（join 败也写届次）→ 三个 12h ⇒ year6 重开 */
       var w7 = mk(); w7.realm = 6; w7.stamina = 99;
       var r7 = pk.attendEvent(w7, 'we_huashan', 'join');
@@ -1319,7 +1319,7 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
           for (var s in (wb.sects || {})) if (!sectIds[s]) bad.push(keys[k] + '.sect.' + s);
         }
       }
-      var tableOk = keys.length === 20 && bad.length === 0;
+      var tableOk = keys.length === 36 && bad.length === 0;
       function mk() { return pk.normalize(pk.initialState()); }
       function evOf(id) { for (var i = 0; i < pk.WORLD_EVENTS.length; i++) if (pk.WORLD_EVENTS[i].i === id) return pk.WORLD_EVENTS[i]; return null; }
       var yanmen = evOf('we_yanmen');
@@ -1335,16 +1335,17 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var r3 = pk.attendEvent(w3, 'we_weijiao_gm', 'join');
       var joinOk = r3 && r3.ok && pk.sectRepOf(w3, 'mingjiao') === -40 && pk.sectRepOf(w3, 'shaolin') === 10 &&
         pk.aftermathOf(w3).length === 1;
-      /* ④ 错过回声：year 9 ⇒ 全 17 个窗型按 canon 落定（3 案惯例型不在 sweep 射程） */
+      /* ④ 错过回声：year 9 ⇒ 全 33 个窗型按 canon 落定（3 案惯例型不在 sweep 射程；余波展示封 20 条） */
       var w4 = mk(); w4.worldDay = 9 * 360 + 1;
       pk.sweepExpired(w4);
       var echoOk = pk.castStateOf(w4, 'xiao_feng') === 'dead' && pk.castStateOf(w4, 'dongfang_bubai') === 'flee' &&
-        pk.sectRepOf(w4, 'mingjiao') === -35 && pk.aftermathOf(w4).length === 17;   /* 光明顶 −40 + 继位 +5 */
+        pk.sectRepOf(w4, 'mingjiao') === -35 && Object.keys(w4.world.wefate || {}).length === 33 &&
+        pk.aftermathOf(w4).length === 20;   /* 光明顶 −40 + 继位 +5；wafter 封 20 条 */
       /* ⑤ 存档往返 */
       var n2 = pk.normalize(w2);
       var normOk = pk.castStateOf(n2, 'xiao_feng') === 'secluded' && pk.sectRepOf(n2, 'gaibang') === 5 &&
         pk.aftermathOf(n2).length === 1;
-      ok('E35', '写回四写口（20 案全覆盖白名单对表 ‖ cast/sects/余波 canon·alt 落账且幂等 ‖ join canon 真入口 ‖ 错过回声按 canon 落定 17 案 ‖ normalize 往返不丢）',
+      ok('E35', '写回四写口（36 案全覆盖白名单对表 ‖ cast/sects/余波 canon·alt 落账且幂等 ‖ join canon 真入口 ‖ 错过回声按 canon 落定 33 案（余波封 20）‖ normalize 往返不丢）',
         tableOk && canonOk && altOk && joinOk && echoOk && normOk,
         '表=' + tableOk + '案数' + keys.length + '违例' + JSON.stringify(bad) +
         ' canon=' + canonOk + ' alt=' + altOk + ' join=' + joinOk +
@@ -1416,12 +1417,12 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var hm = pk.failOf(ev('we_heimu'), 'lead');
       var other = pk.failOf({ i: 'no_such_event' }, 'lead');
       var join = pk.failOf(ev('we_huashan'), 'join');
-      var tableOk = Object.keys(pk.FAIL).length === 20 && bad.length === 0;
+      var tableOk = Object.keys(pk.FAIL).length === 36 && bad.length === 0;
       var themeOk = hs.renown[0] === 20 && hs.renown[1] === 20 && hs.injury[0] === 4 &&
         hm.injury[0] === 5 && hm.injury[1] === 7 && hm.renown[1] === -30;
       var fallbackOk = other.injury[0] === 2 && other.injury[1] === 6 && other.renown[0] === -40 && other.renown[1] === -20;
       var joinOk = join.injury[0] === 1 && join.injury[1] === 3 && join.renown[0] === -10 && join.renown[1] === -5;
-      ok('E37', '逐案失败代价（20 案表对表且在带内 ‖ 论剑 +20 不掉名·黑木崖最重 ‖ 未声明案回落默认 ‖ join 档不被 lead 覆盖）',
+      ok('E37', '逐案失败代价（36 案表对表且在带内 ‖ 论剑 +20 不掉名·黑木崖最重 ‖ 未声明案回落默认 ‖ join 档不被 lead 覆盖）',
         tableOk && themeOk && fallbackOk && joinOk,
         '表=' + tableOk + '(' + Object.keys(pk.FAIL).length + ',' + JSON.stringify(bad) + ')' +
         ' 主题=' + themeOk + ' 默认=' + fallbackOk + ' join=' + joinOk);
