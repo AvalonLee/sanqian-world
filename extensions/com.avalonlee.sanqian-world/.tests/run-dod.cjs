@@ -111,9 +111,9 @@ step('sim-pacing', '.tests/sim-pacing.cjs');
 step('sim-event-economy', '.tests/sim-event-economy.cjs', ['2', '20261008']);
 step('sim-wuxia', '.tests/sim-wuxia.cjs');
 if (wantSim) step('sim-playthrough', '.tests/sim-playthrough.cjs', ['1', '20261008']);
-/* ③ 常驻探针十一路（2026-10-08 probe-savecodec · 2026-10-09 probe-savegrowth 解耦曲线 / probe-realsave 真机档零丢失 / probe-eventrepeat 奇遇重复率）+ 水位件 */
+/* ③ 常驻探针十一路（2026-10-08 probe-savecodec · 2026-10-09 probe-savegrowth 解耦曲线 / probe-realsave 真机档零丢失 / probe-eventrepeat 奇遇重复率）+ 水位件 + 文档链接（probe-doclinks 册262 立，docs-归类整理规范 §八） */
 for (const p of ['probe-join', 'probe-sectwire', 'probe-heirchoice', 'probe-lawmerge',
-  'probe-achvreach', 'probe-normround', 'probe-savecodec', 'probe-savegrowth', 'probe-realsave', 'probe-eventrepeat', 'probe-savecap', 'probe-gift', 'probe-sectgov']) {
+  'probe-achvreach', 'probe-normround', 'probe-savecodec', 'probe-savegrowth', 'probe-realsave', 'probe-eventrepeat', 'probe-savecap', 'probe-gift', 'probe-sectgov', 'probe-doclinks']) {
   step(p, '.tests/' + p + '.cjs');
 }
 /* ④ 版本总账 ↔ 卷头对账（不 --fix：收口时应当是已同步态，漂了就红）*/
