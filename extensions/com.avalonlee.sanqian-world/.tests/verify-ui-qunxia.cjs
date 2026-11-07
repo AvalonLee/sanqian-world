@@ -223,12 +223,41 @@ const { chromium } = require('playwright-core');
         text: text,
         rumorOrder: [rumor.indexOf('急事'), rumor.indexOf('缓事')]
       };
-    });
+    
+});
     T(qc.n === 3 && /还有 2 桩/.test(qc.text) && /急事/.test(qc.first) &&
       qc.rumorOrder[0] >= 0 && qc.rumorOrder[0] < qc.rumorOrder[1],
       'QX12 大事列表收敛（并发 5 桩 ⇒ 顶栏只留 3 桩最急 + 「还有 2 桩」⇔ 传闻页按剩余旬升序）', JSON.stringify(qc));
 
     T(errs.length === 0, 'QX5 无脚本错误', errs.slice(0, 2).join(' | '));
+
+    // QX14/QX15（册267 · WE.knot 场面上屏）：payload.knots 36 案齐 + 胜利战报带当场段。
+    const kn = await page.evaluate(() => {
+      const raw = localStorage.getItem('qunxia-payload-v1');
+      const pl = raw ? JSON.parse(raw) : {};
+      const k = pl.knots || {};
+      const ids = Object.keys(k);
+      const bad = [];
+      for (const id of ids) {
+        if (!k[id].knot || !/^knot_/.test(k[id].knot)) bad.push(id + ':knot');
+        if (!Array.isArray(k[id].cast) || !k[id].cast.length) bad.push(id + ':cast');
+        const labels = (k[id].opts || []).map(o => o.label);
+        if (!labels.length || labels.some(l => /^knot\./.test(l))) bad.push(id + ':label');
+      }
+      return { n: ids.length, bad: bad.slice(0, 4), sample: k['we_juxian'] || null };
+    });
+    T(kn.n === 36 && kn.bad.length === 0 && kn.sample && kn.sample.cast.length >= 2,
+      'QX14 场面数据上 payload（36 案 knots 齐 ⇔ knot/cast/词表 label 全合法、无裸键）', JSON.stringify({ n: kn.n, bad: kn.bad }));
+
+    const sc = await page.evaluate(() => {
+      state.crises.push({ id: 'we_juxian', region: 'luoyang', title: '聚贤庄英雄宴', enemyName: '萧峰', sceneCast: ['玄慈', '萧峰'] });
+      duelState = { finished: false, enemyCurHp: 0, playerWins: 2, enemyWins: 1, rewardGold: 0, rewardFame: 0, rewardExp: 0, crisisId: 'we_juxian', contextTitle: '聚贤庄英雄宴', enemyName: '萧峰' };
+      finishDuel();
+      const rep = (state.canonEventReports || []).slice(-1)[0] || {};
+      return { hasScene: /当场：/.test(rep.summary || ''), who: /玄慈/.test(rep.summary || '') && /萧峰/.test(rep.summary || ''), dile: /「/.test(rep.summary || '') };
+    });
+    T(sc.hasScene && sc.who && sc.dile,
+      'QX15 胜利战报带当场段（入局人物在报 + 分支两难以叙述呈现）', JSON.stringify(sc));
   } catch (e) {
     console.log('FAIL QX_CRASH (' + (e && e.message || e) + ')');
     fail++;

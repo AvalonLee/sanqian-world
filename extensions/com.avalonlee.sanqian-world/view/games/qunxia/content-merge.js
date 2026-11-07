@@ -196,10 +196,13 @@
         rewardManual: ev.reward && ev.reward.kind === 'manual' ? ev.reward.id : '',
         rewardKind: ev.reward ? ev.reward.kind : '',
         failInjury: ev.fail && ev.fail.injury || null,
+        sceneCast: (p.knots && p.knots[ev.id] && p.knots[ev.id].cast) || [],
+        sceneOpts: (p.knots && p.knots[ev.id] && p.knots[ev.id].opts) || [],
         failRenown: ev.fail && ev.fail.renown || null
       });
     });
 
+    window.KNOT_SCENES = p.knots || {};   /* 册267：36 案当场戏（cast + 分支标签），赴会战报上屏用 */
     try { if (typeof renderAll === 'function') renderAll(); } catch (e) {}
   };
 

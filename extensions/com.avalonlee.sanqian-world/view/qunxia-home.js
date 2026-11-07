@@ -55,7 +55,23 @@
       var name = label(cf, 'manual.' + m.i + '.name');
       return name ? { id: m.i, name: name, art: m.art || '' } : null;
     }).filter(Boolean);
-    return { arts: arts, sects: sects, cast: cast, events: events, blades: blades, manuals: manuals };
+    /* 场面执行器数据（册267 · 世界事件卷 §一 WE.knot）：36 案各带 KNOTS 当场戏——入局人物名
+     * （词表取值）与开放分支标签（词表取值），供棋盘赴会传闻与战报上屏「当场那段戏」。 */
+    var KNOTS = D.KNOTS || [];   /* cf.d = data.js 全表（与上方 ARTS 同源） */
+    var knots = {};
+    ((cf.p && cf.p.WORLD_EVENTS) || []).forEach(function (e) {
+      if (!e.knot) return;
+      var kn = null;
+      for (var k = 0; k < KNOTS.length; k++) if (KNOTS[k].i === e.knot) { kn = KNOTS[k]; break; }
+      if (!kn) return;
+      var opts = (kn.br || []).map(function (b) {
+        return { k: b.k, label: label(cf, b.label) || '', req: b.req || null };
+      }).filter(function (b) { return b.label; });
+      var cnames = (kn.cast || []).map(function (cid) { return label(cf, 'cast.' + cid + '.name') || ''; })
+        .filter(function (n) { return n; });
+      knots[e.i] = { knot: kn.i, cast: cnames, opts: opts };
+    });
+    return { arts: arts, sects: sects, cast: cast, events: events, blades: blades, manuals: manuals, knots: knots };
   }
 
   /* 棋盘结果回流（册259）：游戏侧只写本地队列，主壳回程时走 SQ.mutate 单写，

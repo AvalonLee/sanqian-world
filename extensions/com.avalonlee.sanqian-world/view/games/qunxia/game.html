@@ -7678,7 +7678,7 @@
           state.canonEventReports.push({
             title: wonCrisis.title,
             participated: true,
-            summary: `你亲赴【${getRegion(wonCrisis.region).name}】挺身入局，击败强敌${wonCrisis.enemyName}，亲手改写了这桩江湖盛事的结局！`
+            summary: `你亲赴【${getRegion(wonCrisis.region).name}】挺身入局，击败强敌${wonCrisis.enemyName}，亲手改写了这桩江湖盛事的结局！` + sceneLine(wonCrisis)
           });
         }
         state.crises = state.crises.filter(c => c.id !== d.crisisId);
@@ -10847,10 +10847,22 @@
             canonOutcomeText: ev.canonOutcomeText
           });
           const regName = getRegion(ev.region).name;
-          addLog(`📣【江湖大事传闻】听闻【${regName}】似有大事发生：「${ev.title}」（限期 ${ev.duration} 旬可赶往参与，逾期将按原著结局演进）！`);
+          const sceneCast = (ev.sceneCast || []).join('、');
+          addLog(`📣【江湖大事传闻】听闻【${regName}】似有大事发生：「${ev.title}」（限期 ${ev.duration} 旬可赶往参与，逾期将按原著结局演进）${sceneCast ? `。据说 ${sceneCast} 将在场。` : ''}`);
           showToast(`📣 江湖风闻：【${regName}】正酝酿「${ev.title}」（限期 ${ev.duration} 旬）！`, 'amber');
         }
       });
+    }
+
+    /* 当场那段戏（册267 · 世界事件卷 §一 WE.knot 消费）：读主壳 payload 的 knots，
+     * 拼一行「谁在场 + 可选的当场两难」——分支在棋盘以叙述呈现（赴会主交互仍是三招对决）。 */
+    function sceneLine(crisis) {
+      const sc = (typeof KNOT_SCENES !== 'undefined') && KNOT_SCENES && KNOT_SCENES[crisis.id];
+      if (!sc) return '';
+      const who = (sc.cast || []).length ? `（当场：${sc.cast.join('、')}在场` : '';
+      const opts = (sc.opts || []).filter(o => o.k !== 'watch').map(o => `「${o.label}」`);
+      const dile = opts.length ? `——${opts.join('，')}，只在一念之间）` : who ? '）' : '';
+      return who + dile;
     }
 
     function handleExpiredCanonEvent(expired) {
