@@ -1474,10 +1474,11 @@
     return n;
   }
   /* 棋盘结果回流（册259 · 世界事件卷 §五）：游戏侧只写本地结果队列，主壳回程时单写此口。
-   * 终局只有两种——胜 = alt（亲手改史）/ 错过 = echo（按 canon 落定）；游戏内败局可重试，
-   * 不是终局，故不回流。已写结局的事件直接拒绝，队列重放幂等。 */
+   * 终局三种——胜 = alt（亲手改史）/ 错过 = echo（按 canon 落定）/ 败 = lose（册271 起败局即终局：
+   * 本届了结、canon 写回 + 结仇，对齐 attendEvent 主导败口径；转世后 wefate 清空重新赴会）。
+   * 已写结局的事件直接拒绝，队列重放幂等。lose 不做 close 拒——对决已真实发生，江湖必须记下。 */
   function applyResult(ws, id, outcome) {
-    if (outcome !== 'alt' && outcome !== 'echo') return { err: 'badoutcome' };
+    if (outcome !== 'alt' && outcome !== 'echo' && outcome !== 'lose') return { err: 'badoutcome' };
     var e = null;
     for (var i = 0; i < WORLD_EVENTS.length; i++) if (WORLD_EVENTS[i].i === id) { e = WORLD_EVENTS[i]; break; }
     if (!e) return { err: 'noevent' };
@@ -1494,6 +1495,7 @@
       ws.world.wecyc[id] = Math.floor(worldYearOf(ws) / e.cyc);
     }
     applyWriteback(ws, e, outcome === 'alt' ? 'alt' : 'canon');
+    if (outcome === 'lose') markEnemy(ws, e);   /* 册271：败给主使 ⇒ 结仇（同 attendEvent 主导败） */
     ws.exp = expOf(ws);
     return { ok: true, outcome: outcome };
   }

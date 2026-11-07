@@ -42,6 +42,7 @@
         desc: label(cf, 'we.' + e.i + '.desc'),
         rumor: label(cf, 'we.' + e.i + '.rumor'),
         canon: label(cf, 'we.' + e.i + '.fate.canon'),
+        lose: label(cf, 'we.' + e.i + '.fate.lose'),
         boss: e.boss || '', z: e.z || '',
         reward: e.reward || null,
         fail: (cf.p && cf.p.FAIL && cf.p.FAIL[e.i]) || null
@@ -71,12 +72,15 @@
         .filter(function (n) { return n; });
       knots[e.i] = { knot: kn.i, cast: cnames, opts: opts };
     });
-    return { arts: arts, sects: sects, cast: cast, events: events, blades: blades, manuals: manuals, knots: knots };
+    /* 跨世棋盘重开（册271）：payload 带世界世代 = 转世次数（meta.stats.lives，初始 0）。
+     * 转世时扩展侧 wefate/wecyc 已清（rebirthCarry），游戏侧比对 gen 检出变大即整局清档回创角。 */
+    var gen = (cf.s && cf.s.meta && cf.s.meta.stats && typeof cf.s.meta.stats.lives === 'number') ? cf.s.meta.stats.lives : 0;
+    return { gen: gen, arts: arts, sects: sects, cast: cast, events: events, blades: blades, manuals: manuals, knots: knots };
   }
 
-  /* 棋盘结果回流（册259）：游戏侧只写本地队列，主壳回程时走 SQ.mutate 单写，
-   * 避开宿主 storage_set 的整文件竞态。终局只有胜（alt）/ 错过（echo），败局可重试不回流。
-   * shortcut: 应用在 boot 的 claim 之后——若世界钟已先把该案扫成 echo，胜局会被拒；世界日比棋盘旬快时再前移。 */
+  /* 棋盘结果回流（册259 立 · 册271 扩）：游戏侧只写本地队列，主壳回程时走 SQ.mutate 单写，
+   * 避开宿主 storage_set 的整文件竞态。终局 = 胜（alt）/ 错过（echo）/ 败（lose，册271 起败局即终局）。
+   * 【单轨（册266）后世界钟不再扫 echo——applyResults 应用在 claim 之后不会再被抢先；此条竞态已根治。 */
   function applyResults(cf) {
     var q = [];
     try { q = JSON.parse(localStorage.getItem(RESULT_KEY) || '[]'); } catch (e) { q = []; }

@@ -27,13 +27,20 @@ const SQ = sandbox.window.SQ;
 const pack = SQ.Worlds.wuxia.pack;
 const D = pack.data;
 const ANCHOR_ON = process.env.SQ_ANCHOR === '1';
-/* 在册锚（册234 换钉）：标准玩家 12 游戏年的逐年读数指纹。
+/* 在册锚（册271 换钉）：标准玩家 12 游戏年的逐年读数指纹。
+ * 换锚归因（册271 · 实跑二分）：**漂移非本批引入**——册270 收口树与本批工作树跑同值（5e417bb0），
+ *   工作树两刀（payload gen / 败局 lose 回流）不触 claim 内核；worktree 二分实跑：册265（a05f737）
+ *   在册锚 f4bcc5ea 逐字命中，册266（ae0ce19）起 = 5e417bb0 ⇒ 引入批 = **册266**（单轨落码第一刀
+ *   「claim 内 sweepExpired 调用退役」的真实累积：退役前 claim 长推会给过期独发案写 echo 见闻
+ *   webonus（+2/案），退役后见闻恒 36 基线（E34 同一事实的另一面），心境线/破关投影随之漂移）。
+ *   当时提交叙述「sim-wuxia 锚未漂（claim 内核不经 sweepExpired 路径）」为论证式误判——
+ *   锚不在门禁链自动跑，三轮收口都未实跑对表。同参数三跑（266/270/工作树）逐位相同自证可复现。
  * 首钉归因（册214）：摘叙事层（advance/卡点投放/墨账/offlineStory 闸退役）⇒ 原 200 章定种面消失，
  *   本件重写为 claim 链定种。第一次重标定（册234）：世界日时钟落地——步长从 30 现实天/段
  *   改为 1 游戏年/段（6 现实小时），R1~R6 阈值不变、新增 R7；锚值 = 本批首跑实测，
  *   同参数双跑逐位相同自证可复现。
  *   ⚠️ P2 产出重定种后本锚必换（预登记：归因 = 「产出重定种」，别当漂移处理）。 */
-const ANCHOR_MD5 = 'f4bcc5ea4d310980b862dfd753afbdca';
+const ANCHOR_MD5 = '5e417bb05cb2a44063a852cbd2cadff0';
 
 const fails = [];
 function chk(no, cond, detail) {

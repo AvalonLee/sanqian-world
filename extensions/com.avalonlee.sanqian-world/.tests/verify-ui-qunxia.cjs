@@ -258,6 +258,43 @@ const { chromium } = require('playwright-core');
     });
     T(sc.hasScene && sc.who && sc.dile,
       'QX15 胜利战报带当场段（入局人物在报 + 分支两难以叙述呈现）', JSON.stringify(sc));
+
+    // QX16/QX17（册271）：败局即终局回流 + 跨世棋盘重开。
+    const rs = await page.evaluate(() => {
+      state.crises.push({ id: 'we_juxian', region: 'luoyang', title: '聚贤庄英雄宴', enemyName: '萧峰' });
+      duelState = { finished: false, enemyCurHp: 30, playerWins: 1, enemyWins: 2, rewardGold: 0, rewardFame: 0, rewardExp: 0, crisisId: 'we_juxian', contextTitle: '聚贤庄英雄宴', enemyName: '萧峰' };
+      finishDuel();
+      const rep = (state.canonEventReports || []).slice(-1)[0] || {};
+      let lastQ = null;
+      try { const q = JSON.parse(localStorage.getItem('qunxia-result-queue-v1') || '[]'); lastQ = q[q.length - 1] || null; } catch (e) {}
+      return {
+        queue: lastQ,
+        gone: !state.crises.some((c) => c.id === 'we_juxian'),
+        repTitled: /聚贤庄/.test(rep.summary || ''),
+        onScreen: /拖出了门/.test((document.getElementById('duel-result-reward') || {}).textContent || ''),
+        schedLose: (CANON_EVENTS_SCHEDULE.find((x) => x.id === 'we_juxian') || {}).loseText || ''
+      };
+    });
+    T(rs.queue && rs.queue.id === 'we_juxian' && rs.queue.outcome === 'lose' && rs.gone && rs.onScreen && rs.schedLose,
+      'QX17 败局终局回流（败局入队 lose + crisis 移除不可重战 ⇔ 词表 lose 叙事并入败局战报）',
+      JSON.stringify({ q: rs.queue, gone: rs.gone, lose: rs.schedLose.length, onScreen: rs.onScreen }));
+
+    await page.evaluate(() => {
+      const pl = JSON.parse(localStorage.getItem('qunxia-payload-v1') || '{}');
+      pl.gen = 1;   /* 模拟扩展侧已转世（meta.stats.lives 0 → 1，wefate/wecyc 已清） */
+      localStorage.setItem('qunxia-payload-v1', JSON.stringify(pl));
+    });
+    await page.reload();
+    await page.waitForFunction(() => typeof state !== 'undefined', null, { timeout: 30000 });
+    const rg = await page.evaluate(() => ({
+      turn: state.turn,
+      saved: localStorage.getItem('jianghu_shanshui_hardcore_v7'),
+      triggered: Object.keys(state.canonEventsTriggered || {}).length,
+      gen: state.worldGen
+    }));
+    T(rg.turn === 1 && rg.saved === null && rg.triggered === 0 && rg.gen === 1,
+      'QX16 跨世棋盘重开（payload gen 变大 ⇒ 旧世残局清档回创角 ⇔ 36 案重新排期）',
+      JSON.stringify({ turn: rg.turn, cleared: rg.saved === null, triggered: rg.triggered, gen: rg.gen }));
   } catch (e) {
     console.log('FAIL QX_CRASH (' + (e && e.message || e) + ')');
     fail++;

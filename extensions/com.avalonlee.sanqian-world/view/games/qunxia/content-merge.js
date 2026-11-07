@@ -198,7 +198,8 @@
         failInjury: ev.fail && ev.fail.injury || null,
         sceneCast: (p.knots && p.knots[ev.id] && p.knots[ev.id].cast) || [],
         sceneOpts: (p.knots && p.knots[ev.id] && p.knots[ev.id].opts) || [],
-        failRenown: ev.fail && ev.fail.renown || null
+        failRenown: ev.fail && ev.fail.renown || null,
+        loseText: ev.lose || ''   /* 册271：败局终局回流——战报收尾用词表 lose 叙事 */
       });
     });
 

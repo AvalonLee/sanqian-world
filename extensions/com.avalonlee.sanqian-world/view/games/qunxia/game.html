@@ -2989,6 +2989,7 @@
       crises: [],
       canonEventsTriggered: {},
       canonEventReports: [],
+      worldGen: null,   /* 跨世棋盘重开（册271）：payload 带世界世代（转世次数），loadGame 时对表 */
       inspectorTab: 'local',
       tutorialComboDone: false,
       scrollProposition: null,
@@ -3143,8 +3144,9 @@
     }
 
     var QUNXIA_RESULT_KEY = 'qunxia-result-queue-v1';
-    /* 扩展大事终局回流（册259）：只写本地队列，由扩展主壳回程时单写，避开宿主存储竞态。
-     * 终局 = 胜（alt）/ 错过（echo）；败局可重试，不算终局。 */
+    /* 扩展大事终局回流（册259 立 · 册271 扩）：只写本地队列，由扩展主壳回程时单写，避开宿主存储竞态。
+     * 终局 = 胜（alt）/ 错过（echo）/ 败（lose）——败局即终局：本届了结、不可重试，
+     * 扩展侧按 canon 落定并结仇；转世后 wefate 清空、该案重新排期。 */
     function queueWorldResult(crisisId, outcome) {
       if (!crisisId || crisisId.indexOf('we_') !== 0) return;
       try {
@@ -3197,6 +3199,27 @@
       } catch (e) {
         // Ignore
       }
+      reconcileWorldGen();
+    }
+
+    /* 跨世棋盘重开（册271）：两套存储物理隔离——扩展侧转世清 wefate/wecyc（rebirthCarry）但碰不到
+     * 游戏档，payload 只能带世代号（gen = meta.stats.lives，初始 0）让游戏侧比对存档记的 worldGen：
+     * gen 变大 = 扩展侧已转世（新的一世重新赴会），旧世棋盘残局原样续档会让 36 案永不重触发 ⇒
+     * 清档 + 刷新，boot 自走「无档 → 创角封面」；gen 变小（主档重装丢失）不清防反复，仅记值。
+     * 同世（含首次无记录）续档不动。刷新后 reconcile 再跑一次：state 已无档 → 走记值分支，不循环。 */
+    function reconcileWorldGen() {
+      try {
+        const pl = JSON.parse(localStorage.getItem('qunxia-payload-v1') || 'null');
+        const gen = pl && typeof pl.gen === 'number' ? pl.gen : null;
+        if (gen == null) return;
+        if (typeof state.worldGen === 'number' && gen > state.worldGen) {
+          localStorage.removeItem(SAVE_KEY);
+          state.worldGen = gen;
+          location.reload();
+        } else {
+          state.worldGen = gen;
+        }
+      } catch (e) {}
     }
 
     function calcPlayerStats() {
@@ -7727,20 +7750,34 @@
           applySideCastDuelResult(d.sideCastResult, false);
         }
         let failMsg = '';
+        let loseText = '';
         if (d.crisisId) {
           const sched = CANON_EVENTS_SCHEDULE.find(x => x.id === d.crisisId);
-          if (sched && sched.failInjury && sched.failRenown) {
-            const roll = a => a[0] + Math.floor(Math.random() * (a[1] - a[0] + 1));
-            const inj = roll(sched.failInjury);
-            const ren = roll(sched.failRenown);
-            state.hp = Math.max(1, state.hp - inj);
-            state.fame = Math.max(0, state.fame + ren);
-            failMsg = `，内伤 +${inj}，侠名 ${ren >= 0 ? '+' : ''}${ren}`;
+          if (sched) {
+            if (sched.failInjury && sched.failRenown) {
+              const roll = a => a[0] + Math.floor(Math.random() * (a[1] - a[0] + 1));
+              const inj = roll(sched.failInjury);
+              const ren = roll(sched.failRenown);
+              state.hp = Math.max(1, state.hp - inj);
+              state.fame = Math.max(0, state.fame + ren);
+              failMsg = `，内伤 +${inj}，侠名 ${ren >= 0 ? '+' : ''}${ren}`;
+            }
+            /* 败局即终局（册271）：败局回流 lose、crisis 移除不再可战——本届了结，
+             * 扩展侧按 canon 落定并结仇；转世后 wefate 清空、该案重新排期。 */
+            queueWorldResult(d.crisisId, 'lose');
+            if (!state.canonEventReports) state.canonEventReports = [];
+            state.canonEventReports.push({
+              title: sched.title,
+              participated: true,
+              summary: `你在【${getRegion(sched.region).name}】挺身入局，力战不敌【${sched.enemyName}】，这一届的结局与你无关了。`
+            });
+            state.crises = state.crises.filter(c => c.id !== d.crisisId);
+            loseText = sched.loseText || '';
           }
         }
         titleEl.textContent = `🍂 棋差一着 · 惜败收招`;
-        rewardEl.textContent = `虽败犹荣，印证招式破绽，获得武学修为 +10${failMsg}`;
-        addLog(`于「${d.contextTitle}」与【${d.enemyName}】激战三招惜败，感悟良多（修为 +10${failMsg}）。`);
+        rewardEl.textContent = `虽败犹荣，印证招式破绽，获得武学修为 +10${failMsg}${loseText ? `。${loseText}` : ''}`;
+        addLog(`于「${d.contextTitle}」与【${d.enemyName}】激战三招惜败，这一桩江湖大事就此落幕（修为 +10${failMsg}）。`);
       }
       saveGame();
     }

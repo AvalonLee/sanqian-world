@@ -1645,9 +1645,10 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 胜不造仇=' + winOk + ' 往返=' + rtOk);
     })();
 
-    /* E44 · 棋盘结果回流（册259 · 世界事件卷 §五）：① 胜 → alt + alt 写回（华山 −5 / 武当 +3）‖
+    /* E44 · 棋盘结果回流（册259 立 · 册271 扩）：① 胜 → alt + alt 写回（华山 −5 / 武当 +3）‖
      * ② 错过 → echo + canon 写回（丐帮 −20）‖ ③ 重复结果幂等 ‖ ④ 未知案 / 非法结果拒绝且不落 fate ‖
-     * ⑤ normalize 往返保住。 */
+     * ⑤ 败 → lose + canon 写回 + 结仇（册271 败局即终局：聚贤庄败 ⇒ 丐帮 −20 + 萧峰 kind=enemy ≤−30）‖
+     * ⑥ normalize 往返保住。 */
     (function () {
       var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
       if (!pk || !pk.applyResult) { ok('E44', '棋盘结果回流', false, '无 applyResult 口'); return; }
@@ -1662,14 +1663,20 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var echoOk = r2.ok && w2.world.wefate.we_juxian === 'echo' && pk.sectRepOf(w2, 'gaibang') === -20;
       var w3 = pk.normalize(pk.initialState());
       var r3 = pk.applyResult(w3, 'we_nope', 'alt');
-      var r4 = pk.applyResult(w3, 'we_huashan', 'lose');
+      var r4 = pk.applyResult(w3, 'we_huashan', 'win');
       var badOk = r3.err === 'noevent' && r4.err === 'badoutcome' &&
         !(w3.world.wefate && w3.world.wefate.we_huashan);
+      var w4 = pk.normalize(pk.initialState());
+      var r5 = pk.applyResult(w4, 'we_juxian', 'lose');
+      var rel = w4.relations && w4.relations.xiao_feng;
+      var loseOk = r5.ok && w4.world.wefate.we_juxian === 'lose' &&
+        pk.sectRepOf(w4, 'gaibang') === -20 && rel && rel.kind === 'enemy' && rel.affinity <= -30;
       var rtOk = pk.normalize(w1).world.wefate.we_huashan === 'alt';
-      ok('E44', '棋盘结果回流（胜 ⇒ alt + alt 写回 ⇔ 错过 ⇒ echo + canon 写回 ⇔ 重复幂等 ⇔ 未知案/非法结果拒绝 ⇔ normalize 往返）',
-        altOk && dupOk && echoOk && badOk && rtOk,
+      ok('E44', '棋盘结果回流（胜 ⇒ alt + alt 写回 ⇔ 错过 ⇒ echo + canon 写回 ⇔ 重复幂等 ⇔ 未知案/非法结果拒绝 ⇔ 败 ⇒ lose + canon 写回 + 结仇 ‖ normalize 往返）',
+        altOk && dupOk && echoOk && badOk && loseOk && rtOk,
         '胜=' + altOk + '(华' + pk.sectRepOf(w1, 'huashan') + '/武' + pk.sectRepOf(w1, 'wudang') + ') 幂等=' + dupOk +
-        ' 错过=' + echoOk + '(丐' + pk.sectRepOf(w2, 'gaibang') + ') 拒=' + badOk + ' 往返=' + rtOk);
+        ' 错过=' + echoOk + '(丐' + pk.sectRepOf(w2, 'gaibang') + ') 拒=' + badOk +
+        ' 败=' + loseOk + '(交情' + (rel ? rel.affinity : '?') + ') 往返=' + rtOk);
     })();
 
     /* ═══ P2 · 验收 4.2 创角十项（文档 #11~#20）═══ */
