@@ -1509,7 +1509,7 @@
         if (cyc[e.i] === cur) continue;   /* 惯例型：本届已赴——跨届重开 */
       } else {
         if (fate[e.i]) continue;          /* 独发型：已写结局（含 echo 收场）不再出现 */
-        if (!inWindow(ws, e)) continue;   /* 窗口未开 / 已滑窗（sweep 未及）隐藏 */
+        /* 单轨（册266）：窗口过滤退役——事件开/关由棋盘旬位排期（世界事件卷 v3.0 §四），扩展侧不再按 worldYear 藏案 */
       }
       var preOk = true;
       for (var p2 = 0; p2 < (e.pre || []).length; p2++) if (!fate[e.pre[p2]]) preOk = false;
@@ -1536,6 +1536,10 @@
    * 密度渐增两档：days ≤ 30（1 游戏月）标 soon「在即」；惯例型常驻可赴（desc 常显）不进预告。
    * 已写结局 / 窗口已开的案不在预告（分别进结局区与可赴列表）。 */
   function worldRumors(ws) {
+    /* 单轨（册266）：独发型窗口预告退役——「何时开」由棋盘旬位排期（世界事件卷 v3.0 §八），
+     * 扩展侧预告失去时间基准；旧 wuxiaHome「江湖风闻」区已随册244 退役（本函数零消费点），
+     * 保留恒空实现为遗留口。暗线余波传闻由棋盘侧邸报承载（册266）。 */
+    return [];
     var fate = wefateOf(ws), out = [];
     if (!ws) return out;
     var day = Math.floor(ws.worldDay || 0);   /* 整日（worldDay 含当日进度，册233） */
@@ -1642,7 +1646,7 @@
       if (wecycOf(ws)[id] === Math.floor(worldYearOf(ws) / e.cyc)) return { err: 'done' };
     } else {
       if (fate[id]) return { err: 'done' };
-      if (!inWindow(ws, e)) return { err: 'offwindow' };   /* 直调防御 */
+      /* 单轨（册266）：窗口守卫退役——扩展侧不再按 worldYear 拒赴（offwindow 口自此不可达，历史兼容保留判断形） */
     }
     if (mode === 'watch' && watchDone(ws, e)) return { err: 'watched' };   /* 旁观记过（册235） */
     /* 赴会须到场（册239 · 节奏试跑）：有地界的事件要先赶到——人不在就付一脚程（精力 3）并移动，
@@ -1865,7 +1869,7 @@
     } else {
       ws.world.bixieMs = 0;   /* 撤槽即停；已折的寿数不还 */
     }
-    sweepExpired(ws);   /* 独发型滑窗收场检查（册223）：世界日时钟已活（册234），跨过 y1 即回声 */
+    /* 单轨（册266）：滑窗收场检查退役——错过 echo 只经棋盘结果队列 applyResult 落定（竞态根治：后台风不再抢写玩家正在玩的案）。sweepExpired 函数保留为遗留口（直调兼容）。 */
     ws.exp = expOf(ws);
     var before = isNum(ws.qi) ? ws.qi : 0;
     var broke = 0;

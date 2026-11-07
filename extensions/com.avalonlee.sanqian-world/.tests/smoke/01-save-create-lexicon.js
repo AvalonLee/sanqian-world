@@ -612,9 +612,10 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         'hook=' + hooked + ' 表=' + knotOk + ' scene=' + sceneOk + ' open=' + optsOpen + ' watch无=' + watchNoScene + ' 选支=' + chooseOk + ' 场面=' + hookSceneOk + ' 词表=' + lexOk);
     })();
 
-    /* E23 · 窗口与回声（册223）：① 3 案惯例 cyc + 17 案独发 window 两元递增（无一案双缺）‖
-     * ② 惯例型赴后本届隐藏、跨届重开（wecyc 存届次）‖ ③ 独发型滑窗 sweep：17 案全 echo（见闻封顶 +2，册234）‖
-     * ④ 窗口外 attend 拒 offwindow ‖ ⑤ 词表 echo 17 键 + tag.echo 齐。 */
+    /* E23 · 窗口与回声（册223 → 册266 单轨改口）：① 3 案惯例 cyc + 33 独发 window 两元递增（无一案双缺）‖
+     * ② 惯例型赴后本届隐藏、跨届重开（wecyc 存届次——cyc 届次幂等不受单轨影响）‖
+     * ③ 【单轨守门】claim 长推 worldDay **不再**自动滑窗 echo（错过 echo 只经棋盘队列 applyResult，竞态根治）；
+     *    sweepExpired 函数保留为遗留口（直调兼容）‖ ④ 【单轨】窗内外均可赴（offwindow 守卫退役）‖ ⑤ 词表 echo 键齐 + tag。 */
     (function () {
       var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
       if (!pk || !pk.WORLD_EVENTS || !pk.sweepExpired) { ok('E23', '窗口与回声', false, '无 WORLD_EVENTS/sweepExpired 口'); return; }
@@ -641,19 +642,21 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var ev2 = pk.worldEvents(w1), back = false;
       for (var c = 0; c < ev2.length; c++) if (ev2[c].i === 'we_huashan') back = true;
       var cycOk = in0 && ra && ra.ok && out1 && cycSaved && back;
-      /* ④ 窗口外拒赴：tushi [3,7]，初始 year 0 */
+      /* ④ 【单轨】窗内外均可赴：tushi [3,7] 初始 year0 直调 join 不再 offwindow（窗口守卫退役） */
       var w3 = pk.normalize(pk.initialState()); w3.realm = 7; w3.stamina = 99;
       var rOff = pk.attendEvent(w3, 'we_tushi', 'join');
-      var offOk = rOff && rOff.err === 'offwindow';
-      /* ③ 滑窗 sweep：推到 year 9（worldDay 3241）——17 独发案 y1 全 ≤ 8 ⇒ 全收场 */
+      var offOk = rOff && rOff.ok;
+      /* ③ 【单轨守门】claim 长推到 year9 不产生任何自动 echo（错过只经 applyResult 队列）；
+       *    sweepExpired 直调（遗留口）仍可按旧语义收场 */
       var w2 = pk.normalize(pk.initialState());
       w2.worldDay = 9 * 360 + 1;
+      pk.claim(w2, 60 * 1000, 0, {}, {});
+      var autoN = 0, fateAuto = w2.world.wefate || {};
+      for (var fa in fateAuto) if (fateAuto[fa] === 'echo') autoN++;
       var swept = pk.sweepExpired(w2);
       var fate = w2.world.wefate, echoN = 0;
       for (var fk in fate) if (fate[fk] === 'echo') echoN++;
-      var expOk = pk.normalize ? (function () { var w4 = pk.normalize(pk.initialState()); w4.worldDay = 9 * 360 + 1; pk.sweepExpired(w4); w4.exp = undefined; return true; })() : true;
-      /* 回声见闻封顶 +2（册234）：expOf 不在导出面，用 swept=17 与 echoN=17 钉（封顶值由 E34 钉） */
-      var sweepOk = swept === 33 && echoN === 33 && expOk;
+      var sweepOk = autoN === 0 && swept === 33 && echoN === 33;
       /* ⑤ 词表：echo 33 键 + tag.echo */
       var echoLex = true, echoN2 = 0;
       for (var w5 = 0; w5 < WE.length; w5++) {
@@ -662,44 +665,36 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         if (!t('we.' + WE[w5].i + '.echo')) echoLex = false;
       }
       var lexOk = echoLex && echoN2 === 33 && t('wh.jianghu.fate.tag.echo') === '（江湖传言收场）';
-      ok('E23', '窗口与回声（3 cyc + 33 window 形状 ‖ 惯例型赴后本届隐藏跨届重开 ‖ 滑窗 sweep 33 案全 echo ‖ 窗外拒 offwindow ‖ echo 词表齐 + tag）',
+      ok('E23', '窗口与回声（3 cyc + 33 window 形状 ‖ 惯例型赴后本届隐藏跨届重开 ‖ 【单轨】claim 不自动 echo + 遗留口直调 33 案 ‖ 【单轨】窗内外均可赴 ‖ echo 词表齐 + tag）',
         hookOk && cycOk && sweepOk && offOk && lexOk,
-        'cyc=' + nCyc + ' win=' + nWin + ' 形=' + shapeOk + ' 届=' + cycOk + ' sweep=' + swept + '/' + echoN + ' 窗外=' + offOk + ' 词=' + lexOk);
+        'cyc=' + nCyc + ' win=' + nWin + ' 形=' + shapeOk + ' 届=' + cycOk + ' 自动echo=' + autoN + ' 遗留口=' + swept + '/' + echoN + ' 窗内赴=' + offOk + ' 词=' + lexOk);
     })();
 
-    /* E24 · G17 传闻预告（册224）：① worldRumors 只收独发型将开（0 < y0·360 − day ≤ 360）‖
-     * ② 初始 year0：y0=1 的 6 案在预告、y0≥2 与惯例/窗外已开的 14 案不在 ‖ ③ 密度渐增：day 推至 y0 前 15 天 ⇒ soon「在即」‖
-     * ④ 已写结局案不预告（赴后消失）‖ ⑤ 词表 rumor 20 键 + 风闻 3 键齐。 */
+    /* E24 · G17 传闻预告（册224 → 册266 单轨退役改口）：【单轨】独发型窗口预告退役——「何时开」由棋盘
+     * 旬位排期（世界事件卷 v3.0 §八）承载，扩展侧预告失去时间基准；worldRumors 恒空（旧 wuxiaHome
+     * 「江湖风闻」区已随册244 退役，本口零消费点、保留为遗留口）。rumor 词表 36 键与风闻键保留在册。 */
     (function () {
       var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
       if (!pk || !pk.worldRumors) { ok('E24', 'G17 传闻预告', false, '无 worldRumors 口'); return; }
       var L = SQ.LEX && SQ.LEX.wuxia ? SQ.LEX.wuxia : null;
       var t = (k) => (L && L[k] != null ? String(L[k]) : null);
       var WE = pk.WORLD_EVENTS;
+      /* ①【单轨】恒空：初始 / 推近窗口 / 已赴后三种场景全空 */
       var w1 = pk.normalize(pk.initialState());
-      var rm0 = pk.worldRumors(w1), ids0 = {};
-      for (var i = 0; i < rm0.length; i++) ids0[rm0[i].i] = rm0[i];
-      var sixOk = ids0['we_zhenlong'] && ids0['we_jueqinggu'] && ids0['we_liuheta'] &&
-                  ids0['we_chuangwang'] && ids0['we_cangjing'] && ids0['we_huanshi'];
-      var noFar = !ids0['we_tushi'] && !ids0['we_weijiao_gm'] && !ids0['we_heimu'] &&
-                  !ids0['we_huashan'] && !ids0['we_xiake'] && !ids0['we_wangpan'];
-      var soonOk = !rm0[0].soon;   /* y0=1 距今 360 天 > 30 ⇒ 全部非「在即」 */
-      /* ③ 推至 zhenlong [1,5] 开窗前 15 天 ⇒ soon */
+      var rm0 = pk.worldRumors(w1);
       var w2 = pk.normalize(pk.initialState()); w2.worldDay = 360 - 15;
-      var rm2 = pk.worldRumors(w2), zSoon = false;
-      for (var j = 0; j < rm2.length; j++) if (rm2[j].i === 'we_zhenlong') zSoon = rm2[j].soon === true;
-      /* ④ 已写结局不预告：juxian 赴后从预告消失 */
+      var rm2 = pk.worldRumors(w2);
       var w3 = pk.normalize(pk.initialState()); w3.realm = 5; w3.stamina = 99;
       pk.attendEvent(w3, 'we_juxian', 'join');
-      var rm3 = pk.worldRumors(w3), juxOut = true;
-      for (var k = 0; k < rm3.length; k++) if (rm3[k].i === 'we_juxian') juxOut = false;
-      /* ⑤ 词表 */
+      var rm3 = pk.worldRumors(w3);
+      var emptyOk = rm0.length === 0 && rm2.length === 0 && rm3.length === 0;
+      /* ② 词表：rumor 36 键 + 风闻键仍齐（词表不随机制退役删键） */
       var lexOk = true, nR = 0;
       for (var q = 0; q < WE.length; q++) { if (t('we.' + WE[q].i + '.rumor')) nR++; else lexOk = false; }
       var keysOk = t('wh.rumor.title') && t('wh.rumor.none') && t('wh.rumor.soon') && lexOk && nR === 36;
-      ok('E24', 'G17 传闻预告（将开 ≤1 年 6 案在预告、远窗与惯例/已开不在 ‖ 推近 15 天 soon「在即」‖ 赴后不预告 ‖ rumor 36 键 + 风闻键齐）',
-        sixOk && noFar && soonOk && zSoon && juxOut && keysOk,
-        '预告=' + rm0.length + ' 六案=' + !!sixOk + ' 远窗无=' + !!noFar + ' soon=' + zSoon + ' 赴后无=' + juxOut + ' 词=' + keysOk);
+      ok('E24', 'G17 传闻预告【单轨退役见证】（worldRumors 三场景恒空 ‖ rumor 36 键 + 风闻键保留在册）',
+        emptyOk && keysOk,
+        '恒空=' + emptyOk + '(0/' + rm0.length + '/' + rm2.length + '/' + rm3.length + ') 词=' + keysOk);
     })();
 
     /* E25 · EVENTS 遇敌池三倍扩容（册225）：① 全表 148 且 id 唯一 ‖ ② action 78（原 26 × 3）‖
@@ -1237,10 +1232,10 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
         ' 封顶=' + capOk + '(' + wC.injury + ') 火日=' + fireOk + '(' + fire3 + '→' + fireClear + ') 平常=' + noneOk + ' 火进度=' + msOk);
     })();
 
-    /* E34 · 世界日时钟（册234）：① 1 现实分钟 = 1 游戏日、离线单次封顶 12 现实小时（2 游戏年）‖
-     * ② 窗口走真实 claim 落账（year1→year3 开 [2,6]、闭窗案转 echo）‖
-     * ③ 滑窗回声走真实 claim（year7→year9：33 案全 echo；见闻封顶 +2 不是 +34；world={} 无 wefate 不抛）‖
-     * ④ 惯例跨届走真实 claim（year0 赴华山 → +36h → year6 重开）‖ ⑤ 寿元随世界日推进（24 年即 shoujin）。 */
+    /* E34 · 世界日时钟（册234 → 册266 单轨改口）：① 1 现实分钟 = 1 游戏日、离线单次封顶 12 现实小时（2 游戏年）‖
+     * ② 【单轨】claim 长推**不再**自动开窗/关窗（worldEvents 列表不藏案、wangpan 不被自动 echo——开/关由棋盘旬位排期）‖
+     * ③ 【单轨】claim 长推不再自动滑窗 echo（echoN=0；echo 见闻 +2 随之退役——exp 不再因此增长）；world={} 空壳不抛保留 ‖
+     * ④ 惯例跨届走真实 claim（year0 赴华山 → +36h → year6 重开——cyc 届次幂等保留）‖ ⑤ 寿元随世界日推进（24 年即 shoujin）。 */
     (function () {
       var pk = SQ.Worlds.wuxia && SQ.Worlds.wuxia.pack;
       if (!pk || !pk.worldYearOf || !pk.worldRumors) { ok('E34', '世界日时钟', false, '无 worldYearOf/worldRumors 口'); return; }
@@ -1257,16 +1252,16 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       pk.claim(w3, CAP_MS * 2, 0, {}, {});
       var capDays2 = w3.worldDay;
       var clockOk = Math.abs(oneDay - 1) < 1e-9 && Math.abs(capDays - 720) < 1e-9 && Math.abs(capDays2 - 720) < 1e-9;
-      /* ② 窗口走真实 claim：year1（361）＋12h ⇒ year3（1081）——[2,6] 的 weijiao 开、[0,2] 的 wangpan 转 echo */
+      /* ② 【单轨】year3 时 weijiao 可见（列表不按窗口藏案）且 wangpan 不被自动 echo */
       var w4 = mk();
       w4.worldDay = 360 + 1;
       pk.claim(w4, CAP_MS, 0, {}, {});
       var evs4 = pk.worldEvents(w4);
       var open4 = false;
       for (var a = 0; a < evs4.length; a++) if (evs4[a].i === 'we_weijiao_gm') open4 = true;
-      var winOk = pk.worldYearOf(w4) === 3 && open4 && w4.world.wefate.we_wangpan === 'echo';
-      /* ③ 回声走真实 claim：year7（2521）＋12h ⇒ year9（3241）——17 窗全 echo，见闻只 +2
-       *    （13 地 ×2 + 10 熟人 = 36 基线，封顶后 38）；另证 world={} 无 wefate 也不再抛 */
+      var winOk = pk.worldYearOf(w4) === 3 && open4 && !(w4.world.wefate && w4.world.wefate.we_wangpan);
+      /* ③ 【单轨】回声不再走 claim：year9 长推 echoN=0（错过只经棋盘队列）；exp 不因回声增长；
+       *    world={} 空壳不抛保留 */
       var w5 = mk();
       w5.worldDay = 7 * 360 + 1;
       w5.visited = ['luoyang', 'shaolin', 'songshan', 'yanziwu', 'yanfulou', 'guangmingding', 'kunlun', 'yanmenguan', 'damo', 'wuliang', 'dali', 'lingshe', 'binghuo'];
@@ -1276,11 +1271,11 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       pk.claim(w5, CAP_MS, 0, {}, {});
       var echoN = 0;
       for (var fk in (w5.world.wefate || {})) if (w5.world.wefate[fk] === 'echo') echoN++;
-      var echoOk = pk.worldYearOf(w5) === 9 && echoN === 33 && w5.exp === 38;
+      var echoOk = pk.worldYearOf(w5) === 9 && echoN === 0 && w5.exp === 36;   /* 见闻 = 13地×2+10熟人 基线；echo +2 随滑窗退役不再叠加 */
       var w6 = mk(); w6.world = {}; w6.worldDay = 9 * 360 + 1;
       var bareOk = true;
       try { pk.claim(w6, DAY_MS, 0, {}, {}); } catch (e) { bareOk = false; }
-      bareOk = bareOk && Object.keys(w6.world.wefate || {}).length === 33;
+      bareOk = bareOk && Object.keys(w6.world.wefate || {}).length === 0;
       /* ④ 惯例跨届走真实 claim：year0 赴华山（join 败也写届次）→ 三个 12h ⇒ year6 重开 */
       var w7 = mk(); w7.realm = 6; w7.stamina = 99;
       var r7 = pk.attendEvent(w7, 'we_huashan', 'join');
@@ -1308,17 +1303,17 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
       var rw4 = pk.attendEvent(w10, 'we_xiangyang', 'watch');
       var watchOk = rw1.ok && rw2.err === 'watched' && rw3.ok && rw4.ok && w10.stamina === 1 &&
         !(w9.world.wefate && w9.world.wefate.we_huashan);
-      /* ⑦ 地界侧事件入口（册235）：worldEventsAt 只吐「此地 + 此刻可赴」的案 */
+      /* ⑦ 地界侧事件入口（册235）：worldEventsAt 只吐「此地」的未了结案（单轨后不再按窗口再筛） */
       var wZ = mk(); wZ.worldDay = 3 * 360 + 1;
       var atG = pk.worldEventsAt(wZ, 'guangmingding'), atL = pk.worldEventsAt(wZ, 'luoyang');
       var has = function (list, id) { for (var x = 0; x < list.length; x++) if (list[x].i === id) return true; return false; };
       var atOk = has(atG, 'we_weijiao_gm') && !has(atG, 'we_juxian') && has(atL, 'we_juxian') &&
         pk.worldEventsAt(wZ, 'nowhere').length === 0;
-      ok('E34', '世界日时钟（1 现实分 = 1 游戏日 · 离线单次封顶 12h ‖ 窗口/回声/惯例届次走真实 claim ‖ 全 echo 见闻封顶 +2（36→38）‖ world={} 不抛 ‖ 寿元 24 年寿尽 ‖ 旁观一届一次且精力 3 ‖ 地界事件入口）',
+      ok('E34', '世界日时钟（1 现实分 = 1 游戏日 · 离线单次封顶 12h ‖ 【单轨】claim 不自动开窗/关窗 ‖ 【单轨】claim 不自动 echo（exp 不涨）+ 空壳不抛 ‖ 惯例届次走真实 claim ‖ 寿元 24 年寿尽 ‖ 旁观一届一次且精力 3 ‖ 地界事件入口）',
         clockOk && winOk && echoOk && bareOk && cycOk && lifeOk && watchOk && atOk,
         '时钟=' + clockOk + '(1分' + oneDay + ',12h' + capDays + ',24h' + capDays2 + ')' +
-        ' 窗口=' + winOk + '(year' + pk.worldYearOf(w4) + ',weijiao' + open4 + ')' +
-        ' 回声=' + echoOk + '(' + echoN + '桩,exp' + w5.exp + ')' + ' 空壳=' + bareOk +
+        ' 开窗=' + winOk + '(year' + pk.worldYearOf(w4) + ',weijiao' + open4 + ',wangpan未echo)' +
+        ' 回声=' + echoOk + '(' + echoN + '桩,exp36基线=' + (w5.exp === 36) + ')' + ' 空壳=' + bareOk +
         ' 届=' + cycOk + '(year' + pk.worldYearOf(w7) + ')' + ' 寿=' + lifeOk +
         ' 旁观=' + watchOk + '(重复' + rw2.err + ',跨届' + rw3.ok + ',低精力' + rw4.ok + ')' + ' 地界=' + atOk);
     })();
@@ -1516,10 +1511,10 @@ window.SQSmoke.frag('01-save-create-lexicon', async function () {
           : 8;
         if (!e.window || e.window[1] !== wantEnd) { winOk = false; badWin.push(e.i + ':' + (e.window && e.window[1])); }
       }
-      ok('E39', '赴会须到场（有地界案自动赶路 精力3+本档 ⇒ place/visited 落当地 ‖ 全局案不付脚程 ‖ 穷到付不起拒不移动 ‖ 未解锁地界 locked ‖ 独发窗按 lead 档分级到 year6/7/8、王盘山教程例外）',
+      ok('E39', '赴会须到场（有地界案自动赶路 精力3+本档 ⇒ place/visited 落当地 ‖ 全局案不付脚程 ‖ 穷到付不起拒不移动 ‖ 未解锁地界 locked ‖ 【单轨】窗口字段保留为后台换算带（engine 侧不再按它拒赴——窗分级数据形状仍核对））',
         tripOk && globalOk && poorOk && lockOk && winOk,
         '赶路=' + tripOk + ' 全局=' + globalOk + ' 穷=' + poorOk + ' 锁=' + lockOk +
-        ' 窗=' + winOk + (badWin.length ? '(' + badWin.join(',') + ')' : ''));
+        ' 窗形状=' + winOk + (badWin.length ? '(' + badWin.join(',') + ')' : ''));
     })();
 
     /* E40 · 世界事件 next 链式（册241 · 蝴蝶效应）：canon/alt 的 next/close 由已了结事件派生，

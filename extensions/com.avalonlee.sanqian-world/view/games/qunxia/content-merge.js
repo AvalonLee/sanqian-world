@@ -154,8 +154,20 @@
     });
 
     /* 世界事件：36 案按固定旬位并入日程；游戏每旬检查 triggerTurn，逾期走邸报。
-     * 册253：二批 16 案后 20→36，旬位压进 6~35（36 旬一局内跑完），重位只在 6 个旬。 */
-    var EV_TURNS = [6, 7, 7, 8, 9, 10, 11, 11, 12, 13, 14, 15, 15, 16, 17, 18, 19, 19, 20, 21, 22, 23, 23, 24, 25, 26, 27, 27, 28, 29, 30, 31, 32, 33, 34, 35];
+     * 册266：旬位重排为世界事件卷 v3.0 §八 三幕排期（设计正典）——序章 1~2 旬（棋盘主线）→
+     * 第一幕 3~8（王盘山教程窗起）→ 第二幕 9~24 → 第三幕 25~35 + **第 32 旬空档** +
+     * **华山论剑固定第 35 旬终局**；lead≥6 的高难案独占一旬，双案旬（25/26/29/30）两案 lead 均 ≤5。
+     * 按 id 映射（不按 payload 序号对位，顺序变化不炸）。 */
+    var EV_TURN_MAP = {
+      we_huashan: 35, we_xiangyang: 34, we_weijiao_gm: 10, we_juxian: 6, we_shaoshishan: 7,
+      we_zhenlong: 9, we_yanmen: 8, we_tushi: 11, we_wuyue_bingpai: 12, we_heimu: 13,
+      we_xiake: 14, we_shagui: 15, we_wangpan: 3, we_jueqinggu: 16, we_liuheta: 17,
+      we_chuangwang: 18, we_liancheng: 4, we_jiaozhu: 19, we_cangjing: 20, we_huanshi: 21,
+      we_siguoya: 22, we_taishan: 23, we_junshan: 5, we_chongyang: 24, we_tiezhang: 25,
+      we_jueding: 26, we_lingjiu: 27, we_taixuan: 28, we_xueshan: 26, we_xuedao: 29,
+      we_wudu: 29, we_wenjia: 30, we_siguofengbo: 25, we_dalun: 31, we_binghuo: 33,
+      we_shenlong: 30
+    };
     var EV_REGION = { guangmingding: 'guangming', luoyang: 'luoyang', shaolin: 'shaolin', yanmenguan: 'yanmenguan', yanziwu: 'yanziwu', wuliang: 'wuliang', songshan: 'shaolin', yanfulou: 'linan', lingshe: 'lingjiu', kunlun: 'xueshan', dali: 'dali', binghuo: 'binghuodao' };
     (p.events || []).forEach(function (ev, idx) {
       if (!ev || !ev.name) return;
@@ -166,7 +178,7 @@
       var tier = boss ? boss.t : 'B';
       CANON_EVENTS_SCHEDULE.push({
         id: ev.id,
-        triggerTurn: EV_TURNS[idx % EV_TURNS.length],
+        triggerTurn: EV_TURN_MAP[ev.id] != null ? EV_TURN_MAP[ev.id] : (6 + (idx % 30)),
         duration: 4,
         region: EV_REGION[ev.z] || 'luoyang',
         tileIdx: (hash(ev.id) % 5) + 2,

@@ -186,9 +186,11 @@ const { chromium } = require('playwright-core');
     T(res.closed.bytes < 60 * 1024 && errs.length === 0,
       'PA5 终态可存（<60KB）⇔ 零脚本错误', 'bytes=' + res.closed.bytes + ' errs=' + errs.slice(0, 2).join(' | '));
 
-    T(res.standardGrow.we >= 6 && res.standardGrow.we <= 10 && res.standardGrow.led >= 2 && res.standardGrow.led <= 4 &&
+      /* 册266 带重标归因：EV_TURN_MAP 重排为 v3.0 三幕排期后，事件机会分布从「压 6~35 旬」变为「3~35 旬全旬覆盖」，
+       * 标准成长策略可赴机会上移（20 定种均值 赴会 10.2 / 主导 4.7）——带由 6~10 / 2~4 重标为 6~12 / 2~6（非放宽容差，是新排期基线）。 */
+    T(res.standardGrow.we >= 6 && res.standardGrow.we <= 12 && res.standardGrow.led >= 2 && res.standardGrow.led <= 6 &&
       res.standardGrow.power >= 60 && res.standardGrow.realm >= 2 && res.standardGrow.bytes < 60 * 1024 && errs.length === 0,
-      'PA6 成长曲线标准玩家（每旬演武 +25 修为 ⇒ 终态战力 ≥60 / 境界 ≥2 ⇔ 赴会 6~10 / 主导 2~4）', JSON.stringify(res.standardGrow));
+      'PA6 成长曲线标准玩家（每旬演武 +25 修为 ⇒ 终态战力 ≥60 / 境界 ≥2 ⇔ 赴会 6~12 / 主导 2~6，册266 排期重排后新基线）', JSON.stringify(res.standardGrow));
 
     console.log('读数：创角战力 ' + res.power0 + ' · 闭门 ' + res.closed.we + ' · 巡游 ' + res.wander.we +
       ' · 标准 ' + res.standard.we + '（' + res.standard.minWe + '~' + res.standard.maxWe + '，主导 ' + res.standard.led + '）' +

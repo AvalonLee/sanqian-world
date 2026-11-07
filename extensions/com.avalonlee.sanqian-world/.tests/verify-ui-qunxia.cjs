@@ -104,8 +104,9 @@ const { chromium } = require('playwright-core');
     T(spawn.turn === 6 && spawn.crises.some((id) => /^we_/.test(id)), 'QX6 事件真触发（第 6 旬生成扩展大事）', 'turn=' + spawn.turn + ' crises=' + spawn.crises.join(','));
 
     const run = await page.evaluate(() => {
+      state.turn = 2;   /* 册266：从第 2 旬起跑——spawn 按 turn 精确命中 triggerTurn，起点早于 3 才能覆盖第 3 旬起的第一幕案 */
       let maxCrises = 0;
-      for (let i = 0; i < 34; i++) {
+      for (let i = 0; i < 38; i++) {
         try { meditateRest(); } catch (e) { return { err: e.message }; }
         maxCrises = Math.max(maxCrises, (state.crises || []).length);
       }

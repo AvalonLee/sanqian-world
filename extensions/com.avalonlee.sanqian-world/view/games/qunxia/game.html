@@ -2302,224 +2302,13 @@
       },
       {
         step: 2,
-        actName: '第二卷 · 聚贤风云',
-        title: '第三章：聚贤庄前碎酒碗',
-        region: 'luoyang',
-        tileIdx: 4,
-        reqRealm: 1, reqFame: 60, reqTurn: 3, apCost: 1,
-        shortHint: '历练至【第3旬后 & 侠名≥60】，赴【洛阳 · 聚贤庄正堂】与萧峰并肩破敌',
-        summary: '青蝠剑客怀中密信证实：血衣楼长老「玄冥鬼爪」将在第 3 旬英雄宴开启时混入洛阳【聚贤庄正堂】围杀萧峰。你需先积攒侠名至 60 方能入庄！',
-        speaker: { avatar: '萧', name: '萧峰 · 北乔峰', quote: '“满堂豪杰皆欲饮萧某之血，阁下此时站出来，就不怕与天下人为敌么！”' },
-        narrative: [
-          '聚贤庄正堂之内，数十只绝交酒碗摔得粉碎！群雄刀剑出鞘，将萧峰团团围在核心。',
-          '人群背后，一名枯瘦阴鸷的黑衣老者暗蓄毒爪，正是血衣楼长老「玄冥鬼爪」！你跨步上前，与萧峰背靠背而立！'
-        ],
-        choices: [
-          {
-            label: '⚔️ 【侠义并肩】“乔帮主顶天立地，今日我便与帮主同破此局！”（耗1行脚，侠义+20，萧峰好感+25，迎战玄冥鬼爪）',
-            karma: { xiayi: 20, kuangao: 5, xiaoyao: 0 },
-            onSelect: () => {
-              const xf = state.masters.find(m => m.id === 'xiaofeng');
-              if (xf) xf.affinity = Math.min(100, xf.affinity + 25);
-              startDuel({
-                enemyName: '玄冥鬼爪·血衣长老',
-                enemyTitle: '血衣楼长老 · 阴柔毒爪',
-                enemyAvatar: '鬼',
-                enemyStance: 'rou',
-                enemyPower: 68,
-                enemyHp: 155,
-                contextTitle: '📜 主线第三章 · 聚贤庄并肩破阴谋',
-                rewardGold: 45,
-                rewardFame: 25,
-                rewardExp: 45,
-                mainQuestAdvanceTo: 3,
-                mainQuestLog: '于聚贤庄与萧峰并肩击败血衣长老玄冥鬼爪，得萧峰指引前往【终南山·重阳遗刻石室】！'
-              });
-            }
-          },
-          {
-            label: '⚔️ 【狂傲独战】“区区鼠辈也敢妄称英雄？我一人三招便叫尔等尽数伏诛！”（耗1行脚，狂傲+20，迎战玄冥鬼爪）',
-            karma: { xiayi: 0, kuangao: 20, xiaoyao: 0 },
-            onSelect: () => {
-              startDuel({
-                enemyName: '玄冥鬼爪·血衣长老',
-                enemyTitle: '血衣楼长老 · 阴柔毒爪',
-                enemyAvatar: '鬼',
-                enemyStance: 'rou',
-                enemyPower: 68,
-                enemyHp: 155,
-                contextTitle: '📜 主线第三章 · 聚贤庄独战血衣长老',
-                rewardGold: 50,
-                rewardFame: 25,
-                rewardExp: 45,
-                mainQuestAdvanceTo: 3,
-                mainQuestLog: '于聚贤庄当众挫败玄冥鬼爪，震慑群雄，获悉第二卷残篇藏于【终南山·重阳遗刻石室】！'
-              });
-            }
-          }
-        ]
-      },
-      {
-        step: 3,
-        actName: '第三卷 · 终南古墓',
-        title: '第四章：古墓石室参遗刻',
-        region: 'zhongnan',
-        tileIdx: 6,
-        reqRealm: 2, reqFame: 90, reqTurn: 6, apCost: 1,
-        shortHint: '历练至【融会贯通 & 侠名≥90 & 第6旬】，赴【终南山 · 重阳遗刻石室】参悟中卷',
-        summary: '萧峰赠你的半块古玉与玄铁剑令合一，指向【终南山 · 重阳遗刻石室】。石室机关重重且有番僧埋伏，需先修至【融会贯通】且侠名达 90 方可深入！',
-        speaker: { avatar: '龙', name: '小龙女 · 古墓仙子', quote: '“石室顶上的重阳遗刻旁，确有一行前朝剑诀，只是外间已有番僧强闯墓门……”' },
-        narrative: [
-          '穿过终南山幽深石道进入【重阳遗刻石室】，白衣胜雪的小龙女正立于寒玉床畔。',
-          '石室顶上赫然刻着《山河武典·中卷》的运功总纲！此时墓道外传来密宗铜钹巨响，血衣楼勾结的密宗番僧已杀至石室门前！'
-        ],
-        choices: [
-          {
-            label: '⚔️ 【守护古墓】先替小龙女击退强闯石室的「密宗血衣护法」，再静心拓印武典（耗1行脚，习得/升级《九阴神爪》）',
-            karma: { xiayi: 15, kuangao: 0, xiaoyao: 10 },
-            onSelect: () => {
-              state.learnedArts.jiuyin_zhua = Math.min(10, (state.learnedArts.jiuyin_zhua || 0) + 1);
-              startDuel({
-                enemyName: '密宗血衣护法',
-                enemyTitle: '西域番僧 · 刚猛大手印',
-                enemyAvatar: '番',
-                enemyStance: 'gang',
-                enemyPower: 75,
-                enemyHp: 165,
-                contextTitle: '📜 主线第四章 · 古墓石室护遗刻',
-                rewardGold: 50,
-                rewardFame: 25,
-                rewardExp: 50,
-                mainQuestAdvanceTo: 4,
-                mainQuestLog: '于终南古墓击退血衣护法，参透《山河武典·中卷》并习得《九阴神爪》，下一步西赴【光明顶】！'
-              });
-            }
-          }
-        ]
-      },
-      {
-        step: 4,
-        actName: '第四卷 · 圣火昭昭',
-        title: '第五章：光明顶上护圣火',
-        region: 'guangming',
-        tileIdx: 3,
-        reqRealm: 2, reqFame: 125, reqTurn: 10, apCost: 1,
-        shortHint: '历练至【侠名≥125 & 第10旬】，西赴【光明顶 · 圣火光明大殿】破血衣楼副楼主',
-        summary: '血衣楼副楼主「幻阴尊者」挑起六大派围攻【光明顶】。此獠幻阴指力极深，需在第 10 旬后且侠名达 125 方可号令群豪当众揭穿其阴谋！',
-        speaker: { avatar: '无', name: '张无忌 · 明教教主', quote: '“那幻阴尊者以幻阴指暗算昆仑、峨眉弟子，嫁祸我明教，还请少侠助我当众揭穿此獠！”' },
-        narrative: [
-          '昆仑山光明顶大殿内刀光剑影，六大派与明教五行旗杀得难解难分。',
-          '你手持两卷《山河武典》朗声喝破血衣楼奸计，躲在暗处的血衣楼副楼主「幻阴尊者」见行藏败露，化作一道黑影向你扑来！'
-        ],
-        choices: [
-          {
-            label: '⚔️ 【正邪昭雪】联手张无忌迎战「幻阴尊者」，化解正邪浩劫！（耗1行脚，习得/升级《九阳神功》）',
-            karma: { xiayi: 20, kuangao: 5, xiaoyao: 5 },
-            onSelect: () => {
-              state.learnedArts.jiuyang_shengong = Math.min(10, (state.learnedArts.jiuyang_shengong || 0) + 1);
-              startDuel({
-                enemyName: '幻阴尊者·血衣副楼主',
-                enemyTitle: '玄冥血衣楼 · 幻阴指宗师',
-                enemyAvatar: '幻',
-                enemyStance: 'rou',
-                enemyPower: 82,
-                enemyHp: 180,
-                contextTitle: '📜 主线第五章 · 光明顶破幻阴尊者',
-                rewardGold: 60,
-                rewardFame: 30,
-                rewardExp: 60,
-                mainQuestAdvanceTo: 5,
-                mainQuestLog: '于光明顶大殿击溃幻阴尊者，化解六大派干戈，张无忌赠九阳真意，急报【襄阳北城楼】告急！'
-              });
-            }
-          }
-        ]
-      },
-      {
-        step: 5,
-        actName: '第四卷 · 铁骑襄阳',
-        title: '第六章：襄阳城头破十绝',
-        region: 'xiangyang',
-        tileIdx: 4,
-        reqRealm: 3, reqFame: 165, reqTurn: 14, apCost: 2,
-        shortHint: '历练至【登峰造极 & 侠名≥165 & 第14旬】，赴【襄阳北城楼】助郭靖破十绝阵',
-        summary: '血衣楼总楼主与塞外铁骑在【襄阳北城楼】外布下十绝军阵。非【登峰造极】之境且侠名满 165 者难以撼动军阵锋芒！',
-        speaker: { avatar: '郭', name: '郭靖 · 北侠', quote: '“襄阳若失，中原百姓便成鱼肉！今日郭某与诸位少侠同守北城楼，寸步不退！”' },
-        narrative: [
-          '襄阳北城楼下战鼓震天，郭靖与杨过分守左右城垛。敌阵之中，血衣楼左使「铁浮屠」挥舞百斤重斧登云梯强攻城头！',
-          '只要斩落此獠，十绝军阵便不攻自破，玄冥神君也必将退往华山绝顶！'
-        ],
-        choices: [
-          {
-            label: '⚔️ 【为国为民】跃上城垛迎战「血衣左使·铁浮屠」！（耗2行脚，获赠神兵【玄铁重剑·仿】）',
-            karma: { xiayi: 25, kuangao: 10, xiaoyao: 0 },
-            onSelect: () => {
-              state.equipment.weapon = 'xuantie_jian';
-              startDuel({
-                enemyName: '铁浮屠·血衣左使',
-                enemyTitle: '十绝破城统领 · 横练刚猛',
-                enemyAvatar: '屠',
-                enemyStance: 'gang',
-                enemyPower: 86,
-                enemyHp: 195,
-                contextTitle: '📜 主线第六章 · 襄阳城头破十绝',
-                rewardGold: 75,
-                rewardFame: 40,
-                rewardExp: 70,
-                mainQuestAdvanceTo: 6,
-                mainQuestLog: '于襄阳北城楼斩破铁浮屠，力保危城不失！三卷《山河武典》合一，决战指向【华山·华山论剑台】！'
-              });
-            }
-          }
-        ]
-      },
-      {
-        step: 6,
-        actName: '终卷 · 华山论剑',
-        title: '终章：华山绝顶问鼎战',
-        region: 'huashan',
-        tileIdx: 6,
-        reqRealm: 4, reqFame: 210, reqTurn: 18, apCost: 2,
-        shortHint: '历练至【一代宗师 & 侠名≥210 & 第18旬】，登【华山论剑台】决战玄冥神君！',
-        summary: '三卷《山河武典》尽数归位，血衣楼总楼主「玄冥神君·慕容绝」已在【华山论剑台】设下生死擂！需晋升【一代宗师】且侠名达 210 方可登台问鼎！',
-        speaker: { avatar: '绝', name: '玄冥神君 · 慕容绝', quote: '“十年了，你师尊当年护不住《山河武典》，今日在华山绝顶，且看你接得住本座几招！”' },
-        narrative: [
-          '华山绝顶云海翻涌，苍松覆雪。天下群豪立于论剑台四周屏息观战。',
-          '慕容绝身披紫金血袍立于绝壁之巅，周身刚柔巧三股真气交织如龙！这一战，既为了结师门十年血仇，亦将决定你在武林青史上的最终名号！'
-        ],
-        choices: [
-          {
-            label: '🗡️ 【宿命终战】拔剑问鼎华山之巅，三招定天下乾坤！（耗2行脚，通关展开终局生平长卷）',
-            karma: { xiayi: 15, kuangao: 15, xiaoyao: 15 },
-            onSelect: () => {
-              startDuel({
-                enemyName: '玄冥神君·慕容绝',
-                enemyTitle: '血衣楼总楼主 · 半步绝世',
-                enemyAvatar: '绝',
-                enemyStance: 'qiao',
-                enemyPower: 94,
-                enemyHp: 225,
-                contextTitle: '🏆 终章决战 · 华山绝顶问鼎天下',
-                rewardGold: 150,
-                rewardFame: 80,
-                rewardExp: 120,
-                mainQuestAdvanceTo: 7,
-                mainQuestLog: '于华山论剑台三招击败宿敌「玄冥神君·慕容绝」，大仇得报，名震天下九州！',
-                triggerEndingAfterDuel: true
-              });
-            }
-          }
-        ]
-      },
-      {
-        step: 7,
         actName: '传世终章 · 笑傲山河',
         title: '山河已定 · 自由行脚与群侠传记',
         region: 'huashan',
         tileIdx: 6,
         reqRealm: 0, reqFame: 0, reqTurn: 1, apCost: 0,
-        shortHint: '你已问鼎华山之巅！可随时点击顶部【🏆 论剑终局】重温结局画卷，或继续游历完结10位名宿传记',
-        summary: '华山绝顶一战已成江湖绝响，你可继续漫步十三地界，走完十位金庸名宿的三幕个人传记，或随时开启新周目。'
+        shortHint: '主线已交棒天下大事：36 桩世界事件按旬到期（华山论剑第 35 旬终局）。可继续游历完结名宿传记',
+        summary: '序章血衣楼之谜已交棒 36 桩天下大事——去不去、站哪边、赌不赌，每一旬由你落子。可继续漫步十三地界、完结名宿传记，或随时开启新周目。'
       }
     ];
 
@@ -3136,6 +2925,7 @@
       trackedMasterId: null,
 
       mainQuestStep: 0,
+      shadowWaves: {},
       endingUnlocked: false,
 
       karma: {
@@ -3238,7 +3028,7 @@
       masters: JSON.parse(JSON.stringify(MASTERS_INIT)),
 
       logs: [
-        { time: '第1旬·孟春上旬', text: '【主线开启】身怀师尊遗物「玄铁剑令」踏入【洛阳】，定下三年（36旬）华山论剑之约。' },
+        { time: '第1旬·孟春上旬', text: '【主线开启】身怀师尊遗物「玄铁剑令」踏入【洛阳】，踏入三十六旬江湖——36 桩天下大事按旬到期，血衣楼之谜藏在其中。' },
         { time: '第1旬·孟春上旬', text: '【行脚节律】每旬拥有 5 点行脚精力，各项把酒、切磋、探秘、演武均耗精力且有旬度限制；精力耗尽请点击右上角【🧘 吐纳过旬】！' }
       ]
     };
@@ -3571,10 +3361,23 @@
         }
 
         // 前 4 旬为【潜龙勿用·新手安心发育期】，第 5 旬起按时间表逐项触发金庸原著江湖大事传闻！
+    // 【血衣楼暗线 · 三波余波（册266 · 世界事件卷 v3.0 §十）】序章埋点后的幕间余波；华山论剑（第35旬 we_huashan）揭底。
+    if (!state.shadowWaves) state.shadowWaves = {};
+    const SHADOW_WAVES = {
+      8: '【血衣楼余波 · 一】雁门关外的血案有新说法：那伙血衣刀客并非受雇于人——有人在借中原群雄的刀，清理知道《山河残卷》下落的人。',
+      24: '【血衣楼余波 · 二】连番公审与会盟背后，总有人抢在天下人之前散布流言。有心人发现：那些流言的措辞，与血衣楼刺客的字条如出一辙。',
+      32: '【血衣楼余波 · 三】华山之约在即。有樵夫夜里看见一队血衣人马悄悄上了华山——他们不是去论剑的，是去收网的。'
+    };
+    if (SHADOW_WAVES[state.turn] && !state.shadowWaves[state.turn]) {
+      state.shadowWaves[state.turn] = true;
+      addLog(SHADOW_WAVES[state.turn]);
+      showToast('江湖风闻 · 血衣楼余波', 'amber');
+    }
+
         checkAndSpawnCanonWorldEvent();
       }
 
-      if (state.turn >= state.maxTurns && !state.endingUnlocked && state.mainQuestStep < 7) {
+      if (state.turn >= state.maxTurns && !state.endingUnlocked && state.mainQuestStep < 2) {
         state.endingUnlocked = true;
         addLog(`🔔【三年期满】华山论剑之期已至！你可立即登华山绝顶决战，或点击顶部【🏆 论剑终局】结算生平。`);
         showToast('三年论剑之期已至！可前往华山论剑台或查看终局画卷！', 'amber');
@@ -7880,6 +7683,11 @@
         }
         state.crises = state.crises.filter(c => c.id !== d.crisisId);
           extraMsg = '，力挽狂澜平定江湖大事';
+          // 【血衣楼揭底（册266 · 世界事件卷 v3.0 §十）】华山论剑（第35旬终局）胜利 = 暗线收束。
+          if (d.crisisId === 'we_huashan') {
+            extraMsg += '。台下血衣人马四散溃逃——序章以来借群雄之刀清理知情人、操纵流言的【玄冥血衣楼】，今日被你连根拔起！';
+            addLog('🗡️【暗线终局】华山之巅揭底：血衣楼操盘论剑的阴谋被你当众戳破，余孽溃散。序章那半枚玄铁剑令的债，至此两清。');
+          }
         if (typeof window.QUNXIA_CRISIS_REWARD === 'function') {
           const rwMsg = window.QUNXIA_CRISIS_REWARD(d.crisisId);
           if (rwMsg) extraMsg += '，' + rwMsg;
