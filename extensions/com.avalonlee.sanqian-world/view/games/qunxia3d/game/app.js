@@ -107,6 +107,7 @@
     document.getElementById('btn-sound').style.display = has ? '' : 'none'; /* 册289：琴音开关（入世后显） */
     document.getElementById('btn-bgm').style.display = has ? '' : 'none';   /* 册289：换曲钮 */
     document.getElementById('btn-settings').style.display = has ? '' : 'none'; /* 册292：设置中心（入世后显） */
+    document.getElementById('btn-gazette').style.display = has ? '' : 'none';  /* 册293：邸报合集（入世后显） */
     var endingReady = has && st.turn >= st.maxTurns;
     document.getElementById('btn-ending').style.display = endingReady ? '' : 'none';
   }
@@ -295,6 +296,9 @@
     });
     document.getElementById('btn-settings').addEventListener('click', function () {
       if (ui.settings) ui.settings.open(); /* 册292：设置中心（audio prefs 四键上屏） */
+    });
+    document.getElementById('btn-gazette').addEventListener('click', function () {
+      if (ui.gazette && st) ui.gazette.open(st); /* 册293：邸报合集（canonEventReports 翻阅面） */
     });
     document.getElementById('btn-drawer').addEventListener('click', function () {
       if (!st || !st.hasCreatedChar) return;

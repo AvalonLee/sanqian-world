@@ -304,6 +304,16 @@
   .qxm-set-val { min-width: 44px; text-align: right; color: var(--ink-deep); font-weight: 700; }
   .qxm-switch { width: 16px; height: 16px; accent-color: var(--jade); cursor: pointer; }
   .qxm-set-note { margin-top: 2px; font-size: 11.5px; color: var(--ink-soft); line-height: 1.6; }
+  /* ===== 册293：江湖邸报合集 ===== */
+  .qxm-gaz { display: flex; flex-direction: column; gap: 9px; }
+  .qxm-gaz-item { border: 1px solid rgba(67, 58, 49, 0.35); border-left: 3px solid var(--ink-soft); border-radius: 8px; background: rgba(255, 252, 244, 0.8); padding: 9px 12px; }
+  .qxm-gaz-item.mine { border-left-color: var(--jade); }
+  .qxm-gaz-head { display: flex; align-items: baseline; gap: 8px; }
+  .qxm-gaz-head b { color: var(--ink-deep); font-size: 13px; letter-spacing: 0.5px; }
+  .qxm-gaz-badge { margin-left: auto; flex: none; font-size: 10.5px; letter-spacing: 2px; border-radius: 4px; padding: 1px 7px; border: 1px solid rgba(67, 58, 49, 0.4); color: var(--ink-soft); }
+  .qxm-gaz-item.mine .qxm-gaz-badge { border-color: rgba(43, 107, 94, 0.55); color: var(--jade); }
+  .qxm-gaz-sum { margin-top: 5px; font-size: 12.5px; line-height: 1.75; color: var(--ink-mid); text-align: justify; }
+  .qxm-gaz-empty { font-size: 12.5px; color: var(--ink-soft); line-height: 1.7; padding: 6px 2px; }
   .qxm-more-h { margin-top: 9px; font-size: 11px; letter-spacing: 3px; color: var(--ink-soft); border-left: 3px solid var(--ink-soft); padding-left: 7px; }
   .qxm-act {
     font-family: var(--serif); display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -481,6 +491,7 @@
     <button class="ink-btn" id="btn-sound" style="display:none">🔊 琴音</button>
     <button class="ink-btn" id="btn-bgm" style="display:none" title="切换曲目"><span id="bgm-suite-label">🎵 —</span></button>
     <button class="ink-btn" id="btn-settings" style="display:none" title="设置中心">⚙️ 设置</button>
+    <button class="ink-btn" id="btn-gazette" style="display:none" title="江湖邸报合集">📰 邸报</button>
     <button class="ink-btn" id="btn-drawer" style="display:none">📚 五抽屉</button>
     <button class="ink-btn" id="btn-ending" style="display:none;color:var(--gold);border-color:var(--gold)">🏆 论剑终局</button>
     <button class="ink-btn" id="btn-create">创角入世</button>
@@ -611,6 +622,8 @@
   <script src="./game/ui/drawer.js"></script>
   <script src="./game/ui/audio.js"></script><!-- 册289：M6 尾量 BGM 五曲合成器（计划书 §四 #13） -->
   <script src="./game/ui/settings.js"></script><!-- 册292：M6 余量 settings 页（audio prefs 四键上屏） -->
+  <script src="./game/ui/sheet.js"></script><!-- 册293：qxm 弹窗壳公共件（settings/gazette 共用） -->
+  <script src="./game/ui/gazette.js"></script><!-- 册293：M6 余量 邸报合集（canonEventReports 翻阅面） -->
   <script src="./game/ui/endings-ui.js"></script>
   <script src="./game/ui/creation.js"></script>
   <script src="./game/app.js"></script>

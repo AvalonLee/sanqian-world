@@ -566,6 +566,49 @@ const { chromium } = require('playwright-core');
       JSON.stringify({ a: se2a, b: se2b }));
     await page.evaluate(() => { document.querySelector("#qx-modal [data-qxm-close]").click(); });
 
+    /* 🆕 册293：江湖邸报合集（ui/gazette.js · canonEventReports 翻阅面） */
+    await page.click("#btn-gazette");
+    await page.waitForTimeout(150);
+    const gz1 = await page.evaluate(() => {
+      const m = document.getElementById("qx-modal");
+      const saved = JSON.parse(localStorage.getItem("shanqian3d_save_v1") || "{}");
+      const n = (saved.canonEventReports || []).length;
+      const title = (m.querySelector(".qxm-title") || {}).textContent || "";
+      const items = m.querySelectorAll(".qxm-gaz-item").length;
+      const empty = !!m.querySelector(".qxm-gaz-empty");
+      return { open: !m.classList.contains("hidden"), titleHas: title.indexOf("则") >= 0 && title.indexOf(String(n)) >= 0, items, empty, n };
+    });
+    T(gz1.open && gz1.titleHas && (gz1.n > 0 ? gz1.items === gz1.n : gz1.empty),
+      "Q3D14a 邸报合集开（则数标签 = 存档 canonEventReports.length · 条目数对表 ‖ 空态句）", JSON.stringify(gz1));
+    await page.evaluate(() => { document.querySelector("#qx-modal [data-qxm-close]").click(); });
+    await page.evaluate(() => {
+      const saved = JSON.parse(localStorage.getItem("shanqian3d_save_v1"));
+      saved.canonEventReports = (saved.canonEventReports || []).concat([
+        { title: "【测试地】早先错过的盛会", participated: false, summary: "因你未在限期内赶赴，此事已按原著轨迹落幕。（走查种入）" },
+        { title: "【测试地】刚刚亲历的大事", participated: true, summary: "你亲赴此地挺身入局，击败强敌，亲手改写了结局。（走查种入）" }
+      ]);
+      localStorage.setItem("shanqian3d_save_v1", JSON.stringify(saved));
+    });
+    await page.reload();
+    await page.waitForTimeout(1500);
+    await page.click("#btn-gazette");
+    await page.waitForTimeout(150);
+    const gz2 = await page.evaluate(() => {
+      const m = document.getElementById("qx-modal");
+      const first = m.querySelector(".qxm-gaz-item");
+      const badges = Array.prototype.map.call(m.querySelectorAll(".qxm-gaz-badge"), b => b.textContent);
+      const title = (m.querySelector(".qxm-title") || {}).textContent || "";
+      return {
+        firstTop: first ? /刚刚亲历/.test(first.textContent) : false,
+        firstMine: first ? first.classList.contains("mine") : false,
+        badges: badges.join("|"),
+        titleHas2: title.indexOf("2 则") >= 0 || /共|[0-9]+ 则/.test(title)
+      };
+    });
+    T(gz2.firstTop && gz2.firstMine && /亲历/.test(gz2.badges) && /错过/.test(gz2.badges) && gz2.titleHas2,
+      "Q3D14b 种两条重开（倒序新在上 + 亲历徽记 jade 边 + 错过/亲历两态在场 + 则数标签）", JSON.stringify(gz2));
+    await page.evaluate(() => { document.querySelector("#qx-modal [data-qxm-close]").click(); });
+
     /* 收口：全程零脚本错误 */
     T(errs.length === 0 && (await page.evaluate(() => window.__errs.length)) === 0,
       'Q3D7 全程零脚本错误（pageerror/console.error/window.__errs 三源）', errs.slice(0, 3).join(' | '));

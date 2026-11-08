@@ -13,7 +13,8 @@
  * 偏差登记（对表豁免口径，件头注）：原版设置中心六键中的 particlesEnabled / largeFontMode /
  * floatingTextEnabled 三键**不移植**——qunxia3d 无对应系统（粒子为 three.js 场景常驻设计、
  * 浮字与字体缩放走 3D HUD 体系），硬塞空壳即「不可投生也要写真逻辑」的反例。设置入口 = toolbar
- * 「⚙️ 设置」钮（入世后显，与 🔊/🎵 同层）；模态复用 panels.openSheet/shell 纸面弹窗壳。
+ * 「⚙️ 设置」钮（入世后显，与 🔊/🎵 同层）。〔册293 改口：模态壳原为本件自绘 qxm-sheet 同构
+ * （panels 私有函数未导出），现改挂 🆕 ui/sheet.js 公共壳件，gazette 同用〕
  *
  * 走查：verify-ui-qunxia3d Q3D13a/13b（开模态四控件在场读数即 prefs ‖ 滑块/开关动作落
  * `qunxia-audio-v1` 且重开保持）。
@@ -24,30 +25,21 @@
 })(typeof window !== 'undefined' ? window : globalThis, function (root) {
   var document = root.document;
 
-  function panelsOf() {
-    return (root.QX3D && root.QX3D.ui && root.QX3D.ui.panels) || null;
-  }
   function audioOf() {
     return (root.QX3D && root.QX3D.ui && root.QX3D.ui.audio) || null;
   }
 
-  /* ── 设置中心模态（自绘 qxm-sheet 壳：panels 的 openSheet/shell 是私有函数
- *    未导出，本件复刻其同构 HTML；关闭走已导出的 panels.closeModal 保队列语义）── */
+  /* ── 设置中心模态（册293 改挂 ui/sheet.js 公共壳——panels 私有函数不再复刻）── */
   function open() {
     var audio = audioOf();
-    var panels = panelsOf();
-    if (!audio || !panels || !document) return;
-    var m = document.getElementById('qx-modal');
-    if (!m || !m.classList.contains('hidden')) return; /* 单实例独占：已有弹窗在场不覆盖 */
+    var sheet = (root.QX3D && root.QX3D.ui && root.QX3D.ui.sheet) || null;
+    if (!audio || !sheet || !document) return;
 
     var p = audio.getPrefs();
     var pct = function (v) { return Math.round((Number(v) || 0) * 100); };
 
-    m.innerHTML =
-      '<div class="qxm-sheet">' +
-      '<div class="qxm-head"><span class="qxm-tag">设置中心</span><b class="qxm-title">琴房 · 音律</b>' +
-      '<button class="qxm-close" data-qxm-close>✕</button></div>' +
-      '<div class="qxm-body"><div class="qxm-settings">' +
+    var m = sheet.openSheet('设置中心', '琴房 · 音律',
+      '<div class="qxm-settings">' +
       /* 琴音总开关（audio.toggleSound 单一写口） */
       '<div class="qxm-set-row"><label for="qxs-sound">🔊 琴音</label>' +
       '<input type="checkbox" class="qxm-switch" id="qxs-sound"' + (audio.isSoundEnabled() ? ' checked' : '') + '>' +
@@ -65,10 +57,8 @@
       '<input type="checkbox" class="qxm-switch" id="qxs-auto"' + (p.autoSwitchBgm ? ' checked' : '') + '>' +
       '<span class="qxm-set-note">对决自动奏《难念的经》· 地界按派系换曲</span></div>' +
       '<div class="qxm-set-note">音量改动自下一音符 / 下一音效起生效（引擎逐音实时取值）。原版设置中心的粒子特效 / 大字模式 / 浮字三键无 3D 对应系统，不移植（件头注偏差登记）。</div>' +
-      '</div></div>' +
-      '</div>';
-    m.querySelector('[data-qxm-close]').addEventListener('click', function () { panels.closeModal(); });
-    m.classList.remove('hidden');
+      '</div>');
+    if (!m) return; /* 单实例独占：已有弹窗在场不覆盖 */
 
     var bindSwitch = function (id, apply) {
       var c = m.querySelector('#' + id);
