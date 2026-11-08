@@ -370,6 +370,53 @@ const { chromium } = require('playwright-core');
     });
     T(g2.kept && g2.origin === 'palm_hero', 'Q3D6c gen 相同 ⇒ 续档不动（worldGen 记值 8，不重弹创角）', JSON.stringify(g2));
 
+    /* ── Q3D10 组 · M3 payload 内容桥 + 36 案赴会回流（扩展契约全链）────────── */
+    /* Q3D6c 留下的档：gen=8 · palm_hero · 第1旬 · 洛阳。种带 we_ 事件的 payload
+     * （gen 不变 ⇒ 续档），reload ⇒ boot 合并注入日程，过旬触发 ⇒ 赴会胜 ⇒ alt 回流队列。 */
+    await page.evaluate(() => {
+      localStorage.setItem('qunxia-payload-v1', JSON.stringify({
+        gen: 8,
+        arts: [{ id: 'yg_ext3', name: '渡世掌·刊三', k: 'neigong', nat: 'rou', t: 'di', f: 200, s: [] }],
+        events: [{ id: 'we_ext3_a', name: '洛水论剑大会·刊三', z: 'luoyang', boss: null, desc: '群豪论剑。', lose: '败者退场。' }],
+        knots: { we_ext3_a: { cast: ['无名剑客'], opts: [{ k: 'join', label: '拔剑' }] } }
+      }));
+    });
+    await page.reload();
+    await page.waitForFunction(() => window.QX3D_APP && window.QX3D_APP.state, null, { timeout: 20000 });
+    await page.waitForTimeout(500);
+    const m0 = await page.evaluate(() => ({
+      art: !!window.QX3D_DATA.MARTIAL_DB.yg_ext3,
+      ev: window.QX3D_DATA.CANON_EVENTS_SCHEDULE.some(x => x.id === 'we_ext3_a'),
+      knot: !!(window.QX3D_DATA.KNOT_SCENES && window.QX3D_DATA.KNOT_SCENES.we_ext3_a),
+      gen: window.QX3D_APP.state.worldGen
+    }));
+    T(m0.art && m0.ev && m0.knot && m0.gen === 8,
+      'Q3D10a payload 合并（boot 自读注入：武学/事件/当场戏 + gen 记值续档）', JSON.stringify(m0));
+    await page.evaluate(() => { document.getElementById('btn-turn').click(); });
+    await page.waitForTimeout(250);
+    const ev1 = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    /* 新案无 EV_TURN_MAP 位 ⇒ fallback triggerTurn = 6 + idx%30（idx 0 ⇒ 第 6 旬）——推进到触发旬 */
+    for (let i = 0; i < 4; i++) { await page.evaluate(() => { document.getElementById('btn-turn').click(); }); await page.waitForTimeout(120); }
+    const ev2 = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    T(ev2.turn === 6 && (ev2.crises || []).some(c => c.id === 'we_ext3_a') && ev2.canonEventsTriggered.we_ext3_a === true,
+      'Q3D10b 36 案按旬触发（fallback 旬位第6旬 ⇒ we_ext3_a 入 crises）', JSON.stringify({ turn: ev2.turn, n: (ev2.crises || []).length }));
+    /* 赴会：crisis_join（洛阳在本地） */
+    await page.evaluate(() => { window.QX3D_APP.runAction('crisis_join'); });
+    await page.waitForTimeout(300);
+    const dlOpen2 = await page.evaluate(() => !document.getElementById('duel-overlay').classList.contains('hidden'));
+    T(dlOpen2, 'Q3D10c 挺身入局（crisis_join ⇒ 对决面板出 · 敌为 payload boss 折算）', 'open=' + dlOpen2);
+    const du3 = await playDuelThrough();
+    const qd = await page.evaluate(() => ({
+      q: JSON.parse(localStorage.getItem('qunxia-result-queue-v1') || '[]'),
+      rep: JSON.parse(localStorage.getItem('shanqian3d_save_v1')).canonEventReports.map(r => r.title)
+    }));
+    const altOk = du3.win
+      ? qd.q.some(x => x.id === 'we_ext3_a' && x.outcome === 'alt')
+      : qd.q.some(x => x.id === 'we_ext3_a' && x.outcome === 'lose');
+    T(altOk && qd.rep.some(t => /洛水论剑/.test(t)),
+      'Q3D10d 终局回流（胜 ⇒ alt / 败 ⇒ lose 入队 + 邸报入档，扩展契约全链）',
+      JSON.stringify({ win: du.win, q: qd.q, rep: qd.rep }));
+
     /* 收口：全程零脚本错误 */
     T(errs.length === 0 && (await page.evaluate(() => window.__errs.length)) === 0,
       'Q3D7 全程零脚本错误（pageerror/console.error/window.__errs 三源）', errs.slice(0, 3).join(' | '));

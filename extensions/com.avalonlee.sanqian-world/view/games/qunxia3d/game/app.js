@@ -39,6 +39,9 @@
       },
       /* M4：传世秘境内容接入点 */
       canonicalSecret: function (s, regId, secret) { ui.panels.openSecretPending(regId, secret); },
+      /* M3：世界事件当场戏 + 主奖励 */
+      sceneLine: function (crisis) { return systems.payload.sceneLine(crisis); },
+      crisisReward: function (id) { return systems.payload.crisisReward(st, id, env()); },
       openBountyPoster: function (bounty) { ui.panels.openBountyPoster(st, bounty, core.player, core.time.getRegion, function (b) { runAction('bounty_duel'); }); },
       openRoadEncounter: function (ev, reg) { ui.panels.openRoadEncounter(ev, reg, function (idx) { systems.tiles.applyRoadEncounterChoice(st, ev, idx, env()); afterAction(); }); }
     }, extra || {});
@@ -217,9 +220,18 @@
 
   /* ── 启动 ───────────────────────────────────────────────────────────────── */
   function boot() {
+    /* payload 内容桥（M3）：主壳导航前写 qunxia-payload-v1（gen + arts/sects/cast/
+     * events/knots/blades/manuals），boot 自读合并（只增不覆盖；36 案按 EV_TURN_MAP
+     * 注入日程）——与原版 content-merge.js load 自读同语义，先合并再载档（gen 对账
+     * 读同一 payload）。 */
+    try {
+      var pl = JSON.parse(root.localStorage.getItem('qunxia-payload-v1') || 'null');
+      if (pl) systems.payload.mergePayload(pl);
+    } catch (e) {}
     var res = core.state.loadGame(root.localStorage);
     st = res.state;
     core.data.bindRuntimeState(st);
+    systems.payload.mergeStateMasters(st); /* 旧档收到扩展 S/A 名宿（content-merge :141 语义） */
     if (res.genAction.action === 'reload') {
       /* 扩展侧已转世：存档已清，刷新回创角封面（原 reconcileWorldGen :3218） */
       root.location.reload();

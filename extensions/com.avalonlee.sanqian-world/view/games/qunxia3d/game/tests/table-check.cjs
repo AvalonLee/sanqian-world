@@ -145,7 +145,7 @@ function buildSandbox(seed) {
         return { className: '', textContent: '', style: {}, appendChild: function () {}, remove: function () {} };
       }
     },
-    window: {},
+    window: { addEventListener: function () {} },
     location: { reload: function () {} },
     localStorage: (function () {
       var m = {};
@@ -834,6 +834,166 @@ function compareDuel(p, d, label) {
   const newPick = JSON.stringify(combat.pickRecommendedDuelCards(hand, p.d, D.STANCE_META[p.d.nextEnemyStance].beatenBy).recommended.map(c => c.id));
   check('S25 推荐手牌', sbPick === newPick, sbPick + ' vs ' + newPick);
 })();
+
+/* 共享真 D 快照/还原：payload 合并场景会往真表里塞扩展条目（原版「只增不覆盖」语义），
+ * 沙箱每场从源重建、真 D 跨场景累积——两侧起点必须同源，段末还原。 */
+const M3_SNAP = {
+  martial: JSON.parse(JSON.stringify(D.MARTIAL_DB)),
+  items: JSON.parse(JSON.stringify(D.ITEMS_DB)),
+  sects: JSON.parse(JSON.stringify(D.SECTS_DB)),
+  masters: D.MASTERS_INIT.length,
+  canon: D.CANON_EVENTS_SCHEDULE.length,
+  hadKnots: !!D.KNOT_SCENES
+};
+function restoreM3() {
+  D.MARTIAL_DB = M3_SNAP.martial;
+  D.ITEMS_DB = M3_SNAP.items;
+  D.SECTS_DB = M3_SNAP.sects;
+  D.MASTERS_INIT.length = M3_SNAP.masters;
+  D.CANON_EVENTS_SCHEDULE.length = M3_SNAP.canon;
+  if (!M3_SNAP.hadKnots) delete D.KNOT_SCENES;
+}
+
+/* ══ M3：payload 内容桥对表（systems/payload.js ⇔ content-merge.js QUNXIA_MERGE）══ */
+/* content-merge.js 是 IIFE 整文件：给 window/localStorage/数据表/SIDE_CAST=[]/ROMANCE_CAST=[]
+ * 桩后整体 eval，取 window.QUNXIA_MERGE 与 window.QUNXIA_CRISIS_REWARD 作原版对照。
+ * B/C 配角池（SIDE_CAST push 分支）= P4-B 豁免：两侧同置空池（新版不接 B/C，沙箱同）。 */
+const payloadSys = require(path.join(GAME_DIR, 'systems', 'payload.js'));
+function buildMergeSandbox() {
+  const c = {
+    window: { addEventListener: function () {} },
+    document: { getElementById: function () { return null; } },
+    localStorage: { getItem: function () { return null; }, setItem: function () {}, removeItem: function () {} },
+    Math: Object.create(Math),
+    console: console,
+    MARTIAL_DB: JSON.parse(JSON.stringify(D.MARTIAL_DB)),
+    ITEMS_DB: JSON.parse(JSON.stringify(D.ITEMS_DB)),
+    SECTS_DB: JSON.parse(JSON.stringify(D.SECTS_DB)),
+    MASTERS_INIT: JSON.parse(JSON.stringify(D.MASTERS_INIT)),
+    CANON_EVENTS_SCHEDULE: JSON.parse(JSON.stringify(D.CANON_EVENTS_SCHEDULE)),
+    SIDE_CAST: [],
+    ROMANCE_CAST: [],
+    renderAll: function () {},
+    addLog: function () {},
+    state: null
+  };
+  vm.createContext(c);
+  const cmText = lib.loadSrc('view/games/qunxia/content-merge.js').text;
+  vm.runInContext(cmText, c, { filename: 'content-merge.js' });
+  /* content-merge 把函数挂 window（浏览器里 window 即全局）——vm 里需提升为上下文全局 */
+  c.QUNXIA_MERGE = c.window.QUNXIA_MERGE;
+  c.QUNXIA_CRISIS_REWARD = c.window.QUNXIA_CRISIS_REWARD;
+  /* 原版 sceneLine（game.html :10896）切进同上下文，供当场戏对表 */
+  vm.runInContext(lib.sliceDecl(gameSrc, 'sceneLine', 'function').text, c);
+  return c;
+}
+const MERGE_FIXTURE = {
+  gen: 3,
+  arts: [
+    { id: 'yg_taixuan_ext', name: '太玄经·刊', k: 'neigong', nat: 'yin', t: 'tian', f: 300, s: ['xiake'] },
+    { id: 'ext_fist_a', name: '开碑手·刊', k: 'quan', nat: 'gang', t: 'xuan', f: 80, s: ['gaibang_ext'] },
+    { id: 'ext_fist_b', name: '锁喉拴·刊', k: 'quan', nat: 'xie', t: 'huang', f: 40, s: ['gaibang_ext'] },
+    { id: 'taizu_changquan', name: '太祖长拳', k: 'quan', t: 'huang', f: 500 }
+  ],
+  sects: [
+    { id: 'gaibang_ext', name: '丐帮·刊', camp: 'zheng' },
+    { id: 'shaolin', name: '少林派', camp: 'zheng' }
+  ],
+  cast: [
+    { id: 'ext_s1', name: '化子头·刊', t: 'S', role: 'chief', sec: 'gaibang_ext', bio: '衣衫褴褛双目如电。' },
+    { id: 'ext_a1', name: '青竹竿·刊', t: 'A', role: 'elder', sec: 'gaibang_ext', bio: '竹竿在手，天下我有。' },
+    { id: 'ext_b1', name: '泼皮三·刊', t: 'B', role: 'member', sec: 'gaibang_ext', bio: '' },
+    { id: 'xiaofeng', name: '萧峰', t: 'S', role: 'chief', sec: 'gaibang' }
+  ],
+  blades: [
+    { id: 'wp_ext_a', name: '青罡剑·刊', k: 2 },
+    { id: 'wp_ext_b', name: '铁背刀·刊', k: 0 }
+  ],
+  manuals: [
+    { id: 'mnl_ext_a', name: '开碑手谱·刊', art: 'ext_fist_a' },
+    { id: 'mnl_ext_b', name: '无名残页', art: 'nonexist_art' }
+  ],
+  events: [
+    { id: 'we_wangpan', name: '王盘山扬威', z: null, boss: 'ext_s1', reward: { kind: 'blade', id: 'wp_ext_a' }, fail: { injury: [2, 5], renown: [-20, -10] }, lose: '败走窄路。' },
+    { id: 'we_ext_new', name: '丐帮大校武', z: 'luoyang', boss: 'ext_a1', desc: '丐帮秋操，群丐夺魁。' }
+  ],
+  knots: { we_wangpan: { cast: ['化子头·刊', '青竹竿·刊'], opts: [{ k: 'join', label: '夺魁' }, { k: 'watch', label: '旁观' }] } }
+};
+
+(function S26() {
+  const c = buildMergeSandbox();
+  c.MERGE_FIXTURE = MERGE_FIXTURE;
+  vm.runInContext('QUNXIA_MERGE(MERGE_FIXTURE);', c);
+  c.KNOT_SCENES = c.window.KNOT_SCENES; /* merge 运行后才挂 window，此刻提升 */
+  const newD = D;
+  /* 对拍前先跑新版合并（用同一份 fixture；新版操作 QX3D_DATA 真表——
+   * 为可重复对表，本场景断言用「增量键集」而不是全表比对） */
+  const preCounts = {
+    martial: Object.keys(D.MARTIAL_DB).length,
+    items: Object.keys(D.ITEMS_DB).length,
+    sects: Object.keys(D.SECTS_DB).length,
+    masters: D.MASTERS_INIT.length,
+    canon: D.CANON_EVENTS_SCHEDULE.length
+  };
+  payloadSys.mergePayload(MERGE_FIXTURE);
+  const cmp = (label, sbVal, newVal) => {
+    const r = deepEq(JSON.parse(JSON.stringify(sbVal)), JSON.parse(JSON.stringify(newVal)), label);
+    check(label, r === null, r ? String(r).slice(0, 300) : undefined);
+  };
+  cmp('S26a 武学桥（只增不覆盖）',
+    [c.MARTIAL_DB.yg_taixuan_ext, c.MARTIAL_DB.ext_fist_a, c.MARTIAL_DB.ext_fist_b],
+    [D.MARTIAL_DB.yg_taixuan_ext, D.MARTIAL_DB.ext_fist_a, D.MARTIAL_DB.ext_fist_b]);
+  check('S26a-2 已有武学不被覆盖', D.MARTIAL_DB.taizu_changquan && Object.keys(D.MARTIAL_DB).length === preCounts.martial + 3);
+  cmp('S26b 名兵/秘籍桥',
+    [c.ITEMS_DB.wp_ext_a, c.ITEMS_DB.wp_ext_b, c.ITEMS_DB.mnl_ext_a, c.ITEMS_DB.mnl_ext_b || null],
+    [D.ITEMS_DB.wp_ext_a, D.ITEMS_DB.wp_ext_b, D.ITEMS_DB.mnl_ext_a, D.ITEMS_DB.mnl_ext_b || null]);
+  cmp('S26c 门派桥（regionOf/领袖/top3）', c.SECTS_DB.gaibang_ext, D.SECTS_DB.gaibang_ext);
+  check('S26c-2 已有门派 id 不覆盖', !D.SECTS_DB.shaolin || D.SECTS_DB.shaolin.name !== '少林派');
+  const sbNewMasters = c.MASTERS_INIT.slice(-2); /* S/A 两具（B/C 走 SIDE_CAST，P4-B 豁免） */
+  const newNewMasters = D.MASTERS_INIT.slice(-2);
+  cmp('S26d 名宿桥（S/A 进池）', sbNewMasters, newNewMasters);
+  const sbEv = c.CANON_EVENTS_SCHEDULE.filter(x => x.id === 'we_wangpan' || x.id === 'we_ext_new');
+  const newEv = D.CANON_EVENTS_SCHEDULE.filter(x => x.id === 'we_wangpan' || x.id === 'we_ext_new');
+  cmp('S26e 事件桥（EV_TURN_MAP/EV_REGION/tier 折算）', sbEv, newEv);
+  check('S26e-2 we_wangpan 旬位 = 3（v3.0 排期）', newEv.find(x => x.id === 'we_wangpan').triggerTurn === 3);
+  const sbScene = vm.runInContext('sceneLine({id: "we_wangpan"})', c);
+  const newScene = payloadSys.sceneLine({ id: 'we_wangpan' });
+  check('S26f sceneLine 当场戏一致', sbScene === newScene && /当场：/.test(newScene) && /只在一念之间/.test(newScene), sbScene + ' vs ' + newScene);
+})();
+
+/* 第二份 fixture：真 D 是全件共享且「只增不覆盖」（原版语义），S26 已并第一份，
+ * S27 须用全新 id/name 才能走到合并+活档补齐的活路径（幂等跳过 = 首跑红因）。 */
+const MERGE_FIXTURE2 = {
+  gen: 5,
+  cast: [
+    { id: 'ext2_s1', name: '丐二侠·刊二', t: 'S', role: 'chief', sec: 'gaibang_ext', bio: '再入江湖的化子头。' },
+    { id: 'ext2_a1', name: '竹二青·刊二', t: 'A', role: 'elder', sec: 'gaibang_ext', bio: '二度出山的竹竿客。' }
+  ],
+  events: [
+    { id: 'we_ext2_new', name: '丐帮重开秋操', z: 'luoyang', boss: 'ext2_s1', desc: '丐帮再开秋操大校。' }
+  ]
+};
+/* S27 旧档收 payload + 主奖励（blade 型）——按原版 load 时序：
+ * content-merge 在活档上下文里跑（state.masters push + CANON 注入），随后主奖励 */
+(function S27() {
+  stubStore.clear();
+  restoreM3(); /* S26 已往真 D 并过 fixture1——S27 创角基线须回到 24 表（与新鲜沙箱同源） */
+  const p = m1pair(271);
+  /* 沙箱侧：SIDE_CAST/ROMANCE_CAST 桩 + 整载 content-merge + 合并（活档名宿同步 push） */
+  p.sb.run('var SIDE_CAST = []; var ROMANCE_CAST = [];');
+  p.sb.run(lib.loadSrc('view/games/qunxia/content-merge.js').text);
+  p.sb.run('QUNXIA_MERGE = window.QUNXIA_MERGE; QUNXIA_CRISIS_REWARD = window.QUNXIA_CRISIS_REWARD; MERGE_FIXTURE2 = ' + JSON.stringify(MERGE_FIXTURE2) + ';');
+  p.sb.run('QUNXIA_MERGE(MERGE_FIXTURE2);');
+  /* 新版侧：表合并（真 D 幂等只增不覆盖）+ 活档名宿补齐 */
+  payloadSys.mergePayload(MERGE_FIXTURE2);
+  payloadSys.mergeStateMasters(p.nst.st);
+  /* 主奖励 blade 型对拍 */
+  p.sb.run('QUNXIA_CRISIS_REWARD("we_ext2_new");');
+  payloadSys.crisisReward(p.nst.st, 'we_ext2_new', newEnv(p.nst.rand, 271));
+  compareStates(p.sb, p.nst, 'S27 旧档合并+主奖励 blade 型');
+})();
+
+restoreM3();
 
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));
