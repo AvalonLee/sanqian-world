@@ -103,7 +103,9 @@ const allFiles = walk(ROOT, []).filter((f) => !f.includes(path.sep + '.') &&
   !/(^|\/)(node_modules|dist|dist-ssr|build)\//.test(relOf(f)) &&
   /* 山河棋盘 = 自包含子应用（单文件 + 自带样式/存储桥）：正文、数据、Tailwind 一体交付，
      不接词表、不按扩展外置件分区。只剪这一目录，边界写死在此，别扩到 view/ 其它文件。 */
-  !relOf(f).startsWith('view/games/'));
+  !relOf(f).startsWith('view/games/') &&
+  /* 万界门环 = 自包含子应用（世界选择器）：同 view/games/ 口径剪枝（册280）。 */
+  !relOf(f).startsWith('view/worlds/'));
 const jsFiles = allFiles.filter((f) => f.endsWith('.js'));
 const htmlFiles = allFiles.filter((f) => f.endsWith('.html'));
 
@@ -1979,6 +1981,7 @@ function sqHasLogic(body) {
       if (fs.statSync(abs).isDirectory()) { if (f !== 'node_modules' && f !== '.tests') walk(abs); return; }
       if (!/\.(js|html)$/.test(f)) return;
       if (/^assets\/worlds\//.test(rel) || /^assets\/talents\/[a-z0-9]+\.js$/.test(rel)) return;   /* 世界自己的件 */
+      if (/^view\/worlds\//.test(rel)) return;   /* 万界门环选择器（册280）：世界卡就是本职数据 */
       files++;
       let body = '';
       try { body = stripComments(fs.readFileSync(abs, 'utf8')); } catch (e) { return; }
