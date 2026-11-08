@@ -30,6 +30,7 @@ const coreState = require(path.join(GAME_DIR, 'core', 'state.js'));
 const coreTime = require(path.join(GAME_DIR, 'core', 'time.js'));
 const corePlayer = require(path.join(GAME_DIR, 'core', 'player.js'));
 const sysTravel = require(path.join(GAME_DIR, 'systems', 'travel.js'));
+const combat = require(path.join(GAME_DIR, 'systems', 'combat.js'));
 const D = coreData.D;
 
 const gameSrc = lib.loadSrc('view/games/qunxia/game.html').text;
@@ -87,7 +88,10 @@ const TABLES = [
   ['const', 'SAVE_KEY'], ['const', 'LEGACY_STORAGE_KEY'],
   ['var', 'QUNXIA_RESULT_KEY'],
   ['let', 'tempScrollProposition'], ['let', 'tempSelectedTalents'], ['let', 'tempSelectedVow'],
-  ['let', 'rerollCount'], ['let', 'isJackpotRoll']
+  ['let', 'rerollCount'], ['let', 'isJackpotRoll'],
+  ['const', 'FORM_META'], ['const', 'SHI_META'], ['const', 'FORM_SHI_COMBO_NAMES'],
+  ['let', 'duelState'], ['let', 'tutorialBattle'], ['let', 'showAllDuelCards'],
+  ['let', 'duelLogOpen'], ['let', 'duelDrawerOpen'], ['let', 'duelInfoId']
 ];
 /* 函数（按源名） */
 const FNS = [
@@ -104,16 +108,20 @@ const FNS = [
   'buyMarketItem', 'forgeEquipment', 'sectPractice', 'sectChallengeGuardian', 'shrineCultivate',
   'exploreSecretCave', 'strollLocalSpot', 'triggerRoadEncounter', 'selectEncounterChoice',
   'startBountyDuel', 'joinWorldCrisis', 'getRegionalTradeGood', 'getBestTradeDeal',
-  'buyTradeGood', 'sellTradeGood', 'doEscortConvoy', 'collectTileActions', 'pickPrimaryActions'
+  'buyTradeGood', 'sellTradeGood', 'doEscortConvoy', 'collectTileActions', 'pickPrimaryActions',
+  /* M2 三招对决（systems/combat.js 对表集） */
+  'startDuel', 'pickEnemyIntentStance', 'playDuelCard', 'finishDuel', 'duelMeditate',
+  'getMoveFormShi', 'isLegalShiSequence', 'synthesizeComboName', 'pickRecommendedDuelCards', 'sceneLine'
 ];
 
 /* 原版有声明、但本对表要替换成 stub 的函数（在切片之后注入，覆盖原版体）：
  *   startDuel = 三招对决引擎 M2 接；triggerCanonicalSecretRealm = 传世秘境 M4 接；
  *   openBountyPosterModal / spawnFloatingText / closeEventModal / renderDrawer = 纯表现（豁免 ③）。 */
 const STUB_AFTER = [
-  'startDuel', 'triggerCanonicalSecretRealm', 'openBountyPosterModal',
+  'triggerCanonicalSecretRealm', 'openBountyPosterModal',
   'spawnFloatingText', 'closeEventModal', 'renderDrawer',
-  'renderHud', 'renderLocalGridTiles', 'renderInspector'
+  'renderHud', 'renderLocalGridTiles', 'renderInspector',
+  'renderDuelStage', 'suspendStreetRumor', 'showComboFloatTip', 'flashComboFx'
 ];
 
 /* state 形状（逐字节 body，用于重置：`state = <body>;`） */
@@ -125,6 +133,7 @@ function buildSandbox(seed) {
     /* toast-container 须回 null（showToast 早退）；其余元素给通用桩（forge 的 drawer-modal
      * contains→true 跳过 renderDrawer；roadEncounter 的 event-modal 族用可写桩） */
     document: {
+      body: { classList: { add: function () {}, remove: function () {}, contains: function () { return true; } } },
       getElementById: function (id) {
         if (id === 'toast-container') return null;
         return {
@@ -192,8 +201,9 @@ function newEnv(rand, seed) {
     rand: rand,
     roadEncounter: function () {},
     tryOpenAftermath: function () { return false; },
-    /* M1 八格动作钩子（引擎/弹窗豁免面，两侧同置 noop） */
-    startDuel: function () {},
+    /* M2：startDuel 走真 initDuel（意图掷骰消耗随机序列，与原版 startDuel 对齐；
+      * duelState 弃用——state 面等价即可） */
+    startDuel: function (s, params) { combat.initDuel(s, params, { rand: rand }); },
     canonicalSecret: function () {},
     openBountyPoster: function () {},
     openRoadEncounter: function () {}
@@ -206,7 +216,10 @@ const stubStore = (function () {
   return {
     getItem: function (k) { return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : null; },
     setItem: function (k, v) { m[k] = String(v); },
-    removeItem: function (k) { delete m[k]; }
+    removeItem: function (k) { delete m[k]; },
+    /* 队列比对是「场景内」断言——stubStore 为全件共享，子场景起点须清防跨场景残留
+     * （S24c 首跑被 S24b 的 we_test 残留污染，实测红） */
+    clear: function () { Object.keys(m).forEach(k => delete m[k]); }
   };
 })();
 
@@ -663,6 +676,163 @@ const tiles = require(path.join(GAME_DIR, 'systems', 'tiles.js'));
   compareStates(p.sb, p.nst, 'S18 本境移步邻格+跨街');
   const rej1 = tiles.canMoveToTile(p.nst.st, 0); /* mp 不足（-4×2 后 <4）视种子而定，只判形状 */
   check('S18b canMoveToTile 返回形状', !!rej1 && typeof rej1.ok === 'boolean');
+})();
+
+/* ══ M2：三招对决对表（systems/combat.js）═══════════════════════════════ */
+
+/* S19 形/势判定与成招名 */
+(function S19() {
+  const p = m1pair(191);
+  const sbFs = p.sb.run('JSON.stringify([getMoveFormShi(MARTIAL_DB.taizu_changquan), getMoveFormShi({id:"__ult__",name:"绝",stance:"inner",comboRole:"zhuan",isUlt:true}), getMoveFormShi(MARTIAL_DB.lingbo_weibu), getMoveFormShi({id:"x",stance:"qiao"})])');
+  const newFs = JSON.stringify([
+    combat.getMoveFormShi(D.MARTIAL_DB.taizu_changquan),
+    combat.getMoveFormShi({ id: "__ult__", name: "绝", stance: "inner", comboRole: "zhuan", isUlt: true }),
+    combat.getMoveFormShi(D.MARTIAL_DB.lingbo_weibu),
+    combat.getMoveFormShi({ id: "x", stance: "qiao" })
+  ]);
+  check('S19a getMoveFormShi', sbFs === newFs, sbFs + ' vs ' + newFs);
+  const seqs = [["break","chase"],["break","parry","chase"],["chase","break"],["break"],["break","chase","chase"]];
+  const sbLeg = p.sb.run('JSON.stringify(' + JSON.stringify(seqs) + '.map(function(x){return isLegalShiSequence(x);}))');
+  const newLeg = JSON.stringify(seqs.map(x => combat.isLegalShiSequence(x)));
+  check('S19b isLegalShiSequence', sbLeg === newLeg, sbLeg + ' vs ' + newLeg);
+  const chains = [
+    [{form:"fist",shi:"break",name:"a"},{form:"fist",shi:"chase",name:"b"}],
+    [{form:"sword",shi:"break",name:"a"},{form:"sword",shi:"parry",name:"b"},{form:"sword",shi:"chase",name:"c"}],
+    [{form:"qinggong",shi:"chase",name:"a"}],
+    [{form:"fist",shi:"parry",name:"a"}]
+  ];
+  p.sb.run('globalThis.__chains = ' + JSON.stringify(chains) + ';');
+  const sbNames = p.sb.run('JSON.stringify(__chains.map(function(c){return synthesizeComboName(c);}))');
+  const newNames = JSON.stringify(chains.map(c => combat.synthesizeComboName(c)));
+  check('S19c synthesizeComboName', sbNames === newNames, sbNames + ' vs ' + newNames);
+})();
+
+/* 通用对决建场：创角 + 开局（两侧同种子） */
+function duelPair(seed, cfgExtra) {
+  const p = m1pair(seed);
+  const cfg = Object.assign({
+    enemyName: '测试敌', enemyTitle: 't', enemyStance: 'gang', enemyPower: 60, enemyHp: 140,
+    rewardGold: 32, rewardFame: 15, rewardExp: 26, contextTitle: '对表对决'
+  }, cfgExtra || {});
+  p.sb.run('startDuel(' + JSON.stringify(cfg) + ');');
+  const d = combat.initDuel(p.nst.st, cfg, { rand: p.nst.rand });
+  return { sb: p.sb, nst: p.nst, d: d, cfg: cfg };
+}
+function compareDuel(p, d, label) {
+  const sbD = p.sb.run('JSON.stringify(duelState)');
+  const r = deepEq(JSON.parse(sbD), JSON.parse(JSON.stringify(d)), label);
+  check(label, r === null, r ? String(r).slice(0, 300) : undefined);
+}
+
+/* S20 开局（印记初始化 + 羁绊 + 意图定种） */
+[201, 202].forEach(seed => {
+  const p = duelPair(seed);
+  compareStates(p.sb, p.nst, 'S20 开局后 state seed=' + seed);
+  compareDuel(p, p.d, 'S20 开局 duelState seed=' + seed);
+});
+
+/* S21 三招全流程（逐轮出招 + 终局奖励） */
+[211, 212, 213].forEach(seed => {
+  const p = duelPair(seed);
+  const nenv = newEnv(p.nst.rand, seed);
+  const cards = ['taizu_changquan', 'songfeng_jian', 'wuhu_dao'];
+  for (let i = 0; i < 3; i++) {
+    p.sb.run('playDuelCard(' + JSON.stringify(cards[i]) + ');');
+    combat.playDuelCard(p.nst.st, p.d, cards[i], nenv);
+    compareStates(p.sb, p.nst, 'S21 第' + (i + 1) + '招后 state seed=' + seed);
+    compareDuel(p, p.d, 'S21 第' + (i + 1) + '招后 duelState seed=' + seed);
+  }
+  /* 原版第 3 招内部已 finishDuel（:7651）——不再显式二调（会双发奖励） */
+  const sbRes = JSON.parse(p.sb.run('JSON.stringify({gold:state.gold,fame:state.fame,exp:state.exp,finished:duelState.finished})'));
+  compareStates(p.sb, p.nst, 'S21 终局后 state seed=' + seed);
+  compareDuel(p, p.d, 'S21 终局后 duelState seed=' + seed);
+  check('S21 终局读数一致 seed=' + seed, sbRes.finished === true, JSON.stringify(sbRes));
+});
+
+/* S22 引爆与三才（预置印记 + zhuan 收束） */
+(function S22() {
+  const p = duelPair(221);
+  p.sb.run('duelState.tokens = {jianyi:2,bagang:1,taiji:0,beiming:0}; duelState.comboChain=["qi","cheng"]; duelState.round=3;');
+  p.d.tokens = { jianyi: 2, bagang: 1, taiji: 0, beiming: 0 };
+  p.d.comboChain = ["qi", "cheng"]; p.d.round = 3;
+  p.sb.run('playDuelCard("wuhu_dao");');
+  combat.playDuelCard(p.nst.st, p.d, "wuhu_dao", newEnv(p.nst.rand, 221));
+  compareStates(p.sb, p.nst, 'S22 引爆+三才 state');
+  compareDuel(p, p.d, 'S22 引爆+三才 duelState');
+})();
+
+/* S23 调息（每招一次 + 二次拒） */
+(function S23() {
+  const p = duelPair(231);
+  p.sb.run('duelMeditate(); duelMeditate();');
+  const nenv = newEnv(p.nst.rand, 231);
+  combat.duelMeditate(p.nst.st, p.d, nenv);
+  combat.duelMeditate(p.nst.st, p.d, nenv);
+  compareStates(p.sb, p.nst, 'S23 调息 state');
+  compareDuel(p, p.d, 'S23 调息 duelState');
+})();
+
+/* S24 终局分支（缉拿 splice / 大事胜 alt 回流 / 败局 lose+失败代价掷） */
+(function S24() {
+  stubStore.clear();
+  /* 胜 + bountyIndex splice */
+  const p1 = duelPair(241);
+  p1.sb.run('duelState.bountyIndex = 0;');
+  p1.d.bountyIndex = 0;
+  p1.sb.run('playDuelCard("taizu_changquan"); playDuelCard("songfeng_jian"); playDuelCard("wuhu_dao"); finishDuel();');
+  const nenv1 = newEnv(p1.nst.rand, 241);
+  combat.playDuelCard(p1.nst.st, p1.d, "taizu_changquan", nenv1);
+  combat.playDuelCard(p1.nst.st, p1.d, "songfeng_jian", nenv1);
+  combat.playDuelCard(p1.nst.st, p1.d, "wuhu_dao", nenv1);
+  combat.finishDuel(p1.nst.st, p1.d, nenv1);
+  compareStates(p1.sb, p1.nst, 'S24a 缉拿胜 state');
+  check('S24a 缉拿 splice', p1.nst.st.bounties.length === JSON.parse(p1.sb.run('JSON.stringify(state.bounties.length)')));
+
+  stubStore.clear();
+  /* 大事胜：we_ id crisis → alt 队列 + 邸报 + crises 移除 */
+  const p2 = duelPair(242);
+  p2.sb.run('state.crises.push({id:"we_test",region:"luoyang",title:"测试大事",remainTurns:3,enemyName:"匪",tileIdx:3}); duelState.crisisId="we_test";');
+  p2.nst.st.crises.push({ id: "we_test", region: "luoyang", title: "测试大事", remainTurns: 3, enemyName: "匪", tileIdx: 3 });
+  p2.d.crisisId = "we_test";
+  p2.sb.run('playDuelCard("taizu_changquan"); playDuelCard("songfeng_jian"); playDuelCard("wuhu_dao"); finishDuel();');
+  const nenv2 = newEnv(p2.nst.rand, 242);
+  combat.playDuelCard(p2.nst.st, p2.d, "taizu_changquan", nenv2);
+  combat.playDuelCard(p2.nst.st, p2.d, "songfeng_jian", nenv2);
+  combat.playDuelCard(p2.nst.st, p2.d, "wuhu_dao", nenv2);
+  combat.finishDuel(p2.nst.st, p2.d, nenv2);
+  compareStates(p2.sb, p2.nst, 'S24b 大事胜 state');
+  const sbQueue = p2.sb.run('localStorage.getItem("qunxia-result-queue-v1")');
+  const newQueue = stubStore.getItem('qunxia-result-queue-v1');
+  check('S24b alt 回流队列一致', sbQueue === newQueue && /"outcome":"alt"/.test(newQueue || ''), sbQueue + ' vs ' + newQueue);
+
+  stubStore.clear();
+  /* 大事终局：canon 败代价区间定种掷 + 回流（胜负按实局定，两侧同序必然同局） */
+  const p3 = duelPair(243);
+  p3.sb.run('CANON_EVENTS_SCHEDULE.push({id:"we_t2",title:"测试败",region:"luoyang",failInjury:[2,4],failRenown:[-10,-5],enemyName:"匪",loseText:"败叙事"});');
+  (D.CANON_EVENTS_SCHEDULE || []).push({ id: "we_t2", title: "测试败", region: "luoyang", failInjury: [2, 4], failRenown: [-10, -5], enemyName: "匪", loseText: "败叙事" });
+  p3.sb.run('state.crises.push({id:"we_t2",region:"luoyang",title:"测试败",remainTurns:3,enemyName:"匪",tileIdx:3}); duelState.crisisId="we_t2";');
+  p3.nst.st.crises.push({ id: "we_t2", region: "luoyang", title: "测试败", remainTurns: 3, enemyName: "匪", tileIdx: 3 });
+  p3.d.crisisId = "we_t2";
+  p3.sb.run('playDuelCard("taizu_changquan"); playDuelCard("songfeng_jian"); playDuelCard("wuhu_dao"); finishDuel();');
+  const nenv3 = newEnv(p3.nst.rand, 243);
+  combat.playDuelCard(p3.nst.st, p3.d, "taizu_changquan", nenv3);
+  combat.playDuelCard(p3.nst.st, p3.d, "songfeng_jian", nenv3);
+  combat.playDuelCard(p3.nst.st, p3.d, "wuhu_dao", nenv3);
+  combat.finishDuel(p3.nst.st, p3.d, nenv3);
+  compareStates(p3.sb, p3.nst, 'S24c 大事终局 state');
+  const sbQueue3 = p3.sb.run('localStorage.getItem("qunxia-result-queue-v1")');
+  const newQueue3 = stubStore.getItem('qunxia-result-queue-v1');
+  check('S24c 回流队列一致（alt/lose 按实局）', sbQueue3 === newQueue3, sbQueue3 + ' vs ' + newQueue3);
+})();
+
+/* S25 推荐手牌（逐轮打分排序） */
+(function S25() {
+  const p = duelPair(251);
+  p.sb.run('globalThis.__hand = (function(){ var inner = MARTIAL_DB[state.equippedInner] || MARTIAL_DB.zixia_shengong; return state.equippedMoves.map(function(id){return MARTIAL_DB[id];}).filter(Boolean).concat([{id:"__ult__",name:inner.ultName,stance:"inner",comboRole:"zhuan",form:"sword",shi:"chase",power:inner.ultPower,mpCost:inner.ultCost,isUlt:true}]); })();');
+  const sbPick = p.sb.run('JSON.stringify(pickRecommendedDuelCards(__hand, duelState, STANCE_META[duelState.nextEnemyStance].beatenBy).recommended.map(function(c){return c.id;}))');
+  const hand = combat.buildHand(p.nst.st, p.d);
+  const newPick = JSON.stringify(combat.pickRecommendedDuelCards(hand, p.d, D.STANCE_META[p.d.nextEnemyStance].beatenBy).recommended.map(c => c.id));
+  check('S25 推荐手牌', sbPick === newPick, sbPick + ' vs ' + newPick);
 })();
 
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */

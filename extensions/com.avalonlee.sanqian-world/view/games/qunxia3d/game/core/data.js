@@ -16,7 +16,7 @@
     D = Object.assign({},
       r('martial.js'), r('sects.js'), r('items.js'), r('masters.js'), r('origins.js'),
       r('encounters.js'), r('world-events.js'), r('canon.js'), r('regions.js'),
-      r('scrolls.js'), r('state-init.js'));
+      r('scrolls.js'), r('state-init.js'), r('combo.js'));
   } else {
     D = root.QX3D_DATA || {};
   }

@@ -32,8 +32,11 @@
       showToast: ui.hud.toast,
       queueWorldResult: queueWorldResult,
       addLog: core.time.addLog,
-      /* M2：三招对决引擎接入点（现为占位卡收口） */
-      startDuel: function (s, params) { ui.panels.openDuelPending(params); },
+      /* M2：三招对决引擎接入（拍板演出 = 半屏出招卡 + 3D 背景糊化） */
+      startDuel: function (s, params) {
+        var d = systems.combat.initDuel(s, params, env());
+        ui.duel.open(s, d, function () { afterAction(); });
+      },
       /* M4：传世秘境内容接入点 */
       canonicalSecret: function (s, regId, secret) { ui.panels.openSecretPending(regId, secret); },
       openBountyPoster: function (bounty) { ui.panels.openBountyPoster(st, bounty, core.player, core.time.getRegion, function (b) { runAction('bounty_duel'); }); },
@@ -253,7 +256,11 @@
     regionEvent: regionEvent,
     onTravel: onTravel,
     runAction: runAction,
-    openActions: openActions
+    openActions: openActions,
+    /* duel 层回调面 */
+    env: env,
+    save: save,
+    renderHud: function () { ui.hud.render(st); }
   };
 
   if (document.readyState === 'loading') {

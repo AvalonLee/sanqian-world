@@ -26,6 +26,21 @@ const { chromium } = require('playwright-core');
     const el = await page.waitForSelector(sel, { timeout: 8000 });
     await el.click();
   };
+  /* 对决打穿（M2）：有出招卡就点（对手可能提前毙命 ⇒ 卡区消失即终局），
+   * 终局读题记，收招归鞘。返回 { title, win }。 */
+  const playDuelThrough = async () => {
+    for (let i = 0; i < 3; i++) {
+      const card = await page.waitForSelector('#duel-overlay .dl-cards .dl-card', { timeout: 3000 }).catch(() => null);
+      if (!card) break; /* 已终局 */
+      await card.click();
+      await page.waitForTimeout(180);
+    }
+    const title = await page.evaluate(() => ((document.querySelector('#duel-overlay .dl-result-title') || {}).textContent || ''));
+    const win = /胜出/.test(title);
+    await page.click('#btn-duel-close');
+    await page.waitForTimeout(200);
+    return { title: title, win: win };
+  };
 
   try {
     await page.goto(url);
@@ -213,16 +228,23 @@ const { chromium } = require('playwright-core');
     await page.waitForTimeout(150);
     await page.evaluate(() => { document.querySelector('#qx-modal [data-act="escort"]').click(); });
     await page.waitForTimeout(250);
-    const afterEscort = await page.evaluate(() => {
-      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
-      const modalOpen = !document.getElementById('qx-modal').classList.contains('hidden');
-      const duelCard = modalOpen && /引擎 M2/.test(document.getElementById('qx-modal').textContent);
-      return { gold: st.gold, ap: st.ap, duelCard };
-    });
-    const escortOk = (afterEscort.gold === gold0 - 8 + 24 && !afterEscort.duelCard) || afterEscort.duelCard;
-    T(escortOk && afterEscort.ap === 3, 'Q3D8e 走镖结算（平安 +24文 ⇔ 45% 劫匪对手卡，合法二选一 · ap−1）',
-      JSON.stringify(afterEscort) + ' gold0=' + gold0);
-    if (afterEscort.duelCard) { await page.evaluate(() => { window.QX3D.ui.panels.closeModal(); }); await page.waitForTimeout(150); }
+    /* 合法二态：平安 ⇒ +24 文无弹窗；45% 劫匪 ⇒ M2 真对决弹出（打穿后按胜负落账） */
+    const robber = !!(await page.$('#duel-overlay:not(.hidden)'));
+    let afterEscort = null, robberWin = null;
+    if (robber) {
+      const du = await playDuelThrough();
+      robberWin = du.win;
+      afterEscort = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+      afterEscort.robber = true;
+    } else {
+      afterEscort = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+      afterEscort.robber = false;
+    }
+    const escortOk = afterEscort.robber
+      ? (robberWin === true ? afterEscort.gold === gold0 - 8 + 32 : afterEscort.gold === gold0 - 8) /* 劫匪战无镖银，胜只得对决赏 32 */
+      : afterEscort.gold === gold0 - 8 + 24;
+    T(escortOk && afterEscort.ap === 3, 'Q3D8e 走镖结算（平安 +24文 ⇔ 劫匪真对决按胜负落账，合法二态 · ap−1）',
+      JSON.stringify({ gold: afterEscort.gold, robber: afterEscort.robber, robberWin: robberWin }) + ' gold0=' + gold0);
 
     /* ④ 移步市集（邻格 -4内息）→ 商铺货架全列 + 限量购药 */
     await page.evaluate(() => { window.__QX.showTileInfo(2); });
@@ -266,12 +288,43 @@ const { chromium } = require('playwright-core');
     T(encOk, 'Q3D8i 奇遇抉择落账（临摹 逍遥+10/修为+28 ⇔ 义葬 侠义+12/银+20，合法二选一）',
       JSON.stringify({ b: { exp: beforeEnc.exp, mp: beforeEnc.mp, gold: beforeEnc.gold }, a: { exp: afterEnc.exp, mp: afterEnc.mp, gold: afterEnc.gold } }));
 
-    /* ⑥ HUD 吐纳过旬（meditateRest 语义：回复 + 过旬 + 精力回满） */
+    /* ⑥ HUD 吐纳过旬（meditateRest 语义：气血 +45%max、内息 +60%max、过旬、精力回满——非全满） */
+    const preTurn = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
     await page.evaluate(() => { document.getElementById('btn-turn').click(); });
     await page.waitForTimeout(250);
     const afterTurn = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
-    T(afterTurn.turn === 8 && afterTurn.ap === afterTurn.maxAp && afterTurn.hp === afterTurn.maxHp && afterTurn.mp === afterTurn.maxMp,
-      'Q3D8j 吐纳过旬（第8旬 + 精力回满 + meditateRest 回满气血内息）', JSON.stringify({ turn: afterTurn.turn, ap: afterTurn.ap, hp: afterTurn.hp, mp: afterTurn.mp }));
+    const hpOk = afterTurn.hp === Math.min(afterTurn.maxHp, preTurn.hp + Math.round(afterTurn.maxHp * 0.45));
+    const mpOk = afterTurn.mp === Math.min(afterTurn.maxMp, preTurn.mp + Math.round(afterTurn.maxMp * 0.6));
+    T(afterTurn.turn === 8 && afterTurn.ap === afterTurn.maxAp && hpOk && mpOk,
+      'Q3D8j 吐纳过旬（第8旬 + 精力回满 + meditateRest 45%/60% 回复）', JSON.stringify({ turn: afterTurn.turn, ap: afterTurn.ap, hp: preTurn.hp + '→' + afterTurn.hp + '/' + afterTurn.maxHp, mp: preTurn.mp + '→' + afterTurn.mp + '/' + afterTurn.maxMp }));
+    /* ── Q3D9 组 · M2 三招对决（缉拿 e2e · 半屏出招卡 + 3D 背景糊化）────────── */
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(200);
+    const hasBountyAct = !!(await page.evaluate(() => document.querySelector('#qx-modal [data-act="bounty_duel"]')));
+    T(hasBountyAct, 'Q3D9a 缉拿动作（初始档恶徒在此格 ⇒ bounty_duel 在位）', 'bounty_duel=' + hasBountyAct);
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-act="bounty_duel"]').click(); });
+    await page.waitForTimeout(300);
+    const dl0 = await page.evaluate(() => ({
+      open: !document.getElementById('duel-overlay').classList.contains('hidden'),
+      cards: document.querySelectorAll('#duel-overlay .dl-cards .dl-card').length,
+      blur: getComputedStyle(document.getElementById('duel-overlay')).backdropFilter.length > 0,
+      intent: /敌出/.test(document.getElementById('duel-overlay').textContent),
+      enemy: /沙通天/.test(document.getElementById('duel-overlay').textContent)
+    }));
+    T(dl0.open && dl0.cards === 3 && dl0.blur && dl0.intent && dl0.enemy,
+      'Q3D9b 出招面板（半屏卡 + 背景糊化 + 意图提示 + 三槽手牌）', JSON.stringify(dl0));
+    const bPre = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    const du = await playDuelThrough();
+    const dlR = { finished: !!du.title, title: du.title, closeBtn: true };
+    T(dlR.finished && dlR.closeBtn, 'Q3D9c 三招终局（胜出 ⇔ 惜败结算面板出）', JSON.stringify(dlR));
+    const bPost = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    const win = du.win;
+    const duelOk = win
+      ? (bPost.bounties.length === 1 && bPost.gold === bPre.gold + 32 && bPost.fame === bPre.fame + 14) /* 初始档沙通天 rewardFame=14 */
+      : (bPost.bounties.length === 2 && bPost.exp === bPre.exp + 10);
+    T(duelOk, 'Q3D9d 终局落账（胜：缉拿 splice+赏银/侠名 ⇔ 败：修为+10，合法二态）',
+      JSON.stringify({ win: win, b: bPre.bounties.length + '/' + bPost.bounties.length, gold: bPre.gold + '→' + bPost.gold, exp: bPre.exp + '→' + bPost.exp }));
+
     /* Q3D6 跨世棋盘重开（QX16 语义，三步）：
      * ① 首遇 payload（存档 worldGen=null）⇒ 记值不清档（「含首次无记录续档不动」）；
      * ② gen 变大（转世）⇒ 清档 + 刷新回创角封面；

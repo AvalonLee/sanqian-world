@@ -11,7 +11,7 @@ const HERE = __dirname;
 const pieces = [
   'extract-martial.cjs', 'extract-sects.cjs', 'extract-items.cjs', 'extract-masters.cjs',
   'extract-origins.cjs', 'extract-encounters.cjs', 'extract-world-events.cjs',
-  'extract-canon.cjs', 'extract-regions.cjs', 'extract-scrolls.cjs', 'extract-state-init.cjs'
+  'extract-canon.cjs', 'extract-regions.cjs', 'extract-scrolls.cjs', 'extract-state-init.cjs', 'extract-combo.cjs'
 ];
 
 let failed = 0;
@@ -40,7 +40,8 @@ const expect = {
   'canon.js': { CANON_EVENTS_SCHEDULE: 6 },
   'regions.js': { REGIONS: 30, REALM_NAMES: 6, MAIN_QUEST_CHAPTERS: 3 },
   'scrolls.js': { SCROLL_PROPOSITIONS_DB: null, MASTER_SCROLL_TAGS: null },
-  'state-init.js': { QX3D_STATE_INIT: null }
+  'state-init.js': { QX3D_STATE_INIT: null },
+  'combo.js': { FORM_META: 3, SHI_META: 3, FORM_SHI_COMBO_NAMES: 6 }
 };
 function countOf(v) {
   if (v == null) return 0;
@@ -64,4 +65,4 @@ if (bad || failed) {
   console.log('EXTRACT_FAIL failed=' + failed + ' mismatch=' + bad);
   process.exit(1);
 }
-console.log('EXTRACT_ALL_GREEN 11 表 / 守恒断言通过');
+console.log('EXTRACT_ALL_GREEN 12 表 / 守恒断言通过');
