@@ -1,6 +1,6 @@
 /* ============================================================
  * 生成物 · 禁手改 —— 由 game/scripts/extract-items.cjs 生成，重跑覆盖
- * ITEMS_DB + ESTATE_BUILDINGS_DB 隐庐产业 + TRADE_GOODS_DB 八州行商特产
+ * ITEMS_DB + ESTATE_BUILDINGS_DB 隐庐产业 + TRADE_GOODS_DB 八州行商特产 + STEWARDS_BONUS_DESC 隐庐客卿加胜描述
  * 源切片（逐字节原样，仅追加导出垫片）：
  * view/games/qunxia/game.html L2743–L2758 · const ITEMS_DB
  * view/games/qunxia/game.html L8651–L8676 · const ESTATE_BUILDINGS_DB

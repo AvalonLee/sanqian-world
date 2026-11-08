@@ -85,6 +85,7 @@ const TABLES = [
   ['const', 'CANON_EVENTS_SCHEDULE'], ['const', 'REALM_NAMES'], ['const', 'MAIN_QUEST_CHAPTERS'],
   ['const', 'SEASONS'], ['const', 'XUNS'], ['const', 'REGIONS'],
   ['const', 'SCROLL_PROPOSITIONS_DB'], ['const', 'MASTER_SCROLL_TAGS'],
+  ['const', 'STEWARDS_BONUS_DESC'],
   ['const', 'SAVE_KEY'], ['const', 'LEGACY_STORAGE_KEY'],
   ['var', 'QUNXIA_RESULT_KEY'],
   ['let', 'tempScrollProposition'], ['let', 'tempSelectedTalents'], ['let', 'tempSelectedVow'],
@@ -113,6 +114,8 @@ const FNS = [
   'startDuel', 'pickEnemyIntentStance', 'playDuelCard', 'finishDuel', 'duelMeditate',
   /* M2 尾批：首局教学（册277 · 拍板 = 逐字复刻） */
   'startTutorialComboBattle', 'advanceTutorialStep', 'nameTutorialForm', 'renderTutorialFormPicker', 'lockTutorialCards',
+  /* M4 深度系统（systems/deep.js 对表集） */
+  'getArtUpgradeCost', 'getMaxAllowedArtLevel', 'upgradeArt', 'unlockAcupoint', 'equipInnerArt', 'toggleEquipMove', 'upgradeEstateBuilding', 'assignEstateSteward', 'doEstateWork', 'claimCanonicalSecretReward',
   'getMoveFormShi', 'isLegalShiSequence', 'synthesizeComboName', 'pickRecommendedDuelCards', 'sceneLine'
 ];
 
@@ -1092,6 +1095,81 @@ function compareTb(p, tb, label) {
   compareTb(p, p.tb, 'S28c 重置后 tb');
   compareStates(p.sb, p.nst, 'S28c 重置后 state');
 })();
+
+
+/* ══ M4：深度系统对表（systems/deep.js）═══════════════════════════════ */
+const deep = require(path.join(GAME_DIR, 'systems', 'deep.js'));
+
+/* S29a 武学升级价（tier 公式：t1 40+lv*28 / t2 85+lv*55 / t3 140+lv*85；天赋调价）*/
+(function S29a() {
+  const p = m1pair(291);
+  const sbCosts = p.sb.run('JSON.stringify([getArtUpgradeCost("taizu_changquan"), getArtUpgradeCost("songfeng_jian"), getArtUpgradeCost("wuhu_dao")])');
+  const newCosts = JSON.stringify(['taizu_changquan', 'songfeng_jian', 'wuhu_dao'].map(id => deep.getArtUpgradeCost(p.nst.st, id)));
+  check('S29a 武学升级价 t1', sbCosts === newCosts, sbCosts + ' vs ' + newCosts);
+  /* 境界上限 */
+  const sbCap = p.sb.run('getMaxAllowedArtLevel()');
+  const newCap = deep.getMaxAllowedArtLevel(p.nst.st);
+  check('S29a-2 境界上限', Number(sbCap) === newCap, sbCap + ' vs ' + newCap);
+})();
+
+/* S29b 武学升级（exp 足/不足/境界封顶） */
+(function S29b() {
+  const p = m1pair(292);
+  p.sb.run('state.exp = 500;');
+  p.nst.st.exp = 500;
+  p.sb.run('upgradeArt("taizu_changquan");');
+  deep.upgradeArt(p.nst.st, 'taizu_changquan', newEnv(p.nst.rand, 292));
+  compareStates(p.sb, p.nst, 'S29b 武学升级 lv2');
+  /* 境界封顶：realmIdx=0 ⇒ cap=2，连续升到 cap 后拒绝 */
+  p.sb.run('upgradeArt("taizu_changquan"); upgradeArt("taizu_changquan");');
+  deep.upgradeArt(p.nst.st, 'taizu_changquan', newEnv(p.nst.rand, 292));
+  deep.upgradeArt(p.nst.st, 'taizu_changquan', newEnv(p.nst.rand, 292));
+  compareStates(p.sb, p.nst, 'S29b-2 境界封顶');
+})();
+
+/* S29c 穴位冲关（百会 acu.cost 合规 ⇒ exp 扣/上限增） */
+(function S29c() {
+  const p = m1pair(293);
+  p.sb.run('state.exp = 300; state.realmIdx = 2;');
+  p.nst.st.exp = 300; p.nst.st.realmIdx = 2;
+  p.sb.run('unlockAcupoint("danzhong");');
+  deep.unlockAcupoint(p.nst.st, 'danzhong', newEnv(p.nst.rand, 293));
+  compareStates(p.sb, p.nst, 'S29c 穴位冲关');
+})();
+
+/* S29d 隐庐建筑升级（cost 表 + guojing 折扣） */
+(function S29d() {
+  const p = m1pair(294);
+  p.sb.run('state.gold = 2000; state.estate.buildings.winery = 0;');
+  p.nst.st.gold = 2000; p.nst.st.estate.buildings.winery = 0;
+  p.sb.run('upgradeEstateBuilding("winery");');
+  deep.upgradeEstateBuilding(p.nst.st, 'winery', newEnv(p.nst.rand, 294));
+  compareStates(p.sb, p.nst, 'S29d 隐庐建筑升级');
+})();
+
+/* S29e 隐庐六劳作（forage/alchemy_jade/clinic/qingxiu 四支定种） */
+[295, 296].forEach(seed => {
+  const p = m1pair(seed);
+  p.sb.run('state.estate.herbs = 5; state.estate.iron = 5;');
+  p.nst.st.estate.herbs = 5; p.nst.st.estate.iron = 5;
+  p.sb.run('doEstateWork("forage");');
+  deep.doEstateWork(p.nst.st, 'forage', newEnv(p.nst.rand, seed));
+  p.sb.run('doEstateWork("alchemy_jade");');
+  deep.doEstateWork(p.nst.st, 'alchemy_jade', newEnv(p.nst.rand, seed));
+  p.sb.run('doEstateWork("clinic");');
+  deep.doEstateWork(p.nst.st, 'clinic', newEnv(p.nst.rand, seed));
+  compareStates(p.sb, p.nst, 'S29e 隐庐劳作 forage+alchemy+clinic seed=' + seed);
+});
+
+/* S29f 传世秘境奖励（无量山：北冥神功+凌波微步+exp） */
+(function S29f() {
+  const p = m1pair(297);
+  p.sb.run('claimCanonicalSecretReward("wuliang");');
+  deep.claimCanonicalSecretReward(p.nst.st, 'wuliang', newEnv(p.nst.rand, 297));
+  compareStates(p.sb, p.nst, 'S29f 传世秘境奖励 wuliang');
+  check('S29f-2 北冥神功入身', p.nst.st.learnedArts.beiming_shengong === 1);
+})();
+
 
 
 restoreM3();

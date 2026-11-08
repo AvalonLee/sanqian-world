@@ -34,7 +34,7 @@ const dataDir = path.join(HERE, '..', 'data');
 const expect = {
   'martial.js': { MARTIAL_DB: 33, ACUPOINTS_DB: null, SYNERGIES_DB: null },
   'sects.js': { SECTS_DB: 12 },
-  'items.js': { ITEMS_DB: null, TRADE_GOODS_DB: 8, ESTATE_BUILDINGS_DB: null },
+  'items.js': { ITEMS_DB: null, TRADE_GOODS_DB: 8, ESTATE_BUILDINGS_DB: null, STEWARDS_BONUS_DESC: null },
   'masters.js': { MASTERS_INIT: 24 },
   'masters-stories.js': { MASTER_STAGE_REQS: 3, MASTER_STORIES: null },
   'side-cast.js': { SIDE_CAST: 34 },

@@ -386,6 +386,36 @@
   .dl-tut-btn.primary { background: var(--gold); color: var(--xuan-light); }
   .dl-tut-btn.done { background: var(--jade); border-color: var(--jade); }
   .dl-tut-note { grid-column: 1 / -1; text-align: center; font-size: 12.5px; color: var(--ink-mid); letter-spacing: 2px; padding: 14px 0; }
+
+  /* ===== M4：五抽屉纸面面板 ===== */
+  #drawer-overlay {
+    position: fixed; inset: 0; z-index: 58; display: flex; align-items: center; justify-content: center;
+    background: rgba(239, 229, 207, 0.4); backdrop-filter: blur(4px);
+  }
+  #drawer-overlay.hidden { display: none; }
+  .dw-sheet {
+    width: min(720px, 94vw); max-height: 86vh; overflow-y: auto;
+    background: linear-gradient(165deg, #faf4e6 0%, #f1e6cf 100%);
+    border: 1px solid rgba(67, 58, 49, 0.55); border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(29, 25, 21, 0.3); padding: 14px 18px;
+  }
+  .dw-head { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(67,58,49,.3); padding-bottom: 8px; margin-bottom: 8px; }
+  .dw-title { font-size: 16px; color: var(--ink-deep); letter-spacing: 3px; }
+  .dw-sub { font-size: 11px; color: var(--ink-soft); }
+  .dw-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+  .dw-tab { font-family: var(--serif); font-size: 13px; cursor: pointer; padding: 4px 14px; border: 1px solid rgba(67,58,49,.35); background: rgba(255,252,244,.8); color: var(--ink-mid); border-radius: 6px; }
+  .dw-tab.on { background: var(--cinnabar); color: var(--xuan-light); border-color: var(--cinnabar); font-weight: 700; }
+  .dw-body { min-height: 200px; }
+  .dw-sec { margin-bottom: 10px; }
+  .dw-h { font-size: 11px; letter-spacing: 3px; color: var(--jade); border-left: 3px solid var(--jade); padding-left: 7px; margin-bottom: 6px; }
+  .dw-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; }
+  .dw-name { font-size: 13px; color: var(--ink-deep); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .dw-lv { font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+  .dw-btn { font-family: var(--serif); font-size: 11px; cursor: pointer; padding: 3px 10px; border: 1px solid rgba(67,58,49,.4); background: rgba(255,252,244,.8); color: var(--ink-mid); border-radius: 4px; white-space: nowrap; }
+  .dw-btn:hover { border-color: var(--ink-mid); }
+  .dw-btn.off { opacity: 0.4; cursor: not-allowed; }
+  .dw-btn.sm { font-size: 10px; padding: 2px 7px; }
+  .dw-btn.full { display: block; width: 100%; text-align: left; margin: 3px 0; }
 </style>
 </head>
 <body>
@@ -403,6 +433,7 @@
   </div>
 
   <div class="toolbar">
+    <button class="ink-btn" id="btn-drawer" style="display:none">📚 五抽屉</button>
     <button class="ink-btn" id="btn-create">创角入世</button>
     <button class="ink-btn" id="btn-turn" style="display:none">🧘 吐纳过旬</button>
     <button class="ink-btn" id="btn-reset">复位视角</button>
@@ -519,10 +550,12 @@
   <script src="./game/systems/tiles.js"></script>
   <script src="./game/systems/combat.js"></script>
   <script src="./game/systems/payload.js"></script>
+  <script src="./game/systems/deep.js"></script>
   <!-- 表现层 -->
   <script src="./game/ui/hud.js"></script>
   <script src="./game/ui/panels.js"></script>
   <script src="./game/ui/duel.js"></script>
+  <script src="./game/ui/drawer.js"></script>
   <script src="./game/ui/creation.js"></script>
   <script src="./game/app.js"></script>
   <script src="./board3d.js"></script>

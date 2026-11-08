@@ -98,6 +98,7 @@
     document.getElementById('hud-bar').classList.toggle('show', has);
     document.getElementById('logs-panel').classList.toggle('show', has);
     document.getElementById('btn-turn').style.display = has ? '' : 'none';
+    document.getElementById('btn-drawer').style.display = has ? '' : 'none';
   }
 
   /* ── 吐纳过旬（原版 meditateRest :5806：回复 + 过旬 + 精力回满）───────────── */
@@ -272,6 +273,10 @@
 
     /* 按钮 */
     document.getElementById('btn-turn').addEventListener('click', onTurnAdvance);
+    document.getElementById('btn-drawer').addEventListener('click', function () {
+      if (!st || !st.hasCreatedChar) return;
+      ui.drawer.open(st);
+    });
     document.getElementById('btn-create').addEventListener('click', function () {
       if (st && st.hasCreatedChar) { ui.hud.toast('本世已入江湖（重开世走扩展轮回）。', 'amber'); return; }
       ui.creation.open(st);
@@ -292,7 +297,20 @@
     onTravel: onTravel,
     runAction: runAction,
     openActions: openActions,
-    /* duel 层回调面 */
+    /* M4 深度系统动作口 */
+    runDeep: function (act) {
+      if (!st || !st.hasCreatedChar) return;
+      var e = env();
+      if (act.indexOf("upgradeArt_") === 0) systems.deep.upgradeArt(st, act.slice(11), e);
+      else if (act.indexOf("equipInner_") === 0) systems.deep.equipInnerArt(st, act.slice(11), e);
+      else if (act.indexOf("toggleMove_") === 0) systems.deep.toggleEquipMove(st, act.slice(11), e);
+      else if (act.indexOf("acupoint_") === 0) systems.deep.unlockAcupoint(st, act.slice(9), e);
+      else if (act.indexOf("estate_") === 0) systems.deep.upgradeEstateBuilding(st, act.slice(7), e);
+      else if (act.indexOf("work_") === 0) systems.deep.doEstateWork(st, act.slice(5), e);
+      save();
+      ui.hud.render(st);
+    },
+    afterTutorial: function () { if (st) ui.hud.render(st); },
     env: env,
     afterTutorial: function () { if (st) ui.hud.render(st); },
     save: save,
