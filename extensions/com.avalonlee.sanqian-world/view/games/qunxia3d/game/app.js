@@ -99,6 +99,8 @@
     document.getElementById('logs-panel').classList.toggle('show', has);
     document.getElementById('btn-turn').style.display = has ? '' : 'none';
     document.getElementById('btn-drawer').style.display = has ? '' : 'none';
+    var endingReady = has && st.turn >= st.maxTurns;
+    document.getElementById('btn-ending').style.display = endingReady ? '' : 'none';
   }
 
   /* ── 吐纳过旬（原版 meditateRest :5806：回复 + 过旬 + 精力回满）───────────── */
@@ -325,8 +327,18 @@
       ui.hud.render(st);
     },
     afterTutorial: function () { if (st) ui.hud.render(st); },
+    rebirthDone: function (meta) {
+      /* 周目结算/道途铭刻后：清档 → 刷新回创角（门环重定向自动接管） */
+      ui.hud.toast('🏆 周目结算完成！+碑点已入碑林。即将开启新周目…', 'emerald');
+      setTimeout(function () { root.location.reload(); }, 1500);
+    },
     env: env,
     afterTutorial: function () { if (st) ui.hud.render(st); },
+    rebirthDone: function (meta) {
+      /* 周目结算/道途铭刻后：清档 → 刷新回创角（门环重定向自动接管） */
+      ui.hud.toast('🏆 周目结算完成！+碑点已入碑林。即将开启新周目…', 'emerald');
+      setTimeout(function () { root.location.reload(); }, 1500);
+    },
     save: save,
     renderHud: function () { ui.hud.render(st); }
   };

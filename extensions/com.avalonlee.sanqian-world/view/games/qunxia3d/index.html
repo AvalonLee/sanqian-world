@@ -416,6 +416,43 @@
   .dw-btn.off { opacity: 0.4; cursor: not-allowed; }
   .dw-btn.sm { font-size: 10px; padding: 2px 7px; }
   .dw-btn.full { display: block; width: 100%; text-align: left; margin: 3px 0; }
+
+  /* ===== M6：终局六道途面板 ===== */
+  #ending-overlay {
+    position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center;
+    background: rgba(239, 229, 207, 0.95);
+  }
+  #ending-overlay.hidden { display: none; }
+  .ep-sheet {
+    width: min(780px, 95vw); max-height: 92vh; overflow-y: auto;
+    background: linear-gradient(165deg, #faf4e6 0%, #f1e6cf 100%);
+    border: 2px solid var(--gold); border-radius: 14px;
+    box-shadow: 0 0 40px rgba(196,164,74,.3), 0 8px 30px rgba(29,25,21,.3);
+    padding: 16px 20px;
+  }
+  .ep-head { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--gold); padding-bottom: 10px; margin-bottom: 10px; }
+  .ep-head > b { font-size: 15px; color: var(--ink-deep); letter-spacing: 2px; }
+  .ep-cycle { font-size: 11px; color: var(--gold); font-weight: 700; margin-left: auto; }
+  .ep-paths { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+  .ep-card { border: 1.5px solid rgba(67,58,49,.4); border-radius: 8px; padding: 9px 11px; background: rgba(255,252,244,.85); }
+  .ep-card.ep-done { border-color: var(--jade); background: rgba(43,107,94,.08); }
+  .ep-card > b { font-size: 12.5px; color: var(--ink-deep); }
+  .ep-card > p { font-size: 10.5px; color: var(--ink-soft); margin: 3px 0; line-height: 1.5; }
+  .ep-progress { font-size: 10.5px; color: var(--ink-mid); border-top: 1px dashed rgba(67,58,49,.3); padding-top: 4px; }
+  .ep-action { margin-top: 5px; }
+  .ep-perks { margin-bottom: 12px; }
+  .ep-perk { display: flex; flex-direction: column; gap: 2px; width: 48%; display: inline-flex; border: 1.5px solid rgba(67,58,49,.35); border-radius: 7px; padding: 7px 10px; cursor: pointer; background: rgba(255,252,244,.8); margin: 2px 1%; text-align: left; font-family: var(--serif); vertical-align: top; }
+  .ep-perk.active { border-color: var(--gold); background: rgba(179,126,36,.08); }
+  .ep-perk > b { font-size: 12px; color: var(--ink-deep); }
+  .ep-perk > span { font-size: 10px; color: var(--ink-soft); line-height: 1.4; }
+  .ep-perk > i { font-size: 10px; font-style: normal; color: var(--gold); font-weight: 700; }
+  .ep-verdict { border: 1px solid rgba(67,58,49,.3); border-radius: 8px; padding: 10px 14px; background: rgba(236,224,200,.6); margin-bottom: 10px; }
+  .ep-verdict > b { font-size: 13px; color: var(--ink-deep); }
+  .ep-poem { font-size: 11px; color: var(--ink-soft); font-style: italic; margin-top: 4px; }
+  .ep-foot { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px dashed rgba(67,58,49,.3); }
+  .ep-btn { font-family: var(--serif); font-size: 13px; cursor: pointer; border-radius: 7px; padding: 8px 18px; }
+  .ep-btn.ghost { background: rgba(67,58,49,.1); border: 1px solid rgba(67,58,49,.4); color: var(--ink-mid); }
+  .ep-btn.settle { background: var(--cinnabar); color: var(--xuan-light); border: none; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -434,6 +471,7 @@
 
   <div class="toolbar">
     <button class="ink-btn" id="btn-drawer" style="display:none">📚 五抽屉</button>
+    <button class="ink-btn" id="btn-ending" style="display:none;color:var(--gold);border-color:var(--gold)">🏆 论剑终局</button>
     <button class="ink-btn" id="btn-create">创角入世</button>
     <button class="ink-btn" id="btn-turn" style="display:none">🧘 吐纳过旬</button>
     <button class="ink-btn" id="btn-reset">复位视角</button>
@@ -560,6 +598,7 @@
   <script src="./game/ui/panels.js"></script>
   <script src="./game/ui/duel.js"></script>
   <script src="./game/ui/drawer.js"></script>
+  <script src="./game/ui/endings-ui.js"></script>
   <script src="./game/ui/creation.js"></script>
   <script src="./game/app.js"></script>
   <script src="./board3d.js"></script>
