@@ -1,10 +1,9 @@
 /* ============================================================
  * 生成物 · 禁手改 —— 由 game/scripts/extract-endings.cjs 生成，重跑覆盖
- * LIFE_PATHS_DB 六道途（isDone/progressText 闭包逐字）+ LEGACY_PERKS_DB 碑林五遗泽 + ENDINGS_DB 六判词
+ * LIFE_PATHS_DB 六道途（isDone/progressText 闭包逐字）+ LEGACY_PERKS_DB 碑林五遗泽 
  * 源切片（逐字节原样，仅追加导出垫片）：
  * view/games/qunxia/game.html L9641–L9710 · const LIFE_PATHS_DB
  * view/games/qunxia/game.html L9712–L9718 · const LEGACY_PERKS_DB
- * view/games/qunxia/game.html L2849–L2898 · const ENDINGS_DB
  * ============================================================ */
 
     const LIFE_PATHS_DB = [
@@ -84,61 +83,11 @@
       { id: 'perk_taixuan',cost: 100,name: '📜【太玄残篇】', desc: '下周目开局直接领悟无上内功《太玄经神功》（第1重）与《斗转星移》（第1重）！' },
       { id: 'perk_hard',   cost: 0,  name: '🔥【宗师劫难模式】', desc: '免费高难挑战：全江湖强敌战力提升 +35%，过招获胜修为与赏银奖励额外 +50%！' }
     ];
-    const ENDINGS_DB = [
-      {
-        id: 'ending_alliance_lord',
-        title: '【结局一 · 侠之大者 · 武林盟主】',
-        tag: '正道魁首',
-        conditionDesc: '通关华山绝顶终战 + 侠义心性 ≥ 60',
-        poem: '“铁肩担道义，肝胆照昆仑。一剑平四海，九州仰侠名。”',
-        epilogue: '你在华山绝顶击败玄冥神君慕容绝，将三卷《山河武典》公诸正道以止干戈。萧峰、郭靖、张无忌等群豪公推你执掌武林盟主帅印。此后二十年间，你率中原义士北御铁骑、内靖江湖，成为万民敬仰的一代巨侠。'
-      },
-      {
-        id: 'ending_sword_god',
-        title: '【结局二 · 独孤求败 · 绝代剑神】',
-        tag: '剑道神话',
-        conditionDesc: '通关华山绝顶终战 + 狂傲心性最高（或独孤九剑/黯然销魂掌精深）',
-        poem: '“纵横江湖三十载，杀尽仇寇，败尽英雄，天下更无抗手！”',
-        epilogue: '华山之巅一战，你以无上剑意三招震碎慕容绝护体神功。满山剑客尽皆俯首，无人敢撄其锋。你婉拒了武林盟主之位，与杨过、黄药师于东海孤峰论剑听涛，最终在独孤剑冢留下「无招胜有招」五字，飘然远引。'
-      },
-      {
-        id: 'ending_free_immortal',
-        title: '【结局三 · 笑傲沧海 · 逍遥剑仙】',
-        tag: '琴箫江湖',
-        conditionDesc: '通关华山绝顶终战 + 逍遥心性最高',
-        poem: '“沧海一声笑，滔滔两岸潮。浮沉随浪只记今朝。”',
-        epilogue: '大仇既报，武典既归，你视功名霸业如浮云。在洛水画舫与令狐冲、段誉、小龙女抚琴吹箫，饮遍九州名酒，踏遍苍山洱海与桃花仙岛。江湖上只留下你三招破敌的潇洒传说，却无人知晓你的去向。'
-      },
-      {
-        id: 'ending_grand_patriarch',
-        title: '【结局四 · 三才合一 · 开山立圣】',
-        tag: '一代武圣',
-        conditionDesc: '通关华山绝顶终战 + 晋升一派掌门或习得 8 门以上绝学',
-        poem: '“刚柔巧变归太极，九阳北冥汇丹田。开宗立派传千古，敢笑达摩与重阳。”',
-        epilogue: '你不仅平定了血衣楼十年浩劫，更执掌宗门帅印，融汇三卷《山河武典》与少林、武当、桃花、大理诸派绝学于一炉，打破正邪门户之见，于嵩山与华山之间开创「山河书院」，开启武林百年盛世！'
-      },
-      {
-        id: 'ending_hegemon',
-        title: '【结局五 · 唯我独尊 · 九州霸主】',
-        tag: '一代枭雄',
-        conditionDesc: '狂傲心性极高且未走正道结盟路线',
-        poem: '“顺我昌兮逆我亡，手握武典统八荒。华山绝顶谁称尊，万里山河一剑霜。”',
-        epilogue: '斩杀慕容绝后，你独掌三卷《山河武典》与玄冥血衣楼旧部，以雷霆手腕弹压不服之门派。虽背负霸道枭雄之名，却令九州黑道宵小闻风丧胆，开创铁血秩序。'
-      },
-      {
-        id: 'ending_hermit',
-        title: '【结局六 · 烟雨归舟 · 江湖散人】',
-        tag: '全身而退',
-        conditionDesc: '年满 36 旬但尚未完成华山终章决战',
-        poem: '“十年一觉江湖梦，赢得青衫两袖风。回首华山云雾锁，扁舟一叶入烟波。”',
-        epilogue: '三年论剑之期已至，你虽未能在华山绝顶彻底了结血衣楼宿怨，却也在九州行脚间结交了不少奇人异士。倦看江湖恩怨厮杀，你于江南烟雨楼畔买下一叶扁舟，从此归隐水乡。'
-      }
-    ];
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { LIFE_PATHS_DB: LIFE_PATHS_DB, LEGACY_PERKS_DB: LEGACY_PERKS_DB, ENDINGS_DB: ENDINGS_DB };
+  module.exports = { LIFE_PATHS_DB: LIFE_PATHS_DB, LEGACY_PERKS_DB: LEGACY_PERKS_DB };
 } else {
   var __g = (typeof window !== "undefined") ? window : globalThis;
   __g.QX3D_DATA = __g.QX3D_DATA || {};
-  Object.assign(__g.QX3D_DATA, { LIFE_PATHS_DB, LEGACY_PERKS_DB, ENDINGS_DB });
+  Object.assign(__g.QX3D_DATA, { LIFE_PATHS_DB, LEGACY_PERKS_DB });
 }

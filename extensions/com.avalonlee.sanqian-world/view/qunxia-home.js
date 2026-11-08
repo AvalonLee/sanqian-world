@@ -5,7 +5,7 @@
  * 双路由（册272 · 三维棋盘原型入库）：classic = games/qunxia/game.html（现行版），
  * 3d = games/qunxia3d/index.html（三维水墨原型，游戏化改造中——总纲见其目录内
  * 《游戏化改造计划书.md》）。开关：URL 带 ?engine=3d / ?engine=classic 时持久化到
- * localStorage 'qunxia3d-engine'，否则按已存值；缺省 classic。最终形态（用户拍板）=
+ * localStorage 'qunxia3d-engine'，否则按已存值；缺省 3d（册282 M7 翻转）。最终形态（用户拍板）=
  * 扩展启动层出世界选择器（修仙=原路径 / 武侠=本路由），3d 版成熟后替换 classic。
  */
 (function () {
@@ -22,7 +22,7 @@
       var p = new URLSearchParams(location.search);
       var q = p.get('engine');
       if (q === '3d' || q === 'classic') { localStorage.setItem(ENGINE_KEY, q === '3d' ? '1' : '0'); return q; }
-      return localStorage.getItem(ENGINE_KEY) === '1' ? '3d' : 'classic';
+      return localStorage.getItem(ENGINE_KEY) === '0' ? 'classic' : '3d'; /* M7：缺省翻转 → 3d */
     } catch (e) { return 'classic'; }
   }
 
