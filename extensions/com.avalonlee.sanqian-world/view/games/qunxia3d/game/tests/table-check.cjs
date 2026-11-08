@@ -116,6 +116,12 @@ const FNS = [
   'startTutorialComboBattle', 'advanceTutorialStep', 'nameTutorialForm', 'renderTutorialFormPicker', 'lockTutorialCards',
   /* M4 深度系统（systems/deep.js 对表集） */
   'getArtUpgradeCost', 'getMaxAllowedArtLevel', 'upgradeArt', 'unlockAcupoint', 'equipInnerArt', 'toggleEquipMove', 'upgradeEstateBuilding', 'assignEstateSteward', 'doEstateWork', 'claimCanonicalSecretReward',
+  /* M5 名宿交互（systems/masters.js 对表集） */
+  'chatWithMaster', 'learnFromMaster', 'duelMaster', 'resolveMasterStoryStage',
+  /* M5 名宿交互（systems/masters.js 对表集） */
+  'chatWithMaster', 'learnFromMaster', 'duelMaster', 'resolveMasterStoryStage',
+  /* M5 名宿交互（systems/masters.js 对表集） */
+  'chatWithMaster', 'learnFromMaster', 'duelMaster', 'resolveMasterStoryStage',
   'getMoveFormShi', 'isLegalShiSequence', 'synthesizeComboName', 'pickRecommendedDuelCards', 'sceneLine'
 ];
 
@@ -1170,6 +1176,69 @@ const deep = require(path.join(GAME_DIR, 'systems', 'deep.js'));
   check('S29f-2 北冥神功入身', p.nst.st.learnedArts.beiming_shengong === 1);
 })();
 
+
+
+/* ══ M5：名宿交互对表（systems/masters.js）═════════════════════════════ */
+restoreM3(); /* M5 场景须从清洁表起步 */
+const mastersSys = require(path.join(GAME_DIR, 'systems', 'masters.js'));
+
+/* S30a 把酒论交（好感+12/银-8/名+4/修为+10/限一次） */
+(function S30a() {
+  const p = m1pair(301);
+  p.sb.run('state.currentRegion = "luoyang"; chatWithMaster("xiaofeng"); chatWithMaster("xiaofeng");');
+  mastersSys.chatWithMaster(p.nst.st, 'xiaofeng', newEnv(p.nst.rand, 301));
+  mastersSys.chatWithMaster(p.nst.st, 'xiaofeng', newEnv(p.nst.rand, 301));
+  compareStates(p.sb, p.nst, 'S30a 把酒+限一次');
+})();
+
+/* S30b 请益授艺（好感>=55 + exp>=40 ⇒ 学艺 + taughtOnce；再点拒） */
+(function S30b() {
+  const p = m1pair(302);
+  p.sb.run('state.exp = 200; state.masters.find(function(m){return m.id==="xiaofeng";}).affinity = 60;');
+  p.nst.st.exp = 200;
+  p.nst.st.masters.find(function (m) { return m.id === 'xiaofeng'; }).affinity = 60;
+  p.sb.run('learnFromMaster("xiaofeng"); learnFromMaster("xiaofeng");');
+  deep; /* noop */
+  mastersSys.learnFromMaster(p.nst.st, 'xiaofeng', newEnv(p.nst.rand, 302));
+  mastersSys.learnFromMaster(p.nst.st, 'xiaofeng', newEnv(p.nst.rand, 302));
+  compareStates(p.sb, p.nst, 'S30b 请益授艺+taughtOnce');
+})();
+
+/* S30c 切磋参数构造（冷却/HP 门槛） */
+(function S30c() {
+  const p = m1pair(303);
+  p.sb.run('state.masters.find(function(m){return m.id==="xiaofeng";}).lastDuelTurn = state.turn - 5;');
+  p.nst.st.masters.find(function (m) { return m.id === 'xiaofeng'; }).lastDuelTurn = p.nst.st.turn - 5;
+  /* 原版 duelMaster 不返回参数（startDuel 即调用），截 startDuel 参数对拍 */
+  p.sb.run('window.__lastDuel = null; startDuel = function(cfg) { window.__lastDuel = cfg; };');
+  p.sb.run('duelMaster("xiaofeng");');
+  var sbDp = JSON.parse(p.sb.run('JSON.stringify(window.__lastDuel)'));
+  var dp = mastersSys.duelMaster(p.nst.st, 'xiaofeng', newEnv(p.nst.rand, 303));
+  var r = deepEq(sbDp, JSON.parse(JSON.stringify(dp)), 'duelParams');
+  check('S30c 切磋参数', r === null, r || undefined);
+})();
+
+/* S30d 三幕传记（resolveMasterStoryStage 步进 + rewardArt） */
+(function S30d() {
+  const p = m1pair(304);
+  p.sb.run('state.ap = 5; state.exp = 100; state.realmIdx = 2; state.masters.find(function(m){return m.id==="xiaofeng";}).affinity = 85;');
+  p.nst.st.ap = 5; p.nst.st.exp = 100; p.nst.st.realmIdx = 2;
+  p.nst.st.masters.find(function (m) { return m.id === 'xiaofeng'; }).affinity = 85;
+  /* 第 1 幕 */
+  p.sb.run('resolveMasterStoryStage("xiaofeng", 0, "A");');
+  mastersSys.resolveMasterStoryStage(p.nst.st, 'xiaofeng', 0, 'A', newEnv(p.nst.rand, 304));
+  compareStates(p.sb, p.nst, 'S30d 第1幕后');
+  /* 第 2 幕（branch B → 无对决路径） */
+  p.sb.run('resolveMasterStoryStage("xiaofeng", 1, "B");');
+  mastersSys.resolveMasterStoryStage(p.nst.st, 'xiaofeng', 1, 'B', newEnv(p.nst.rand, 304));
+  compareStates(p.sb, p.nst, 'S30d 第2幕后');
+  /* 第 3 幕（rewardArt 授艺） */
+  p.sb.run('resolveMasterStoryStage("xiaofeng", 2, "A", MASTER_STAGE_REQS[2].apCost);');
+  mastersSys.resolveMasterStoryStage(p.nst.st, 'xiaofeng', 2, 'A', newEnv(p.nst.rand, 304));
+  compareStates(p.sb, p.nst, 'S30d 第3幕后');
+  check('S30d 传记奖励 art', p.nst.st.learnedArts.xianglong_zhang >= 1,
+    JSON.stringify({ xianglong: p.nst.st.learnedArts.xianglong_zhang }));
+})();
 
 
 restoreM3();

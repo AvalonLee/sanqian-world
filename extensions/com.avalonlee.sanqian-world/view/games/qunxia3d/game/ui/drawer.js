@@ -169,11 +169,29 @@
 
   /* ── 名册 tab ── */
   function renderRoster() {
-    var html = '<div class="dw-sec"><div class="dw-h">名宿录（已识 ' + (st.masters || []).length + ' 人）</div>';
-    (st.masters || []).slice(0, 12).forEach(function (m) {
-      html += '<div class="dw-row"><span class="dw-name">' + m.name + '</span><span class="dw-lv">' + (m.title || '') + ' · 好感 ' + (m.affinity || 0) + '</span></div>';
+    var sys = systems.masters;
+    var here = sys.mastersAt(st, st.currentRegion);
+    var html = '<div class="dw-sec"><div class="dw-h">在本境 · ' + here.length + ' 人</div>';
+    if (!here.length) html += '<div class="dw-dim">本境无常驻名宿（名宿每月游走）。</div>';
+    here.forEach(function (m) {
+      html += '<div class="dw-row"><span class="dw-name"><b>' + m.name + '</b> ' + (m.title || '') + '</span><span class="dw-lv">好感 ' + (m.affinity || 0) + '</span></div>';
+      html += '<div class="dw-actions">' +
+        '<button class="dw-btn sm" data-m="chat_' + m.id + '">把酒(8文)</button>' +
+        '<button class="dw-btn sm" data-m="learn_' + m.id + '">请益</button>' +
+        '<button class="dw-btn sm" data-m="duel_' + m.id + '">切磋</button>';
+      var stage = m.storyStage || 0;
+      if (stage < 3) {
+        html += '<button class="dw-btn sm" data-m="story_' + m.id + '_' + stage + '">传记第' + (stage + 1) + '幕</button>';
+      } else {
+        html += '<span class="dw-lv">传记圆满 ✓</span>';
+      }
+      html += '</div>';
     });
-    html += '</div><div class="dw-dim">名宿交互（把酒/切磋/授艺/传记）= M5 叙事线批。</div>';
+    html += '</div><div class="dw-sec"><div class="dw-h">所有名宿（' + (st.masters || []).length + ' 人）</div>';
+    (st.masters || []).slice(0, 12).forEach(function (m) {
+      html += '<div class="dw-row"><span class="dw-name">' + m.name + '</span><span class="dw-lv">' + (m.title || '') + ' · ' + (m.region || '') + '</span></div>';
+    });
+    html += '</div>';
     return html;
   }
 
@@ -184,6 +202,13 @@
     if (closeBtn) closeBtn.addEventListener('click', close);
     Array.prototype.forEach.call(overlay.querySelectorAll('[data-tab]'), function (b) {
       b.addEventListener('click', function () { tab = b.getAttribute('data-tab'); render(); });
+    });
+    Array.prototype.forEach.call(overlay.querySelectorAll('[data-m]'), function (b) {
+      b.addEventListener('click', function () {
+        if (b.disabled) return;
+        root.QX3D_APP.runMaster(b.getAttribute('data-m'));
+        render();
+      });
     });
     Array.prototype.forEach.call(overlay.querySelectorAll('[data-deep]'), function (b) {
       if (b.disabled) return;

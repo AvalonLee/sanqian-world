@@ -298,6 +298,20 @@
     runAction: runAction,
     openActions: openActions,
     /* M4 深度系统动作口 */
+    runMaster: function (act) {
+      if (!st || !st.hasCreatedChar) return;
+      var e = env();
+      var us = systems.masters;
+      if (act.indexOf("chat_") === 0) us.chatWithMaster(st, act.slice(5), e);
+      else if (act.indexOf("learn_") === 0) us.learnFromMaster(st, act.slice(6), e);
+      else if (act.indexOf("duel_") === 0) us.duelMaster(st, act.slice(5), e);
+      else if (act.indexOf("story_") === 0) {
+        var parts = act.slice(6).split("_");
+        us.resolveMasterStoryStage(st, parts[0], parseInt(parts[1]) || 0, "A", e);
+      }
+      save();
+      ui.hud.render(st);
+    },
     runDeep: function (act) {
       if (!st || !st.hasCreatedChar) return;
       var e = env();

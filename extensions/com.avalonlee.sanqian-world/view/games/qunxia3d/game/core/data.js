@@ -14,7 +14,7 @@
   if (typeof module !== 'undefined' && module.exports) {
     var r = function (f) { return require('../data/' + f); };
     D = Object.assign({},
-      r('martial.js'), r('sects.js'), r('items.js'), r('masters.js'), r('origins.js'),
+      r('martial.js'), r('sects.js'), r('items.js'), r('masters.js'), r('masters-stories.js'), r('origins.js'),
       r('encounters.js'), r('world-events.js'), r('canon.js'), r('regions.js'),
       r('scrolls.js'), r('state-init.js'), r('combo.js'));
   } else {
