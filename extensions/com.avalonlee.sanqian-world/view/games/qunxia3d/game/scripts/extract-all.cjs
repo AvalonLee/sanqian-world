@@ -13,7 +13,9 @@ const pieces = [
   'extract-origins.cjs', 'extract-encounters.cjs', 'extract-world-events.cjs',
   'extract-canon.cjs', 'extract-regions.cjs', 'extract-scrolls.cjs', 'extract-state-init.cjs', 'extract-combo.cjs',
   'extract-demo-geo.cjs',
-  'extract-demo-geo.cjs'
+  'extract-endings.cjs',
+  'extract-demo-geo.cjs',
+  'extract-endings.cjs'
 ];
 
 let failed = 0;
@@ -38,6 +40,7 @@ const expect = {
   'masters.js': { MASTERS_INIT: 24 },
   'masters-stories.js': { MASTER_STAGE_REQS: 3, MASTER_STORIES: null },
   'side-cast.js': { SIDE_CAST: 34 },
+  'endings.js': { LIFE_PATHS_DB: 6, LEGACY_PERKS_DB: 5, ENDINGS_DB: 6 },
   'demo-geo.js': { GEO_POINTS: 30, RIVERS: 2 },
   'origins.js': { ORIGINS: 6, TALENTS_POOL: 16, OPENING_VOWS_DB: 3, ENDINGS_DB: 6 },
   'encounters.js': { MID_ROAD_EVENTS: 8, SECRET_REALMS_DB: null },

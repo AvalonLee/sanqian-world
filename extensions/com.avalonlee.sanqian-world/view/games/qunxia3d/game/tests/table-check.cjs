@@ -86,6 +86,8 @@ const TABLES = [
   ['const', 'SEASONS'], ['const', 'XUNS'], ['const', 'REGIONS'],
   ['const', 'SCROLL_PROPOSITIONS_DB'], ['const', 'MASTER_SCROLL_TAGS'],
   ['const', 'STEWARDS_BONUS_DESC'],
+  ['const', 'LIFE_PATHS_DB'],
+  ['const', 'LEGACY_PERKS_DB'],
   ['const', 'SAVE_KEY'], ['const', 'LEGACY_STORAGE_KEY'],
   ['var', 'QUNXIA_RESULT_KEY'],
   ['let', 'tempScrollProposition'], ['let', 'tempSelectedTalents'], ['let', 'tempSelectedVow'],
@@ -118,10 +120,16 @@ const FNS = [
   'getArtUpgradeCost', 'getMaxAllowedArtLevel', 'upgradeArt', 'unlockAcupoint', 'equipInnerArt', 'toggleEquipMove', 'upgradeEstateBuilding', 'assignEstateSteward', 'doEstateWork', 'claimCanonicalSecretReward',
   /* M5 名宿交互（systems/masters.js 对表集） */
   'chatWithMaster', 'learnFromMaster', 'duelMaster', 'resolveMasterStoryStage',
+  /* M6 终局/周目（systems/endings.js 对表集） */
+  'startNewGamePlus', 'claimPathVictoryAndReincarnate', 'toggleLegacyPerk',
   /* M5 名宿交互（systems/masters.js 对表集） */
   'chatWithMaster', 'learnFromMaster', 'duelMaster', 'resolveMasterStoryStage',
+  /* M6 终局/周目（systems/endings.js 对表集） */
+  'startNewGamePlus', 'claimPathVictoryAndReincarnate', 'toggleLegacyPerk',
   /* M5 名宿交互（systems/masters.js 对表集） */
   'chatWithMaster', 'learnFromMaster', 'duelMaster', 'resolveMasterStoryStage',
+  /* M6 终局/周目（systems/endings.js 对表集） */
+  'startNewGamePlus', 'claimPathVictoryAndReincarnate', 'toggleLegacyPerk',
   'getMoveFormShi', 'isLegalShiSequence', 'synthesizeComboName', 'pickRecommendedDuelCards', 'sceneLine'
 ];
 
@@ -1238,6 +1246,62 @@ const mastersSys = require(path.join(GAME_DIR, 'systems', 'masters.js'));
   compareStates(p.sb, p.nst, 'S30d 第3幕后');
   check('S30d 传记奖励 art', p.nst.st.learnedArts.xianglong_zhang >= 1,
     JSON.stringify({ xianglong: p.nst.st.learnedArts.xianglong_zhang }));
+})();
+
+
+/* ══ M6：终局/周目/碑林对表（systems/endings.js）══════════════════════ */
+restoreM3(); /* M6 场景从清洁表起步 */
+const endingsSys = require(path.join(GAME_DIR, 'systems', 'endings.js'));
+
+/* S31a 六道途进度（isDone/progressText 扫描） */
+(function S31a() {
+  const p = m1pair(311);
+  p.sb.run('state.karma.xiayi = 60; state.masters[0].affinity = 85; state.masters[1].affinity = 85; state.masters[0].storyStage = 3; state.masters[1].storyStage = 3;');
+  p.nst.st.karma.xiayi = 60; p.nst.st.masters[0].affinity = 85; p.nst.st.masters[1].affinity = 85; p.nst.st.masters[0].storyStage = 3; p.nst.st.masters[1].storyStage = 3;
+  var newPaths = endingsSys.evaluatePaths(p.nst.st);
+  var doneCount = newPaths.filter(function(p) { return p.done; }).length;
+  check('S31a 六道途 isDone 扫描', newPaths.length === 6 && doneCount >= 1,
+    JSON.stringify({ total: newPaths.length, doneCount: doneCount }));
+})();
+
+/* S31b 终局评判（ENDINGS_DB isDone 取首个达成） */
+(function S31b() {
+  const p = m1pair(312);
+  p.sb.run('state.karma.xiayi = 60; state.masters[0].affinity = 85; state.masters[0].storyStage = 3; state.masters[1].affinity = 85; state.masters[1].storyStage = 3;');
+  p.nst.st.karma.xiayi = 60; p.nst.st.masters[0].affinity = 85; p.nst.st.masters[0].storyStage = 3; p.nst.st.masters[1].affinity = 85; p.nst.st.masters[1].storyStage = 3;
+  var newEnding = endingsSys.evaluateBestEnding(p.nst.st);
+  check('S31b 终局评判', newEnding && newEnding.title, JSON.stringify({ title: newEnding.title }));
+})();
+
+/* S31c 周目结算（直验：cycle++ + legacyPoints+60 + save 清） */
+(function S31c() {
+  stubStore.clear();
+  stubStore.removeItem('jianghu_legacy_meta_v1');
+  var p = m1pair(313);
+  var newMeta = endingsSys.startNewGamePlus(p.nst.st, stubStore, newEnv(p.nst.rand, 313));
+  check('S31c 周目结算 cycle++/碑点+60', newMeta.cycleCount === 2 && newMeta.legacyPoints === 60,
+    JSON.stringify(newMeta));
+  check('S31c-2 存档清空', stubStore.getItem(coreState.SAVE_KEY) === null);
+})();
+/* S31d 道途铭刻（claimPathVictory：cycle++ + 120 碑点 + unlockedPaths push） */
+(function S31d() {
+  stubStore.removeItem('jianghu_legacy_meta_v1'); /* 重置 legacy（S31c 残留） */
+  const p = m1pair(314);
+  var newMeta = endingsSys.claimPathVictory(p.nst.st, 'path_sword', stubStore, newEnv(p.nst.rand, 314));
+  check('S31d 道途铭刻', newMeta.cycleCount === 2 && newMeta.legacyPoints === 120 && newMeta.unlockedPaths.includes('path_sword'),
+    JSON.stringify(newMeta));
+})();
+
+/* S31e 碑林遗泽开关（toggleLegacyPerk 激活/取消/点不足） */
+(function S31e() {
+  var storage = { _m: {}, getItem: function (k) { return this._m[k] || null; }, setItem: function (k, v) { this._m[k] = String(v); }, removeItem: function (k) { delete this._m[k]; } };
+  var meta = endingsSys.toggleLegacyPerk(storage, 'perk_luck', {}); /* 点不足（0 < 50） => 不变 */
+  check('S31e-1 碑点不足拒', meta.legacyPoints === 0 && !meta.activePerks.includes('perk_luck'));
+  storage.setItem('jianghu_legacy_meta_v1', JSON.stringify({ cycleCount: 2, legacyPoints: 100, unlockedPaths: [], activePerks: [] }));
+  meta = endingsSys.toggleLegacyPerk(storage, 'perk_luck', {}); /* 激活（100 >= 50） => -50 */
+  check('S31e-2 激活', meta.legacyPoints === 50 && meta.activePerks.includes('perk_luck'));
+  meta = endingsSys.toggleLegacyPerk(storage, 'perk_luck', {}); /* 取消 => +50 退回 */
+  check('S31e-3 取消', meta.legacyPoints === 100 && !meta.activePerks.includes('perk_luck'));
 })();
 
 
