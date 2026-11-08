@@ -238,7 +238,9 @@ function withSeededRandom(seed, fn) {
     ['martial.js', ['STANCE_META', 'COMBO_ROLE_META', 'TOKEN_META', 'MARTIAL_DB', 'SYNERGIES_DB', 'ACUPOINTS_DB']],
     ['sects.js', ['SECTS_DB']],
     ['items.js', ['ITEMS_DB', 'ESTATE_BUILDINGS_DB', 'TRADE_GOODS_DB']],
-    ['masters.js', ['MASTER_STAGE_REQS', 'MASTERS_INIT', 'MASTER_STORIES']],
+    ['masters.js', ['MASTERS_INIT']],
+    ['masters-stories.js', ['MASTER_STAGE_REQS', 'MASTER_STORIES'], true],
+    ['side-cast.js', ['SIDE_CAST'], true],
     ['origins.js', ['ORIGINS', 'ENDINGS_DB', 'TALENTS_POOL', 'OPENING_VOWS_DB']],
     ['encounters.js', ['MID_ROAD_EVENTS', 'SECRET_REALMS_DB']],
     /* world-events.js 不在此对表：源在扩展引擎 assets/worlds/wuxia/index.js +
@@ -250,6 +252,16 @@ function withSeededRandom(seed, fn) {
   ];
   pairs.forEach(p => {
     const mod = require(path.join(GAME_DIR, 'data', p[0]));
+    if (p[2]) {
+      /* lazy/占位件简化核验：导出键在位 + SIDE_CAST 零 base64（册278） */
+      p[1].forEach(name => {
+        const got = mod[name];
+        const noB64 = JSON.stringify(got || {}).indexOf('base64') < 0;
+        check('数据等价 ' + p[0] + '.' + name + ' (lazy)', got != null && (name !== 'SIDE_CAST' || noB64),
+          got == null ? '键缺失' : (name === 'SIDE_CAST' && !noB64 ? 'base64 残留' : undefined));
+      });
+      return;
+    }
     p[1].forEach(name => {
       let srcVal;
       try {

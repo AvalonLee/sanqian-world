@@ -11,7 +11,9 @@ const HERE = __dirname;
 const pieces = [
   'extract-martial.cjs', 'extract-sects.cjs', 'extract-items.cjs', 'extract-masters.cjs',
   'extract-origins.cjs', 'extract-encounters.cjs', 'extract-world-events.cjs',
-  'extract-canon.cjs', 'extract-regions.cjs', 'extract-scrolls.cjs', 'extract-state-init.cjs', 'extract-combo.cjs'
+  'extract-canon.cjs', 'extract-regions.cjs', 'extract-scrolls.cjs', 'extract-state-init.cjs', 'extract-combo.cjs',
+  'extract-demo-geo.cjs',
+  'extract-demo-geo.cjs'
 ];
 
 let failed = 0;
@@ -33,7 +35,10 @@ const expect = {
   'martial.js': { MARTIAL_DB: 33, ACUPOINTS_DB: null, SYNERGIES_DB: null },
   'sects.js': { SECTS_DB: 12 },
   'items.js': { ITEMS_DB: null, TRADE_GOODS_DB: 8, ESTATE_BUILDINGS_DB: null },
-  'masters.js': { MASTERS_INIT: 24, MASTER_STAGE_REQS: 3, MASTER_STORIES: null },
+  'masters.js': { MASTERS_INIT: 24 },
+  'masters-stories.js': { MASTER_STAGE_REQS: 3, MASTER_STORIES: null },
+  'side-cast.js': { SIDE_CAST: 34 },
+  'demo-geo.js': { GEO_POINTS: 30, RIVERS: 2 },
   'origins.js': { ORIGINS: 6, TALENTS_POOL: 16, OPENING_VOWS_DB: 3, ENDINGS_DB: 6 },
   'encounters.js': { MID_ROAD_EVENTS: 8, SECRET_REALMS_DB: null },
   'world-events.js': { WORLD_EVENTS: 36, EV_TURN_MAP: 36 },

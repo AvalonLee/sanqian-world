@@ -85,6 +85,14 @@ function exportShim(names, extraHead) {
     '}\n';
 }
 
+/* 头像占位化（用户拍板 2026-11-08）：SIDE_CAST 条目内嵌 base64 data URI 由生成器
+ * 统一替换为空串——正典 URI 保留在 game.html 源里，重跑/统一处理时回填。
+ * 抽取器与对表沙箱共用本函数，保证 ground truth 与生成物逐字节一致。 */
+function placeholderArt(text) {
+  /* 只吃 data URI 本体（不含外层引号）——引号保留 ⇒ art: '' */
+  return text.replace(/data:image\/png;base64,[^']*/g, '');
+}
+
 /* 快速 JSON 稳定化（对表用） */
 function stableStr(v) {
   if (Array.isArray(v)) return '[' + v.map(stableStr).join(',') + ']';
@@ -95,4 +103,4 @@ function stableStr(v) {
   return JSON.stringify(v);
 }
 
-module.exports = { loadSrc, sliceDecl, header, exportShim, stableStr };
+module.exports = { loadSrc, sliceDecl, header, exportShim, stableStr, placeholderArt };

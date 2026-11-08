@@ -22,7 +22,7 @@ function buildData(tag, file, spec, opts) {
     const { text: src } = loadSrc(seg.src);
     seg.decls.forEach(([name, kind]) => {
       const s = sliceDecl(src, name, kind);
-      parts.push(s.text);
+      parts.push(seg.transform ? seg.transform(s.text) : s.text);
       srcLines.push(seg.src + ' L' + s.startLine + '–L' + s.endLine + ' · ' + kind + ' ' + name);
       if (names.indexOf(name) < 0) names.push(name);
     });

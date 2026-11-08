@@ -9,8 +9,18 @@
   'use strict';
 
   /* ===== 0. 数据与调色板 ===== */
-  const D = window.QX_DEMO;
-  if (!D || !D.regions) { console.error('QX_DEMO 缺失'); return; }
+  /* 册278 数据源切换：REGIONS 本体走 QX3D_DATA（regions.js 抽取件），
+   * 本件只补投影坐标与河道（demo-geo.js）；demo-data.js 退役为抽取源。 */
+  const __GEO = window.QX_DEMO_GEO || { geo: {}, rivers: [] };
+  const D = {
+    regions: ((window.QX3D_DATA && window.QX3D_DATA.REGIONS) || []).map(function (r) {
+      const g = __GEO.geo[r.id] || {};
+      return Object.assign({}, r, { x: g.x != null ? g.x : r.x, y: g.y != null ? g.y : r.y });
+    }),
+    events: [], /* 演示占位退役（册278）：crises 展示走 QX3D_APP.regionEvent（册273 接管） */
+    rivers: __GEO.rivers
+  };
+  if (!D.regions.length) { console.error('QX3D_DATA.REGIONS 缺失'); return; }
 
   const PAL = {
     paper: 0xf0e7d3,        // 地形纸面
@@ -1443,7 +1453,7 @@
     /* M0 游戏化：crises 走 app.state（QX3D_APP.regionEvent），演示占位 events 兜底 */
     const ev = (window.QX3D_APP && window.QX3D_APP.regionEvent)
       ? window.QX3D_APP.regionEvent(id) : null;
-    const evDemo = ev || D.events.find(v => v.region === id);
+    const evDemo = ev; /* 演示占位退役：无危机时事件条不显 */
     const evBox = el('ic-event');
     if (ev) {
       evBox.textContent = (ev.remain ? '⚠ ' : '✦ ') + ev.label + (ev.remain ? ' · 余' + ev.remain + '旬' : '');

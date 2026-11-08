@@ -142,8 +142,9 @@
     var extMasters = [];
     var names = {};
     (D.MASTERS_INIT || []).forEach(function (m) { names[m.name] = 1; });
-    /* B/C 配角池（SIDE_CAST）= P4-B 迁移批接（计划书 #14 定序）——本版只收 S/A 进名宿池，
-     * B/C 落 P4-B 批（对表沙箱以 SIDE_CAST=[] 对齐此豁免）。 */
+    /* B/C 配角池（SIDE_CAST）：lazy 已抽（data/side-cast.js，头像占位化，册278）
+     * 但不挂载——P4-B/M7+ 批挂载后本处 push 自动生效（typeof 守卫已留）。
+     * 对表沙箱以 SIDE_CAST=[] 对齐「未挂载」态（册278 拍板）。 */
     cast.forEach(function (c) {
       if (!c || !c.name || names[c.name]) return;
       names[c.name] = 1;
