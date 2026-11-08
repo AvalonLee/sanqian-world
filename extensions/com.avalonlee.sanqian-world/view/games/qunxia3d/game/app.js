@@ -69,6 +69,29 @@
     else if (st.viewLayer === 'world' && mode === 'local') qx.exitRegion();
   }
 
+  /* 首局教学调度（原 scheduleFirstTutorialIfNeeded :7126–:7147 语义：
+   * 未成招且首 4 旬 ⇒ 1.2s 后独占邀请弹窗 ⇒ 教学战） */
+  function scheduleTutorial() {
+    if (!st || st.tutorialComboDone) return;
+    if (st.turn > 4) return;
+    setTimeout(function () {
+      if (!st || st.tutorialComboDone) return;
+      var ov = document.getElementById('duel-overlay');
+      if (ov && !ov.classList.contains('hidden')) return;
+      ui.panels.openRoadEncounter({
+        tag: '首局必修',
+        title: '洛阳近郊 · 酒肆后巷',
+        desc: '巷口醉汉武师拦路叫阵。此战将教会你「形×势」连招——可跳过旁白，不可跳过一次成功成招。',
+        choices: [{ label: '进入教学战 ➔' }]
+      }, { name: '洛阳' }, function () {
+        var tut = systems.combat.initTutorial(st, env());
+        if (!tut) return;
+        systems.combat.tutorialAdvance(tut.tb, st, 'intro', { d: tut.d });
+        ui.duel.open(st, tut.d, null, tut.tb);
+      });
+    }, 1200);
+  }
+
   /* HUD/日志/过旬钮随创角状态显隐 */
   function syncChrome() {
     var has = !!(st && st.hasCreatedChar);
@@ -255,7 +278,7 @@
     });
     document.getElementById('btn-creation-reroll').addEventListener('click', ui.creation.reroll);
     document.getElementById('btn-creation-submit').addEventListener('click', function () {
-      ui.creation.submit(function (s2) { ui.hud.render(s2); syncChrome(); });
+      ui.creation.submit(function (s2) { ui.hud.render(s2); syncChrome(); scheduleTutorial(); });
     });
   }
 
@@ -271,6 +294,7 @@
     openActions: openActions,
     /* duel 层回调面 */
     env: env,
+    afterTutorial: function () { if (st) ui.hud.render(st); },
     save: save,
     renderHud: function () { ui.hud.render(st); }
   };

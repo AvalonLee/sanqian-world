@@ -198,6 +198,19 @@
 
     const fsNow = getMoveFormShi(card);
 
+    /* 教学势序门禁（:7446–:7458 逐字）：错序浮字 + force_chase 段重置本段，不扣伤害 */
+    const tb = e.tb || null;
+    if (tb && tb.allowedShi && fsNow.shi !== tb.allowedShi) {
+      const need = D.SHI_META[tb.allowedShi];
+      if (e.floatTip) e.floatTip(`势序未合：先${need ? need.label : '破防'}再追击，可成招。`, 'amber');
+      if (tb.step === 'force_chase') {
+        tb.comboChain = [];
+        if (d.formShiChain) d.formShiChain = d.formShiChain.filter(x => x.shi === 'break').slice(0, 1);
+        if (e.tutorialAdvance) e.tutorialAdvance('force_break');
+      }
+      return { outcome: 'blocked', playerDmg: 0, enemyDmg: 0, banner: null, notes: [], finished: false, card: card };
+    }
+
     let lowMpPenalty = false;
     if (st.mp < card.mpCost) {
       lowMpPenalty = true;
@@ -248,7 +261,19 @@
     d.comboChain.push(card.comboRole || 'qi');
     if (!d.formShiChain) d.formShiChain = [];
     d.formShiChain.push({ form: fsNow.form, shi: fsNow.shi, name: card.name });
-    {
+    if (tb) {
+      tb.comboChain.push(fsNow);
+      if (tb.step === 'force_break' && fsNow.shi === 'break') {
+        if (e.tutorialAdvance) e.tutorialAdvance('force_chase');
+      } else if (tb.step === 'force_chase' && fsNow.shi === 'chase') {
+        const comboName = synthesizeComboName(d.formShiChain);
+        if (e.flashCombo) e.flashCombo(comboName);
+        comboNotes.push(`✦ 教学成招【${comboName}】`);
+        playerDmg = Math.round(playerDmg * 1.35);
+        if (e.tutorialAdvance) e.tutorialAdvance('combo_success');
+        st.tutorialComboDone = true;
+      }
+    } else {
       const shiList = d.formShiChain.map(x => x.shi);
       if (isLegalShiSequence(shiList)) {
         const comboName = synthesizeComboName(d.formShiChain);
@@ -312,7 +337,12 @@
     }
 
     d.enemyCurHp = Math.max(0, d.enemyCurHp - playerDmg);
-    st.hp = Math.max(1, st.hp - enemyDmg);
+    if (d.tutorial || (tb && !st.tutorialComboDone)) {
+      enemyDmg = Math.min(enemyDmg, 4);
+      st.hp = Math.max(Math.floor(st.maxHp * 0.45), st.hp - enemyDmg);
+    } else {
+      st.hp = Math.max(1, st.hp - enemyDmg);
+    }
 
     d.beat = { name: card.name, hurt: outcome === 'beaten' };
     const noteStr = comboNotes.length > 0 ? `（${comboNotes.join('，')}）` : '';
@@ -340,8 +370,27 @@
       );
     }
 
+    if (tb && tb.step === 'combo_success') {
+      d.enemyCurHp = 0;
+      d.playerWins = Math.max(d.playerWins, 2);
+      if (e.tutorialAdvance) e.tutorialAdvance('outro');
+      result = finishDuel(st, d, e);
+      return { outcome: outcome, playerDmg: playerDmg, enemyDmg: enemyDmg, banner: banner, notes: comboNotes, finished: true, card: card, result: result };
+    }
+
     let finished = false;
     if (d.enemyCurHp <= 0 || d.round >= 3) {
+      if (tb && !st.tutorialComboDone) {
+        if (e.floatTip) e.floatTip('尚未成招：再试破防→追击。', 'amber');
+        d.round = 1;
+        d.roundHistory = ['pending', 'pending', 'pending'];
+        d.playerWins = 0;
+        d.enemyWins = 0;
+        d.enemyCurHp = d.enemyMaxHp;
+        d.formShiChain = [];
+        if (e.tutorialAdvance) e.tutorialAdvance('force_break');
+        return { outcome: 'reset', playerDmg: playerDmg, enemyDmg: enemyDmg, banner: banner, notes: comboNotes, finished: false, card: card, result: null };
+      }
       finished = true;
       /* 原版 :7651 在 playDuelCard 内部直接 finishDuel()——终局奖惩随出招落账，
        * 返回值带 result 供 UI 层出结算面板 */
@@ -483,6 +532,55 @@
     return result;
   }
 
+  /* ── 首局教学（startTutorialComboBattle :7009–:7041 状态面；拍板 = 逐字复刻）── */
+  function initTutorial(st, env) {
+    if (st.tutorialComboDone) return null;
+    const tb = { step: 'intro', formsNamed: {}, comboChain: [], narrationSkipped: false, allowedShi: null, segment: 0 };
+    const cfg = {
+      enemyName: '醉汉武师',
+      enemyTitle: '洛阳近郊 · 酒肆后巷',
+      enemyAvatar: '醉',
+      enemyStance: 'gang',
+      enemyPower: 28,
+      enemyHp: 90,
+      contextTitle: '🎓 首局教学 · 形×势连招',
+      rewardGold: 12,
+      rewardFame: 8,
+      rewardExp: 35,
+      rewardMerit: 0,
+      isTutorial: true
+    };
+    const d = initDuel(st, cfg, env);
+    d.formShiChain = [];
+    d.tutorial = true;
+    d.enemyPower = 22; /* 教学：敌方弱、玩家不致死（:7035–:7039） */
+    return { tb: tb, d: d };
+  }
+
+  /* advanceTutorialStep :7043–:7099 的状态面（intent/hint 文案与点名钮 = duel-ui 表现层）*/
+  function tutorialAdvance(tb, st, step, env) {
+    if (!tb) return;
+    tb.step = step;
+    if (step === 'intro') {
+      tb.allowedShi = null;
+    } else if (step === 'name_forms') {
+      tb.allowedShi = null;
+    } else if (step === 'force_break') {
+      tb.allowedShi = 'break';
+      tb.comboChain = [];
+      if (env && env.d) env.d.formShiChain = [];
+    } else if (step === 'force_chase') {
+      tb.allowedShi = 'chase';
+    } else if (step === 'combo_success') {
+      st.tutorialComboDone = true;
+      tb.allowedShi = null;
+      if (env && env.save) env.save();
+    } else if (step === 'outro') {
+      st.tutorialComboDone = true;
+      if (env && env.save) env.save();
+    }
+  }
+
   return {
     getMoveFormShi: getMoveFormShi,
     isLegalShiSequence: isLegalShiSequence,
@@ -492,6 +590,8 @@
     buildHand: buildHand,
     pickRecommendedDuelCards: pickRecommendedDuelCards,
     playDuelCard: playDuelCard,
+    initTutorial: initTutorial,
+    tutorialAdvance: tutorialAdvance,
     duelMeditate: duelMeditate,
     finishDuel: finishDuel
   };

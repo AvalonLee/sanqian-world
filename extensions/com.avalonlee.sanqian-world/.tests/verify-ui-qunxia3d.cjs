@@ -105,6 +105,17 @@ const { chromium } = require('playwright-core');
     T(c1.hud && c1.turnBtn && c1.modalGone && /^\d+\/\d+$/.test(c1.hp) && c1.ap === '5/5' && c1.date === '第1/36旬',
       'Q3D2b 纸面 HUD 同步（hud-bar 显 ⇔ 气血/行脚 5/5/第1旬读数在位）', JSON.stringify(c1));
 
+    /* M2 尾批（册277）：创角后 1.2s 会弹首局教学邀请——旧流程段先关掉它
+     * （教学 e2e 在 Q3D11 独立 context；此处跳过后调度不再重发，不影响后续组） */
+    await page.waitForTimeout(1600);
+    await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      if (m && !m.classList.contains('hidden') && /首局必修/.test(m.textContent)) {
+        const x = m.querySelector('[data-qxm-close]');
+        if (x) x.click();
+      }
+    });
+    await page.waitForTimeout(200);
     /* Q3D3 行脚：洛阳 → 嵩山少林（邻州徒步，-1行脚 · -8内息 · 过1旬） */
     const before = await page.evaluate(() => {
       const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
@@ -415,7 +426,75 @@ const { chromium } = require('playwright-core');
       : qd.q.some(x => x.id === 'we_ext3_a' && x.outcome === 'lose');
     T(altOk && qd.rep.some(t => /洛水论剑/.test(t)),
       'Q3D10d 终局回流（胜 ⇒ alt / 败 ⇒ lose 入队 + 邸报入档，扩展契约全链）',
-      JSON.stringify({ win: du.win, q: qd.q, rep: qd.rep }));
+      JSON.stringify({ win: du3.win, q: qd.q, rep: qd.rep }));
+
+
+    /* ── Q3D11 组 · M2 尾批教学战（首局必修 · 形×势连招 · 拍板 = 逐字复刻）────── */
+    /* Q3D10 留下的档：palm_hero 第 6 旬已赴会——教学战调度条件 turn≤4 不满足，
+     * 故教学战 e2e 走独立 context：Q3D6c 后第一时间截获（在 Q3D10 之前的此处档 = 第1旬）。
+     * 做法：先清档重开新世（走创角 → 1.2s 后邀请弹窗 → 全脚本教学）。 */
+    await page.evaluate(() => {
+      localStorage.removeItem('shanqian3d_save_v1');
+      localStorage.setItem('qunxia-payload-v1', JSON.stringify({ gen: 20 }));
+    });
+    await page.reload();
+    await page.waitForFunction(() => window.QX3D_APP && window.QX3D_DATA.QX3D_STATE_INIT, null, { timeout: 20000 });
+    await page.waitForTimeout(400);
+    await page.evaluate(() => {
+      document.querySelector('#creation-origins [data-origin="taoist_scholar"]').click();
+      document.querySelector('#creation-vows [data-vow="vow_homestead"]').click();
+    });
+    await page.click('#btn-creation-submit');
+    await page.waitForTimeout(1700); /* 调度延迟 1200ms + 弹窗 */
+    const tu0 = await page.evaluate(() => ({
+      invite: /首局必修/.test(document.getElementById('qx-modal').textContent),
+      enterBtn: /进入教学战/.test(document.getElementById('qx-modal').textContent)
+    }));
+    T(tu0.invite && tu0.enterBtn, 'Q3D11a 教学邀请（创角后 1.2s 独占弹窗「首局必修·酒肆后巷」）', JSON.stringify(tu0));
+    await page.evaluate(() => {
+      const btns = document.querySelectorAll('#qx-modal [data-qxm-choice]');
+      btns[0].click();
+    });
+    await page.waitForTimeout(300);
+    const tu1 = await page.evaluate(() => ({
+      open: !document.getElementById('duel-overlay').classList.contains('hidden'),
+      intro: /先认/.test(document.getElementById('duel-overlay').textContent) && /势/.test(document.getElementById('duel-overlay').textContent),
+      knownBtn: !!document.querySelector('#duel-overlay [data-tut="name_forms"]')
+    }));
+    T(tu1.open && tu1.intro && tu1.knownBtn, 'Q3D11b 教学战开局（醉汉武师 · intro 步「知道了」在位）', JSON.stringify(tu1));
+    await page.evaluate(() => { document.querySelector('#duel-overlay [data-tut="name_forms"]').click(); });
+    await page.waitForTimeout(150);
+    const tu2 = await page.evaluate(() => {
+      document.querySelector('#duel-overlay [data-tut="form_fist"]').click();
+      document.querySelector('#duel-overlay [data-tut="form_sword"]').click();
+      document.querySelector('#duel-overlay [data-tut="form_qinggong"]').click();
+      return { named3: !!document.querySelector('#duel-overlay [data-tut="force_break"]') };
+    });
+    T(tu2.named3, 'Q3D11c 点名三形（拳/剑/轻功 ✓ ⇒ 「开始破防」钮出现）', JSON.stringify(tu2));
+    await page.evaluate(() => { document.querySelector('#duel-overlay [data-tut="force_break"]').click(); });
+    await page.waitForTimeout(150);
+    const tu3 = await page.evaluate(() => ({
+      breakPhase: /破防/.test(document.getElementById('duel-overlay').textContent),
+      cardBreak: !!document.querySelector('#duel-overlay .dl-cards .dl-card')
+    }));
+    T(tu3.breakPhase && tu3.cardBreak, 'Q3D11d 强制破防段（allowedShi=break ⇔ 手牌过滤出招）', JSON.stringify(tu3));
+    await page.evaluate(() => { document.querySelector('#duel-overlay .dl-cards .dl-card').click(); });
+    await page.waitForTimeout(180);
+    const tu4 = await page.evaluate(() => /追上去/.test(document.getElementById('duel-overlay').textContent));
+    T(tu4, 'Q3D11e 破防 → 追击段步进', 'chase=' + tu4);
+    const card2 = await page.waitForSelector('#duel-overlay .dl-cards .dl-card', { timeout: 5000 });
+    await card2.click();
+    await page.waitForTimeout(250);
+    const tu5 = await page.evaluate(() => ({
+      st: JSON.parse(localStorage.getItem('shanqian3d_save_v1')),
+      overlay: document.getElementById('duel-overlay').textContent
+    }));
+    T(tu5.st.tutorialComboDone === true && /教学完成|胜出/.test(tu5.overlay),
+      'Q3D11f 教学成招终局（tutorialComboDone 落档 + outro/结算面）', JSON.stringify({ done: tu5.st.tutorialComboDone }));
+    await page.click('#btn-duel-close');
+    await page.waitForTimeout(200);
+    const tu6 = await page.evaluate(() => /连招已通/.test(document.getElementById('toast-container').textContent));
+    T(tu6, 'Q3D11g 收招（连招已通 toast · 教学态清帐）', 'toast=' + tu6);
 
     /* 收口：全程零脚本错误 */
     T(errs.length === 0 && (await page.evaluate(() => window.__errs.length)) === 0,

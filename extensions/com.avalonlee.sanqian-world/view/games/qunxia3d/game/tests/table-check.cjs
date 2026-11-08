@@ -111,6 +111,8 @@ const FNS = [
   'buyTradeGood', 'sellTradeGood', 'doEscortConvoy', 'collectTileActions', 'pickPrimaryActions',
   /* M2 三招对决（systems/combat.js 对表集） */
   'startDuel', 'pickEnemyIntentStance', 'playDuelCard', 'finishDuel', 'duelMeditate',
+  /* M2 尾批：首局教学（册277 · 拍板 = 逐字复刻） */
+  'startTutorialComboBattle', 'advanceTutorialStep', 'nameTutorialForm', 'renderTutorialFormPicker', 'lockTutorialCards',
   'getMoveFormShi', 'isLegalShiSequence', 'synthesizeComboName', 'pickRecommendedDuelCards', 'sceneLine'
 ];
 
@@ -992,6 +994,93 @@ const MERGE_FIXTURE2 = {
   payloadSys.crisisReward(p.nst.st, 'we_ext2_new', newEnv(p.nst.rand, 271));
   compareStates(p.sb, p.nst, 'S27 旧档合并+主奖励 blade 型');
 })();
+
+/* ══ M2 尾批：首局教学对表（systems/combat.js 教学状态机）══════════════ */
+restoreM3(); /* S26/S27 已并 fixture 进真 D——教学场景的创角基线须回 24 表 */
+/* 通用教学建场：创角 + 开局（两侧同种子；沙箱 advanceTutorialStep 的 DOM 面走通用桩） */
+function tutorialPair(seed) {
+  const p = m1pair(seed);
+  p.sb.run('startTutorialComboBattle();');
+  const tut = combat.initTutorial(p.nst.st, { rand: p.nst.rand });
+  return { sb: p.sb, nst: p.nst, tb: tut.tb, d: tut.d };
+}
+function compareTb(p, tb, label) {
+  const sbTb = p.sb.run('JSON.stringify(tutorialBattle)');
+  const r = deepEq(JSON.parse(sbTb), JSON.parse(JSON.stringify(tb)), label);
+  check(label, r === null, r ? String(r).slice(0, 300) : undefined);
+}
+
+/* S28a 教学战全脚本：点名三形 → force_break 出破防 → force_chase 出追击 → 成招 ×1.35 →
+ * combo_success 强制终局（enemyCurHp=0 + finishDuel）→ outro（tutorialComboDone=true） */
+(function S28a() {
+  [281, 282].forEach(seed => {
+    const p = tutorialPair(seed);
+    const nenv = newEnv(p.nst.rand, seed);
+    nenv.tb = p.tb;
+    nenv.d = p.d;
+    nenv.tutorialAdvance = function (step) { combat.tutorialAdvance(p.tb, p.nst.st, step, { d: p.d, save: function () {} }); };
+    /* intro 步进（原版 startTutorialComboBattle 尾部 advanceTutorialStep('intro')） */
+    combat.tutorialAdvance(p.tb, p.nst.st, 'intro', { d: p.d });
+    compareTb(p, p.tb, 'S28a intro tb seed=' + seed);
+    /* 点名三形（nameTutorialForm 状态面 = formsNamed[f]=true） */
+    p.sb.run('nameTutorialForm("fist"); nameTutorialForm("sword"); nameTutorialForm("qinggong");');
+    ['fist', 'sword', 'qinggong'].forEach(f => { p.tb.formsNamed[f] = true; });
+    p.sb.run('advanceTutorialStep("force_break");');
+    combat.tutorialAdvance(p.tb, p.nst.st, 'force_break', { d: p.d });
+    /* force_break 段出破防招（taizu_changquan = break）→ 内部步进 force_chase */
+    p.sb.run('playDuelCard("taizu_changquan");');
+    combat.playDuelCard(p.nst.st, p.d, 'taizu_changquan', nenv);
+    compareTb(p, p.tb, 'S28a 破防后 tb seed=' + seed);
+    compareStates(p.sb, p.nst, 'S28a 破防后 state seed=' + seed);
+    /* force_chase 段出追击招（songfeng_jian = chase）→ 教学成招 ×1.35 + combo_success + 强制终局 */
+    p.sb.run('playDuelCard("wuhu_dao");'); /* wuhu_dao = sword|chase（初始三招中唯一 chase） */
+    combat.playDuelCard(p.nst.st, p.d, 'wuhu_dao', nenv);
+    compareTb(p, p.tb, 'S28a 成招后 tb seed=' + seed);
+    compareStates(p.sb, p.nst, 'S28a 成招后 state seed=' + seed);
+    compareDuel(p, p.d, 'S28a 成招后 duelState seed=' + seed);
+    check('S28a 教学终局 seed=' + seed,
+      p.nst.st.tutorialComboDone === true && p.d.finished === true && JSON.parse(p.sb.run('JSON.stringify(state.tutorialComboDone)')) === true);
+  });
+})();
+
+/* S28b 错序门禁：force_chase 段出非追击招 ⇒ blocked + 重置本段回 force_break，不扣伤害 */
+(function S28b() {
+  const p = tutorialPair(283);
+  const nenv = newEnv(p.nst.rand, 283);
+  nenv.tb = p.tb;
+  nenv.d = p.d;
+  nenv.tutorialAdvance = function (step) { combat.tutorialAdvance(p.tb, p.nst.st, step, { d: p.d, save: function () {} }); };
+  combat.tutorialAdvance(p.tb, p.nst.st, 'intro', { d: p.d });
+  p.sb.run('advanceTutorialStep("force_break");');
+  combat.tutorialAdvance(p.tb, p.nst.st, 'force_break', { d: p.d });
+  p.sb.run('playDuelCard("taizu_changquan");');
+  combat.playDuelCard(p.nst.st, p.d, 'taizu_changquan', nenv); /* → force_chase */
+  p.sb.run('playDuelCard("taizu_changquan");'); /* 错序：break ≠ chase */
+  const r1 = combat.playDuelCard(p.nst.st, p.d, 'taizu_changquan', nenv);
+  check('S28b 错序 blocked', r1 && r1.outcome === 'blocked' && p.tb.step === 'force_break',
+    JSON.stringify({ outcome: r1 && r1.outcome, step: p.tb.step }));
+  compareTb(p, p.tb, 'S28b 错序重置后 tb');
+  compareStates(p.sb, p.nst, 'S28b 错序不扣伤害 state');
+})();
+
+/* S28c 三招不成招重置（intro 段 allowedShi=null ⇒ 门禁放行，三招耗尽 ⇒ round 重置/敌回满） */
+(function S28c() {
+  const p = tutorialPair(284);
+  const nenv = newEnv(p.nst.rand, 284);
+  nenv.tb = p.tb;
+  nenv.d = p.d;
+  nenv.tutorialAdvance = function (step) { combat.tutorialAdvance(p.tb, p.nst.st, step, { d: p.d, save: function () {} }); };
+  combat.tutorialAdvance(p.tb, p.nst.st, 'intro', { d: p.d });
+  ['taizu_changquan', 'songfeng_jian', 'wuhu_dao'].forEach(c => {
+    p.sb.run('playDuelCard(' + JSON.stringify(c) + ');');
+    combat.playDuelCard(p.nst.st, p.d, c, nenv);
+  });
+  check('S28c 未成招重置', p.d.round === 1 && p.d.enemyCurHp === p.d.enemyMaxHp && p.tb.step === 'force_break',
+    JSON.stringify({ round: p.d.round, hp: p.d.enemyCurHp, step: p.tb.step }));
+  compareTb(p, p.tb, 'S28c 重置后 tb');
+  compareStates(p.sb, p.nst, 'S28c 重置后 state');
+})();
+
 
 restoreM3();
 
