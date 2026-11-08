@@ -496,6 +496,31 @@ const { chromium } = require('playwright-core');
     const tu6 = await page.evaluate(() => /连招已通/.test(document.getElementById('toast-container').textContent));
     T(tu6, 'Q3D11g 收招（连招已通 toast · 教学态清帐）', 'toast=' + tu6);
 
+    /* 🆕 册289：BGM 五曲合成器（ui/audio.js · 计划书 §四 #13）——headless 判数据面与控件，出声不入判 */
+    const bg1 = await page.evaluate(() => ({
+      has: !!(window.QX3D && window.QX3D.ui && window.QX3D.ui.audio),
+      suites: (window.QX3D && window.QX3D.ui && window.QX3D.ui.audio) ? window.QX3D.ui.audio.BGM_SUITES.length : 0,
+      first: (window.QX3D && window.QX3D.ui && window.QX3D.ui.audio) ? window.QX3D.ui.audio.BGM_SUITES[0].id : null,
+      gumu: (window.QX3D && window.QX3D.ui && window.QX3D.ui.audio) ? window.QX3D.ui.audio.suiteIdxForRegion("gumu") : -1
+    }));
+    T(bg1.has && bg1.suites === 5 && bg1.first === "canghai" && bg1.gumu === 3,
+      "Q3D12a BGM 五曲装载（audio 命名空间 + 5 曲 + 首曲 canghai + 场景映射 gumu→3）",
+      JSON.stringify(bg1));
+    await page.click("#btn-sound");
+    await page.waitForTimeout(120);
+    const bg2a = await page.evaluate(() => ({
+      label: document.getElementById("btn-sound").textContent,
+      enabled: window.QX3D.ui.audio.isSoundEnabled()
+    }));
+    await page.click("#btn-bgm");
+    await page.waitForTimeout(120);
+    const bg2b = await page.evaluate(() => document.getElementById("bgm-suite-label").textContent);
+    await page.click("#btn-sound");
+    await page.waitForTimeout(120);
+    const bg2c = await page.evaluate(() => window.QX3D.ui.audio.isSoundEnabled());
+    T(bg2a.enabled === false && /静音/.test(bg2a.label) && bg2b.length > 2 && bg2c === true,
+      "Q3D12b 琴音开关与换曲（🔇 翻面 · 曲目标签非空 · 复开）",
+      JSON.stringify({ a: bg2a, suite: bg2b, reenabled: bg2c }));
     /* 收口：全程零脚本错误 */
     T(errs.length === 0 && (await page.evaluate(() => window.__errs.length)) === 0,
       'Q3D7 全程零脚本错误（pageerror/console.error/window.__errs 三源）', errs.slice(0, 3).join(' | '));

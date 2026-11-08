@@ -174,6 +174,7 @@
     Array.prototype.forEach.call(overlay.querySelectorAll('[data-card]'), function (b) {
       b.addEventListener('click', function () {
         if (!d || d.finished) return;
+        if (root.QX3D.ui.audio) root.QX3D.ui.audio.sfx(392, 'clash'); /* 册289：出招金铁音 */
         var denv = root.QX3D_APP.env();
         denv.tb = tb;
         denv.d = d;

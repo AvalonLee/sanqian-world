@@ -1305,7 +1305,52 @@ const endingsSys = require(path.join(GAME_DIR, 'systems', 'endings.js'));
 })();
 
 
+
+/* ══ M6 尾：BGM 五曲合成器对表（game/ui/audio.js · 计划书 §四 #13）════════ */
+/* 显式豁免（audio.js 件头注已登记）：prefs 件内化 / 自选原声与设置模态不移植——判「乐谱原样 + 行为等价」，不判源码逐字 */
 restoreM3();
+const audioSys = require(path.join(GAME_DIR, 'ui', 'audio.js'));
+
+/* S32 五曲乐谱原样（BGM_SUITES 数据逐曲深比；沙箱切片 = N_* 音高表 + BGM_SUITES） */
+(function S32() {
+  var src = [
+    ['const', 'N_REST'],
+
+    ['const', 'N_E3'], ['const', 'N_C4'], ['const', 'N_C5'],
+    ['const', 'BGM_SUITES']
+  ].map(function (t) { return slice(t[0], t[1]); }).join('\n');
+  var ctx = {}; vm.runInNewContext(src + '\n;var __SUITES = BGM_SUITES;', ctx); /* const 词法声明不挂 vm 全局对象，var 桥接读出 */
+  var orig = ctx.__SUITES, mine = audioSys.BGM_SUITES;
+  check('S32 五曲曲数一致', orig.length === 5 && mine.length === 5,
+    JSON.stringify({ orig: orig.length, mine: mine.length }));
+  for (var i = 0; i < Math.min(orig.length, mine.length); i++) {
+    var diff = deepEq(orig[i], mine[i], 'suite');
+    check('S32 乐谱原样 #' + i + ' ' + (orig[i] ? orig[i].id : '?'), !diff, diff || (orig[i] && orig[i].name));
+  }
+})();
+
+/* S33 场景映射对表（原版 autoAdaptBgmToContext 沙箱实跑 vs suiteIdxForRegion + duel 往返） */
+(function S33() {
+  var fsrc = slice('function', 'autoAdaptBgmToContext');
+  var ctx = { soundEnabled: true, gameSettings: { autoSwitchBgm: true, bgmVolume: 0.65 }, usingCustomAudioFile: false,
+    bgmStepIdx: 0, restartBgmTimer: function () {}, getRegion: function (id) { return { id: id }; },
+    state: { currentRegion: 'luoyang' } };
+  vm.runInNewContext(fsrc + '\n;var __F = autoAdaptBgmToContext;', ctx);
+  check('S33 原版切片可载入', typeof ctx.__F === 'function', String(typeof ctx.__F));
+  var cases = [['gumu', 3], ['huashan', 2], ['dali', 1], ['xiangyang', 0], ['luoyang', 4]];
+  cases.forEach(function (c) {
+    ctx.bgmSuiteIdx = 0; ctx.state.currentRegion = c[0]; ctx.__F('scene');
+    var mine = audioSys.suiteIdxForRegion(c[0]);
+    check('S33 场景映射 ' + c[0], ctx.bgmSuiteIdx === c[1] && mine === c[1],
+      JSON.stringify({ region: c[0], orig: ctx.bgmSuiteIdx, mine: mine, expect: c[1] }));
+  });
+  /* duel → 1 难念的经；duel_end → 还原战前曲 */
+  ctx.bgmSuiteIdx = 3; ctx.__F('duel');
+  var afterDuel = ctx.bgmSuiteIdx;
+  ctx.__F('duel_end');
+  check('S33 duel→难念的经 + duel_end 还原', afterDuel === 1 && ctx.bgmSuiteIdx === 3,
+    JSON.stringify({ afterDuel: afterDuel, restored: ctx.bgmSuiteIdx }));
+})();
 
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));

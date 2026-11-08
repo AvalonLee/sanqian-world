@@ -35,7 +35,11 @@
       /* M2：三招对决引擎接入（拍板演出 = 半屏出招卡 + 3D 背景糊化） */
       startDuel: function (s, params) {
         var d = systems.combat.initDuel(s, params, env());
-        ui.duel.open(s, d, function () { afterAction(); });
+        if (ui.audio) ui.audio.autoAdaptBgmToContext('duel'); /* 册289：战斗自动奏《难念的经》 */
+        ui.duel.open(s, d, function () {
+          if (ui.audio) ui.audio.autoAdaptBgmToContext('duel_end'); /* 册289：落幕还原战前曲 */
+          afterAction();
+        });
       },
       /* M4：传世秘境内容接入点 */
       canonicalSecret: function (s, regId, secret) { ui.panels.openSecretPending(regId, secret); },
@@ -56,6 +60,7 @@
     syncBoardLayer();
     syncTileButtons();
     syncTravelButton(st.currentRegion);
+    if (ui.audio) ui.audio.autoAdaptBgmToContext('scene', st, core.time.getRegion); /* 册289：场景自适应换曲 */
   }
 
   /* state.viewLayer ⇔ board3d 层对账（M1 集成缝）：行脚到达主线章地点会切 local
@@ -99,6 +104,8 @@
     document.getElementById('logs-panel').classList.toggle('show', has);
     document.getElementById('btn-turn').style.display = has ? '' : 'none';
     document.getElementById('btn-drawer').style.display = has ? '' : 'none';
+    document.getElementById('btn-sound').style.display = has ? '' : 'none'; /* 册289：琴音开关（入世后显） */
+    document.getElementById('btn-bgm').style.display = has ? '' : 'none';   /* 册289：换曲钮 */
     var endingReady = has && st.turn >= st.maxTurns;
     document.getElementById('btn-ending').style.display = endingReady ? '' : 'none';
   }
@@ -264,6 +271,7 @@
       return;
     }
     root.QX3D_APP.state = st;
+    if (ui.audio) ui.audio.bindAutoStart(); /* 册289：首次手势起奏（浏览器自播放策略） */
     if (!st.hasCreatedChar) {
       ui.creation.open(st);
       ui.hud.renderLogs(st);
@@ -274,7 +282,16 @@
     syncChrome();
 
     /* 按钮 */
-    document.getElementById('btn-turn').addEventListener('click', onTurnAdvance);
+    document.getElementById('btn-turn').addEventListener('click', function () {
+      if (ui.audio) ui.audio.sfx(523.25, 'pluck'); /* 册289：吐纳落弦音 */
+      onTurnAdvance();
+    });
+    document.getElementById('btn-sound').addEventListener('click', function () {
+      if (ui.audio) ui.audio.toggleSound();
+    });
+    document.getElementById('btn-bgm').addEventListener('click', function () {
+      if (ui.audio) ui.audio.cycleBgmSuite();
+    });
     document.getElementById('btn-drawer').addEventListener('click', function () {
       if (!st || !st.hasCreatedChar) return;
       ui.drawer.open(st);
