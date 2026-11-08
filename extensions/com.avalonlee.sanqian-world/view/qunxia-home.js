@@ -1,7 +1,12 @@
 /* qunxia-home.js — 武侠世界主壳（山河棋盘 · 自包含子应用）
  * 真实宿主的扩展页面 CSP 是 frame-src 'none'，不能嵌 iframe。主壳只做两件事：
- * 把内容桥 payload 写进同源 localStorage，再把当前视图导航到 games/qunxia/game.html；
+ * 把内容桥 payload 写进同源 localStorage，再把当前视图导航到游戏页；
  * 游戏侧 content-merge.js 在 load 时自读 payload。
+ * 双路由（册272 · 三维棋盘原型入库）：classic = games/qunxia/game.html（现行版），
+ * 3d = games/qunxia3d/index.html（三维水墨原型，游戏化改造中——总纲见其目录内
+ * 《游戏化改造计划书.md》）。开关：URL 带 ?engine=3d / ?engine=classic 时持久化到
+ * localStorage 'qunxia3d-engine'，否则按已存值；缺省 classic。最终形态（用户拍板）=
+ * 扩展启动层出世界选择器（修仙=原路径 / 武侠=本路由），3d 版成熟后替换 classic。
  */
 (function () {
   var SQ = window.SQ || (window.SQ = {});
@@ -9,6 +14,17 @@
   var PAYLOAD_KEY = 'qunxia-payload-v1';
   var RESULT_KEY = 'qunxia-result-queue-v1';
   var GAME_PAGE = 'games/qunxia/game.html';
+  var GAME_PAGE_3D = 'games/qunxia3d/index.html';
+  var ENGINE_KEY = 'qunxia3d-engine';
+
+  function pickEngine() {
+    try {
+      var p = new URLSearchParams(location.search);
+      var q = p.get('engine');
+      if (q === '3d' || q === 'classic') { localStorage.setItem(ENGINE_KEY, q === '3d' ? '1' : '0'); return q; }
+      return localStorage.getItem(ENGINE_KEY) === '1' ? '3d' : 'classic';
+    } catch (e) { return 'classic'; }
+  }
 
   /* 缺键时 SQ.t 会回显键名，这里按「回显 === 键」判空 */
   function label(cf, key) {
@@ -102,7 +118,8 @@
       try {
         localStorage.setItem(PAYLOAD_KEY, JSON.stringify(buildPayload(cf)));
       } catch (e) {}
-      if (location.pathname.indexOf(GAME_PAGE) < 0) location.replace(GAME_PAGE);
+      var page = pickEngine() === '3d' ? GAME_PAGE_3D : GAME_PAGE;
+      if (location.pathname.indexOf(page) < 0) location.replace(page);
     }
     if (applied && applied.then) applied.then(go, go); else go();
   }
