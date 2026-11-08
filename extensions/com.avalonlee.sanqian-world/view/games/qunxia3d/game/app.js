@@ -106,6 +106,7 @@
     document.getElementById('btn-drawer').style.display = has ? '' : 'none';
     document.getElementById('btn-sound').style.display = has ? '' : 'none'; /* 册289：琴音开关（入世后显） */
     document.getElementById('btn-bgm').style.display = has ? '' : 'none';   /* 册289：换曲钮 */
+    document.getElementById('btn-settings').style.display = has ? '' : 'none'; /* 册292：设置中心（入世后显） */
     var endingReady = has && st.turn >= st.maxTurns;
     document.getElementById('btn-ending').style.display = endingReady ? '' : 'none';
   }
@@ -291,6 +292,9 @@
     });
     document.getElementById('btn-bgm').addEventListener('click', function () {
       if (ui.audio) ui.audio.cycleBgmSuite();
+    });
+    document.getElementById('btn-settings').addEventListener('click', function () {
+      if (ui.settings) ui.settings.open(); /* 册292：设置中心（audio prefs 四键上屏） */
     });
     document.getElementById('btn-drawer').addEventListener('click', function () {
       if (!st || !st.hasCreatedChar) return;

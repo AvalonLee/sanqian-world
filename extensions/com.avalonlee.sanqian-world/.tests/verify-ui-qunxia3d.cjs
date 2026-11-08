@@ -521,6 +521,51 @@ const { chromium } = require('playwright-core');
     T(bg2a.enabled === false && /静音/.test(bg2a.label) && bg2b.length > 2 && bg2c === true,
       "Q3D12b 琴音开关与换曲（🔇 翻面 · 曲目标签非空 · 复开）",
       JSON.stringify({ a: bg2a, suite: bg2b, reenabled: bg2c }));
+    /* 🆕 册292：设置中心（ui/settings.js · audio prefs 四键上屏）——headless 判数据面与控件，出声不入判 */
+    await page.click("#btn-settings");
+    await page.waitForTimeout(150);
+    const se1 = await page.evaluate(() => {
+      const m = document.getElementById("qx-modal");
+      const p = window.QX3D.ui.audio.getPrefs();
+      const pct = v => Math.round(v * 100);
+      return {
+        open: !m.classList.contains("hidden"),
+        sound: !!m.querySelector("#qxs-sound") && m.querySelector("#qxs-sound").checked === window.QX3D.ui.audio.isSoundEnabled(),
+        bgm: m.querySelector("#qxs-bgm") ? Number(m.querySelector("#qxs-bgm").value) === pct(p.bgmVolume) : false,
+        sfx: m.querySelector("#qxs-sfx") ? Number(m.querySelector("#qxs-sfx").value) === pct(p.sfxVolume) : false,
+        auto: !!m.querySelector("#qxs-auto") && m.querySelector("#qxs-auto").checked === !!p.autoSwitchBgm
+      };
+    });
+    T(se1.open && se1.sound && se1.bgm && se1.sfx && se1.auto,
+      "Q3D13a 设置中心开模态（四控件在场 · 滑块/开关读数即 prefs 现值）", JSON.stringify(se1));
+    await page.evaluate(() => {
+      const r = document.getElementById("qxs-bgm");
+      r.value = "50";
+      r.dispatchEvent(new Event("input", { bubbles: true }));
+      const c = document.getElementById("qxs-auto");
+      c.checked = false;
+      c.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await page.waitForTimeout(120);
+    const se2a = await page.evaluate(() => ({
+      saved: JSON.parse(localStorage.getItem("qunxia-audio-v1") || "{}"),
+      echo: document.getElementById("qxs-bgm-val").textContent
+    }));
+    await page.evaluate(() => { document.querySelector("#qx-modal [data-qxm-close]").click(); });
+    await page.waitForTimeout(120);
+    await page.click("#btn-settings");
+    await page.waitForTimeout(150);
+    const se2b = await page.evaluate(() => ({
+      bgm: Number(document.getElementById("qxs-bgm").value),
+      auto: document.getElementById("qxs-auto").checked,
+      stored: JSON.parse(localStorage.getItem("qunxia-audio-v1") || "{}")
+    }));
+    T(se2a.saved.bgmVolume === 0.5 && se2a.saved.autoSwitchBgm === false && se2a.echo === "50%"
+      && se2b.bgm === 50 && se2b.auto === false && se2b.stored.bgmVolume === 0.5,
+      "Q3D13b 滑块/开关动作落 qunxia-audio-v1（input 实时回写 · 回显同步 · 关闭重开保持）",
+      JSON.stringify({ a: se2a, b: se2b }));
+    await page.evaluate(() => { document.querySelector("#qx-modal [data-qxm-close]").click(); });
+
     /* 收口：全程零脚本错误 */
     T(errs.length === 0 && (await page.evaluate(() => window.__errs.length)) === 0,
       'Q3D7 全程零脚本错误（pageerror/console.error/window.__errs 三源）', errs.slice(0, 3).join(' | '));
