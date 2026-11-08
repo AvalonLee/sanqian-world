@@ -1,8 +1,10 @@
-/* app.js — qunxia3d 游戏化装配层（M0）
- * 职责：载档/创角/存档/行脚/过旬的 UI 编排；core+systems 的 env 注入点。
- * 表现层（board3d / hud / creation）只读 state 调系统函数（计划书铁律 1）。
+/* app.js — qunxia3d 游戏化装配层（M0 载档/创角 + M1 八格动作/本境经济）
+ * 职责：载档/创角/存档/行脚/过旬/本境动作的 UI 编排；core+systems 的 env 注入点。
+ * 表现层（board3d / hud / creation / panels）只读 state 调系统函数（计划书铁律 1）。
  * payload 双键契约：gen 对账在 core.state.loadGame 内完成；qunxia-result-queue-v1
- * 写口在本件（与原版 queueWorldResult :3146–:3158 逐字同构，含 we_ 前缀过滤）。 */
+ * 写口在本件（与原版 queueWorldResult :3146–:3158 逐字同构，含 we_ 前缀过滤）。
+ * M2 接入点：env.startDuel（现 openDuelPending 占位卡）；M4：env.canonicalSecret；
+ * M3：crisis_join/aftermath 动作赴会面。 */
 (function (root) {
   'use strict';
   var core = root.QX3D && root.QX3D.core;
@@ -11,6 +13,7 @@
   if (!core || !systems || !ui) throw new Error('app: QX3D.core/systems/ui 未加载');
 
   var st = null;
+  var shownTileIdx = null;
 
   /* 世界大事终局回流队列（原 :3150–:3158 逐字同构） */
   function queueWorldResult(crisisId, outcome) {
@@ -25,7 +28,17 @@
 
   /* core/env 公共注入 */
   function env(extra) {
-    return Object.assign({ showToast: ui.hud.toast, queueWorldResult: queueWorldResult }, extra || {});
+    return Object.assign({
+      showToast: ui.hud.toast,
+      queueWorldResult: queueWorldResult,
+      addLog: core.time.addLog,
+      /* M2：三招对决引擎接入点（现为占位卡收口） */
+      startDuel: function (s, params) { ui.panels.openDuelPending(params); },
+      /* M4：传世秘境内容接入点 */
+      canonicalSecret: function (s, regId, secret) { ui.panels.openSecretPending(regId, secret); },
+      openBountyPoster: function (bounty) { ui.panels.openBountyPoster(st, bounty, core.player, core.time.getRegion, function (b) { runAction('bounty_duel'); }); },
+      openRoadEncounter: function (ev, reg) { ui.panels.openRoadEncounter(ev, reg, function (idx) { systems.tiles.applyRoadEncounterChoice(st, ev, idx, env()); afterAction(); }); }
+    }, extra || {});
   }
 
   function save() { core.state.saveGame(st, root.localStorage); }
@@ -34,6 +47,20 @@
     save();
     ui.hud.render(st);
     syncChrome();
+    syncBoardLayer();
+    syncTileButtons();
+    syncTravelButton(st.currentRegion);
+  }
+
+  /* state.viewLayer ⇔ board3d 层对账（M1 集成缝）：行脚到达主线章地点会切 local
+   * （原 :4534–:4549 语义），3D 板须同步钻入；反向回世界层同理。diving/rising 过渡态
+   * 由 board3d 自己的 mode 守卫挡重复触发。 */
+  function syncBoardLayer() {
+    var qx = root.__QX;
+    if (!qx || !st || !st.hasCreatedChar) return;
+    var mode = qx.mode;
+    if (st.viewLayer === 'local' && mode === 'world') qx.enterRegion(st.currentRegion);
+    else if (st.viewLayer === 'world' && mode === 'local') qx.exitRegion();
   }
 
   /* HUD/日志/过旬钮随创角状态显隐 */
@@ -44,21 +71,20 @@
     document.getElementById('btn-turn').style.display = has ? '' : 'none';
   }
 
-  /* ── 吐纳过旬（过 1 旬 + 精力回满，advanceTime(1, resetAp=true)）──────────── */
+  /* ── 吐纳过旬（原版 meditateRest :5806：回复 + 过旬 + 精力回满）───────────── */
   function onTurnAdvance() {
     if (!st || !st.hasCreatedChar) return;
-    core.time.advanceTime(st, 1, true, env());
+    systems.tiles.meditateRest(st, env());
     afterAction();
-    ui.hud.toast('🧘 吐纳过旬 · 精力回满', 'emerald');
   }
 
-  /* ── 行脚（世界层，邻接地界徒步；快马跨州 M1 接）────────────────────────── */
+  /* ── 行脚（世界层，邻接地界徒步；快马跨州 M1 未接入口）────────────────────── */
   function onTravel(targetRegionId) {
     if (!st || !st.hasCreatedChar) return;
     var cur = core.time.getRegion(st.currentRegion);
     if (targetRegionId === cur.id) return;
     if (!cur.neighbors.includes(targetRegionId)) {
-      ui.hud.toast('跨州远行须逐城行脚（快马跨州 M1 接入）。', 'amber');
+      ui.hud.toast('跨州远行须逐城行脚（快马跨州入口 M1+ 接入）。', 'amber');
       return;
     }
     if (!systems.travel.canAffordTravel(st, false, env())) return;
@@ -69,6 +95,97 @@
     var qx = root.__QX;
     if (qx && qx.focusRegion) qx.focusRegion(targetRegionId);
     syncTravelButton(targetRegionId);
+  }
+
+  /* ── 本境层切换（enter_local 动作 / board3d 回到山河）────────────────────── */
+  function onLayerChange(layer) {
+    if (!st) return;
+    if (st.viewLayer !== layer) {
+      st.viewLayer = layer;
+      save();
+    }
+    syncTileButtons();
+    syncTravelButton(st.currentRegion);
+  }
+
+  /* ── 格卡钩子（board3d showTileInfo → 同步移步/办事钮）────────────────────── */
+  function onTileShown(idx) {
+    shownTileIdx = idx;
+    syncTileButtons();
+  }
+  function syncTileButtons() {
+    var moveBtn = document.getElementById('ic-move');
+    var actBtn = document.getElementById('ic-act');
+    if (!moveBtn || !actBtn) return;
+    var inLocal = st && st.hasCreatedChar && st.viewLayer === 'local';
+    var hasTile = shownTileIdx != null && shownTileIdx !== st.currentTileIdx;
+    if (inLocal && hasTile) {
+      var chk = systems.tiles.canMoveToTile(st, shownTileIdx);
+      moveBtn.classList.add('show');
+      moveBtn.disabled = !chk.ok;
+      moveBtn.textContent = '移步至此（' + (chk.isAdj ? '-4内息' : '-1行脚') + '）' + (chk.ok ? '' : ' · 资源不足');
+      moveBtn.onclick = function () {
+        var curReg = core.time.getRegion(st.currentRegion);
+        systems.tiles.commitLocalTileMove(st, shownTileIdx, chk.isAdj, env());
+        afterAction();
+        if (root.__QX && root.__QX.focusTile) root.__QX.focusTile(shownTileIdx);
+        onTileShown(shownTileIdx);
+      };
+    } else {
+      moveBtn.classList.remove('show');
+    }
+    actBtn.classList.toggle('show', !!inLocal);
+    if (inLocal) {
+      actBtn.onclick = function () { openActions(); };
+    }
+  }
+  function openActions() {
+    var curReg = core.time.getRegion(st.currentRegion);
+    var curTile = curReg.tiles[st.currentTileIdx];
+    ui.panels.openActionPanel(st, curReg, curTile, runAction);
+  }
+
+  /* ── 动作派发（collectTileActions.act → systems.tiles）───────────────────── */
+  function runAction(actId) {
+    if (!st || !st.hasCreatedChar) return;
+    var e = env();
+    var curReg = core.time.getRegion(st.currentRegion);
+    var zone = curReg.zone;
+    if (actId === 'enter_local') {
+      st.viewLayer = 'local';
+      save();
+      if (root.__QX && root.__QX.enterRegion) root.__QX.enterRegion(st.currentRegion);
+      afterAction();
+      return;
+    }
+    if (actId === 'tavern_drink') systems.tiles.tavernDrinkRest(st, e);
+    else if (actId === 'tavern_bounty') systems.tiles.tavernPostBounty(st, e);
+    else if (actId === 'forge_weapon') systems.tiles.forgeEquipment(st, 'weapon', e);
+    else if (actId.indexOf('buy_') === 0 && actId !== 'buy_trade') systems.tiles.buyMarketItem(st, actId.slice(4), e);
+    else if (actId === 'sect_hall') ui.hud.toast('掌门大殿 · 拜师/晋升/名宿交互 M5 接入。', 'amber');
+    else if (actId === 'sect_practice') systems.tiles.sectPractice(st, e);
+    else if (actId === 'sect_guardian') systems.tiles.sectChallengeGuardian(st, e);
+    else if (actId === 'shrine_cultivate') systems.tiles.shrineCultivate(st, e);
+    else if (actId === 'explore_secret') systems.tiles.exploreSecretCave(st, e);
+    else if (actId === 'escort') systems.tiles.doEscortConvoy(st, e);
+    else if (actId === 'buy_trade') systems.tiles.buyTradeGood(st, systems.tiles.getRegionalTradeGood(zone).id, e);
+    else if (actId === 'sell_best') {
+      var deal = systems.tiles.getBestTradeDeal(st);
+      if (deal) systems.tiles.sellTradeGood(st, deal.good.id, zone, e);
+    }
+    else if (actId === 'stroll') systems.tiles.strollLocalSpot(st, e);
+    else if (actId === 'meditate') systems.tiles.meditateRest(st, e);
+    else if (actId === 'bounty_duel') {
+      var lb = (st.bounties || []).find(function (b) { return b.region === st.currentRegion; });
+      if (lb) systems.tiles.startBountyDuel(st, st.currentRegion, lb.tileIdx, e, true);
+    }
+    else if (actId === 'crisis_join') {
+      var lc = (st.crises || []).find(function (c) { return c.region === st.currentRegion; });
+      if (lc) systems.tiles.joinWorldCrisis(st, lc.id, e);
+    }
+    else if (actId === 'crisis_aftermath') ui.hud.toast('余波介入 M3 接入（赴会三档与余波种子）。', 'amber');
+    else return;
+    afterAction();
   }
 
   /* ── board3d 钩子：信息卡显示地界时同步行脚钮与事件条 ────────────────────── */
@@ -87,7 +204,7 @@
     btn.textContent = '行脚至此 · ' + (target ? target.name : '') + '（过 1 旬，-1行脚）';
     btn.onclick = function () { onTravel(id); };
   }
-  /* 演示占位事件换成真 crises（M3 起赴会；M0 只上事件条） */
+  /* crisis 事件条（M3 起赴会；M1 上事件条 + 入局占位） */
   function regionEvent(id) {
     if (!st || !st.hasCreatedChar) return null;
     var c = (st.crises || []).find(function (x) { return x.region === id; });
@@ -111,6 +228,7 @@
       ui.hud.renderLogs(st);
     } else {
       ui.hud.render(st);
+      syncBoardLayer();
     }
     syncChrome();
 
@@ -130,8 +248,12 @@
     state: null,
     boot: boot,
     onRegionShown: onRegionShown,
+    onTileShown: onTileShown,
+    onLayerChange: onLayerChange,
     regionEvent: regionEvent,
-    onTravel: onTravel
+    onTravel: onTravel,
+    runAction: runAction,
+    openActions: openActions
   };
 
   if (document.readyState === 'loading') {

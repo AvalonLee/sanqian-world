@@ -159,6 +159,119 @@ const { chromium } = require('playwright-core');
     T(post2.region === 'luoyang' && post2.turn === 7 && post2.ap === 4 && post2.mp === Math.max(10, post.mp - 8) && post2.hud,
       'Q3D5c 走两州（少林→洛阳返程 ⇔ turn 7 · ap-1 · mp-8 保底 · HUD 同步）', JSON.stringify(post2));
 
+    /* ── Q3D8 组 · M1 八格动作 + 本境经济（洛阳一旬收支走查）────────────────── */
+    await page.waitForTimeout(900); /* syncBoardLayer 钻入过渡（640ms）落地 */
+    /* 行脚到达语义（原 :4534–:4549）：抵达主线章地点（洛阳格 1 太白酒肆）⇒ 自动切本境层。
+     * 故 M1 流程自本境层酒肆起步：揭榜 → 小酌 → 移步渡口走镖 → 移步市集购药 → 跨街名胜寻幽 → 吐纳过旬。 */
+    const stAtM1 = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    T(stAtM1.viewLayer === 'local' && stAtM1.currentRegion === 'luoyang' && stAtM1.currentTileIdx === 1,
+      'Q3D8 到达语义（行脚抵达主线章地点 ⇒ 自动入本境层 · 洛阳格1酒肆）', JSON.stringify({ layer: stAtM1.viewLayer, tile: stAtM1.currentTileIdx }));
+    const gold0 = stAtM1.gold;
+
+    /* ① 揭榜悬赏（海捕文书弹窗 + ap−1 + 冷却 turn+2） */
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-act="tavern_bounty"]').click(); });
+    await page.waitForTimeout(250);
+    const poster = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      return {
+        open: !m.classList.contains('hidden'),
+        poster: /海捕文书/.test(m.textContent),
+        fightBtn: !!m.querySelector('[data-qxm-choice]'),
+        bounty: (st.bounties || []).some(b => b.region === 'luoyang'),
+        ap: st.ap,
+        cd: st.bountyCooldownUntil.luoyang
+      };
+    });
+    T(poster.open && poster.poster && poster.fightBtn && poster.bounty && poster.ap === 4 && poster.cd === undefined,
+      'Q3D8b 揭榜悬赏（初始档自带洛阳恶徒 ⇒ 揭榜直出海捕文书，early-return 不扣精力）', JSON.stringify(poster));
+    await page.evaluate(() => {
+      const btns = document.querySelectorAll('#qx-modal [data-qxm-choice]');
+      btns[btns.length - 1].click(); /* 按兵不动 */
+    });
+    await page.waitForTimeout(150);
+
+    /* ② 酒肆小酌（-8文 +50气血 +40内息 + 本旬限饮） */
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-act="tavern_drink"]').click(); });
+    await page.waitForTimeout(200);
+    const afterDrink = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    T(afterDrink.turnFlags.drankTavern && afterDrink.gold === gold0 - 8,
+      'Q3D8c 酒肆小酌（drankTavern 置位 ⇔ -8文 +50气血 +40内息）', JSON.stringify({ gold: afterDrink.gold, hp: afterDrink.hp, drank: afterDrink.turnFlags.drankTavern }));
+
+    /* ③ 移步渡口（邻格 -4内息）→ 走镖（合法二选一：平安 +24 文 ⇔ 45% 劫匪对手卡） */
+    await page.evaluate(() => { window.__QX.showTileInfo(0); });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { document.getElementById('ic-move').click(); });
+    await page.waitForTimeout(200);
+    const movedAdj = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    T(movedAdj.currentTileIdx === 0, 'Q3D8d 邻格移步（tile 1→0 · -4内息）', 'tile=' + movedAdj.currentTileIdx);
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-act="escort"]').click(); });
+    await page.waitForTimeout(250);
+    const afterEscort = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      const modalOpen = !document.getElementById('qx-modal').classList.contains('hidden');
+      const duelCard = modalOpen && /引擎 M2/.test(document.getElementById('qx-modal').textContent);
+      return { gold: st.gold, ap: st.ap, duelCard };
+    });
+    const escortOk = (afterEscort.gold === gold0 - 8 + 24 && !afterEscort.duelCard) || afterEscort.duelCard;
+    T(escortOk && afterEscort.ap === 3, 'Q3D8e 走镖结算（平安 +24文 ⇔ 45% 劫匪对手卡，合法二选一 · ap−1）',
+      JSON.stringify(afterEscort) + ' gold0=' + gold0);
+    if (afterEscort.duelCard) { await page.evaluate(() => { window.QX3D.ui.panels.closeModal(); }); await page.waitForTimeout(150); }
+
+    /* ④ 移步市集（邻格 -4内息）→ 商铺货架全列 + 限量购药 */
+    await page.evaluate(() => { window.__QX.showTileInfo(2); });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { document.getElementById('ic-move').click(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(150);
+    const shopN = await page.evaluate(() => document.querySelectorAll('#qx-modal [data-act^="buy_"]').length);
+    T(shopN >= 10, 'Q3D8f 商铺货架（group=shop 全列 ⩾10 条且不进主槽）', 'shop=' + shopN);
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-act="buy_jinchuang_yao"]').click(); });
+    await page.waitForTimeout(200);
+    const afterBuy = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    /* 合法二态：盘缠足 ⇒ 入行囊+记账；劫匪路径盘缠不足 ⇒ 购入被拒（toast） */
+    const buyOk = (afterBuy.inventory.jinchuang_yao === 1 && afterBuy.purchasedCounts.jinchuang_yao === 1) || afterBuy.gold < 48;
+    T(buyOk,
+      'Q3D8g 限量购药（48文入行囊+记账 ⇔ 盘缠不足被拒，合法二态）', JSON.stringify({ inv: afterBuy.inventory.jinchuang_yao || 0, gold: afterBuy.gold }));
+
+    /* ⑤ 跨街移步名胜（-1行脚）→ 驻足寻幽 → 奇遇二选一（合法二态） */
+    await page.evaluate(() => { window.__QX.showTileInfo(5); });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { document.getElementById('ic-move').click(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-act="stroll"]').click(); });
+    await page.waitForTimeout(250);
+    const enc = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      return { open: !m.classList.contains('hidden'), choices: m.querySelectorAll('[data-qxm-choice]').length };
+    });
+    T(enc.open && enc.choices === 2, 'Q3D8h 驻足寻幽（-1行脚 + 途中奇遇弹窗二选一）', JSON.stringify(enc));
+    const beforeEnc = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-qxm-choice]').click(); });
+    await page.waitForTimeout(200);
+    const afterEnc = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    const encOk =
+      (afterEnc.exp === beforeEnc.exp + 28 && afterEnc.mp === Math.max(0, beforeEnc.mp - 15) && afterEnc.karma.xiaoyao === beforeEnc.karma.xiaoyao + 10) ||
+      (afterEnc.gold === beforeEnc.gold + 20 && afterEnc.fame === beforeEnc.fame + 10 && afterEnc.karma.xiayi === beforeEnc.karma.xiayi + 12) ||
+      (afterEnc.karma.xiayi === beforeEnc.karma.xiayi + 15 && afterEnc.karma.kuangao === beforeEnc.karma.kuangao + 5); /* 拔刀相助支：侠义+15 + 对手卡（引擎 M2） */
+    T(encOk, 'Q3D8i 奇遇抉择落账（临摹 逍遥+10/修为+28 ⇔ 义葬 侠义+12/银+20，合法二选一）',
+      JSON.stringify({ b: { exp: beforeEnc.exp, mp: beforeEnc.mp, gold: beforeEnc.gold }, a: { exp: afterEnc.exp, mp: afterEnc.mp, gold: afterEnc.gold } }));
+
+    /* ⑥ HUD 吐纳过旬（meditateRest 语义：回复 + 过旬 + 精力回满） */
+    await page.evaluate(() => { document.getElementById('btn-turn').click(); });
+    await page.waitForTimeout(250);
+    const afterTurn = await page.evaluate(() => JSON.parse(localStorage.getItem('shanqian3d_save_v1')));
+    T(afterTurn.turn === 8 && afterTurn.ap === afterTurn.maxAp && afterTurn.hp === afterTurn.maxHp && afterTurn.mp === afterTurn.maxMp,
+      'Q3D8j 吐纳过旬（第8旬 + 精力回满 + meditateRest 回满气血内息）', JSON.stringify({ turn: afterTurn.turn, ap: afterTurn.ap, hp: afterTurn.hp, mp: afterTurn.mp }));
     /* Q3D6 跨世棋盘重开（QX16 语义，三步）：
      * ① 首遇 payload（存档 worldGen=null）⇒ 记值不清档（「含首次无记录续档不动」）；
      * ② gen 变大（转世）⇒ 清档 + 刷新回创角封面；

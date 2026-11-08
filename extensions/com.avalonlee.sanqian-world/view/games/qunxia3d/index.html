@@ -262,6 +262,56 @@
   .cr-actions { margin-top: 16px; display: flex; gap: 10px; justify-content: flex-end; }
   .cr-submit { font-size: 15px; letter-spacing: 4px; color: var(--xuan-light); background: var(--cinnabar); border: none; border-radius: 8px; padding: 10px 26px; cursor: pointer; font-family: var(--serif); font-weight: 700; box-shadow: 0 3px 10px rgba(185, 54, 44, 0.35); }
   .cr-submit:hover { background: var(--cinnabar-bright); }
+
+  /* ===== M1：纸面弹窗族 + 本境动作面板 ===== */
+  #qx-modal {
+    position: fixed; inset: 0; z-index: 66; display: flex; align-items: center; justify-content: center;
+    background: rgba(29, 25, 21, 0.35);
+  }
+  #qx-modal.hidden { display: none; }
+  .qxm-sheet {
+    width: min(680px, 92vw); max-height: 88vh; overflow-y: auto;
+    background: linear-gradient(160deg, #faf4e6 0%, #f1e6cf 100%);
+    border: 1px solid rgba(67, 58, 49, 0.55); border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(29, 25, 21, 0.35), inset 0 0 50px rgba(220, 202, 176, 0.3);
+    padding: 16px 18px;
+  }
+  .qxm-head { display: flex; align-items: baseline; gap: 10px; border-bottom: 1px dashed rgba(67, 58, 49, 0.4); padding-bottom: 9px; }
+  .qxm-tag { font-size: 11px; letter-spacing: 3px; color: var(--jade); border: 1px solid rgba(43, 107, 94, 0.5); border-radius: 4px; padding: 1px 8px; white-space: nowrap; }
+  .qxm-title { font-size: 16px; color: var(--ink-deep); letter-spacing: 1px; }
+  .qxm-loc { font-size: 11.5px; color: var(--ink-soft); }
+  .qxm-close { margin-left: auto; border: none; background: none; color: var(--ink-soft); font-size: 15px; cursor: pointer; font-family: inherit; }
+  .qxm-close:hover { color: var(--cinnabar); }
+  .qxm-body { margin-top: 10px; font-size: 13px; line-height: 1.8; color: var(--ink-mid); }
+  .qxm-desc { text-align: justify; }
+  .qxm-choices { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+  .qxm-btn {
+    font-family: var(--serif); text-align: left; cursor: pointer; font-size: 12.5px; line-height: 1.55;
+    border: 1.5px solid rgba(67, 58, 49, 0.45); background: rgba(255, 252, 244, 0.85);
+    border-radius: 8px; padding: 9px 12px; color: var(--ink-mid); transition: all .15s ease;
+  }
+  .qxm-btn:hover { border-color: var(--ink-mid); transform: translateY(-1px); }
+  .qxm-btn.primary { border-color: var(--cinnabar); color: var(--cinnabar); font-weight: 700; background: rgba(185, 54, 44, 0.06); }
+  .qxm-poster-meta { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--ink-deep); background: rgba(236, 224, 200, 0.8); border: 1px solid rgba(67, 58, 49, 0.35); border-radius: 7px; padding: 7px 11px; }
+  .qxm-reward { color: var(--cinnabar); font-weight: 700; }
+  .qxm-dim { color: var(--ink-soft); font-size: 12px; }
+  .qxm-acts { display: flex; flex-direction: column; gap: 6px; }
+  .qxm-more-h { margin-top: 9px; font-size: 11px; letter-spacing: 3px; color: var(--ink-soft); border-left: 3px solid var(--ink-soft); padding-left: 7px; }
+  .qxm-act {
+    font-family: var(--serif); display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    text-align: left; cursor: pointer; border: 1.5px solid rgba(67, 58, 49, 0.4);
+    background: rgba(255, 252, 244, 0.85); border-radius: 8px; padding: 8px 12px; transition: all .15s ease;
+  }
+  .qxm-act:hover { border-color: var(--ink-mid); transform: translateY(-1px); }
+  .qxm-act.recommend { border-color: var(--gold); background: rgba(179, 126, 36, 0.08); }
+  .qxm-act.danger { border-color: rgba(185, 54, 44, 0.6); }
+  .qxm-act.disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .qa-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .qa-main b { font-size: 13px; color: var(--ink-deep); }
+  .qa-main i { font-size: 11px; font-style: normal; color: var(--ink-soft); }
+  .qa-cost { flex: none; font-size: 11px; color: var(--gold); border: 1px solid rgba(179, 126, 36, 0.5); border-radius: 4px; padding: 1px 7px; white-space: nowrap; }
+  .ic-tilebtn { display: none; margin-top: 8px; width: 100%; text-align: center; }
+  .ic-tilebtn.show { display: block; }
 </style>
 </head>
 <body>
@@ -302,6 +352,7 @@
   </div>
 
   <div class="toast-container" id="toast-container"></div>
+  <div id="qx-modal" class="hidden"></div>
 
   <div class="creation-modal" id="creation-modal">
     <div class="cr-sheet">
@@ -353,6 +404,8 @@
       <div class="ic-neigh-list" id="ic-neigh-list"></div>
     </div>
     <button class="ink-btn ic-travel" id="ic-travel">行脚至此</button>
+    <button class="ink-btn ic-tilebtn" id="ic-move">移步至此</button>
+    <button class="ink-btn ic-tilebtn" id="ic-act">办理此处事务</button>
     <button class="ink-btn ic-enter" id="ic-enter">进入本境 ▸</button>
   </aside>
 
@@ -387,8 +440,10 @@
   <script src="./game/core/time.js"></script>
   <script src="./game/core/player.js"></script>
   <script src="./game/systems/travel.js"></script>
+  <script src="./game/systems/tiles.js"></script>
   <!-- 表现层 -->
   <script src="./game/ui/hud.js"></script>
+  <script src="./game/ui/panels.js"></script>
   <script src="./game/ui/creation.js"></script>
   <script src="./game/app.js"></script>
   <script src="./board3d.js"></script>

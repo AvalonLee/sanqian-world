@@ -98,7 +98,22 @@ const FNS = [
   'canAffordTravel', 'commitTravelToRegion',
   'getScrollById', 'drawScrollProposition', 'applyScrollPropositionToNewGame',
   'getLegacyMeta', 'carriedRelicIds', 'ensureP3StateDefaults',
-  'pickRandomFrom', 'rerollOpeningTalents', 'selectOrigin'
+  'pickRandomFrom', 'rerollOpeningTalents', 'selectOrigin',
+  /* M1 八格动作 + 本境经济（systems/tiles.js 对表集） */
+  'checkRealmPromotion', 'commitLocalTileMove', 'meditateRest', 'tavernDrinkRest', 'tavernPostBounty',
+  'buyMarketItem', 'forgeEquipment', 'sectPractice', 'sectChallengeGuardian', 'shrineCultivate',
+  'exploreSecretCave', 'strollLocalSpot', 'triggerRoadEncounter', 'selectEncounterChoice',
+  'startBountyDuel', 'joinWorldCrisis', 'getRegionalTradeGood', 'getBestTradeDeal',
+  'buyTradeGood', 'sellTradeGood', 'doEscortConvoy', 'collectTileActions', 'pickPrimaryActions'
+];
+
+/* 原版有声明、但本对表要替换成 stub 的函数（在切片之后注入，覆盖原版体）：
+ *   startDuel = 三招对决引擎 M2 接；triggerCanonicalSecretRealm = 传世秘境 M4 接；
+ *   openBountyPosterModal / spawnFloatingText / closeEventModal / renderDrawer = 纯表现（豁免 ③）。 */
+const STUB_AFTER = [
+  'startDuel', 'triggerCanonicalSecretRealm', 'openBountyPosterModal',
+  'spawnFloatingText', 'closeEventModal', 'renderDrawer',
+  'renderHud', 'renderLocalGridTiles', 'renderInspector'
 ];
 
 /* state 形状（逐字节 body，用于重置：`state = <body>;`） */
@@ -107,7 +122,20 @@ const stateBody = lib.sliceDecl(gameSrc, 'state', 'let').text
 
 function buildSandbox(seed) {
   const ctx = {
-    document: { getElementById: function () { return null; } },
+    /* toast-container 须回 null（showToast 早退）；其余元素给通用桩（forge 的 drawer-modal
+     * contains→true 跳过 renderDrawer；roadEncounter 的 event-modal 族用可写桩） */
+    document: {
+      getElementById: function (id) {
+        if (id === 'toast-container') return null;
+        return {
+          classList: { add: function () {}, remove: function () {}, contains: function () { return true; } },
+          textContent: '', innerHTML: '', style: {}, src: '', value: ''
+        };
+      },
+      createElement: function () {
+        return { className: '', textContent: '', style: {}, appendChild: function () {}, remove: function () {} };
+      }
+    },
     window: {},
     location: { reload: function () {} },
     localStorage: (function () {
@@ -119,6 +147,8 @@ function buildSandbox(seed) {
       };
     })(),
     Math: Object.create(Math),
+    setTimeout: function () {},
+    clearTimeout: function () {},
     console: console
   };
   /* 纯表现 stub（豁免 ③） */
@@ -130,7 +160,6 @@ function buildSandbox(seed) {
   ctx.renderOriginCreationModal = function () {};
   ctx.openExclusiveEventModal = function () {};
   ctx.tryOpenAftermathIfPresent = function () { return false; };
-  ctx.triggerRoadEncounter = function () {};
   vm.createContext(ctx);
   const run = function (code) { return vm.runInContext(code, ctx, { filename: 'sandbox.js' }); };
   /* 注入定种 rng（上下文自己的 Math） */
@@ -143,6 +172,8 @@ function buildSandbox(seed) {
   };
   TABLES.forEach(t => { runPiece(slice(t[0], t[1]) + '\n', t[0] + ' ' + t[1]); });
   FNS.forEach(f => { runPiece(slice('function', f) + '\n', 'function ' + f); });
+  /* 切片后注入 stub（覆盖原版体——两侧同置的引擎/弹窗豁免面） */
+  STUB_AFTER.forEach(f => { runPiece('function ' + f + '() {}', 'stub ' + f); });
   runPiece('state = ' + stateBody + ';\n', 'state 形状');
   return { ctx: ctx, run: run };
 }
@@ -160,7 +191,12 @@ function newEnv(rand, seed) {
     },
     rand: rand,
     roadEncounter: function () {},
-    tryOpenAftermath: function () { return false; }
+    tryOpenAftermath: function () { return false; },
+    /* M1 八格动作钩子（引擎/弹窗豁免面，两侧同置 noop） */
+    startDuel: function () {},
+    canonicalSecret: function () {},
+    openBountyPoster: function () {},
+    openRoadEncounter: function () {}
   };
 }
 
@@ -417,6 +453,216 @@ ORIGIN_IDS.forEach((oid, oi) => {
   const st3b = JSON.parse(stubStore.getItem(coreState.SAVE_KEY));
   const act2 = coreState.reconcileWorldGen(st3b, stubStore);
   check('S6c gen 变小 ⇒ 记值不清档', act2.action === 'record' && st3b.worldGen === 5 && stubStore.getItem(coreState.SAVE_KEY) !== null);
+})();
+
+/* ══ M1：八格动作 + 本境经济对表（systems/tiles.js）══════════════════════ */
+/* 通用建场：创角 sword_wanderer×vow_homestead 固定命格（两侧同种子） */
+function m1pair(seed) {
+  const sb = buildSandbox(seed);
+  sb.run('tempSelectedTalents = ["t_good_tough","t_norm_farmer","t_bad_meridian"]; tempSelectedVow = "vow_homestead";');
+  sb.run('selectOrigin("sword_wanderer");');
+  const nst = { st: coreState.initialState(), rand: mulberry32(seed) };
+  coreState.applyOrigin(nst.st, 'sword_wanderer', {
+    name: '沈青锋', talents: ['t_good_tough', 't_norm_farmer', 't_bad_meridian'],
+    vow: 'vow_homestead', storage: stubStore, env: { rand: nst.rand }
+  });
+  return { sb: sb, nst: nst };
+}
+const tiles = require(path.join(GAME_DIR, 'systems', 'tiles.js'));
+
+/* S7 吐纳过旬（meditateRest） */
+[71, 72].forEach(seed => {
+  const p = m1pair(seed);
+  p.sb.run('state.hp = 40; state.mp = 20;');
+  p.sb.run('meditateRest();');
+  p.nst.st.hp = 40; p.nst.st.mp = 20;
+  tiles.meditateRest(p.nst.st, newEnv(p.nst.rand, seed));
+  compareStates(p.sb, p.nst, 'S7 吐纳过旬 seed=' + seed);
+});
+
+/* S8 酒肆小酌 + 限次拒 */
+(function S8() {
+  const p = m1pair(81);
+  p.sb.run('state.currentTileIdx = 1;');
+  p.sb.run('tavernDrinkRest(); tavernDrinkRest();');
+  p.nst.st.currentTileIdx = 1;
+  tiles.tavernDrinkRest(p.nst.st, newEnv(p.nst.rand, 81));
+  tiles.tavernDrinkRest(p.nst.st, newEnv(p.nst.rand, 81));
+  compareStates(p.sb, p.nst, 'S8 酒肆小酌 + 本旬限饮拒');
+})();
+
+/* S9 揭榜悬赏（生成种子面：tileIdx/恶徒名/架势 + 冷却 + 移位）。
+ * 初始 state 自带两桩悬赏（luoyang/huashan，:3024）——先清空才走到生成路径
+ * （带既有恶徒的 early-return 直出榜文分支由 S9b 覆盖） */
+[91, 92, 93].forEach(seed => {
+  const p = m1pair(seed);
+  p.sb.run('state.bounties = []; state.currentTileIdx = 1;');
+  p.sb.run('tavernPostBounty();');
+  p.nst.st.bounties = [];
+  p.nst.st.currentTileIdx = 1;
+  tiles.tavernPostBounty(p.nst.st, newEnv(p.nst.rand, seed));
+  compareStates(p.sb, p.nst, 'S9 揭榜悬赏 seed=' + seed);
+});
+
+/* S9b 揭榜 early-return：既有恶徒 ⇒ 直出榜文、不扣精力、无冷却 */
+(function S9b() {
+  const p = m1pair(95);
+  p.sb.run('state.currentTileIdx = 1;');
+  p.sb.run('tavernPostBounty();');
+  p.nst.st.currentTileIdx = 1;
+  tiles.tavernPostBounty(p.nst.st, newEnv(p.nst.rand, 95));
+  compareStates(p.sb, p.nst, 'S9b 揭榜既有恶徒 early-return');
+})();
+
+/* S10 市集购入三分支（equip 佩挂重算上限 / scroll 习得 / pill 入行囊 + 限购） */
+(function S10() {
+  const p = m1pair(101);
+  p.sb.run('state.gold = 5000; state.currentTileIdx = 2;');
+  p.sb.run('buyMarketItem("qingtong_jian"); buyMarketItem("scroll_dugu"); buyMarketItem("jinchuang_yao"); buyMarketItem("jinchuang_yao");');
+  const nenv = newEnv(p.nst.rand, 101);
+  p.nst.st.gold = 5000; p.nst.st.currentTileIdx = 2;
+  tiles.buyMarketItem(p.nst.st, 'qingtong_jian', nenv);
+  tiles.buyMarketItem(p.nst.st, 'scroll_dugu', nenv);
+  tiles.buyMarketItem(p.nst.st, 'jinchuang_yao', nenv);
+  tiles.buyMarketItem(p.nst.st, 'jinchuang_yao', nenv);
+  compareStates(p.sb, p.nst, 'S10 市集购入三分支 + 限购');
+})();
+
+/* S11 淬炼双价表（90/60 → 180/120）+ 满级拒 */
+(function S11() {
+  const p = m1pair(111);
+  p.sb.run('state.gold = 2000; state.exp = 600; state.currentTileIdx = 2;');
+  p.sb.run('forgeEquipment("weapon"); forgeEquipment("weapon");');
+  p.sb.run('state.forgeLevels.weapon = 5; forgeEquipment("weapon");');
+  const nenv = newEnv(p.nst.rand, 111);
+  p.nst.st.gold = 2000; p.nst.st.exp = 600; p.nst.st.currentTileIdx = 2;
+  tiles.forgeEquipment(p.nst.st, 'weapon', nenv);
+  tiles.forgeEquipment(p.nst.st, 'weapon', nenv);
+  p.nst.st.forgeLevels.weapon = 5;
+  tiles.forgeEquipment(p.nst.st, 'weapon', nenv);
+  compareStates(p.sb, p.nst, 'S11 淬炼双价表 + 满级拒');
+})();
+
+/* S12 演武/灵脉 + 门槛拒（精力 0 / 内息不足） */
+(function S12() {
+  const p = m1pair(121);
+  p.sb.run('state.currentRegion = "shaolin"; state.currentTileIdx = 2;');
+  p.sb.run('sectPractice();');
+  p.sb.run('state.currentTileIdx = 6; shrineCultivate();');
+  const nenv = newEnv(p.nst.rand, 121);
+  p.nst.st.currentRegion = 'shaolin'; p.nst.st.currentTileIdx = 2;
+  tiles.sectPractice(p.nst.st, nenv);
+  p.nst.st.currentTileIdx = 6;
+  tiles.shrineCultivate(p.nst.st, nenv);
+  compareStates(p.sb, p.nst, 'S12 演武 + 灵脉闭关');
+  /* 门槛拒：ap=0 → sectPractice 拒；mp<15 → 拒 */
+  p.sb.run('state.ap = 0; state.turnFlags.sectPracticeDone = false; sectPractice();');
+  p.sb.run('state.ap = 5; state.mp = 10; sectPractice();');
+  p.nst.st.ap = 0; p.nst.st.turnFlags.sectPracticeDone = false;
+  tiles.sectPractice(p.nst.st, nenv);
+  p.nst.st.ap = 5; p.nst.st.mp = 10;
+  tiles.sectPractice(p.nst.st, nenv);
+  compareStates(p.sb, p.nst, 'S12b 演武门槛拒（精力/内息）');
+})();
+
+/* S13 寻幽/探秘 + 奇遇四支效果（事件抽取定种 + 选择应用） */
+[131, 132, 133, 134].forEach(seed => {
+  const p = m1pair(seed);
+  p.sb.run('state.currentTileIdx = 5;');
+  p.sb.run('strollLocalSpot();');
+  p.sb.run('selectEncounterChoice(0);');
+  p.sb.run('state.turnFlags.exploredRegions = {}; state.currentTileIdx = 6;');
+  p.sb.run('exploreSecretCave();');
+  p.sb.run('selectEncounterChoice(1);');
+  const nenv = newEnv(p.nst.rand, seed);
+  p.nst.st.currentTileIdx = 5;
+  var ev1 = tiles.strollLocalSpot(p.nst.st, nenv).encounter;
+  tiles.applyRoadEncounterChoice(p.nst.st, ev1, 0, nenv);
+  p.nst.st.turnFlags.exploredRegions = {}; p.nst.st.currentTileIdx = 6;
+  var r2 = tiles.exploreSecretCave(p.nst.st, nenv);
+  tiles.applyRoadEncounterChoice(p.nst.st, r2.encounter, 1, nenv);
+  compareStates(p.sb, p.nst, 'S13 寻幽+探秘 奇遇效果 seed=' + seed);
+});
+
+/* S14 行商（购入特产 ×2 → 跨州 → 异地倾销 + 最优抛售单） */
+(function S14() {
+  const p = m1pair(141);
+  p.sb.run('state.gold = 300; state.currentTileIdx = 0;');
+  p.sb.run('buyTradeGood("good_wine"); buyTradeGood("good_wine");');
+  p.sb.run('commitTravelToRegion("shaolin", false);');
+  p.sb.run('sellTradeGood("good_wine", getRegion(state.currentRegion).zone);');
+  const nenv = newEnv(p.nst.rand, 141);
+  p.nst.st.gold = 300; p.nst.st.currentTileIdx = 0;
+  tiles.buyTradeGood(p.nst.st, 'good_wine', nenv);
+  tiles.buyTradeGood(p.nst.st, 'good_wine', nenv);
+  sysTravel.commitTravelToRegion(p.nst.st, 'shaolin', false, nenv);
+  tiles.sellTradeGood(p.nst.st, 'good_wine', coreTime.getRegion(p.nst.st.currentRegion).zone, nenv);
+  compareStates(p.sb, p.nst, 'S14 行商购入跨州倾销');
+  /* getBestTradeDeal 形状对表（data 面深比） */
+  p.sb.run('buyTradeGood("good_iron");');
+  tiles.buyTradeGood(p.nst.st, 'good_iron', nenv);
+  const sbDeal = JSON.parse(p.sb.run('JSON.stringify(getBestTradeDeal())'));
+  const newDeal = tiles.getBestTradeDeal(p.nst.st);
+  const r = deepEq(sbDeal, newDeal, 'deal');
+  check('S14b getBestTradeDeal 形状', r === null, r || undefined);
+})();
+
+/* S15 走镖两态（45% 劫匪 / 平安 +24文+14修为）定种 */
+[151, 152, 153].forEach(seed => {
+  const p = m1pair(seed);
+  p.sb.run('state.currentTileIdx = 0;');
+  p.sb.run('doEscortConvoy();');
+  const nenv = newEnv(p.nst.rand, seed);
+  p.nst.st.currentTileIdx = 0;
+  tiles.doEscortConvoy(p.nst.st, nenv);
+  compareStates(p.sb, p.nst, 'S15 走镖 seed=' + seed);
+});
+
+/* S16 境界突破（阈值表 + 上限增量 + 回满） */
+(function S16() {
+  const p = m1pair(161);
+  p.sb.run('state.exp = 200; checkRealmPromotion();');
+  p.sb.run('state.exp = 950; checkRealmPromotion();');
+  const nenv = newEnv(p.nst.rand, 161);
+  p.nst.st.exp = 200;
+  tiles.checkRealmPromotion(p.nst.st, nenv);
+  p.nst.st.exp = 950;
+  tiles.checkRealmPromotion(p.nst.st, nenv);
+  compareStates(p.sb, p.nst, 'S16 境界突破两级');
+})();
+
+/* S17 八格动作菜单对表（语义字段全等；onclick/act = 表现层接线差异，豁免） */
+(function S17() {
+  [['luoyang', 1], ['luoyang', 2], ['shaolin', 2], ['shaolin', 6], ['luoyang', 5], ['luoyang', 0], ['luoyang', 6]].forEach(tc => {
+    const p = m1pair(171);
+    p.sb.run('state.currentRegion = ' + JSON.stringify(tc[0]) + '; state.currentTileIdx = ' + tc[1] + ';');
+    const sbActions = JSON.parse(p.sb.run('JSON.stringify(collectTileActions(getRegion(state.currentRegion), getRegion(state.currentRegion).tiles[state.currentTileIdx]).map(function(a){return {id:a.id,tier:a.tier,priority:a.priority,label:a.label,sub:a.sub,cost:a.cost,disabled:a.disabled};}))'));
+    const nst = p.nst.st;
+    nst.currentRegion = tc[0]; nst.currentTileIdx = tc[1];
+    const newActions = tiles.collectTileActions(nst, coreTime.getRegion(nst.currentRegion), coreTime.getRegion(nst.currentRegion).tiles[nst.currentTileIdx])
+      .map(a => ({ id: a.id, tier: a.tier, priority: a.priority, label: a.label, sub: a.sub, cost: a.cost, disabled: a.disabled }));
+    const r = deepEq(sbActions, newActions, 'actions');
+    check('S17 动作菜单 ' + tc[0] + '#' + tc[1], r === null, r ? String(r).slice(0, 200) : undefined);
+    /* 主行动三槽（group=shop 不进） */
+    const sbPrim = JSON.parse(p.sb.run('JSON.stringify(pickPrimaryActions(collectTileActions(getRegion(state.currentRegion), getRegion(state.currentRegion).tiles[state.currentTileIdx])).primary.map(function(a){return a.id;}))'));
+    const newPrim = tiles.pickPrimaryActions(tiles.collectTileActions(nst, coreTime.getRegion(nst.currentRegion), coreTime.getRegion(nst.currentRegion).tiles[nst.currentTileIdx])).primary.map(a => a.id);
+    const r2 = deepEq(sbPrim, newPrim, 'primary');
+    check('S17b 主行动三槽 ' + tc[0] + '#' + tc[1], r2 === null, r2 || undefined);
+  });
+})();
+
+/* S18 本境移步（邻格 -4内息 / 跨街 -1行脚）+ 门槛拒 */
+(function S18() {
+  const p = m1pair(181);
+  p.sb.run('state.currentTileIdx = 0; commitLocalTileMove(1, true);');
+  p.sb.run('commitLocalTileMove(3, false);');
+  const nenv = newEnv(p.nst.rand, 181);
+  p.nst.st.currentTileIdx = 0;
+  tiles.commitLocalTileMove(p.nst.st, 1, true, nenv);
+  tiles.commitLocalTileMove(p.nst.st, 3, false, nenv);
+  compareStates(p.sb, p.nst, 'S18 本境移步邻格+跨街');
+  const rej1 = tiles.canMoveToTile(p.nst.st, 0); /* mp 不足（-4×2 后 <4）视种子而定，只判形状 */
+  check('S18b canMoveToTile 返回形状', !!rej1 && typeof rej1.ok === 'boolean');
 })();
 
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */

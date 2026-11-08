@@ -1492,6 +1492,8 @@
     });
     icEnter.classList.remove('show');
     card.classList.add('show');
+    /* M1 游戏化钩子：格卡换格时让 app 同步移步/办事钮（QX3D_APP 见 game/app.js） */
+    if (window.QX3D_APP && window.QX3D_APP.onTileShown) window.QX3D_APP.onTileShown(idx);
   }
   function hideInfo() { card.classList.remove('show'); }
   el('ic-close').addEventListener('click', hideInfo);
@@ -2117,6 +2119,8 @@
       lbName.textContent = r.name + ' · 本境';
       localBar.classList.add('show');
       diveVeil.classList.remove('show');
+      /* M1 游戏化钩子：钻入本境完成时同步 state.viewLayer（QX3D_APP 见 game/app.js） */
+      if (window.QX3D_APP && window.QX3D_APP.onLayerChange) window.QX3D_APP.onLayerChange('local');
     }, 640);
   }
   function exitRegion() {
@@ -2135,6 +2139,8 @@
       orbit.tTheta = HOME.theta; orbit.tPhi = HOME.phi; orbit.tR = HOME.r;
       mode = 'world';
       diveVeil.classList.remove('show');
+      /* M1 游戏化钩子：回世界层时同步 state.viewLayer（QX3D_APP 见 game/app.js） */
+      if (window.QX3D_APP && window.QX3D_APP.onLayerChange) window.QX3D_APP.onLayerChange('world');
     }, 640);
   }
   function focusTile(idx) {
@@ -2256,7 +2262,7 @@
     get mode() { return mode; },
     camera, scene, regionObjs, hitMeshes, labelSprites,
     localCache, enterRegion, exitRegion,
-    showRegionInfo, hideInfo, focusRegion,
+    showRegionInfo, showTileInfo, hideInfo, focusRegion,
   };
   const veil = document.getElementById('veil');
   requestAnimationFrame(() => requestAnimationFrame(() => {
