@@ -31,5 +31,6 @@
 | `落地实施方案-2026-10-01.md`、`Phase0对账表-2026-10-01.md` | 2 | C 版规划报告 |
 | `.workbuddy\memory\` | 3 | C 线开发过程记忆（2026-09-30 ~ 10-02） |
 | `.tests\` | 6 | ad-hoc 调试脚本（`_calib*.py`、`_dbg_fuzz.cjs`、`_diag_fe.cjs`、`_tmp_comp.cjs`） |
+| 书形态半成品-2026-11-08/（册169 创角指引键族） | 2026-11-08 | **stash 材料化归档**：stash「册169半成品封存」（creation-polish2 时代，+23/-1 词表键）——书形态创角「楔子·开卷语」指引 + 「批书人小引」手册 + step.2.book 先睹 + world badge/pitch 词；书形态整族已随册214 退役，无回捡场景。正本 = 同目录 `.patch`（基线 c02f68a 上 apply --check 干净验证）；stash 已 drop（原 60e84914），复原口径见件内 README |
 
 **纪律**：本快照**只读、仅作历史留档，不反向覆盖正典**。C 版中被采纳的体验改动已实现在开发目录（见扩展 `DESIGN.md` 的「体验迁移批 / UI 走查资产批」〔该批次日记自 2026-10-09 起在本目录 `_archive/DESIGN-批次史.md`，`DESIGN.md` 现为纯索引件〕）。

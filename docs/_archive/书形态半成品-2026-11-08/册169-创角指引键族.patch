@@ -1,0 +1,51 @@
+diff --git a/extensions/com.avalonlee.sanqian-world/assets/lexicon.js b/extensions/com.avalonlee.sanqian-world/assets/lexicon.js
+index ab3b5b2..b696243 100644
+--- a/extensions/com.avalonlee.sanqian-world/assets/lexicon.js
++++ b/extensions/com.avalonlee.sanqian-world/assets/lexicon.js
+@@ -143,6 +143,9 @@
+     'talent.swap.done': '洗髓功成：{from} → {to}',
+     'talent.swap.log.trib': '破境之际骨髓一清，得洗髓缘一枚（手中缘 {n} 枚）',
+     'world.status.live': '首发',
++    'world.xiuxian.badge': '可玩',
++    'world.wuxia.badge': '试水',
++    'world.wuxia.pitch': '批书人的江湖 · 一本自己在写的书 · 页边落笔改命',
+     'world.status.coming': '此界尚在混沌，未可投生',
+     /* coming 世界显示名兜底（世界包交付后由各自 lexicon 分卷覆盖）
+      * 册152（S0）：`world.guwu.name`「三国无双」随第二世界改向武侠整族退役，改 `world.wuxia.name`；
+@@ -163,8 +166,27 @@
+     'creation.step.1.n': '一', 'creation.step.1.t': '择界',
+     'creation.step.2.n': '二', 'creation.step.2.t': '立名',
+     'creation.step.3.n': '三', 'creation.step.3.t': '观天赋',
++    'creation.step.2.book': '先睹',   /* 册169：书世界全变体第二步 */
+     'creation.step.3.book': '取诨号',
++    'creation.world.xiuxian': '下一步：观天赋',
+     'creation.world.openbook': '翻看此书',   /* 册168：择界卡选中书世界后的下一步钮 */
++    'ui.book.guide.t': '楔子 · 开卷语',
++    'ui.book.guide.1': '这是一本自己在写的书。你不在这本书里——你是书外之人，批书人。',
++    'ui.book.guide.2': '读：正文自己浮现，一字一字落在纸上；等不及就点一下纸面。',
++    'ui.book.guide.3': '养：你不看书的时辰，主角自己练功闯荡。功力积得够，瓶颈自破。',
++    'ui.book.guide.4': '批：在书页下方落一笔，只言片语——主角的心性便偏一分，往后越来越像你批出来的那个人。',
++    'ui.book.guide.5': '改：遇到分岔（※）可以替主角定夺走向。第一支不落墨，是主角自己的打算；其余支费墨三分、违和加身。',
++    'ui.book.guide.6': '墨每章回满，违和每章消一分；违和过百即是墨厄——本卷重写，落笔需谨慎。',
++    'ui.book.guide.7': '页脚那行小字是这本书的账：境界 · 功力 · 银两 · 侠名 · 墨 · 违和。',
++    'ui.book.guide.ok': '翻页。故事开始了。',
++    'ui.book.manual.t': '批书人小引',
++    'ui.book.manual.1': '页脚自左而右：境界 · 功力/破关所需 · 银两 · 侠名 · 墨 · 违和。',
++    'ui.book.manual.2': '功力靠时辰积攒；攒够了还不够——心境不到，破不了关，出门见世面去。',
++    'ui.book.manual.3': '※ 分岔处落笔：头一支是主角自己的打算，不落墨；其余支费墨三分、违和加五。',
++    'ui.book.manual.4': '页边批注在书页下方：一字之差，心性偏一分。墨每章回满，用不完也带不走几分。',
++    'ui.book.manual.5': '右下角附录：功谱修习、强行冲关、舆图与人物。',
++    'ui.book.manual.6': '违和每章消一分，过百即是墨厄——本卷重写。开始吧。',
++    'ui.book.manual.ok': '开始阅读',
+     'ui.book.hao.pick': '你要如何被江湖称呼？',
+     'ui.book.enter': '落笔入世',   /* 册167：书世界第三步（renderC2Hao 时步骤条随世界取词） */
+     'creation.name.title': '道名初定',
+@@ -176,7 +198,7 @@
+     'creation.world.title': '三千世界 · 择界重生',
+     'creation.world.pick': '选择重生世界',
+     'creation.world.hint': '择界之后，天赋自该界的天地法则中抽取。',
+-    'creation.world.next': '下一步：观天赋',
++    'creation.world.next': '下一步',   /* 册169：未选界不预设第三步；选中修仙 = 下一步：观天赋 */
+     'creation.world.noPick': '请先选择一处可投生之界',
+     'creation.talent.title': '天命所赋',
+     'creation.talent.combo': '{p} 正 {n} 负',
