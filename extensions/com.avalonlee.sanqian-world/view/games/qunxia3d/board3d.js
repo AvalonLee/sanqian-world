@@ -1440,7 +1440,10 @@
     el('ic-faction').textContent = r.faction;
     el('ic-faction').style.display = '';
     el('ic-desc').textContent = r.desc;
-    const ev = D.events.find(v => v.region === id);
+    /* M0 游戏化：crises 走 app.state（QX3D_APP.regionEvent），演示占位 events 兜底 */
+    const ev = (window.QX3D_APP && window.QX3D_APP.regionEvent)
+      ? window.QX3D_APP.regionEvent(id) : null;
+    const evDemo = ev || D.events.find(v => v.region === id);
     const evBox = el('ic-event');
     if (ev) {
       evBox.textContent = (ev.remain ? '⚠ ' : '✦ ') + ev.label + (ev.remain ? ' · 余' + ev.remain + '旬' : '');
@@ -1461,6 +1464,8 @@
     });
     icEnter.classList.add('show');
     card.classList.add('show');
+    /* M0 游戏化钩子：信息卡换地时让 app 同步行脚钮（QX3D_APP 见 game/app.js） */
+    if (window.QX3D_APP && window.QX3D_APP.onRegionShown) window.QX3D_APP.onRegionShown(id);
   }
   function showTileInfo(idx) {
     if (!local || !local.tiles[idx]) return;
@@ -2251,6 +2256,7 @@
     get mode() { return mode; },
     camera, scene, regionObjs, hitMeshes, labelSprites,
     localCache, enterRegion, exitRegion,
+    showRegionInfo, hideInfo, focusRegion,
   };
   const veil = document.getElementById('veil');
   requestAnimationFrame(() => requestAnimationFrame(() => {

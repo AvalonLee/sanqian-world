@@ -1,8 +1,8 @@
-# 山河棋盘 · 三维水墨演示（three.js demo）
+# 山河棋盘 3D · 三维水墨武侠棋盘（自包含子应用）
 
-把《三千世界》武侠江湖页中央的「山河棋盘」（`view/games/qunxia/game.html` 世界图）做成**三维可旋转水墨地图**的独立演示稿。**仓外 spike，零仓内改动**——不进扩展、不碰门禁；将来若正式并入 game.html 属独立批次（接管点 = `renderWorldMapNodes()`，game.html:3800）。
+把《三千世界》武侠江湖页中央的「山河棋盘」（`view/games/qunxia/game.html` 世界图）做成**三维可旋转水墨地图**，并自第册二百七十二批起**整目录入库为扩展子应用**（qunxia-home 双路由 `?engine=3d/classic` 开关预埋，缺省 classic 旧版零影响；最终形态已拍板 = 3D 版成熟后替换 game.html + 启动层世界选择器）。
 
-**当前阶段**：可视化壳完成（世界图真实地理 + 30 特色本境 + 钻入双层）→ 游戏化改造启动，总纲见 **《游戏化改造计划书.md》**（M0~M6 里程碑 + 迁移清单 + 数值对表纪律），本境设定资料见 **《本境3D规划.md》**。
+**当前阶段**：**M0 地基收官（第册二百七十三批）**——数据抽取管线 11 表 + core/state|time|player 纯函数 + 存档续玩（新键 `shanqian3d_save_v1`）+ 纸面 HUD/创角向导 + 行脚过旬闭环，数值对表 `table-check` 112/112、走查 `QUNXIA3D_ALL_GREEN 19/19` 常驻门禁。总纲见 **《游戏化改造计划书.md》**（M0~M6 里程碑 + 迁移清单 + 四铁律 + 新知沉淀），本境设定资料见 **《本境3D规划.md》**。体验 3D 版 = 扩展视图 URL 加 `?engine=3d`（或本目录 index.html file:// 直开）。
 
 ## 打开方式
 
@@ -17,6 +17,9 @@
 | 滚轮 / 双指捏合 | 推近拉远（世界 240~1500 / 本境 220~1150 钳制） |
 | 双击 / 「复位视角」 | 镜头回 Home（本境内回本境 Home） |
 | 点击地界 | 水墨信息卡 + 镜头聚焦；邻接 chips 可连跳 |
+| 「行脚至此」（M0🆕） | 邻接地界徒步结算：−1 行脚 / −8 内息（保底 10）+ **过 1 旬**（原版 commitTravelToRegion 规则，table-check 对表） |
+| 「🧘 吐纳过旬」（M0🆕） | 过 1 旬 + 行脚精力回满；第 5 旬起江湖大事按内置日程注入 HUD ticker |
+| 「创角入世」 | 创角向导（题名 / 6 出身 / 命格重摇 / 昆仑雪夜三问）；无档启动自动弹出 |
 | 「进入本境 ▸」 | 相机俯冲 + 纱幕过渡 → **本境 7 格 3D 沙盘**（Esc / 「⟵ 回到山河」退出） |
 | 本境内点格 | 格卡（名号/类型/描述/邻接格 chips 可跳转）；驻足格带朱砂印与脉冲环 |
 | 「自转」 | 缓慢环绕展示开关（世界/本境通用） |
@@ -25,18 +28,29 @@
 ## 文件构成
 
 ```
-index.html    纸面 UI 壳（--xuan-* 令牌对齐 game.html；feTurbulence 纱纹 overlay）
+index.html    纸面 UI 壳（--xuan-* 令牌对齐 game.html；feTurbulence 纱纹 overlay
+              + 🆕 M0 纸面 HUD / 创角模态 / 日志面板 DOM 与脚本装载序列）
 three.min.js  vendored three.js r159 UMD（r160 起官方移除 UMD 构建，故 pin r159）
 demo-data.js  window.QX_DEMO：30 地界（真实地理投影坐标）+ **本境 7 格 tiles**（210 格）
-              + 真实黄河/长江折线 + 4 枚演示事件
+              + 真实黄河/长江折线 + 4 枚演示事件（M0 起 crisis 展示走 QX3D_APP.regionEvent）
 local-specs.js **30 地界本境设定卡**（地形/水域/植被/标志件/天候粒子/雾，机器版；
               人读版 = 《本境3D规划.md》设定卡与容量预算）
 board3d.js    场景主逻辑：程序地形 + 墨色 shader + 节点/道路/河道/雾/行脚/轨道相机
               + 大地内容（湖泊 / 白墙黛瓦聚落 / 松竹苇植被 / 舟楫 / 边墙烽燧 / 高峰雪意）
               + **本境双层**（7 格 3D 沙盘 / 八类格用小景 / 钻入-纱幕-切换-返回，Esc 可退）
               + **本境特色化**（设定卡驱动的起伏地形/水域/植被/29 种参数化标志件/五族天候粒子）
-walkthrough/  30 地界本境自动走查截图（逐地界钻入实拍）
+              + 🆕 M0 钩子：showRegionInfo/hideInfo/focusRegion 出 window.__QX；信息卡换地回调 QX3D_APP.onRegionShown
+game/         🆕 游戏化（第册二百七十三批 M0 起步，架构与里程碑 = 《游戏化改造计划书.md》§三）：
+  scripts/    抽取管线（extract-*.cjs 十一件 + 编译试探配平切片器，重跑覆盖 data/）
+  data/       11 张生成表（禁手改，带源行号）
+  core/       纯函数逻辑层（state 存档 shanqian3d_save_v1 / time 旬时间机 / player 派生 / data 取数口）
+  systems/    travel 行脚结算（M0 切片；八格动作/三招对决等逐里程碑追加）
+  ui/         hud 纸面 HUD + creation 创角向导（表现层只读 state）
+  app.js      装配层（载档/创角/行脚/过旬编排 + env 注入 + 结果回流队列）
+  tests/      table-check.cjs 数值对表（原版 vm 沙箱逐字段核验，常驻门禁件）
 ```
+
+> 30 地界本境走查截图留仓外 `E:\下载\sanqian-demo-board3d\walkthrough\`（册272 交接批口径，审阅存档不入库）。
 
 ## 数据来源声明（演示占位，规范 §2.7 惯例）
 
@@ -61,4 +75,4 @@ walkthrough/  30 地界本境自动走查截图（逐地界钻入实拍）
 
 ## 调试把手
 
-控制台 `window.__QX`（orbit/camera/scene/regionObjs/hitMeshes/labelSprites）、`window.__lastPick`（最近一次拾取）、`window.__errs`（页面错误收集）。
+控制台 `window.__QX`（orbit/camera/scene/regionObjs/hitMeshes/labelSprites + 🆕 showRegionInfo/hideInfo/focusRegion）、`window.QX3D_APP`（🆕 装配层：state / onRegionShown / regionEvent / onTravel）、`window.QX3D_DATA`（🆕 11 张生成表）、`window.__lastPick`（最近一次拾取）、`window.__errs`（页面错误收集）。

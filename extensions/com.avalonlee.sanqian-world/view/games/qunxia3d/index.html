@@ -22,6 +22,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #efe5cf; }
   body { font-family: var(--serif); color: var(--ink-deep); }
+  .hidden { display: none !important; }
 
   #stage { position: fixed; inset: 0; }
   #stage canvas { display: block; touch-action: none; cursor: grab; }
@@ -153,6 +154,114 @@
     position: fixed; inset: 0; z-index: 70; display: none; align-items: center; justify-content: center;
     font-size: 16px; color: var(--ink-mid); letter-spacing: 2px; text-align: center; line-height: 2;
   }
+
+  /* ===== M0 游戏化：纸面 HUD / 行脚 / 创角（--xuan-* 令牌同源） ===== */
+  .hud-bar {
+    position: fixed; top: 66px; left: 50%; transform: translateX(-50%); z-index: 44;
+    display: none; align-items: center; gap: 14px; flex-wrap: wrap; max-width: min(880px, 92vw);
+    background: rgba(246, 239, 224, 0.92); border: 1px solid rgba(67, 58, 49, 0.5);
+    border-radius: 10px; padding: 8px 14px; box-shadow: 0 3px 14px rgba(29, 25, 21, 0.22);
+    backdrop-filter: blur(2px); font-size: 12px; letter-spacing: 1px;
+  }
+  .hud-bar.show { display: flex; }
+  .hud-name { font-size: 15px; font-weight: 700; color: var(--ink-deep); }
+  .hud-realm, .hud-sect { color: var(--ink-soft); font-size: 11px; }
+  .hud-cell { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .hud-label { color: var(--ink-soft); font-size: 11px; }
+  .hud-val { color: var(--ink-deep); font-weight: 700; }
+  .bar-wrap { width: 76px; height: 9px; background: rgba(67, 58, 49, 0.18); border-radius: 5px; overflow: hidden; border: 1px solid rgba(67,58,49,.25); }
+  .bar-fill { height: 100%; background: var(--cinnabar-bright); border-radius: 5px; transition: width .3s ease; }
+  .bar-fill.mp { background: var(--jade); }
+  .ap-dots { color: var(--cinnabar); letter-spacing: 2px; font-size: 11px; }
+  .hud-ticker { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gold); font-size: 11.5px; }
+  .hud-ticker.crisis { color: var(--cinnabar); }
+  #btn-turn { color: var(--jade); border-color: var(--jade); }
+
+  .logs-panel {
+    position: fixed; left: 24px; bottom: 20px; z-index: 43; width: 360px; max-height: 168px; overflow: hidden;
+    background: rgba(246, 239, 224, 0.9); border: 1px solid rgba(67, 58, 49, 0.45);
+    border-radius: 8px; padding: 8px 12px; display: none; font-size: 11.5px; line-height: 1.6;
+    box-shadow: 0 2px 10px rgba(29, 25, 21, 0.16); backdrop-filter: blur(2px);
+  }
+  .logs-panel.show { display: block; }
+  .log-row { display: flex; gap: 8px; align-items: baseline; padding: 1.5px 0; }
+  .log-time { flex: none; color: var(--ink-soft); font-size: 10.5px; }
+  .log-text { color: var(--ink-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .ic-travel {
+    display: none; margin-top: 11px; width: 100%; text-align: center;
+    color: var(--jade); border-color: var(--jade);
+  }
+  .ic-travel.show { display: block; }
+
+  .toast-container { position: fixed; top: 116px; left: 50%; transform: translateX(-50%); z-index: 65; display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; }
+  .paper-toast {
+    background: rgba(29, 25, 21, 0.92); color: var(--xuan-light); border: 1px solid rgba(179, 126, 36, 0.7);
+    border-radius: 999px; padding: 6px 16px; font-size: 12.5px; letter-spacing: 1px;
+    box-shadow: 0 4px 14px rgba(29, 25, 21, 0.3); transition: all .3s ease;
+  }
+  .paper-toast.good { border-color: rgba(43, 107, 94, 0.9); }
+  .paper-toast.bad { border-color: rgba(185, 54, 44, 0.9); }
+
+  /* 创角模态 */
+  .creation-modal {
+    position: fixed; inset: 0; z-index: 68; display: none; align-items: center; justify-content: center;
+    background: rgba(239, 229, 207, 0.96);
+  }
+  .creation-modal.show { display: flex; }
+  .cr-sheet {
+    width: min(920px, 94vw); max-height: 92vh; overflow-y: auto;
+    background: linear-gradient(160deg, #faf4e6 0%, #f1e6cf 100%);
+    border: 1px solid rgba(67, 58, 49, 0.55); border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(29, 25, 21, 0.3), inset 0 0 60px rgba(220, 202, 176, 0.3);
+    padding: 20px 22px;
+  }
+  .cr-title { font-size: 20px; font-weight: 700; letter-spacing: 6px; color: var(--ink-deep); }
+  .cr-subtitle { font-size: 12px; color: var(--ink-soft); margin-top: 4px; letter-spacing: 2px; }
+  .cr-section { margin-top: 14px; }
+  .cr-section > .cr-h { font-size: 12px; letter-spacing: 4px; color: var(--jade); border-left: 3px solid var(--jade); padding-left: 8px; margin-bottom: 8px; }
+  .cr-name-row { display: flex; gap: 8px; align-items: center; }
+  .cr-name-row input {
+    flex: 1; max-width: 320px; font-family: var(--serif); font-size: 15px; letter-spacing: 2px;
+    padding: 7px 12px; border: 1px solid rgba(67, 58, 49, 0.5); border-radius: 6px;
+    background: rgba(255, 252, 244, 0.9); color: var(--ink-deep); outline: none;
+  }
+  .cr-origins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  @media (max-width: 720px) { .cr-origins { grid-template-columns: repeat(2, 1fr); } }
+  .cr-origin {
+    font-family: var(--serif); text-align: left; cursor: pointer; border: 1.5px solid rgba(67, 58, 49, 0.4);
+    background: rgba(255, 252, 244, 0.85); border-radius: 8px; padding: 9px 11px; transition: all .15s ease;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .cr-origin:hover { border-color: var(--ink-mid); transform: translateY(-1px); }
+  .cr-origin.picked { border-color: var(--cinnabar); background: rgba(185, 54, 44, 0.08); box-shadow: 0 0 0 1px var(--cinnabar) inset; }
+  .cr-origin.locked { opacity: 0.45; cursor: not-allowed; }
+  .cr-tag { font-size: 10px; color: var(--gold); letter-spacing: 1px; }
+  .cr-name { font-size: 13.5px; font-weight: 700; color: var(--ink-deep); }
+  .cr-tip { font-size: 10.5px; color: var(--ink-soft); }
+  .cr-desc { font-size: 10.5px; color: var(--ink-mid); line-height: 1.55; text-align: justify; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .cr-talents { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 8px; align-items: stretch; }
+  .cr-talent { border: 1.5px solid rgba(67, 58, 49, 0.4); border-radius: 8px; padding: 8px 10px; background: rgba(255, 252, 244, 0.85); display: flex; flex-direction: column; gap: 4px; }
+  .cr-talent.god { border-color: var(--gold); background: rgba(179, 126, 36, 0.08); }
+  .cr-talent.bad { border-color: rgba(185, 54, 44, 0.6); background: rgba(185, 54, 44, 0.05); }
+  .ct-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+  .ct-head b { font-size: 12.5px; color: var(--ink-deep); }
+  .ct-head i { font-size: 10px; font-style: normal; color: var(--gold); border: 1px solid rgba(179, 126, 36, 0.5); border-radius: 3px; padding: 0 5px; }
+  .ct-desc { font-size: 10.5px; color: var(--ink-mid); line-height: 1.5; }
+  .cr-jackpot { margin-top: 8px; font-size: 12px; color: var(--gold); font-weight: 700; letter-spacing: 2px; }
+  .cr-vows { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .cr-vow {
+    font-family: var(--serif); text-align: left; cursor: pointer; border: 1.5px solid rgba(67, 58, 49, 0.4);
+    background: rgba(255, 252, 244, 0.85); border-radius: 8px; padding: 9px 11px;
+    display: flex; flex-direction: column; gap: 3px; transition: all .15s ease;
+  }
+  .cr-vow.picked { border-color: var(--cinnabar); background: rgba(185, 54, 44, 0.08); box-shadow: 0 0 0 1px var(--cinnabar) inset; }
+  .cr-vow b { font-size: 12.5px; color: var(--ink-deep); }
+  .cr-vow i { font-size: 10.5px; color: var(--ink-soft); }
+  .cr-vow span { font-size: 10.5px; color: var(--gold); }
+  .cr-actions { margin-top: 16px; display: flex; gap: 10px; justify-content: flex-end; }
+  .cr-submit { font-size: 15px; letter-spacing: 4px; color: var(--xuan-light); background: var(--cinnabar); border: none; border-radius: 8px; padding: 10px 26px; cursor: pointer; font-family: var(--serif); font-weight: 700; box-shadow: 0 3px 10px rgba(185, 54, 44, 0.35); }
+  .cr-submit:hover { background: var(--cinnabar-bright); }
 </style>
 </head>
 <body>
@@ -170,9 +279,58 @@
   </div>
 
   <div class="toolbar">
+    <button class="ink-btn" id="btn-create">创角入世</button>
+    <button class="ink-btn" id="btn-turn" style="display:none">🧘 吐纳过旬</button>
     <button class="ink-btn" id="btn-reset">复位视角</button>
     <button class="ink-btn on" id="btn-auto">自转 · 开</button>
     <button class="ink-btn on" id="btn-labels">地名 · 显</button>
+  </div>
+
+  <div class="hud-bar" id="hud-bar">
+    <div class="hud-cell"><span class="hud-name" id="hud-name">沈青锋</span><span class="hud-realm" id="hud-realm">初窥门径</span><span class="hud-sect" id="hud-sect"></span></div>
+    <div class="hud-cell"><span class="hud-label">气血</span><div class="bar-wrap"><div class="bar-fill" id="hud-hp-bar"></div></div><span class="hud-val" id="hud-hp-text">0/0</span></div>
+    <div class="hud-cell"><span class="hud-label">内息</span><div class="bar-wrap"><div class="bar-fill mp" id="hud-mp-bar"></div></div><span class="hud-val" id="hud-mp-text">0/0</span></div>
+    <div class="hud-cell"><span class="hud-label">行脚</span><span class="ap-dots" id="hud-ap-dots"></span><span class="hud-val" id="hud-ap-text">5/5</span></div>
+    <div class="hud-cell"><span class="hud-label">银两</span><span class="hud-val" id="hud-gold-text">0文</span><span class="hud-label">侠名</span><span class="hud-val" id="hud-fame-text">0</span><span class="hud-label">修为</span><span class="hud-val" id="hud-exp-text">0</span></div>
+    <div class="hud-cell"><span class="hud-label">战力</span><span class="hud-val" id="hud-power-text">30</span><span class="hud-realm" id="hud-power-tier">初窥</span></div>
+    <div class="hud-cell"><span class="hud-val" id="hud-date-badge">第1/36旬</span></div>
+    <div class="hud-ticker" id="hud-ticker">江湖暂安</div>
+  </div>
+
+  <div class="logs-panel" id="logs-panel">
+    <div id="logs-list"></div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <div class="creation-modal" id="creation-modal">
+    <div class="cr-sheet">
+      <div class="cr-title">题名入世</div>
+      <div class="cr-subtitle">择出身 · 摇命格 · 立誓言 —— 三十六旬江湖自此始</div>
+      <div class="cr-section">
+        <div class="cr-h">名 号</div>
+        <div class="cr-name-row"><input id="creation-name" maxlength="8" value="沈青锋"></div>
+      </div>
+      <div class="cr-section">
+        <div class="cr-h">出 身</div>
+        <div class="cr-origins" id="creation-origins"></div>
+      </div>
+      <div class="cr-section">
+        <div class="cr-h">先 天 命 格（天授不可摘，可重摇）</div>
+        <div class="cr-talents">
+          <div id="creation-talents" style="display:contents"></div>
+          <button class="ink-btn" id="btn-creation-reroll">🎲 逆天改命<br><span id="creation-reroll-count" style="font-size:10px">已摇第 1 次</span></button>
+        </div>
+        <div class="cr-jackpot hidden" id="creation-jackpot">🌟 紫微帝星降世！三神品无瑕天命！</div>
+      </div>
+      <div class="cr-section">
+        <div class="cr-h">昆 仑 雪 夜 三 问（初 心 誓 言）</div>
+        <div class="cr-vows" id="creation-vows"></div>
+      </div>
+      <div class="cr-actions">
+        <button class="cr-submit" id="btn-creation-submit">踏入江湖</button>
+      </div>
+    </div>
   </div>
 
   <div class="hint"><b>拖拽</b> 旋转　·　<b>滚轮</b> 远近　·　<b>双击</b> 复位　·　<b>点击地界</b> 看详情</div>
@@ -194,6 +352,7 @@
       <span>邻 接</span>
       <div class="ic-neigh-list" id="ic-neigh-list"></div>
     </div>
+    <button class="ink-btn ic-travel" id="ic-travel">行脚至此</button>
     <button class="ink-btn ic-enter" id="ic-enter">进入本境 ▸</button>
   </aside>
 
@@ -210,6 +369,28 @@
   <script src="./three.min.js"></script>
   <script src="./demo-data.js"></script>
   <script src="./local-specs.js"></script>
+  <!-- 数据层（生成物 · game/scripts/extract-*.cjs 产出 · 禁手改，重跑覆盖） -->
+  <script src="./game/data/martial.js"></script>
+  <script src="./game/data/sects.js"></script>
+  <script src="./game/data/items.js"></script>
+  <script src="./game/data/masters.js"></script>
+  <script src="./game/data/origins.js"></script>
+  <script src="./game/data/encounters.js"></script>
+  <script src="./game/data/world-events.js"></script>
+  <script src="./game/data/canon.js"></script>
+  <script src="./game/data/regions.js"></script>
+  <script src="./game/data/scrolls.js"></script>
+  <script src="./game/data/state-init.js"></script>
+  <!-- 逻辑层（core+systems 纯函数，禁碰 DOM/THREE） -->
+  <script src="./game/core/data.js"></script>
+  <script src="./game/core/state.js"></script>
+  <script src="./game/core/time.js"></script>
+  <script src="./game/core/player.js"></script>
+  <script src="./game/systems/travel.js"></script>
+  <!-- 表现层 -->
+  <script src="./game/ui/hud.js"></script>
+  <script src="./game/ui/creation.js"></script>
+  <script src="./game/app.js"></script>
   <script src="./board3d.js"></script>
 </body>
 </html>

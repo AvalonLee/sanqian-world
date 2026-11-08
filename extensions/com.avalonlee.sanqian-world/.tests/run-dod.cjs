@@ -111,6 +111,9 @@ step('sim-pacing', '.tests/sim-pacing.cjs');
 step('sim-event-economy', '.tests/sim-event-economy.cjs', ['2', '20261008']);
 step('sim-wuxia', '.tests/sim-wuxia.cjs');
 if (wantSim) step('sim-playthrough', '.tests/sim-playthrough.cjs', ['1', '20261008']);
+/* qunxia3d 数值对表（第册二百七十三批起常驻 · 计划书铁律 3）：原版 game.html 沙箱逐字段
+ * 核验，碰 core/data/抽取生成物必红——「改了迁移函数先复跑对表」的机器化 */
+step('table-check', 'view/games/qunxia3d/game/tests/table-check.cjs');
 /* ③ 常驻探针十一路（2026-10-08 probe-savecodec · 2026-10-09 probe-savegrowth 解耦曲线 / probe-realsave 真机档零丢失 / probe-eventrepeat 奇遇重复率）+ 水位件 + 文档链接（probe-doclinks 册262 立，docs-归类整理规范 §八） */
 for (const p of ['probe-join', 'probe-sectwire', 'probe-heirchoice', 'probe-lawmerge',
   'probe-achvreach', 'probe-normround', 'probe-savecodec', 'probe-savegrowth', 'probe-realsave', 'probe-eventrepeat', 'probe-savecap', 'probe-gift', 'probe-sectgov', 'probe-doclinks']) {
