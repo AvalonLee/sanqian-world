@@ -26,6 +26,17 @@ const { chromium } = require('playwright-core');
     const el = await page.waitForSelector(sel, { timeout: 8000 });
     await el.click();
   };
+  /* 创角走真五步（册299 分屏）：出身 → 命格 → 誓言 → 姓名 → 复核 → 提交；name 可省 */
+  const createChar = async (originId, vowId, name) => {
+    await page.evaluate((id) => { document.querySelector('#creation-origins [data-origin="' + id + '"]').click(); }, originId);
+    await clickSafe('#btn-creation-next');   /* → 命格 */
+    await clickSafe('#btn-creation-next');   /* → 誓言 */
+    await page.evaluate((id) => { document.querySelector('#creation-vows [data-vow="' + id + '"]').click(); }, vowId);
+    await clickSafe('#btn-creation-next');   /* → 姓名 */
+    if (name) await page.fill('#creation-name', name);
+    await clickSafe('#btn-creation-next');   /* → 复核 */
+    await clickSafe('#btn-creation-submit');
+  };
   /* 对决打穿（M2）：有出招卡就点（对手可能提前毙命 ⇒ 卡区消失即终局），
    * 终局读题记，收招归鞘。返回 { title, win }。 */
   const playDuelThrough = async () => {
@@ -66,23 +77,61 @@ const { chromium } = require('playwright-core');
       JSON.stringify(t0));
     T(t0.stateInit >= 60, 'Q3D0c state 形状抽取件在位（QX3D_STATE_INIT ≥60 字段）', 'fields=' + t0.stateInit);
 
-    /* Q3D1 创角向导（无档 ⇒ 自动弹出） */
-    const c0 = await page.evaluate(() => ({
-      modal: document.getElementById('creation-modal').classList.contains('show'),
-      origins: document.querySelectorAll('#creation-origins .cr-origin').length,
-      locked: document.querySelectorAll('#creation-origins .cr-origin.locked').length,
-      talents: document.querySelectorAll('#creation-talents .cr-talent').length,
-      vows: document.querySelectorAll('#creation-vows .cr-vow').length
-    }));
+    /* Q3D1 创角向导（无档 ⇒ 自动弹出；册299 起 = 真五步分屏） */
+    const c0 = await page.evaluate(() => {
+      const act = document.querySelector('#creation-steps .cr-nav-item.active');
+      return {
+        modal: document.getElementById('creation-modal').classList.contains('show'),
+        origins: document.querySelectorAll('#creation-origins .cr-origin').length,
+        locked: document.querySelectorAll('#creation-origins .cr-origin.locked').length,
+        talents: document.querySelectorAll('#creation-talents .cr-talent').length,
+        vows: document.querySelectorAll('#creation-vows .cr-vow').length,
+        steps: document.querySelectorAll('#creation-steps [data-step]').length,
+        activeStep: act && act.getAttribute('data-step'),
+        visibleSteps: Array.prototype.filter.call(document.querySelectorAll('.cr-step'), (s) => s.classList.contains('active')).length,
+        submitShown: !document.getElementById('btn-creation-submit').classList.contains('hidden')
+      };
+    });
     T(c0.modal && c0.origins === 6 && c0.talents === 3 && c0.vows === 3,
       'Q3D1 创角向导（无档自动弹出 ⇔ 6 出身 + 3 命格 + 3 誓言在位）', JSON.stringify(c0));
     T(c0.locked === 2, 'Q3D1b 二周目出身锁定（reqCycle 灰卡 ×2）', 'locked=' + c0.locked);
+    T(c0.steps === 5 && c0.activeStep === '1' && c0.visibleSteps === 1 && c0.submitShown === false,
+      'Q3D1c 真五步分屏（左步序 5 项 ⇔ 仅第 1 步在屏 ⇔ 复核前不显提交钮）', JSON.stringify(c0));
 
-    /* Q3D2 提交创角 ⇒ HUD 同步 + 存档落盘 */
-    await page.evaluate(() => {
-      document.querySelector('#creation-origins [data-origin="sword_wanderer"]').click();
-      document.querySelector('#creation-vows [data-vow="vow_homestead"]').click();
-    });
+    /* 未择出身点「下一步」⇒ 步序校验拦住（停在第 1 步） */
+    await page.click('#btn-creation-next');
+    await page.waitForTimeout(120);
+    const c0b = await page.evaluate(() => ({
+      step: document.querySelector('#creation-steps .cr-nav-item.active').getAttribute('data-step')
+    }));
+    T(c0b.step === '1', 'Q3D1d 未择出身 ⇔ 下一步不前进（步序校验）', JSON.stringify(c0b));
+
+    /* Q3D2 真五步走：出身 → 命格（重摇）→ 誓言 → 姓名 → 复核 → 提交 */
+    await page.evaluate(() => { document.querySelector('#creation-origins [data-origin="sword_wanderer"]').click(); });
+    await clickSafe('#btn-creation-next');
+    await page.waitForTimeout(120);
+    await clickSafe('#btn-creation-reroll');
+    const c2a = await page.evaluate(() => ({
+      step: document.querySelector('#creation-steps .cr-nav-item.active').getAttribute('data-step'),
+      talents: document.querySelectorAll('#creation-talents .cr-talent').length,
+      reroll: document.getElementById('creation-reroll-count').textContent
+    }));
+    T(c2a.step === '2' && c2a.talents === 3 && /第 2 次/.test(c2a.reroll),
+      'Q3D2a 命格步（第 2 步在屏 ⇔ 3 格命格 ⇔ 重摇计数推进）', JSON.stringify(c2a));
+    await clickSafe('#btn-creation-next');
+    await page.evaluate(() => { document.querySelector('#creation-vows [data-vow="vow_homestead"]').click(); });
+    await clickSafe('#btn-creation-next');
+    await page.fill('#creation-name', '走查剑客');
+    await clickSafe('#btn-creation-next');
+    await page.waitForTimeout(120);
+    const c5 = await page.evaluate(() => ({
+      step: document.querySelector('#creation-steps .cr-nav-item.active').getAttribute('data-step'),
+      review: document.getElementById('creation-review').textContent,
+      submitShown: !document.getElementById('btn-creation-submit').classList.contains('hidden')
+    }));
+    T(c5.step === '5' && c5.submitShown && /走查剑客/.test(c5.review) && /乡野剑徒/.test(c5.review) && /耕读传家/.test(c5.review),
+      'Q3D2b 复核确认（名号/出身/誓言同屏 ⇔ 末步才出「踏入江湖」）', JSON.stringify(c5));
+
     await clickSafe('#btn-creation-submit');
     await page.waitForTimeout(300);
     const c1 = await page.evaluate(() => {
@@ -91,6 +140,7 @@ const { chromium } = require('playwright-core');
         created: st && st.hasCreatedChar,
         origin: st && st.originId,
         vow: st && st.openingVow,
+        name: st && st.playerName,
         tal: st && st.talents.length,
         hud: document.getElementById('hud-bar').classList.contains('show'),
         turnBtn: document.getElementById('btn-turn').style.display !== 'none',
@@ -100,10 +150,10 @@ const { chromium } = require('playwright-core');
         modalGone: !document.getElementById('creation-modal').classList.contains('show')
       };
     });
-    T(c1.created && c1.origin === 'sword_wanderer' && c1.vow === 'vow_homestead' && c1.tal === 3,
-      'Q3D2 创角提交（applyOrigin 落档 shanqian3d_save_v1 ⇔ 出身/誓言/命格入档）', JSON.stringify(c1));
+    T(c1.created && c1.origin === 'sword_wanderer' && c1.vow === 'vow_homestead' && c1.name === '走查剑客' && c1.tal === 3,
+      'Q3D2c 创角提交（applyOrigin 落档 shanqian3d_save_v1 ⇔ 姓名/出身/誓言/命格入档）', JSON.stringify(c1));
     T(c1.hud && c1.turnBtn && c1.modalGone && /^\d+\/\d+$/.test(c1.hp) && c1.ap === '5/5' && c1.date === '第1/36旬',
-      'Q3D2b 纸面 HUD 同步（hud-bar 显 ⇔ 气血/行脚 5/5/第1旬读数在位）', JSON.stringify(c1));
+      'Q3D2d 纸面 HUD 同步（hud-bar 显 ⇔ 气血/行脚 5/5/第1旬读数在位）', JSON.stringify(c1));
 
     /* M2 尾批（册277）：创角后 1.2s 会弹首局教学邀请——旧流程段先关掉它
      * （教学 e2e 在 Q3D11 独立 context；此处跳过后调度不再重发，不影响后续组） */
@@ -366,11 +416,7 @@ const { chromium } = require('playwright-core');
     T(g1.save === null && g1.modal, 'Q3D6b gen 变大 7→8 ⇒ 清档 + 刷新回创角', JSON.stringify({ save: g1.save === null ? null : 'present', modal: g1.modal }));
 
     /* Q3D6c 同 gen 续档不动：重新创角后 gen 仍 8 再载 ⇒ 不清 */
-    await page.evaluate(() => {
-      document.querySelector('#creation-origins [data-origin="palm_hero"]').click();
-      document.querySelector('#creation-vows [data-vow="vow_hero"]').click();
-    });
-    await clickSafe('#btn-creation-submit');
+    await createChar('palm_hero', 'vow_hero');
     await page.waitForTimeout(250);
     await page.reload();
     await page.waitForFunction(() => !!(window.QX3D && window.QX3D_APP && window.QX3D_APP.state), null, { timeout: 20000 });
@@ -440,11 +486,7 @@ const { chromium } = require('playwright-core');
     await page.reload();
     await page.waitForFunction(() => window.QX3D_APP && window.QX3D_DATA.QX3D_STATE_INIT, null, { timeout: 20000 });
     await page.waitForTimeout(400);
-    await page.evaluate(() => {
-      document.querySelector('#creation-origins [data-origin="taoist_scholar"]').click();
-      document.querySelector('#creation-vows [data-vow="vow_homestead"]').click();
-    });
-    await page.click('#btn-creation-submit');
+    await createChar('taoist_scholar', 'vow_homestead');
     await page.waitForTimeout(1700); /* 调度延迟 1200ms + 弹窗 */
     const tu0 = await page.evaluate(() => ({
       invite: /首局必修/.test(document.getElementById('qx-modal').textContent),
