@@ -1550,6 +1550,50 @@ function buildSideSandbox() {
   check('S36d 动作清单 ×15 人（id 同序）', badList === null, badList || undefined);
 })();
 
+/* ══ S37 P4-E 情缘（册311 · E1）：阶段机对表（wife>side>pledge>love>warm>met>unknown）══ */
+function buildRomanceSandbox() {
+  const ctx = { Math: Object.create(Math), console: console };
+  vm.createContext(ctx);
+  const run = function (code) { return vm.runInContext(code, ctx, { filename: 'romance-sandbox.js' }); };
+  const cast = slice('const', 'ROMANCE_CAST').replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/g, '');
+  run(cast + '\n');
+  ['ROMANCE_STAGE_WORD'].forEach((n) => run(slice('const', n) + '\n'));
+  ['ensureRomanceState', 'romancePerson', 'romanceStage'].forEach((f) => run(slice('function', f) + '\n'));
+  return { run: run };
+}
+
+(function S37() {
+  const rom = require(path.join(GAME_DIR, 'systems', 'romance.js'));
+  const sb = buildRomanceSandbox();
+  const cases = [
+    { turn: 5, romance: { wifeId: null, people: { huangrong: { affection: 0, known: false, pledged: false } } } },
+    { turn: 5, romance: { wifeId: null, people: { huangrong: { affection: 1, known: true, pledged: false } } } },
+    { turn: 5, romance: { wifeId: null, people: { huangrong: { affection: 2, known: true, pledged: false } } } },
+    { turn: 5, romance: { wifeId: null, people: { huangrong: { affection: 4, known: true, pledged: false } } } },
+    { turn: 5, romance: { wifeId: null, people: { huangrong: { affection: 3, known: true, pledged: true } } } },
+    { turn: 5, romance: { wifeId: 'huangrong', people: { huangrong: { affection: 5, known: true, pledged: true } }, concubines: [] } },
+    { turn: 5, romance: { wifeId: null, people: { huangrong: { affection: 1, known: true } }, concubines: [{ id: 'huangrong' }] } },
+    { turn: 5, romance: { wifeId: null, people: { huangrong: { affection: 9, known: true } } } }
+  ];
+  let bad = null;
+  cases.forEach((c, i) => {
+    sb.run('state = ' + JSON.stringify(c) + ';');
+    const a = sb.run('romanceStage("huangrong")');
+    const st = JSON.parse(JSON.stringify(c));
+    rom.ensureState(st);
+    const b = rom.stage(st, 'huangrong');
+    if (a !== b && !bad) bad = 'case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  check('S37a 阶段机 ×8 态（含 wife/side 优先与 affection 封顶）', bad === null, bad || undefined);
+
+  sb.run('state = ' + JSON.stringify(cases[0]) + ';');
+  const shapeA = sb.run('ensureRomanceState(); JSON.stringify(Object.keys(state.romance).sort())');
+  const st2 = JSON.parse(JSON.stringify(cases[0]));
+  rom.ensureState(st2);
+  const shapeB = JSON.stringify(Object.keys(st2.romance).sort());
+  check('S37b 情缘态形状（键集同构）', shapeA === shapeB, shapeA + ' ≠ ' + shapeB);
+})();
+
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));
 if (failed === 0) {

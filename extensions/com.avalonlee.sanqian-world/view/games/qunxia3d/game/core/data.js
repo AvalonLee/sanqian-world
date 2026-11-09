@@ -17,7 +17,7 @@
       r('martial.js'), r('sects.js'), r('items.js'), r('masters.js'), r('masters-stories.js'), r('origins.js'),
       r('encounters.js'), r('world-events.js'), r('canon.js'), r('regions.js'),
       r('scrolls.js'), r('state-init.js'), r('combo.js'), r('endings.js'), r('street.js'), r('court.js'),
-      r('side-cast.js'));
+      r('side-cast.js'), r('romance.js'));
   } else {
     D = root.QX3D_DATA || {};
   }

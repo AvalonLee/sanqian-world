@@ -403,6 +403,7 @@
     systems.street.ensureState(st, core.time.getRegion); /* 册300：旧档补市井七字段 */
     systems.court.ensureState(st);                       /* 册301：旧档补朝廷态 */
     systems.side.ensureState(st);                        /* 册303：旧档补配角旗标 */
+    systems.romance.ensureState(st);                     /* 册311：旧档补情缘态 */
     systems.payload.mergeStateMasters(st); /* 旧档收到扩展 S/A 名宿（content-merge :141 语义） */
     if (res.genAction.action === 'reload') {
       /* 扩展侧已转世：存档已清，刷新回创角封面（原 reconcileWorldGen :3218） */
