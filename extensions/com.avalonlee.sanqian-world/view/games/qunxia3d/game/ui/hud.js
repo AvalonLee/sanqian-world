@@ -54,7 +54,20 @@
     }
 
     renderCourtBadges(st);
+    renderRomanceBadge(st);
     renderLogs(st);
+  }
+
+  /* 顶栏情缘角标（册314 · P4-E E3b）：模型走 systems.romance.hasBadge / wifeId，
+   * 点击由 app 委托到 #hud-romance（重渲不丢监听，同朝廷角标一路）。 */
+  function renderRomanceBadge(st) {
+    var host = el('hud-romance');
+    if (!host) return;
+    var rom = root.QX3D && root.QX3D.systems && root.QX3D.systems.romance;
+    if (!rom || !st.romance || !rom.hasBadge(st)) { host.innerHTML = ''; return; }
+    var wife = st.romance.wifeId ? rom.castOf(st.romance.wifeId) : null;
+    host.innerHTML = '<button type="button" class="court-badge romance" data-romance="1">' +
+      (wife ? '情缘·娘子' : '情缘·意动') + '</button>';
   }
 
   /* 顶栏朝廷角标（册301 · P4-C）：模型走 systems.court.badgeModel，点击由 app 委托 */

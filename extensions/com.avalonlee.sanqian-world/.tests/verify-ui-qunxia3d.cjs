@@ -809,6 +809,98 @@ const { chromium } = require('playwright-core');
       "Q3D14b 种两条重开（倒序新在上 + 亲历徽记 jade 边 + 错过/亲历两态在场 + 则数标签）", JSON.stringify(gz2));
     await page.evaluate(() => { document.querySelector("#qx-modal [data-qxm-close]").click(); });
 
+    /* ── Q3D19 组 · P4-E 情缘（册314 E3b）：顶栏角标 → 名册 → 人卡 → 三选落档 ──
+     * 种档：黄蓉 affection 4 ⇒ 阶段「倾心」；桃花岛格 4 注入在场名单（面板在场行用）。 */
+    await page.evaluate(() => {
+      const a = window.QX3D_APP;
+      const st = a.state;
+      const rom = window.QX3D.systems.romance;
+      rom.ensureState(st);
+      st.romance.people.huangrong = { affection: 4, known: true, intel: true, pledged: false, act: {} };
+      st.currentRegion = 'taohua';
+      st.currentTileIdx = 4;
+      st.sidePresence[(st.turn || 1) + ':taohua'] = ['huangrong'];
+      window.QX3D.ui.hud.render(st);
+    });
+    await page.waitForTimeout(200);
+    const rm0 = await page.evaluate(() => {
+      const b = document.querySelector('#hud-romance [data-romance]');
+      return { shown: !!b, label: b ? b.textContent : '' };
+    });
+    T(rm0.shown && /情缘·意动/.test(rm0.label),
+      'Q3D19a 顶栏情缘角标（阶段到倾心 ⇒ 「情缘·意动」上屏）', JSON.stringify(rm0));
+
+    /* 面板「情缘 · 在场」行：桃花岛格 4 与黄蓉同格 */
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(200);
+    const rm1 = await page.evaluate(() => {
+      const row = document.querySelector('#qx-modal [data-romance="huangrong"]');
+      const heads = Array.prototype.map.call(document.querySelectorAll('#qx-modal .qxm-more-h'), (h) => h.textContent);
+      return { row: row ? row.textContent : '', heads: heads.join('|') };
+    });
+    T(/黄蓉/.test(rm1.row) && /倾心/.test(rm1.row) && /情缘 · 在场/.test(rm1.heads),
+      'Q3D19b 面板在场行（同格「情缘 · 在场」段 ⇔ 姓名 + 阶段词）', JSON.stringify(rm1));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-qxm-close]').click(); });
+    await page.waitForTimeout(150);
+
+    /* 角标 → 名册 */
+    await page.evaluate(() => { document.querySelector('#hud-romance [data-romance]').click(); });
+    await page.waitForTimeout(200);
+    const rm2 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      const rows = Array.prototype.map.call(m.querySelectorAll('[data-romance-pick]'), (b) => b.textContent);
+      return { open: !m.classList.contains('hidden'), title: (m.querySelector('.qxm-title') || {}).textContent || '', rows: rows.join('|') };
+    });
+    T(rm2.open && rm2.title === '名册' && /黄蓉/.test(rm2.rows) && /倾心/.test(rm2.rows),
+      'Q3D19c 情缘名册（角标点开 ⇔ 只列已相识 + 阶段词）', JSON.stringify(rm2));
+
+    /* 名册 → 人卡 */
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-romance-pick="huangrong"]').click(); });
+    await page.waitForTimeout(200);
+    const rm3 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      const acts = Array.prototype.map.call(m.querySelectorAll('[data-romance-act]'), (b) => b.getAttribute('data-romance-act'));
+      return {
+        seal: (m.querySelector('.qxm-street-seal') || {}).textContent || '',
+        loc: (m.querySelector('.qxm-loc') || {}).textContent || '',
+        note: (m.querySelector('.qxm-street-meta') || {}).textContent || '',
+        acts: acts.join(','),
+        lines: m.querySelectorAll('.qxm-street p').length
+      };
+    });
+    T(rm3.seal === '情缘' && /倾心/.test(rm3.loc) && /意动/.test(rm3.note) && rm3.acts === 'rom_probe,rom_confess,rom_hold' && rm3.lines >= 1,
+      'Q3D19d 情缘人卡（阶段词 + 只出阶段词的阶段注 + 倾心三动作同序）', JSON.stringify(rm3));
+
+    /* 表白三选 → 有约落档 */
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-romance-act="rom_confess"]').click(); });
+    await page.waitForTimeout(200);
+    const rm4 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      return {
+        title: (m.querySelector('.qxm-title') || {}).textContent || '',
+        picks: Array.prototype.map.call(m.querySelectorAll('[data-court-pick]'), (b) => b.textContent).join('|')
+      };
+    });
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-court-pick="0"]').click(); });
+    await page.waitForTimeout(300);
+    const rm5 = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      const rom = window.QX3D.systems.romance;
+      return {
+        pledged: st.romance.people.huangrong.pledged,
+        stage: rom.stage(st, 'huangrong'),
+        badge: (document.querySelector('#hud-romance [data-romance]') || {}).textContent || ''
+      };
+    });
+    T(/把心意说清楚/.test(rm4.title) && /确认心意/.test(rm4.picks) && /改日再提/.test(rm4.picks) && /先不说/.test(rm4.picks) &&
+      rm5.pledged === true && rm5.stage === 'pledge' && /情缘·意动/.test(rm5.badge),
+      'Q3D19e 表白三选（三选在屏 ⇔ 确认心意 ⇒ pledged + 阶段「有约」⇔ 角标仍在）', JSON.stringify({ picks: rm4.picks, pledged: rm5.pledged, stage: rm5.stage }));
+    await page.evaluate(() => {
+      const a = window.QX3D_APP;
+      a.state.currentRegion = 'luoyang';
+      a.state.currentTileIdx = 1;
+    });
+
     /* 收口：全程零脚本错误 */
     T(errs.length === 0 && (await page.evaluate(() => window.__errs.length)) === 0,
       'Q3D7 全程零脚本错误（pageerror/console.error/window.__errs 三源）', errs.slice(0, 3).join(' | '));

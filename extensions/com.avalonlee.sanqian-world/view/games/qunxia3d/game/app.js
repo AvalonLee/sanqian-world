@@ -189,7 +189,54 @@
     var curTile = curReg.tiles[st.currentTileIdx];
     systems.street.ensureState(st, core.time.getRegion);
     systems.side.ensureState(st);
-    ui.panels.openActionPanel(st, curReg, curTile, runAction, openStreetNpc, openSideCast);
+    systems.romance.ensureState(st);
+    ui.panels.openActionPanel(st, curReg, curTile, runAction, openStreetNpc, openSideCast, openRomanceCast);
+  }
+
+  /* ── 情缘（P4-E · 册314 E3b）：名册 → 人卡 → 动作/三选弹窗 ───────────────── */
+  function openRomanceBadge() {
+    if (!st || !st.hasCreatedChar) return;
+    systems.romance.ensureState(st);
+    ui.panels.openRomanceList(st, systems.romance.visibleList(st), openRomanceCast);
+  }
+  function openRomanceCast(id) {
+    var rom = systems.romance;
+    rom.ensureState(st);
+    var p = rom.person(st, id);
+    if (!p.known) { ui.hud.toast('册上没有这个人。', 'amber'); return; }
+    var r = rom.castOf(id);
+    if (!r) return;
+    var sc = systems.side.castOf(id) || {};
+    var cast = {
+      name: r.name,
+      title: (sc.title || '江湖人') + ' · ' + rom.stageWord(rom.stage(st, id)),
+      lines: sc.lines || []
+    };
+    ui.panels.openRomanceNpc(st, cast, rom.note(st, id), rom.actionsFor(st, id) || [], function (actionId) {
+      runRomanceAction(id, actionId);
+    });
+  }
+  function runRomanceAction(id, actionId) {
+    var r = systems.romance.act(st, id, actionId);
+    if (!r.ok) { ui.hud.toast(r.why || '这会儿做不了。', 'amber'); return; }
+    if (r.dialog) { showRomanceDialog(id, r.dialog); return; }
+    if (r.log) core.time.addLog(st, r.log);
+    if (r.toast) ui.hud.toast(r.toast, r.tone);
+    afterAction();
+  }
+  /* 三选弹窗（表白 / 成亲 / 纳妾 / 寻仇四张同形；面板复用朝廷那套纸面壳） */
+  function showRomanceDialog(id, dialog) {
+    ui.panels.openCourtChoices(dialog.tag, dialog.title, dialog.loc, dialog.desc,
+      dialog.choices.map(function (c) { return c.label; }), function (i) {
+        var c = dialog.choices[i];
+        if (!c) return;
+        var r = systems.romance.pick(st, id, dialog.id, c.id, env());
+        if (!r.ok) { ui.hud.toast(r.why || '这一支走不通。', 'amber'); return; }
+        if (r.dialog) { showRomanceDialog(id, r.dialog); return; }
+        if (r.log) core.time.addLog(st, r.log);
+        if (r.toast) ui.hud.toast(r.toast, r.tone);
+        afterAction();
+      });
   }
 
   /* ── 配角（P4-B · 册303）：在场浮层 + 动作/三支弹窗 ───────────────────────── */
@@ -458,6 +505,14 @@
         if (b) openCourtBadge(b.getAttribute('data-court'));
       });
     }
+    /* 顶栏情缘角标（册314）：委托到 #hud-romance，同上 */
+    var romanceHost = document.getElementById('hud-romance');
+    if (romanceHost) {
+      romanceHost.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('[data-romance]') : null;
+        if (b) openRomanceBadge();
+      });
+    }
   }
 
   root.QX3D_APP = {
@@ -473,6 +528,8 @@
     openCourtBadge: openCourtBadge,
     openCourtRumor: openCourtRumor,
     openStreetNpc: openStreetNpc,
+    openRomanceBadge: openRomanceBadge,
+    openRomanceCast: openRomanceCast,
     /* M4 深度系统动作口 */
     runMaster: function (act) {
       if (!st || !st.hasCreatedChar) return;

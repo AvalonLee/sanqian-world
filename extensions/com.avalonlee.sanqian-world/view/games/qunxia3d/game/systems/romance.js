@@ -1,8 +1,10 @@
 /* systems/romance.js — P4-E 情缘（册311 E1 基建 · 册312 E2 交互 · 册313 E3a 后院/婚嫁）
  * 迁移源 = view/games/qunxia/game.html :13921–:14739（头注：相识→成亲·正妻；无倾心不入口；
- * 不推进多房；不加攻击气血）。E1 = 状态与查询（ensureState/person/stage/meet/here/intel/
- * visibleList/hasBadge）；E2 = 交互（actionsFor/act/gain/once/note/penalty/三选一）；
- * E3a = 婚嫁 / 后院（纳妾缺口与家变）/ 差事（轮岗与扶正）；UI 演出随 E3b。
+ * 不推进多房；不加攻击气血——头注 = **叙事不劝进**的口径，不是实现范围；多房/后院按用户
+ * 2026-11-09 裁定**完整保留**，此前「多房不做」的登记系错误记录）。E1 = 状态与查询（ensureState/
+ * person/stage/meet/here/intel/visibleList/hasBadge）；E2 = 交互（actionsFor/act/gain/once/
+ * note/penalty/三选一）；E3a = 婚嫁 / 后院（纳妾缺口与家变）/ 差事（轮岗与扶正）；
+ * UI 演出随 E3b（名册 / 人卡 / 顶栏角标 / 四张弹窗）。
  *
  * 偏差（显式登记）：
  *   ① `romanceHere` 复用本仓 `systems.side.castHere(st, region)`（原版 `sideCastHere()` 无参取全局）。

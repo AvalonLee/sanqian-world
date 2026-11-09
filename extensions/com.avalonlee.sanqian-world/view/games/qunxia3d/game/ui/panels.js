@@ -42,7 +42,7 @@
   }
 
   /* ── 本境动作面板（collectTileActions 全列 + 册300 市井在场）──────────────── */
-  function openActionPanel(st, curReg, curTile, onAct, onStreet, onSide) {
+  function openActionPanel(st, curReg, curTile, onAct, onStreet, onSide, onRomance) {
     openSheet(function (m) {
       var all = systems.tiles.collectTileActions(st, curReg, curTile);
       var picked = systems.tiles.pickPrimaryActions(all);
@@ -58,6 +58,16 @@
       var sideRows = sides.map(function (c) {
         return '<button class="qxm-act" data-side="' + c.id + '">' +
           '<span class="qa-main"><b>' + c.name + '</b><i>' + (c.title || '江湖人') + ' · 配角在场</i></span>' +
+          '<span class="qa-cost">点开</span></button>';
+      }).join('');
+      /* 情缘在场（P4-E）：只列已相识、且此刻同格的人（名册全表走顶栏角标） */
+      var roms = systems.romance ? systems.romance.visibleList(st).filter(function (r) {
+        return systems.romance.here(st, r.id);
+      }) : [];
+      var romanceRows = roms.map(function (r) {
+        var word = systems.romance.stageWord(systems.romance.stage(st, r.id));
+        return '<button class="qxm-act" data-romance="' + r.id + '">' +
+          '<span class="qa-main"><b>' + r.name + '</b><i>' + r.address + ' · ' + word + '</i></span>' +
           '<span class="qa-cost">点开</span></button>';
       }).join('');
       var tierCls = function (a) {
@@ -78,6 +88,7 @@
         picked.primary.map(row).join('') +
         (streetRows ? '<div class="qxm-more-h">市井 · 在场</div>' + streetRows : '') +
         (sideRows ? '<div class="qxm-more-h">配角 · 在场</div>' + sideRows : '') +
+        (romanceRows ? '<div class="qxm-more-h">情缘 · 在场</div>' + romanceRows : '') +
         (moreRows.length ? '<div class="qxm-more-h">更多 · 本旬可办</div>' + moreRows.map(row).join('') : '') +
         (shopRows.length ? '<div class="qxm-more-h">商铺 · 限量货架</div>' + shopRows.map(row).join('') : '') +
         '</div>',
@@ -99,6 +110,12 @@
         b.addEventListener('click', function () {
           closeModal();
           if (onSide) onSide(b.getAttribute('data-side'));
+        });
+      });
+      Array.prototype.forEach.call(m.querySelectorAll('[data-romance]'), function (b) {
+        b.addEventListener('click', function () {
+          closeModal();
+          if (onRomance) onRomance(b.getAttribute('data-romance'));
         });
       });
     });
@@ -231,11 +248,61 @@
     });
   }
 
+  /* ── 情缘名册（册314 · P4-E E3b）：只列「已相识 + 在场或心意已通」 ─────────
+   * 原版 openRomanceList（street-drawer 名册）纸面重绘：行 = 姓名 + 阶段词。 */
+  function openRomanceList(st, list, onPick) {
+    openSheet(function (m) {
+      var rom = systems.romance;
+      var rows = (list || []).map(function (r) {
+        var word = rom.stageWord(rom.stage(st, r.id));
+        return '<button class="qxm-act" data-romance-pick="' + r.id + '">' +
+          '<span class="qa-main"><b>' + r.name + '</b><i>' + r.address + ' · ' + word + '</i></span>' +
+          '<span class="qa-cost">点开</span></button>';
+      }).join('');
+      var desc = '<div class="qxm-dim qxm-street-meta">只列已相识、且此刻在场或心意已通的人。册上没有的人，不写她在哪。</div>';
+      shell(m, '情缘', '名册', '已相识 ' + (list || []).length + ' 人',
+        '<div class="qxm-acts">' + (rows || '<p class="qxm-dim">还没有可写进这本册子的人。</p>') + '</div>' + desc, '');
+      Array.prototype.forEach.call(m.querySelectorAll('[data-romance-pick]'), function (b) {
+        b.addEventListener('click', function () {
+          closeModal();
+          if (onPick) onPick(b.getAttribute('data-romance-pick'));
+        });
+      });
+    });
+  }
+
+  /* ── 情缘人卡（册314）：三句自述 + 阶段注 + 三动作（动作表由 systems.romance 定）── */
+  function openRomanceNpc(st, cast, note, actions, onAct) {
+    openSheet(function (m) {
+      var lines = (cast.lines || []).slice(0, 3);
+      var desc = '<div class="qxm-street">' +
+        '<div class="qxm-street-seal">情缘</div>' +
+        lines.map(function (l) { return '<p>' + l + '</p>'; }).join('') +
+        '</div>' +
+        '<div class="qxm-dim qxm-street-meta">' + (note || '') + '</div>';
+      var choices = (actions || []).map(function (a) {
+        return '<button class="qxm-btn' + (a.primary && !a.disabled ? ' primary' : '') + '" data-romance-act="' + a.id + '"' +
+          (a.disabled ? ' disabled' : '') + '>' + a.label +
+          ' <small>' + (a.disabled ? (a.why || a.hint || '') : (a.hint || '')) + '</small></button>';
+      }).join('');
+      shell(m, '情缘', cast.name, cast.title || '', desc, choices);
+      Array.prototype.forEach.call(m.querySelectorAll('[data-romance-act]'), function (b) {
+        b.addEventListener('click', function () {
+          if (b.disabled) return;
+          closeModal();
+          if (onAct) onAct(b.getAttribute('data-romance-act'));
+        });
+      });
+    });
+  }
+
   root.QX3D.ui = root.QX3D.ui || {};
   root.QX3D.ui.panels = {
     openActionPanel: openActionPanel,
     openStreetNpc: openStreetNpc,
     openSideNpc: openSideNpc,
+    openRomanceList: openRomanceList,
+    openRomanceNpc: openRomanceNpc,
     openCourtChoices: openCourtChoices,
     openBountyPoster: openBountyPoster,
     openRoadEncounter: openRoadEncounter,
