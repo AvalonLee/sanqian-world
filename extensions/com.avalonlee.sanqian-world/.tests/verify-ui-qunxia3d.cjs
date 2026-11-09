@@ -319,6 +319,43 @@ const { chromium } = require('playwright-core');
     T(/【酒肆小二】/.test(sd2.last || '') && ['reliable', 'stale', 'conflict'].indexOf(sd2.grade) >= 0 && !!sd2.rumor && sd2.bias >= 1,
       'Q3D17c 配角打探落档（日志 + 三档 + pendingRumor + road 偏置）', JSON.stringify({ grade: sd2.grade, bias: sd2.bias, last: (sd2.last || '').slice(0, 40) }));
 
+    /* ── Q3D18 组 · P4-B B1b 新配角（册304）：华山劳德诺 → 接夜路差事 → 空白帖解锁 ── */
+    await page.evaluate(() => {
+      const a = window.QX3D_APP;
+      a.state.currentRegion = 'huashan';
+      a.state.viewLayer = 'local';
+      a.state.currentTileIdx = 2;
+      a.state.sidePresence[a.state.turn + ':huashan'] = ['laodenuo'];
+    });
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(200);
+    const lb0 = await page.evaluate(() => {
+      const row = document.querySelector('#qx-modal [data-side="laodenuo"]');
+      if (!row) return { shown: false };
+      row.click();
+      return { shown: true };
+    });
+    await page.waitForTimeout(200);
+    const lb1 = await page.evaluate(() => ({
+      acts: Array.prototype.map.call(document.querySelectorAll('#qx-modal [data-side-act]'), (b) => ({ id: b.getAttribute('data-side-act'), disabled: b.disabled })),
+      lines: document.querySelectorAll('#qx-modal .qxm-street p').length
+    }));
+    T(lb0.shown && lb1.lines >= 1 && lb1.acts.length === 3 && lb1.acts[0].id === 'lao_accept' && lb1.acts[2].disabled === true,
+      'Q3D18a 新配角上屏（劳德诺三动作 ⇔ 未接差事时「追问空白帖」禁用）', JSON.stringify(lb1));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-side-act="lao_accept"]').click(); });
+    await page.waitForTimeout(300);
+    const lb2 = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      return { shadow: st.sideFlags.nightShadow, bias: st.sideScrollBias.chousha || 0, last: (st.logs || [])[0] && st.logs[0].text };
+    });
+    T(lb2.shadow === 'accepted' && lb2.bias >= 1 && /【劳德诺】/.test(lb2.last || ''),
+      'Q3D18b 夜路差事落档（nightShadow=accepted ⇔ chousha 偏置 ⇔ 日志入档）', JSON.stringify({ shadow: lb2.shadow, bias: lb2.bias }));
+    await page.evaluate(() => {
+      const a = window.QX3D_APP;
+      a.state.currentRegion = 'luoyang';
+      a.state.currentTileIdx = 1;
+    });
+
     /* ── Q3D16 组 · P4-C 朝廷风声（册301）：角标 → 结论体 → 应召落档 ─────────── */
     const ct0 = await page.evaluate(() => {
       const b = document.querySelector('#hud-court [data-court="court"]');

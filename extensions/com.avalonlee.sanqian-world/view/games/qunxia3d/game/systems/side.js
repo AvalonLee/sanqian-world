@@ -145,6 +145,35 @@
         { id: 'xiao_noodle', label: '赊面', hint: f.xiaoerTab ? '这旬已赊过' : '先吃，账记着', disabled: !!f.xiaoerTab }
       ];
     }
+    if (cast.id === 'laodenuo') {
+      var shadow = f.nightShadow || '';
+      return [
+        { id: 'lao_accept', label: '接夜路差事', primary: !shadow, hint: shadow ? '这桩已接过' : '帖是空白的', disabled: !!shadow },
+        { id: 'lao_tracks', label: '问脚印', hint: '只指这座山的夜路' },
+        { id: 'lao_expose', label: '追问空白帖', primary: shadow === 'accepted', hint: shadow === 'accepted' ? '可以拆穿他' : '先接差事再说', disabled: shadow !== 'accepted' }
+      ];
+    }
+    if (cast.id === 'cheng') {
+      return [
+        { id: 'cheng_escort', label: '绣帕护卫', primary: !f.escortDone, hint: f.escortDone ? '这场已完' : '不看拳脚 · 1 行脚', needAp: 1, disabled: !!f.escortDone },
+        { id: 'cheng_banquet', label: '同席', hint: '话只停在这一席' },
+        { id: 'cheng_scarf', label: '收绣帕', hint: f.giftedScarf ? '帕已收下' : '情债记下', disabled: !!f.giftedScarf }
+      ];
+    }
+    if (cast.id === 'wangui') {
+      return [
+        { id: 'wang_duel', label: '比武', primary: !f.wangGrudge, hint: '三招，不看家世' },
+        { id: 'wang_wine', label: '请和解酒', hint: st.gold < 4 ? '纹银不足' : '4 文', needGold: 4, disabled: st.gold < 4 },
+        { id: 'wang_grudge', label: '谈这个梁子', hint: f.wangGrudge === 'grudge' ? '已结怨' : (f.wangGrudge === 'refused' ? '已拒过' : '可结可拒'), disabled: !!f.wangGrudge }
+      ];
+    }
+    if (cast.id === 'zhike') {
+      return [
+        { id: 'monk_reg', label: '登记山门簿', primary: !f.shaolinRegistered, hint: (st.fame || 0) < 6 ? '侠名还浅' : '一视同仁', disabled: !!f.shaolinRegistered || (st.fame || 0) < 6 },
+        { id: 'monk_intro', label: '请引见', hint: '只到这座山的演武处' },
+        { id: 'monk_refuse', label: '问规矩', hint: '熟客也一样要登记' }
+      ];
+    }
     return [];
   }
 
@@ -227,8 +256,69 @@
       f.giftedScarf = true; f.romanceDebt = true; addBias(st, ['romance', 'qingzhai']);
       L('你收下绣帕。情债记下了，不成亲。');
       out.toast = '帕留下了。情债旗在，没有成亲。'; out.tone = 'emerald';
+    } else if (actionId === 'lao_accept') {
+      f.nightShadow = 'accepted'; addBias(st, ['chousha', 'jianyi']);
+      L('【华山夜影】你接了劳德诺的夜路差事。他要你去看脚印，帖却是空白的。');
+      out.toast = '假任务接了。脚印在这座山的夜路上。';
+    } else if (actionId === 'lao_tracks') {
+      L('劳德诺说脚印就在这座山的夜路上，不提别的城。');
+      out.toast = '他只指这座山。';
+    } else if (actionId === 'lao_expose') {
+      if (choice == null) return { ok: true, choices: choicesOf(st, cast, actionId), log: '', toast: '' };
+      if (choice === 0) {
+        f.nightShadow = 'exposed'; f.linghuEcho = 'warm'; st.fame += 4; addBias(st, ['chousha', 'jianyi']);
+        var t1 = '华山那位剑客听说夜路的假帖被拆穿了，风声暖了半分，人却不在这条路上。';
+        L('【华山夜影】' + t1);
+        st.pendingRumor = { grade: 'reliable', text: t1, aboutId: 'laodenuo' };
+        out.toast = '拆穿了。风声记在华山剑客那边。'; out.tone = 'emerald';
+      } else if (choice === 1) {
+        f.nightShadow = 'burned'; f.linghuEcho = 'cold'; st.gold = Math.max(0, st.gold - 6); addBias(st, ['chousha', 'jianyi']);
+        var t2 = '有人说华山那位剑客对夜路的事皱了眉。风声冷了半截，没说他在哪一处崖。';
+        L('【华山夜影】' + t2);
+        st.pendingRumor = { grade: 'stale', text: t2, aboutId: 'laodenuo' };
+        out.toast = '你吃了这个亏。风声冷了。';
+      } else {
+        L('你先离开了夜路。');
+        out.toast = '你先离开了夜路。';
+      }
+    } else if (actionId === 'wang_duel') {
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      e.startDuel(st, {
+        enemyName: '万圭', enemyTitle: '万公子 · 嘴硬比武', enemyStance: 'qiao',
+        enemyPower: 62, enemyHp: 120, contextTitle: '庄园外厅 · 与万圭切磋',
+        rewardGold: 8, rewardFame: 4, rewardExp: 16, sideCastResult: { kind: 'wang' }
+      });
+      return { ok: true, log: '', toast: '比武开始。', tone: 'amber' };
+    } else if (actionId === 'wang_wine') {
+      if (st.gold < 4) return { ok: false, why: '纹银不足' };
+      st.gold -= 4; f.wangGrudge = 'peace'; addBias(st, ['sword']);
+      L('你请万圭喝了解酒，嘴硬按下去一寸。');
+      out.toast = '和解酒喝过了。'; out.tone = 'emerald';
+    } else if (actionId === 'wang_grudge') {
+      if (!f.wangGrudge && choice == null) return { ok: true, choices: choicesOf(st, cast, actionId), log: '', toast: '' };
+      if (choice === 0) {
+        f.wangGrudge = 'grudge'; addBias(st, ['revenge']);
+        L('你和万圭结下了怨。账记下了，人还在这座庄园。');
+        out.toast = '怨记下了。';
+      } else {
+        f.wangGrudge = 'refused';
+        L('你拒绝和万圭结怨。他嘴硬，却没再逼。');
+        out.toast = '你拒了这门怨。'; out.tone = 'emerald';
+      }
+    } else if (actionId === 'monk_reg') {
+      if ((st.fame || 0) < 6) return { ok: false, why: '侠名还浅，山门这旬不留宿。' };
+      f.shaolinRegistered = true; addBias(st, ['righteous']);
+      L('少林知客把你的名字登进山门簿，过客一视同仁。');
+      out.toast = '登记好了。'; out.tone = 'emerald';
+    } else if (actionId === 'monk_intro') {
+      L('知客引你去这座山的演武处，没有提别的山。');
+      out.toast = '引见只到这座山上。';
+    } else if (actionId === 'monk_refuse') {
+      var why = (st.fame || 0) < 6 ? '侠名还浅，山门这旬不留宿。' : '规矩在，熟客也一样要登记。';
+      L('知客说：' + why);
+      out.toast = why;
     } else {
-      return { ok: false, why: '这支还没接（B1b/B2/B3）' };
+      return { ok: false, why: '这支还没接（B2/B3）' };
     }
     return out;
   }

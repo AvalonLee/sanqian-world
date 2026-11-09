@@ -1489,6 +1489,54 @@ function buildCourtSandbox() {
   check('S35e 海捕目标链（五态）', badTarget === null, badTarget || undefined);
 })();
 
+/* ══ S36 P4-B 配角包（册304 B1b）：在场/权重/偏置 对表 ═══════════════════
+ * SIDE_CAST 源里 3.5MB 是 base64，先剥 art 再进 vm（剥法与抽取器同规则）。 */
+function buildSideSandbox() {
+  const ctx = { Math: Object.create(Math), console: console };
+  vm.createContext(ctx);
+  const run = function (code) { return vm.runInContext(code, ctx, { filename: 'side-sandbox.js' }); };
+  const cast = slice('const', 'SIDE_CAST').replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/g, '');
+  run(cast + '\n');
+  run('const SIDE_BY_ID = Object.fromEntries(SIDE_CAST.map(function(c){return [c.id, c];}));\n');
+  ['ensureP4BStateDefaults', 'ensureOutcomeFlags', 'sideFlags', 'addSideBias', 'sideScrollWeight', 'sideSpawnWeight', 'ensureSidePresence', 'streetHash']
+    .forEach(f => run(slice('function', f) + '\n'));
+  run('function isRookiePeriod(){ return state.turn <= 4; }\n');
+  return { run: run };
+}
+
+(function S36() {
+  const side = require(path.join(GAME_DIR, 'systems', 'side.js'));
+  const sb = buildSideSandbox();
+  const states = [
+    { turn: 3, currentRegion: 'luoyang', sidePresence: {}, sideScrollBias: {}, sideFlags: {} },
+    { turn: 12, currentRegion: 'huashan', sidePresence: {}, sideScrollBias: { romance: 2, chousha: 1, court: 1 }, sideFlags: { bullyIntel: true } }
+  ];
+  let badPresence = null, badWeight = null, badScroll = null;
+  states.forEach((raw, si) => {
+    sb.run('state = ' + JSON.stringify(raw) + ';');
+    ['luoyang', 'huashan', 'yanziwu'].forEach((rid) => {
+      const a = sb.run('JSON.stringify(ensureSidePresence({id:' + JSON.stringify(rid) + '}).map(function(c){return c.id}))');
+      const st = JSON.parse(JSON.stringify(raw));
+      side.ensureState(st);
+      const b = JSON.stringify(side.ensurePresence(st, { id: rid, tiles: [] }).map(c => c.id));
+      if (a !== b && !badPresence) badPresence = 's' + si + '/' + rid + ': ' + a + ' ≠ ' + b;
+    });
+    (side.list || []).slice(0, 12).forEach((c) => {
+      const a = sb.run('JSON.stringify(sideSpawnWeight(SIDE_CAST[' + side.list.indexOf(c) + ']))');
+      const b = JSON.stringify(side.spawnWeight(JSON.parse(JSON.stringify(raw)), c));
+      if (a !== b && !badWeight) badWeight = c.id + ': ' + a + ' ≠ ' + b;
+    });
+    [['romance'], ['chousha', 'court'], ['nothing']].forEach((tags) => {
+      const a = sb.run('sideScrollWeight(' + JSON.stringify(tags) + ')');
+      const b = side.scrollWeight(JSON.parse(JSON.stringify(raw)), tags);
+      if (Math.abs(a - b) > 1e-9 && !badScroll) badScroll = tags.join('+') + ': ' + a + ' ≠ ' + b;
+    });
+  });
+  check('S36a 每旬在场（2 态 ×3 地界）', badPresence === null, badPresence || undefined);
+  check('S36b 出场权重（前 12 人 ×2 态）', badWeight === null, badWeight || undefined);
+  check('S36c 卷轴偏置权重（三组标签 ×2 态）', badScroll === null, badScroll || undefined);
+})();
+
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));
 if (failed === 0) {
