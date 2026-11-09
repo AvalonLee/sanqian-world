@@ -186,7 +186,31 @@
     var curReg = core.time.getRegion(st.currentRegion);
     var curTile = curReg.tiles[st.currentTileIdx];
     systems.street.ensureState(st, core.time.getRegion);
-    ui.panels.openActionPanel(st, curReg, curTile, runAction, openStreetNpc);
+    systems.side.ensureState(st);
+    ui.panels.openActionPanel(st, curReg, curTile, runAction, openStreetNpc, openSideCast);
+  }
+
+  /* ── 配角（P4-B · 册303）：在场浮层 + 动作/三支弹窗 ───────────────────────── */
+  function openSideCast(castId) {
+    var curReg = core.time.getRegion(st.currentRegion);
+    var cast = systems.side.castOf(castId);
+    var here = systems.side.castHere(st, curReg);
+    if (!cast || !here.some(function (c) { return c.id === castId; })) { ui.hud.toast('人已经不在这一处了。', 'amber'); return; }
+    ui.panels.openSideNpc(st, cast, function (actionId) { runSideAction(castId, actionId, null); }, systems.side.actsFor(st, cast));
+  }
+  function runSideAction(castId, actionId, choice) {
+    var cast = systems.side.castOf(castId);
+    var r = systems.side.act(st, cast, actionId, choice, env({ checkRealmPromotion: systems.tiles.checkRealmPromotion }));
+    if (r.choices) {
+      ui.panels.openCourtChoices('配角', cast.name, cast.title || '', '这条路上怎么处置？', r.choices, function (i) {
+        runSideAction(castId, actionId, i);
+      });
+      return;
+    }
+    if (!r.ok) { ui.hud.toast(r.why || '这会儿做不了。', 'red'); return; }
+    if (r.log) core.time.addLog(st, r.log);
+    if (r.toast) ui.hud.toast(r.toast, r.tone);
+    afterAction();
   }
 
   /* ── 市井（P4-A · 册300）：在场人浮层 + 动作派发 ──────────────────────────── */
@@ -210,6 +234,10 @@
     if (!r.ok) { ui.hud.toast(r.why || '这会儿做不了。', 'red'); return; }
     if (r.log) core.time.addLog(st, r.log);
     if (r.toast) ui.hud.toast(r.toast, r.tone);
+    /* 册303：交人犯 → 海捕销名（P4-B markBountyCleared 的第一处消费面） */
+    if (actionId === 'court_turnin' && systems.side) {
+      systems.side.markBountyCleared(st, (st.court && st.court.flags && st.court.flags.bountyAccepted) || 'generic');
+    }
     afterAction();
   }
 
@@ -372,6 +400,7 @@
     core.data.bindRuntimeState(st);
     systems.street.ensureState(st, core.time.getRegion); /* 册300：旧档补市井七字段 */
     systems.court.ensureState(st);                       /* 册301：旧档补朝廷态 */
+    systems.side.ensureState(st);                        /* 册303：旧档补配角旗标 */
     systems.payload.mergeStateMasters(st); /* 旧档收到扩展 S/A 名宿（content-merge :141 语义） */
     if (res.genAction.action === 'reload') {
       /* 扩展侧已转世：存档已清，刷新回创角封面（原 reconcileWorldGen :3218） */

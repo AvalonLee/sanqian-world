@@ -42,7 +42,7 @@
   }
 
   /* ── 本境动作面板（collectTileActions 全列 + 册300 市井在场）──────────────── */
-  function openActionPanel(st, curReg, curTile, onAct, onStreet) {
+  function openActionPanel(st, curReg, curTile, onAct, onStreet, onSide) {
     openSheet(function (m) {
       var all = systems.tiles.collectTileActions(st, curReg, curTile);
       var picked = systems.tiles.pickPrimaryActions(all);
@@ -52,6 +52,12 @@
         var job = systems.street.jobOf(n.jobId) || { title: '市井' };
         return '<button class="qxm-act" data-street="' + n.id + '">' +
           '<span class="qa-main"><b>' + job.title + ' · ' + n.name + '</b><i>' + n.tileName + ' · 市井在场</i></span>' +
+          '<span class="qa-cost">点开</span></button>';
+      }).join('');
+      var sides = systems.side ? systems.side.castHere(st, curReg) : [];
+      var sideRows = sides.map(function (c) {
+        return '<button class="qxm-act" data-side="' + c.id + '">' +
+          '<span class="qa-main"><b>' + c.name + '</b><i>' + (c.title || '江湖人') + ' · 配角在场</i></span>' +
           '<span class="qa-cost">点开</span></button>';
       }).join('');
       var tierCls = function (a) {
@@ -71,6 +77,7 @@
         '<div class="qxm-acts">' +
         picked.primary.map(row).join('') +
         (streetRows ? '<div class="qxm-more-h">市井 · 在场</div>' + streetRows : '') +
+        (sideRows ? '<div class="qxm-more-h">配角 · 在场</div>' + sideRows : '') +
         (moreRows.length ? '<div class="qxm-more-h">更多 · 本旬可办</div>' + moreRows.map(row).join('') : '') +
         (shopRows.length ? '<div class="qxm-more-h">商铺 · 限量货架</div>' + shopRows.map(row).join('') : '') +
         '</div>',
@@ -86,6 +93,12 @@
         b.addEventListener('click', function () {
           closeModal();
           if (onStreet) onStreet(b.getAttribute('data-street'));
+        });
+      });
+      Array.prototype.forEach.call(m.querySelectorAll('[data-side]'), function (b) {
+        b.addEventListener('click', function () {
+          closeModal();
+          if (onSide) onSide(b.getAttribute('data-side'));
         });
       });
     });
@@ -168,6 +181,30 @@
     });
   }
 
+  /* ── 配角浮层（册303 · P4-B）：三句自述 + 三动作（禁用态由 systems.side 定）──── */
+  function openSideNpc(st, cast, onAct, actions) {
+    openSheet(function (m) {
+      var lines = (cast.lines || []).slice(0, 3);
+      var desc = '<div class="qxm-street">' +
+        '<div class="qxm-street-seal">配角</div>' +
+        lines.map(function (l) { return '<p>' + l + '</p>'; }).join('') +
+        '</div>';
+      var choices = (actions || []).map(function (a) {
+        return '<button class="qxm-btn' + (a.primary ? ' primary' : '') + '" data-side-act="' + a.id + '"' +
+          (a.disabled ? ' disabled' : '') + '>' + a.label +
+          ' <small>' + (a.disabled ? (a.why || a.hint || '') : (a.hint || '')) + '</small></button>';
+      }).join('');
+      shell(m, '配角', cast.name, cast.title || cast.region || '', desc, choices);
+      Array.prototype.forEach.call(m.querySelectorAll('[data-side-act]'), function (b) {
+        b.addEventListener('click', function () {
+          if (b.disabled) return;
+          closeModal();
+          if (onAct) onAct(b.getAttribute('data-side-act'));
+        });
+      });
+    });
+  }
+
   /* ── 朝廷风声浮层（册301 · P4-C）：一屏一句结论 + 2~3 个选择 ─────────────── */
   function openCourtChoices(tag, title, loc, desc, labels, onPick) {
     openSheet(function (m) {
@@ -198,6 +235,7 @@
   root.QX3D.ui.panels = {
     openActionPanel: openActionPanel,
     openStreetNpc: openStreetNpc,
+    openSideNpc: openSideNpc,
     openCourtChoices: openCourtChoices,
     openBountyPoster: openBountyPoster,
     openRoadEncounter: openRoadEncounter,

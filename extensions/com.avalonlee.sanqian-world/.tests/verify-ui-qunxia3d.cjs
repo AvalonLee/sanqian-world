@@ -292,6 +292,33 @@ const { chromium } = require('playwright-core');
     await page.evaluate(() => { const x = document.querySelector('#qx-modal [data-qxm-close]'); if (x) x.click(); });
     await page.waitForTimeout(150);
 
+    /* ── Q3D17 组 · P4-B 配角包（册303 B1a）：在场 → 浮层 → 打探落档 ─────────── */
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(200);
+    const sd0 = await page.evaluate(() => {
+      const rows = Array.prototype.map.call(document.querySelectorAll('#qx-modal [data-side]'), (b) => b.textContent);
+      return { rows: rows.length, text: rows.join('|') };
+    });
+    T(sd0.rows >= 1 && /酒肆小二|平四|郑萼/.test(sd0.text),
+      'Q3D17a 配角在场行（市井同面板另起「配角 · 在场」⇔ 姓名+身份上屏）', JSON.stringify(sd0));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-side]').click(); });
+    await page.waitForTimeout(200);
+    const sd1 = await page.evaluate(() => ({
+      seal: (document.querySelector('#qx-modal .qxm-street-seal') || {}).textContent || '',
+      lines: document.querySelectorAll('#qx-modal .qxm-street p').length,
+      acts: Array.prototype.map.call(document.querySelectorAll('#qx-modal [data-side-act]'), (b) => b.getAttribute('data-side-act'))
+    }));
+    T(sd1.seal === '配角' && sd1.lines >= 1 && sd1.acts.length === 3 && sd1.acts[0] === 'xiao_ask',
+      'Q3D17b 配角浮层（三句自述 ⇔ 三动作，首位=打探）', JSON.stringify(sd1));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-side-act="xiao_ask"]').click(); });
+    await page.waitForTimeout(300);
+    const sd2 = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      return { last: (st.logs || [])[0] && st.logs[0].text, grade: st.rumorReliability, rumor: (st.pendingRumor && st.pendingRumor.text) || '', bias: st.sideScrollBias.road || 0 };
+    });
+    T(/【酒肆小二】/.test(sd2.last || '') && ['reliable', 'stale', 'conflict'].indexOf(sd2.grade) >= 0 && !!sd2.rumor && sd2.bias >= 1,
+      'Q3D17c 配角打探落档（日志 + 三档 + pendingRumor + road 偏置）', JSON.stringify({ grade: sd2.grade, bias: sd2.bias, last: (sd2.last || '').slice(0, 40) }));
+
     /* ── Q3D16 组 · P4-C 朝廷风声（册301）：角标 → 结论体 → 应召落档 ─────────── */
     const ct0 = await page.evaluate(() => {
       const b = document.querySelector('#hud-court [data-court="court"]');
