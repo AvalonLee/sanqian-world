@@ -46,7 +46,7 @@ const KEY = 'sanqian-state-v1';
     let val;
     if (mutate === 'GARBAGE') val = '{{{ 这不是 JSON，是刚被别的扩展写坏的一坨';
     else { const c = JSON.parse(JSON.stringify(base)); mutate(c); val = JSON.stringify(c); }
-    await page.addInitScript((a) => { try { localStorage.setItem(a.k, a.v); } catch (e) {} }, { k: KEY, v: val });
+    await page.addInitScript((a) => { try { localStorage.setItem(a.k, a.v); localStorage.setItem('shanqian3d_save_v1', '{"v":1}'); } catch (e) {} }, { k: KEY, v: val }); /* 册297：N89 修法——wx 存在性占位绕过门环重定向（GARBAGE 例 hx=false 也会被 view/index.html:11 截走），不涉本篇判据 */
     await page.goto(url);
     await page.waitForTimeout(2600);
     const st = await page.evaluate((k) => {

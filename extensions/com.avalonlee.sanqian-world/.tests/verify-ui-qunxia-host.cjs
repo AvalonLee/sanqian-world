@@ -39,6 +39,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 
   /* 宿主桥注入的最小等价物：window.xhub.storage 内存镜像（并预置一份已入世的存档） */
   await page.addInitScript(() => {
+    try { localStorage.setItem('qunxia3d-engine', '0'); } catch (e) {} /* 册297：N89 修法——本篇测 classic 线宿主约束（备选线正典开关，册272 预埋） */
     const st = {
       v: 1,
       profile: { name: '走查侠', talents: [], worldId: 'wuxia', worldName: '', createdAt: 1, alignBias: 'neutral', gender: 'male', race: 'human', hao: '', seenNote: 'sq-note-v1' },
@@ -47,12 +48,13 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
       settings: { autoTrib: false, autoEvent: false, eventPref: 'none', tabOrder: [] }
     };
     const mem = { 'sanqian-state-v1': st };
+    try { localStorage.setItem('sanqian-state-v1', JSON.stringify(st)); } catch (e) {} /* 册297：N89 修法——主壳启动检测（view/index.html:11）读的是 localStorage，只种注入 mem 会被「双无档」截去门环 */
     const writes = [];
     window.__mirror = mem;
     window.__hostWrites = writes;
     window.xhub = {
       storage: {
-        get: (k) => Promise.resolve(mem[k] === undefined ? null : mem[k]),
+        get: (k) => Promise.resolve(mem[k] === undefined ? null : (typeof mem[k] === 'string' ? mem[k] : JSON.stringify(mem[k]))), /* 册297：N89 修法——主壳按 JSON 串 parse 宿主存档，对象形态直返会 parse 失败判无档（真实宿主 storage_set 落的也是字符串） */
         set: (k, v) => { mem[k] = v; writes.push(k); return Promise.resolve(); },
         remove: (k) => { delete mem[k]; writes.push('rm:' + k); return Promise.resolve(); },
         clear: () => { for (const k in mem) delete mem[k]; writes.push('clear'); return Promise.resolve(); }

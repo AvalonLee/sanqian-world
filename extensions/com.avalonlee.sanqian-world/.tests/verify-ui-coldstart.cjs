@@ -34,6 +34,7 @@ const KEY = 'sanqian-state-v1';
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
   /* ── A 相：从零开始 ── */
+  await page.addInitScript(() => { try { localStorage.setItem('shanqian3d_save_v1', '{"v":1}'); } catch (e) {} }); /* 册297：N89 修法——wx 存在性占位绕过门环重定向（view/index.html:11 双无档即跳），不涉本篇判据 */
   await page.goto(url);
   await page.waitForSelector('#sc-c3:not(.hide)', { timeout: 15000 });   /* 册168：首屏即择界 */
   const cs1 = await page.evaluate(() => ({

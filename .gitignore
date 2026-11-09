@@ -51,3 +51,6 @@ sq-clean-*
 # 真实本地密钥（.env.local.example 是模板，属文档，照常纳入）
 .env.local
 .env.*.local
+
+# 本机 WorkBuddy 会话记忆（2026-11-09 用户裁定永不入库；tracked 的 .workbuddy 历史件在 docs/_archive/C-体验打磨线/ 下不受影响）
+.workbuddy/

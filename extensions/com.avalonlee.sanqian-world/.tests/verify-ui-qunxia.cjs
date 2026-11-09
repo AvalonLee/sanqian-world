@@ -23,6 +23,7 @@ const { chromium } = require('playwright-core');
 
   /* 条件种档：只缺档时种（册163 ⑤：无条件 init 会拆「真落档 survives reload」的台） */
   await page.addInitScript(() => {
+    try { localStorage.setItem('qunxia3d-engine', '0'); } catch (e) {} /* 册297：N89 修法——本篇测 classic 线 payload 桥（备选线正典开关，册272 预埋） */
     if (localStorage.getItem('sanqian-state-v1')) return;
     const st = {
       v: 1,

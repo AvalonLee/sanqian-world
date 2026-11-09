@@ -21,6 +21,7 @@ const { chromium } = require('playwright-core');
   page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
 
   await page.addInitScript(() => {
+    try { localStorage.setItem('qunxia3d-engine', '0'); } catch (e) {} /* 册297：N89 修法——本篇测 classic 线节奏（备选线正典开关，册272 预埋） */
     if (localStorage.getItem('sanqian-state-v1')) return;
     localStorage.setItem('sanqian-state-v1', JSON.stringify({
       v: 1,
