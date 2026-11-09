@@ -1594,6 +1594,48 @@ function buildRomanceSandbox() {
   check('S37b 情缘态形状（键集同构）', shapeA === shapeB, shapeA + ' ≠ ' + shapeB);
 })();
 
+/* ══ S38 P4-E 情缘交互（册312 · E2）：动作清单逐阶段对表 ═══════════════ */
+(function S38() {
+  const rom = require(path.join(GAME_DIR, 'systems', 'romance.js'));
+  const ctx = { Math: Object.create(Math), console: console };
+  vm.createContext(ctx);
+  const run = (code) => vm.runInContext(code, ctx, { filename: 'romance2-sandbox.js' });
+  run(slice('const', 'ROMANCE_CAST').replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/g, '') + '\n');
+  run(slice('const', 'ROMANCE_STAGE_WORD') + '\n');
+  run(slice('const', 'DUTY_WORD') + '\n');
+  run('const ROMANCE_BY_ID = Object.fromEntries(ROMANCE_CAST.map(function(r){return [r.id, r];}));\n');
+  ['ensureRomanceState', 'romancePerson', 'romanceStage', 'romanceActionsFor'].forEach((f) => run(slice('function', f) + '\n'));
+
+  const base = { turn: 5, gold: 20, outcomeFlags: { rivalryOn: {} }, romance: { wifeId: null, people: {}, concubines: [], jealousy: null } };
+  const cases = [
+    { aff: 0, known: false },
+    { aff: 1, known: true },
+    { aff: 2, known: true },
+    { aff: 4, known: true },
+    { aff: 4, known: true, pledged: true },
+    { aff: 6, known: true, pledged: true, wife: true },
+    { aff: 6, known: true, pledged: true, wife: true, feud: true },
+    { aff: 6, known: true, pledged: true, wife: true, jealousy: 'open' },
+    { aff: 6, known: true, pledged: true, side: true }
+  ];
+  let bad = null;
+  cases.forEach((c, i) => {
+    const stt = JSON.parse(JSON.stringify(base));
+    stt.romance.people.huangrong = { affection: c.aff, known: c.known, pledged: !!c.pledged, act: {} };
+    if (c.wife) stt.romance.wifeId = 'huangrong';
+    if (c.side) stt.romance.concubines = [{ id: 'huangrong', role: 'ledger' }];
+    if (c.feud) stt.outcomeFlags.rivalryOn.guojing = true;
+    if (c.jealousy) stt.romance.jealousy = c.jealousy;
+    run('state = ' + JSON.stringify(stt) + ';');
+    const a = run('JSON.stringify((romanceActionsFor("huangrong") || []).map(function(x){return x.id}))');
+    const s2 = JSON.parse(JSON.stringify(stt));
+    rom.ensureState(s2);
+    const b = JSON.stringify((rom.actionsFor(s2, 'huangrong') || []).map((x) => x.id));
+    if (a !== b && !bad) bad = 'case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  check('S38 情缘动作清单 ×9 阶段（id 同序）', bad === null, bad || undefined);
+})();
+
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));
 if (failed === 0) {
