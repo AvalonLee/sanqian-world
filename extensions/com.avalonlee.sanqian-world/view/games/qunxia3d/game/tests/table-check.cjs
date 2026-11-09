@@ -1636,6 +1636,145 @@ function buildRomanceSandbox() {
   check('S38 情缘动作清单 ×9 阶段（id 同序）', bad === null, bad || undefined);
 })();
 
+/* ══ S39 P4-E 后院与差事（册313 · E3a）：门槛数值 / 缺口清单 / 差事轮转 ══════
+ * 原版 concubine* 一簇取 state 全局；沙箱里 `hallHouses` 按「立号未迁 ⇒ 分舵/营寨 = 0」
+ * 定为 hermitageJin（新版偏差 ⑤ 的对表前提，逐字写在 romance.js 件头）。 */
+(function S39() {
+  const rom = require(path.join(GAME_DIR, 'systems', 'romance.js'));
+  const ctx = { Math: Object.create(Math), console: console };
+  vm.createContext(ctx);
+  const run = (code) => vm.runInContext(code, ctx, { filename: 'romance3-sandbox.js' });
+  run(slice('const', 'ROMANCE_CAST').replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/g, '') + '\n');
+  run(slice('const', 'ROMANCE_STAGE_WORD') + '\n');
+  run(slice('const', 'SIDE_DUTY_IDS') + '\n');
+  run(slice('const', 'DUTY_WORD') + '\n');
+  ['ensureRomanceState', 'romancePerson', 'concubineFameTier', 'concubineFameWord', 'concubineGoldNeed',
+    'concubineFameNeed', 'hermitageJin', 'concubineHouseOk', 'jealousyBlocking', 'concubineRenownOk',
+    'concubineGaps', 'concubineConclusion', 'nextSideDuty'].forEach((f) => run(slice('function', f) + '\n'));
+  run('function hallHouses() { return hermitageJin(); }\n');
+
+  /* S39a 门槛四件：侠名档 / 档词 / 一房盘缠（含绣帕 ×1.1）/ 侠名需求 */
+  const fameSamples = [0, 23, 24, 47, 48, 95, 96, 139, 140, 184, 300];
+  const goldSamples = [1, 2, 3, 4, 5, 6];
+  let badA = null;
+  const stA = { fame: 0, gold: 0, relicCarry: [], romance: { wifeId: null, people: {}, concubines: [] } };
+  run('state = ' + JSON.stringify(stA) + ';');
+  fameSamples.forEach((n) => {
+    for (const silked of [false, true]) {
+      const stx = JSON.parse(JSON.stringify(stA));
+      stx.fame = n;
+      stx.relicCarry = silked ? ['handkerchief'] : [];
+      run('state = ' + JSON.stringify(stx) + ';');
+      rom.ensureState(stx);
+      const a = [
+        run('concubineFameTier(state.fame)'),
+        run('concubineFameWord(concubineFameTier(state.fame))'),
+        run('concubineGoldNeed(' + goldSamples[0] + ')'),
+        run('concubineFameNeed(1)')
+      ].join('/');
+      const b = [rom.fameTier(n), rom.fameWord(rom.fameTier(n)), rom.goldNeed(stx, 1), rom.fameNeed(1)].join('/');
+      if (a !== b && !badA) badA = 'fame=' + n + ' silk=' + silked + ': ' + a + ' ≠ ' + b;
+      goldSamples.forEach((k) => {
+        const ga = run('concubineGoldNeed(' + k + ')');
+        const gb = rom.goldNeed(stx, k);
+        if (ga !== gb && !badA) badA = 'gold n=' + k + ' silk=' + silked + ': ' + ga + ' ≠ ' + gb;
+      });
+    }
+  });
+  check('S39a 后院门槛四件（侠名档 ×11 / 盘缠 ×6 ×持帕两态）', badA === null, badA || undefined);
+
+  /* S39b 缺口清单 + 结论串：六态（空白 / 达标 / 正妻决裂 / 第三房门派锁 / 房舍不足 / 已在册） */
+  const baseSt = () => ({
+    turn: 9, gold: 0, fame: 0, faction: null, relicCarry: [],
+    estate: { buildings: { winery: 0, herbGarden: 0, smithy: 0, academy: 0 } },
+    romance: { wifeId: null, people: {}, concubines: [], jealousy: null, concubineCount: 0 }
+  });
+  const gapCases = [
+    { gold: 50, fame: 30 },                                                        /* ① 空白 */
+    { gold: 500, fame: 150, pledged: true },                                        /* ② 达标 */
+    { gold: 500, fame: 150, pledged: true, wife: 'huangrong', jealousy: 'open' },   /* ③ 正妻决裂 */
+    { gold: 5000, fame: 999, pledged: true, wife: 'azhu', cones: [{ id: 'huangrong', role: 'ledger' }, { id: 'xiaolongnv', role: 'pharmacy' }] }, /* ④ 第三房门派锁 */
+    { gold: 5000, fame: 999, pledged: true, estate: { buildings: { winery: 0, herbGarden: 1, smithy: 0, academy: 0 } }, cones: [{ id: 'huangrong', role: 'ledger' }, { id: 'xiaolongnv', role: 'pharmacy' }] }, /* ⑤ 房舍不足 */
+    { gold: 500, fame: 150, wife: 'huangrong' }                                     /* ⑥ 她已是正妻 */
+  ];
+  let badB = null;
+  gapCases.forEach((c, i) => {
+    const stx = baseSt();
+    stx.gold = c.gold || 0;
+    stx.fame = c.fame || 0;
+    if (c.estate) stx.estate = c.estate;
+    if (c.wife) stx.romance.wifeId = c.wife;
+    if (c.jealousy) stx.romance.jealousy = c.jealousy;
+    if (c.cones) stx.romance.concubines = c.cones;
+    stx.romance.concubineCount = (c.cones || []).length;
+    stx.romance.people.huangrong = { affection: 6, known: true, pledged: !!c.pledged, act: {} };
+    stx.romance.people.azhu = { affection: 6, known: true, pledged: true, act: {} };
+    run('state = ' + JSON.stringify(stx) + ';');
+    const a = run('JSON.stringify(concubineGaps("huangrong"))') + '‖' + run('concubineConclusion("huangrong")');
+    const s2 = JSON.parse(JSON.stringify(stx));
+    rom.ensureState(s2);
+    const b = JSON.stringify(rom.gaps(s2, 'huangrong')) + '‖' + rom.conclusion(s2, 'huangrong');
+    if (a !== b && !badB) badB = 'case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  check('S39b 后院缺口清单 ×6 态（顺序敏感）+ 结论串', badB === null, badB || undefined);
+
+  /* S39c 差事轮转对表 + 收房/扶正/家变落账不变量 */
+  let badC = null;
+  const dutyCases = [
+    [],
+    [{ id: 'a', role: 'ledger' }],
+    [{ id: 'a', role: 'ledger' }, { id: 'b', role: 'pharmacy' }],
+    [{ id: 'a', role: 'ledger' }, { id: 'b', role: 'pharmacy' }, { id: 'c', role: 'swordroom' }, { id: 'd', role: 'intel' }]
+  ];
+  dutyCases.forEach((cones, i) => {
+    const stx = baseSt();
+    stx.romance.concubines = cones;
+    stx.romance.concubineCount = cones.length;
+    run('state = ' + JSON.stringify(stx) + ';');
+    const a = run('nextSideDuty()');
+    const s2 = JSON.parse(JSON.stringify(stx));
+    rom.ensureState(s2);
+    const b = rom.nextSideDuty(s2);
+    if (a !== b && !badC) badC = 'duty case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  /* 收房：扣一房盘缠 / 入册带职事 / 有正妻时翻「妒忌」 */
+  const st3 = baseSt();
+  st3.gold = 500; st3.fame = 150;
+  rom.ensureState(st3);
+  rom.person(st3, 'huangrong').pledged = true;
+  const t1 = rom.takeConcubine(st3, 'huangrong');
+  const stT2 = baseSt();
+  stT2.gold = 500; stT2.fame = 150;
+  stT2.romance.wifeId = 'azhu';
+  rom.ensureState(stT2);
+  rom.person(stT2, 'huangrong').pledged = true;
+  const t2 = rom.takeConcubine(stT2, 'huangrong');
+  if (!badC && (!t1.ok || st3.gold !== 420 || st3.romance.concubines[0].role !== 'ledger')) {
+    badC = '收房落账: ' + JSON.stringify({ ok: t1.ok, gold: st3.gold, cone: st3.romance.concubines[0] });
+  }
+  if (!badC && (!t2.ok || stT2.romance.jealousy !== 'open' || stT2.romance.crisisWeight !== 1)) {
+    badC = '收房翻妒忌: ' + JSON.stringify({ ok: t2.ok, j: stT2.romance.jealousy, w: stT2.romance.crisisWeight });
+  }
+  /* 扶正：侧室出册入正妻位 */
+  const st4 = baseSt();
+  st4.romance.concubines = [{ id: 'huangrong', role: 'ledger', order: 1 }];
+  st4.romance.concubineCount = 1;
+  rom.ensureState(st4);
+  const pr = rom.promote(st4, 'huangrong');
+  if (!badC && (!pr.ok || st4.romance.wifeId !== 'huangrong' || st4.romance.concubineCount !== 0 || st4.romance.settled !== true)) {
+    badC = '扶正落账: ' + JSON.stringify({ ok: pr.ok, wife: st4.romance.wifeId, n: st4.romance.concubineCount });
+  }
+  /* 家变推迟：到期翻牌记录在 crisisDueTurn（ensureState 到期翻 open 由 S37b 键集面看住） */
+  const st5 = baseSt();
+  st5.turn = 7;
+  rom.ensureState(st5);
+  rom.resolveHousehold(st5, 'delay');
+  if (!badC && (st5.romance.jealousy !== 'delayed' || st5.romance.crisisDueTurn !== 8)) {
+    badC = '家变推迟: ' + JSON.stringify({ j: st5.romance.jealousy, due: st5.romance.crisisDueTurn });
+  }
+  check('S39c 差事轮转 ×4 态 + 收房/扶正/家变落账', badC === null, badC || undefined);
+})();
+
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));
 if (failed === 0) {

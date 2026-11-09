@@ -50,8 +50,8 @@
       openRoadEncounter: function (ev, reg) { ui.panels.openRoadEncounter(ev, reg, function (idx) { systems.tiles.applyRoadEncounterChoice(st, ev, idx, env()); afterAction(); }); },
       /* 册301 P4-C：过旬结算钩子（core/time.advanceTime 调用） */
       settleCourtOnNewTurn: function () { systems.court.settleOnNewTurn(st); },
-      /* 册307 P4-B：配角对决结果回流（combat.finishDuel 调用） */
-      onSideDuelResult: function (s, kind, victory) { systems.side.applyDuelResult(s, kind, victory); }
+      /* 册307 P4-B：配角对决结果回流（combat.finishDuel 调用；册313 补 info.rival） */
+      onSideDuelResult: function (s, kind, victory, info) { systems.side.applyDuelResult(s, kind, victory, info); }
     }, extra || {});
   }
 

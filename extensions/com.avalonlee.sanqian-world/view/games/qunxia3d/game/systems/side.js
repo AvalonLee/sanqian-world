@@ -74,8 +74,9 @@
   function markBountyCleared(st, id) { if (!id) return; ensureOutcome(st).bountyCleared[id] = true; addBias(st, ['court', 'chivalry']); }
 
   /* 册307：对决结果回流（combat.finishDuel → env.onSideDuelResult → 此处）
-   * kind = sideCastResult.kind（mu / tian-repel / tian-recruit / feng / wang） */
-  function applyDuelResult(st, kind, victory) {
+   * kind = sideCastResult.kind（mu / tian-repel / tian-recruit / feng / wang /
+   * eyu / yun / hebi / guofu / yelv / revenge）；revenge 需要 info.rival（册313）。 */
+  function applyDuelResult(st, kind, victory, info) {
     if (!st || !kind) return;
     var f = flags(st);
     if (kind === 'mu') {
@@ -102,6 +103,14 @@
       f.guofu = victory ? 'beaten' : (f.guofu || 'met');
     } else if (kind === 'yelv') {
       f.yelv = victory ? 'beaten' : (f.yelv || 'met');
+    }
+    /* 册313 E3a：情缘寻仇（原 :12717）——胜一场把该仇人记的 heat 消一层，负不追账 */
+    else if (kind === 'revenge') {
+      var rival = info && info.rival;
+      var o = ensureOutcome(st);
+      if (victory && rival && o.revengeHeat && o.revengeHeat[rival]) {
+        o.revengeHeat[rival] = Math.max(0, o.revengeHeat[rival] - 1);
+      }
     }
   }
 
