@@ -1539,7 +1539,7 @@ function buildSideSandbox() {
   /* S36d 动作清单（册305 起已接 10 人）：id 与顺序逐人对表 */
   sb.run('state = ' + JSON.stringify(states[0]) + ';');
   const ids10 = ['ping4', 'zheng_e', 'xiaoer', 'laodenuo', 'cheng', 'wangui', 'zhike', 'shuang', 'qu', 'yilin',
-    'feng', 'tang', 'tian', 'mu', 'lu'];
+    'feng', 'tang', 'tian', 'mu', 'lu', 'yue', 'zhuli', 'eyu', 'yun'];
   let badList = null;
   ids10.forEach((id) => {
     const a = sb.run('JSON.stringify(sideActList(SIDE_BY_ID[' + JSON.stringify(id) + ']).map(function(x){return x.id}))');

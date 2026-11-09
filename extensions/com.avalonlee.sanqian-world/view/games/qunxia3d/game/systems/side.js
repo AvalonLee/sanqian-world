@@ -36,7 +36,7 @@
 
   var BOOLS = ['zhuangkeIntro', 'romanceEligible', 'romanceDebt', 'giftedScarf', 'escortDone', 'tangTurned',
     'muScroll', 'shaolinRegistered', 'shuangFollow', 'shuangSettled', 'shuangHeart', 'zhengErrand', 'xiaoerTab',
-    'quTalk', 'yiEscort', 'yiCalm'];
+    'quTalk', 'yiEscort', 'yiCalm', 'yueHeart', 'hebiFake', 'yarenHired', 'yelvTalk'];
 
   function ensureOutcome(st) {
     var host = st;
@@ -90,6 +90,12 @@
       if (victory) markBountyCleared(st, 'feng');
     } else if (kind === 'wang') {
       f.wangGrudge = victory ? 'beaten' : (f.wangGrudge || 'grudge');
+    } else if (kind === 'eyu') {
+      f.eyu = victory ? 'down' : 'talked';
+      if (victory) markClawBroken(st, 'eyu');
+    } else if (kind === 'yun') {
+      f.yun = victory ? 'down' : 'faced';
+      if (victory) markBountyCleared(st, 'yun');
     }
   }
 
@@ -264,6 +270,35 @@
         { id: 'lu_bully', label: '委托除霸', primary: true, hint: '只给一片地方' },
         { id: 'lu_intro', label: '引荐', hint: '认一认这船上的人' },
         { id: 'lu_stay', label: '借宿', hint: f.luStay === st.turn ? '这旬已歇过' : '在舟上歇一晚', disabled: f.luStay === st.turn }
+      ];
+    }
+    /* ── B3a（册308）：岳灵珊 / 朱子柳 / 南海鳄神 / 云中鹤 ───────────────── */
+    if (cast.id === 'yue') {
+      return [
+        { id: 'yue_duel', label: '切磋', primary: true, hint: '比剑认真' },
+        { id: 'yue_talk', label: '门派闲话', hint: '只谈这座山' },
+        { id: 'yue_heart', label: '心事', hint: f.yueHeart ? '心事听过了' : '另说，不夹在剑里', disabled: !!f.yueHeart }
+      ];
+    }
+    if (cast.id === 'zhuli') {
+      return [
+        { id: 'zhu_edict', label: '译诏令', primary: true, hint: '把官话译成一句' },
+        { id: 'zhu_heal', label: '医伤引荐', hint: '不看战力' },
+        { id: 'zhu_dali', label: '谈大理', hint: '只谈眼前这一程' }
+      ];
+    }
+    if (cast.id === 'eyu') {
+      return [
+        { id: 'eyu_talk', label: '讲理', primary: true, hint: '他偶尔肯听' },
+        { id: 'eyu_fight', label: '开战', hint: '换皮一战' },
+        { id: 'eyu_slip', label: '绕路', hint: f.eyu === 'slipped' ? '你已绕开' : '可以不打', disabled: f.eyu === 'slipped' || f.eyu === 'down' }
+      ];
+    }
+    if (cast.id === 'yun') {
+      return [
+        { id: 'yun_face', label: '对峙', primary: true, hint: '话先说完' },
+        { id: 'yun_hunt', label: '接赏追杀', hint: '官面通缉，换皮一战' },
+        { id: 'yun_flee', label: '逃离', hint: f.yun === 'fled' ? '你已离开' : '可以逃', disabled: f.yun === 'fled' || f.yun === 'down' }
       ];
     }
     return [];
@@ -549,6 +584,65 @@
       f.luStay = st.turn; st.hp = Math.min(st.maxHp, st.hp + 12);
       L('你在陆乘风的舟上借宿了一晚。');
       out.toast = '借宿一夜，气血 +12。'; out.tone = 'emerald';
+    } else if (actionId === 'yue_duel') {
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      e.startDuel(st, {
+        enemyName: '岳灵珊', enemyTitle: '华山 · 比剑', enemyStance: 'qiao',
+        enemyPower: 48, enemyHp: 100, contextTitle: '华山门下 · 与岳灵珊切磋',
+        rewardGold: 4, rewardFame: 3, rewardExp: 12, sideCastResult: { kind: 'yue' }
+      });
+      return { ok: true, log: '', toast: '比剑开始。', tone: 'amber' };
+    } else if (actionId === 'yue_talk') {
+      L('岳灵珊说了这座山的门派闲话，没有提外城。');
+      out.toast = '闲话停在这座山上。';
+    } else if (actionId === 'yue_heart') {
+      f.yueHeart = true; addBias(st, ['qingzhai']);
+      L('岳灵珊另说了一句心事。不成亲。');
+      out.toast = '心事听过了。'; out.tone = 'emerald';
+    } else if (actionId === 'zhu_edict') {
+      var courtOpen = !!(st.court && (st.court.rumors || []).some(function (r) { return r.id === 'edict'; }));
+      addBias(st, ['court']);
+      var ztext = courtOpen ? '朱子柳把诏令译成一句：应则功名，拒则通缉。没有人名和格子。' : '眼下没有未决诏令。朱先生只说大理的规矩在纸上。';
+      L('【译诏】' + ztext);
+      out.toast = ztext;
+    } else if (actionId === 'zhu_heal') {
+      st.hp = Math.min(st.maxHp, st.hp + 16);
+      L('朱子柳引你看了伤。不看战力。');
+      out.toast = '伤势缓了，气血 +16。'; out.tone = 'emerald';
+    } else if (actionId === 'zhu_dali') {
+      L('朱子柳谈了大理这一程的规矩，不指别人的行踪。');
+      out.toast = '大理的话停在这一程。';
+    } else if (actionId === 'eyu_talk') {
+      f.eyu = f.eyu || 'talked'; addBias(st, ['chivalry']);
+      L('南海鳄神讲了一句理。凶名还在南方水路，没有渡口编号。');
+      out.toast = '他肯讲这一句。';
+    } else if (actionId === 'eyu_fight') {
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      e.startDuel(st, {
+        enemyName: '南海鳄神', enemyTitle: '南方水路 · 凶名', enemyStance: 'gang',
+        enemyPower: 72, enemyHp: 150, contextTitle: '爪牙战 · 南海鳄神',
+        rewardGold: 18, rewardFame: 8, rewardExp: 16, sideCastResult: { kind: 'eyu' }
+      });
+      return { ok: true, log: '', toast: '水路上一场恶战。', tone: 'amber' };
+    } else if (actionId === 'eyu_slip') {
+      f.eyu = 'slipped'; L('你绕开了南海鳄神。水路这一遭可以不打。');
+      out.toast = '绕开了。';
+    } else if (actionId === 'yun_face') {
+      f.yun = f.yun || 'faced'; L('你和云中鹤对峙。他的恶名在某州野路，没有第几程。');
+      out.toast = '对峙过了。';
+    } else if (actionId === 'yun_hunt') {
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      f.yun = f.yun || 'hunted';
+      if (st.court && st.court.flags) st.court.flags.bountyAccepted = 'yun';
+      e.startDuel(st, {
+        enemyName: '云中鹤', enemyTitle: '某州野路 · 官面通缉', enemyStance: 'qiao',
+        enemyPower: 66, enemyHp: 130, contextTitle: '爪牙战 · 云中鹤',
+        rewardGold: 20, rewardFame: 8, rewardExp: 16, sideCastResult: { kind: 'yun' }
+      });
+      return { ok: true, log: '', toast: '追杀开始。', tone: 'amber' };
+    } else if (actionId === 'yun_flee') {
+      f.yun = 'fled'; L('你逃离了云中鹤。野路可以不打。');
+      out.toast = '你离开了。';
     } else {
       return { ok: false, why: '这支还没接（B2/B3）' };
     }
