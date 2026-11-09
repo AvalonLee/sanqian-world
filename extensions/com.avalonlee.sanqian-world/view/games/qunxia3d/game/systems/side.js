@@ -36,7 +36,7 @@
 
   var BOOLS = ['zhuangkeIntro', 'romanceEligible', 'romanceDebt', 'giftedScarf', 'escortDone', 'tangTurned',
     'muScroll', 'shaolinRegistered', 'shuangFollow', 'shuangSettled', 'shuangHeart', 'zhengErrand', 'xiaoerTab',
-    'quTalk', 'yiEscort', 'yiCalm', 'yueHeart', 'hebiFake', 'yarenHired', 'yelvTalk'];
+    'quTalk', 'yiEscort', 'yiCalm', 'yueHeart', 'hebiFake', 'yarenHired', 'yelvTalk', 'yelvYan'];
 
   function ensureOutcome(st) {
     var host = st;
@@ -96,6 +96,12 @@
     } else if (kind === 'yun') {
       f.yun = victory ? 'down' : 'faced';
       if (victory) markBountyCleared(st, 'yun');
+    } else if (kind === 'hebi') {
+      f.hebi = victory ? 'down' : 'checked';
+    } else if (kind === 'guofu') {
+      f.guofu = victory ? 'beaten' : (f.guofu || 'met');
+    } else if (kind === 'yelv') {
+      f.yelv = victory ? 'beaten' : (f.yelv || 'met');
     }
   }
 
@@ -299,6 +305,51 @@
         { id: 'yun_face', label: '对峙', primary: true, hint: '话先说完' },
         { id: 'yun_hunt', label: '接赏追杀', hint: '官面通缉，换皮一战' },
         { id: 'yun_flee', label: '逃离', hint: f.yun === 'fled' ? '你已离开' : '可以逃', disabled: f.yun === 'fled' || f.yun === 'down' }
+      ];
+    }
+    /* ── B3b（册309）：行营 / 武当 / 牙行 / 襄阳 / 北地 ─────────────────── */
+    if (cast.id === 'hebi') {
+      return [
+        { id: 'he_check', label: '盘查', primary: true, hint: '看你在不在名册' },
+        { id: 'he_fake', label: '假任务', hint: f.hebiFake ? '假差事接过了' : '文人皮底下的差事', disabled: !!f.hebiFake },
+        { id: 'he_force', label: '硬闯', hint: '不必接他的差' }
+      ];
+    }
+    if (cast.id === 'yin') {
+      return [
+        { id: 'yin_sword', label: '请教剑形', primary: true, hint: '武当这一路' },
+        { id: 'yin_tea', label: '茶叙', hint: f.yinTea === st.turn ? '这旬茶已喝过' : '礼数一盏', disabled: f.yinTea === st.turn },
+        { id: 'yin_daily', label: '门派日常', hint: '晨课与药园，不提外城' }
+      ];
+    }
+    if (cast.id === 'yaren') {
+      return [
+        { id: 'ya_buy', label: '买情报', primary: true, hint: '8 文 · 只到某州某路', disabled: st.gold < 8, why: '纹银不足' },
+        { id: 'ya_wash', label: '洗通缉线索', hint: '指你去官差，不标格子' },
+        { id: 'ya_hire', label: '雇人', hint: f.yarenHired ? '这旬已雇过' : '6 文', disabled: !!f.yarenHired || st.gold < 6, why: st.gold < 6 ? '纹银不足' : '' }
+      ];
+    }
+    if (cast.id === 'guofu') {
+      var letterDone = f.letter === 'delivered' || f.letter === 'late' || f.zhuangkeIntro;
+      var rivalry = !!(st.outcomeFlags && st.outcomeFlags.rivalryOn && st.outcomeFlags.rivalryOn.guofu);
+      if (letterDone) {
+        return [
+          { id: 'guo_feud', label: '结怨', primary: !rivalry, hint: '家书送到后的嘴快' },
+          { id: 'guo_peace', label: '和解', primary: rivalry, hint: '把梁子按下' },
+          { id: 'guo_chat', label: '闲话', hint: '只谈这座城' }
+        ];
+      }
+      return [
+        { id: 'guo_duel', label: '切磋', primary: true, hint: '点到为止' },
+        { id: 'guo_feud', label: '结怨', hint: '可记下仇' },
+        { id: 'guo_peace', label: '和解', hint: '把话圆回去' }
+      ];
+    }
+    if (cast.id === 'yelv') {
+      return [
+        { id: 'yelv_border', label: '边报议事', primary: true, hint: '动一动边谊' },
+        { id: 'yelv_duel', label: '比武', hint: '点到为止' },
+        { id: 'yelv_yan', label: '谈燕云', hint: '只谈风紧不紧' }
       ];
     }
     return [];
@@ -643,6 +694,105 @@
     } else if (actionId === 'yun_flee') {
       f.yun = 'fled'; L('你逃离了云中鹤。野路可以不打。');
       out.toast = '你离开了。';
+    } else if (actionId === 'he_check') {
+      var word = st.court ? ['无缉', '风闻', '犯官差', '海捕', '重缉', '通令'][Math.max(0, Math.min(5, st.court.wanted || 0))] : '无缉';
+      L('鹤笔翁盘查你：名册上是「' + word + '」。没有报出你在哪一城犯的事。');
+      out.toast = '盘查完了。档词是' + word + '。';
+    } else if (actionId === 'he_fake') {
+      f.hebiFake = true; addBias(st, ['court', 'chousha']);
+      L('【假任务】鹤笔翁塞给你一件行营差事，帖上没有落点。');
+      out.toast = '假任务接了。帖上没有格子。';
+    } else if (actionId === 'he_force') {
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      e.startDuel(st, {
+        enemyName: '鹤笔翁', enemyTitle: '行营外 · 硬闯', enemyStance: 'qiao',
+        enemyPower: 64, enemyHp: 128, contextTitle: '行营外 · 硬闯鹤笔翁',
+        rewardGold: 10, rewardFame: 4, rewardExp: 14, sideCastResult: { kind: 'hebi' }
+      });
+      return { ok: true, log: '', toast: '硬闯行营。', tone: 'amber' };
+    } else if (actionId === 'yin_sword') {
+      st.exp += 10; addBias(st, ['jianyi']);
+      if (e.checkRealmPromotion) e.checkRealmPromotion(st, e);
+      L('殷梨亭把武当剑形拆给你看。');
+      out.toast = '剑形入眼，修为 +10。'; out.tone = 'emerald';
+    } else if (actionId === 'yin_tea') {
+      f.yinTea = st.turn; st.hp = Math.min(st.maxHp, st.hp + 8);
+      L('你和殷梨亭喝了一盏茶。');
+      out.toast = '茶叙完了。'; out.tone = 'emerald';
+    } else if (actionId === 'yin_daily') {
+      L('殷梨亭说了武当的晨课和药园，没有外城的人。');
+      out.toast = '日常停在这座山上。';
+    } else if (actionId === 'ya_buy') {
+      if (st.gold < 8) return { ok: false, why: '纹银不足' };
+      st.gold -= 8;
+      var ygrades = ['reliable', 'stale', 'conflict'];
+      var ygrade = ygrades[Math.floor((e.rand || Math.random)() * 3)];
+      var ytext = ygrade === 'conflict' ? '一说恶名在某州野路，一说在南方水路，两头对不上，也没有格子。'
+        : (ygrade === 'stale' ? '旬前牙人说某路有恶名，这话多半旧了。'
+          : '牙人只卖到某州、某路。再要格子，他摇头。');
+      st.rumorReliability = ygrade;
+      st.pendingRumor = { grade: ygrade, text: ytext, aboutId: 'yaren' };
+      L('【牙人】' + ytext);
+      out.toast = '情报买下了，仍是一片地方。';
+    } else if (actionId === 'ya_wash') {
+      if (!st.court || (st.court.wanted || 0) < 1) { L('名册上还没有你。'); out.toast = '名册上还没有你。'; }
+      else {
+        st.court.flags = st.court.flags || {};
+        st.court.flags.washIntent = true;
+        L('牙人说洗通缉要找官差销，不告诉你值房在第几格。');
+        out.toast = '线索只有一句：去官差抽屉。'; out.tone = 'emerald';
+      }
+    } else if (actionId === 'ya_hire') {
+      if (st.gold < 6 || f.yarenHired) return { ok: false, why: st.gold < 6 ? '纹银不足' : '这旬已雇过' };
+      st.gold -= 6; f.yarenHired = true; st.fame += 1;
+      L('你在牙行雇了个人跑腿。他不去外城点名。');
+      out.toast = '人雇下了。'; out.tone = 'emerald';
+    } else if (actionId === 'guo_duel') {
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      e.startDuel(st, {
+        enemyName: '郭芙', enemyTitle: '襄阳 · 嘴快手快', enemyStance: 'gang',
+        enemyPower: 52, enemyHp: 110, contextTitle: '襄阳庄上 · 与郭芙切磋',
+        rewardGold: 6, rewardFame: 3, rewardExp: 12, sideCastResult: { kind: 'guofu' }
+      });
+      return { ok: true, log: '', toast: '切磋开始。', tone: 'amber' };
+    } else if (actionId === 'guo_feud') {
+      markRivalry(st, 'guofu'); f.guofu = 'feud';
+      L('【襄阳家书】郭芙和你结了怨。仇记下了，没有把人钉到某一门。');
+      out.toast = '结怨了。';
+    } else if (actionId === 'guo_peace') {
+      markFeudSettled(st, 'guofu'); f.guofu = 'peace'; st.fame += 3;
+      L('【襄阳家书】你和郭芙把梁子按下。仇杀的权重松了一点。');
+      out.toast = '和解了。'; out.tone = 'emerald';
+    } else if (actionId === 'guo_chat') {
+      L('郭芙闲话只停在襄阳这座城，不说别人下一旬去哪。');
+      out.toast = '闲话停在这座城。';
+    } else if (actionId === 'yelv_border') {
+      if (st.court) {
+        st.court.border = Math.max(-50, Math.min(50, (st.court.border || 0) + 10));
+        st.court.flags = st.court.flags || {};
+        st.court.flags.borderHook = true;
+      }
+      f.yelvTalk = true;
+      noteRelic(st, '燕云腰牌', 'yanyun_token');
+      grantRelic(st, 'yanyun_token');
+      addBias(st, ['court', 'chivalry']);
+      var btext = '耶律齐说边关一带还有商胡滞留。燕云的风紧了些，没有使者的落脚。';
+      st.pendingRumor = { grade: 'reliable', text: btext, aboutId: 'yelv' };
+      L('【边谊】' + btext);
+      out.toast = '边谊暖了一截。'; out.tone = 'emerald';
+    } else if (actionId === 'yelv_duel') {
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      e.startDuel(st, {
+        enemyName: '耶律齐', enemyTitle: '北地 · 比武', enemyStance: 'gang',
+        enemyPower: 70, enemyHp: 140, contextTitle: '襄阳北地 · 与耶律齐比武',
+        rewardGold: 10, rewardFame: 6, rewardExp: 16, sideCastResult: { kind: 'yelv' }
+      });
+      return { ok: true, log: '', toast: '比武开始。', tone: 'amber' };
+    } else if (actionId === 'yelv_yan') {
+      if (st.court) st.court.yanyun = Math.max(st.court.yanyun || 0, 1);
+      f.yelvYan = true; addBias(st, ['court']);
+      L('耶律齐谈了燕云：风已紧，人却不在某一座关上。');
+      out.toast = '燕云这一档，算是紧了。';
     } else {
       return { ok: false, why: '这支还没接（B2/B3）' };
     }
