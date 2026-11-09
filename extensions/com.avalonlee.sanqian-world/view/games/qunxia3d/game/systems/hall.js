@@ -96,6 +96,7 @@
     return 0;
   }
   function fameWord(st) { return FAME_WORDS[fameRank(st)]; }
+  function jinWord(n) { return n >= 3 ? '三进' : n === 2 ? '二进' : '一进'; }
   function cap(st) { return 3 + houses(st) + fameRank(st); }
   function disciples(st) { return hallState(st).disciples; }
   function member(st, id) {
@@ -199,6 +200,217 @@
     };
   }
 
+  /* ── F2（册317）：门派经营 —— 分舵 / 落草 / 宗旨 / 每旬结算 / 破产 / 通缉 / 抄家 / 官宣 ── */
+  function hallHostilityHigh(st) {
+    var court = st.court;
+    if (!court) return false;
+    return (court.wanted || 0) >= 3 || (court.merit || 0) <= -30;
+  }
+  /* 同城人望（原 cityFriendly）：有约/两个市井之交，或侠名 ≥24 或 1 个市井之交 */
+  function cityFriendly(st, regionId) {
+    if (!regionId || st.currentRegion !== regionId) return false;
+    if (foundingRenownOk(st)) return true;
+    if ((st.fame || 0) >= 24) return true;
+    return jobFriendCount(st) >= 1;
+  }
+  function branchGaps(st, regionId) {
+    var f = hallState(st);
+    var gaps = [];
+    if (!f.founded) gaps.push('还没立号');
+    if (!cityFriendly(st, regionId)) gaps.push('这座城的人望还不够');
+    if ((st.gold || 0) < 80) gaps.push('尚缺盘缠' + (80 - (st.gold || 0)) + '两');
+    var here = (f.branches || []).filter(function (b) { return b.regionId === regionId && !b.sealed; })[0];
+    if (here) gaps.push('这座城已有一分舵');
+    return gaps;
+  }
+  /* 设分舵（原 branchPick 0）：−80 两，一城一处；已封的原地解封 */
+  function openBranch(st, regionId) {
+    var f = hallState(st);
+    var gaps = branchGaps(st, regionId);
+    if (gaps.length) return { ok: false, why: gaps[0], gaps: gaps };
+    st.gold -= 80;
+    var sealed = (f.branches || []).filter(function (b) { return b.regionId === regionId && b.sealed; })[0];
+    if (sealed) sealed.sealed = false;
+    else f.branches.push({ regionId: regionId, sealed: false });
+    var text = '江湖杂报：' + (f.name || '本门') + '多了一处房舍。';
+    st.pendingRumor = { grade: 'reliable', text: text, aboutId: 'branch' };
+    return { ok: true, toast: '分舵开设了。房舍加了一处。', tone: 'emerald' };
+  }
+  /* 撤资（原 branchPick 2）：撤一处（含被封的），退 30 两 */
+  function closeBranch(st, regionId) {
+    var f = hallState(st);
+    var idx = -1;
+    (f.branches || []).forEach(function (b, i) { if (b.regionId === regionId) idx = i; });
+    if (idx < 0) return { ok: false, why: '这里还没有分舵。' };
+    f.branches.splice(idx, 1);
+    st.gold = (st.gold || 0) + 30;
+    return { ok: true, toast: '分舵撤了，退回一些盘缠。', tone: 'amber' };
+  }
+  /* 落草（原 hallRaiseBandit）：营寨 +1、功名 −8、边谊 −6（`found` 的落草支复用同一后果） */
+  function raiseBandit(st) {
+    var f = hallState(st);
+    if (f.bandit) return { ok: false, why: '山旗已经扯上了。' };
+    if (!banditPathOpen(st)) return { ok: false, why: '山寨路线未开。' };
+    f.bandit = true;
+    if (!(f.camps || []).length) f.camps.push({ id: 'wild', name: '野路山寨' });
+    if (st.court) {
+      st.court.merit = Math.max(-100, (st.court.merit || 0) - 8);
+      st.court.border = Math.max(-50, (st.court.border || 0) - 6);
+    }
+    var text = '江湖杂报：' + (f.name || '本门') + '扯了山旗。';
+    st.pendingRumor = { grade: 'reliable', text: text, aboutId: 'bandit' };
+    return { ok: true, toast: '山旗扯上了。敌对涨了一截。', tone: 'amber' };
+  }
+  /* 宗旨（原 hallSetDoctrine）：三选，同旬只能改一次 */
+  var DOCTRINE = { xia: '行侠', trade: '中立营生', profit: '唯利' };
+  function setDoctrine(st, id) {
+    var f = hallState(st);
+    if (!DOCTRINE[id]) return { ok: false, why: '没有这一门规矩。' };
+    if (f.doctrineTurn === (st.turn || 1) && f.doctrineId) return { ok: false, why: '这旬已经改过规矩，不能连改。' };
+    if (f.doctrineId === id) return { ok: false, why: '眼下就是这个宗旨。' };
+    f.doctrineId = id;
+    f.doctrine = DOCTRINE[id];
+    f.doctrineTurn = st.turn || 1;
+    return { ok: true, toast: '规矩改成' + f.doctrine + '。', tone: 'emerald' };
+  }
+
+  /* 每旬结算（原 settleHallOnNewTurn）：敌对封舵 → 入/饷/余 → 声望档 → 破产 → 通缉两档 */
+  function settleOnNewTurn(st) {
+    var f = hallState(st);
+    var out = { ran: false, sealed: 0, rankChanged: false, collapsed: false, wanted: false, seized: false, income: 0, payroll: 0, ledger: 0 };
+    if (!f.founded || f.dissolved) return out;
+    out.ran = true;
+    if (hallHostilityHigh(st)) {
+      (f.branches || []).forEach(function (b) { if (!b.sealed) { b.sealed = true; out.sealed += 1; } });
+      if (out.sealed) {
+        st.pendingRumor = { grade: 'conflict', text: '江湖杂报：分舵被封，房舍先不算那一处。', aboutId: 'seal' };
+      }
+    }
+    var border = (st.court && st.court.border) || 0;
+    var yanyun = (st.court && st.court.yanyun) || 0;
+    var income = openBranches(st) * 12 + camps(st) * 22 + (estateJin(st) >= 2 ? 6 : 0);
+    if (border >= 10) income += 4;
+    if (yanyun >= 2) income = Math.max(0, income - 4);
+    var payroll = (f.disciples || []).length * 4;
+    var ledger = income - payroll;
+    out.income = income;
+    out.payroll = payroll;
+    out.ledger = ledger;
+    f.treasury = (f.treasury || 0) + ledger;
+    f.lastLedger = '本旬入' + income + '，饷' + payroll + '，余' + f.treasury + '。';
+    if ((f.disciples || []).length && f.eventTurn !== st.turn) {
+      f.eventTurn = st.turn;
+      var notes = ['有人请了半日假。', '有人把账送上来。', '有人只说了一句闲话。'];
+      f.lastEvent = notes[Math.abs(st.turn) % notes.length];
+    }
+    var rank = fameRank(st);
+    if (rank !== f.fameRank) {
+      f.fameRank = rank;
+      out.rankChanged = true;
+      st.pendingRumor = { grade: 'reliable', text: '江湖杂报：' + (f.name || '本门') + '声望到了' + fameWord(st) + '。', aboutId: 'fame-rank' };
+    }
+    if (f.treasury <= 0) {
+      f.brokeStreak = (f.brokeStreak || 0) + 1;
+      if (f.brokeStreak >= 2 && !f.collapseShown) { f.collapseShown = true; out.collapsed = true; }
+    } else {
+      f.brokeStreak = 0;
+      f.collapseShown = false;
+    }
+    var wanted = (st.court && st.court.wanted) || 0;
+    if (wanted >= 4 && !f.seizureShown) {
+      f.seized = true;
+      f.seizureShown = true;
+      out.seized = true;
+    } else if (wanted >= 3 && !f.bandit && !f.wantedShown) {
+      f.wantedShown = true;
+      out.wanted = true;
+    }
+    return out;
+  }
+
+  /* 破产三选（原 collapsePick）：垫 30 / 遣散一人 / 散伙 */
+  function propUp(st) {
+    if ((st.gold || 0) < 30) return { ok: false, why: '尚缺盘缠' + (30 - (st.gold || 0)) + '两' };
+    var f = hallState(st);
+    st.gold -= 30;
+    f.treasury = (f.treasury || 0) + 30;
+    f.brokeStreak = 0;
+    return { ok: true, toast: '垫进三十两。饷银回了一截。', tone: 'emerald' };
+  }
+  function dismissOne(st) {
+    var f = hallState(st);
+    var person = (f.disciples || []).pop();
+    f.brokeStreak = 0;
+    if (!person) return { ok: false, why: '没有可遣的门人。' };
+    return { ok: true, toast: person.name + '离开了。拳脚不加，气血不加。', tone: 'amber' };
+  }
+  function dissolveHall(st) {
+    var f = hallState(st);
+    var s = sideMod();
+    if (s && s.grantRelic) s.grantRelic(st, 'flag_corner');
+    f.dissolved = true;
+    f.disciples = [];
+    f.branches = [];
+    f.camps = [];
+    f.brokeStreak = 0;
+    return { ok: true, toast: '散伙了。人去楼空。', tone: 'amber' };
+  }
+
+  /* 通缉三选（原 wantedHallPick）：洗白 −40 两并解封一处 / 落草 / 躲（饷 −4） */
+  function washWanted(st) {
+    var f = hallState(st);
+    if ((st.gold || 0) < 40) return { ok: false, why: '尚缺盘缠' + (40 - (st.gold || 0)) + '两' };
+    st.gold -= 40;
+    if (st.court) st.court.wanted = Math.max(0, (st.court.wanted || 0) - 1);
+    var sealed = (f.branches || []).filter(function (b) { return b.sealed; })[0];
+    if (sealed) sealed.sealed = false;
+    return { ok: true, toast: '洗去一档。被封的分舵松开一处。', tone: 'emerald' };
+  }
+  function hideWanted(st) {
+    var f = hallState(st);
+    f.treasury = (f.treasury || 0) - 4;
+    return { ok: true, toast: '先躲过这一旬。饷银又薄了一点。', tone: 'amber' };
+  }
+
+  /* 抄家三选（原 seizurePick）：抗 / 散财求情 / 逃（逃不清 seized） */
+  function resistSeizure(st) {
+    var f = hallState(st);
+    if (st.court) st.court.merit = Math.max(-100, (st.court.merit || 0) - 6);
+    st.fame = (st.fame || 0) + 2;
+    f.seized = false;
+    return { ok: true, toast: '抗过了。功名再沉一点，侠名厚一点。', tone: 'amber' };
+  }
+  function paySeizure(st) {
+    var f = hallState(st);
+    if ((st.gold || 0) < 30) return { ok: false, why: '尚缺盘缠' + (30 - (st.gold || 0)) + '两' };
+    st.gold -= 30;
+    f.treasury = (f.treasury || 0) + 10;
+    f.seized = false;
+    return { ok: true, toast: '散了财。房舍的扣先松开。', tone: 'emerald' };
+  }
+  function fleeSeizure(st) {
+    var f = hallState(st);
+    if (f.disciples.length) f.disciples.pop();
+    return { ok: true, toast: '逃过这一遭。人少了一个。', tone: 'amber' };
+  }
+
+  /* 邸报 / 官宣门派（原 openHallGazette + gazettePick 1）：功名 ≥40 且应诏 ≥1 */
+  function canOfficial(st) {
+    var f = hallState(st);
+    var court = st.court || {};
+    var answered = (court.flags && court.flags.answered) || 0;
+    return !!f.founded && !f.bandit && !f.official && (court.merit || 0) >= 40 && answered >= 1;
+  }
+  function goOfficial(st) {
+    var f = hallState(st);
+    if (!canOfficial(st)) return { ok: false, why: '功名或应诏还不够，也不能从山寨里官宣。' };
+    f.official = true;
+    if (st.court) st.court.merit = Math.max(-100, (st.court.merit || 0) - 10);
+    var text = '江湖杂报：' + (f.name || '本门') + '得了官宣。';
+    st.pendingRumor = { grade: 'reliable', text: text, aboutId: 'official' };
+    return { ok: true, toast: '官宣了。功名折了一截。', tone: 'emerald' };
+  }
+
   /* 概览页第三行（原 hallWifeLine；主母位 + 侧室数） */
   function wifeLine(st) {
     var wifeId = st.romance && st.romance.wifeId;
@@ -218,6 +430,7 @@
     houses: houses,
     fameRank: fameRank,
     fameWord: fameWord,
+    jinWord: jinWord,
     cap: cap,
     disciples: disciples,
     member: member,
@@ -234,6 +447,26 @@
     pickName: pickName,
     found: found,
     wifeLine: wifeLine,
-    hasBadge: hasBadge
+    hasBadge: hasBadge,
+    /* F2：经营（册317） */
+    hallHostilityHigh: hallHostilityHigh,
+    cityFriendly: cityFriendly,
+    branchGaps: branchGaps,
+    openBranch: openBranch,
+    closeBranch: closeBranch,
+    raiseBandit: raiseBandit,
+    setDoctrine: setDoctrine,
+    doctrineWord: function (id) { return DOCTRINE[id] || '行侠'; },
+    settleOnNewTurn: settleOnNewTurn,
+    propUp: propUp,
+    dismissOne: dismissOne,
+    dissolveHall: dissolveHall,
+    washWanted: washWanted,
+    hideWanted: hideWanted,
+    resistSeizure: resistSeizure,
+    paySeizure: paySeizure,
+    fleeSeizure: fleeSeizure,
+    canOfficial: canOfficial,
+    goOfficial: goOfficial
   };
 });

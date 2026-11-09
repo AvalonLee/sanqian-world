@@ -1904,6 +1904,140 @@ function buildRomanceSandbox() {
   check('S40c 挂匾（命名去空白/截断/抽签 + −200 两 + 残片 + 风声 + 落草支 + 缺口拦截）', badC === null, badC || undefined);
 })();
 
+/* ══ S41 P4-F 门派经营（册317 · F2）：每旬结算 + 分舵/宗旨/落草 + 危机四族 ══ */
+(function S41() {
+  const hall = require(path.join(GAME_DIR, 'systems', 'hall.js'));
+  const ctx = { Math: Object.create(Math), console: console };
+  vm.createContext(ctx);
+  const run = (code) => vm.runInContext(code, ctx, { filename: 'hall2-sandbox.js' });
+  run(slice('const', 'ROMANCE_CAST').replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/g, '') + '\n');
+  run(slice('const', 'ROMANCE_STAGE_WORD') + '\n');
+  ['ensureRomanceState', 'romancePerson', 'romanceStage', 'ensureHallState', 'hallState', 'hermitageJin',
+    'hallOpenBranches', 'hallCamps', 'hallHouses', 'hallFameRank', 'hallFameWord', 'hallCap', 'hallDisciples',
+    'hallHostilityHigh', 'settleHallOnNewTurn', 'banditPathOpen', 'cityFriendly', 'foundingRenownOk',
+    'foundingHasPledge', 'jobFriendCount', 'branchPick', 'hallSetDoctrine', 'hallRaiseBandit',
+    'collapsePick', 'seizurePick', 'wantedHallPick', 'gazettePick'].forEach((f) => run(slice('function', f) + '\n'));
+  /* 表现层/存档侧桩（原版函数尾自存 + 弹窗；只记调用次数，供旗标对表） */
+  run([
+    'var COLLAPSE = 0, SEIZED = 0, WANTED = 0, LAST_RUMOR = null;',
+    'function showToast() {} function saveGame() {} function renderAll() {} function closeEventModal() {}',
+    'function renderHallDrawer() {} var hallDrawerPage = false; function grantRelic() {}',
+    'function calcPlayerStats() { return { atkBonus: 0 }; }',
+    'function presentStreetRumor(x) { LAST_RUMOR = x; }',
+    'function openHallCollapse() { COLLAPSE += 1; }',
+    'function openSeizureModal() { SEIZED += 1; }',
+    'function openWantedHallModal() { WANTED += 1; }'
+  ].join('\n') + '\n');
+
+  const mk = (o) => {
+    const st = Object.assign({
+      turn: 9, gold: 200, fame: 24, maxHp: 100, streetFavor: {}, relicCarry: [], currentRegion: 'luoyang',
+      court: { wanted: 0, merit: 0, border: 0, yanyun: 0, flags: {} },
+      estate: { buildings: { winery: 2, herbGarden: 0, smithy: 0, academy: 0 } },
+      romance: { wifeId: null, people: {}, concubines: [] }
+    }, JSON.parse(JSON.stringify(o || {})));
+    st.faction = Object.assign({
+      founded: true, name: '测试门', disciples: [{ id: 'd1', name: '甲' }, { id: 'd2', name: '乙' }],
+      recruitLines: [], doctrine: '行侠', doctrineId: 'xia', doctrineTurn: 0,
+      branches: [], camps: [], bandit: false, official: false, treasury: 0, brokeStreak: 0,
+      dissolved: false, seized: false, fameRank: 0, vacantManor: false
+    }, (o && o.faction) || {});
+    if (o && o.court) st.court = Object.assign({ wanted: 0, merit: 0, border: 0, yanyun: 0, flags: {} }, o.court);
+    return st;
+  };
+  const proj = (s) => JSON.stringify({
+    gold: s.gold, treasury: s.faction.treasury, ledger: s.faction.lastLedger, rank: s.faction.fameRank,
+    broke: s.faction.brokeStreak, seized: s.faction.seized, official: s.faction.official,
+    merit: s.court.merit, fame: s.fame, doctrine: s.faction.doctrineId,
+    branches: (s.faction.branches || []).map((b) => b.regionId + ':' + (b.sealed ? 1 : 0)).join(','),
+    camps: (s.faction.camps || []).length, disciples: (s.faction.disciples || []).length
+  });
+
+  /* S41a 每旬结算 ×6 态：入/饷/余、敌对封舵、声望档、破产两旬、通缉两档——逐字段对拍 */
+  let badA = null;
+  const settleCases = [
+    {},
+    { court: { border: 12 }, faction: { branches: [{ regionId: 'luoyang', sealed: false }] } },
+    { court: { yanyun: 3 }, faction: { branches: [{ regionId: 'a', sealed: false }], camps: [{ id: 'wild', name: '山寨' }] } },
+    { court: { wanted: 3 }, faction: { branches: [{ regionId: 'a', sealed: false }] } },
+    { court: { wanted: 4 } },
+    { faction: { treasury: -10, brokeStreak: 1 } }
+  ];
+  settleCases.forEach((c, i) => {
+    const s1 = mk(c);
+    run('state = ' + JSON.stringify(s1) + '; COLLAPSE = 0; SEIZED = 0; WANTED = 0;');
+    run('settleHallOnNewTurn();');
+    const after = JSON.parse(run('JSON.stringify(state)'));
+    const s2 = mk(c);
+    const out = hall.settleOnNewTurn(s2);
+    const a = proj(after);
+    const b = proj(s2);
+    if (a !== b && !badA) badA = 'case' + i + ': ' + a + ' ≠ ' + b;
+    if (!badA) {
+      const flags = [out.collapsed ? 1 : 0, out.seized ? 1 : 0, out.wanted ? 1 : 0].join(',');
+      const lf = [run('COLLAPSE'), run('SEIZED'), run('WANTED')].join(',');
+      if (flags !== lf) badA = 'case' + i + ' 旗标: ' + flags + ' ≠ ' + lf;
+    }
+  });
+  check('S41a 每旬结算 ×6 态（入/饷/余 + 封舵 + 声望档 + 破产 + 通缉两档）', badA === null, badA || undefined);
+
+  /* S41b 分舵 / 宗旨 / 落草：状态增量逐字段对拍（含同旬连改拒绝、撤资退 30） */
+  let badB = null;
+  const acts = [
+    ['branchPick', [0], { fame: 40 }],
+    ['branchPick', [2], { faction: { branches: [{ regionId: 'luoyang', sealed: false }] } }],
+    ['hallSetDoctrine', ['trade'], {}],
+    ['hallSetDoctrine', ['xia'], { faction: { doctrineTurn: 9 } }],   /* 同旬连改 ⇒ 拒 */
+    ['hallRaiseBandit', [], { court: { wanted: 3 } }]
+  ];
+  acts.forEach(([fn, args, o], i) => {
+    const s1 = mk(o);
+    run('state = ' + JSON.stringify(s1) + ';');
+    run(fn + '(' + args.map((x) => JSON.stringify(x)).join(',') + ');');
+    const after = JSON.parse(run('JSON.stringify(state)'));
+    const s2 = mk(o);
+    if (fn === 'branchPick') {
+      if (args[0] === 0) hall.openBranch(s2, 'luoyang');
+      else hall.closeBranch(s2, 'luoyang');
+    } else if (fn === 'hallSetDoctrine') hall.setDoctrine(s2, args[0]);
+    else hall.raiseBandit(s2);
+    const a = proj(after);
+    const b = proj(s2);
+    if (a !== b && !badB) badB = fn + '(' + args.join(',') + ') case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  check('S41b 分舵设/撤 + 宗旨三选（含连改拒绝）+ 落草 ×5 态', badB === null, badB || undefined);
+
+  /* S41c 危机四族 ×9 支：破产三选 / 抄家三选 / 通缉三选 / 官宣 —— 逐字段对拍 */
+  let badC = null;
+  const crisisActs = [
+    ['collapsePick', [0], { gold: 100 }],
+    ['collapsePick', [1], {}],
+    ['collapsePick', [2], {}],
+    ['seizurePick', [0], {}],
+    ['seizurePick', [1], { gold: 100 }],
+    ['seizurePick', [2], {}],
+    ['wantedHallPick', [0], { gold: 100, faction: { branches: [{ regionId: 'a', sealed: true }] } }],
+    ['wantedHallPick', [1], { court: { wanted: 3 } }],
+    ['wantedHallPick', [2], {}],
+    ['gazettePick', [1], { court: { merit: 50, flags: { answered: 1 } } }]
+  ];
+  crisisActs.forEach(([fn, args, o], i) => {
+    const s1 = mk(o);
+    run('state = ' + JSON.stringify(s1) + ';');
+    run(fn + '(' + args.join(',') + ');');
+    const after = JSON.parse(run('JSON.stringify(state)'));
+    const s2 = mk(o);
+    if (fn === 'collapsePick') { if (args[0] === 0) hall.propUp(s2); else if (args[0] === 1) hall.dismissOne(s2); else hall.dissolveHall(s2); }
+    else if (fn === 'seizurePick') { if (args[0] === 0) hall.resistSeizure(s2); else if (args[0] === 1) hall.paySeizure(s2); else hall.fleeSeizure(s2); }
+    else if (fn === 'wantedHallPick') { if (args[0] === 0) hall.washWanted(s2); else if (args[0] === 1) hall.raiseBandit(s2); else hall.hideWanted(s2); }
+    else hall.goOfficial(s2);
+    const a = proj(after);
+    const b = proj(s2);
+    if (a !== b && !badC) badC = fn + '(' + args[0] + ') case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  check('S41c 破产/抄家/通缉/官宣 ×10 支（逐字段对拍）', badC === null, badC || undefined);
+})();
+
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));
 if (failed === 0) {

@@ -50,6 +50,11 @@
       openRoadEncounter: function (ev, reg) { ui.panels.openRoadEncounter(ev, reg, function (idx) { systems.tiles.applyRoadEncounterChoice(st, ev, idx, env()); afterAction(); }); },
       /* 册301 P4-C：过旬结算钩子（core/time.advanceTime 调用） */
       settleCourtOnNewTurn: function () { systems.court.settleOnNewTurn(st); },
+      /* 册317 P4-F F2：本门每旬结算（core/time.advanceTime 调用）；弹窗留到 afterAction 统一开 */
+      settleHallOnNewTurn: function () {
+        var ev = systems.hall.settleOnNewTurn(st);
+        if (ev && (ev.collapsed || ev.wanted || ev.seized)) pendingHallEvent = ev;
+      },
       /* 册307 P4-B：配角对决结果回流（combat.finishDuel 调用；册313 补 info.rival） */
       onSideDuelResult: function (s, kind, victory, info) { systems.side.applyDuelResult(s, kind, victory, info); }
     }, extra || {});
@@ -65,6 +70,7 @@
     syncTileButtons();
     syncTravelButton(st.currentRegion);
     if (ui.audio) ui.audio.autoAdaptBgmToContext('scene', st, core.time.getRegion); /* 册289：场景自适应换曲 */
+    flushHallEvent(); /* 册317：本门每旬事件（破产 / 通缉 / 抄家）在动作收尾时弹 */
   }
 
   /* state.viewLayer ⇔ board3d 层对账（M1 集成缝）：行脚到达主线章地点会切 local
@@ -212,10 +218,11 @@
       afterAction();
     });
   }
-  function openHallOverview() {
+  function hallInfo() {
     var h = systems.hall;
     h.ensureState(st);
-    ui.panels.openHallOverview(st, {
+    var region = core.time.getRegion(st.currentRegion);
+    return {
       name: st.faction.name || '本门',
       fameWord: h.fameWord(st),
       doctrine: st.faction.doctrine || '行侠',
@@ -223,8 +230,103 @@
       cap: h.cap(st),
       houses: h.houses(st),
       wifeLine: h.wifeLine(st),
-      ledger: st.faction.lastLedger || ''
+      ledger: st.faction.lastLedger || '',
+      lastEvent: st.faction.lastEvent || '',
+      jinLine: '隐庐' + h.jinWord(h.estateJin(st)) + '。分舵 ' + h.openBranches(st) + '。山寨 ' + h.camps(st) + '。',
+      seized: !!st.faction.seized,
+      bandit: !!st.faction.bandit,
+      banditOpen: h.banditPathOpen(st),
+      official: !!st.faction.official,
+      canOfficial: h.canOfficial(st),
+      changedThisTurn: st.faction.doctrineTurn === st.turn,
+      hasBranch: (st.faction.branches || []).some(function (b) { return b.regionId === st.currentRegion; }),
+      branchGaps: h.branchGaps(st, st.currentRegion),
+      regionName: region.name
+    };
+  }
+  function openHallOverview() {
+    ui.panels.openHallOverview(st, hallInfo(), function (page) {
+      if (page === 'ground') openHallGround();
+      else if (page === 'rule') openHallRule();
+      else if (page === 'gazette') openHallGazette();
     });
+  }
+  function openHallGround() {
+    ui.panels.openHallGround(st, hallInfo(), function (act) {
+      var h = systems.hall;
+      var r;
+      if (act === 'branch_open') r = h.openBranch(st, st.currentRegion);
+      else if (act === 'branch_close') r = h.closeBranch(st, st.currentRegion);
+      else r = h.raiseBandit(st);
+      if (!r.ok) { ui.hud.toast(r.why || '这会儿办不了。', 'amber'); return; }
+      if (r.toast) ui.hud.toast(r.toast, r.tone);
+      afterAction();
+      openHallOverview();
+    });
+  }
+  function openHallRule() {
+    ui.panels.openHallRule(st, hallInfo(), function (id) {
+      var r = systems.hall.setDoctrine(st, id);
+      if (!r.ok) { ui.hud.toast(r.why, 'amber'); return; }
+      ui.hud.toast(r.toast, r.tone);
+      afterAction();
+      openHallOverview();
+    });
+  }
+  function openHallGazette() {
+    ui.panels.openHallGazette(st, hallInfo(), function (act) {
+      if (act === 'flow') { ui.hud.toast(st.faction.lastLedger || '还没有流水。', 'amber'); openHallOverview(); return; }
+      var r = systems.hall.goOfficial(st);
+      if (!r.ok) { ui.hud.toast(r.why, 'amber'); return; }
+      ui.hud.toast(r.toast, r.tone);
+      afterAction();
+      openHallOverview();
+    });
+  }
+  /* 每旬门派事件（破产两旬 / 通缉警告 / 抄家）——结算只置旗，弹窗归 app（铁律 1） */
+  var pendingHallEvent = null;
+  function flushHallEvent() {
+    if (!pendingHallEvent) return;
+    var ev = pendingHallEvent;
+    pendingHallEvent = null;
+    if (ev.collapsed) {
+      ui.panels.openCourtChoices('本门', '饷银见底', '连续两旬',
+        '饷银连着见底。可以垫银、遣散一人，或散伙。',
+        ['垫银（30 两）', '遣散一人', '散伙'],
+        function (i) {
+          var h = systems.hall;
+          var r = i === 0 ? h.propUp(st) : (i === 1 ? h.dismissOne(st) : h.dissolveHall(st));
+          if (!r.ok) { ui.hud.toast(r.why, 'amber'); return; }
+          ui.hud.toast(r.toast, r.tone);
+          afterAction();
+        });
+      return;
+    }
+    if (ev.wanted) {
+      ui.panels.openCourtChoices('通缉', '本门犯险', '官差',
+        '通缉高了。可以洗白、落草，或先躲。',
+        ['洗白（40 两）', '落草', '躲一旬'],
+        function (i) {
+          var h = systems.hall;
+          var r = i === 0 ? h.washWanted(st) : (i === 1 ? h.raiseBandit(st) : h.hideWanted(st));
+          if (!r.ok) { ui.hud.toast(r.why, 'amber'); return; }
+          ui.hud.toast(r.toast, r.tone);
+          afterAction();
+        });
+      return;
+    }
+    if (ev.seized) {
+      ui.panels.openCourtChoices('抄家', '余波', '本门',
+        '抄家的风到了。房舍先扣一处，声望也沉。可以抗、散财求情，或逃。',
+        ['抗', '散财求情（30 两）', '逃'],
+        function (i) {
+          var h = systems.hall;
+          var r = i === 0 ? h.resistSeizure(st) : (i === 1 ? h.paySeizure(st) : h.fleeSeizure(st));
+          if (!r.ok) { ui.hud.toast(r.why, 'amber'); return; }
+          ui.hud.toast(r.toast, r.tone);
+          afterAction();
+        });
+    }
   }
 
   /* ── 情缘（P4-E · 册314 E3b）：名册 → 人卡 → 动作/三选弹窗 ───────────────── */
@@ -574,6 +676,9 @@
     openRomanceCast: openRomanceCast,
     openHall: openHall,
     openHallOverview: openHallOverview,
+    openHallGround: openHallGround,
+    openHallRule: openHallRule,
+    openHallGazette: openHallGazette,
     /* M4 深度系统动作口 */
     runMaster: function (act) {
       if (!st || !st.hasCreatedChar) return;

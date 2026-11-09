@@ -346,8 +346,8 @@
     });
   }
 
-  /* ── 本门概览（册316 · F1）：名号 / 声望 / 宗旨 / 门人上限 / 房舍 / 主母位 ── */
-  function openHallOverview(st, info) {
+  /* ── 本门概览（册316 · F1 / 册317 F2 加四页签）：名号 / 声望 / 宗旨 / 门人 / 房舍 ── */
+  function openHallOverview(st, info, onPage) {
     openSheet(function (m) {
       var desc = '<div class="qxm-street">' +
         '<div class="qxm-street-seal">本门</div>' +
@@ -356,8 +356,73 @@
         '<p>' + info.wifeLine + '</p>' +
         '</div>' +
         '<div class="qxm-dim qxm-street-meta">' + (info.ledger || '饷银还没过第一旬。') + '</div>';
-      shell(m, '本门', info.name, '概览', desc, choiceBtn('合上簿子'));
-      m.querySelector('[data-qxm-choice]').addEventListener('click', closeModal);
+      shell(m, '本门', info.name, '概览', desc,
+        choiceBtn('地盘') + choiceBtn('规矩') + choiceBtn('邸报') + choiceBtn('合上簿子'));
+      var btns = m.querySelectorAll('[data-qxm-choice]');
+      btns[0].addEventListener('click', function () { closeModal(); if (onPage) onPage('ground'); });
+      btns[1].addEventListener('click', function () { closeModal(); if (onPage) onPage('rule'); });
+      btns[2].addEventListener('click', function () { closeModal(); if (onPage) onPage('gazette'); });
+      btns[3].addEventListener('click', closeModal);
+    });
+  }
+
+  /* ── 地盘（册317 · F2）：房舍三源 + 设分舵 / 撤资 / 扯旗 ─────────────────── */
+  function openHallGround(st, info, onAct) {
+    openSheet(function (m) {
+      var desc = '<div class="qxm-street">' +
+        '<div class="qxm-street-seal">地盘</div>' +
+        '<p>' + info.jinLine + '</p>' +
+        '<p>房舍 ' + info.houses + '，是进数加分舵加山寨。' + (info.seized ? '抄家余波里，房舍先扣一处。' : '') + '</p>' +
+        '<p>' + (info.branchGaps.length ? info.branchGaps.join('。') : '这座城可设一处分舵（80 两）。') + '</p>' +
+        '</div>';
+      shell(m, '本门 · 地盘', info.regionName, '分舵与山寨', desc,
+        choiceBtn(info.hasBranch ? '撤资（退 30 两）' : '设分舵（80 两）', info.hasBranch ? '' : ' primary') +
+        choiceBtn(info.banditOpen && !info.bandit ? '扯旗落草' : '扯旗（路线未开）') +
+        choiceBtn('合上簿子'));
+      var btns = m.querySelectorAll('[data-qxm-choice]');
+      btns[0].addEventListener('click', function () { closeModal(); if (onAct) onAct(info.hasBranch ? 'branch_close' : 'branch_open'); });
+      btns[1].addEventListener('click', function () { closeModal(); if (onAct) onAct('bandit'); });
+      btns[2].addEventListener('click', closeModal);
+    });
+  }
+
+  /* ── 规矩（册317 · F2）：宗旨三选，同旬不可连改 ─────────────────────────── */
+  function openHallRule(st, info, onPick) {
+    openSheet(function (m) {
+      var desc = '<div class="qxm-street">' +
+        '<div class="qxm-street-seal">规矩</div>' +
+        '<p>规矩：' + info.doctrine + '。</p>' +
+        '<p>行侠近名门，营生少树敌，唯利易毁誉。</p>' +
+        '<p>' + (info.changedThisTurn ? '这旬已经改过，不能连改。' : '这旬还能改一次。') + '</p>' +
+        '</div>';
+      shell(m, '本门 · 规矩', info.name, '宗旨', desc,
+        choiceBtn('改行侠') + choiceBtn('改营生') + choiceBtn('改唯利') + choiceBtn('合上簿子'));
+      var ids = ['xia', 'trade', 'profit'];
+      var btns = m.querySelectorAll('[data-qxm-choice]');
+      for (var i = 0; i < 3; i++) {
+        (function (idx) {
+          btns[idx].addEventListener('click', function () { closeModal(); if (onPick) onPick(ids[idx]); });
+        })(i);
+      }
+      btns[3].addEventListener('click', closeModal);
+    });
+  }
+
+  /* ── 邸报（册317 · F2）：本旬流水 + 官宣门派 ─────────────────────────────── */
+  function openHallGazette(st, info, onPick) {
+    openSheet(function (m) {
+      var desc = '<div class="qxm-street">' +
+        '<div class="qxm-street-seal">邸报</div>' +
+        '<p>' + (info.ledger || '饷银还没过第一旬。') + '</p>' +
+        '<p>' + (info.lastEvent || '门中无事。') + '</p>' +
+        '<p>' + (info.official ? '已得官宣。' : (info.canOfficial ? '功名与应诏都够，可以官宣门派。' : '官宣还差功名 40 与一次应诏，山寨里也不能官宣。')) + '</p>' +
+        '</div>';
+      shell(m, '本门 · 邸报', info.name, '流水', desc,
+        choiceBtn('官宣门派', info.canOfficial ? ' primary' : '') + choiceBtn('只看流水') + choiceBtn('合上簿子'));
+      var btns = m.querySelectorAll('[data-qxm-choice]');
+      btns[0].addEventListener('click', function () { closeModal(); if (onPick) onPick('official'); });
+      btns[1].addEventListener('click', function () { closeModal(); if (onPick) onPick('flow'); });
+      btns[2].addEventListener('click', closeModal);
     });
   }
 
@@ -370,6 +435,9 @@
     openRomanceNpc: openRomanceNpc,
     openHallFound: openHallFound,
     openHallOverview: openHallOverview,
+    openHallGround: openHallGround,
+    openHallRule: openHallRule,
+    openHallGazette: openHallGazette,
     openCourtChoices: openCourtChoices,
     openBountyPoster: openBountyPoster,
     openRoadEncounter: openRoadEncounter,
