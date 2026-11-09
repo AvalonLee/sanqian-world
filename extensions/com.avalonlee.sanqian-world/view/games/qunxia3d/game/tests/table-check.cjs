@@ -8,6 +8,8 @@
  * 显式豁免（偏差登记，随 P4 迁移批 M7+ 收口）：
  *   ① settleCourtOnNewTurn / settleHallOnNewTurn / ensureP4A~C / Romance / Hall / Signpost
  *      ——沙箱不注入（typeof 守卫跳过）⇔ 新版未迁（计划书 §四 #14：P4 = M7+）
+ *      ⚠️ 册300 起 **P4-A 市井层不在此列**：七表 + 散列/刷名/选槽/归岗由 **S34** 独立对表
+ *      （轻量沙箱，不背全链；见件尾 S34 组）。剩 P4-B/C/E/F 仍在册。
  *   ② markPlayerSeenNode / noteSignpostHere / resolveXiangyangLetter（同上，P4 街面/路牌）
  *   ③ openExclusiveEventModal / tryOpenAftermathIfPresent / triggerRoadEncounter /
  *      renderAll / renderMiniLogs / closeOriginModal / playCloudZoomTransition /
@@ -1350,6 +1352,67 @@ const audioSys = require(path.join(GAME_DIR, 'ui', 'audio.js'));
   ctx.__F('duel_end');
   check('S33 duel→难念的经 + duel_end 还原', afterDuel === 1 && ctx.bgmSuiteIdx === 3,
     JSON.stringify({ afterDuel: afterDuel, restored: ctx.bgmSuiteIdx }));
+})();
+
+/* ══ S34 P4-A 市井层（册300）：七表 + 散列/刷名/选槽/归岗 对表 ═══════════
+ * 轻量沙箱：只切 STREET 七表 + 四个纯函数（不背 9MB 全链，也不含 base64 以外的
+ * 状态机）——base64 art 由生成器占位化为空串，对表两侧同置 '<P>' 后逐字段比。 */
+function buildStreetSandbox() {
+  const ctx = { Math: Object.create(Math), console: console };
+  vm.createContext(ctx);
+  const run = function (code) { return vm.runInContext(code, ctx, { filename: 'street-sandbox.js' }); };
+  ['STREET_ZONE_BLUR', 'STREET_INTEL_LABEL', 'STREET_SURNAMES', 'STREET_GIVEN',
+    'STREET_SCENE_RULES', 'STREET_TILE_BIND', 'STREET_JOBS', 'STREET_JOB_BY_ID']
+    .forEach(n => run(slice('const', n) + '\n'));
+  ['streetHash', 'zoneBlur', 'otherZoneBlur', 'matchStreetJob', 'planStreetSlots', 'rollStreetName']
+    .forEach(f => run(slice('function', f) + '\n'));
+  return { run: run };
+}
+
+(function S34() {
+  const street = require(path.join(GAME_DIR, 'systems', 'street.js'));
+  const sb = buildStreetSandbox();
+  const normJobs = (list) => list.map(j => { const c = Object.assign({}, j); c.art = '<P>'; return c; });
+
+  let r = deepEq(normJobs(sb.run('STREET_JOBS')), normJobs(D.STREET_JOBS), 'jobs');
+  check('S34a 市井岗位表（6 岗 · art 占位化后逐字段）', r === null, r ? String(r).slice(0, 180) : undefined);
+
+  ['STREET_ZONE_BLUR', 'STREET_INTEL_LABEL', 'STREET_SURNAMES', 'STREET_GIVEN', 'STREET_TILE_BIND'].forEach((n) => {
+    const rr = deepEq(sb.run(n), D[n], n);
+    check('S34b ' + n, rr === null, rr || undefined);
+  });
+  const sbRules = sb.run('JSON.stringify(STREET_SCENE_RULES.map(function(x){return [x.jobId, x.type || null, String(x.re || null)]}))');
+  const nRules = JSON.stringify(D.STREET_SCENE_RULES.map(x => [x.jobId, x.type || null, String(x.re || null)]));
+  check('S34c 场景规则（岗/类型/正则源）', sbRules === nRules, sbRules + ' ≠ ' + nRules);
+
+  const regionIds = (D.REGIONS || []).map(x => x.id);
+  let badSlot = null, badName = null, badMatch = null, badHash = null;
+
+  regionIds.forEach((id) => {
+    const region = coreTime.getRegion(id);
+    const sbSlots = sb.run('JSON.stringify(planStreetSlots(' + JSON.stringify(region) + '))');
+    const nSlots = JSON.stringify(street.planStreetSlots(region));
+    if (sbSlots !== nSlots && !badSlot) badSlot = id + ': ' + sbSlots + ' ≠ ' + nSlots;
+    ['waiter', 'escort', 'apothecary', 'bookseller', 'officer', 'beggar'].forEach((job) => {
+      const x = sb.run('rollStreetName(' + JSON.stringify(id) + ',' + JSON.stringify(job) + ')');
+      const y = street.rollStreetName(id, job);
+      if (x !== y && !badName) badName = id + '/' + job + ': ' + x + ' ≠ ' + y;
+    });
+    (region.tiles || []).forEach((tile, idx) => {
+      const x = sb.run('matchStreetJob(' + JSON.stringify(tile) + ')');
+      const y = street.matchStreetJob(tile);
+      if (x !== y && !badMatch) badMatch = id + '#' + idx + ': ' + x + ' ≠ ' + y;
+    });
+  });
+  ['luoyang', 'luoyang:waiter', 'shaolin:beggar', ''].forEach((s) => {
+    const x = sb.run('streetHash(' + JSON.stringify(s) + ')');
+    const y = street.streetHash(s);
+    if (x !== y && !badHash) badHash = s + ': ' + x + ' ≠ ' + y;
+  });
+  check('S34d 选槽 planStreetSlots ×' + regionIds.length + ' 地', badSlot === null, badSlot || undefined);
+  check('S34e 刷名 ×' + regionIds.length + ' 地 ×6 岗（同区域同岗恒同名）', badName === null, badName || undefined);
+  check('S34f 归岗 matchStreetJob ×全格', badMatch === null, badMatch || undefined);
+  check('S34g FNV 散列 streetHash', badHash === null, badHash || undefined);
 })();
 
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */

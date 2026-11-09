@@ -244,6 +244,54 @@ const { chromium } = require('playwright-core');
       'Q3D8 到达语义（行脚抵达主线章地点 ⇒ 自动入本境层 · 洛阳格1酒肆）', JSON.stringify({ layer: stAtM1.viewLayer, tile: stAtM1.currentTileIdx }));
     const gold0 = stAtM1.gold;
 
+    /* ── Q3D15 组 · P4-A 市井层（册300）：在场行 → 浮层 → 打听落档 ───────────
+     * 就地取景：此刻正在洛阳格 1 太白酒肆（跑堂岗），故先做市井再走八格动作。 */
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(200);
+    const st15 = await page.evaluate(() => {
+      const rows = Array.prototype.map.call(document.querySelectorAll('#qx-modal [data-street]'), (b) => b.textContent);
+      return { rows: rows.length, text: rows.join('|'), panelOpen: !document.getElementById('qx-modal').classList.contains('hidden') };
+    });
+    T(st15.panelOpen && st15.rows >= 1 && /跑堂|乞丐|镖师|药徒|书商|官差/.test(st15.text),
+      'Q3D15a 市井在场行（本境动作面板挂「市井 · 在场」⇔ 岗位+姓名上屏）', JSON.stringify(st15));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-street]').click(); });
+    await page.waitForTimeout(200);
+    const sd = await page.evaluate(() => ({
+      open: !document.getElementById('qx-modal').classList.contains('hidden'),
+      seal: (document.querySelector('#qx-modal .qxm-street-seal') || {}).textContent || '',
+      lines: document.querySelectorAll('#qx-modal .qxm-street p').length,
+      acts: document.querySelectorAll('#qx-modal [data-street-act]').length,
+      meta: /市井见识/.test(document.getElementById('qx-modal').textContent)
+    }));
+    T(sd.open && !!sd.seal && sd.lines === 3 && sd.acts === 3 && sd.meta,
+      'Q3D15b 市井浮层（职名印 + 三句场面 + 三动作 + 市井见识行）', JSON.stringify(sd));
+    /* 打听：三档之一 ⇒ 日志入「市井」+ 可信度/见识落档 */
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-street-act="inquire"]').click(); });
+    await page.waitForTimeout(300);
+    const post15 = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      const logs = (st.logs || []).map((l) => l.text);
+      return {
+        last: logs[0] || '', tier: st.intelTier, grade: st.rumorReliability,
+        rumor: (st.pendingRumor && st.pendingRumor.text) || ''
+      };
+    });
+    T(/【市井·/.test(post15.last) && /可靠|过时|矛盾/.test(post15.last) && ['reliable', 'stale', 'conflict'].indexOf(post15.grade) >= 0 && !!post15.rumor,
+      'Q3D15c 打听落档（日志【市井·】+ 三档可信度 + pendingRumor 入档）', JSON.stringify({ last: post15.last.slice(0, 70), tier: post15.tier, grade: post15.grade }));
+    /* 同旬再打听 ⇒ gap=1 冷却真拦（不是摆设） */
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-street]').click(); });
+    await page.waitForTimeout(200);
+    const again = await page.evaluate(() => {
+      const b = document.querySelector('#qx-modal [data-street-act="inquire"]');
+      return { disabled: !!b && b.disabled, text: b ? b.textContent : '' };
+    });
+    T(again.disabled && /本旬已做过/.test(again.text),
+      'Q3D15d 同旬冷却（打听后本旬再开 ⇔ 按钮禁用「本旬已做过」）', JSON.stringify(again));
+    await page.evaluate(() => { const x = document.querySelector('#qx-modal [data-qxm-close]'); if (x) x.click(); });
+    await page.waitForTimeout(150);
+
     /* ① 揭榜悬赏（海捕文书弹窗 + ap−1 + 冷却 turn+2） */
     await page.evaluate(() => { window.QX3D_APP.openActions(); });
     await page.waitForTimeout(200);

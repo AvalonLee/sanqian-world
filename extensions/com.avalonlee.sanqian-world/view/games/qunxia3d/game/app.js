@@ -183,7 +183,28 @@
   function openActions() {
     var curReg = core.time.getRegion(st.currentRegion);
     var curTile = curReg.tiles[st.currentTileIdx];
-    ui.panels.openActionPanel(st, curReg, curTile, runAction);
+    systems.street.ensureState(st, core.time.getRegion);
+    ui.panels.openActionPanel(st, curReg, curTile, runAction, openStreetNpc);
+  }
+
+  /* ── 市井（P4-A · 册300）：在场人浮层 + 动作派发 ──────────────────────────── */
+  function openStreetNpc(npcId) {
+    var curReg = core.time.getRegion(st.currentRegion);
+    var npc = systems.street.findNpc(st, curReg, npcId);
+    if (!npc || npc.tileIdx !== st.currentTileIdx) { ui.hud.toast('人已经不在这一处了。', 'amber'); return; }
+    ui.panels.openStreetNpc(st, npc, function (actionId) { runStreetAction(npcId, actionId); });
+  }
+  function runStreetAction(npcId, actionId) {
+    var curReg = core.time.getRegion(st.currentRegion);
+    var npc = systems.street.findNpc(st, curReg, npcId);
+    var r = systems.street.act(st, npc, actionId, env({
+      getRegion: core.time.getRegion,
+      checkRealmPromotion: systems.tiles.checkRealmPromotion
+    }));
+    if (!r.ok) { ui.hud.toast(r.why || '这会儿做不了。', 'red'); return; }
+    core.time.addLog(st, r.log);
+    if (r.toast) ui.hud.toast(r.toast, r.tone);
+    afterAction();
   }
 
   /* ── 动作派发（collectTileActions.act → systems.tiles）───────────────────── */

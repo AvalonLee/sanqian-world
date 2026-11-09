@@ -41,11 +41,19 @@
     return '<button class="qxm-btn ' + (cls || '') + '" data-qxm-choice>' + label + '</button>';
   }
 
-  /* ── 本境动作面板（collectTileActions 全列）──────────────────────────────── */
-  function openActionPanel(st, curReg, curTile, onAct) {
+  /* ── 本境动作面板（collectTileActions 全列 + 册300 市井在场）──────────────── */
+  function openActionPanel(st, curReg, curTile, onAct, onStreet) {
     openSheet(function (m) {
       var all = systems.tiles.collectTileActions(st, curReg, curTile);
       var picked = systems.tiles.pickPrimaryActions(all);
+      /* 市井在场（P4-A）：只列脚下这一处的 1~2 人；点开进市井浮层（非一级主按钮） */
+      var here = systems.street ? systems.street.npcsHere(st, curReg) : [];
+      var streetRows = here.map(function (n) {
+        var job = systems.street.jobOf(n.jobId) || { title: '市井' };
+        return '<button class="qxm-act" data-street="' + n.id + '">' +
+          '<span class="qa-main"><b>' + job.title + ' · ' + n.name + '</b><i>' + n.tileName + ' · 市井在场</i></span>' +
+          '<span class="qa-cost">点开</span></button>';
+      }).join('');
       var tierCls = function (a) {
         if (a.disabled) return ' disabled';
         if (a.tier === 'recommend') return ' recommend';
@@ -62,6 +70,7 @@
       shell(m, '本境 · ' + curTile.name, curReg.name + ' · 事务', '行脚 ' + st.ap + '/' + st.maxAp,
         '<div class="qxm-acts">' +
         picked.primary.map(row).join('') +
+        (streetRows ? '<div class="qxm-more-h">市井 · 在场</div>' + streetRows : '') +
         (moreRows.length ? '<div class="qxm-more-h">更多 · 本旬可办</div>' + moreRows.map(row).join('') : '') +
         (shopRows.length ? '<div class="qxm-more-h">商铺 · 限量货架</div>' + shopRows.map(row).join('') : '') +
         '</div>',
@@ -71,6 +80,41 @@
           if (b.disabled) return;
           closeModal();
           onAct(b.getAttribute('data-act'));
+        });
+      });
+      Array.prototype.forEach.call(m.querySelectorAll('[data-street]'), function (b) {
+        b.addEventListener('click', function () {
+          closeModal();
+          if (onStreet) onStreet(b.getAttribute('data-street'));
+        });
+      });
+    });
+  }
+
+  /* ── 市井浮层（册300 · P4-A）：三句场面 + 三动作（禁用态走 actionView 同源）──── */
+  function openStreetNpc(st, npc, onAct) {
+    openSheet(function (m) {
+      var job = systems.street.jobOf(npc.jobId) || { title: '市井', sentences: [], actions: [] };
+      var lines = (job.sentences || []).slice(0, 3).map(function (fn) { return fn(npc); });
+      var actions = (job.actions || []).slice(0, 3);
+      var desc = '<div class="qxm-street">' +
+        '<div class="qxm-street-seal">' + job.title + '</div>' +
+        lines.map(function (l) { return '<p>' + l + '</p>'; }).join('') +
+        '</div>' +
+        '<div class="qxm-dim qxm-street-meta">市井见识：' + systems.street.intelLabel(st) +
+        '（' + (st.intelTier || 0) + '/3）· 打听只说方向，不指到哪一条街。</div>';
+      var choices = actions.map(function (a) {
+        var v = systems.street.actionView(st, npc, a);
+        return '<button class="qxm-btn' + (a.primary ? ' primary' : '') + '" data-street-act="' + a.id + '"' +
+          (v.disabled ? ' disabled' : '') + '>' + a.label +
+          ' <small>' + (v.disabled ? v.why : (a.hint || '')) + '</small></button>';
+      }).join('');
+      shell(m, '市井 · ' + job.title, npc.name, npc.regionName + ' · ' + npc.tileName, desc, choices);
+      Array.prototype.forEach.call(m.querySelectorAll('[data-street-act]'), function (b) {
+        b.addEventListener('click', function () {
+          if (b.disabled) return;
+          closeModal();
+          if (onAct) onAct(b.getAttribute('data-street-act'));
         });
       });
     });
@@ -135,6 +179,7 @@
   root.QX3D.ui = root.QX3D.ui || {};
   root.QX3D.ui.panels = {
     openActionPanel: openActionPanel,
+    openStreetNpc: openStreetNpc,
     openBountyPoster: openBountyPoster,
     openRoadEncounter: openRoadEncounter,
     openDuelPending: openDuelPending,
