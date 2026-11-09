@@ -421,6 +421,10 @@
     d.finished = true;
     const isVictory = d.enemyCurHp <= 0 || d.playerWins >= d.enemyWins;
     const result = { victory: isVictory, extraMsg: '', loseText: '', failMsg: '' };
+    /* 册307：配角对决结果回流（P4-B sideCastResult → 旗标），由 app 注入 */
+    if (d.sideCastResult && typeof e.onSideDuelResult === 'function') {
+      e.onSideDuelResult(st, d.sideCastResult.kind, isVictory);
+    }
 
     if (isVictory) {
       st.gold += d.rewardGold;

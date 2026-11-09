@@ -73,6 +73,39 @@
   function markFeudSettled(st, id) { var o = ensureOutcome(st); o.feudSettled[id] = true; delete o.rivalryOn[id]; addBias(st, ['chivalry']); }
   function markBountyCleared(st, id) { if (!id) return; ensureOutcome(st).bountyCleared[id] = true; addBias(st, ['court', 'chivalry']); }
 
+  /* 册307：对决结果回流（combat.finishDuel → env.onSideDuelResult → 此处）
+   * kind = sideCastResult.kind（mu / tian-repel / tian-recruit / feng / wang） */
+  function applyDuelResult(st, kind, victory) {
+    if (!st || !kind) return;
+    var f = flags(st);
+    if (kind === 'mu') {
+      f.mu = victory ? 'down' : 'slipped';
+      if (victory) markClawBroken(st, 'mu');
+    } else if (kind === 'tian-repel') {
+      f.tian = victory ? 'repelled' : 'parley';
+    } else if (kind === 'tian-recruit') {
+      f.tian = victory ? 'recruited' : 'repelled';
+    } else if (kind === 'feng') {
+      f.fengBounty = victory ? 'cleared' : 'failed';
+      if (victory) markBountyCleared(st, 'feng');
+    } else if (kind === 'wang') {
+      f.wangGrudge = victory ? 'beaten' : (f.wangGrudge || 'grudge');
+    }
+  }
+
+  /* 残片/信物（册307：night_rub 等；原 grantRelic → relicCarry，state.drawScrollProposition 消费） */
+  function grantRelic(st, id) {
+    if (!st || !id) return;
+    if (!Array.isArray(st.relicCarry)) st.relicCarry = [];
+    if (st.relicCarry.indexOf(id) < 0) st.relicCarry.push(id);
+    if (!st.carryRelic) st.carryRelic = id;
+  }
+  function noteRelic(st, source, id) {
+    if (!st) return;
+    if (!st.relicHint || typeof st.relicHint !== 'object') st.relicHint = {};
+    st.relicHint[id] = source;
+  }
+
   /* 卷轴权重（每命中一个标签乘 1+min(0.35, n*0.08)） */
   function scrollWeight(st, tags) {
     if (!st.sideScrollBias || !tags) return 1;
@@ -330,6 +363,8 @@
         var t1 = '华山那位剑客听说夜路的假帖被拆穿了，风声暖了半分，人却不在这条路上。';
         L('【华山夜影】' + t1);
         st.pendingRumor = { grade: 'reliable', text: t1, aboutId: 'laodenuo' };
+        noteRelic(st, '华山夜影', 'night_rub');
+        grantRelic(st, 'night_rub');
         out.toast = '拆穿了。风声记在华山剑客那边。'; out.tone = 'emerald';
       } else if (choice === 1) {
         f.nightShadow = 'burned'; f.linghuEcho = 'cold'; st.gold = Math.max(0, st.gold - 6); addBias(st, ['chousha', 'jianyi']);
@@ -538,6 +573,9 @@
     markRivalry: markRivalry,
     markFeudSettled: markFeudSettled,
     markBountyCleared: markBountyCleared,
+    applyDuelResult: applyDuelResult,
+    grantRelic: grantRelic,
+    noteRelic: noteRelic,
     scrollWeight: scrollWeight,
     spawnWeight: spawnWeight,
     ensurePresence: ensurePresence,
