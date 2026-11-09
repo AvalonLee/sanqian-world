@@ -1538,14 +1538,15 @@ function buildSideSandbox() {
 
   /* S36d 动作清单（册305 起已接 10 人）：id 与顺序逐人对表 */
   sb.run('state = ' + JSON.stringify(states[0]) + ';');
-  const ids10 = ['ping4', 'zheng_e', 'xiaoer', 'laodenuo', 'cheng', 'wangui', 'zhike', 'shuang', 'qu', 'yilin'];
+  const ids10 = ['ping4', 'zheng_e', 'xiaoer', 'laodenuo', 'cheng', 'wangui', 'zhike', 'shuang', 'qu', 'yilin',
+    'feng', 'tang', 'tian', 'mu', 'lu'];
   let badList = null;
   ids10.forEach((id) => {
     const a = sb.run('JSON.stringify(sideActList(SIDE_BY_ID[' + JSON.stringify(id) + ']).map(function(x){return x.id}))');
     const b = JSON.stringify(side.actsFor(JSON.parse(JSON.stringify(states[0])), side.castOf(id)).map((x) => x.id));
     if (a !== b && !badList) badList = id + ': ' + a + ' ≠ ' + b;
   });
-  check('S36d 动作清单 ×10 人（id 同序）', badList === null, badList || undefined);
+  check('S36d 动作清单 ×15 人（id 同序）', badList === null, badList || undefined);
 })();
 
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */

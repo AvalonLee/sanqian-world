@@ -197,6 +197,42 @@
         { id: 'yi_calm', label: '安抚', hint: f.yiCalm ? '她已经稳了' : '先把惊压下去', disabled: !!f.yiCalm }
       ];
     }
+    /* ── B2b（册306）：恶霸链 / 野路 / 水路 ─────────────────────────────── */
+    if (cast.id === 'feng') {
+      return [
+        { id: 'feng_face', label: '对峙', primary: true, hint: '话先说完，进弹窗' },
+        { id: 'feng_bounty', label: '接悬赏线', hint: f.bullyIntel ? (f.fengBounty === 'cleared' ? '海捕已销' : '换皮一战') : '先有县里的风声', disabled: !f.bullyIntel || f.fengBounty === 'cleared' },
+        { id: 'feng_avoid', label: '回避', hint: f.fengConfront === 'avoid' ? '你已避开' : '这事可以不接', disabled: f.fengConfront === 'avoid' }
+      ];
+    }
+    if (cast.id === 'tang') {
+      return [
+        { id: 'tang_buy', label: '买情报', primary: true, hint: f.bullyIntel ? '这旬的风声买过了' : '6 文 · 不画地图', disabled: !!f.bullyIntel || st.gold < 6, why: st.gold < 6 ? '纹银不足' : '' },
+        { id: 'tang_turn', label: '策反', hint: f.tangTurned ? '他已松口' : '让他把话倒过来', disabled: !!f.tangTurned },
+        { id: 'tang_dismiss', label: '打发', hint: '2 文，让他走开', disabled: st.gold < 2, why: st.gold < 2 ? '纹银不足' : '' }
+      ];
+    }
+    if (cast.id === 'tian') {
+      return [
+        { id: 'tian_talk', label: '周旋', primary: !f.tian, hint: '先把笑和杀机分开' },
+        { id: 'tian_repel', label: '击退', hint: f.tian === 'repelled' || f.tian === 'recruited' ? '已分出胜负' : '三招见真章', disabled: f.tian === 'repelled' || f.tian === 'recruited' },
+        { id: 'tian_recruit', label: '收服', hint: f.tian === 'recruited' ? '他肯跟一句' : '高难', disabled: f.tian === 'recruited' }
+      ];
+    }
+    if (cast.id === 'mu') {
+      return [
+        { id: 'mu_duel', label: '悬赏对决', primary: f.mu !== 'down', hint: f.mu === 'down' ? '海捕已了' : '换皮一战', disabled: f.mu === 'down' },
+        { id: 'mu_scroll', label: '夺残谱', hint: f.muScroll ? '残谱已入手' : (f.mu === 'down' ? '他倒了，谱还在' : '他还盯着'), disabled: !!f.muScroll || f.mu !== 'down' },
+        { id: 'mu_avoid', label: '回避', hint: f.mu === 'slipped' ? '你已避开' : '可以不打', disabled: f.mu === 'slipped' || f.mu === 'down' }
+      ];
+    }
+    if (cast.id === 'lu') {
+      return [
+        { id: 'lu_bully', label: '委托除霸', primary: true, hint: '只给一片地方' },
+        { id: 'lu_intro', label: '引荐', hint: '认一认这船上的人' },
+        { id: 'lu_stay', label: '借宿', hint: f.luStay === st.turn ? '这旬已歇过' : '在舟上歇一晚', disabled: f.luStay === st.turn }
+      ];
+    }
     return [];
   }
 
@@ -205,6 +241,7 @@
     if (actionId === 'cheng_escort') return ['护在身侧（情债记下，不成亲）', '绕开人群（仍把人送到）', '贴补车马（-4 文，情债记下）'];
     if (actionId === 'wang_grudge') return ['结下这个怨', '这事我拒了'];
     if (actionId === 'lao_expose') return ['拆穿他', '把假帖交回去（吃亏）', '先离开'];
+    if (actionId === 'feng_face') return ['硬顶一句', '先退开'];
     return null;
   }
 
@@ -382,6 +419,101 @@
       f.yiCalm = true; addKarma(st, { xiayi: 2 });
       L('你安抚了仪琳。她还想学剑。');
       out.toast = '她稳下来了。'; out.tone = 'emerald';
+    } else if (actionId === 'feng_face') {
+      if (choice == null) return { ok: true, choices: choicesOf(st, cast, actionId), log: '', toast: '' };
+      if (choice === 0) {
+        f.fengConfront = 'stood'; addBias(st, ['chousha', 'court']);
+        L('【恶霸链】你和凤天南对峙过了。账记下了，没有动手。');
+        out.toast = '对峙记下了。';
+      } else { f.fengConfront = 'later'; L('你先退开了。'); out.toast = '你先退开了。'; }
+    } else if (actionId === 'feng_bounty') {
+      if (!f.bullyIntel) return { ok: false, why: '还没有县里的风声。' };
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      e.startDuel(st, {
+        enemyName: '凤天南', enemyTitle: '县衙外 · 海捕换皮', enemyStance: 'gang',
+        enemyPower: 70, enemyHp: 140, contextTitle: '恶霸链 · 凤天南海捕',
+        rewardGold: 26, rewardFame: 10, rewardExp: 18, sideCastResult: { kind: 'feng' }
+      });
+      return { ok: true, log: '', toast: '海捕换皮，一场恶战。', tone: 'amber' };
+    } else if (actionId === 'feng_avoid') {
+      f.fengConfront = 'avoid'; L('你避开了凤天南。这事可以不接。');
+      out.toast = '你避开了。';
+    } else if (actionId === 'tang_buy') {
+      if (st.gold < 6 || f.bullyIntel) return { ok: false, why: st.gold < 6 ? '纹银不足' : '这旬的风声买过了' };
+      st.gold -= 6;
+      var tgrades = ['reliable', 'stale', 'conflict'];
+      var tgrade = tgrades[Math.floor((e.rand || Math.random)() * 3)];
+      f.bullyIntel = tgrade;
+      var ttext = tgrade === 'conflict' ? '一说县衙外有个姓凤的拳硬，一说只是帮闲嚼舌，两头对不上。'
+        : (tgrade === 'stale' ? '旬前县里有个姓凤的很霸，这话多半旧了，人也没标在哪一条街。'
+          : '县衙外有个姓凤的，拳硬。人就在这座城里，没有第几条街。');
+      st.rumorReliability = tgrade;
+      st.pendingRumor = { grade: tgrade, text: ttext, aboutId: 'tangpei' };
+      addBias(st, ['chousha', 'court']);
+      L('【恶霸链】' + ttext);
+      out.toast = '情报买下了：' + (tgrade === 'reliable' ? '可靠' : tgrade === 'stale' ? '过时' : '矛盾');
+    } else if (actionId === 'tang_turn') {
+      f.tangTurned = true; addBias(st, ['court']);
+      L('汤沛松了口，愿把话倒过来说。他还是不画地图。');
+      out.toast = '他松口了，仍不画地图。'; out.tone = 'emerald';
+    } else if (actionId === 'tang_dismiss') {
+      if (st.gold < 2) return { ok: false, why: '纹银不足' };
+      st.gold -= 2; L('你打发了汤沛。他碎嘴，拿了钱就走。');
+      out.toast = '打发了。';
+    } else if (actionId === 'tian_talk') {
+      if (!f.tian) f.tian = 'parley';
+      addBias(st, ['sword']);
+      L('你和田伯光周旋了一阵。笑还在，杀机也还在。');
+      out.toast = '周旋过了，账还没结。';
+    } else if (actionId === 'tian_repel') {
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      e.startDuel(st, {
+        enemyName: '田伯光', enemyTitle: '野路 · 半笑半杀', enemyStance: 'qiao',
+        enemyPower: 74, enemyHp: 145, contextTitle: '野路遭遇 · 击退田伯光',
+        rewardGold: 16, rewardFame: 8, rewardExp: 18, sideCastResult: { kind: 'tian-repel' }
+      });
+      return { ok: true, log: '', toast: '野路上动起手来。', tone: 'amber' };
+    } else if (actionId === 'tian_recruit') {
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      e.startDuel(st, {
+        enemyName: '田伯光', enemyTitle: '野路 · 收服高难', enemyStance: 'qiao',
+        enemyPower: 96, enemyHp: 180, contextTitle: '野路遭遇 · 收服田伯光',
+        rewardGold: 20, rewardFame: 12, rewardExp: 24, sideCastResult: { kind: 'tian-recruit' }
+      });
+      return { ok: true, log: '', toast: '收服要比击退更难。', tone: 'amber' };
+    } else if (actionId === 'mu_duel') {
+      if (f.mu === 'down') return { ok: false, why: '海捕已了' };
+      if (!e.startDuel) return { ok: false, why: '这会儿不方便动手。' };
+      e.startDuel(st, {
+        enemyName: '木高峰', enemyTitle: '陕南山道 · 海捕换皮', enemyStance: 'rou',
+        enemyPower: 68, enemyHp: 136, contextTitle: '野路遭遇 · 木高峰悬赏',
+        rewardGold: 24, rewardFame: 10, rewardExp: 18, sideCastResult: { kind: 'mu' }
+      });
+      return { ok: true, log: '', toast: '山道上一场硬仗。', tone: 'amber' };
+    } else if (actionId === 'mu_scroll') {
+      if (f.mu !== 'down' || f.muScroll) return { ok: false, why: '还不到时候。' };
+      f.muScroll = true; st.exp += 14; addBias(st, ['bounty', 'chousha']);
+      if (e.checkRealmPromotion) e.checkRealmPromotion(st, e);
+      L('木高峰倒了之后，你从他身上摸到半页残谱。没有地名。');
+      out.toast = '残谱入手，修为 +14。'; out.tone = 'emerald';
+    } else if (actionId === 'mu_avoid') {
+      f.mu = 'slipped'; L('你避开了木高峰。野路上这一遭可以不打。');
+      out.toast = '你避开了。';
+    } else if (actionId === 'lu_bully') {
+      addBias(st, ['chivalry', 'bounty']);
+      var ltext = '陆乘风说南方水路和县衙外都有恶名，只到某路，没有第几座渡口。';
+      st.pendingRumor = { grade: 'reliable', text: ltext, aboutId: 'lu' };
+      L('【委托】' + ltext);
+      out.toast = '除霸的委托接下了。地方仍是模糊的。'; out.tone = 'emerald';
+    } else if (actionId === 'lu_intro') {
+      st.fame += 3; addBias(st, ['chivalry']);
+      L('陆乘风引荐了舟上的人。没有外城的坐标。');
+      out.toast = '引荐完了。'; out.tone = 'emerald';
+    } else if (actionId === 'lu_stay') {
+      if (f.luStay === st.turn) return { ok: false, why: '这旬已歇过' };
+      f.luStay = st.turn; st.hp = Math.min(st.maxHp, st.hp + 12);
+      L('你在陆乘风的舟上借宿了一晚。');
+      out.toast = '借宿一夜，气血 +12。'; out.tone = 'emerald';
     } else {
       return { ok: false, why: '这支还没接（B2/B3）' };
     }
