@@ -35,7 +35,8 @@
   }
 
   var BOOLS = ['zhuangkeIntro', 'romanceEligible', 'romanceDebt', 'giftedScarf', 'escortDone', 'tangTurned',
-    'muScroll', 'shaolinRegistered', 'shuangFollow', 'shuangSettled', 'shuangHeart', 'zhengErrand', 'xiaoerTab'];
+    'muScroll', 'shaolinRegistered', 'shuangFollow', 'shuangSettled', 'shuangHeart', 'zhengErrand', 'xiaoerTab',
+    'quTalk', 'yiEscort', 'yiCalm'];
 
   function ensureOutcome(st) {
     var host = st;
@@ -172,6 +173,28 @@
         { id: 'monk_reg', label: '登记山门簿', primary: !f.shaolinRegistered, hint: (st.fame || 0) < 6 ? '侠名还浅' : '一视同仁', disabled: !!f.shaolinRegistered || (st.fame || 0) < 6 },
         { id: 'monk_intro', label: '请引见', hint: '只到这座山的演武处' },
         { id: 'monk_refuse', label: '问规矩', hint: '熟客也一样要登记' }
+      ];
+    }
+    /* ── B2a（册305）：双儿 / 曲非烟 / 仪琳 ─────────────────────────────── */
+    if (cast.id === 'shuang') {
+      return [
+        { id: 'shuang_follow', label: '同行', primary: !f.shuangFollow, hint: f.shuangFollow ? '她已答应同行' : '不争名分', disabled: !!f.shuangFollow },
+        { id: 'shuang_settle', label: '安顿', hint: f.shuangSettled ? '已安顿' : '5 文，给她一处歇脚', disabled: !!f.shuangSettled || st.gold < 5, why: st.gold < 5 ? '纹银不足' : '' },
+        { id: 'shuang_heart', label: '心事', hint: f.shuangHeart ? '心事听过了' : '情债，不成亲', disabled: !!f.shuangHeart }
+      ];
+    }
+    if (cast.id === 'qu') {
+      return [
+        { id: 'qu_listen', label: '听曲得讯', primary: true, hint: '一句风声，不指人' },
+        { id: 'qu_learn', label: '请教琴剑', hint: '只学一个意思' },
+        { id: 'qu_chat', label: '情债闲话', hint: '记下，不成亲' }
+      ];
+    }
+    if (cast.id === 'yilin') {
+      return [
+        { id: 'yi_escort', label: '护送', primary: !f.yiEscort, hint: f.yiEscort ? '这一程护过了' : '不看战力 · 耗 1 行脚', disabled: !!f.yiEscort || st.ap < 1, why: st.ap < 1 ? '行脚不足' : '' },
+        { id: 'yi_heart', label: '请教心法', hint: '短短几句' },
+        { id: 'yi_calm', label: '安抚', hint: f.yiCalm ? '她已经稳了' : '先把惊压下去', disabled: !!f.yiCalm }
       ];
     }
     return [];
@@ -317,6 +340,48 @@
       var why = (st.fame || 0) < 6 ? '侠名还浅，山门这旬不留宿。' : '规矩在，熟客也一样要登记。';
       L('知客说：' + why);
       out.toast = why;
+    } else if (actionId === 'shuang_follow') {
+      f.shuangFollow = true; addBias(st, ['romance']);
+      L('双儿答应同行。她不问名分，只问下一处歇脚。');
+      out.toast = '她答应同行了。'; out.tone = 'emerald';
+    } else if (actionId === 'shuang_settle') {
+      if (st.gold < 5) return { ok: false, why: '纹银不足' };
+      st.gold -= 5; f.shuangSettled = true; addBias(st, ['qingzhai']);
+      L('你安顿了双儿。她问去处，不问名分。');
+      out.toast = '安顿好了。'; out.tone = 'emerald';
+    } else if (actionId === 'shuang_heart') {
+      f.shuangHeart = true; f.romanceDebt = true; addBias(st, ['romance', 'qingzhai']);
+      L('双儿说了一句心事。情债记下了，不成亲。');
+      out.toast = '心事听过了。情债在，不成亲。'; out.tone = 'emerald';
+    } else if (actionId === 'qu_listen') {
+      var qtext = '曲声里有一句讯：北地风紧，人却没被点出名字，也没有落在哪一城。';
+      st.pendingRumor = { grade: 'stale', text: qtext, aboutId: 'qu' };
+      addBias(st, ['romance']);
+      L('【听曲】' + qtext);
+      out.toast = '曲子听完，只有一片风。';
+    } else if (actionId === 'qu_learn') {
+      st.exp += 8; addBias(st, ['jianyi']);
+      if (e.checkRealmPromotion) e.checkRealmPromotion(st, e);
+      L('曲非烟教了你一个琴剑的意思。');
+      out.toast = '琴剑入心，修为 +8。'; out.tone = 'emerald';
+    } else if (actionId === 'qu_chat') {
+      f.quTalk = true; f.romanceDebt = true; addBias(st, ['romance', 'qingzhai']);
+      L('曲非烟说了句情债闲话。记下了，不成亲。');
+      out.toast = '闲话记下了。不成亲。'; out.tone = 'emerald';
+    } else if (actionId === 'yi_escort') {
+      if (st.ap < 1 || f.yiEscort) return { ok: false, why: st.ap < 1 ? '行脚不足' : '这一程护过了' };
+      st.ap -= 1; f.yiEscort = true; st.fame += 3; addKarma(st, { xiayi: 2 }); addBias(st, ['chivalry']);
+      L('你护送仪琳走完这一程。不看拳脚。');
+      out.toast = '护送完成。'; out.tone = 'emerald';
+    } else if (actionId === 'yi_heart') {
+      st.exp += 8; addBias(st, ['chivalry']);
+      if (e.checkRealmPromotion) e.checkRealmPromotion(st, e);
+      L('仪琳把心法说了短短几句。');
+      out.toast = '心法入耳，修为 +8。'; out.tone = 'emerald';
+    } else if (actionId === 'yi_calm') {
+      f.yiCalm = true; addKarma(st, { xiayi: 2 });
+      L('你安抚了仪琳。她还想学剑。');
+      out.toast = '她稳下来了。'; out.tone = 'emerald';
     } else {
       return { ok: false, why: '这支还没接（B2/B3）' };
     }

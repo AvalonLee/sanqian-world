@@ -1498,7 +1498,7 @@ function buildSideSandbox() {
   const cast = slice('const', 'SIDE_CAST').replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/g, '');
   run(cast + '\n');
   run('const SIDE_BY_ID = Object.fromEntries(SIDE_CAST.map(function(c){return [c.id, c];}));\n');
-  ['ensureP4BStateDefaults', 'ensureOutcomeFlags', 'sideFlags', 'addSideBias', 'sideScrollWeight', 'sideSpawnWeight', 'ensureSidePresence', 'streetHash']
+  ['ensureP4BStateDefaults', 'ensureOutcomeFlags', 'sideFlags', 'addSideBias', 'sideScrollWeight', 'sideSpawnWeight', 'ensureSidePresence', 'streetHash', 'sideActList']
     .forEach(f => run(slice('function', f) + '\n'));
   run('function isRookiePeriod(){ return state.turn <= 4; }\n');
   return { run: run };
@@ -1535,6 +1535,17 @@ function buildSideSandbox() {
   check('S36a 每旬在场（2 态 ×3 地界）', badPresence === null, badPresence || undefined);
   check('S36b 出场权重（前 12 人 ×2 态）', badWeight === null, badWeight || undefined);
   check('S36c 卷轴偏置权重（三组标签 ×2 态）', badScroll === null, badScroll || undefined);
+
+  /* S36d 动作清单（册305 起已接 10 人）：id 与顺序逐人对表 */
+  sb.run('state = ' + JSON.stringify(states[0]) + ';');
+  const ids10 = ['ping4', 'zheng_e', 'xiaoer', 'laodenuo', 'cheng', 'wangui', 'zhike', 'shuang', 'qu', 'yilin'];
+  let badList = null;
+  ids10.forEach((id) => {
+    const a = sb.run('JSON.stringify(sideActList(SIDE_BY_ID[' + JSON.stringify(id) + ']).map(function(x){return x.id}))');
+    const b = JSON.stringify(side.actsFor(JSON.parse(JSON.stringify(states[0])), side.castOf(id)).map((x) => x.id));
+    if (a !== b && !badList) badList = id + ': ' + a + ' ≠ ' + b;
+  });
+  check('S36d 动作清单 ×10 人（id 同序）', badList === null, badList || undefined);
 })();
 
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
