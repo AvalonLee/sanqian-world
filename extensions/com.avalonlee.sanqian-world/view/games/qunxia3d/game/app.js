@@ -190,7 +190,41 @@
     systems.street.ensureState(st, core.time.getRegion);
     systems.side.ensureState(st);
     systems.romance.ensureState(st);
-    ui.panels.openActionPanel(st, curReg, curTile, runAction, openStreetNpc, openSideCast, openRomanceCast);
+    systems.hall.ensureState(st);
+    ui.panels.openActionPanel(st, curReg, curTile, runAction, openStreetNpc, openSideCast, openRomanceCast, openHall);
+  }
+
+  /* ── 本门（P4-F · 册316 F1）：立号检定 / 概览 ─────────────────────────────── */
+  function openHall() {
+    var h = systems.hall;
+    h.ensureState(st);
+    if (st.faction.founded) { openHallOverview(); return; }
+    ui.panels.openHallFound(st, {
+      gaps: h.foundingGaps(st),
+      met: h.foundingMetLabels(st),
+      banditOpen: h.banditPathOpen(st)
+    }, function (which, name) {
+      if (which === 1) return;
+      var r = h.found(st, { bandit: which === 2, name: name });
+      if (!r.ok) { ui.hud.toast(r.why || '这会儿立不了号。', 'amber'); return; }
+      core.time.addLog(st, r.log);
+      ui.hud.toast(r.toast, r.tone);
+      afterAction();
+    });
+  }
+  function openHallOverview() {
+    var h = systems.hall;
+    h.ensureState(st);
+    ui.panels.openHallOverview(st, {
+      name: st.faction.name || '本门',
+      fameWord: h.fameWord(st),
+      doctrine: st.faction.doctrine || '行侠',
+      people: h.disciples(st).length,
+      cap: h.cap(st),
+      houses: h.houses(st),
+      wifeLine: h.wifeLine(st),
+      ledger: st.faction.lastLedger || ''
+    });
   }
 
   /* ── 情缘（P4-E · 册314 E3b）：名册 → 人卡 → 动作/三选弹窗 ───────────────── */
@@ -513,6 +547,14 @@
         if (b) openRomanceBadge();
       });
     }
+    /* 顶栏本门角标（册316）：委托到 #hud-hall，同上 */
+    var hallHost = document.getElementById('hud-hall');
+    if (hallHost) {
+      hallHost.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('[data-hall]') : null;
+        if (b) openHallOverview();
+      });
+    }
   }
 
   root.QX3D_APP = {
@@ -530,6 +572,8 @@
     openStreetNpc: openStreetNpc,
     openRomanceBadge: openRomanceBadge,
     openRomanceCast: openRomanceCast,
+    openHall: openHall,
+    openHallOverview: openHallOverview,
     /* M4 深度系统动作口 */
     runMaster: function (act) {
       if (!st || !st.hasCreatedChar) return;

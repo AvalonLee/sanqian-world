@@ -8,9 +8,8 @@
  *   getLegacyMeta :9622–:9633（键 jianghu_legacy_meta_v1，:9620）
  * 存档新键 = shanqian3d_save_v1（计划书铁律 4）；payload 双键契约（读 qunxia-payload-v1 的
  * gen / 写 qunxia-result-queue-v1 由 time 层经 env 钩子）不动。
- * M0 缓议（计划书 §四 #14：P4 = M7+ 增量）：ensureP4A/B/C/Romance/Hall/Signpost 六族
- * 默认填充未迁——偏差在 tests/table-check.cjs 沙箱同位置 stub，逐字段对表在
- * 「P4 未启用」前提下成立；M7+ 迁 P4 时连同 settleCourt/SettleHall 一起补。
+ * P4 六族（A/B/C/E/F/Signpost）默认填充的迁移状态：A/B/C/E/F1 已随批迁入 systems/*，
+ * 由 app 入口调用；**Hall 每旬结算随 F2、Signpost 仍未迁**——table-check 沙箱按同一位置 stub。
  * 纯函数纪律（铁律 1）：不碰 DOM/THREE；副作用经显式参数（storage / env 钩子）注入。 */
 (function (root, factory) {
   var api = factory(root);
@@ -367,7 +366,9 @@
           if (!st.aftermathDoneIds) st.aftermathDoneIds = {};
           if (!st.carryRelic) st.carryRelic = null;
           if (!st.rumorsHeard) st.rumorsHeard = [];
-          /* ensureP4A/B/C + Romance/Hall/Signpost：M7+ 随 P4 迁移批补（头注缓议） */
+          /* P4 各族的 ensure* 已随批迁进 systems/*（A 市井 册300 · C 朝廷 册301 · B 配角 册303 ·
+           * E 情缘 册311 · F 立号 册316），由 app 的入口函数调用；core 不反向依赖 systems。
+           * 仍在册：Hall 的每旬结算（settleHallOnNewTurn）随 F2、Signpost 未迁。 */
         }
       }
     } catch (e) {

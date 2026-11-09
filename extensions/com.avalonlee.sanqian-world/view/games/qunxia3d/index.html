@@ -361,6 +361,14 @@
   .court-badge:hover { border-color: var(--ink-mid); }
   /* ===== 册314：顶栏情缘角标（同角标形制，只换色） ===== */
   .court-badge.romance { border-color: rgba(185, 54, 44, 0.55); color: var(--cinnabar); background: rgba(185, 54, 44, 0.05); }
+  /* ===== 册316：顶栏本门角标 + 挂匾门名输入 ===== */
+  .court-badge.hall { border-color: rgba(67, 58, 49, 0.65); color: var(--ink-deep); background: rgba(67, 58, 49, 0.06); }
+  .qxm-name-input {
+    width: 100%; margin-top: 6px; padding: 6px 9px; font-family: var(--serif); font-size: 13px;
+    color: var(--ink-deep); background: rgba(255, 252, 244, 0.9);
+    border: 1px solid rgba(67, 58, 49, 0.4); border-radius: 6px; letter-spacing: 1px;
+  }
+  .qxm-name-input:focus { outline: none; border-color: var(--jade); }
 
   /* ===== 册300：市井在场行 + 市井浮层 ===== */
   .qxm-street { display: flex; flex-direction: column; gap: 7px; }
@@ -578,6 +586,7 @@
     <div class="hud-cell"><span class="hud-val" id="hud-date-badge">第1/36旬</span></div>
     <div class="hud-court" id="hud-court"></div>
     <div class="hud-court" id="hud-romance"></div>
+    <div class="hud-court" id="hud-hall"></div>
     <div class="hud-ticker" id="hud-ticker">江湖暂安</div>
   </div>
 
@@ -693,6 +702,7 @@
   <script src="./game/data/court.js"></script><!-- 册301：P4-C 朝廷风声（边关/北地地界） -->
   <script src="./game/data/side-cast.js"></script><!-- 册303：P4-B 配角 34 人表（头像占位化，adopt 入载入面） -->
   <script src="./game/data/romance.js"></script><!-- 册311：P4-E 情缘四表（头像占位化） -->
+  <script src="./game/data/hall.js"></script><!-- 册316：P4-F 立号三表 -->
   <!-- 逻辑层（core+systems 纯函数，禁碰 DOM/THREE） -->
   <script src="./game/core/data.js"></script>
   <script src="./game/core/state.js"></script>
@@ -704,6 +714,7 @@
   <script src="./game/systems/court.js"></script><!-- 册301：P4-C 朝廷风声（风声池/角标/五类选择） -->
   <script src="./game/systems/side.js"></script><!-- 册303：P4-B 配角包（在场/旗标/动作） -->
   <script src="./game/systems/romance.js"></script><!-- 册311：P4-E 情缘（阶段/在场/可见列表） -->
+  <script src="./game/systems/hall.js"></script><!-- 册316：P4-F 立号（五闸/房舍/声望/挂匾） -->
   <script src="./game/systems/combat.js"></script>
   <script src="./game/systems/payload.js"></script>
   <script src="./game/systems/deep.js"></script>

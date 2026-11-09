@@ -1775,6 +1775,135 @@ function buildRomanceSandbox() {
   check('S39c 差事轮转 ×4 态 + 收房/扶正/家变落账', badC === null, badC || undefined);
 })();
 
+/* ══ S40 P4-F 立号（册316 · F1）：房舍/声望/上限 三式 + 五闸缺口 + 挂匾落账 ══ */
+(function S40() {
+  const hall = require(path.join(GAME_DIR, 'systems', 'hall.js'));
+  const ctx = { Math: Object.create(Math), console: console };
+  vm.createContext(ctx);
+  const run = (code) => vm.runInContext(code, ctx, { filename: 'hall-sandbox.js' });
+  run(slice('const', 'ROMANCE_CAST').replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/g, '') + '\n');
+  run(slice('const', 'ROMANCE_STAGE_WORD') + '\n');
+  run(slice('const', 'HALL_NAME_POOL') + '\n');
+  ['ensureRomanceState', 'romancePerson', 'romanceStage', 'ensureHallState', 'hallState', 'hermitageJin',
+    'hallOpenBranches', 'hallCamps', 'hallHouses', 'hallFameRank', 'hallFameWord', 'hallCap', 'hallDisciples',
+    'foundingFameEased', 'foundingFameOk', 'streetFavorKey', 'jobFriendCount', 'foundingHasPledge',
+    'foundingRenownOk', 'foundingWanted', 'foundingResidenceOk', 'foundingGaps', 'foundingMetLabels',
+    'hallPickName'].forEach((f) => run(slice('function', f) + '\n'));
+
+  const baseHall = () => ({
+    turn: 9, gold: 0, fame: 0, streetFavor: {}, relicCarry: [], scrollProposition: null,
+    court: { wanted: 0, merit: 0, border: 0, yanyun: 0 },
+    estate: { buildings: { winery: 0, herbGarden: 0, smithy: 0, academy: 0 } },
+    romance: { wifeId: null, people: {}, concubines: [], jealousy: null }
+  });
+
+  /* S40a 三式：房舍（隐庐进数 + 未封分舵 + 营寨 − 抄家）/ 声望档 / 门人上限 */
+  let badA = null;
+  const hallCases = [
+    { b: 0, camps: [], seized: false, disciples: 0 },
+    { b: 2, camps: [], seized: false, disciples: 1 },
+    { b: 2, camps: [], seized: true, disciples: 2 },
+    { b: 0, camps: [], seized: false, disciples: 3, branches: [{ regionId: 'a', sealed: false }] },
+    { b: 0, camps: [{ id: 'wild', name: '山寨' }], seized: false, disciples: 6, bandit: true },
+    { b: 6, camps: [{ id: 'wild', name: '山寨' }, { id: 'x', name: '分号' }], seized: false, disciples: 8 },
+    { b: 6, camps: [], seized: false, disciples: 0, branches: [{ regionId: 'a', sealed: true }, { regionId: 'b', sealed: false }] }
+  ];
+  hallCases.forEach((c, i) => {
+    const st = baseHall();
+    st.estate.buildings.winery = c.b;
+    st.faction = {
+      founded: true, name: '测试门', disciples: Array.from({ length: c.disciples }, (_, k) => ({ id: 'd' + k, name: '门人' + k })),
+      recruitLines: [], doctrine: '行侠', doctrineId: 'xia', doctrineTurn: 0,
+      branches: c.branches || [], camps: c.camps, bandit: !!c.bandit, official: false,
+      treasury: 0, brokeStreak: 0, dissolved: false, seized: !!c.seized, fameRank: 0, vacantManor: false
+    };
+    run('state = ' + JSON.stringify(st) + ';');
+    const a = [run('hallHouses()'), run('hallFameRank()'), run('hallFameWord()'), run('hallCap()')].join('/');
+    hall.ensureState(st);
+    const b = [hall.houses(st), hall.fameRank(st), hall.fameWord(st), hall.cap(st)].join('/');
+    if (a !== b && !badA) badA = 'case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  check('S40a 房舍 / 声望档 / 门人上限 ×7 态（含抄家、封舵、落草）', badA === null, badA || undefined);
+
+  /* S40b 立号五闸：缺口清单（顺序敏感）+ 已备标签 ×7 态 */
+  let badB = null;
+  const gateCases = [
+    { fame: 0, gold: 0, b: 0 },                                                   /* 全缺 */
+    { fame: 48, gold: 150, b: 0 },                                                /* 侠名够、钱不够 */
+    { fame: 40, gold: 200, b: 2, scroll: 'xiaming' },                             /* 残卷放宽 36 */
+    { fame: 48, gold: 200, b: 2 },                                                /* 住处够（隐庐二进） */
+    { fame: 48, gold: 200, b: 2, pledge: true },                                  /* 人望=有约 */
+    { fame: 48, gold: 200, b: 2, friends: 2 },                                    /* 人望=两个市井之交 */
+    { fame: 48, gold: 200, b: 2, pledge: true, wanted: 3 }                        /* 官身犯险 */
+  ];
+  gateCases.forEach((c, i) => {
+    const st = baseHall();
+    st.fame = c.fame;
+    st.gold = c.gold;
+    st.estate.buildings.winery = c.b;
+    if (c.scroll) st.scrollProposition = { id: c.scroll };
+    if (c.wanted) st.court.wanted = c.wanted;
+    if (c.friends) {
+      st.streetFavor = { 'luoyang:waiter:甲': 2, 'luoyang:escort:乙': 2, 'luoyang:officer:丙': 4 };
+    }
+    st.romance.people.huangrong = { affection: 6, known: true, pledged: !!c.pledge, act: {} };
+    run('state = ' + JSON.stringify(st) + ';');
+    run('ensureRomanceState();');
+    const a = run('JSON.stringify(foundingGaps())') + '‖' + run('JSON.stringify(foundingMetLabels())');
+    const s2 = JSON.parse(JSON.stringify(st));
+    hall.ensureState(s2);
+    const b = JSON.stringify(hall.foundingGaps(s2)) + '‖' + JSON.stringify(hall.foundingMetLabels(s2));
+    if (a !== b && !badB) badB = 'case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  check('S40b 立号五闸 ×7 态（缺口序列 + 已备标签逐字对表）', badB === null, badB || undefined);
+
+  /* S40c 挂匾：命名两态 + 落账（−200 两 / 正妻 / 残片 / 风声）+ 落草支 + 重号拒绝 */
+  let badC = null;
+  const typedA = run('hallPickName("  青云门  ")');
+  const typedB = hall.pickName('  青云门  ');
+  if (typedA !== typedB || typedA !== '青云门') badC = '门名去空白: ' + typedA + ' ≠ ' + typedB;
+  const longName = '一二三四五六七八九十';
+  if (hall.pickName(longName) !== longName.slice(0, 8)) badC = '门名截断: ' + hall.pickName(longName);
+  if (hall.pickName('', () => 0.5) !== '拾穗门') badC = '空名抽签: ' + hall.pickName('', () => 0.5);
+
+  const mkFound = (o) => {
+    const st = baseHall();
+    st.fame = 48; st.gold = 500; st.turn = 12;
+    st.estate.buildings.winery = 2;
+    st.romance.people.huangrong = { affection: 6, known: true, pledged: true, act: {} };
+    st.scrollProposition = o && o.scroll ? { id: o.scroll } : null;
+    if (o && o.wanted) st.court.wanted = o.wanted;
+    hall.ensureState(st);
+    return st;
+  };
+  const st1 = mkFound();
+  const r1 = hall.found(st1, { name: '听雨门' });
+  if (!badC && (!r1.ok || st1.gold !== 300 || st1.faction.name !== '听雨门' || st1.faction.founded !== true ||
+    st1.faction.doctrineId !== 'xia' || st1.relicCarry.indexOf('flag_corner') < 0 ||
+    !st1.pendingRumor || !/挂匾/.test(r1.toast))) {
+    badC = '挂匾落账: ' + JSON.stringify({ ok: r1.ok, gold: st1.gold, f: st1.faction.name, relic: st1.relicCarry, rumor: !!st1.pendingRumor });
+  }
+  if (!badC) {
+    const again = hall.found(st1, { name: '再立' });
+    if (again.ok !== false) badC = '重号未被拒: ' + JSON.stringify(again);
+  }
+  /* 落草支：wanted ≥3 ⇒ 可扯山旗，营寨 +1、功名 −8、边谊 −6、宗旨转唯利 */
+  const st2 = mkFound({ wanted: 3 });
+  const r2 = hall.found(st2, { name: '野火寨', bandit: true });
+  if (!badC && (!r2.ok || st2.faction.bandit !== true || (st2.faction.camps || []).length !== 1 ||
+    st2.court.merit !== -8 || st2.court.border !== -6 || st2.faction.doctrineId !== 'profit')) {
+    badC = '落草落账: ' + JSON.stringify({ ok: r2.ok, bandit: st2.faction.bandit, camps: st2.faction.camps, merit: st2.court.merit, doctrine: st2.faction.doctrineId });
+  }
+  /* 五闸不齐 ⇒ 拒立并回缺口（不扣银、不置 founded） */
+  const st3 = baseHall();
+  hall.ensureState(st3);
+  const r3 = hall.found(st3, { name: '空门' });
+  if (!badC && (r3.ok !== false || st3.faction.founded !== false || st3.gold !== 0)) {
+    badC = '缺口未拦: ' + JSON.stringify({ ok: r3.ok, founded: st3.faction.founded, gold: st3.gold });
+  }
+  check('S40c 挂匾（命名去空白/截断/抽签 + −200 两 + 残片 + 风声 + 落草支 + 缺口拦截）', badC === null, badC || undefined);
+})();
+
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));
 if (failed === 0) {

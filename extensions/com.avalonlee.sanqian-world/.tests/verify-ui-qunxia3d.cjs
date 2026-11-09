@@ -901,6 +901,77 @@ const { chromium } = require('playwright-core');
       a.state.currentTileIdx = 1;
     });
 
+    /* ── Q3D20 组 · P4-F 立号（册316 F1）：面板入口 → 检定 → 挂匾 → 概览 ────
+     * 种档：侠名 48 / 盘缠 500 / 隐庐二进 / 有约（人望）⇒ 五闸齐。 */
+    await page.evaluate(() => {
+      const a = window.QX3D_APP;
+      const st = a.state;
+      st.fame = 48;
+      st.gold = 500;
+      st.estate.buildings.winery = 2;
+      st.faction = null;
+      st.scrollProposition = null;
+      st.court.wanted = 0;
+      window.QX3D.ui.hud.render(st);
+    });
+    await page.evaluate(() => { window.QX3D_APP.openActions(); });
+    await page.waitForTimeout(200);
+    const hl0 = await page.evaluate(() => {
+      const row = document.querySelector('#qx-modal [data-hall="found"]');
+      const heads = Array.prototype.map.call(document.querySelectorAll('#qx-modal .qxm-more-h'), (h) => h.textContent);
+      return { row: row ? row.textContent : '', heads: heads.join('|') };
+    });
+    T(/立号挂匾/.test(hl0.row) && /门户可立/.test(hl0.row) && /本门/.test(hl0.heads),
+      'Q3D20a 面板立号行（未立号「立号挂匾」⇔ 五闸齐显示「门户可立」）', JSON.stringify(hl0));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-hall="found"]').click(); });
+    await page.waitForTimeout(200);
+    const hl1 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      return {
+        open: !m.classList.contains('hidden'),
+        title: (m.querySelector('.qxm-title') || {}).textContent || '',
+        text: m.textContent,
+        input: !!document.getElementById('hall-name-input'),
+        picks: Array.prototype.map.call(m.querySelectorAll('[data-hall-pick]'), (b) => b.getAttribute('data-hall-pick')).join(',')
+      };
+    });
+    T(hl1.open && hl1.title === '立号检定' && hl1.input &&
+      /✓ 侠名/.test(hl1.text) && /✓ 盘缠/.test(hl1.text) && /✓ 住处/.test(hl1.text) && /✓ 人望/.test(hl1.text) && /✓ 官身/.test(hl1.text) &&
+      hl1.picks === '0,1',
+      'Q3D20b 立号检定（五项全 ✓ + 门名输入 + 「挂牌立门/改日再议」两钮）', JSON.stringify({ title: hl1.title, picks: hl1.picks, input: hl1.input }));
+    await page.fill('#hall-name-input', '青云门');
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-hall-pick="0"]').click(); });
+    await page.waitForTimeout(350);
+    const hl2 = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      const badge = document.querySelector('#hud-hall [data-hall]');
+      return {
+        founded: st.faction.founded, name: st.faction.name, gold: st.gold,
+        doctrine: st.faction.doctrine, relic: (st.relicCarry || []).indexOf('flag_corner') >= 0,
+        last: (st.logs || [])[0] && st.logs[0].text, badge: badge ? badge.textContent : ''
+      };
+    });
+    T(hl2.founded === true && hl2.name === '青云门' && hl2.gold === 300 && hl2.doctrine === '行侠' && hl2.relic &&
+      /【立号】/.test(hl2.last || '') && /本门/.test(hl2.badge),
+      'Q3D20c 挂匾落账（−200 两 · 门名入档 · 行侠 · flag_corner · 日志【立号】· 顶栏「本门」）',
+      JSON.stringify({ founded: hl2.founded, name: hl2.name, gold: hl2.gold, badge: hl2.badge }));
+    await page.evaluate(() => { document.querySelector('#hud-hall [data-hall]').click(); });
+    await page.waitForTimeout(200);
+    const hl3 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      return {
+        seal: (m.querySelector('.qxm-street-seal') || {}).textContent || '',
+        loc: (m.querySelector('.qxm-loc') || {}).textContent || '',
+        text: m.textContent
+      };
+    });
+    T(hl3.seal === '本门' && hl3.loc === '概览' &&
+      /青云门/.test(hl3.text) && /声望无名/.test(hl3.text) && /宗旨行侠/.test(hl3.text) &&
+      /门人 0 人，上限 5/.test(hl3.text) && /房舍 2/.test(hl3.text) && /主母位/.test(hl3.text),
+      'Q3D20d 本门概览（名号/声望/宗旨/门人上限/房舍/主母位六项上屏）', JSON.stringify({ seal: hl3.seal, loc: hl3.loc }));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-qxm-close]').click(); });
+    await page.waitForTimeout(120);
+
     /* 收口：全程零脚本错误 */
     T(errs.length === 0 && (await page.evaluate(() => window.__errs.length)) === 0,
       'Q3D7 全程零脚本错误（pageerror/console.error/window.__errs 三源）', errs.slice(0, 3).join(' | '));

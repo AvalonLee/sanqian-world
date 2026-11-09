@@ -55,7 +55,17 @@
 
     renderCourtBadges(st);
     renderRomanceBadge(st);
+    renderHallBadge(st);
     renderLogs(st);
+  }
+
+  /* 顶栏本门角标（册316 · P4-F F1）：立号后常显「本门」，点击进概览 */
+  function renderHallBadge(st) {
+    var host = el('hud-hall');
+    if (!host) return;
+    var hall = root.QX3D && root.QX3D.systems && root.QX3D.systems.hall;
+    if (!hall || !hall.hasBadge(st)) { host.innerHTML = ''; return; }
+    host.innerHTML = '<button type="button" class="court-badge hall" data-hall="1">本门</button>';
   }
 
   /* 顶栏情缘角标（册314 · P4-E E3b）：模型走 systems.romance.hasBadge / wifeId，

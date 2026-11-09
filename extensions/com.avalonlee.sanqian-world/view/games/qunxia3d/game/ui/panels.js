@@ -42,7 +42,7 @@
   }
 
   /* ── 本境动作面板（collectTileActions 全列 + 册300 市井在场）──────────────── */
-  function openActionPanel(st, curReg, curTile, onAct, onStreet, onSide, onRomance) {
+  function openActionPanel(st, curReg, curTile, onAct, onStreet, onSide, onRomance, onHall) {
     openSheet(function (m) {
       var all = systems.tiles.collectTileActions(st, curReg, curTile);
       var picked = systems.tiles.pickPrimaryActions(all);
@@ -70,6 +70,23 @@
           '<span class="qa-main"><b>' + r.name + '</b><i>' + r.address + ' · ' + word + '</i></span>' +
           '<span class="qa-cost">点开</span></button>';
       }).join('');
+      /* 本门（P4-F · 册316 F1）：未立号 = 立号入口（列首缺），已立号 = 概览入口 */
+      var hallRow = '';
+      if (systems.hall) {
+        systems.hall.ensureState(st);
+        if (st.faction.founded) {
+          hallRow = '<button class="qxm-act" data-hall="1">' +
+            '<span class="qa-main"><b>本门 · ' + st.faction.name + '</b><i>声望' + systems.hall.fameWord(st) +
+            ' · 门人 ' + systems.hall.disciples(st).length + '/' + systems.hall.cap(st) + '</i></span>' +
+            '<span class="qa-cost">点开</span></button>';
+        } else {
+          var hg = systems.hall.foundingGaps(st);
+          hallRow = '<button class="qxm-act" data-hall="found">' +
+            '<span class="qa-main"><b>立号挂匾</b><i>' +
+            (hg.length ? ('还缺 ' + hg.length + ' 项：' + hg[0].text) : '门户可立 · 二百两') +
+            '</i></span><span class="qa-cost">' + (hg.length ? '查看' : '可办') + '</span></button>';
+        }
+      }
       var tierCls = function (a) {
         if (a.disabled) return ' disabled';
         if (a.tier === 'recommend') return ' recommend';
@@ -89,6 +106,7 @@
         (streetRows ? '<div class="qxm-more-h">市井 · 在场</div>' + streetRows : '') +
         (sideRows ? '<div class="qxm-more-h">配角 · 在场</div>' + sideRows : '') +
         (romanceRows ? '<div class="qxm-more-h">情缘 · 在场</div>' + romanceRows : '') +
+        (hallRow ? '<div class="qxm-more-h">本门</div>' + hallRow : '') +
         (moreRows.length ? '<div class="qxm-more-h">更多 · 本旬可办</div>' + moreRows.map(row).join('') : '') +
         (shopRows.length ? '<div class="qxm-more-h">商铺 · 限量货架</div>' + shopRows.map(row).join('') : '') +
         '</div>',
@@ -116,6 +134,12 @@
         b.addEventListener('click', function () {
           closeModal();
           if (onRomance) onRomance(b.getAttribute('data-romance'));
+        });
+      });
+      Array.prototype.forEach.call(m.querySelectorAll('[data-hall]'), function (b) {
+        b.addEventListener('click', function () {
+          closeModal();
+          if (onHall) onHall(b.getAttribute('data-hall'));
         });
       });
     });
@@ -296,6 +320,47 @@
     });
   }
 
+  /* ── 立号检定（册316 · F1）：✓ 已备 + 缺口逐条 + 门名输入 + 挂牌 ───────────
+   * 原版 openFoundingCheck（条件页）与 openHallPlaque（挂匾页）合成一屏：条件不够就只列缺口。 */
+  function openHallFound(st, info, onPick) {
+    openSheet(function (m) {
+      var met = (info.met || []).map(function (w) { return '✓ ' + w; });
+      var gaps = (info.gaps || []).map(function (g) { return g.text; });
+      var can = gaps.length === 0;
+      var choices = '';
+      if (can) choices += '<button class="qxm-btn primary" data-hall-pick="0">挂牌立门</button>';
+      if (info.banditOpen) choices += '<button class="qxm-btn" data-hall-pick="2">改扯山旗 <small>通缉在身，直接落草</small></button>';
+      choices += '<button class="qxm-btn" data-hall-pick="1">改日再议</button>';
+      var desc = '<p class="qxm-desc">' + (met.concat(gaps).join('　') || '条件都够了。') + '</p>' +
+        (can ? '<input id="hall-name-input" class="qxm-name-input" maxlength="8" placeholder="门名（留空从雅号里抽一个）">' : '');
+      shell(m, '立号', '立号检定', '条件', desc, choices);
+      Array.prototype.forEach.call(m.querySelectorAll('[data-hall-pick]'), function (b) {
+        b.addEventListener('click', function () {
+          var which = parseInt(b.getAttribute('data-hall-pick'), 10);
+          var input = document.getElementById('hall-name-input');
+          var name = input ? input.value : '';
+          closeModal();
+          if (onPick) onPick(which, name);
+        });
+      });
+    });
+  }
+
+  /* ── 本门概览（册316 · F1）：名号 / 声望 / 宗旨 / 门人上限 / 房舍 / 主母位 ── */
+  function openHallOverview(st, info) {
+    openSheet(function (m) {
+      var desc = '<div class="qxm-street">' +
+        '<div class="qxm-street-seal">本门</div>' +
+        '<p>' + info.name + '。声望' + info.fameWord + '。宗旨' + info.doctrine + '。</p>' +
+        '<p>门人 ' + info.people + ' 人，上限 ' + info.cap + '。房舍 ' + info.houses + '。</p>' +
+        '<p>' + info.wifeLine + '</p>' +
+        '</div>' +
+        '<div class="qxm-dim qxm-street-meta">' + (info.ledger || '饷银还没过第一旬。') + '</div>';
+      shell(m, '本门', info.name, '概览', desc, choiceBtn('合上簿子'));
+      m.querySelector('[data-qxm-choice]').addEventListener('click', closeModal);
+    });
+  }
+
   root.QX3D.ui = root.QX3D.ui || {};
   root.QX3D.ui.panels = {
     openActionPanel: openActionPanel,
@@ -303,6 +368,8 @@
     openSideNpc: openSideNpc,
     openRomanceList: openRomanceList,
     openRomanceNpc: openRomanceNpc,
+    openHallFound: openHallFound,
+    openHallOverview: openHallOverview,
     openCourtChoices: openCourtChoices,
     openBountyPoster: openBountyPoster,
     openRoadEncounter: openRoadEncounter,
