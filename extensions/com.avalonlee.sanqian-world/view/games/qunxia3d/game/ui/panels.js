@@ -91,12 +91,14 @@
     });
   }
 
-  /* ── 市井浮层（册300 · P4-A）：三句场面 + 三动作（禁用态走 actionView 同源）──── */
-  function openStreetNpc(st, npc, onAct) {
+  /* ── 市井浮层（册300 · P4-A）：三句场面 + 三动作（禁用态走 actionView 同源）
+   * 册301：extraActions = 官差三支（朝廷线），前置后整体截 3 —— 与原版
+   * syncOfficerJobActions「court 三支优先、再用原岗动作补位」同序。 */
+  function openStreetNpc(st, npc, onAct, extraActions) {
     openSheet(function (m) {
       var job = systems.street.jobOf(npc.jobId) || { title: '市井', sentences: [], actions: [] };
       var lines = (job.sentences || []).slice(0, 3).map(function (fn) { return fn(npc); });
-      var actions = (job.actions || []).slice(0, 3);
+      var actions = (extraActions || []).concat(job.actions || []).slice(0, 3);
       var desc = '<div class="qxm-street">' +
         '<div class="qxm-street-seal">' + job.title + '</div>' +
         lines.map(function (l) { return '<p>' + l + '</p>'; }).join('') +
@@ -166,6 +168,22 @@
     });
   }
 
+  /* ── 朝廷风声浮层（册301 · P4-C）：一屏一句结论 + 2~3 个选择 ─────────────── */
+  function openCourtChoices(tag, title, loc, desc, labels, onPick) {
+    openSheet(function (m) {
+      var choices = (labels || []).map(function (l, i) {
+        return '<button class="qxm-btn' + (i === 0 ? ' primary' : '') + '" data-court-pick="' + i + '">' + l + '</button>';
+      }).join('');
+      shell(m, tag, title, loc, '<p class="qxm-desc">' + desc + '</p>', choices);
+      Array.prototype.forEach.call(m.querySelectorAll('[data-court-pick]'), function (b) {
+        b.addEventListener('click', function () {
+          closeModal();
+          if (onPick) onPick(parseInt(b.getAttribute('data-court-pick'), 10));
+        });
+      });
+    });
+  }
+
   /* ── 传世秘境占位（M4 接内容）────────────────────────────────────────────── */
   function openSecretPending(regId, secret, onClose) {
     openSheet(function (m) {
@@ -180,6 +198,7 @@
   root.QX3D.ui.panels = {
     openActionPanel: openActionPanel,
     openStreetNpc: openStreetNpc,
+    openCourtChoices: openCourtChoices,
     openBountyPoster: openBountyPoster,
     openRoadEncounter: openRoadEncounter,
     openDuelPending: openDuelPending,

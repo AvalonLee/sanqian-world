@@ -47,7 +47,9 @@
       sceneLine: function (crisis) { return systems.payload.sceneLine(crisis); },
       crisisReward: function (id) { return systems.payload.crisisReward(st, id, env()); },
       openBountyPoster: function (bounty) { ui.panels.openBountyPoster(st, bounty, core.player, core.time.getRegion, function (b) { runAction('bounty_duel'); }); },
-      openRoadEncounter: function (ev, reg) { ui.panels.openRoadEncounter(ev, reg, function (idx) { systems.tiles.applyRoadEncounterChoice(st, ev, idx, env()); afterAction(); }); }
+      openRoadEncounter: function (ev, reg) { ui.panels.openRoadEncounter(ev, reg, function (idx) { systems.tiles.applyRoadEncounterChoice(st, ev, idx, env()); afterAction(); }); },
+      /* 册301 P4-C：过旬结算钩子（core/time.advanceTime 调用） */
+      settleCourtOnNewTurn: function () { systems.court.settleOnNewTurn(st); }
     }, extra || {});
   }
 
@@ -192,19 +194,100 @@
     var curReg = core.time.getRegion(st.currentRegion);
     var npc = systems.street.findNpc(st, curReg, npcId);
     if (!npc || npc.tileIdx !== st.currentTileIdx) { ui.hud.toast('人已经不在这一处了。', 'amber'); return; }
-    ui.panels.openStreetNpc(st, npc, function (actionId) { runStreetAction(npcId, actionId); });
+    /* 官差三支（朝廷线）按原版 syncOfficerJobActions 前置：洗通缉 / 领悬赏 / 交人犯 */
+    var extra = npc.jobId === 'officer' ? systems.court.officerActions(st) : [];
+    ui.panels.openStreetNpc(st, npc, function (actionId) { runStreetAction(npcId, actionId); }, extra);
   }
   function runStreetAction(npcId, actionId) {
     var curReg = core.time.getRegion(st.currentRegion);
     var npc = systems.street.findNpc(st, curReg, npcId);
-    var r = systems.street.act(st, npc, actionId, env({
-      getRegion: core.time.getRegion,
-      checkRealmPromotion: systems.tiles.checkRealmPromotion
-    }));
+    var r = systems.court.isCourtAction(actionId)
+      ? systems.court.actOfficer(st, npc, actionId)
+      : systems.street.act(st, npc, actionId, env({
+        getRegion: core.time.getRegion,
+        checkRealmPromotion: systems.tiles.checkRealmPromotion
+      }));
     if (!r.ok) { ui.hud.toast(r.why || '这会儿做不了。', 'red'); return; }
-    core.time.addLog(st, r.log);
+    if (r.log) core.time.addLog(st, r.log);
     if (r.toast) ui.hud.toast(r.toast, r.tone);
     afterAction();
+  }
+
+  /* ── 朝廷风声（P4-C · 册301）：顶栏角标 → 结论体 / 五类选择 ───────────────── */
+  function courtOfficerHere() {
+    var reg = core.time.getRegion(st.currentRegion);
+    var here = systems.street.npcsHere(st, reg);
+    for (var i = 0; i < here.length; i++) if (here[i].jobId === 'officer') return here[i];
+    return null;
+  }
+  function courtApply(r) {
+    if (!r) return;
+    if (r.log) core.time.addLog(st, r.log);
+    if (r.toast) ui.hud.toast(r.toast, r.tone);
+    afterAction();
+    if (r.openOfficer) openStreetNpc(r.openOfficer);
+  }
+  function openCourtBadge(id) {
+    var c = systems.court.ensureRumors(st);
+    if (id === 'court') {
+      var edict = systems.court.findRumor(st, 'edict');
+      ui.panels.openCourtChoices('朝廷', '功名与通缉', '顶栏',
+        '功名：' + systems.court.meritWord(c.merit) + '。通缉：' + systems.court.wantedWord(c.wanted) +
+        '。' + (edict ? edict.line : '眼下没有未决诏令。'),
+        ['去看置顶风声', '找脚下的官差', '已知'],
+        function (i) {
+          if (i === 0) {
+            var pin = systems.court.findRumor(st, c.pinId) || edict;
+            if (pin) openCourtRumor(pin.id);
+          } else if (i === 1) {
+            courtApply(systems.court.wantedChoice(st, 'wash', { officerHere: courtOfficerHere }));
+          }
+        });
+    } else if (id === 'xia') {
+      ui.panels.openCourtChoices('西夏', '边谊', '顶栏',
+        '边谊：' + systems.court.borderWord(c.border) + '。细作嫌疑：' + (c.spy ? '有' : '无') + '。',
+        ['再打听边市', '已知'],
+        function (i) {
+          if (i !== 0) return;
+          st.pendingRumor = { grade: 'stale', text: '边市还在边关一带做，没人报出商胡的名字和落脚的格子。', aboutId: 'xia' };
+          core.time.addLog(st, '【朝廷】' + st.pendingRumor.text);
+          ui.hud.toast('只有这一句边市。', 'amber');
+          afterAction();
+        });
+    } else {
+      ui.panels.openCourtChoices('辽', '燕云', '顶栏',
+        systems.court.yanyunWord(c.yanyun) + '。本旬邸报：边警起了，武林有人议盟，没有点出使者站在哪。',
+        ['关注盟约', '已知'],
+        function (i) { if (i === 0) courtApply(systems.court.yanyunChoice(st, 'watch')); });
+    }
+  }
+  function openCourtRumor(id) {
+    var r = systems.court.findRumor(st, id);
+    if (!r) return;
+    var open = function (tag, title, loc, labels, fn) {
+      ui.panels.openCourtChoices(tag, title, loc, r.line, labels, fn);
+    };
+    if (r.type === 'edict') {
+      open('诏令', '驿站诏令', '邸报', ['应召', '拒诏', '拖延'], function (i) {
+        courtApply(systems.court.answerEdict(st, ['yes', 'no', 'delay'][i]));
+      });
+    } else if (r.type === 'border') {
+      open('边报', '西夏商胡', '边关一带', ['护送', '回避', '再打听'], function (i) {
+        courtApply(systems.court.borderChoice(st, ['escort', 'avoid', 'ask'][i]));
+      });
+    } else if (r.type === 'merit') {
+      open('悬赏·功名', '海捕告示', '告示', ['接赏', '查看线索', '搁置'], function (i) {
+        courtApply(systems.court.meritChoice(st, ['take', 'clue', 'hold'][i]));
+      });
+    } else if (r.type === 'wanted') {
+      open('悬赏·通缉', '尔名在官', '告示', ['去衙署洗白', '先躲', '已知'], function (i) {
+        courtApply(systems.court.wantedChoice(st, ['wash', 'hide', 'known'][i], { officerHere: courtOfficerHere }));
+      });
+    } else if (r.type === 'yanyun') {
+      open('燕云邸报', '边警', '邸报', ['关注盟约', '南避', '已知'], function (i) {
+        courtApply(systems.court.yanyunChoice(st, ['watch', 'south', 'known'][i]));
+      });
+    }
   }
 
   /* ── 动作派发（collectTileActions.act → systems.tiles）───────────────────── */
@@ -287,6 +370,8 @@
     var res = core.state.loadGame(root.localStorage);
     st = res.state;
     core.data.bindRuntimeState(st);
+    systems.street.ensureState(st, core.time.getRegion); /* 册300：旧档补市井七字段 */
+    systems.court.ensureState(st);                       /* 册301：旧档补朝廷态 */
     systems.payload.mergeStateMasters(st); /* 旧档收到扩展 S/A 名宿（content-merge :141 语义） */
     if (res.genAction.action === 'reload') {
       /* 扩展侧已转世：存档已清，刷新回创角封面（原 reconcileWorldGen :3218） */
@@ -333,6 +418,14 @@
     document.getElementById('btn-creation-submit').addEventListener('click', function () {
       ui.creation.submit(function (s2) { ui.hud.render(s2); syncChrome(); scheduleTutorial(); });
     });
+    /* 顶栏朝廷角标（册301）：委托到 #hud-court，重渲不丢监听 */
+    var courtHost = document.getElementById('hud-court');
+    if (courtHost) {
+      courtHost.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('[data-court]') : null;
+        if (b) openCourtBadge(b.getAttribute('data-court'));
+      });
+    }
   }
 
   root.QX3D_APP = {
@@ -345,6 +438,9 @@
     onTravel: onTravel,
     runAction: runAction,
     openActions: openActions,
+    openCourtBadge: openCourtBadge,
+    openCourtRumor: openCourtRumor,
+    openStreetNpc: openStreetNpc,
     /* M4 深度系统动作口 */
     runMaster: function (act) {
       if (!st || !st.hasCreatedChar) return;

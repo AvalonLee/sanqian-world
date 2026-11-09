@@ -292,6 +292,45 @@ const { chromium } = require('playwright-core');
     await page.evaluate(() => { const x = document.querySelector('#qx-modal [data-qxm-close]'); if (x) x.click(); });
     await page.waitForTimeout(150);
 
+    /* ── Q3D16 组 · P4-C 朝廷风声（册301）：角标 → 结论体 → 应召落档 ─────────── */
+    const ct0 = await page.evaluate(() => {
+      const b = document.querySelector('#hud-court [data-court="court"]');
+      return { shown: !!b, label: b ? b.textContent : '', hot: b ? b.classList.contains('hot') : false };
+    });
+    T(ct0.shown && /朝廷·有诏/.test(ct0.label) && ct0.hot,
+      'Q3D16a 顶栏朝廷角标（开局有诏 ⇔ 朱砂 hot 态）', JSON.stringify(ct0));
+    await page.evaluate(() => { document.querySelector('#hud-court [data-court="court"]').click(); });
+    await page.waitForTimeout(200);
+    const ct1 = await page.evaluate(() => ({
+      open: !document.getElementById('qx-modal').classList.contains('hidden'),
+      title: (document.querySelector('#qx-modal .qxm-title') || {}).textContent || '',
+      choices: document.querySelectorAll('#qx-modal [data-court-pick]').length,
+      desc: (document.querySelector('#qx-modal .qxm-desc') || {}).textContent || ''
+    }));
+    T(ct1.open && ct1.title === '功名与通缉' && ct1.choices === 3 && /功名：功名未动/.test(ct1.desc),
+      'Q3D16b 角标结论体（功名/通缉短词 + 三选择）', JSON.stringify({ title: ct1.title, choices: ct1.choices }));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-court-pick="0"]').click(); });
+    await page.waitForTimeout(200);
+    const ct2 = await page.evaluate(() => ({
+      title: (document.querySelector('#qx-modal .qxm-title') || {}).textContent || '',
+      labels: Array.prototype.map.call(document.querySelectorAll('#qx-modal [data-court-pick]'), (b) => b.textContent)
+    }));
+    T(/驿站诏令/.test(ct2.title) && ct2.labels.join('|') === '应召|拒诏|拖延',
+      'Q3D16c 置顶风声（诏令 → 应召/拒诏/拖延 三选）', JSON.stringify(ct2));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-court-pick="0"]').click(); }); /* 应召 */
+    await page.waitForTimeout(300);
+    const ct3 = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      return {
+        merit: st.court.merit, wanted: st.court.wanted, answered: st.court.flags.answered || 0,
+        edict: (st.court.rumors || []).some((r) => r.id === 'edict'),
+        last: (st.logs || [])[0] && st.logs[0].text,
+        badge: (document.querySelector('#hud-court [data-court="court"]') || {}).textContent || ''
+      };
+    });
+    T(ct3.merit === 18 && ct3.wanted === 0 && ct3.answered === 1 && !ct3.edict && /【诏令】你应了召/.test(ct3.last || '') && /朝廷·薄功/.test(ct3.badge),
+      'Q3D16d 应召落档（功名 +18 · 诏令离场 · 角标改「薄功」）', JSON.stringify({ merit: ct3.merit, wanted: ct3.wanted, badge: ct3.badge }));
+
     /* ① 揭榜悬赏（海捕文书弹窗 + ap−1 + 冷却 turn+2） */
     await page.evaluate(() => { window.QX3D_APP.openActions(); });
     await page.waitForTimeout(200);
@@ -406,6 +445,13 @@ const { chromium } = require('playwright-core');
     const mpOk = afterTurn.mp === Math.min(afterTurn.maxMp, preTurn.mp + Math.round(afterTurn.maxMp * 0.6));
     T(afterTurn.turn === 8 && afterTurn.ap === afterTurn.maxAp && hpOk && mpOk,
       'Q3D8j 吐纳过旬（第8旬 + 精力回满 + meditateRest 45%/60% 回复）', JSON.stringify({ turn: afterTurn.turn, ap: afterTurn.ap, hp: preTurn.hp + '→' + afterTurn.hp + '/' + afterTurn.maxHp, mp: preTurn.mp + '→' + afterTurn.mp + '/' + afterTurn.maxMp }));
+    /* Q3D16e 过旬结算钩子：advanceTime → env.settleCourtOnNewTurn ⇒ 新旬风声重算、诏令再至 */
+    const ctSettle = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      return { rumorTurn: st.court.rumorTurn, edict: (st.court.rumors || []).some((r) => r.id === 'edict') };
+    });
+    T(ctSettle.rumorTurn === 8 && ctSettle.edict,
+      'Q3D16e 过旬结算钩子（settleCourtOnNewTurn 真跑 ⇔ 新旬风声重算、诏令再至）', JSON.stringify(ctSettle));
     /* ── Q3D9 组 · M2 三招对决（缉拿 e2e · 半屏出招卡 + 3D 背景糊化）────────── */
     await page.evaluate(() => { window.QX3D_APP.openActions(); });
     await page.waitForTimeout(200);

@@ -1415,6 +1415,80 @@ function buildStreetSandbox() {
   check('S34g FNV 散列 streetHash', badHash === null, badHash || undefined);
 })();
 
+/* ══ S35 P4-C 朝廷风声（册301）：短词 / 风声池 / 角标 / 过旬结算 对表 ═══════
+ * 轻量沙箱：只切两张地界表 + 朝廷函数族，state 由本件按用例注入。 */
+function buildCourtSandbox() {
+  const ctx = { Math: Object.create(Math), console: console };
+  vm.createContext(ctx);
+  const run = function (code) { return vm.runInContext(code, ctx, { filename: 'court-sandbox.js' }); };
+  ['COURT_BORDER_REGIONS', 'COURT_NORTH_REGIONS'].forEach(n => run(slice('const', n) + '\n'));
+  ['ensureP4CStateDefaults', 'clampCourt', 'meritWord', 'wantedWord', 'borderWord', 'yanyunWord',
+    'courtScrollIsCourt', 'courtBountyTarget', 'buildCourtRumorPool', 'ensureCourtRumors',
+    'settleCourtOnNewTurn', 'courtBadgeModel', 'courtState'].forEach(f => run(slice('function', f) + '\n'));
+  return { run: run };
+}
+
+(function S35() {
+  const court = require(path.join(GAME_DIR, 'systems', 'court.js'));
+  const sb = buildCourtSandbox();
+
+  /* ① 短词逐档（原 meritWord / wantedWord / borderWord / yanyunWord） */
+  let badWord = null;
+  [-100, -60, -25, -24, -1, 0, 1, 24, 25, 59, 60, 100].forEach((n) => {
+    const pairs = [
+      ['meritWord', n, sb.run('meritWord(' + n + ')'), court.meritWord(n)],
+      ['borderWord', n, sb.run('borderWord(' + n + ')'), court.borderWord(n)],
+      ['wantedWord', Math.max(0, Math.min(5, n)), sb.run('wantedWord(' + Math.max(0, Math.min(5, n)) + ')'), court.wantedWord(Math.max(0, Math.min(5, n)))],
+      ['yanyunWord', n, sb.run('yanyunWord(Math.max(0,Math.min(2,' + n + ')))'), court.yanyunWord(Math.max(0, Math.min(2, n)))]
+    ];
+    pairs.forEach((p) => { if (p[2] !== p[3] && !badWord) badWord = p[0] + '(' + p[1] + '): ' + p[2] + ' ≠ ' + p[3]; });
+  });
+  check('S35a 朝廷短词逐档（功名/通缉/边谊/燕云）', badWord === null, badWord || undefined);
+
+  /* ② 风声池 + 角标 + 过旬结算（三态：初入江湖 / 北地通缉细作 / 功名在身） */
+  const cases = [
+    { turn: 1, currentRegion: 'luoyang', scrollProposition: null, sideScrollBias: {}, sideFlags: {}, court: null },
+    { turn: 5, currentRegion: 'yanmenguan', scrollProposition: { id: 'chaoting' }, sideScrollBias: { chousha: 1, bounty: 1 }, sideFlags: { mu: 'alive' }, court: { merit: -5, wanted: 2, border: 0, spy: true, yanyun: 1, flags: {}, rumorTurn: 0, rumors: [], pinId: null } },
+    { turn: 9, currentRegion: 'heimuya', scrollProposition: { id: 'x' }, sideScrollBias: {}, sideFlags: { fengBounty: 'cleared' }, court: { merit: 30, wanted: 1, border: -12, spy: false, yanyun: 0, flags: { delayBoost: 2 }, rumorTurn: 0, rumors: [], pinId: null } }
+  ];
+  cases.forEach((c, i) => {
+    const sbState = JSON.parse(JSON.stringify(c));
+    sb.run('state = ' + JSON.stringify(sbState) + ';');
+    const sbPool = JSON.parse(sb.run('JSON.stringify(ensureCourtRumors().rumors.map(function(r){return [r.id,r.type,r.weight];}))'));
+    const sbBadges = JSON.parse(sb.run('JSON.stringify(courtBadgeModel())'));
+    const sbSettle = JSON.parse(sb.run('settleCourtOnNewTurn(); JSON.stringify({m:state.court.merit,w:state.court.wanted,b:state.court.border,y:state.court.yanyun})'));
+
+    const st = JSON.parse(JSON.stringify(c));
+    court.ensureState(st);
+    const nPool = court.ensureRumors(st).rumors.map(r => [r.id, r.type, r.weight]);
+    const nBadges = court.badgeModel(st);
+    court.settleOnNewTurn(st);
+    const nSettle = { m: st.court.merit, w: st.court.wanted, b: st.court.border, y: st.court.yanyun };
+
+    const r1 = deepEq(sbPool, nPool, 'pool');
+    const r2 = deepEq(sbBadges, nBadges, 'badges');
+    const r3 = deepEq(sbSettle, nSettle, 'settle');
+    check('S35b 风声池 case' + i, r1 === null, r1 || undefined);
+    check('S35c 顶栏角标 case' + i, r2 === null, r2 || undefined);
+    check('S35d 过旬结算 case' + i, r3 === null, r3 || undefined);
+  });
+
+  /* ③ 海捕目标（sideFlags 五态） */
+  const flagCases = [
+    {}, { mu: 'down' }, { mu: 'down', fengBounty: 'cleared' },
+    { mu: 'down', fengBounty: 'cleared', tian: 'repelled' },
+    { mu: 'down', fengBounty: 'cleared', tian: 'repelled', yun: 'fled', eyu: 'down' }
+  ];
+  let badTarget = null;
+  flagCases.forEach((f, i) => {
+    sb.run('state = { sideFlags: ' + JSON.stringify(f) + ', court: ' + JSON.stringify({ merit: 0, wanted: 0, border: 0, spy: false, yanyun: 0, flags: {}, rumorTurn: 0, rumors: [], pinId: null }) + ' };');
+    const a = sb.run('JSON.stringify(courtBountyTarget())');
+    const b = JSON.stringify(court.bountyTarget({ sideFlags: f }));
+    if (a !== b && !badTarget) badTarget = 'case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  check('S35e 海捕目标链（五态）', badTarget === null, badTarget || undefined);
+})();
+
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));
 if (failed === 0) {

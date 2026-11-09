@@ -53,7 +53,19 @@
       tk.classList.remove('crisis');
     }
 
+    renderCourtBadges(st);
     renderLogs(st);
+  }
+
+  /* 顶栏朝廷角标（册301 · P4-C）：模型走 systems.court.badgeModel，点击由 app 委托 */
+  function renderCourtBadges(st) {
+    var host = el('hud-court');
+    if (!host) return;
+    var court = root.QX3D && root.QX3D.systems && root.QX3D.systems.court;
+    if (!court) { host.innerHTML = ''; return; }
+    host.innerHTML = court.badgeModel(st).map(function (b) {
+      return '<button type="button" class="court-badge ' + b.id + (b.hot ? ' hot' : '') + '" data-court="' + b.id + '">' + b.label + '</button>';
+    }).join('');
   }
 
   function renderLogs(st) {
