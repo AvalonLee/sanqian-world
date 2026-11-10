@@ -155,6 +155,65 @@ const { chromium } = require('playwright-core');
     T(c1.hud && c1.turnBtn && c1.modalGone && /^\d+\/\d+$/.test(c1.hp) && c1.ap === '5/5' && c1.date === '第1/36旬',
       'Q3D2d 纸面 HUD 同步（hud-bar 显 ⇔ 气血/行脚 5/5/第1旬读数在位）', JSON.stringify(c1));
 
+    /* ── Q3D24 组 · 容量复核与懒加载（册320）：首屏 46 件，五件点击才载 ──────── */
+    const lz0 = await page.evaluate(() => {
+      const srcs = Array.prototype.map.call(document.querySelectorAll('script[src]'), (s) => s.getAttribute('src'));
+      const has = (f) => srcs.some((x) => x.indexOf('ui/' + f + '.js') >= 0);
+      return {
+        n: srcs.length,
+        loader: has('lazy'), creation: has('creation'), drawer: has('drawer'),
+        settings: has('settings'), gazette: has('gazette'), endings: has('endings-ui')
+      };
+    });
+    T(lz0.loader && lz0.creation && !lz0.drawer && !lz0.settings && !lz0.gazette && !lz0.endings,
+      'Q3D24a 首屏懒加载面（lazy.js 在 ⇔ 创角件已按需载入 ⇔ 其余四件仍未挂载）', JSON.stringify(lz0));
+
+    await page.evaluate(() => { document.getElementById('btn-settings').click(); });
+    await page.waitForTimeout(520);
+    const lz1 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      const srcs = Array.prototype.map.call(document.querySelectorAll('script[src]'), (s) => s.getAttribute('src')).join('|');
+      return {
+        open: !m.classList.contains('hidden') && !!m.querySelector('#qxs-sound'),
+        loaded: /ui\/settings\.js/.test(srcs),
+        title: (m.querySelector('.qxm-title') || {}).textContent || ''
+      };
+    });
+    T(lz1.open && lz1.loaded && /音律/.test(lz1.title),
+      'Q3D24b 设置中心按需载入（点 ⚙️ 后 settings.js 才进 DOM ⇔ 面板照常开）', JSON.stringify(lz1));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-qxm-close]').click(); });
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => { document.getElementById('btn-gazette').click(); });
+    await page.waitForTimeout(520);
+    const lz2 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      const srcs = Array.prototype.map.call(document.querySelectorAll('script[src]'), (s) => s.getAttribute('src')).join('|');
+      return {
+        open: !m.classList.contains('hidden'),
+        loaded: /ui\/gazette\.js/.test(srcs),
+        text: (m.querySelector('.qxm-title') || {}).textContent || ''
+      };
+    });
+    T(lz2.open && lz2.loaded && /合集/.test(lz2.text),
+      'Q3D24c 邸报合集按需载入（点 📰 后 gazette.js 才进 DOM ⇔ 合集照常开）', JSON.stringify(lz2));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-qxm-close]').click(); });
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => { document.getElementById('btn-drawer').click(); });
+    await page.waitForTimeout(520);
+    const lz3 = await page.evaluate(() => {
+      const srcs = Array.prototype.map.call(document.querySelectorAll('script[src]'), (s) => s.getAttribute('src')).join('|');
+      return {
+        open: !document.getElementById('drawer-overlay').classList.contains('hidden'),
+        loaded: /ui\/drawer\.js/.test(srcs)
+      };
+    });
+    T(lz3.open && lz3.loaded,
+      'Q3D24d 五抽屉按需载入（点 📚 后 drawer.js 才进 DOM ⇔ 抽屉照常开）', JSON.stringify(lz3));
+    await page.evaluate(() => { if (window.QX3D.ui.drawer) window.QX3D.ui.drawer.close(); });
+    await page.waitForTimeout(200);
+
     /* M2 尾批（册277）：创角后 1.2s 会弹首局教学邀请——旧流程段先关掉它
      * （教学 e2e 在 Q3D11 独立 context；此处跳过后调度不再重发，不影响后续组） */
     await page.waitForTimeout(1600);
@@ -723,7 +782,7 @@ const { chromium } = require('playwright-core');
       JSON.stringify({ a: bg2a, suite: bg2b, reenabled: bg2c }));
     /* 🆕 册292：设置中心（ui/settings.js · audio prefs 四键上屏）——headless 判数据面与控件，出声不入判 */
     await page.click("#btn-settings");
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(420);
     const se1 = await page.evaluate(() => {
       const m = document.getElementById("qx-modal");
       const p = window.QX3D.ui.audio.getPrefs();
@@ -754,7 +813,7 @@ const { chromium } = require('playwright-core');
     await page.evaluate(() => { document.querySelector("#qx-modal [data-qxm-close]").click(); });
     await page.waitForTimeout(120);
     await page.click("#btn-settings");
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(420);
     const se2b = await page.evaluate(() => ({
       bgm: Number(document.getElementById("qxs-bgm").value),
       auto: document.getElementById("qxs-auto").checked,
@@ -768,7 +827,7 @@ const { chromium } = require('playwright-core');
 
     /* 🆕 册293：江湖邸报合集（ui/gazette.js · canonEventReports 翻阅面） */
     await page.click("#btn-gazette");
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(420);
     const gz1 = await page.evaluate(() => {
       const m = document.getElementById("qx-modal");
       const saved = JSON.parse(localStorage.getItem("shanqian3d_save_v1") || "{}");
@@ -792,7 +851,7 @@ const { chromium } = require('playwright-core');
     await page.reload();
     await page.waitForTimeout(1500);
     await page.click("#btn-gazette");
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(420);
     const gz2 = await page.evaluate(() => {
       const m = document.getElementById("qx-modal");
       const first = m.querySelector(".qxm-gaz-item");
@@ -1180,7 +1239,7 @@ const { chromium } = require('playwright-core');
       return b;
     })();
     await page.click('#btn-settings');
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(420);
     const au0 = await page.evaluate(() => {
       const m = document.getElementById('qx-modal');
       return {

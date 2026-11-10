@@ -604,6 +604,8 @@
   <div class="toast-container" id="toast-container"></div>
   <div id="qx-modal" class="hidden"></div>
   <div id="duel-overlay" class="hidden"></div>
+<!-- 册320 复核补：五抽屉容器（CSS 与 ui/drawer.js 早已就位，body 里一直缺这只 div ⇒ 点📚 即 TypeError） -->
+<div id="drawer-overlay" class="hidden"></div>
 
   <div class="creation-modal" id="creation-modal">
     <div class="cr-sheet">
@@ -731,13 +733,10 @@
   <script src="./game/ui/hud.js"></script>
   <script src="./game/ui/panels.js"></script>
   <script src="./game/ui/duel.js"></script>
-  <script src="./game/ui/drawer.js"></script>
   <script src="./game/ui/audio.js"></script><!-- 册289：M6 尾量 BGM 五曲合成器（计划书 §四 #13） -->
-  <script src="./game/ui/settings.js"></script><!-- 册292：M6 余量 settings 页（audio prefs 四键上屏） -->
   <script src="./game/ui/sheet.js"></script><!-- 册293：qxm 弹窗壳公共件（settings/gazette 共用） -->
-  <script src="./game/ui/gazette.js"></script><!-- 册293：M6 余量 邸报合集（canonEventReports 翻阅面） -->
-  <script src="./game/ui/endings-ui.js"></script>
-  <script src="./game/ui/creation.js"></script>
+  <!-- 册320 容量复核：creation / drawer / settings / gazette / endings-ui 五件改为按需装载（-34.3KB 首屏） -->
+  <script src="./game/ui/lazy.js"></script>
   <script src="./game/app.js"></script>
   <script src="./board3d.js"></script>
 

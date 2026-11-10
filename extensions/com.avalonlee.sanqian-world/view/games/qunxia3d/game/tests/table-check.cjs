@@ -2167,6 +2167,44 @@ function buildRomanceSandbox() {
   check('S42c 门人三动作（安顿 / 闲话取第三句 / 遣散清册清占位 / 空选拦截）', badC === null, badC || undefined);
 })();
 
+/* ══ S43 容量复核（册320）：载入面台账 + 懒加载面 ═══════════════════════════
+ * 「载入面」= index.html 里 <script src> 指向的件字节和 + index.html 自身字节。
+ * 口径沿册278（预算校准时只算挂载面，不算仓里躺着不挂的抽取源）。红线 1,450KB 是
+ * 册320 实测 1,413.8KB + ~36KB 余量；过线先懒化，别直接抬线（抬线要写归因）。 */
+(function S43() {
+  const ROOT = path.resolve(GAME_DIR, '..'); /* view/games/qunxia3d */
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const srcs = [];
+  const re = /<script[^>]+src="([^"]+)"/g;
+  let m = re.exec(html);
+  while (m) { srcs.push(m[1]); m = re.exec(html); }
+  const missing = [];
+  let total = Buffer.byteLength(html, 'utf8');
+  srcs.forEach((s) => {
+    const p = path.join(ROOT, s.replace(/^\.\//, ''));
+    if (!fs.existsSync(p)) { missing.push(s); return; }
+    total += fs.statSync(p).size;
+  });
+  const kb = total / 1024;
+  const LINE = 1450;
+  check('S43a 载入面台账（' + srcs.length + ' 件全在盘 + 总量 ≤ 红线 ' + LINE + 'KB）',
+    missing.length === 0 && kb <= LINE,
+    '缺件=' + (missing.join(',') || '无') + ' 合计=' + kb.toFixed(1) + 'KB');
+
+  /* 懒加载面：五件不挂载、盘上在、app.js 的 LAZY 表有路径、loader 本身挂载 */
+  const LAZY_FILES = ['creation', 'drawer', 'settings', 'gazette', 'endings-ui'];
+  const mounted = srcs.join('|');
+  const appSrc = fs.readFileSync(path.join(GAME_DIR, 'app.js'), 'utf8');
+  const stillMounted = LAZY_FILES.filter((f) => mounted.indexOf('ui/' + f + '.js') >= 0);
+  const noFile = LAZY_FILES.filter((f) => !fs.existsSync(path.join(GAME_DIR, 'ui', f + '.js')));
+  const noPath = LAZY_FILES.filter((f) => appSrc.indexOf('./game/ui/' + f + '.js') < 0);
+  const hasLoader = mounted.indexOf('ui/lazy.js') >= 0;
+  check('S43b 懒加载面（五件不挂载 · 盘上在 · app 有装载路径 · lazy.js 挂载）',
+    stillMounted.length === 0 && noFile.length === 0 && noPath.length === 0 && hasLoader,
+    '仍挂载=' + (stillMounted.join(',') || '无') + ' 缺件=' + (noFile.join(',') || '无') +
+    ' 无装载路径=' + (noPath.join(',') || '无') + ' loader=' + (hasLoader ? 'ok' : '缺'));
+})();
+
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));
 if (failed === 0) {

@@ -50,9 +50,12 @@ game/         🆕 游戏化（第册二百七十三批 M0 起步，架构与里
   data/       11 张生成表（禁手改，带源行号）
   core/       纯函数逻辑层（state 存档 shanqian3d_save_v1 / time 旬时间机 / player 派生 / data 取数口）
   systems/    travel 行脚结算（M0 切片；八格动作/三招对决等逐里程碑追加）
-  ui/         hud 纸面 HUD + creation 创角向导（表现层只读 state）
-  app.js      装配层（载档/创角/行脚/过旬编排 + env 注入 + 结果回流队列）
+  ui/         hud 纸面 HUD + panels 动作/抽屉浮层 + duel 出招卡 + audio 合成器
+              + lazy 按需装载器（册320：creation/drawer/settings/gazette/endings-ui
+                五件不挂首屏，点开才注入，首屏载入面 1,413.9KB / 46 件）
+  app.js      装配层（载档/创角/行脚/过旬编排 + env 注入 + 结果回流队列 + LAZY 装载表）
   tests/      table-check.cjs 数值对表（原版 vm 沙箱逐字段核验，常驻门禁件）
+              + S43 载入面台账（46 件全在盘 + ≤ 红线 1,450KB；五件懒加载面四条件）
 ```
 
 > 30 地界本境走查截图留仓外 `E:\下载\sanqian-demo-board3d\walkthrough\`（册272 交接批口径，审阅存档不入库）。

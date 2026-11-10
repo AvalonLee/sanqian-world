@@ -15,6 +15,21 @@
   var st = null;
   var shownTileIdx = null;
 
+  /* 册320 容量复核：五件「点击才需要」的表现层改按需装载（首屏 -34.3KB）。
+   * 路径只在这里声明一次；热路径（combat/duel/side/tiles）不在此列，见 ui/lazy.js 件头纪律。 */
+  var LAZY = {
+    creation: './game/ui/creation.js',
+    drawer: './game/ui/drawer.js',
+    settings: './game/ui/settings.js',
+    gazette: './game/ui/gazette.js',
+    endings: './game/ui/endings-ui.js'
+  };
+  function withLazy(key, cb) {
+    var url = LAZY[key];
+    if (!url || !ui.lazy) { if (cb) cb(); return; }
+    ui.lazy.ensure([url], cb);
+  }
+
   /* 世界大事终局回流队列（原 :3150–:3158 逐字同构） */
   function queueWorldResult(crisisId, outcome) {
     if (!crisisId || crisisId.indexOf('we_') !== 0) return;
@@ -644,7 +659,7 @@
     if (ui.audio) ui.audio.bindAutoStart(); /* 册289：首次手势起奏（浏览器自播放策略） */
     if (ui.audio) ui.audio.custom.load();   /* 册319：载入自选原声（有则接管 BGM） */
     if (!st.hasCreatedChar) {
-      ui.creation.open(st);
+      withLazy('creation', function () { ui.creation.open(st); });
       ui.hud.renderLogs(st);
     } else {
       ui.hud.render(st);
@@ -664,22 +679,27 @@
       if (ui.audio) ui.audio.cycleBgmSuite();
     });
     document.getElementById('btn-settings').addEventListener('click', function () {
-      if (ui.settings) ui.settings.open(); /* 册292：设置中心（audio prefs 四键上屏） */
+      withLazy('settings', function () { if (ui.settings) ui.settings.open(); }); /* 册292/册320 */
     });
     document.getElementById('btn-gazette').addEventListener('click', function () {
-      if (ui.gazette && st) ui.gazette.open(st); /* 册293：邸报合集（canonEventReports 翻阅面） */
+      withLazy('gazette', function () { if (ui.gazette && st) ui.gazette.open(st); }); /* 册293/册320 */
     });
     document.getElementById('btn-drawer').addEventListener('click', function () {
       if (!st || !st.hasCreatedChar) return;
-      ui.drawer.open(st);
+      withLazy('drawer', function () { if (ui.drawer) ui.drawer.open(st); }); /* 册320 */
     });
     document.getElementById('btn-create').addEventListener('click', function () {
       if (st && st.hasCreatedChar) { ui.hud.toast('本世已入江湖（重开世走扩展轮回）。', 'amber'); return; }
-      ui.creation.open(st);
+      withLazy('creation', function () { if (ui.creation) ui.creation.open(st); });
     });
-    document.getElementById('btn-creation-reroll').addEventListener('click', ui.creation.reroll);
+    document.getElementById('btn-creation-reroll').addEventListener('click', function () {
+      withLazy('creation', function () { if (ui.creation) ui.creation.reroll(); });
+    });
     document.getElementById('btn-creation-submit').addEventListener('click', function () {
-      ui.creation.submit(function (s2) { ui.hud.render(s2); syncChrome(); scheduleTutorial(); });
+      withLazy('creation', function () {
+        if (!ui.creation) return;
+        ui.creation.submit(function (s2) { ui.hud.render(s2); syncChrome(); scheduleTutorial(); });
+      });
     });
     /* 顶栏朝廷角标（册301）：委托到 #hud-court，重渲不丢监听 */
     var courtHost = document.getElementById('hud-court');
