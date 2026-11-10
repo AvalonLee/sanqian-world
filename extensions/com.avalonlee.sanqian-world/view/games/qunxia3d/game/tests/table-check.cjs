@@ -2174,35 +2174,49 @@ function buildRomanceSandbox() {
 (function S43() {
   const ROOT = path.resolve(GAME_DIR, '..'); /* view/games/qunxia3d */
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const srcs = [];
-  const re = /<script[^>]+src="([^"]+)"/g;
-  let m = re.exec(html);
-  while (m) { srcs.push(m[1]); m = re.exec(html); }
+  const grab = (re) => {
+    const out = [];
+    let m = re.exec(html);
+    while (m) { out.push(m[1]); m = re.exec(html); }
+    return out;
+  };
+  const srcs = grab(/<script[^>]+src="([^"]+)"/g);
+  const cssLinks = grab(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g);
+  const mounted = srcs.concat(cssLinks);
   const missing = [];
-  let total = Buffer.byteLength(html, 'utf8');
-  srcs.forEach((s) => {
+  let total = Buffer.byteLength(html, 'utf8'); /* html 已含内联样式与 DOM */
+  mounted.forEach((s) => {
     const p = path.join(ROOT, s.replace(/^\.\//, ''));
     if (!fs.existsSync(p)) { missing.push(s); return; }
     total += fs.statSync(p).size;
   });
   const kb = total / 1024;
-  const LINE = 1450;
-  check('S43a 载入面台账（' + srcs.length + ' 件全在盘 + 总量 ≤ 红线 ' + LINE + 'KB）',
-    missing.length === 0 && kb <= LINE,
-    '缺件=' + (missing.join(',') || '无') + ' 合计=' + kb.toFixed(1) + 'KB');
+  const LINE = 1430;
+  /* 内联样式上限：拆件后不该再有整块 <style>（>512B 即视为回退） */
+  const inlineCss = (html.match(/<style[^>]*>([\s\S]*?)<\/style>/g) || [])
+    .reduce((n, s) => n + Buffer.byteLength(s, 'utf8'), 0);
+  check('S43a 载入面台账（' + mounted.length + ' 件全在盘 + 总量 ≤ 红线 ' + LINE + 'KB + 无整块内联样式）',
+    missing.length === 0 && kb <= LINE && inlineCss <= 512,
+    '缺件=' + (missing.join(',') || '无') + ' 合计=' + kb.toFixed(1) + 'KB 内联样式=' + inlineCss + 'B');
 
-  /* 懒加载面：五件不挂载、盘上在、app.js 的 LAZY 表有路径、loader 本身挂载 */
+  /* 懒加载面：五件 js + skin-lazy.css 都不挂载、盘上在、app.js 的 LAZY 表有路径、loader 本身挂载 */
   const LAZY_FILES = ['creation', 'drawer', 'settings', 'gazette', 'endings-ui'];
-  const mounted = srcs.join('|');
   const appSrc = fs.readFileSync(path.join(GAME_DIR, 'app.js'), 'utf8');
-  const stillMounted = LAZY_FILES.filter((f) => mounted.indexOf('ui/' + f + '.js') >= 0);
+  const stillMounted = LAZY_FILES.filter((f) => mounted.join('|').indexOf('ui/' + f + '.js') >= 0);
   const noFile = LAZY_FILES.filter((f) => !fs.existsSync(path.join(GAME_DIR, 'ui', f + '.js')));
   const noPath = LAZY_FILES.filter((f) => appSrc.indexOf('./game/ui/' + f + '.js') < 0);
-  const hasLoader = mounted.indexOf('ui/lazy.js') >= 0;
-  check('S43b 懒加载面（五件不挂载 · 盘上在 · app 有装载路径 · lazy.js 挂载）',
-    stillMounted.length === 0 && noFile.length === 0 && noPath.length === 0 && hasLoader,
+  const skinMounted = mounted.some((s) => s.indexOf('skin-lazy.css') >= 0);
+  const skinFile = fs.existsSync(path.join(GAME_DIR, 'ui', 'skin-lazy.css'));
+  const skinPath = appSrc.indexOf('./game/ui/skin-lazy.css') >= 0;
+  const hasLoader = mounted.join('|').indexOf('ui/lazy.js') >= 0;
+  const themeMounted = cssLinks.some((s) => s.indexOf('theme.css') >= 0);
+  check('S43b 懒加载面（五件 js + 皮肤 css 不挂 · 盘上在 · app 有路径 · lazy.js 与 theme.css 挂载）',
+    stillMounted.length === 0 && noFile.length === 0 && noPath.length === 0 && hasLoader &&
+    themeMounted && !skinMounted && skinFile && skinPath,
     '仍挂载=' + (stillMounted.join(',') || '无') + ' 缺件=' + (noFile.join(',') || '无') +
-    ' 无装载路径=' + (noPath.join(',') || '无') + ' loader=' + (hasLoader ? 'ok' : '缺'));
+    ' 无路径=' + (noPath.join(',') || '无') + ' loader=' + (hasLoader ? 'ok' : '缺') +
+    ' theme=' + (themeMounted ? 'ok' : '缺') + ' skin挂载=' + (skinMounted ? '是(不应)' : '否') +
+    ' skin件=' + (skinFile ? 'ok' : '缺') + ' skin路径=' + (skinPath ? 'ok' : '缺'));
 })();
 
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */

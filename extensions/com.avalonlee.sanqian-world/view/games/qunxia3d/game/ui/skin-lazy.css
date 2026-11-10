@@ -1,0 +1,119 @@
+/* ui/skin-lazy.css — 按需浮层样式（创角向导 / 五抽屉 / 终局面板）
+ * 只被 ui/creation.js / ui/drawer.js / ui/endings-ui.js 三件懒加载件使用；
+ * 由 ui/lazy.js 在点开对应面板前注入 <link>（ensure 等 onload 再回调，避免无样式闪一帧）。
+ * 拆自 index.html 内联 <style>（册321 容量批），此后本件为唯一源；改样式改这里。
+ */
+
+  /* ===== 册299：创角真五步分屏（左步序导航 + 右内容区） ===== */
+  .cr-body { display: flex; gap: 18px; margin-top: 14px; align-items: flex-start; }
+  .cr-nav {
+    width: 132px; flex: none; list-style: none; margin: 0; padding: 0 12px 0 0;
+    display: flex; flex-direction: column; gap: 6px;
+    border-right: 1px dashed rgba(67, 58, 49, 0.35);
+  }
+  .cr-nav-item {
+    display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+    font-family: var(--serif); font-size: 12.5px; letter-spacing: 2px; color: var(--ink-soft);
+    border: 1.5px solid transparent; border-radius: 7px; padding: 6px 8px; transition: all .15s ease;
+  }
+  .cr-nav-item b {
+    font-size: 11px; font-weight: 400; color: var(--ink-soft); flex: none;
+    width: 18px; height: 18px; line-height: 16px; text-align: center;
+    border: 1px solid rgba(67, 58, 49, 0.35); border-radius: 50%;
+  }
+  .cr-nav-item:hover { border-color: rgba(67, 58, 49, 0.3); }
+  .cr-nav-item.active { color: var(--ink-deep); border-color: var(--cinnabar); background: rgba(185, 54, 44, 0.06); }
+  .cr-nav-item.active b { color: var(--cinnabar); border-color: var(--cinnabar); }
+  .cr-nav-item.done { color: var(--ink-mid); }
+  .cr-nav-item.done b { color: var(--xuan-light); background: var(--jade); border-color: var(--jade); }
+  .cr-nav-item.locked { opacity: .45; cursor: not-allowed; }
+  .cr-main { flex: 1; min-width: 0; }
+  .cr-step { display: none; }
+  .cr-step.active { display: block; }
+  .cr-step-tip { font-size: 11.5px; color: var(--ink-soft); line-height: 1.7; margin-bottom: 10px; }
+  .cr-review { display: flex; flex-direction: column; }
+  .cr-review-row { display: flex; gap: 10px; align-items: baseline; padding: 7px 2px; border-bottom: 1px dashed rgba(67, 58, 49, 0.3); font-size: 12.5px; }
+  .cr-review-row:last-child { border-bottom: none; }
+  .cr-review-row label { flex: none; width: 56px; color: var(--ink-soft); letter-spacing: 3px; font-size: 11.5px; }
+  .cr-review-row span { color: var(--ink-deep); line-height: 1.6; }
+  .cr-back, .cr-next {
+    font-family: var(--serif); font-size: 13px; letter-spacing: 2px; cursor: pointer;
+    border: 1.5px solid rgba(67, 58, 49, 0.45); background: rgba(255, 252, 244, 0.85);
+    color: var(--ink-mid); border-radius: 8px; padding: 8px 18px; transition: all .15s ease;
+  }
+  .cr-back:hover, .cr-next:hover { border-color: var(--ink-mid); }
+  .cr-back.dim { opacity: .4; cursor: not-allowed; }
+  @media (max-width: 720px) {
+    .cr-body { flex-direction: column; gap: 10px; }
+    .cr-nav { width: auto; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px dashed rgba(67, 58, 49, 0.35); padding: 0 0 10px; }
+    .cr-nav-item { padding: 4px 7px; letter-spacing: 1px; }
+  }
+
+
+  /* ===== M4：五抽屉纸面面板 ===== */
+  #drawer-overlay {
+    position: fixed; inset: 0; z-index: 58; display: flex; align-items: center; justify-content: center;
+    background: rgba(239, 229, 207, 0.4); backdrop-filter: blur(4px);
+  }
+  #drawer-overlay.hidden { display: none; }
+  .dw-sheet {
+    width: min(720px, 94vw); max-height: 86vh; overflow-y: auto;
+    background: linear-gradient(165deg, #faf4e6 0%, #f1e6cf 100%);
+    border: 1px solid rgba(67, 58, 49, 0.55); border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(29, 25, 21, 0.3); padding: 14px 18px;
+  }
+  .dw-head { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(67,58,49,.3); padding-bottom: 8px; margin-bottom: 8px; }
+  .dw-title { font-size: 16px; color: var(--ink-deep); letter-spacing: 3px; }
+  .dw-sub { font-size: 11px; color: var(--ink-soft); }
+  .dw-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+  .dw-tab { font-family: var(--serif); font-size: 13px; cursor: pointer; padding: 4px 14px; border: 1px solid rgba(67,58,49,.35); background: rgba(255,252,244,.8); color: var(--ink-mid); border-radius: 6px; }
+  .dw-tab.on { background: var(--cinnabar); color: var(--xuan-light); border-color: var(--cinnabar); font-weight: 700; }
+  .dw-body { min-height: 200px; }
+  .dw-sec { margin-bottom: 10px; }
+  .dw-h { font-size: 11px; letter-spacing: 3px; color: var(--jade); border-left: 3px solid var(--jade); padding-left: 7px; margin-bottom: 6px; }
+  .dw-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; }
+  .dw-name { font-size: 13px; color: var(--ink-deep); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .dw-lv { font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
+  .dw-btn { font-family: var(--serif); font-size: 11px; cursor: pointer; padding: 3px 10px; border: 1px solid rgba(67,58,49,.4); background: rgba(255,252,244,.8); color: var(--ink-mid); border-radius: 4px; white-space: nowrap; }
+  .dw-btn:hover { border-color: var(--ink-mid); }
+  .dw-btn.off { opacity: 0.4; cursor: not-allowed; }
+  .dw-btn.sm { font-size: 10px; padding: 2px 7px; }
+  .dw-btn.full { display: block; width: 100%; text-align: left; margin: 3px 0; }
+
+
+  /* ===== M6：终局六道途面板 ===== */
+  #ending-overlay {
+    position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center;
+    background: rgba(239, 229, 207, 0.95);
+  }
+  #ending-overlay.hidden { display: none; }
+  .ep-sheet {
+    width: min(780px, 95vw); max-height: 92vh; overflow-y: auto;
+    background: linear-gradient(165deg, #faf4e6 0%, #f1e6cf 100%);
+    border: 2px solid var(--gold); border-radius: 14px;
+    box-shadow: 0 0 40px rgba(196,164,74,.3), 0 8px 30px rgba(29,25,21,.3);
+    padding: 16px 20px;
+  }
+  .ep-head { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--gold); padding-bottom: 10px; margin-bottom: 10px; }
+  .ep-head > b { font-size: 15px; color: var(--ink-deep); letter-spacing: 2px; }
+  .ep-cycle { font-size: 11px; color: var(--gold); font-weight: 700; margin-left: auto; }
+  .ep-paths { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+  .ep-card { border: 1.5px solid rgba(67,58,49,.4); border-radius: 8px; padding: 9px 11px; background: rgba(255,252,244,.85); }
+  .ep-card.ep-done { border-color: var(--jade); background: rgba(43,107,94,.08); }
+  .ep-card > b { font-size: 12.5px; color: var(--ink-deep); }
+  .ep-card > p { font-size: 10.5px; color: var(--ink-soft); margin: 3px 0; line-height: 1.5; }
+  .ep-progress { font-size: 10.5px; color: var(--ink-mid); border-top: 1px dashed rgba(67,58,49,.3); padding-top: 4px; }
+  .ep-action { margin-top: 5px; }
+  .ep-perks { margin-bottom: 12px; }
+  .ep-perk { display: flex; flex-direction: column; gap: 2px; width: 48%; display: inline-flex; border: 1.5px solid rgba(67,58,49,.35); border-radius: 7px; padding: 7px 10px; cursor: pointer; background: rgba(255,252,244,.8); margin: 2px 1%; text-align: left; font-family: var(--serif); vertical-align: top; }
+  .ep-perk.active { border-color: var(--gold); background: rgba(179,126,36,.08); }
+  .ep-perk > b { font-size: 12px; color: var(--ink-deep); }
+  .ep-perk > span { font-size: 10px; color: var(--ink-soft); line-height: 1.4; }
+  .ep-perk > i { font-size: 10px; font-style: normal; color: var(--gold); font-weight: 700; }
+  .ep-verdict { border: 1px solid rgba(67,58,49,.3); border-radius: 8px; padding: 10px 14px; background: rgba(236,224,200,.6); margin-bottom: 10px; }
+  .ep-verdict > b { font-size: 13px; color: var(--ink-deep); }
+  .ep-poem { font-size: 11px; color: var(--ink-soft); font-style: italic; margin-top: 4px; }
+  .ep-foot { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; border-top: 1px dashed rgba(67,58,49,.3); }
+  .ep-btn { font-family: var(--serif); font-size: 13px; cursor: pointer; border-radius: 7px; padding: 8px 18px; }
+  .ep-btn.ghost { background: rgba(67,58,49,.1); border: 1px solid rgba(67,58,49,.4); color: var(--ink-mid); }
+  .ep-btn.settle { background: var(--cinnabar); color: var(--xuan-light); border: none; font-weight: 700; }

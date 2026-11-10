@@ -211,6 +211,27 @@ const { chromium } = require('playwright-core');
     });
     T(lz3.open && lz3.loaded,
       'Q3D24d 五抽屉按需载入（点 📚 后 drawer.js 才进 DOM ⇔ 抽屉照常开）', JSON.stringify(lz3));
+
+    /* ── Q3D25 组 · 样式拆件（册321）：theme 外链 + 皮肤按需 ─────────────── */
+    const th0 = await page.evaluate(() => {
+      const sheets = Array.prototype.map.call(document.styleSheets, (s) => s.href || '(inline)');
+      const bg = getComputedStyle(document.body).backgroundColor;
+      const inline = document.querySelectorAll('style').length;
+      const sheet = document.querySelector('#drawer-overlay .dw-sheet');
+      return {
+        theme: sheets.some((h) => /theme\.css/.test(h)),
+        skin: sheets.some((h) => /skin-lazy\.css/.test(h)),
+        bg,
+        inline,
+        sheetW: sheet ? sheet.offsetWidth : 0
+      };
+    });
+    T(th0.theme && !/rgba\(0, 0, 0, 0\)/.test(th0.bg) && th0.inline === 0,
+      'Q3D25a 首屏主题外链（styleSheets 含 theme.css ⇔ body 背景已着色 ⇔ 页面零内联 style）',
+      JSON.stringify({ theme: th0.theme, bg: th0.bg, inline: th0.inline }));
+    T(th0.skin && th0.sheetW > 0,
+      'Q3D25b 浮层皮肤按需生效（skin-lazy.css 已注入 ⇔ 抽屉 .dw-sheet 有实测宽度）',
+      JSON.stringify({ skin: th0.skin, w: th0.sheetW }));
     await page.evaluate(() => { if (window.QX3D.ui.drawer) window.QX3D.ui.drawer.close(); });
     await page.waitForTimeout(200);
 

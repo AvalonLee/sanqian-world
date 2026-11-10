@@ -17,17 +17,20 @@
 
   /* 册320 容量复核：五件「点击才需要」的表现层改按需装载（首屏 -34.3KB）。
    * 路径只在这里声明一次；热路径（combat/duel/side/tiles）不在此列，见 ui/lazy.js 件头纪律。 */
+  var SKIN = './game/ui/skin-lazy.css'; /* 册321：创角/五抽屉/终局三段样式，随首件面板注入 */
   var LAZY = {
-    creation: './game/ui/creation.js',
-    drawer: './game/ui/drawer.js',
-    settings: './game/ui/settings.js',
-    gazette: './game/ui/gazette.js',
-    endings: './game/ui/endings-ui.js'
+    creation: { js: './game/ui/creation.js', css: SKIN },
+    drawer: { js: './game/ui/drawer.js', css: SKIN },
+    endings: { js: './game/ui/endings-ui.js', css: SKIN },
+    settings: { js: './game/ui/settings.js' },
+    gazette: { js: './game/ui/gazette.js' }
   };
   function withLazy(key, cb) {
-    var url = LAZY[key];
-    if (!url || !ui.lazy) { if (cb) cb(); return; }
-    ui.lazy.ensure([url], cb);
+    var spec = LAZY[key];
+    if (!spec || !ui.lazy) { if (cb) cb(); return; }
+    var list = [spec.js];
+    if (spec.css) list.push({ css: spec.css });
+    ui.lazy.ensure(list, cb);
   }
 
   /* 世界大事终局回流队列（原 :3150–:3158 逐字同构） */

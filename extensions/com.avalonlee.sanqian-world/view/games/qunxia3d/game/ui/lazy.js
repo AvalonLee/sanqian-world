@@ -16,7 +16,10 @@
  *      打不开，也不要半初始化出一个白弹窗；
  *   ③ 追加时 `async=false`：同批多件按序执行。这些件顶层有 `const`/`var`，跨件顺序错会 ReferenceError；
  *   ④ 只挂 `document.head`，不碰其它 script（首屏那批仍由 index.html 静态声明，便于读）。
- * 走查：Q3D24a~d（首屏不含五件 → 点 ⚙️/📰/抽屉后对应 script 才进 DOM 且面板照常开）。
+ * 册321 扩容：除 js 外也接 **css**（entries 项可写 `{ css: url }`）。`ui/skin-lazy.css`（8.2KB，
+ * 创角分屏 / 五抽屉 / 终局三段样式）随对应的首件面板一起注入——样式没到位就开面板会闪一帧空骨。
+ * 走查：Q3D24a~d（首屏不含五件 → 点 ⚙️/📰/抽屉后对应 script 才进 DOM 且面板照常开）
+ *      + Q3D25（theme.css 外链生效 / skin-lazy.css 首屏未挂、点开创角或抽屉后才进 DOM）。
  */
 (function (root) {
   'use strict';
@@ -30,9 +33,10 @@
     } catch (e) {}
   }
 
-  /* ensure(urls, cb)：全部就绪后回调一次；有任一件失败则不回调（只提示） */
-  function ensure(urls, cb) {
-    var list = (urls || []).slice();
+  /* ensure(entries, cb)：全部就绪后回调一次；有任一件失败则不回调（只提示）
+   * entries 项 = url 字符串（js）或 { css: url }（样式表）。 */
+  function ensure(entries, cb) {
+    var list = (entries || []).slice();
     var left = list.length;
     var broken = null;
     if (!left) { if (cb) cb(); return; }
@@ -43,21 +47,23 @@
       if (cb) cb();
     }
 
-    list.forEach(function (u) {
+    list.forEach(function (item) {
+      var isCss = !!(item && item.css);
+      var u = isCss ? item.css : item;
       if (state[u] === 'loaded') { settle(); return; }
       if (state[u] === 'loading') { (waiters[u] = waiters[u] || []).push(settle); return; }
       state[u] = 'loading';
-      var s = doc.createElement('script');
-      s.src = u;
-      s.async = false;
-      s.onload = function () {
+      var node = doc.createElement(isCss ? 'link' : 'script');
+      if (isCss) { node.rel = 'stylesheet'; node.href = u; }
+      else { node.src = u; node.async = false; }
+      node.onload = function () {
         state[u] = 'loaded';
         var w = waiters[u] || [];
         delete waiters[u];
         w.forEach(function (f) { f(); });
         settle();
       };
-      s.onerror = function () {
+      node.onerror = function () {
         state[u] = 'failed';
         broken = u;
         var w = waiters[u] || [];
@@ -65,7 +71,7 @@
         w.forEach(function (f) { f(); });
         settle();
       };
-      doc.head.appendChild(s);
+      doc.head.appendChild(node);
     });
   }
 

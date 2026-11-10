@@ -33,11 +33,15 @@
 ## 文件构成
 
 ```
-index.html    纸面 UI 壳（--xuan-* 令牌对齐 game.html；feTurbulence 纱纹 overlay
-              + 🆕 M0 纸面 HUD / 创角模态 / 日志面板 DOM 与脚本装载序列）
+index.html    纸面 UI 壳（M0 纸面 HUD / 创角模态 / 日志面板 DOM + 脚本装载序列）
+              册321 起**只留 DOM**（11.7KB）：样式拆到 ui/theme.css（首屏）与
+              ui/skin-lazy.css（创角/五抽屉/终局三段，按需注入）
+ui/theme.css  首屏纸面骨 27.5KB（令牌 / 纱纹 / 题名 / 按钮 / 信息卡 / HUD / 日志 /
+              动作面板 / qxm-* 弹窗壳 / 三色角标 / 市井浮层）——改样式改这里
+ui/skin-lazy.css  8.2KB 浮层皮肤（创角五步分屏 / 五抽屉 / 终局六道途），由 lazy.js 注入
 three.min.js  vendored three.js r159 UMD（r160 起官方移除 UMD 构建，故 pin r159）
-demo-data.js  window.QX_DEMO：30 地界（真实地理投影坐标）+ **本境 7 格 tiles**（210 格）
-              + 真实黄河/长江折线 + 4 枚演示事件（M0 起 crisis 展示走 QX3D_APP.regionEvent）
+demo-geo.js   window.QX_DEMO_GEO：30 地界真实地理投影坐标 + 黄河/长江两条折线
+              （册278 起 demo-data.js 退役为抽取源、不再挂载；tiles/desc 已并入 data/regions.js）
 local-specs.js **30 地界本境设定卡**（地形/水域/植被/标志件/天候粒子/雾，机器版；
               人读版 = 《本境3D规划.md》设定卡与容量预算）
 board3d.js    场景主逻辑：程序地形 + 墨色 shader + 节点/道路/河道/雾/行脚/轨道相机
@@ -51,8 +55,8 @@ game/         🆕 游戏化（第册二百七十三批 M0 起步，架构与里
   core/       纯函数逻辑层（state 存档 shanqian3d_save_v1 / time 旬时间机 / player 派生 / data 取数口）
   systems/    travel 行脚结算（M0 切片；八格动作/三招对决等逐里程碑追加）
   ui/         hud 纸面 HUD + panels 动作/抽屉浮层 + duel 出招卡 + audio 合成器
-              + lazy 按需装载器（册320：creation/drawer/settings/gazette/endings-ui
-                五件不挂首屏，点开才注入，首屏载入面 1,413.9KB / 46 件）
+              + lazy 按需装载器（册320/321：creation/drawer/settings/gazette/endings-ui
+                五件 js 与 skin-lazy.css 都不挂首屏，点开才注入；首屏载入面 1,407.4KB / 46 件）
   app.js      装配层（载档/创角/行脚/过旬编排 + env 注入 + 结果回流队列 + LAZY 装载表）
   tests/      table-check.cjs 数值对表（原版 vm 沙箱逐字段核验，常驻门禁件）
               + S43 载入面台账（46 件全在盘 + ≤ 红线 1,450KB；五件懒加载面四条件）
