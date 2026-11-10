@@ -968,7 +968,8 @@ const { chromium } = require('playwright-core');
     T(hl3.seal === '本门' && hl3.loc === '概览' &&
       /青云门/.test(hl3.text) && /声望无名/.test(hl3.text) && /宗旨行侠/.test(hl3.text) &&
       /门人 0 人，上限 5/.test(hl3.text) && /房舍 2/.test(hl3.text) && /主母位/.test(hl3.text),
-      'Q3D20d 本门概览（名号/声望/宗旨/门人上限/房舍/主母位六项上屏）', JSON.stringify({ seal: hl3.seal, loc: hl3.loc }));
+      'Q3D20d 本门概览（名号/声望/宗旨/门人上限/房舍/主母位六项上屏）',
+      JSON.stringify({ seal: hl3.seal, loc: hl3.loc, text: String(hl3.text || '').replace(/\s+/g, ' ').slice(0, 120) }));
     await page.evaluate(() => { document.querySelector('#qx-modal [data-qxm-close]').click(); });
     await page.waitForTimeout(120);
 
@@ -979,9 +980,9 @@ const { chromium } = require('playwright-core');
       const m = document.getElementById('qx-modal');
       return { labels: Array.prototype.map.call(m.querySelectorAll('[data-qxm-choice]'), (b) => b.textContent).join('|') };
     });
-    T(f0.labels === '地盘|规矩|邸报|合上簿子',
-      'Q3D21a 本门概览四钮（地盘 / 规矩 / 邸报 / 合上簿子）', JSON.stringify(f0));
-    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[0].click(); });
+    T(f0.labels === '门人|地盘|规矩|邸报|合上簿子',
+      'Q3D21a 本门概览五钮（门人 / 地盘 / 规矩 / 邸报 / 合上簿子）', JSON.stringify(f0));
+    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[1].click(); });
     await page.waitForTimeout(200);
     const f1 = await page.evaluate(() => {
       const m = document.getElementById('qx-modal');
@@ -1004,13 +1005,13 @@ const { chromium } = require('playwright-core');
       'Q3D21c 设分舵落账（−80 两 · branches 1 · 房舍 2→3）', JSON.stringify(f2));
 
     /* 立号当旬 = doctrineTurn 同旬 ⇒ 先过一旬，才谈得上改宗旨（原版同口径） */
-    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[3].click(); });
+    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[4].click(); });
     await page.waitForTimeout(150);
     await page.click('#btn-turn');
     await page.waitForTimeout(700);
     await page.evaluate(() => { window.QX3D_APP.openHallOverview(); });
     await page.waitForTimeout(200);
-    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[1].click(); });
+    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[2].click(); });
     await page.waitForTimeout(200);
     const f3 = await page.evaluate(() => document.getElementById('qx-modal').textContent);
     await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[1].click(); });
@@ -1022,7 +1023,7 @@ const { chromium } = require('playwright-core');
     T(/规矩：行侠/.test(f3) && /这旬还能改一次/.test(f3) && f4.doctrineId === 'trade' && f4.doctrine === '中立营生',
       'Q3D21d 规矩页改宗旨（过旬后行侠 → 中立营生真落档）', JSON.stringify(f4));
     /* 同旬再改：概览已重开 → 规矩 → 改唯利 ⇒ 被拒 */
-    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[1].click(); });
+    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[2].click(); });
     await page.waitForTimeout(150);
     const f3b = await page.evaluate(() => document.getElementById('qx-modal').textContent);
     await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[2].click(); });
@@ -1037,7 +1038,7 @@ const { chromium } = require('playwright-core');
     /* 邸报：流水行 + 官宣门槛提示（改宗旨失败后 app 未重开，手动回概览） */
     await page.evaluate(() => { window.QX3D_APP.openHallOverview(); });
     await page.waitForTimeout(200);
-    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[2].click(); });
+    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[3].click(); });
     await page.waitForTimeout(200);
     const f6 = await page.evaluate(() => document.getElementById('qx-modal').textContent);
     T(/邸报/.test(f6) && /本旬入/.test(f6) && /官宣还差/.test(f6),
@@ -1072,6 +1073,100 @@ const { chromium } = require('playwright-core');
     });
     T(f8.treasury === 18 && f8.broke === 0 && /本旬入/.test(f8.ledger || ''),
       'Q3D21h 垫银落账（−30 两 +30 饷银 ⇒ 余 18 · 破产计数清零 · 流水入档）', JSON.stringify(f8));
+
+    /* ── Q3D22 组 · P4-F 门人与市井招募（册318 F3）：劝入府 → 入册 → 门人页 ── */
+    await page.evaluate(() => {
+      const a = window.QX3D_APP;
+      const st = a.state;
+      st.currentRegion = 'luoyang';
+      st.currentTileIdx = 1;
+      const reg = window.QX3D.core.time.getRegion('luoyang');
+      const here = window.QX3D.systems.street.npcsHere(st, reg);
+      const npc = here.filter((n) => n.tileIdx === 1 &&
+        (n.jobId === 'waiter' || n.jobId === 'escort' || n.jobId === 'apothecary'))[0];
+      const key = npc.regionId + ':' + npc.jobId + ':' + npc.name;
+      st.streetFavor[key] = 2;
+      window.__Q3D_RECRUIT = { id: npc.id, key: key, name: npc.name, jobId: npc.jobId };
+      window.QX3D_APP.openStreetNpc(npc.id);
+    });
+    await page.waitForTimeout(250);
+    const h0 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      const acts = Array.prototype.map.call(m.querySelectorAll('[data-street-act]'), (b) => b.textContent);
+      return { first: acts[0] || '', n: acts.length };
+    });
+    T(/劝入府/.test(h0.first) && h0.n === 3,
+      'Q3D22a 市井抽屉注入（favor≥2 ⇒ 「劝入府」置顶 ⇔ 整体仍三支）', JSON.stringify(h0));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-street-act="recruit_hall"]').click(); });
+    await page.waitForTimeout(250);
+    const h1 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      return {
+        title: (m.querySelector('.qxm-title') || {}).textContent || '',
+        text: m.textContent,
+        picks: Array.prototype.map.call(m.querySelectorAll('[data-hall-recruit]'), (b) => b.getAttribute('data-hall-recruit')).join(',')
+      };
+    });
+    T(/^劝.+入府$/.test(h1.title) && /确认招揽/.test(h1.text) && /送盘缠再劝/.test(h1.text) && h1.picks === 'confirm,later,tip',
+      'Q3D22b 招揽三选（确认招揽 / 改日 / 送盘缠再劝）', JSON.stringify({ title: h1.title, picks: h1.picks }));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-hall-recruit="confirm"]').click(); });
+    await page.waitForTimeout(350);
+    const h2 = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      const d = (st.faction.disciples || [])[0] || {};
+      return {
+        n: (st.faction.disciples || []).length, id: d.id, title: d.jobTitle, lines: (d.lines || []).length,
+        relic: (st.relicCarry || []).indexOf('street_scrap') >= 0,
+        pending: (st.faction.recruitLines || []).length,
+        last: (st.logs || [])[0] && st.logs[0].text, key: window.__Q3D_RECRUIT.key
+      };
+    });
+    T(h2.n === 1 && h2.id === h2.key && /跑堂|镖师|药徒/.test(h2.title || '') && h2.lines === 3 &&
+      h2.relic && h2.pending === 0 && /【招揽】/.test(h2.last || ''),
+      'Q3D22c 入册落账（门人 1 人 · 三句自述 · street_scrap · 占位清空 · 日志【招揽】）', JSON.stringify(h2));
+
+    /* 本门 → 门人页 → 人卡 → 安顿 */
+    await page.evaluate(() => { window.QX3D_APP.openHallOverview(); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[0].click(); });
+    await page.waitForTimeout(200);
+    const h3 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      return {
+        loc: (m.querySelector('.qxm-loc') || {}).textContent || '',
+        rows: Array.prototype.map.call(m.querySelectorAll('[data-hall-member]'), (b) => b.textContent).join('|')
+      };
+    });
+    T(/门人 1\/\d+/.test(h3.loc) && h3.rows.length > 0,
+      'Q3D22d 门人页（门人 1/N + 名册行可点）', JSON.stringify(h3));
+    await page.evaluate(() => { document.querySelector('#qx-modal [data-hall-member]').click(); });
+    await page.waitForTimeout(200);
+    const h4 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      return {
+        seal: (m.querySelector('.qxm-street-seal') || {}).textContent || '',
+        lines: m.querySelectorAll('.qxm-street p').length,
+        picks: Array.prototype.map.call(m.querySelectorAll('[data-qxm-choice]'), (b) => b.textContent).join('|')
+      };
+    });
+    T(h4.seal === '门人' && h4.lines === 3 && /安顿/.test(h4.picks) && /闲话/.test(h4.picks) && /遣散/.test(h4.picks),
+      'Q3D22e 门人浮层（三句自述 ⇔ 安顿 / 闲话 / 遣散）', JSON.stringify({ seal: h4.seal, lines: h4.lines, picks: h4.picks }));
+    await page.evaluate(() => { document.querySelectorAll('#qx-modal [data-qxm-choice]')[0].click(); });
+    await page.waitForTimeout(350);
+    const h5 = await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('shanqian3d_save_v1'));
+      return { settled: (st.faction.disciples[0] || {}).settled };
+    });
+    T(h5.settled === true,
+      'Q3D22f 安顿落档（门人 settled=true）', JSON.stringify(h5));
+    await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      if (m && !m.classList.contains('hidden')) {
+        const x = m.querySelector('[data-qxm-close]');
+        if (x) x.click();
+      }
+    });
+    await page.waitForTimeout(150);
 
     /* 收口：全程零脚本错误 */
     T(errs.length === 0 && (await page.evaluate(() => window.__errs.length)) === 0,

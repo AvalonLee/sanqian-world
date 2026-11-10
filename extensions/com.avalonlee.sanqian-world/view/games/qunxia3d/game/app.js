@@ -241,14 +241,39 @@
       changedThisTurn: st.faction.doctrineTurn === st.turn,
       hasBranch: (st.faction.branches || []).some(function (b) { return b.regionId === st.currentRegion; }),
       branchGaps: h.branchGaps(st, st.currentRegion),
-      regionName: region.name
+      regionName: region.name,
+      people: h.disciples(st).map(function (d) {
+        return { id: d.id, name: d.name, jobTitle: d.jobTitle, settled: !!d.settled };
+      }),
+      kin: ((st.romance && st.romance.concubines) || []).map(function (c) {
+        var r = systems.romance.castOf(c.id);
+        return { name: r ? r.name : c.id, duty: systems.romance.dutyWord(c.role) };
+      })
     };
   }
   function openHallOverview() {
     ui.panels.openHallOverview(st, hallInfo(), function (page) {
-      if (page === 'ground') openHallGround();
+      if (page === 'people') openHallPeople();
+      else if (page === 'ground') openHallGround();
       else if (page === 'rule') openHallRule();
       else if (page === 'gazette') openHallGazette();
+    });
+  }
+  function openHallPeople() {
+    ui.panels.openHallPeople(st, hallInfo(), {
+      onMember: function (id) { openHallMember(id); }
+    });
+  }
+  function openHallMember(id) {
+    var person = systems.hall.member(st, id);
+    if (!person) { ui.hud.toast('册上没有这个门人。', 'amber'); return; }
+    ui.panels.openHallMember(st, person, function (act) {
+      var r = systems.hall.actOnMember(st, id, act);
+      if (!r.ok) { ui.hud.toast(r.why || '这会儿做不了。', 'amber'); return; }
+      if (r.log) core.time.addLog(st, r.log);
+      if (r.toast) ui.hud.toast(r.toast, r.tone);
+      afterAction();
+      openHallPeople();
     });
   }
   function openHallGround() {
@@ -404,12 +429,34 @@
     var npc = systems.street.findNpc(st, curReg, npcId);
     if (!npc || npc.tileIdx !== st.currentTileIdx) { ui.hud.toast('人已经不在这一处了。', 'amber'); return; }
     /* 官差三支（朝廷线）按原版 syncOfficerJobActions 前置：洗通缉 / 领悬赏 / 交人犯 */
-    var extra = npc.jobId === 'officer' ? systems.court.officerActions(st) : [];
-    ui.panels.openStreetNpc(st, npc, function (actionId) { runStreetAction(npcId, actionId); }, extra);
+    if (npc.jobId === 'officer') {
+      ui.panels.openStreetNpc(st, npc, function (actionId) { runStreetAction(npcId, actionId); },
+        systems.court.officerActions(st));
+      return;
+    }
+    /* 册318：本门可劝时「劝入府」置顶（原 hallAdjustStreetActions 同序，整体截 3） */
+    var job = systems.street.jobOf(npc.jobId) || { actions: [] };
+    systems.hall.ensureState(st);
+    ui.panels.openStreetNpc(st, npc, function (actionId) { runStreetAction(npcId, actionId); }, null,
+      systems.hall.adjustStreetActions(st, npc, job.actions || []));
   }
   function runStreetAction(npcId, actionId) {
     var curReg = core.time.getRegion(st.currentRegion);
     var npc = systems.street.findNpc(st, curReg, npcId);
+    /* 册318：劝入府（本门招募，三选：确认 / 改日 / 送盘缠再劝） */
+    if (actionId === 'recruit_hall') {
+      var b = systems.hall.beginRecruit(st, npc);
+      if (!b.ok) { ui.hud.toast(b.why || '这会儿劝不动。', 'amber'); return; }
+      ui.panels.openHallRecruit(st, b.dialog, function (which) {
+        if (which === 'later') return;
+        var rr = systems.hall.recruit(st, npc, which);
+        if (!rr.ok) { ui.hud.toast(rr.why || '这会儿劝不动。', 'amber'); return; }
+        if (rr.log) core.time.addLog(st, rr.log);
+        if (rr.toast) ui.hud.toast(rr.toast, rr.tone);
+        afterAction();
+      });
+      return;
+    }
     var r = systems.court.isCourtAction(actionId)
       ? systems.court.actOfficer(st, npc, actionId)
       : systems.street.act(st, npc, actionId, env({
@@ -679,6 +726,8 @@
     openHallGround: openHallGround,
     openHallRule: openHallRule,
     openHallGazette: openHallGazette,
+    openHallPeople: openHallPeople,
+    openHallMember: openHallMember,
     /* M4 深度系统动作口 */
     runMaster: function (act) {
       if (!st || !st.hasCreatedChar) return;

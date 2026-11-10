@@ -621,6 +621,7 @@
     revengeTalk: revengeTalk,
     revengeFight: revengeFight,
     cycleDuty: cycleDuty,
+    dutyWord: function (id) { return (D.DUTY_WORD || {})[id] || '职事'; },
     promote: promote,
     resolveHousehold: resolveHousehold,
     gaps: gaps,

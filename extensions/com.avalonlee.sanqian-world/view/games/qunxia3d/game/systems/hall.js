@@ -10,8 +10,13 @@
  *      lastEvent/collapseShown/seizureShown/wantedShown）按用到才写，不预置。
  *   ③ 原版挂匾弹窗里的「改扯山旗」在 F1 只在**条件满足**时出来（`banditPathOpen`），
  *      落草后的营寨经营随 F2。
- *   ④ 原 `renderHallBadge` 的「本门」角标改挂 3D 版 `#hud-hall`；概览页只做只读面
- *      （门人/地盘/规矩三页随 F2/F3）。
+ *   ④ 原 `renderHallBadge` 的「本门」角标改挂 3D 版 `#hud-hall`；概览四页（门人/地盘/规矩/邸报）
+ *      分 F1~F3 逐批补齐。
+ *   ⑤ **招募可见性修正原版缺陷**：原 `hallRecruitVisible` 写 `fav[key] < 2`，`streetFavor` 无记录时
+ *      `undefined < 2` 恒 false ⇒ 陌生人反而可劝。本仓改 `(fav[key] || 0) < 2`，并在 S42a 显式记
+ *      「原版 true / 新版 false」的偏差（不修就是「立号后随便拉人」）。
+ *   ⑥ 原 `openHallRecruit` 把弹窗与 street-drawer 关闭揉在一起 → 拆成 `beginRecruit`（校验 + 占
+ *      「同时只劝两人」名额 + 返描述）/ `recruit`（落账）；`which='later'` **不撤占位**（原版同口径）。
  * 副作用纪律：只改传入 st（与 env 回调），不碰 DOM/THREE；存档与重渲由 app 负责。 */
 (function (root, factory) {
   var api = factory(root);
@@ -411,6 +416,101 @@
     return { ok: true, toast: '官宣了。功名折了一截。', tone: 'emerald' };
   }
 
+  /* ── F3（册318）：门人与市井招募（原 :15686–:15806）────────────────────────
+   * 三闸：jobId ∈ 三岗 · 已立号 · favor ≥2；另有两道限：门人上限 cap、同时只劝两人。
+   * 偏差：原版 `openHallRecruit` 把三件弹窗与 street-drawer 关闭揉在一起，这里拆成
+   * `beginRecruit`（校验 + 挂 recruitLines，返回描述）与 `recruit`（确认落账），演出归 panels。 */
+  var RECRUIT_JOBS = D.HALL_RECRUIT_JOBS || {};
+  var MEMBER_LINES = D.HALL_MEMBER_LINES || {};
+  function favorKey(npc) { return npc.regionId + ':' + npc.jobId + ':' + npc.name; }
+  function recruitBlock(st, npc) {
+    var f = hallState(st);
+    if (disciples(st).length >= cap(st)) return '门人已满，先扩隐庐';
+    var key = favorKey(npc);
+    var lines = f.recruitLines || [];
+    if (lines.length >= 2 && lines.indexOf(key) < 0) return '同时只劝两人';
+    return '';
+  }
+  function recruitVisible(st, npc) {
+    if (!npc || !RECRUIT_JOBS[npc.jobId]) return false;
+    if (!hallState(st).founded) return false;
+    if (((st.streetFavor || {})[favorKey(npc)] || 0) < 2) return false;
+    if (disciples(st).some(function (d) { return d.id === favorKey(npc); })) return false;
+    return true;
+  }
+  /* 市井抽屉动作注入（原 hallAdjustStreetActions）：可劝时「劝入府」置顶并整体截 3 */
+  function adjustStreetActions(st, npc, actions) {
+    var list = actions || [];
+    if (!recruitVisible(st, npc)) return list.slice(0, 3);
+    var block = recruitBlock(st, npc);
+    var offer = { id: 'recruit_hall', label: '劝入府', primary: true, hint: block || '请他进府' };
+    return [offer].concat(list.filter(function (a) { return a.id !== 'recruit_hall'; })).slice(0, 3);
+  }
+  /* 开劝（原 openHallRecruit 的校验段）：通过则占一个「同时只劝两人」名额 */
+  function beginRecruit(st, npc) {
+    if (!npc) return { ok: false, why: '这人不在你脚下这一处。' };
+    if (npc.jobId === 'officer') return { ok: false, why: '官差劝不动。' };
+    if (!recruitVisible(st, npc)) return { ok: false, why: '他还没到愿意跟你走的份上。' };
+    var block = recruitBlock(st, npc);
+    if (block) return { ok: false, why: block + '。' };
+    var f = hallState(st);
+    var key = favorKey(npc);
+    if (f.recruitLines.indexOf(key) < 0) f.recruitLines.push(key);
+    return {
+      ok: true, key: key,
+      dialog: {
+        tag: '招揽', title: '劝' + npc.name + '入府', loc: RECRUIT_JOBS[npc.jobId] || '市井',
+        desc: npc.name + '愿意听这一句。确认之后，他进府，原处换一个人。',
+        choices: [
+          { id: 'confirm', label: '确认招揽' },
+          { id: 'later', label: '改日' },
+          { id: 'tip', label: '送盘缠再劝（20 两）' }
+        ]
+      }
+    };
+  }
+  /* 确认落账（原 hallRecruitPick 0/2；which=1 改日只关窗，**不撤占位**——原版如此） */
+  function recruit(st, npc, which) {
+    if (!npc) return { ok: false, why: '人已经不在这一处了。' };
+    var key = favorKey(npc);
+    var f = hallState(st);
+    if (which === 'tip' && (st.gold || 0) < 20) return { ok: false, why: '尚缺盘缠' + (20 - (st.gold || 0)) + '两' };
+    var block = recruitBlock(st, npc);
+    if (block && (f.recruitLines || []).indexOf(key) < 0) return { ok: false, why: block + '。' };
+    if (disciples(st).length >= cap(st)) return { ok: false, why: '门人已满，先扩隐庐。' };
+    if (which === 'tip') st.gold -= 20;
+    f.recruitLines = (f.recruitLines || []).filter(function (k) { return k !== key; });
+    f.disciples.push({
+      id: key, name: npc.name, jobId: npc.jobId, jobTitle: RECRUIT_JOBS[npc.jobId] || '门人',
+      art: '', lines: (MEMBER_LINES[npc.jobId] || []).slice(0, 3), settled: false
+    });
+    var bucket = st.streetSpawn && st.streetSpawn[npc.regionId];
+    if (bucket && bucket.names) delete bucket.names[npc.jobId];
+    var s = sideMod();
+    if (s && s.grantRelic) s.grantRelic(st, 'street_scrap');
+    var text = '江湖杂报：' + (f.name || '本门') + '招揽第' + f.disciples.length + '人。';
+    st.pendingRumor = { grade: 'reliable', text: text, aboutId: 'hall-recruit' };
+    return { ok: true, log: '【招揽】' + npc.name + '入府。', toast: npc.name + '进府了。', tone: 'emerald' };
+  }
+  /* 门人浮层三动作（原 hallAct 的 settle/chat/dismiss 三支） */
+  function actOnMember(st, id, actionId) {
+    var person = member(st, id);
+    if (!person) return { ok: false, why: '先点一个门人。' };
+    if (actionId === 'settle') {
+      person.settled = true;
+      return { ok: true, toast: '安顿了。拳脚不加，气血不加。', tone: 'emerald' };
+    }
+    if (actionId === 'chat') return { ok: true, toast: (person.lines && person.lines[2]) || '他应了一声。', tone: 'amber' };
+    if (actionId === 'dismiss') {
+      var f = hallState(st);
+      f.disciples = f.disciples.filter(function (d) { return d.id !== id; });
+      f.recruitLines = (f.recruitLines || []).filter(function (k) { return k !== id; });
+      return { ok: true, log: '【本门】' + person.name + '离开了府。', toast: person.name + '走了。', tone: 'amber' };
+    }
+    return { ok: false, why: '这一支没有后续。' };
+  }
+  function recruitJobWord(jobId) { return RECRUIT_JOBS[jobId] || '门人'; }
+
   /* 概览页第三行（原 hallWifeLine；主母位 + 侧室数） */
   function wifeLine(st) {
     var wifeId = st.romance && st.romance.wifeId;
@@ -467,6 +567,15 @@
     paySeizure: paySeizure,
     fleeSeizure: fleeSeizure,
     canOfficial: canOfficial,
-    goOfficial: goOfficial
+    goOfficial: goOfficial,
+    /* F3：门人与市井招募（册318） */
+    favorKey: favorKey,
+    recruitVisible: recruitVisible,
+    recruitBlock: recruitBlock,
+    adjustStreetActions: adjustStreetActions,
+    beginRecruit: beginRecruit,
+    recruit: recruit,
+    actOnMember: actOnMember,
+    recruitJobWord: recruitJobWord
   };
 });

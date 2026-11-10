@@ -2038,6 +2038,135 @@ function buildRomanceSandbox() {
   check('S41c 破产/抄家/通缉/官宣 ×10 支（逐字段对拍）', badC === null, badC || undefined);
 })();
 
+/* ══ S42 P4-F 门人与市井招募（册318 · F3）：三闸 / 动作注入 / 入册落账 ══ */
+(function S42() {
+  const hall = require(path.join(GAME_DIR, 'systems', 'hall.js'));
+  const ctx = { Math: Object.create(Math), console: console };
+  vm.createContext(ctx);
+  const run = (code) => vm.runInContext(code, ctx, { filename: 'hall3-sandbox.js' });
+  run(slice('const', 'ROMANCE_CAST').replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+/g, '') + '\n');
+  run(slice('const', 'HALL_RECRUIT_JOBS') + '\n');
+  run(slice('const', 'HALL_MEMBER_LINES') + '\n');
+  ['ensureRomanceState', 'romancePerson', 'romanceStage', 'ensureHallState', 'hallState', 'hermitageJin',
+    'hallOpenBranches', 'hallCamps', 'hallHouses', 'hallFameRank', 'hallFameWord', 'hallCap', 'hallDisciples',
+    'streetFavorKey', 'hallRecruitBlock', 'hallRecruitVisible', 'hallAdjustStreetActions', 'hallRecruitPick'
+  ].forEach((f) => run(slice('function', f) + '\n'));
+  run([
+    'var STREET_JOB_BY_ID = {};',
+    'var window = { _hallRecruitNpc: null };',
+    'var ADD_LOG = "", LAST_TOAST = "";',
+    'function showToast(t) { LAST_TOAST = t; } function addLog(t) { ADD_LOG = t; }',
+    'function closeEventModal() {} function closeStreetDrawer() {} function saveGame() {} function renderAll() {}',
+    'function notePotentialRelic() {} function grantRelic() {}'
+  ].join('\n') + '\n');
+
+  const mk = (o) => {
+    const st = Object.assign({
+      turn: 9, gold: 200, fame: 40, streetFavor: {}, relicCarry: [], currentRegion: 'luoyang', streetSpawn: {},
+      court: { wanted: 0, merit: 0, border: 0, yanyun: 0 },
+      estate: { buildings: { winery: 2, herbGarden: 0, smithy: 0, academy: 0 } },
+      romance: { wifeId: null, people: {}, concubines: [] }
+    }, JSON.parse(JSON.stringify(o || {})));
+    st.faction = Object.assign({
+      founded: true, name: '测试门', disciples: [], recruitLines: [], doctrine: '行侠', doctrineId: 'xia',
+      doctrineTurn: 0, branches: [], camps: [], bandit: false, official: false, treasury: 0,
+      brokeStreak: 0, dissolved: false, seized: false, fameRank: 0, vacantManor: false
+    }, (o && o.faction) || {});
+    return st;
+  };
+  const NPC = { regionId: 'luoyang', jobId: 'waiter', name: '王二', tileIdx: 1, regionName: '洛阳' };
+
+  /* S42a 三闸：可见（岗位/立号/favor/已在册）+ 两限（上限 / 同时只劝两人）+ 注入顺序 */
+  let badA = null;
+  const visCases = [
+    /* favor 无记录：原版 `undefined < 2` 恒 false ⇒ 陌生人反而可劝（classic 缺陷），本仓改为
+     * `(favor||0) < 2` 并在此显式记「期望不同」——不是漏对表，是有意的偏差登记。 */
+    { o: {}, npc: NPC, v: false, diverge: true },
+    { o: { streetFavor: { 'luoyang:waiter:王二': 1 } }, npc: NPC, v: false },        /* favor 1 */
+    { o: { streetFavor: { 'luoyang:waiter:王二': 2 } }, npc: NPC, v: true },         /* favor 2 */
+    { o: { streetFavor: { 'luoyang:officer:李四': 4 } }, npc: { regionId: 'luoyang', jobId: 'officer', name: '李四' }, v: false },
+    { o: { streetFavor: { 'luoyang:waiter:王二': 2 }, faction: { disciples: [{ id: 'luoyang:waiter:王二', name: '王二' }] } }, npc: NPC, v: false },
+    { o: { streetFavor: { 'luoyang:waiter:王二': 2 }, faction: { founded: false } }, npc: NPC, v: false }
+  ];
+  visCases.forEach((c, i) => {
+    const st = mk(c.o);
+    run('state = ' + JSON.stringify(st) + ';');
+    run('window._hallRecruitNpc = ' + JSON.stringify(c.npc) + ';');
+    const a = run('hallRecruitVisible(window._hallRecruitNpc)');
+    const b = hall.recruitVisible(st, c.npc);
+    if (c.diverge) {
+      if (a !== true || b !== false) badA = 'case' + i + ' 偏差记错（应 原版 true / 新版 false）: ' + a + ' / ' + b;
+    } else {
+      if (a !== b && !badA) badA = 'visible case' + i + ': ' + a + ' ≠ ' + b;
+      if (a !== c.v && !badA) badA = 'visible 期望差 case' + i + ': ' + a + ' ≠ 期望 ' + c.v;
+    }
+  });
+  /* 两限 + 注入顺序（favor 够时「劝入府」置顶并截 3；不够时原样前 3） */
+  const lim = [
+    { o: { streetFavor: { 'luoyang:waiter:王二': 2 } } },
+    { o: { streetFavor: { 'luoyang:waiter:王二': 2 }, faction: { disciples: Array.from({ length: 5 }, (_, k) => ({ id: 'd' + k, name: '门' + k })) } } },
+    { o: { streetFavor: { 'luoyang:waiter:王二': 2, 'luoyang:escort:甲': 2 }, faction: { recruitLines: ['luoyang:escort:甲', 'luoyang:waiter:赵六'] } } }
+  ];
+  const acts = [{ id: 'a1', label: '甲' }, { id: 'a2', label: '乙' }, { id: 'a3', label: '丙' }];
+  lim.forEach((c, i) => {
+    const st = mk(c.o);
+    run('state = ' + JSON.stringify(st) + ';');
+    run('window._hallRecruitNpc = ' + JSON.stringify(NPC) + ';');
+    const a = run('hallRecruitBlock(window._hallRecruitNpc)') + '‖' +
+      run('JSON.stringify(hallAdjustStreetActions(window._hallRecruitNpc, ' + JSON.stringify(acts) + ').map(function(x){return x.id;}))');
+    const b = hall.recruitBlock(st, NPC) + '‖' +
+      JSON.stringify(hall.adjustStreetActions(st, NPC, acts).map((x) => x.id));
+    if (a !== b && !badA) badA = 'block case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  check('S42a 招募三闸 + 两限 + 抽屉注入 ×9 态（可见性 6 态 / 限制与顺序 3 态）', badA === null, badA || undefined);
+
+  /* S42b 入册落账 ×3 支：确认 / 送盘缠（−20）/ 满员拒绝 —— 与 hallRecruitPick 逐字段对拍 */
+  let badB = null;
+  const recCases = [
+    { o: { streetFavor: { 'luoyang:waiter:王二': 2 } }, which: 0 },
+    { o: { streetFavor: { 'luoyang:waiter:王二': 2 } }, which: 2 },
+    { o: { streetFavor: { 'luoyang:waiter:王二': 2 }, faction: { disciples: Array.from({ length: 5 }, (_, k) => ({ id: 'd' + k, name: '门' + k })) } }, which: 0 }
+  ];
+  const grow = (s) => JSON.stringify({
+    gold: s.gold, lines: (s.faction.recruitLines || []).join(','),
+    d: (s.faction.disciples || []).map((d) => [d.id, d.name, d.jobId, d.jobTitle, (d.lines || []).length, !!d.settled].join('/')).join('|'),
+    spawn: JSON.stringify(s.streetSpawn)
+  });
+  recCases.forEach((c, i) => {
+    const s1 = mk(c.o);
+    s1.streetSpawn = { luoyang: { names: { waiter: '王二', escort: '甲' }, spawnedTurn: 9 } };
+    s1.faction.recruitLines = ['luoyang:waiter:王二'];
+    run('state = ' + JSON.stringify(s1) + '; ADD_LOG = "";');
+    run('window._hallRecruitNpc = ' + JSON.stringify(NPC) + ';');
+    run('hallRecruitPick(' + JSON.stringify('luoyang:waiter:王二') + ',' + c.which + ');');
+    const after = JSON.parse(run('JSON.stringify(state)'));
+    const s2 = mk(c.o);
+    s2.streetSpawn = JSON.parse(JSON.stringify(s1.streetSpawn));
+    s2.faction.recruitLines = ['luoyang:waiter:王二'];
+    hall.recruit(s2, NPC, c.which === 2 ? 'tip' : 'confirm');
+    const a = grow(after);
+    const b = grow(s2);
+    if (a !== b && !badB) badB = 'recruit case' + i + ': ' + a + ' ≠ ' + b;
+  });
+  check('S42b 入册落账 ×3 支（确认 / 送盘缠 −20 / 满员拒绝，含原处换人）', badB === null, badB || undefined);
+
+  /* S42c 门人三动作不变量（原 hallAct 的 settle/chat/dismiss 三支；DOM 面不搬） */
+  let badC = null;
+  const st3 = mk({ faction: { disciples: [{ id: 'k1', name: '王二', jobId: 'waiter', jobTitle: '跑堂', lines: ['一', '二', '三'], settled: false }], recruitLines: ['k1'] } });
+  hall.ensureState(st3);
+  const r1 = hall.actOnMember(st3, 'k1', 'settle');
+  if (!badC && (!r1.ok || st3.faction.disciples[0].settled !== true)) badC = '安顿: ' + JSON.stringify(r1);
+  const r2 = hall.actOnMember(st3, 'k1', 'chat');
+  if (!badC && (!r2.ok || r2.toast !== '三')) badC = '闲话应取第三句: ' + JSON.stringify(r2.toast);
+  const r3 = hall.actOnMember(st3, 'k1', 'dismiss');
+  if (!badC && (!r3.ok || st3.faction.disciples.length !== 0 || st3.faction.recruitLines.length !== 0 || !/离开了府/.test(r3.log || ''))) {
+    badC = '遣散: ' + JSON.stringify({ ok: r3.ok, n: st3.faction.disciples.length, lines: st3.faction.recruitLines });
+  }
+  const r4 = hall.actOnMember(st3, 'nobody', 'settle');
+  if (!badC && (r4.ok !== false || !/先点一个门人/.test(r4.why || ''))) badC = '空选: ' + JSON.stringify(r4);
+  check('S42c 门人三动作（安顿 / 闲话取第三句 / 遣散清册清占位 / 空选拦截）', badC === null, badC || undefined);
+})();
+
 /* ══ 末行 ═══════════════════════════════════════════════════════════════ */
 failures.slice(0, 8).forEach(f => console.log('FAIL ' + f));
 if (failed === 0) {

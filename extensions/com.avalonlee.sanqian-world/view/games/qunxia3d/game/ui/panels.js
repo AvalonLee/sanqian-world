@@ -148,11 +148,13 @@
   /* ── 市井浮层（册300 · P4-A）：三句场面 + 三动作（禁用态走 actionView 同源）
    * 册301：extraActions = 官差三支（朝廷线），前置后整体截 3 —— 与原版
    * syncOfficerJobActions「court 三支优先、再用原岗动作补位」同序。 */
-  function openStreetNpc(st, npc, onAct, extraActions) {
+  function openStreetNpc(st, npc, onAct, extraActions, actionsOverride) {
     openSheet(function (m) {
       var job = systems.street.jobOf(npc.jobId) || { title: '市井', sentences: [], actions: [] };
       var lines = (job.sentences || []).slice(0, 3).map(function (fn) { return fn(npc); });
-      var actions = (extraActions || []).concat(job.actions || []).slice(0, 3);
+      var actions = actionsOverride
+        ? actionsOverride.slice(0, 3)
+        : (extraActions || []).concat(job.actions || []).slice(0, 3);
       var desc = '<div class="qxm-street">' +
         '<div class="qxm-street-seal">' + job.title + '</div>' +
         lines.map(function (l) { return '<p>' + l + '</p>'; }).join('') +
@@ -352,17 +354,84 @@
       var desc = '<div class="qxm-street">' +
         '<div class="qxm-street-seal">本门</div>' +
         '<p>' + info.name + '。声望' + info.fameWord + '。宗旨' + info.doctrine + '。</p>' +
-        '<p>门人 ' + info.people + ' 人，上限 ' + info.cap + '。房舍 ' + info.houses + '。</p>' +
+        '<p>门人 ' + ((info.people && info.people.length) || 0) + ' 人，上限 ' + info.cap + '。房舍 ' + info.houses + '。</p>' +
         '<p>' + info.wifeLine + '</p>' +
         '</div>' +
         '<div class="qxm-dim qxm-street-meta">' + (info.ledger || '饷银还没过第一旬。') + '</div>';
       shell(m, '本门', info.name, '概览', desc,
-        choiceBtn('地盘') + choiceBtn('规矩') + choiceBtn('邸报') + choiceBtn('合上簿子'));
+        choiceBtn('门人') + choiceBtn('地盘') + choiceBtn('规矩') + choiceBtn('邸报') + choiceBtn('合上簿子'));
       var btns = m.querySelectorAll('[data-qxm-choice]');
-      btns[0].addEventListener('click', function () { closeModal(); if (onPage) onPage('ground'); });
-      btns[1].addEventListener('click', function () { closeModal(); if (onPage) onPage('rule'); });
-      btns[2].addEventListener('click', function () { closeModal(); if (onPage) onPage('gazette'); });
-      btns[3].addEventListener('click', closeModal);
+      btns[0].addEventListener('click', function () { closeModal(); if (onPage) onPage('people'); });
+      btns[1].addEventListener('click', function () { closeModal(); if (onPage) onPage('ground'); });
+      btns[2].addEventListener('click', function () { closeModal(); if (onPage) onPage('rule'); });
+      btns[3].addEventListener('click', function () { closeModal(); if (onPage) onPage('gazette'); });
+      btns[4].addEventListener('click', closeModal);
+    });
+  }
+
+  /* ── 门人页（册318 · F3）：名册 + 女眷职事 + 招募提示 ─────────────────────── */
+  function openHallPeople(st, info, handlers) {
+    openSheet(function (m) {
+      var rows = (info.people || []).map(function (d) {
+        return '<button class="qxm-act" data-hall-member="' + d.id + '">' +
+          '<span class="qa-main"><b>' + d.name + '</b><i>' + (d.jobTitle || '门人') + (d.settled ? ' · 已安顿' : '') + '</i></span>' +
+          '<span class="qa-cost">点开</span></button>';
+      }).join('');
+      var kin = (info.kin || []).map(function (k) {
+        return '<p class="qxm-dim">女眷 · ' + k.name + ' · ' + k.duty + '</p>';
+      }).join('');
+      var desc = '<div class="qxm-street">' +
+        '<div class="qxm-street-seal">门人</div>' +
+        '<p>' + (info.people.length ? ('门人 ' + info.people.length + ' 人，上限 ' + info.cap + '。点名字听三句。') : '门下还空着。') + '</p>' +
+        '<p>' + (info.kin.length ? ('女眷 ' + info.kin.length + ' 人，职事挂在各人身上。') : '女眷职事还空着。') + '</p>' +
+        '<p>招揽去市井劝跑堂、镖师或药徒；官差劝不动。</p>' +
+        '</div>' + kin;
+      shell(m, '本门 · 门人', info.name, '门人 ' + info.people.length + '/' + info.cap,
+        desc + '<div class="qxm-acts">' + rows + '</div>',
+        choiceBtn('合上簿子'));
+      Array.prototype.forEach.call(m.querySelectorAll('[data-hall-member]'), function (b) {
+        b.addEventListener('click', function () {
+          closeModal();
+          if (handlers && handlers.onMember) handlers.onMember(b.getAttribute('data-hall-member'));
+        });
+      });
+      m.querySelector('[data-qxm-choice]').addEventListener('click', closeModal);
+    });
+  }
+
+  /* ── 门人浮层（册318）：三句自述 + 安顿 / 闲话 / 遣散 ───────────────────── */
+  function openHallMember(st, person, onAct) {
+    openSheet(function (m) {
+      var lines = (person.lines || []).slice(0, 3);
+      var desc = '<div class="qxm-street">' +
+        '<div class="qxm-street-seal">门人</div>' +
+        lines.map(function (l) { return '<p>' + l + '</p>'; }).join('') +
+        '</div><div class="qxm-dim qxm-street-meta">门人不加拳脚，不加气血。' + (person.settled ? '已安顿在府里。' : '还没安顿。') + '</div>';
+      shell(m, '门人', person.name, person.jobTitle || '门人', desc,
+        choiceBtn('安顿', ' primary') + choiceBtn('闲话') + choiceBtn('遣散'));
+      var btns = m.querySelectorAll('[data-qxm-choice]');
+      var ids = ['settle', 'chat', 'dismiss'];
+      for (var i = 0; i < 3; i++) {
+        (function (idx) {
+          btns[idx].addEventListener('click', function () { closeModal(); if (onAct) onAct(ids[idx]); });
+        })(i);
+      }
+    });
+  }
+
+  /* ── 招揽三选（册318）：确认 / 改日 / 送盘缠再劝 ─────────────────────────── */
+  function openHallRecruit(st, dialog, onPick) {
+    openSheet(function (m) {
+      shell(m, dialog.tag, dialog.title, dialog.loc, '<p class="qxm-desc">' + dialog.desc + '</p>',
+        dialog.choices.map(function (c, i) {
+          return '<button class="qxm-btn' + (i === 0 ? ' primary' : '') + '" data-hall-recruit="' + c.id + '">' + c.label + '</button>';
+        }).join(''));
+      Array.prototype.forEach.call(m.querySelectorAll('[data-hall-recruit]'), function (b) {
+        b.addEventListener('click', function () {
+          closeModal();
+          if (onPick) onPick(b.getAttribute('data-hall-recruit'));
+        });
+      });
     });
   }
 
@@ -438,6 +507,9 @@
     openHallGround: openHallGround,
     openHallRule: openHallRule,
     openHallGazette: openHallGazette,
+    openHallPeople: openHallPeople,
+    openHallMember: openHallMember,
+    openHallRecruit: openHallRecruit,
     openCourtChoices: openCourtChoices,
     openBountyPoster: openBountyPoster,
     openRoadEncounter: openRoadEncounter,
