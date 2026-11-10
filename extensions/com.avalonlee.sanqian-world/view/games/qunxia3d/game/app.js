@@ -642,6 +642,7 @@
     }
     root.QX3D_APP.state = st;
     if (ui.audio) ui.audio.bindAutoStart(); /* 册289：首次手势起奏（浏览器自播放策略） */
+    if (ui.audio) ui.audio.custom.load();   /* 册319：载入自选原声（有则接管 BGM） */
     if (!st.hasCreatedChar) {
       ui.creation.open(st);
       ui.hud.renderLogs(st);

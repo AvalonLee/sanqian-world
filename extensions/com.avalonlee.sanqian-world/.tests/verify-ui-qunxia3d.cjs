@@ -1168,6 +1168,79 @@ const { chromium } = require('playwright-core');
     });
     await page.waitForTimeout(150);
 
+    /* ── Q3D23 组 · M6 尾量自选原声（册319）：设置页选文件 → 接管 BGM → 清除 ──
+     * 1 秒静音 WAV 现场拼装（只验落档与接管链路，不验出声）。 */
+    const wavBuf = (() => {
+      const n = 8000;
+      const b = Buffer.alloc(44 + n * 2);
+      b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVE', 8);
+      b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
+      b.writeUInt32LE(8000, 24); b.writeUInt32LE(16000, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34);
+      b.write('data', 36); b.writeUInt32LE(n * 2, 40);
+      return b;
+    })();
+    await page.click('#btn-settings');
+    await page.waitForTimeout(250);
+    const au0 = await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      return {
+        hasFile: !!m.querySelector('#qxs-bgmfile'),
+        hasClear: !!m.querySelector('#qxs-bgmclear'),
+        note: (m.querySelector('#qxs-bgmname') || {}).textContent || ''
+      };
+    });
+    T(au0.hasFile && au0.hasClear && /当前：琴房合成曲/.test(au0.note),
+      'Q3D23a 设置页「自选原声」行（文件选择 + 清除钮 ⇔ 当前为合成曲）', JSON.stringify(au0));
+    await page.setInputFiles('#qxs-bgmfile', { name: 'walkthrough.wav', mimeType: 'audio/wav', buffer: wavBuf });
+    await page.waitForTimeout(400);
+    const au1 = await page.evaluate(() => {
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem('qunxia-custom-bgm-v1') || 'null'); } catch (e) { saved = null; }
+      const el = document.getElementById('custom-bgm-audio');
+      return {
+        name: saved && saved.name, type: saved && saved.type,
+        isData: !!(saved && /^data:audio\//.test(saved.dataUrl || '')),
+        note: (document.querySelector('#qx-modal #qxs-bgmname') || {}).textContent || '',
+        audio: el ? String(el.getAttribute('src') || '').slice(0, 11) : '',
+        active: window.QX3D.ui.audio.custom.active()
+      };
+    });
+    T(au1.name === 'walkthrough.wav' && au1.type === 'audio/wav' && au1.isData && au1.active &&
+      /当前：自选 · walkthrough\.wav/.test(au1.note) && au1.audio === 'data:audio/',
+      'Q3D23b 自选原声落档并接管（data URL 入 qunxia-custom-bgm-v1 ⇔ <audio> 挂上 ⇔ 行内改口）',
+      JSON.stringify({ name: au1.name, isData: au1.isData, audio: au1.audio }));
+    /* 超限拒绝：3MB 假音频 */
+    await page.setInputFiles('#qxs-bgmfile', { name: 'too-big.wav', mimeType: 'audio/wav', buffer: Buffer.alloc(3 * 1024 * 1024) });
+    await page.waitForTimeout(300);
+    const au2 = await page.evaluate(() => {
+      const saved = JSON.parse(localStorage.getItem('qunxia-custom-bgm-v1') || 'null');
+      return {
+        name: saved && saved.name,
+        toast: (document.getElementById('toast-container') || {}).textContent || ''
+      };
+    });
+    T(au2.name === 'walkthrough.wav' && /文件太大/.test(au2.toast),
+      'Q3D23c 超限拒绝（3MB ⇒ toast「文件太大」⇔ 已存曲目不动）', JSON.stringify({ name: au2.name, toast: au2.toast.slice(-20) }));
+    await page.click('#qxs-bgmclear');
+    await page.waitForTimeout(300);
+    const au3 = await page.evaluate(() => ({
+      gone: localStorage.getItem('qunxia-custom-bgm-v1') === null,
+      note: (document.querySelector('#qx-modal #qxs-bgmname') || {}).textContent || '',
+      active: window.QX3D.ui.audio.custom.active(),
+      src: (document.getElementById('custom-bgm-audio') || {}).getAttribute
+        ? String((document.getElementById('custom-bgm-audio') || {}).getAttribute('src') || '') : ''
+    }));
+    T(au3.gone && !au3.active && /当前：琴房合成曲/.test(au3.note) && au3.src === '',
+      'Q3D23d 清除自选原声（删键 ⇔ 回合成曲 ⇔ <audio> 摘 src）', JSON.stringify(au3));
+    await page.evaluate(() => {
+      const m = document.getElementById('qx-modal');
+      if (m && !m.classList.contains('hidden')) {
+        const x = m.querySelector('[data-qxm-close]');
+        if (x) x.click();
+      }
+    });
+    await page.waitForTimeout(150);
+
     /* 收口：全程零脚本错误 */
     T(errs.length === 0 && (await page.evaluate(() => window.__errs.length)) === 0,
       'Q3D7 全程零脚本错误（pageerror/console.error/window.__errs 三源）', errs.slice(0, 3).join(' | '));

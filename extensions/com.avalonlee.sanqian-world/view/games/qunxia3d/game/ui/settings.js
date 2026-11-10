@@ -17,7 +17,8 @@
  * （panels 私有函数未导出），现改挂 🆕 ui/sheet.js 公共壳件，gazette 同用〕
  *
  * 走查：verify-ui-qunxia3d Q3D13a/13b（开模态四控件在场读数即 prefs ‖ 滑块/开关动作落
- * `qunxia-audio-v1` 且重开保持）。
+ * `qunxia-audio-v1` 且重开保持）· Q3D23a~d（册319 自选原声：行在位 / 选文件落档并接管 /
+ * 超限拒绝 / 清除回合成曲）。
  */
 (function (root, factory) {
   var api = factory(root);
@@ -56,6 +57,11 @@
       '<div class="qxm-set-row"><label for="qxs-auto">场景切曲</label>' +
       '<input type="checkbox" class="qxm-switch" id="qxs-auto"' + (p.autoSwitchBgm ? ' checked' : '') + '>' +
       '<span class="qxm-set-note">对决自动奏《难念的经》· 地界按派系换曲</span></div>' +
+      /* 自选原声（册319 · M6 尾量）：选一段本地音频接管 BGM，2MB 以内 */
+      '<div class="qxm-set-row"><label for="qxs-bgmfile">自选原声</label>' +
+      '<input type="file" class="qxm-file" id="qxs-bgmfile" accept="audio/*">' +
+      '<button type="button" class="qxm-mini" id="qxs-bgmclear">清除</button></div>' +
+      '<div class="qxm-set-note" id="qxs-bgmname"></div>' +
       '<div class="qxm-set-note">音量改动自下一音符 / 下一音效起生效（引擎逐音实时取值）。原版设置中心的粒子特效 / 大字模式 / 浮字三键无 3D 对应系统，不移植（件头注偏差登记）。</div>' +
       '</div>');
     if (!m) return; /* 单实例独占：已有弹窗在场不覆盖 */
@@ -80,6 +86,33 @@
     bindRange('qxs-bgm', 'qxs-bgm-val', 'bgmVolume');
     bindRange('qxs-sfx', 'qxs-sfx-val', 'sfxVolume');
     bindSwitch('qxs-auto', function (v) { audio.setPref('autoSwitchBgm', v); });
+
+    /* 自选原声（册319）：选文件 → 存 data URL → 接管 BGM；清除则回合成曲 */
+    var nameEl = m.querySelector('#qxs-bgmname');
+    var refreshName = function () {
+      if (!nameEl) return;
+      var c = audio.custom;
+      nameEl.textContent = (c && c.active())
+        ? ('当前：自选 · ' + c.name() + '（上限 ' + Math.round(c.maxBytes() / 1024) + 'KB）')
+        : '当前：琴房合成曲（选一段本地音频接管，2MB 以内）';
+    };
+    refreshName();
+    var fileEl = m.querySelector('#qxs-bgmfile');
+    if (fileEl && audio.custom) {
+      fileEl.addEventListener('change', function () {
+        var f = fileEl.files && fileEl.files[0];
+        audio.custom.set(f, function (r) {
+          var toast = (root.QX3D_APP && root.QX3D_APP.env) ? root.QX3D_APP.env().showToast : null;
+          if (!r.ok) { if (toast) toast(r.why, 'amber'); refreshName(); return; }
+          if (toast) toast('🎵 已换成自选原声：' + r.name, 'emerald');
+          refreshName();
+        });
+      });
+    }
+    var clearEl = m.querySelector('#qxs-bgmclear');
+    if (clearEl && audio.custom) {
+      clearEl.addEventListener('click', function () { audio.custom.clear(); refreshName(); });
+    }
   }
 
   var api = { open: open };

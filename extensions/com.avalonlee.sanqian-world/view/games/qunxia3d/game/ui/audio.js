@@ -4,7 +4,8 @@
  * 偏差登记（对表豁免口径，随批登记）：
  *   ① gameSettings → 件内 prefs（localStorage `qunxia-audio-v1` 持久化；settings 页余量批消费 getPrefs/setPrefs）
  *   ② state/getRegion 走形参（autoAdaptBgmToContext(mode, state, getRegion)，不再读全局；D7 桥风格）
- *   ③ 自选原声文件导入（custom-bgm-audio）与设置中心模态不移植——须文件选择器/设置页，随 settings 页批裁
+ *   ③ 设置中心模态随 settings 页批（册292）落；**自选原声**（原 custom-bgm-audio）由册319 以
+ *      `custom` API 补上（localStorage data URL，不用 IDB——file:// 下禁用），口径见下文〇b 段
  *   ④ 场景映射提为纯函数 suiteIdxForRegion(regionId)（对表判点），autoAdapt 场景段消费它——行为逐值等价由 S33 钉
  *   ⑤ 首次手势自动起奏（pointerdown once 语义同原版 :10086）；node 侧（table-check require）只导出数据与纯函数 */
 (function (root) {
@@ -24,7 +25,95 @@
   var prefs = loadPrefs();
   function savePrefs() { try { root.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} }
   function getPrefs() { return prefs; }
-  function setPref(key, val) { prefs[key] = val; savePrefs(); }
+  function setPref(key, val) {
+    prefs[key] = val;
+    savePrefs();
+    /* 自选曲接管期间，音量改动要即时落到 <audio>（合成器那条是逐音符读值，无需通道） */
+    if (key === 'bgmVolume' && custom.el) custom.el.volume = Math.max(0, Math.min(1, Number(val) || 0));
+  }
+
+  /* ===== 〇b · 自选原声（册319 · M6 尾量）=====
+   * 存储走 **localStorage data URL**（键 `qunxia-custom-bgm-v1`），不走 IndexedDB——
+   * 游戏页在本机以 `file://` 直开（走查/预览），Chrome 对 file:// 的 IDB 是禁用的；宿主里两者都可用，
+   * 取覆盖面大的一侧。上限 2MB 原始字节（base64 ≈ 2.7MB，仍在同源 5MB 配额内），超限当场拒。
+   * 接管语义：有自选曲时**停合成器**、`<audio loop>` 顶上；场景切曲（autoSwitchBgm）在自选期间不生效。 */
+  var CUSTOM_KEY = 'qunxia-custom-bgm-v1';
+  var CUSTOM_MAX_BYTES = 2 * 1024 * 1024;
+  var custom = { name: '', dataUrl: '', el: null };
+  function customActive() { return !!custom.dataUrl; }
+  function customName() { return custom.name || ''; }
+  function ensureCustomEl() {
+    if (custom.el) return custom.el;
+    var doc = root.document;
+    if (!doc || !doc.body) return null;
+    var el = doc.createElement('audio');
+    el.id = 'custom-bgm-audio';
+    el.loop = true;
+    el.preload = 'auto';
+    el.style.display = 'none';
+    doc.body.appendChild(el);
+    custom.el = el;
+    return el;
+  }
+  function stopSynth() { if (bgmTimer) { clearTimeout(bgmTimer); bgmTimer = null; } }
+  function playCustom() {
+    if (!customActive()) return;
+    var el = ensureCustomEl();
+    if (!el) return;
+    if (el.getAttribute('src') !== custom.dataUrl) el.setAttribute('src', custom.dataUrl);
+    el.volume = Math.max(0, Math.min(1, prefs.bgmVolume));
+    if (!prefs.soundEnabled) return;
+    try {
+      var pr = el.play();
+      if (pr && pr.catch) pr.catch(function () { /* 自动播放被拦：留给首次手势 */ });
+    } catch (e) {}
+  }
+  function startCustom() { stopSynth(); playCustom(); updateBgmLabel(); }
+  function loadCustom() {
+    var o = null;
+    try {
+      var raw = root.localStorage && root.localStorage.getItem(CUSTOM_KEY);
+      o = raw ? JSON.parse(raw) : null;
+    } catch (e) { o = null; }
+    if (!o || !o.dataUrl) { updateBgmLabel(); return false; }
+    custom.name = o.name || '原声';
+    custom.dataUrl = o.dataUrl;
+    if (prefs.soundEnabled) startCustom(); else updateBgmLabel();
+    return true;
+  }
+  function setCustomFile(file, cb) {
+    var done = typeof cb === 'function' ? cb : function () {};
+    if (!file) { done({ ok: false, why: '没有选中文件。' }); return; }
+    if (!/^audio\//.test(file.type || '')) { done({ ok: false, why: '只收音频文件。' }); return; }
+    if (file.size > CUSTOM_MAX_BYTES) { done({ ok: false, why: '文件太大（上限 2MB）。' }); return; }
+    var reader = new root.FileReader();
+    reader.onload = function () {
+      var url = String(reader.result || '');
+      try {
+        root.localStorage.setItem(CUSTOM_KEY, JSON.stringify({ name: file.name, type: file.type, dataUrl: url }));
+      } catch (e) {
+        done({ ok: false, why: '存不下（同源配额不足）。' });
+        return;
+      }
+      custom.name = file.name;
+      custom.dataUrl = url;
+      startCustom();
+      done({ ok: true, name: file.name });
+    };
+    reader.onerror = function () { done({ ok: false, why: '读不动这个文件。' }); };
+    reader.readAsDataURL(file);
+  }
+  function clearCustom() {
+    try { root.localStorage.removeItem(CUSTOM_KEY); } catch (e) {}
+    if (custom.el) {
+      try { custom.el.pause(); } catch (e) {}
+      try { custom.el.removeAttribute('src'); } catch (e) {}
+    }
+    custom.name = '';
+    custom.dataUrl = '';
+    restartBgmTimer();
+    updateBgmLabel();
+  }
 
   /* ===== 一 · 三音色 SFX（原 :1357–:1401 参数一致） ===== */
   var audioCtx = null;
@@ -91,9 +180,9 @@
       initAudio();
       playGuqinNote(523.25, 'pluck');
       restartBgmTimer();
-    } else if (bgmTimer) {
-      clearTimeout(bgmTimer);
-      bgmTimer = null;
+    } else {
+      if (bgmTimer) { clearTimeout(bgmTimer); bgmTimer = null; }
+      if (custom.el) { try { custom.el.pause(); } catch (e) {} }
     }
     return prefs.soundEnabled;
   }
@@ -314,13 +403,21 @@
     return String(suite.name.split('·')[0]).replace(/[《》]/g, '');
   }
 
+  /* 顶栏曲目标签（合成曲 / 自选原声两态） */
+  function updateBgmLabel() {
+    var lbl = null;
+    try { lbl = root.document.getElementById('bgm-suite-label'); } catch (e) {}
+    if (!lbl) return;
+    lbl.textContent = customActive()
+      ? ('🎵 自选 · ' + (custom.name || '原声'))
+      : ('🎵 ' + suiteShortName(getActiveBgmSuite()));
+  }
+
   function restartBgmTimer() {
     if (bgmTimer) clearTimeout(bgmTimer);
     bgmTimer = null;
-    var lbl = null;
-    try { lbl = document.getElementById('bgm-suite-label'); } catch (e) {}
-    var suite = getActiveBgmSuite();
-    if (lbl) lbl.textContent = '🎵 ' + suiteShortName(suite);
+    if (customActive()) { startCustom(); return; }
+    updateBgmLabel();
     if (!prefs.soundEnabled) return;
     scheduleNextBgmNote();
   }
@@ -354,6 +451,7 @@
 
   function autoAdaptBgmToContext(mode, state, getRegion) {
     if (!prefs.soundEnabled || !prefs.autoSwitchBgm) return;
+    if (customActive()) return; /* 册319：自选原声接管期间不按场景抢曲 */
     if (mode === 'duel') {
       bgmBeforeDuelIdx = bgmSuiteIdx;
       bgmSuiteIdx = 1; /* 战斗自动奏响快节奏《难念的经》 */
@@ -399,6 +497,15 @@
     getPrefs: getPrefs,
     setPref: setPref,
     isSoundEnabled: function () { return !!prefs.soundEnabled; },
+    /* 册319：自选原声（M6 尾量） */
+    custom: {
+      load: loadCustom,
+      set: setCustomFile,
+      clear: clearCustom,
+      active: customActive,
+      name: customName,
+      maxBytes: function () { return CUSTOM_MAX_BYTES; }
+    },
     bindAutoStart: bindAutoStart,
     _internal: function () { return { get: function () { return bgmSuiteIdx; }, set: function (v) { bgmSuiteIdx = v; }, step: function (v) { bgmStepIdx = v; }, before: function () { return bgmBeforeDuelIdx; } }; }
   };
